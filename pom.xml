@@ -35,6 +35,9 @@
         <module>lamuda-cloud-scaffold-dependencies</module>
         <module>lamuda-cloud-scaffold-dict-api</module>
         <module>lamuda-cloud-scaffold-upms-api</module>
+        <module>lamuda-cloud-scaffold-log-api</module>
+        <module>lamuda-cloud-scaffold-message-api</module>
+        <module>lamuda-cloud-scaffold-upload-api</module>
     </modules>
 
 
