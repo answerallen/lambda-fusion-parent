@@ -3,7 +3,7 @@ package com.lambda.fusion.dict.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.dict.dto.QueryDictTree;
-import com.lambda.fusion.dict.entity.DictType;
+import com.lambda.fusion.dict.dao.entity.DictType;
 import java.util.List;
 import java.util.Map;
 

@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.entity;
+package com.lambda.fusion.dict.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;

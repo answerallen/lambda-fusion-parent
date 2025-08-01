@@ -3,7 +3,7 @@ package com.lambda.fusion.dict.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.dict.entity.DictInfo;
+import com.lambda.fusion.dict.dao.entity.DictInfo;
 import com.lambda.fusion.dict.vo.DictTypeVo;
 import java.util.List;
 import java.util.Map;

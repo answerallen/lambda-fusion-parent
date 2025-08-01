@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.config;
+package com.lambda.fusion.config;
 
 import lombok.Getter;
 import lombok.Setter;

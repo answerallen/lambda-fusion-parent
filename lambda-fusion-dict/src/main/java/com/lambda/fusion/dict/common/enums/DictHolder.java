@@ -1,6 +1,6 @@
-package com.lambda.fusion.dict.support.enums;
+package com.lambda.fusion.dict.common.enums;
 
-import com.lambda.fusion.dict.support.model.DynamicDict;
+import com.lambda.fusion.dict.common.model.DynamicDict;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;

@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.support.resolve;
+package com.lambda.fusion.dict.common.resolve;
 
 import static com.lambda.cloud.mvc.WebHttpUtils.X_AUTHORIZED_BEARER;
 import static com.lambda.fusion.core.Constants.AUTHORIZATION;
@@ -6,10 +6,10 @@ import static com.lambda.fusion.core.Constants.BEARER;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.dict.config.DictionaryProperties;
-import com.lambda.fusion.dict.entity.DictType;
-import com.lambda.fusion.dict.support.model.DictValueType;
-import com.lambda.fusion.dict.support.model.DynamicDict;
+import com.lambda.fusion.config.DictionaryProperties;
+import com.lambda.fusion.dict.dao.entity.DictType;
+import com.lambda.fusion.dict.common.model.DictValueType;
+import com.lambda.fusion.dict.common.model.DynamicDict;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;

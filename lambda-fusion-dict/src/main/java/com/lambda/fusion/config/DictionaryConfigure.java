@@ -1,4 +1,4 @@
-package com.lambda.cloud.scaffold.dict.config;
+package com.lambda.fusion.config;
 
 import com.lambda.fusion.dict.dubbo.RemoteDictService;
 import org.apache.dubbo.config.ServiceConfig;

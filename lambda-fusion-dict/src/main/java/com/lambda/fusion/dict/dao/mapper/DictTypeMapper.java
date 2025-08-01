@@ -1,9 +1,9 @@
-package com.lambda.fusion.dict.mapper;
+package com.lambda.fusion.dict.dao.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.dict.entity.DictType;
+import com.lambda.fusion.dict.dao.entity.DictType;
 import java.util.List;
 import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;

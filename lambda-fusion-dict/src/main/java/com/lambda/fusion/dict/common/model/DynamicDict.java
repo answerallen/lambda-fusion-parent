@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.support.model;
+package com.lambda.fusion.dict.common.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

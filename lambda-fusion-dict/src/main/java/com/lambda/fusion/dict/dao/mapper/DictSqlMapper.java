@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.mapper;
+package com.lambda.fusion.dict.dao.mapper;
 
 import java.util.LinkedHashMap;
 import java.util.List;

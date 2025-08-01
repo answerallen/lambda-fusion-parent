@@ -1,9 +1,9 @@
-package com.lambda.fusion.dict.support.resolve;
+package com.lambda.fusion.dict.common.resolve;
 
-import com.lambda.fusion.dict.entity.DictType;
-import com.lambda.fusion.dict.mapper.DictSqlMapper;
-import com.lambda.fusion.dict.support.model.DictValueType;
-import com.lambda.fusion.dict.support.model.DynamicDict;
+import com.lambda.fusion.dict.dao.entity.DictType;
+import com.lambda.fusion.dict.dao.mapper.DictSqlMapper;
+import com.lambda.fusion.dict.common.model.DictValueType;
+import com.lambda.fusion.dict.common.model.DynamicDict;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

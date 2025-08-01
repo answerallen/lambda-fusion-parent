@@ -1,9 +1,9 @@
-package com.lambda.fusion.dict.support.enums;
+package com.lambda.fusion.dict.common.enums;
 
-import com.lambda.fusion.dict.entity.DictInfo;
-import com.lambda.fusion.dict.entity.DictType;
-import com.lambda.fusion.dict.support.model.DictValueType;
-import com.lambda.fusion.dict.support.model.DynamicDict;
+import com.lambda.fusion.dict.dao.entity.DictInfo;
+import com.lambda.fusion.dict.dao.entity.DictType;
+import com.lambda.fusion.dict.common.model.DictValueType;
+import com.lambda.fusion.dict.common.model.DynamicDict;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

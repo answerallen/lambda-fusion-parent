@@ -1,7 +1,7 @@
-package com.lambda.fusion.dict.support.model;
+package com.lambda.fusion.dict.common.model;
 
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.dict.support.enums.DictMapper;
+import com.lambda.fusion.dict.common.enums.DictMapper;
 import lombok.Getter;
 
 /**
@@ -25,8 +25,7 @@ public enum DictValueType {
     /**
      * 枚举类型
      */
-    ENUM_DICT(3, "枚举"),
-    ;
+    ENUM_DICT(3, "枚举");
 
     /**
      * 字典值类型

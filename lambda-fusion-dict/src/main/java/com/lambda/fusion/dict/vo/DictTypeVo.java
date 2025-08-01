@@ -1,6 +1,6 @@
 package com.lambda.fusion.dict.vo;
 
-import com.lambda.fusion.dict.entity.DictInfo;
+import com.lambda.fusion.dict.dao.entity.DictInfo;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
