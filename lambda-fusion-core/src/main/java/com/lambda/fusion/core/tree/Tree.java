@@ -1,6 +1,7 @@
 package com.lambda.fusion.core.tree;
 
 import com.lambda.cloud.core.exception.NotSupportedException;
+import com.lambda.fusion.core.Constants;
 import java.util.List;
 import org.apache.commons.lang.StringUtils;
 
@@ -11,7 +12,7 @@ import org.apache.commons.lang.StringUtils;
  * @author Jin
  */
 public interface Tree<T> {
-    String SPLIT = "-";
+    String SPLIT = Constants.TREE_SPLIT;
 
     /**
      * 数据的唯一标识对应的属性

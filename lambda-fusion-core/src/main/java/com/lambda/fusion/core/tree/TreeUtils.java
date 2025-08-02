@@ -19,7 +19,7 @@ import org.apache.commons.lang.StringUtils;
  * @author Jin
  */
 public final class TreeUtils {
-    public static final String TOP = "";
+    public static final String TOP = Constants.TREE_TOP_LEVEL;
 
     private TreeUtils() {}
 

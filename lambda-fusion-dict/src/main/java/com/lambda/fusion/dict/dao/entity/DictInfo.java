@@ -64,7 +64,7 @@ public class DictInfo extends BaseDO implements Tree<DictInfo> {
     @Schema(description = "父节点")
     private String parentId;
 
-    @TableField("TENANTID")
+    @TableField("TENANT_ID")
     @Schema(description = "租户")
     private String tenantId;
 

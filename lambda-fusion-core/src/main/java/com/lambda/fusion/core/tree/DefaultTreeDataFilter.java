@@ -84,7 +84,7 @@ public class DefaultTreeDataFilter implements ITreeDataFilter {
                 }
             }
         } catch (Exception e) {
-            log.info("过滤数据发生异常,过滤参数,{}", queryStr, e);
+            log.info(Constants.LOG_FILTER_DATA_EXCEPTION, queryStr, e);
             return target;
         }
         return sort.apply(result);

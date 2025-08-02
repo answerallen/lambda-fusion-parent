@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
+import com.lambda.fusion.core.Constants;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,10 +12,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public abstract class PageQuery<T> {
-    @NotNull(message = "pageNum不能为空")
+    @NotNull(message = Constants.MSG_PAGE_NUM_NOT_NULL)
     private Integer pageNum = 1;
 
-    @NotNull(message = "pageSize不能为空")
+    @NotNull(message = Constants.MSG_PAGE_SIZE_NOT_NULL)
     private Integer pageSize = Integer.MAX_VALUE;
 
     public Page<T> getPage() {

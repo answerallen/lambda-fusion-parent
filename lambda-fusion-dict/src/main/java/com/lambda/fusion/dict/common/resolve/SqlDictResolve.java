@@ -1,17 +1,10 @@
 package com.lambda.fusion.dict.common.resolve;
 
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
-
 import com.lambda.fusion.dict.common.model.DictValueType;
 import com.lambda.fusion.dict.common.model.DynamicDict;
 import com.lambda.fusion.dict.dao.entity.DictType;
 import com.lambda.fusion.dict.dao.mapper.DictSqlMapper;
-import jakarta.annotation.Resource;
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
@@ -19,17 +12,23 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.Select;
 import org.springframework.stereotype.Service;
 
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Optional;
+
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 /**
- * @author Jin
+ * @author westboy
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class SqlDictResolve implements IDynamicDictResolve {
 
-    @Resource
-    protected DictSqlMapper dictSqlMapper;
-
-    // SQL解析常量已移至 DictConstants 类中
+    protected final DictSqlMapper dictSqlMapper;
 
     private static final CCJSqlParserManager PARSER_MANAGER = new CCJSqlParserManager();
 
@@ -56,7 +55,6 @@ public class SqlDictResolve implements IDynamicDictResolve {
         return result;
     }
 
-    @SuppressWarnings("squid:S3776")
     private void addResult(List<LinkedHashMap<String, Object>> list, List<DynamicDict> result) {
         for (LinkedHashMap<String, Object> map : list) {
             DynamicDict dict = new DynamicDict();

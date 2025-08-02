@@ -82,7 +82,7 @@ public final class TreeFactory {
         parent.forEach(item -> result.addAll(idMap.get(item)));
         if (log.isTraceEnabled() && clock != null) {
             clock.stop();
-            log.trace("build tree cast: {}ns", clock.getTotalTimeNanos());
+            log.trace(Constants.LOG_TREE_BUILD_TIME, clock.getTotalTimeNanos());
         }
         return result;
     }
@@ -144,7 +144,7 @@ public final class TreeFactory {
         List<T> result = list1.stream().map(objects::get).collect(Collectors.toList());
         if (log.isTraceEnabled() && clock != null) {
             clock.stop();
-            log.trace("build tree cast: {}ns", clock.getTotalTimeNanos());
+            log.trace(Constants.LOG_TREE_BUILD_TIME, clock.getTotalTimeNanos());
         }
         return result;
     }
@@ -197,7 +197,7 @@ public final class TreeFactory {
 
         if (log.isTraceEnabled() && clock != null) {
             clock.stop();
-            log.trace("build tree cast: {}ns", clock.getTotalTimeNanos());
+            log.trace(Constants.LOG_TREE_BUILD_TIME, clock.getTotalTimeNanos());
         }
         return result;
     }

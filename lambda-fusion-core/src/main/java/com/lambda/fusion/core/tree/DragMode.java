@@ -1,9 +1,11 @@
 package com.lambda.fusion.core.tree;
 
+import com.lambda.fusion.core.Constants;
+
 /**
  * DragMode
  *
- * @author jin
+ * @author Jin
  */
 public enum DragMode {
     /**
@@ -24,6 +26,6 @@ public enum DragMode {
         if (i >= 0 && i < values.length) {
             return values[i];
         }
-        throw new IllegalArgumentException("wrong index of DragMode, allowed: [0, 1, 2]");
+        throw new IllegalArgumentException(Constants.MSG_DRAG_MODE_WRONG_INDEX);
     }
 }

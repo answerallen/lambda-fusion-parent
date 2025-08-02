@@ -1,6 +1,7 @@
 package com.lambda.fusion.core.events;
 
 import com.lambda.cloud.core.utils.Assert;
+import com.lambda.fusion.core.Constants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Date;
@@ -17,30 +18,30 @@ import org.springframework.util.CollectionUtils;
 @SuppressFBWarnings({"EI_EXPOSE_REP"})
 public class LambdaMessageEvent {
 
-    @Schema(description = "CODE")
+    @Schema(description = Constants.SCHEMA_CODE)
     private String code;
 
-    @Schema(description = "发送人")
+    @Schema(description = Constants.SCHEMA_SENDER)
     private String sender;
 
-    @Schema(description = "通知内容")
+    @Schema(description = Constants.SCHEMA_CONTENT)
     private String content;
 
-    @Schema(description = "触发时间")
+    @Schema(description = Constants.SCHEMA_TRIGGER_TIME)
     private Date triggerTime;
 
-    @Schema(description = "业务唯一标识")
+    @Schema(description = Constants.SCHEMA_BUSINESS_KEY)
     private String businessKey;
 
-    @Schema(description = "输入参数")
-    private Map<String, String> inputs = new HashMap<>(8);
+    @Schema(description = Constants.SCHEMA_INPUTS)
+    private Map<String, String> inputs = new HashMap<>(Constants.DEFAULT_HASH_MAP_CAPACITY);
 
     private Receiver receiver;
 
     public void setTarget(Receiver receiver) {
         Assert.isFalse(
                 receiver == null || receiver.getType() == null || CollectionUtils.isEmpty(receiver.getTarget()),
-                "fx.message.client.event.not.receiver");
+                Constants.MSG_MESSAGE_EVENT_NO_RECEIVER);
         this.receiver = receiver;
     }
 
@@ -53,10 +54,10 @@ public class LambdaMessageEvent {
     @SuppressFBWarnings({"EI_EXPOSE_REP"})
     public static class Receiver {
 
-        @Schema(description = "通知对象类型 1-角色 2-用户 4-无 5-所有用户")
+        @Schema(description = Constants.SCHEMA_RECEIVER_TYPE)
         private Integer type;
 
-        @Schema(description = "通知对象参数")
+        @Schema(description = Constants.SCHEMA_RECEIVER_TARGET)
         private List<String> target;
     }
 }
