@@ -1,7 +1,7 @@
 package com.lambda.fusion.dict.common.resolve;
 
-import com.lambda.fusion.dict.dao.entity.DictType;
 import com.lambda.fusion.dict.common.model.DynamicDict;
+import com.lambda.fusion.dict.dao.entity.DictType;
 import java.util.List;
 
 /**

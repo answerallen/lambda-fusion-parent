@@ -1,5 +1,7 @@
 package com.lambda.fusion.dict.service.impl;
 
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -9,24 +11,25 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.utils.Assert;
+import com.lambda.fusion.config.DictionaryProperties;
 import com.lambda.fusion.core.tree.ITreeDataFilter;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.utils.ParameterUtils;
-import com.lambda.fusion.config.DictionaryProperties;
-import com.lambda.fusion.dict.dto.QueryDictTree;
+import com.lambda.fusion.dict.common.enums.DictContextHolders;
+import com.lambda.fusion.dict.common.model.DynamicDict;
+import com.lambda.fusion.dict.common.resolve.IDynamicDictResolve;
 import com.lambda.fusion.dict.dao.entity.DictInfo;
 import com.lambda.fusion.dict.dao.entity.DictType;
 import com.lambda.fusion.dict.dao.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.dao.mapper.DictTypeMapper;
+import com.lambda.fusion.dict.dto.QueryDictTree;
 import com.lambda.fusion.dict.service.DictTypeService;
-import com.lambda.fusion.dict.common.enums.DictContextHolders;
-import com.lambda.fusion.dict.common.model.DynamicDict;
-import com.lambda.fusion.dict.common.resolve.IDynamicDictResolve;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
@@ -39,25 +42,19 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional(rollbackFor = Exception.class)
+@RequiredArgsConstructor
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> implements DictTypeService {
 
-    @Resource
-    private DictTypeMapper dictTypeMapper;
+    private final DictTypeMapper dictTypeMapper;
 
-    @Resource
-    private DictInfoMapper dictInfoMapper;
+    private final DictInfoMapper dictInfoMapper;
 
-    @Resource
-    private ITreeDataFilter treeDataFilter;
+    private final ITreeDataFilter treeDataFilter;
 
-    @Resource
-    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
-    private List<IDynamicDictResolve> dynamicDictResolves;
+    private final List<IDynamicDictResolve> dynamicDictResolves;
 
-    @Resource
-    private DictionaryProperties dictionaryProperties;
-
-    private static final int DATA_TYPE_ENUM = 3;
+    private final DictionaryProperties dictionaryProperties;
 
     @Override
     public DictType saveDictType(DictType source) {
@@ -65,7 +62,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
         source.setDictType(Optional.ofNullable(source.getDictType()).orElse(source.getId()));
         Assert.notNull(source, "字典类型不能为空");
         Assert.hasText(source.getDictName(), "字典名称不存在");
-        Assert.isFalse(dictTypeExists(source), "字典类型不存在");
+        Assert.isFalse(dictTypeExists(source), MSG_DICT_TYPE_NOT_EXISTED);
         if (StringUtils.isNotBlank(source.getParentId())) {
             DictType parent = dictTypeMapper.selectById(source.getParentId());
             if (null != parent) {
@@ -73,7 +70,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
                 source.setLevel(parent.getLevel() + 1);
             }
         } else {
-            source.setLevel(1);
+            source.setLevel(DEFAULT_LEVEL);
         }
         if (StringUtils.isBlank(source.getDictType())) {
             source.setDictType(source.getId());
@@ -84,9 +81,9 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
 
     @Override
     public void updateDictType(DictType source) {
-        Assert.notNull(source.getId(), "fx.dictionary.dict.id.notempty");
-        Assert.hasText(source.getDictName(), "fx.dictionary.dict.name.notempty");
-        Assert.isFalse(dictTypeExists(source), "fx.dictionary.dict.type.existed");
+        Assert.notNull(source.getId(), MSG_DICT_ID_NOT_EMPTY);
+        Assert.hasText(source.getDictName(), MSG_DICT_NAME_NOT_EMPTY);
+        Assert.isFalse(dictTypeExists(source), MSG_DICT_TYPE_EXISTED);
         dictTypeMapper.updateById(source);
     }
 
@@ -104,7 +101,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(3);
         if (StringUtils.isNotBlank(type)) {
             DictType conditions = dictTypeMapper.selectOne(new QueryWrapper<DictType>().eq("dict_type", type));
-            Assert.notNull(conditions, "fx.dictionary.dict.type.not.existed");
+            Assert.notNull(conditions, MSG_DICT_TYPE_NOT_EXISTED);
             String key = conditions.getParentKeys();
             if (StringUtils.isNotBlank(key)) {
                 key = key.substring(0, 8);
@@ -151,7 +148,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
                     if (StringUtils.isNotBlank(name)) {
                         List<DictType> list = enumList.stream()
                                 .filter(enumDict -> StringUtils.contains(enumDict.getDictName(), name))
-                                .collect(Collectors.toList());
+                                .toList();
                         result.addAll(list);
                     } else {
                         result.addAll(enumList);
@@ -159,7 +156,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
                 }
             }
         }
-        if (dataType == null || dataType != DATA_TYPE_ENUM) {
+        if (dataType == null || !dataType.equals(DATA_TYPE_ENUM)) {
             // 非枚举字典
             parameters.put("dataType", dataType);
             parameters.put("userOnly", queryDictTree.isUserOnly());
@@ -196,7 +193,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
         if (!dictionaryProperties.isAllowedCascadeDelete()) {
             List<DictType> types = dictTypeMapper.selectList(
                     Wrappers.lambdaQuery(DictType.class).eq(DictType::getParentId, id));
-            Assert.isTrue(types.isEmpty(), "fx.dictionary.dict.existed.child.type");
+            Assert.isTrue(types.isEmpty(), MSG_DICT_EXISTED_CHILD_TYPE);
         }
         Set<String> dictTypeIds = new HashSet<>(16);
         Set<String> dictTypes = new HashSet<>(16);
@@ -215,7 +212,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
             dictInfoMapper.delete(Wrappers.lambdaQuery(DictInfo.class).in(DictInfo::getDictType, dictTypes));
         }
         if (CollectionUtils.isNotEmpty(dictTypeIds)) {
-            dictTypeMapper.deleteBatchIds(dictTypeIds);
+            dictTypeMapper.deleteByIds(dictTypeIds);
         }
     }
 

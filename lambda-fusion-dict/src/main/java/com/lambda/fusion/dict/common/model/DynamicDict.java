@@ -1,5 +1,7 @@
 package com.lambda.fusion.dict.common.model;
 
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,7 +20,7 @@ public class DynamicDict {
     private Object val;
 
     @Schema(description = "可以被选择状态。0：只能用作显示，不能用于下拉选择，1：可以显示和下拉选择")
-    private Integer selectable = 1;
+    private Integer selectable = SELECTABLE_ENABLED;
 
     @Schema(description = "父级节点")
     private String pid;
@@ -32,7 +34,7 @@ public class DynamicDict {
     public DynamicDict(String key, Object val) {
         this.key = key;
         this.val = val;
-        this.selectable = 1;
+        this.selectable = SELECTABLE_ENABLED;
     }
 
     public DynamicDict(String key, Object val, Integer selectable) {

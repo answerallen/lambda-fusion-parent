@@ -20,7 +20,10 @@ public class DictionaryConfigure {
     @ConditionalOnClass(DubboAutoConfiguration.class)
     public static class DictionaryDubboConfigure {
         @Bean
-        @ConditionalOnProperty(prefix = "lambda.fusion.dictionary", value = "enable-dubbo-provider",havingValue = "true")
+        @ConditionalOnProperty(
+                prefix = "lambda.fusion.dictionary",
+                value = "enable-dubbo-provider",
+                havingValue = "true")
         public ServiceConfig<RemoteDictService> dictionaryDubboServiceConfig(RemoteDictService remoteDictService) {
             ServiceConfig<RemoteDictService> config = new ServiceConfig<>();
             config.setInterface(RemoteDictService.class);
@@ -28,5 +31,4 @@ public class DictionaryConfigure {
             return config;
         }
     }
-
 }

@@ -1,15 +1,17 @@
 package com.lambda.fusion.dict.common.resolve;
 
-import com.lambda.fusion.dict.dao.entity.DictType;
-import com.lambda.fusion.dict.dao.mapper.DictSqlMapper;
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 import com.lambda.fusion.dict.common.model.DictValueType;
 import com.lambda.fusion.dict.common.model.DynamicDict;
+import com.lambda.fusion.dict.dao.entity.DictType;
+import com.lambda.fusion.dict.dao.mapper.DictSqlMapper;
+import jakarta.annotation.Resource;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
-import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserManager;
@@ -27,17 +29,7 @@ public class SqlDictResolve implements IDynamicDictResolve {
     @Resource
     protected DictSqlMapper dictSqlMapper;
 
-    private static final String KEY = "k";
-
-    private static final String VAL = "v";
-
-    private static final String SEL = "sel";
-
-    private static final String PID = "pid";
-
-    private static final String ID = "id";
-
-    private static final String RANK = "rank2";
+    // SQL解析常量已移至 DictConstants 类中
 
     private static final CCJSqlParserManager PARSER_MANAGER = new CCJSqlParserManager();
 
@@ -59,7 +51,7 @@ public class SqlDictResolve implements IDynamicDictResolve {
                 log.warn("{} Illegal SQL", dictType.getId());
             }
         } catch (JSQLParserException e) {
-            log.error("JSQLParserException ", e);
+            log.error(ERROR_JSQL_PARSER_EXCEPTION, e);
         }
         return result;
     }
@@ -68,13 +60,13 @@ public class SqlDictResolve implements IDynamicDictResolve {
     private void addResult(List<LinkedHashMap<String, Object>> list, List<DynamicDict> result) {
         for (LinkedHashMap<String, Object> map : list) {
             DynamicDict dict = new DynamicDict();
-            if (map.containsKey(KEY) && map.containsKey(VAL)) {
-                dict.setKey(map.get(KEY).toString());
-                dict.setVal(map.get(VAL));
-                dict.setSelectable((Integer) map.getOrDefault(SEL, 1));
-                Optional.ofNullable(map.get(PID)).ifPresent(pid -> dict.setPid(pid.toString()));
-                Optional.ofNullable(map.get(ID)).ifPresent(id -> dict.setId(id.toString()));
-                Optional.ofNullable(map.get(RANK)).ifPresent(rank -> dict.setLevel(Math.toIntExact((Long) rank)));
+            if (map.containsKey(SQL_KEY) && map.containsKey(SQL_VAL)) {
+                dict.setKey(map.get(SQL_KEY).toString());
+                dict.setVal(map.get(SQL_VAL));
+                dict.setSelectable((Integer) map.getOrDefault(SQL_SEL, SELECTABLE_ENABLED));
+                Optional.ofNullable(map.get(SQL_PID)).ifPresent(pid -> dict.setPid(pid.toString()));
+                Optional.ofNullable(map.get(SQL_ID)).ifPresent(id -> dict.setId(id.toString()));
+                Optional.ofNullable(map.get(SQL_RANK)).ifPresent(rank -> dict.setLevel(Math.toIntExact((Long) rank)));
             } else {
                 List<Object> collect = new ArrayList<>(map.values());
                 if (collect.size() == 1) {
@@ -97,7 +89,7 @@ public class SqlDictResolve implements IDynamicDictResolve {
                     try {
                         dict.setSelectable(Integer.parseInt(sel));
                     } catch (NumberFormatException e) {
-                        dict.setSelectable(1);
+                        dict.setSelectable(SELECTABLE_ENABLED);
                     }
                 }
             }

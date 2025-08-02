@@ -1,5 +1,7 @@
 package com.lambda.fusion.dict.common.enums;
 
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 import java.lang.annotation.*;
 
 /**
@@ -13,7 +15,7 @@ public @interface DictMapper {
     /**
      * @return 字典名称
      */
-    String dictName() default "default";
+    String dictName() default DEFAULT_DICT_NAME;
 
     /**
      * @return 字典描述

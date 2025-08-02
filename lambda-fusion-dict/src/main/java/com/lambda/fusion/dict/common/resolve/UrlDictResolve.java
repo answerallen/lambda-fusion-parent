@@ -3,18 +3,19 @@ package com.lambda.fusion.dict.common.resolve;
 import static com.lambda.cloud.mvc.WebHttpUtils.X_AUTHORIZED_BEARER;
 import static com.lambda.fusion.core.Constants.AUTHORIZATION;
 import static com.lambda.fusion.core.Constants.BEARER;
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.config.DictionaryProperties;
-import com.lambda.fusion.dict.dao.entity.DictType;
+import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.dict.common.model.DictValueType;
 import com.lambda.fusion.dict.common.model.DynamicDict;
+import com.lambda.fusion.dict.dao.entity.DictType;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,9 +36,6 @@ import org.springframework.web.util.WebUtils;
 @Slf4j
 @Service
 public class UrlDictResolve implements IDynamicDictResolve {
-
-    public static final String HTTP_PROTOCOL = "http";
-    public static final String HTTPS_PROTOCOL = "https";
 
     protected RestTemplate restTemplate = new RestTemplate();
 
@@ -68,16 +66,15 @@ public class UrlDictResolve implements IDynamicDictResolve {
             if (url.startsWith(HTTP_PROTOCOL) || url.startsWith(HTTPS_PROTOCOL)) {
                 return getApi(url, HttpMethod.GET);
             } else {
-                ServletRequestAttributes servletRequestAttributes =
-                        (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-                HttpServletRequest request =
-                        Objects.requireNonNull(servletRequestAttributes).getRequest();
+                HttpServletRequest request = Objects.requireNonNull(
+                                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
+                        .getRequest();
                 String accessToken = getAccessToken(request);
                 url = getLocalDictUrl(url);
                 return getApi(url, HttpMethod.GET, accessToken);
             }
         } catch (Exception e) {
-            throw new IllegalArgumentException("字典http请求错误", e);
+            throw new IllegalArgumentException(ERROR_DICT_HTTP_REQUEST, e);
         }
     }
 

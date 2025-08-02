@@ -1,19 +1,20 @@
 package com.lambda.fusion.dict.controller;
 
 import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.base.user.LoginUserDetails;
-import com.lambda.fusion.dict.dto.QueryDictTree;
-import com.lambda.fusion.dict.dao.entity.DictInfo;
-import com.lambda.fusion.dict.dao.entity.DictType;
-import com.lambda.fusion.dict.service.DictInfoService;
-import com.lambda.fusion.dict.service.DictTypeService;
 import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.common.enums.DictHolder;
+import com.lambda.fusion.dict.dao.entity.DictInfo;
+import com.lambda.fusion.dict.dao.entity.DictType;
+import com.lambda.fusion.dict.dto.QueryDictTree;
+import com.lambda.fusion.dict.service.DictInfoService;
+import com.lambda.fusion.dict.service.DictTypeService;
 import com.lambda.fusion.dict.vo.DictInfoVO;
 import com.lambda.fusion.dict.vo.DictTypeVo;
 import io.swagger.v3.oas.annotations.Operation;
@@ -150,7 +151,7 @@ public class DictController {
                         name = "size",
                         description = "每页条数",
                         in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "20")),
+                        schema = @Schema(defaultValue = DEFAULT_PAGE_SIZE)),
                 @Parameter(name = "dictName", description = "字典名称", in = ParameterIn.QUERY)
             })
     public Page<DictType> dictTypeList(
@@ -195,18 +196,18 @@ public class DictController {
             @RequestParam(required = false) Integer enableState) {
         LoginUserDetails operator = (LoginUserDetails) OperatorUtils.getOperator();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(5);
-        parameters.put("dictType", dictType);
+        parameters.put(FIELD_DICT_TYPE, dictType);
         if (StringUtils.isNotBlank(fieldType)) {
-            parameters.put("fieldType", fuzzyQuery(fieldType));
+            parameters.put(FIELD_FIELD_TYPE, fuzzyQuery(fieldType));
         }
         if (StringUtils.isNotBlank(fieldName)) {
-            parameters.put("fieldName", fuzzyQuery(fieldName));
+            parameters.put(FIELD_FIELD_NAME, fuzzyQuery(fieldName));
         }
         if (StringUtils.isNotBlank(dictInfoId)) {
-            parameters.put("dictInfoId", dictInfoId);
+            parameters.put(FIELD_DICT_INFO_ID, dictInfoId);
         }
-        parameters.put("enableState", enableState);
-        parameters.put("tenantId", operator.getTenantId());
+        parameters.put(FIELD_ENABLE_STATE, enableState);
+        parameters.put(FIELD_TENANT_ID, operator.getTenantId());
         return dictInfoService.page(new Page<>(number, size), parameters);
     }
 
@@ -228,19 +229,19 @@ public class DictController {
             @RequestParam(required = false) String fieldName,
             @RequestParam(required = false) Integer enableState) {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(5);
-        parameters.put("dictType", dictType);
+        parameters.put(FIELD_DICT_TYPE, dictType);
         if (StringUtils.isNotBlank(fieldType)) {
-            parameters.put("fieldType", fuzzyQuery(fieldType));
+            parameters.put(FIELD_FIELD_TYPE, fuzzyQuery(fieldType));
         }
         if (StringUtils.isNotBlank(fieldName)) {
-            parameters.put("fieldName", fuzzyQuery(fieldName));
+            parameters.put(FIELD_FIELD_NAME, fuzzyQuery(fieldName));
         }
         if (StringUtils.isNotBlank(dictInfoId)) {
-            parameters.put("dictInfoId", dictInfoId);
+            parameters.put(FIELD_DICT_INFO_ID, dictInfoId);
         }
         LoginUserDetails operator = (LoginUserDetails) OperatorUtils.getOperator();
-        parameters.put("enableState", enableState);
-        parameters.put("tenantId", operator.getTenantId());
+        parameters.put(FIELD_ENABLE_STATE, enableState);
+        parameters.put(FIELD_TENANT_ID, operator.getTenantId());
         return dictInfoService.selectDictInfo(parameters);
     }
 
@@ -294,26 +295,26 @@ public class DictController {
     @PutMapping("/dictinfo/{id}/enable")
     @Operation(summary = "启用字典", description = "启用字典")
     public void changeEnable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
-        dictInfoService.changeState(1, id);
+        dictInfoService.changeState(ENABLE_STATE_ENABLED, id);
     }
 
     @PutMapping("/dictinfo/{id}/disable")
     @Operation(summary = "禁用字典", description = "禁用字典")
     public void changeDisable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
-        dictInfoService.changeState(0, id);
+        dictInfoService.changeState(ENABLE_STATE_DISABLED, id);
     }
 
     @PutMapping("/dictinfo/{id}/selectable")
     @Operation(summary = "设置可选择", description = "设置可选择")
     public void changeSelectable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
-        dictInfoService.changeSelectable(1, id);
+        dictInfoService.changeSelectable(SELECTABLE_STATE_ENABLED, id);
     }
 
     @PutMapping("/dictinfo/{id}/unselectable")
     @Operation(summary = "设置不可选择", description = "设置不可选择")
     public void changeUnselectable(
             @PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
-        dictInfoService.changeSelectable(0, id);
+        dictInfoService.changeSelectable(SELECTABLE_STATE_DISABLED, id);
     }
 
     @GetMapping("/dict/dynamic")

@@ -1,5 +1,7 @@
 package com.lambda.fusion.dict.dao.entity;
 
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -22,7 +24,7 @@ import lombok.Setter;
  */
 @SuppressFBWarnings("EI_EXPOSE_REP")
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "sys_dict_info")
+@TableName(value = TABLE_SYS_DICT_INFO)
 @Data
 public class DictInfo extends BaseDO implements Tree<DictInfo> {
     @TableId
@@ -52,11 +54,11 @@ public class DictInfo extends BaseDO implements Tree<DictInfo> {
 
     @TableField("enable_state")
     @Schema(description = "启用状态（0未启用，1启用）", example = "1")
-    private Integer enableState;
+    private Integer enableState = ENABLE_STATE_ENABLED;
 
     @TableField("select_able")
     @Schema(description = "可选择状态（0不能用于下拉列表，1可以用于下拉列表）", example = "1", defaultValue = "1")
-    private Integer selectable = 1;
+    private Integer selectable = SELECTABLE_ENABLED;
 
     @TableField("parentid")
     @Schema(description = "父节点")
@@ -85,7 +87,7 @@ public class DictInfo extends BaseDO implements Tree<DictInfo> {
     @TableField("level")
     @Schema(description = "级别：最顶层为1，后边层数累加", hidden = true)
     @JsonProperty("level")
-    private Integer level = 1;
+    private Integer level = DEFAULT_LEVEL;
 
     @TableField(exist = false)
     @Schema(description = "子节点", hidden = true)

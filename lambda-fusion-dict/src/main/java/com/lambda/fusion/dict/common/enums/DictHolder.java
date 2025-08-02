@@ -1,6 +1,7 @@
 package com.lambda.fusion.dict.common.enums;
 
 import com.lambda.fusion.dict.common.model.DynamicDict;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
@@ -10,6 +11,7 @@ import lombok.Data;
  * @author Jin
  */
 @Data
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class DictHolder {
     private String dictName;
     private String dictDesc;

@@ -1,5 +1,7 @@
 package com.lambda.fusion.dict.dao.entity;
 
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.lambda.cloud.core.base.BaseDO;
@@ -15,7 +17,7 @@ import lombok.Getter;
  * 字典表注释表
  */
 @SuppressFBWarnings("EI_EXPOSE_REP")
-@TableName(value = "sys_dict_type")
+@TableName(value = TABLE_SYS_DICT_TYPE)
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class DictType extends BaseDO implements Tree<DictType> {
@@ -24,7 +26,7 @@ public class DictType extends BaseDO implements Tree<DictType> {
     private String id;
 
     @Schema(description = "父id，0代表顶级")
-    private String parentId;
+    private String parentId = ROOT_PARENT_ID;
 
     @TableField(value = "dict_usage")
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "字典用途，0：系统字典，1：用户字典")
@@ -38,7 +40,7 @@ public class DictType extends BaseDO implements Tree<DictType> {
 
     @TableField("level")
     @Schema(description = "级别：最顶层为1，后边层数累加", hidden = true)
-    private Integer level = 1;
+    private Integer level = DEFAULT_LEVEL;
 
     @TableField("parentkeys")
     @Schema(description = "树的父节点", hidden = true)

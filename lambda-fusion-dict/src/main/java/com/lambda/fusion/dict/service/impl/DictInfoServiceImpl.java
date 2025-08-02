@@ -1,6 +1,7 @@
 package com.lambda.fusion.dict.service.impl;
 
 import static com.lambda.fusion.core.Constants.JOINER;
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -18,13 +19,13 @@ import com.lambda.fusion.core.base.service.BaseServiceImpl;
 import com.lambda.fusion.core.base.user.LoginUserDetails;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.utils.ParameterUtils;
+import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.dao.entity.DictInfo;
 import com.lambda.fusion.dict.dao.entity.DictInfoGroup;
 import com.lambda.fusion.dict.dao.entity.DictType;
 import com.lambda.fusion.dict.dao.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.dao.mapper.DictTypeMapper;
 import com.lambda.fusion.dict.service.DictInfoService;
-import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.vo.DictInfoVO;
 import com.lambda.fusion.dict.vo.DictTypeVo;
 import java.util.*;
@@ -80,11 +81,11 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
         String fieldType = source.getFieldType();
         String fieldName = source.getFieldName();
         Assert.notNull(source, "");
-        Assert.hasText(dictType, "fx.dictionary.dict.type.notempty");
-        Assert.hasText(fieldType, "fx.dictionary.dict.fieldtype.notempty");
-        Assert.hasText(fieldName, "fx.dictionary.dict.field.name.notempty");
-        Assert.notNull(source.getSort(), "fx.dictionary.dict.sort.number.notempty");
-        Assert.notNull(source.getEnableState(), "fx.dictionary.dict.enabled.notempty");
+        Assert.hasText(dictType, MSG_DICT_TYPE_NOT_EMPTY);
+        Assert.hasText(fieldType, MSG_DICT_FIELD_TYPE_NOT_EMPTY);
+        Assert.hasText(fieldName, MSG_DICT_FIELD_NAME_NOT_EMPTY);
+        Assert.notNull(source.getSort(), MSG_DICT_SORT_NUMBER_NOT_EMPTY);
+        Assert.notNull(source.getEnableState(), MSG_DICT_ENABLED_NOT_EMPTY);
         source.setExtra(
                 CollectionUtils.isNotEmpty(source.getParameters()) ? convertJson(source.getParameters()) : null);
         if (StringUtils.isNotBlank(source.getParentId())) {
@@ -94,7 +95,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
                 source.setLevel(parent.getLevel() + 1);
             }
         } else {
-            source.setLevel(1);
+            source.setLevel(DEFAULT_LEVEL);
         }
         dictInfoMapper.insert(source);
         DictInfo dictInfo = dictInfoMapper.selectById(source.getId());
@@ -117,11 +118,11 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     @Override
     public DictInfo updateDictInfo(DictInfo dictInfo) {
         String id = dictInfo.getId();
-        Assert.notNull(id, "fx.dictionary.dict.id.notempty");
-        Assert.notNull(dictInfoMapper.selectById(id), "fx.dictionary.dict.update.data.not.existed");
-        Assert.hasText(dictInfo.getFieldName(), "fx.dictionary.dict.field.name.notempty");
-        Assert.notNull(dictInfo.getSort(), "fx.dictionary.dict.sort.number.notempty");
-        Assert.notNull(dictInfo.getEnableState(), "fx.dictionary.dict.enabled.notempty");
+        Assert.notNull(id, MSG_DICT_ID_NOT_EMPTY);
+        Assert.notNull(dictInfoMapper.selectById(id), MSG_DICT_UPDATE_DATA_NOT_EXISTED);
+        Assert.hasText(dictInfo.getFieldName(), MSG_DICT_FIELD_NAME_NOT_EMPTY);
+        Assert.notNull(dictInfo.getSort(), MSG_DICT_SORT_NUMBER_NOT_EMPTY);
+        Assert.notNull(dictInfo.getEnableState(), MSG_DICT_ENABLED_NOT_EMPTY);
         dictInfo.setExtra(
                 CollectionUtils.isNotEmpty(dictInfo.getParameters()) ? convertJson(dictInfo.getParameters()) : null);
         if (dictInfoExists(dictInfo)) {
@@ -259,7 +260,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
         DictInfo wrapper = new DictInfo();
         String keys = dictInfo.getParentkeys();
         if (StringUtils.isNotBlank(keys)) {
-            wrapper.setParentId(ParameterUtils.fuzzyQuery(keys.substring(keys.length() - 8)));
+            wrapper.setParentId(ParameterUtils.fuzzyQuery(keys.substring(keys.length() - PARENT_KEY_SUBSTRING_LENGTH)));
         } else {
             wrapper.setId(dictInfo.getId());
         }
