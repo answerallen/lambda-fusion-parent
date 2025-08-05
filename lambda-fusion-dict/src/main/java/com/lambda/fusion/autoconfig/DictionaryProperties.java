@@ -1,4 +1,4 @@
-package com.lambda.fusion.config;
+package com.lambda.fusion.autoconfig;
 
 import lombok.Getter;
 import lombok.Setter;

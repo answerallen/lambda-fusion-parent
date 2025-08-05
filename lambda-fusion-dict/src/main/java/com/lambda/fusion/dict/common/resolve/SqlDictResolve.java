@@ -1,9 +1,16 @@
 package com.lambda.fusion.dict.common.resolve;
 
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 import com.lambda.fusion.dict.common.model.DictValueType;
 import com.lambda.fusion.dict.common.model.DynamicDict;
 import com.lambda.fusion.dict.dao.entity.DictType;
 import com.lambda.fusion.dict.dao.mapper.DictSqlMapper;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.JSQLParserException;
@@ -11,14 +18,6 @@ import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.Select;
 import org.springframework.stereotype.Service;
-
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Optional;
-
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 /**
  * @author westboy

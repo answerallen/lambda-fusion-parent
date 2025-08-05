@@ -8,21 +8,25 @@
     </parent>
 
     <artifactId>lambda-fusion-config</artifactId>
-    <packaging>jar</packaging>
-
-    <name>lambda-fusion-config</name>
-    <url>http://maven.apache.org</url>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
 
     <dependencies>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>3.8.1</version>
-            <scope>test</scope>
+            <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-fusion-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-cloud-starter-datasource</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-cloud-starter-logger</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

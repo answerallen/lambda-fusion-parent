@@ -34,6 +34,7 @@
         <module>lambda-fusion-dict</module>
         <module>lambda-fusion-log</module>
         <module>lambda-fusion-bom</module>
+        <module>lambda-fusion-extension</module>
     </modules>
 
 </project>

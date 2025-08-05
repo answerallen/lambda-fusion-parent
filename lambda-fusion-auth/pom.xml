@@ -16,11 +16,6 @@
     <dependencies>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
-            <artifactId>lambda-fusion-auth-api</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-security</artifactId>
         </dependency>
         <dependency>

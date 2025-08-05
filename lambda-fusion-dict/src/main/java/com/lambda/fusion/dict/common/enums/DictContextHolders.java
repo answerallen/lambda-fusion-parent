@@ -4,6 +4,7 @@ import com.lambda.fusion.dict.common.model.DictValueType;
 import com.lambda.fusion.dict.common.model.DynamicDict;
 import com.lambda.fusion.dict.dao.entity.DictInfo;
 import com.lambda.fusion.dict.dao.entity.DictType;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author jin
  */
+@SuppressFBWarnings("MS_EXPOSE_REP")
 public class DictContextHolders {
     protected static final Map<String, DictHolder> MAPPER_HOLDERS = new ConcurrentHashMap<>();
 

@@ -1,4 +1,4 @@
-package com.lambda.fusion.config;
+package com.lambda.fusion.autoconfig;
 
 import com.lambda.fusion.dict.dubbo.RemoteDictService;
 import org.apache.dubbo.config.ServiceConfig;

@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.config.DictionaryProperties;
+import com.lambda.fusion.autoconfig.DictionaryProperties;
 import com.lambda.fusion.core.tree.ITreeDataFilter;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.utils.ParameterUtils;

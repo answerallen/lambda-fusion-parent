@@ -6,11 +6,12 @@ import static com.lambda.fusion.core.Constants.BEARER;
 import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import com.lambda.fusion.config.DictionaryProperties;
+import com.lambda.fusion.autoconfig.DictionaryProperties;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.dict.common.model.DictValueType;
 import com.lambda.fusion.dict.common.model.DynamicDict;
 import com.lambda.fusion.dict.dao.entity.DictType;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,6 +36,7 @@ import org.springframework.web.util.WebUtils;
  */
 @Slf4j
 @Service
+@SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
 public class UrlDictResolve implements IDynamicDictResolve {
 
     protected RestTemplate restTemplate = new RestTemplate();
