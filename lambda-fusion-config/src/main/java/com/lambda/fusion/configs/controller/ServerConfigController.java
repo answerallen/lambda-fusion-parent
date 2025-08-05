@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import static com.lambda.fusion.configs.ConfigConstants.Encryption.*;
+
 @Tag(name = "系统配置管理")
 @RefreshScope
 @RestController
@@ -46,17 +48,17 @@ public class ServerConfigController {
     public Object getServerConfig(@RequestParam(required = false) String sessionKey) {
         ConfigsProperties.Security security = config.getSecurity();
         if (security.isConfigEncryptEnabled()) {
-            Assert.hasText(sessionKey, "lambda.fusion.config.encrypt.nokey");
+            Assert.hasText(sessionKey, CONFIG_ENCRYPT_NO_KEY);
             try {
                 // 私钥解密会话密钥得到AES密钥
                 RSA rsa = new RSA(security.getPrivateKey(), security.getPublicKey());
                 String aesKey = rsa.decryptStr(sessionKey, KeyType.PrivateKey);
                 // 使用AES密钥加密数据
-                AES aes = new AES(Mode.ECB.name(), "PKCS7Padding", CharSequenceUtil.bytes(aesKey));
+                AES aes = new AES(Mode.ECB.name(), AES_PADDING, CharSequenceUtil.bytes(aesKey));
                 return aes.encryptBase64(objectMapper.writeValueAsBytes(config));
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
-                throw new IllegalArgumentException("lambda.fusion.config.encrypt.secrity.key.error");
+                throw new IllegalArgumentException(CONFIG_ENCRYPT_SECURITY_KEY_ERROR);
             }
         }
         return config;

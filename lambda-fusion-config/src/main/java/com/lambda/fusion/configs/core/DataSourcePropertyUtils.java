@@ -11,6 +11,8 @@ import org.springframework.boot.context.properties.bind.PropertySourcesPlacehold
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.core.env.Environment;
 
+import static com.lambda.fusion.configs.ConfigConstants.DataSource.*;
+
 /**
  * DataSourcePropertyUtils
  *
@@ -39,7 +41,7 @@ public class DataSourcePropertyUtils {
      * @return boolean
      */
     private static boolean enableConfigIndependentDataSource(@Nonnull Environment environment) {
-        return StringUtils.isNotBlank(environment.getProperty("lambda.fusion.config.datasource.url"));
+        return StringUtils.isNotBlank(environment.getProperty(CONFIG_DATASOURCE_URL));
     }
 
     /**
@@ -52,7 +54,7 @@ public class DataSourcePropertyUtils {
         PlaceholdersResolver resolver = new PropertySourcesPlaceholdersResolver(environment);
         Binder binder = new Binder(ConfigurationPropertySources.get(environment), resolver);
         BindResult<DataSourceProperty> bindResult =
-                binder.bind("lambda.fusion.config.datasource", DataSourceProperty.class);
+                binder.bind(CONFIG_DATASOURCE_PREFIX, DataSourceProperty.class);
         return bindResult.get();
     }
 }

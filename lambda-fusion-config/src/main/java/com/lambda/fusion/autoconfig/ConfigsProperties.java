@@ -1,6 +1,6 @@
 package com.lambda.fusion.autoconfig;
 
-import static com.lambda.fusion.configs.ConfigsConstants.*;
+import static com.lambda.fusion.configs.ConfigConstants.SystemConfig.*;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -84,8 +84,8 @@ public class ConfigsProperties implements InitializingBean {
         this.password.setDefaultValue(environment.getProperty(AUTHORIZE_PASSWORD_CUSTOMIZE, "123456"));
         this.axios.setHiddenMethodEnabled(environment.getProperty(HTTP_METHOD_HIDDEN_ENABLED, boolean.class, false));
         this.security.setFormVerifyEnabled(environment.getProperty(SERVER_CAPTCHA_ENABLED, boolean.class, false));
-        this.security.setPublicKey(environment.getProperty(RSA_ENCRYPT_PUBLICKEY));
-        this.security.setPrivateKey(environment.getProperty(RSA_ENCRYPT_PRIVATEKEY));
+        this.security.setPublicKey(environment.getProperty(RSA_ENCRYPT_PUBLIC_KEY));
+        this.security.setPrivateKey(environment.getProperty(RSA_ENCRYPT_PRIVATE_KEY));
     }
 
     @Getter

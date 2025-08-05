@@ -10,6 +10,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.core.env.*;
 import org.springframework.util.ClassUtils;
 
+import static com.lambda.fusion.configs.ConfigConstants.Nacos.*;
+
 @Slf4j
 public final class DataSourcePropertyHelper {
 
@@ -35,12 +37,11 @@ public final class DataSourcePropertyHelper {
         return DataSourcePropertyUtils.getProperty(environment);
     }
 
-    public static final String NACOS_PROPERTY_SOURCE_REPOSITORY =
-            "com.alibaba.cloud.nacos.NacosPropertySourceRepository";
+    // 使用常量类中定义的Nacos相关常量
 
     public static List<MapPropertySource> getNacosPropertySources() {
         ClassLoader classLoader = DataSourcePropertyHelper.class.getClassLoader();
-        if (ClassUtils.isPresent(NACOS_PROPERTY_SOURCE_REPOSITORY, classLoader)) {
+        if (ClassUtils.isPresent(PROPERTY_SOURCE_REPOSITORY_CLASS, classLoader)) {
             return Lists.newArrayList(NacosPropertySourceRepository.getAll());
         }
         return Collections.emptyList();

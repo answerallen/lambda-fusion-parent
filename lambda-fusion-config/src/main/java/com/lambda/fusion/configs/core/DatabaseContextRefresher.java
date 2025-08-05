@@ -1,6 +1,5 @@
 package com.lambda.fusion.configs.core;
 
-import com.zaxxer.hikari.HikariConfig;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
@@ -25,54 +24,113 @@ import org.springframework.context.event.SmartApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 
+import static com.lambda.fusion.configs.ConfigConstants.Refresh.*;
+import static com.lambda.fusion.configs.ConfigConstants.ErrorMessages.*;
+import static com.lambda.fusion.configs.ConfigConstants.LogMessages.*;
+
 /**
- * 每隔30秒检测下数据库变动，可通过“lambda.fusion.config.auto-refresh.enabled=false”进行关闭
+ * 数据库配置变更监听器，每隔30秒检测数据库配置变动并自动刷新上下文
+ * 可通过"lambda.fusion.config.auto-refresh.enabled=false"进行关闭
  *
+ * @author Lambda Fusion Team
  */
 @Slf4j
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class DatabaseContextRefresher
         implements ApplicationRunner, EnvironmentAware, BeanFactoryAware, SmartApplicationListener {
-    private final Lock lock = new ReentrantLock();
-    protected static final ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(1, run -> {
-        Thread thread = new Thread(run);
-        thread.setDaemon(true);
-        thread.setName("DatabaseContextRefresher");
-        return thread;
-    });
-    protected ConfigurableEnvironment environment;
-    protected DefaultListableBeanFactory beanFactory;
-    protected HikariConfig configuration;
+
+    // 使用常量类中定义的刷新相关常量
+
+    /**
+     * 刷新锁，防止并发刷新
+     */
+    private final Lock refreshLock = new ReentrantLock();
+
+    /**
+     * 定时任务执行器
+     */
+    private static final ScheduledExecutorService EXECUTOR_SERVICE = createExecutorService();
+
+    /**
+     * Spring环境配置
+     */
+    private ConfigurableEnvironment environment;
+
+    /**
+     * Spring Bean工厂
+     */
+    private DefaultListableBeanFactory beanFactory;
+
+    /**
+     * 数据库配置源定位器
+     */
     private final DatabaseBasedPropertySourceLocator databaseBasedPropertySourceLocator;
 
-    public DatabaseContextRefresher(DatabaseBasedPropertySourceLocator databaseBasedPropertySourceLocator) {
-        this.databaseBasedPropertySourceLocator = databaseBasedPropertySourceLocator;
+    /**
+     * 创建定时任务执行器
+     *
+     * @return 定时任务执行器
+     */
+    private static ScheduledExecutorService createExecutorService() {
+        return new ScheduledThreadPoolExecutor(CORE_POOL_SIZE, runnable -> {
+            Thread thread = new Thread(runnable);
+            thread.setDaemon(true);
+            thread.setName(THREAD_NAME);
+            return thread;
+        });
     }
 
+    /**
+     * 构造函数
+     *
+     * @param databaseBasedPropertySourceLocator 数据库配置源定位器
+     */
+    public DatabaseContextRefresher(DatabaseBasedPropertySourceLocator databaseBasedPropertySourceLocator) {
+        this.databaseBasedPropertySourceLocator = Objects.requireNonNull(
+                databaseBasedPropertySourceLocator, "databaseBasedPropertySourceLocator cannot be null");
+    }
+
+    /**
+     * 检查配置变更并应用刷新
+     */
     public void apply() {
         if (databaseBasedPropertySourceLocator.changed(environment)) {
-            log.debug("The config data has been changed! Ready to refresh..");
+            log.debug(DATABASE_CONFIG_CHANGED);
             doRefresh();
         }
     }
 
+    /**
+     * 执行上下文刷新操作
+     */
     public void doRefresh() {
-        if (lock.tryLock()) {
-            log.debug("Successfully acquired refresh lock");
+        if (refreshLock.tryLock()) {
+            log.debug(REFRESH_LOCK_ACQUIRED);
             try {
                 final ContextRefresher contextRefresher = beanFactory.getBean(ContextRefresher.class);
                 contextRefresher.refresh();
+                log.debug(CONTEXT_REFRESH_COMPLETED);
+            } catch (Exception e) {
+                log.error(FAILED_TO_REFRESH_CONTEXT, e);
             } finally {
-                lock.unlock();
-                log.debug("Successfully released refresh lock");
+                refreshLock.unlock();
+                log.debug(REFRESH_LOCK_RELEASED);
             }
+        } else {
+            log.debug(REFRESH_IN_PROGRESS_SKIP);
         }
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        log.trace("DatabaseContextRefreshMonitor is running ...");
-        executorService.scheduleWithFixedDelay(this::apply, 10, 30, TimeUnit.SECONDS);
+        log.info(REFRESHER_STARTING_UP);
+        EXECUTOR_SERVICE.scheduleWithFixedDelay(
+                this::apply, 
+                INITIAL_DELAY_SECONDS, 
+                REFRESH_INTERVAL_SECONDS, 
+                TimeUnit.SECONDS
+        );
+        log.info(REFRESHER_SCHEDULED, INITIAL_DELAY_SECONDS, REFRESH_INTERVAL_SECONDS);
     }
 
     @Override
@@ -100,6 +158,10 @@ public class DatabaseContextRefresher
 
     @Override
     public void onApplicationEvent(@Nonnull ApplicationEvent event) {
-        log.debug(event instanceof EnvironmentChangeEvent ? "Context is refreshing!" : "Context refresh finished!");
+        if (event instanceof EnvironmentChangeEvent) {
+            log.debug(ENVIRONMENT_CHANGE_EVENT_RECEIVED);
+        } else if (event instanceof RefreshScopeRefreshedEvent) {
+            log.debug(REFRESH_SCOPE_EVENT_RECEIVED);
+        }
     }
 }

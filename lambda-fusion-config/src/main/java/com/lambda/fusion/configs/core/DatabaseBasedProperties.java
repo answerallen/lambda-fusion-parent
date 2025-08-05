@@ -12,13 +12,14 @@ import java.util.Map;
 import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
 
+import static com.lambda.fusion.configs.ConfigConstants.Database.*;
+
 public class DatabaseBasedProperties extends Properties {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private static final String PUBLIC = "public";
-    private static final String SQL =
-            "SELECT property_key, property_value, application FROM la_configs WHERE application = ? OR application = 'public'";
+    // 使用常量类中定义的PUBLIC_APPLICATION常量
+    private static final String SQL = SELECT_CONFIGS_SQL;
 
     @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
     public DatabaseBasedProperties(Connection connection, String application) throws SQLException {
@@ -34,7 +35,7 @@ public class DatabaseBasedProperties extends Properties {
                     if (StringUtils.isBlank(value)) {
                         continue;
                     }
-                    if (PUBLIC.equals(module)) {
+                    if (PUBLIC_APPLICATION.equals(module)) {
                         publiced.put(name, value);
                     } else {
                         privated.put(name, value);
