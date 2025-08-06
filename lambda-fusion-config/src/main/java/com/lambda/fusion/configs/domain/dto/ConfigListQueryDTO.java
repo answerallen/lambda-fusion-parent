@@ -1,5 +1,6 @@
 package com.lambda.fusion.configs.domain.dto;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "配置列表查询参数")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class ConfigListQueryDTO {
 
     @Schema(description = "配置键，支持右侧模糊查询")

@@ -1,5 +1,6 @@
 package com.lambda.fusion.configs.domain.dto;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "配置批量更新参数")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class ConfigBatchUpdateDTO {
 
     @NotBlank(message = "应用名称不能为空")

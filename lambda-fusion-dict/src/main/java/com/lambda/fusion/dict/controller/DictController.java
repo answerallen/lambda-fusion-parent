@@ -4,7 +4,6 @@ import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.google.common.collect.Maps;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.base.user.LoginUserDetails;
@@ -12,11 +11,14 @@ import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.common.enums.DictHolder;
 import com.lambda.fusion.dict.dao.entity.DictInfo;
 import com.lambda.fusion.dict.dao.entity.DictType;
+import com.lambda.fusion.dict.dto.DictInfoQueryDTO;
+import com.lambda.fusion.dict.dto.DictStateOperationDTO;
 import com.lambda.fusion.dict.dto.QueryDictTree;
 import com.lambda.fusion.dict.service.DictInfoService;
 import com.lambda.fusion.dict.service.DictTypeService;
 import com.lambda.fusion.dict.vo.DictInfoVO;
 import com.lambda.fusion.dict.vo.DictTypeVo;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -26,9 +28,9 @@ import jakarta.validation.Valid;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -39,13 +41,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping({"/dict"})
 @Tag(name = "数据字典相关")
+@RequiredArgsConstructor
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class DictController {
-
-    @Autowired
-    private DictTypeService dictTypeService;
-
-    @Autowired
-    private DictInfoService dictInfoService;
+    private final DictTypeService dictTypeService;
+    private final DictInfoService dictInfoService;
 
     @OperationLog
     @GetMapping("/dicttypeall")
@@ -71,13 +71,13 @@ public class DictController {
     @GetMapping("/dict/tree/data/{type}")
     @Operation(summary = "查询树形结构的数据项", description = "根据字典类型查询树形结构数据项")
     public List<DictInfo> treeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
-        return dictInfoService.treeData(type);
+        return dictInfoService.getTreeData(type);
     }
 
     @GetMapping("/dict/tree/subdata/{type}")
     @Operation(summary = "根据数据类型查询包含子集数据类型的数据项", description = "根据数据类型查询包含子集数据类型的数据项")
     public List<DictInfo> subTreeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
-        return dictInfoService.subTreeData(type);
+        return dictInfoService.getSubTreeData(type);
     }
 
     @OperationLog
@@ -102,7 +102,7 @@ public class DictController {
     @Operation(summary = "根据数据项父节点查询数据项树", description = "根据数据项父节点查询数据项树")
     public List<DictInfo> queryDictInfoByParentId(
             @Parameter(description = "数据项父ID", required = true) @PathVariable String parentid) {
-        return dictInfoService.queryDictInfoByParentId(parentid);
+        return dictInfoService.getDictInfoByParentId(parentid);
     }
 
     @OperationLog
@@ -189,60 +189,14 @@ public class DictController {
     public Page<DictInfo> pageDictInfo(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
-            @RequestParam(required = false) String dictType,
-            @RequestParam(required = false) String fieldType,
-            @RequestParam(required = false) String dictInfoId,
-            @RequestParam(required = false) String fieldName,
-            @RequestParam(required = false) Integer enableState) {
-        LoginUserDetails operator = (LoginUserDetails) OperatorUtils.getOperator();
-        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(5);
-        parameters.put(FIELD_DICT_TYPE, dictType);
-        if (StringUtils.isNotBlank(fieldType)) {
-            parameters.put(FIELD_FIELD_TYPE, fuzzyQuery(fieldType));
-        }
-        if (StringUtils.isNotBlank(fieldName)) {
-            parameters.put(FIELD_FIELD_NAME, fuzzyQuery(fieldName));
-        }
-        if (StringUtils.isNotBlank(dictInfoId)) {
-            parameters.put(FIELD_DICT_INFO_ID, dictInfoId);
-        }
-        parameters.put(FIELD_ENABLE_STATE, enableState);
-        parameters.put(FIELD_TENANT_ID, operator.getTenantId());
-        return dictInfoService.page(new Page<>(number, size), parameters);
+            DictInfoQueryDTO dictInfoQueryDTO) {
+        return dictInfoService.page(new Page<>(number, size), dictInfoQueryDTO);
     }
 
     @GetMapping("/dictinfo/data/select")
-    @Operation(
-            summary = "数据项条件查询",
-            description = "分页查询所有数据列表",
-            parameters = {
-                @Parameter(name = "dictType", description = "字典类型", in = ParameterIn.QUERY),
-                @Parameter(name = "fieldType", description = "字段类型", in = ParameterIn.QUERY),
-                @Parameter(name = "dictInfoId", description = "数据项Id", in = ParameterIn.QUERY),
-                @Parameter(name = "fieldName", description = "字段名称", in = ParameterIn.QUERY),
-                @Parameter(name = "enableState", description = "启用状态", in = ParameterIn.QUERY)
-            })
-    public List<DictInfo> selectDictInfo(
-            @RequestParam(required = false) String dictType,
-            @RequestParam(required = false) String fieldType,
-            @RequestParam(required = false) String dictInfoId,
-            @RequestParam(required = false) String fieldName,
-            @RequestParam(required = false) Integer enableState) {
-        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(5);
-        parameters.put(FIELD_DICT_TYPE, dictType);
-        if (StringUtils.isNotBlank(fieldType)) {
-            parameters.put(FIELD_FIELD_TYPE, fuzzyQuery(fieldType));
-        }
-        if (StringUtils.isNotBlank(fieldName)) {
-            parameters.put(FIELD_FIELD_NAME, fuzzyQuery(fieldName));
-        }
-        if (StringUtils.isNotBlank(dictInfoId)) {
-            parameters.put(FIELD_DICT_INFO_ID, dictInfoId);
-        }
-        LoginUserDetails operator = (LoginUserDetails) OperatorUtils.getOperator();
-        parameters.put(FIELD_ENABLE_STATE, enableState);
-        parameters.put(FIELD_TENANT_ID, operator.getTenantId());
-        return dictInfoService.selectDictInfo(parameters);
+    @Operation(summary = "数据项条件查询", description = "分页查询所有数据列表")
+    public List<DictInfo> selectDictInfo(DictInfoQueryDTO dictInfoQueryDTO) {
+        return dictInfoService.selectDictInfo(dictInfoQueryDTO);
     }
 
     @OperationLog
@@ -258,23 +212,7 @@ public class DictController {
 
     @OperationLog
     @PutMapping("/dictinfo")
-    @Operation(
-            summary = "更新字典详细信息",
-            description = "更新字典详细信息",
-            parameters = {
-                @Parameter(name = "id", description = "id", required = true, in = ParameterIn.QUERY),
-                @Parameter(name = "fieldName", description = "字段名称", required = true, in = ParameterIn.QUERY),
-                @Parameter(name = "sort", description = "排序号", required = true, in = ParameterIn.QUERY),
-                @Parameter(name = "fieldType", description = "字段类型", required = true, in = ParameterIn.QUERY),
-                @Parameter(
-                        name = "enableState",
-                        description = "启用状态：0未启用，1启用",
-                        required = true,
-                        in = ParameterIn.QUERY,
-                        schema = @Schema(allowableValues = {"0", "1"})),
-                @Parameter(name = "remarks", description = "备注", in = ParameterIn.QUERY),
-                @Parameter(name = "additional", description = "额外参数")
-            })
+    @Operation(summary = "更新字典详细信息", description = "更新字典详细信息")
     public DictInfo updateDictInfo(
             @Valid DictInfoVO dictInfoVO, @RequestBody(required = false) DictInfo.Additional additional) {
         DictInfo dictInfo = new DictInfo();
@@ -295,26 +233,38 @@ public class DictController {
     @PutMapping("/dictinfo/{id}/enable")
     @Operation(summary = "启用字典", description = "启用字典")
     public void changeEnable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
-        dictInfoService.changeState(ENABLE_STATE_ENABLED, id);
+        dictInfoService.updateEnableState(DictStateOperationDTO.builder()
+                .id(id)
+                .state(ENABLE_STATE_ENABLED)
+                .build());
     }
 
     @PutMapping("/dictinfo/{id}/disable")
     @Operation(summary = "禁用字典", description = "禁用字典")
     public void changeDisable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
-        dictInfoService.changeState(ENABLE_STATE_DISABLED, id);
+        dictInfoService.updateEnableState(DictStateOperationDTO.builder()
+                .id(id)
+                .state(ENABLE_STATE_DISABLED)
+                .build());
     }
 
     @PutMapping("/dictinfo/{id}/selectable")
     @Operation(summary = "设置可选择", description = "设置可选择")
     public void changeSelectable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
-        dictInfoService.changeSelectable(SELECTABLE_STATE_ENABLED, id);
+        dictInfoService.updateSelectableState(DictStateOperationDTO.builder()
+                .id(id)
+                .state(SELECTABLE_STATE_ENABLED)
+                .build());
     }
 
     @PutMapping("/dictinfo/{id}/unselectable")
     @Operation(summary = "设置不可选择", description = "设置不可选择")
     public void changeUnselectable(
             @PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
-        dictInfoService.changeSelectable(SELECTABLE_STATE_DISABLED, id);
+        dictInfoService.updateSelectableState(DictStateOperationDTO.builder()
+                .id(id)
+                .state(SELECTABLE_STATE_DISABLED)
+                .build());
     }
 
     @GetMapping("/dict/dynamic")

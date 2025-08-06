@@ -1,5 +1,6 @@
 package com.lambda.fusion.configs.domain.dto;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -13,6 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "配置保存参数")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class ConfigSaveDTO {
 
     @NotBlank(message = "应用名称不能为空")

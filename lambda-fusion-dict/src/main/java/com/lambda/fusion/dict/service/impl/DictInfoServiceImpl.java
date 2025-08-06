@@ -303,33 +303,34 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
         if (queryDTO == null) {
             return new HashMap<>();
         }
-
-        Map<String, Object> parameters = new HashMap<>();
+        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(8);
         if (StringUtils.isNotBlank(queryDTO.getDictType())) {
-            parameters.put("dictType", queryDTO.getDictType());
+            parameters.put(FIELD_DICT_TYPE, queryDTO.getDictType());
         }
         if (StringUtils.isNotBlank(queryDTO.getFieldType())) {
-            parameters.put("fieldType", queryDTO.getFieldType());
+            parameters.put(FIELD_FIELD_TYPE, ParameterUtils.fuzzyQuery(queryDTO.getFieldType()));
         }
         if (StringUtils.isNotBlank(queryDTO.getFieldName())) {
-            parameters.put("fieldName", queryDTO.getFieldName());
+            parameters.put(FIELD_FIELD_NAME, ParameterUtils.fuzzyQuery(queryDTO.getFieldName()));
         }
         if (StringUtils.isNotBlank(queryDTO.getParentId())) {
-            parameters.put("parentId", queryDTO.getParentId());
+            parameters.put(FIELD_PARENT_ID, queryDTO.getParentId());
         }
         if (queryDTO.getEnableState() != null) {
-            parameters.put("enableState", queryDTO.getEnableState());
+            parameters.put(FIELD_ENABLE_STATE, queryDTO.getEnableState());
+        }
+        if (queryDTO.getDictInfoId() != null) {
+            parameters.put(FIELD_DICT_INFO_ID, queryDTO.getDictInfoId());
         }
         if (queryDTO.getSelectable() != null) {
-            parameters.put("selectable", queryDTO.getSelectable());
+            parameters.put(FIELD_SELECTABLE, queryDTO.getSelectable());
         }
-        if (StringUtils.isNotBlank(queryDTO.getTenantId())) {
-            parameters.put("tenantId", queryDTO.getTenantId());
-        }
+        LoginUserDetails operator = (LoginUserDetails) OperatorUtils.getOperator();
+        parameters.put(FIELD_TENANT_ID, operator.getTenantId());
+
         if (queryDTO.getExtraParams() != null && !queryDTO.getExtraParams().isEmpty()) {
             parameters.putAll(queryDTO.getExtraParams());
         }
-
         return parameters;
     }
 
