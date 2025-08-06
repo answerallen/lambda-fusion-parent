@@ -1,4 +1,6 @@
-package com.lambda.fusion.configs.core;
+package com.lambda.fusion.configs.utils;
+
+import static com.lambda.fusion.configs.ConfigConstants.DataSource.*;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import javax.annotation.Nonnull;
@@ -10,8 +12,6 @@ import org.springframework.boot.context.properties.bind.PlaceholdersResolver;
 import org.springframework.boot.context.properties.bind.PropertySourcesPlaceholdersResolver;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.core.env.Environment;
-
-import static com.lambda.fusion.configs.ConfigConstants.DataSource.*;
 
 /**
  * DataSourcePropertyUtils
@@ -53,8 +53,7 @@ public class DataSourcePropertyUtils {
     private static DataSourceProperty buildConfigIndependentDataSourceProperty(Environment environment) {
         PlaceholdersResolver resolver = new PropertySourcesPlaceholdersResolver(environment);
         Binder binder = new Binder(ConfigurationPropertySources.get(environment), resolver);
-        BindResult<DataSourceProperty> bindResult =
-                binder.bind(CONFIG_DATASOURCE_PREFIX, DataSourceProperty.class);
+        BindResult<DataSourceProperty> bindResult = binder.bind(CONFIG_DATASOURCE_PREFIX, DataSourceProperty.class);
         return bindResult.get();
     }
 }

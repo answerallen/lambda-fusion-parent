@@ -1,5 +1,7 @@
 package com.lambda.fusion.configs.controller;
 
+import static com.lambda.fusion.configs.ConfigConstants.Encryption.*;
+
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.crypto.Mode;
 import cn.hutool.crypto.asymmetric.KeyType;
@@ -20,8 +22,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import static com.lambda.fusion.configs.ConfigConstants.Encryption.*;
 
 @Tag(name = "系统配置管理")
 @RefreshScope

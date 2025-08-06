@@ -26,7 +26,7 @@ public final class ConfigConstants {
         /**
          * 查询配置的SQL语句
          */
-        public static final String SELECT_CONFIGS_SQL = 
+        public static final String SELECT_CONFIGS_SQL =
                 "SELECT property_key, property_value, application FROM la_configs WHERE application = ? OR application = 'public'";
     }
 
@@ -98,7 +98,7 @@ public final class ConfigConstants {
         /**
          * Nacos属性源仓库类名
          */
-        public static final String PROPERTY_SOURCE_REPOSITORY_CLASS = 
+        public static final String PROPERTY_SOURCE_REPOSITORY_CLASS =
                 "com.alibaba.cloud.nacos.NacosPropertySourceRepository";
     }
 
@@ -143,19 +143,19 @@ public final class ConfigConstants {
         /**
          * 数据源配置未找到警告消息
          */
-        public static final String DATASOURCE_CONFIG_NOT_FOUND = 
+        public static final String DATASOURCE_CONFIG_NOT_FOUND =
                 "Could not find dataSource configuration, ignored. More details: https://tiamaes.yuque.com/tiam/gp7ci8/zqie8r";
 
         /**
          * 获取数据源属性失败警告消息
          */
-        public static final String FAILED_TO_GET_DATASOURCE_PROPERTY = 
+        public static final String FAILED_TO_GET_DATASOURCE_PROPERTY =
                 "Failed to get DataSourceProperty from environment";
 
         /**
          * 变更检测获取数据源属性失败警告消息
          */
-        public static final String FAILED_TO_GET_DATASOURCE_PROPERTY_FOR_CHANGE = 
+        public static final String FAILED_TO_GET_DATASOURCE_PROPERTY_FOR_CHANGE =
                 "Failed to get DataSourceProperty for change detection";
 
         /**
@@ -232,13 +232,12 @@ public final class ConfigConstants {
         /**
          * 忽略刷新处理日志消息
          */
-        public static final String IGNORING_REFRESH_PROCESSING = 
-                "Ignoring refresh processing for environment: {}";
+        public static final String IGNORING_REFRESH_PROCESSING = "Ignoring refresh processing for environment: {}";
 
         /**
          * 数据库配置变更日志消息
          */
-        public static final String DATABASE_CONFIG_CHANGED = 
+        public static final String DATABASE_CONFIG_CHANGED =
                 "Database config data has been changed! Ready to refresh context..";
 
         /**
@@ -274,73 +273,68 @@ public final class ConfigConstants {
         /**
          * 调度完成日志消息
          */
-        public static final String REFRESHER_SCHEDULED = 
+        public static final String REFRESHER_SCHEDULED =
                 "DatabaseContextRefresher scheduled with {}s initial delay and {}s interval";
 
         /**
          * 环境变更事件接收日志消息
          */
-        public static final String ENVIRONMENT_CHANGE_EVENT_RECEIVED = 
+        public static final String ENVIRONMENT_CHANGE_EVENT_RECEIVED =
                 "Environment change event received, context is refreshing!";
 
         /**
          * 刷新作用域刷新事件接收日志消息
          */
-        public static final String REFRESH_SCOPE_EVENT_RECEIVED = 
+        public static final String REFRESH_SCOPE_EVENT_RECEIVED =
                 "Refresh scope refreshed event received, context refresh finished!";
 
         /**
          * 数据源为空无法创建属性源警告消息
          */
-        public static final String DATASOURCE_NULL_CANNOT_CREATE_PROPERTY_SOURCE = 
+        public static final String DATASOURCE_NULL_CANNOT_CREATE_PROPERTY_SOURCE =
                 "DataSource is null, cannot create property source";
 
         /**
          * 获取连接创建属性源失败警告消息
          */
-        public static final String FAILED_TO_GET_CONNECTION_FOR_PROPERTY_SOURCE = 
+        public static final String FAILED_TO_GET_CONNECTION_FOR_PROPERTY_SOURCE =
                 "Failed to get connection for property source creation";
 
         /**
          * 创建属性源变更检测失败警告消息
          */
-        public static final String FAILED_TO_CREATE_PROPERTY_SOURCE_FOR_CHANGE = 
+        public static final String FAILED_TO_CREATE_PROPERTY_SOURCE_FOR_CHANGE =
                 "Failed to create property source for change detection";
 
         /**
          * 属性源已更新日志消息
          */
-        public static final String PROPERTY_SOURCE_UPDATED = 
-                "PropertySource has been updated due to changes";
+        public static final String PROPERTY_SOURCE_UPDATED = "PropertySource has been updated due to changes";
 
         /**
          * 数据源关闭成功日志消息
          */
-        public static final String DATASOURCE_CLOSED_SUCCESSFULLY = 
-                "DataSource closed successfully";
+        public static final String DATASOURCE_CLOSED_SUCCESSFULLY = "DataSource closed successfully";
 
         /**
          * 关闭数据源时发生错误警告消息
          */
-        public static final String ERROR_CLOSING_DATASOURCE = 
-                "Error occurred while closing DataSource";
+        public static final String ERROR_CLOSING_DATASOURCE = "Error occurred while closing DataSource";
 
         /**
          * 数据库属性源定位器销毁成功日志消息
          */
-        public static final String LOCATOR_DESTROYED_SUCCESSFULLY = 
+        public static final String LOCATOR_DESTROYED_SUCCESSFULLY =
                 "DatabaseBasedPropertySourceLocator destroyed successfully";
 
         /**
          * 数据库属性源已重建日志消息
          */
-        public static final String DATASOURCE_REBUILT = 
-                "DataBaseBasedPropertySource has been rebuilt. {}";
+        public static final String DATASOURCE_REBUILT = "DataBaseBasedPropertySource has been rebuilt. {}";
 
         /**
          * 数据库属性源已初始化日志消息
          */
-        public static final String DATASOURCE_INITIALIZED = 
-                "DataBaseBasedPropertySource has been initialized. {}";
+        public static final String DATASOURCE_INITIALIZED = "DataBaseBasedPropertySource has been initialized. {}";
     }
 }

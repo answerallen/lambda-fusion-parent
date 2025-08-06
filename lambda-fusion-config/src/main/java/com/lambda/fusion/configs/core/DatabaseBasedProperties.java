@@ -1,5 +1,7 @@
 package com.lambda.fusion.configs.core;
 
+import static com.lambda.fusion.configs.ConfigConstants.Database.*;
+
 import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serial;
@@ -11,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
-
-import static com.lambda.fusion.configs.ConfigConstants.Database.*;
 
 public class DatabaseBasedProperties extends Properties {
     @Serial

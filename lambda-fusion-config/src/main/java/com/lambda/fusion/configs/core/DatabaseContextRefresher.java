@@ -1,5 +1,9 @@
 package com.lambda.fusion.configs.core;
 
+import static com.lambda.fusion.configs.ConfigConstants.ErrorMessages.*;
+import static com.lambda.fusion.configs.ConfigConstants.LogMessages.*;
+import static com.lambda.fusion.configs.ConfigConstants.Refresh.*;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
@@ -23,10 +27,6 @@ import org.springframework.context.EnvironmentAware;
 import org.springframework.context.event.SmartApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
-
-import static com.lambda.fusion.configs.ConfigConstants.Refresh.*;
-import static com.lambda.fusion.configs.ConfigConstants.ErrorMessages.*;
-import static com.lambda.fusion.configs.ConfigConstants.LogMessages.*;
 
 /**
  * 数据库配置变更监听器，每隔30秒检测数据库配置变动并自动刷新上下文
@@ -125,11 +125,7 @@ public class DatabaseContextRefresher
     public void run(ApplicationArguments args) {
         log.info(REFRESHER_STARTING_UP);
         EXECUTOR_SERVICE.scheduleWithFixedDelay(
-                this::apply, 
-                INITIAL_DELAY_SECONDS, 
-                REFRESH_INTERVAL_SECONDS, 
-                TimeUnit.SECONDS
-        );
+                this::apply, INITIAL_DELAY_SECONDS, REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
         log.info(REFRESHER_SCHEDULED, INITIAL_DELAY_SECONDS, REFRESH_INTERVAL_SECONDS);
     }
 

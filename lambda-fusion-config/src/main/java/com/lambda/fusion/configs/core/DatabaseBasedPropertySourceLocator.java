@@ -1,17 +1,22 @@
 package com.lambda.fusion.configs.core;
 
+import static com.lambda.fusion.configs.ConfigConstants.DataSource.*;
+import static com.lambda.fusion.configs.ConfigConstants.ErrorMessages.*;
+import static com.lambda.fusion.configs.ConfigConstants.LogMessages.*;
+import static com.lambda.fusion.configs.ConfigConstants.PropertySource.*;
+
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.configs.ConfigConstants;
+import com.lambda.fusion.configs.utils.DataSourcePropertyHelper;
+import com.lambda.fusion.configs.utils.DataSourcePropertyUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
+import jakarta.annotation.PreDestroy;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.Nonnull;
-
-import jakarta.annotation.PreDestroy;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.bootstrap.config.BootstrapPropertySource;
@@ -20,16 +25,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.env.*;
 import org.springframework.util.ClassUtils;
 
-import static com.lambda.fusion.configs.ConfigConstants.LogMessages.*;
-import static com.lambda.fusion.configs.ConfigConstants.PropertySource.*;
-import static com.lambda.fusion.configs.ConfigConstants.DataSource.*;
-import static com.lambda.fusion.configs.ConfigConstants.ErrorMessages.*;
-
 @Slf4j
 @Order(100)
 public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator {
-    // 使用常量类中定义的属性源和数据源相关常量
-    
     private volatile HikariDataSource dataSource;
     private final ReentrantReadWriteLock dataSourceLock = new ReentrantReadWriteLock();
 
@@ -44,17 +42,17 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             log.debug(IGNORING_REFRESH_PROCESSING, environment.getClass().getSimpleName());
             return null;
         }
-        
+
         DataSourceProperty property = getDataSourceProperty(environment);
         if (property == null) {
             log.warn(DATASOURCE_CONFIG_NOT_FOUND);
             return null;
         }
-        
+
         String url = property.getUrl();
         HikariDataSource currentDataSource = initializeDataSourceIfNeeded(property);
         application = environment.getProperty(SPRING_APPLICATION_NAME, "");
-        
+
         return createPropertySource(currentDataSource, url);
     }
 
@@ -62,7 +60,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         return ClassUtils.isAssignableValue(StandardEnvironment.class, environment)
                 && ((StandardEnvironment) environment).getPropertySources().contains(REFRESH_ARGS_PROPERTY_SOURCE);
     }
-    
+
     private DataSourceProperty getDataSourceProperty(Environment environment) {
         try {
             return DataSourcePropertyHelper.getProperty(environment);
@@ -71,7 +69,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             return null;
         }
     }
-    
+
     private HikariDataSource initializeDataSourceIfNeeded(DataSourceProperty property) {
         dataSourceLock.readLock().lock();
         try {
@@ -81,7 +79,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         } finally {
             dataSourceLock.readLock().unlock();
         }
-        
+
         dataSourceLock.writeLock().lock();
         try {
             // 双重检查锁定
@@ -95,7 +93,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             dataSourceLock.writeLock().unlock();
         }
     }
-    
+
     private PropertySource<?> createPropertySource(HikariDataSource currentDataSource, String url) {
         try (Connection connection = currentDataSource.getConnection()) {
             DataBaseBasedPropertySource propertySource =
@@ -114,7 +112,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             return createDefaultPropertySource();
         }
     }
-    
+
     private PropertySource<?> createDefaultPropertySource() {
         return new DataBaseBasedPropertySource(DATABASE_PROPERTY_SOURCE_NAME, new DatabaseBasedProperties());
     }
@@ -126,25 +124,25 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
                 log.debug(DATASOURCE_NULL_NO_CHANGES);
                 return false;
             }
-            
+
             return checkAndUpdatePropertySource(environment);
         } finally {
             dataSourceLock.readLock().unlock();
         }
     }
-    
+
     private boolean checkAndUpdatePropertySource(ConfigurableEnvironment environment) {
         MutablePropertySources propertySources = environment.getPropertySources();
         DataSourceProperty property = getDataSourcePropertyForChange(environment);
-        
+
         boolean dataSourceChanged = isDataSourceChanged(property, dataSource);
         if (dataSourceChanged) {
             rebuildDataSource(property);
         }
-        
+
         return updatePropertySourceIfChanged(propertySources, dataSourceChanged);
     }
-    
+
     private DataSourceProperty getDataSourcePropertyForChange(ConfigurableEnvironment environment) {
         try {
             return DataSourcePropertyUtils.getProperty(environment);
@@ -153,7 +151,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             return null;
         }
     }
-    
+
     private void rebuildDataSource(DataSourceProperty property) {
         dataSourceLock.writeLock().lock();
         try {
@@ -164,24 +162,23 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             dataSourceLock.writeLock().unlock();
         }
     }
-    
+
     private boolean updatePropertySourceIfChanged(MutablePropertySources propertySources, boolean dataSourceChanged) {
         DataBaseBasedPropertySource propertySource = getPropertySource(dataSource);
         if (propertySource == null) {
             log.warn(FAILED_TO_CREATE_PROPERTY_SOURCE_FOR_CHANGE);
             return false;
         }
-        
+
         int newHashcode = propertySource.getSource().toString().hashCode();
         if (dataSourceChanged || hashcode != newHashcode) {
-            BootstrapPropertySource<DatabaseBasedProperties> replaced =
-                    new BootstrapPropertySource<>(propertySource);
+            BootstrapPropertySource<DatabaseBasedProperties> replaced = new BootstrapPropertySource<>(propertySource);
             propertySources.replace(replaced.getName(), replaced);
             hashcode = newHashcode;
             log.debug(PROPERTY_SOURCE_UPDATED);
             return true;
         }
-        
+
         return false;
     }
 
@@ -189,7 +186,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         if (property == null) {
             return false;
         }
-        
+
         return !(Objects.equals(property.getUrl(), dataSource.getJdbcUrl())
                 && Objects.equals(property.getUsername(), dataSource.getUsername()));
     }
@@ -203,10 +200,10 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         configuration.setMaximumPoolSize(DEFAULT_MAX_POOL_SIZE);
         configuration.setMinimumIdle(DEFAULT_MIN_IDLE);
         configuration.setConnectionTimeout(DEFAULT_CONNECTION_TIMEOUT);
-        
+
         // 设置连接池名称以便于监控
         configuration.setPoolName(POOL_NAME);
-        
+
         return configuration;
     }
 
@@ -215,7 +212,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             log.warn(DATASOURCE_NULL_CANNOT_CREATE_PROPERTY_SOURCE);
             return null;
         }
-        
+
         try (Connection connection = dataSource.getConnection()) {
             return new DataBaseBasedPropertySource(DATABASE_PROPERTY_SOURCE_NAME, connection, application);
         } catch (SQLException e) {
@@ -223,7 +220,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             return null;
         }
     }
-    
+
     private void closeDataSourceSafely(HikariDataSource dataSource) {
         if (dataSource != null && !dataSource.isClosed()) {
             try {
@@ -234,7 +231,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             }
         }
     }
-    
+
     @PreDestroy
     public void destroy() {
         dataSourceLock.writeLock().lock();
