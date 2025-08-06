@@ -1,32 +1,30 @@
 package com.lambda.fusion.configs.service.impl;
 
-import cn.hutool.core.util.ObjectUtil;
+import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Lists;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.logger.context.LogContext;
-import com.lambda.fusion.configs.domain.dto.Parameters;
+import com.lambda.fusion.configs.domain.dto.*;
 import com.lambda.fusion.configs.domain.entity.ConfigEntity;
 import com.lambda.fusion.configs.domain.entity.ConfigOptionEntity;
-import com.lambda.fusion.configs.domain.vo.ConfigOptionVO;
-import com.lambda.fusion.configs.domain.vo.ConfigVO;
 import com.lambda.fusion.configs.mapper.ConfigsMapper;
 import com.lambda.fusion.configs.mapper.ConfigsOptionMapper;
 import com.lambda.fusion.configs.service.ConfigService;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.List;
-
-import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -40,17 +38,38 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigsMapper, ConfigEntity> 
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-    public Page<ConfigEntity> page(Page<ConfigEntity> page, Parameters parameters) {
-        if (StringUtils.isNotBlank(parameters.getName())) {
-            parameters.setName(fuzzyQuery(parameters.getName()));
+    public Page<ConfigEntity> pageConfigs(Page<ConfigEntity> page, ConfigPageQueryDTO queryParams) {
+        if (StringUtils.isNotBlank(queryParams.getName())) {
+            queryParams.setName(fuzzyQuery(queryParams.getName()));
         }
-        return configsMapper.selectConfigPage(page, parameters);
+        return configsMapper.selectConfigPage(page, queryParams);
     }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-    public List<ConfigEntity> queryConfigsByConditions(String application, Collection<String> ids) {
-        return configsMapper.selectAllSystemConfigs(application, ids);
+    public List<ConfigEntity> listConfigs(ConfigListQueryDTO queryDTO) {
+        LambdaQueryWrapper<ConfigEntity> queryWrapper = Wrappers.lambdaQuery(ConfigEntity.class);
+
+        if (StringUtils.isNotBlank(queryDTO.getKey())) {
+            queryWrapper.likeRight(ConfigEntity::getKey, queryDTO.getKey());
+        }
+        if (CollectionUtils.isNotEmpty(queryDTO.getIds())) {
+            queryWrapper.in(ConfigEntity::getId, queryDTO.getIds());
+        }
+        if (CollectionUtils.isNotEmpty(queryDTO.getKeys())) {
+            queryWrapper.in(ConfigEntity::getKey, queryDTO.getKeys());
+        }
+        if (StringUtils.isNotBlank(queryDTO.getApplication())) {
+            queryWrapper.eq(ConfigEntity::getApplication, queryDTO.getApplication());
+        }
+
+        return list(queryWrapper);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
+    public List<ConfigEntity> batchQueryConfigs(ConfigQueryDTO queryDTO) {
+        return configsMapper.selectAllSystemConfigs(queryDTO.getApplication(), queryDTO.getIds());
     }
 
     @Override
@@ -60,37 +79,104 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigsMapper, ConfigEntity> 
     }
 
     @Override
-    public void updateBatchByApplication(String application, List<ConfigEntity> updated) {
-        if (CollectionUtils.isNotEmpty(updated)) {
-            List<ConfigEntity> updated0 = Lists.newArrayList();
-            for (ConfigEntity entity : updated) {
-                ConfigEntity entity0 = new ConfigEntity();
-                entity0.setId(entity.getId());
-                entity0.setValue(entity.getValue());
-                entity0.setApplication(application);
-                updated0.add(entity0);
+    public boolean batchUpdateConfigs(ConfigBatchUpdateDTO updateDTO) {
+        try {
+            if (CollectionUtils.isNotEmpty(updateDTO.getConfigs())) {
+                List<ConfigEntity> updatedConfigs = Lists.newArrayList();
+                for (ConfigBatchUpdateDTO.ConfigUpdateItem item : updateDTO.getConfigs()) {
+                    ConfigEntity entity = new ConfigEntity();
+                    entity.setId(item.getId());
+                    entity.setValue(item.getValue());
+                    entity.setApplication(updateDTO.getApplication());
+                    if (StringUtils.isNotBlank(item.getDescription())) {
+                        entity.setDescription(item.getDescription());
+                    }
+                    updatedConfigs.add(entity);
+                }
+                saveOrUpdateBatch(updatedConfigs);
             }
-            saveOrUpdateBatch(updated0);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 
     @Override
-    public ConfigEntity saveConfig(String application, ConfigVO source) {
-        String application0 = ObjectUtil.defaultIfNull(source.getApplication(), application);
-        Boolean exist = baseMapper.checkExist(source.getKey(), application);
-        Assert.isFalse(exist, "lambda.fusion.config.key.existed");
-        ConfigEntity target = new ConfigEntity();
-        target.setApplication(application0);
-        BeanUtils.copyProperties(source, target);
-        configsMapper.insert(target);
-        if (CollectionUtils.isNotEmpty(source.getOptions())) {
-            for (ConfigOptionVO item : source.getOptions()) {
-                ConfigOptionEntity optionEntity = new ConfigOptionEntity(item);
-                optionEntity.setApplication(application0);
+    public ConfigEntity updateConfigWithOptions(ConfigUpdateDTO updateDTO) {
+        ConfigEntity target = configsMapper.selectConfigById(updateDTO.getId());
+        Assert.notNull(target, "lambda.fusion.config.not.found");
+
+        // 更新配置基本信息
+        if (StringUtils.isNotBlank(updateDTO.getKey())) {
+            target.setKey(updateDTO.getKey());
+        }
+        if (StringUtils.isNotBlank(updateDTO.getValue())) {
+            target.setValue(updateDTO.getValue());
+        }
+        if (StringUtils.isNotBlank(updateDTO.getName())) {
+            target.setName(updateDTO.getName());
+        }
+        if (StringUtils.isNotBlank(updateDTO.getDescription())) {
+            target.setDescription(updateDTO.getDescription());
+        }
+        if (updateDTO.getType() != null) {
+            target.setType(updateDTO.getType());
+        }
+
+        configsMapper.updateById(target);
+
+        // 更新配置选项
+        if (CollectionUtils.isNotEmpty(updateDTO.getOptions())) {
+            // 删除旧的选项
+            if (CollectionUtils.isNotEmpty(target.getOptions())) {
+                Set<String> oldOptionIds = target.getOptions().stream()
+                        .map(ConfigOptionEntity::getId)
+                        .collect(Collectors.toSet());
+                configsOptionMapper.deleteBatchIds(oldOptionIds);
+            }
+
+            // 插入新的选项
+            for (ConfigSaveDTO.ConfigOptionDTO optionDTO : updateDTO.getOptions()) {
+                ConfigOptionEntity optionEntity = new ConfigOptionEntity();
+                optionEntity.setApplication(target.getApplication());
                 optionEntity.setPid(target.getId());
+                optionEntity.setValue(optionDTO.getValue());
+                optionEntity.setDescription(optionDTO.getDescription());
                 configsOptionMapper.insert(optionEntity);
             }
         }
+
+        LogContext.setDetail("UPDATE: " + target.getKey() + "=" + target.getValue());
+        return configsMapper.selectConfigById(target.getId());
+    }
+
+    @Override
+    public ConfigEntity saveConfigWithOptions(ConfigSaveDTO saveDTO) {
+        String application = saveDTO.getApplication();
+        Boolean exist = baseMapper.checkExist(saveDTO.getKey(), application);
+        Assert.isFalse(exist, "lambda.fusion.config.key.existed");
+
+        ConfigEntity target = new ConfigEntity();
+        target.setApplication(application);
+        target.setKey(saveDTO.getKey());
+        target.setValue(saveDTO.getValue());
+        target.setName(saveDTO.getName());
+        target.setDescription(saveDTO.getDescription());
+        target.setType(saveDTO.getType());
+
+        configsMapper.insert(target);
+
+        if (CollectionUtils.isNotEmpty(saveDTO.getOptions())) {
+            for (ConfigSaveDTO.ConfigOptionDTO optionDTO : saveDTO.getOptions()) {
+                ConfigOptionEntity optionEntity = new ConfigOptionEntity();
+                optionEntity.setApplication(application);
+                optionEntity.setPid(target.getId());
+                optionEntity.setValue(optionDTO.getValue());
+                optionEntity.setDescription(optionDTO.getDescription());
+                configsOptionMapper.insert(optionEntity);
+            }
+        }
+
         LogContext.setDetail("CREATE: " + target.getKey() + "=" + target.getValue());
         return configsMapper.selectConfigById(target.getId());
     }

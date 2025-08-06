@@ -2,13 +2,12 @@ package com.lambda.fusion.configs.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.configs.domain.dto.Parameters;
+import com.lambda.fusion.configs.domain.dto.ConfigPageQueryDTO;
 import com.lambda.fusion.configs.domain.entity.ConfigEntity;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-
 import java.util.Collection;
 import java.util.List;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface ConfigsMapper extends BaseMapper<ConfigEntity> {
@@ -19,15 +18,16 @@ public interface ConfigsMapper extends BaseMapper<ConfigEntity> {
      * @param application 应用名称
      * @param ids         配置ID列表
      */
-    List<ConfigEntity> selectAllSystemConfigs(@Param("application") String application, @Param("ids") Collection<String> ids);
+    List<ConfigEntity> selectAllSystemConfigs(
+            @Param("application") String application, @Param("ids") Collection<String> ids);
 
     /**
      * 分页查询配置项
      *
-     * @param pagination 分页信息
-     * @param parameters 查询参数
+     * @param pagination         分页信息
+     * @param configPageQueryDTO 查询参数
      */
-    Page<ConfigEntity> selectConfigPage(Page<ConfigEntity> pagination, Parameters parameters);
+    Page<ConfigEntity> selectConfigPage(Page<ConfigEntity> pagination, ConfigPageQueryDTO configPageQueryDTO);
 
     /**
      * 根据ID查询配置详情

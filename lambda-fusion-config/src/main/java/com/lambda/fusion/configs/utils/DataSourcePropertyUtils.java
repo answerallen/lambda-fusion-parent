@@ -39,11 +39,11 @@ public class DataSourcePropertyUtils {
      */
     public static DataSourceProperty getProperty(Environment environment) {
         Environment enhancedEnvironment = enhanceEnvironmentWithNacos(environment);
-        
+
         if (enableConfigIndependentDataSource(enhancedEnvironment)) {
             return buildConfigIndependentDataSourceProperty(enhancedEnvironment);
         }
-        
+
         return null;
     }
 

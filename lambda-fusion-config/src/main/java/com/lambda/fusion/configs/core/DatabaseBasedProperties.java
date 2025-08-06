@@ -17,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 public class DatabaseBasedProperties extends Properties {
     @Serial
     private static final long serialVersionUID = 1L;
+
     private static final String SQL = SELECT_CONFIGS_SQL;
 
     @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")

@@ -25,6 +25,8 @@ import com.lambda.fusion.dict.dao.entity.DictInfoGroup;
 import com.lambda.fusion.dict.dao.entity.DictType;
 import com.lambda.fusion.dict.dao.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.dao.mapper.DictTypeMapper;
+import com.lambda.fusion.dict.dto.DictInfoQueryDTO;
+import com.lambda.fusion.dict.dto.DictStateOperationDTO;
 import com.lambda.fusion.dict.service.DictInfoService;
 import com.lambda.fusion.dict.vo.DictInfoVO;
 import com.lambda.fusion.dict.vo.DictTypeVo;
@@ -53,7 +55,8 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     private final DictTypeMapper dictTypeMapper;
 
     @Override
-    public Page<DictInfo> page(Page<DictInfo> pageable, Map<String, Object> parameters) {
+    public Page<DictInfo> page(Page<DictInfo> pageable, DictInfoQueryDTO queryDTO) {
+        Map<String, Object> parameters = convertQueryDTOToMap(queryDTO);
         pageable = dictInfoMapper.page(pageable, parameters);
         pageable.getRecords().forEach(info -> {
             info.setParameters(convertMap(info.getExtra()));
@@ -63,7 +66,8 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     }
 
     @Override
-    public List<DictInfo> selectDictInfo(Map<String, Object> parameters) {
+    public List<DictInfo> selectDictInfo(DictInfoQueryDTO queryDTO) {
+        Map<String, Object> parameters = convertQueryDTOToMap(queryDTO);
         List<DictInfo> outcomes = dictInfoMapper.selectDictInfo(parameters);
         if (CollectionUtils.isEmpty(outcomes)) {
             return Collections.emptyList();
@@ -133,26 +137,26 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     }
 
     @Override
-    public void changeState(int state, String id) {
+    public void updateEnableState(DictStateOperationDTO operationDTO) {
         DictInfo parameter = new DictInfo();
-        parameter.setId(id);
-        parameter.setEnableState(state);
+        parameter.setId(operationDTO.getId());
+        parameter.setEnableState(operationDTO.getState());
         dictInfoMapper.updateById(parameter);
     }
 
     @Override
-    public void changeSelectable(int state, String id) {
+    public void updateSelectableState(DictStateOperationDTO operationDTO) {
         DictInfo parameter = new DictInfo();
-        parameter.setId(id);
-        parameter.setSelectable(state);
+        parameter.setId(operationDTO.getId());
+        parameter.setSelectable(operationDTO.getState());
         dictInfoMapper.updateById(parameter);
     }
 
     @Override
-    public Map<String, Object> getStaticDictInfoGroup(String type) {
+    public Map<String, Object> getStaticDictInfoGroup(String dictType) {
         String tenantId = OperatorUtils.getOperator().getTenantId();
         List<DictInfoGroup> lists = dictInfoMapper.getAllDictInfoGroup(
-                StringUtils.isNotBlank(type) ? ParameterUtils.fuzzyQuery(type) : type, tenantId);
+                StringUtils.isNotBlank(dictType) ? ParameterUtils.fuzzyQuery(dictType) : dictType, tenantId);
         Map<String, Object> map = Maps.newHashMapWithExpectedSize(lists.size());
         for (DictInfoGroup info : lists) {
             map.put(info.getDictType(), info.getDictList());
@@ -161,10 +165,10 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     }
 
     @Override
-    public Map<String, DictTypeVo> getDynamicDictInfoGroup(String type) {
+    public Map<String, DictTypeVo> getDynamicDictInfoGroup(String dictType) {
         final LambdaQueryWrapper<DictType> query = Wrappers.lambdaQuery(DictType.class);
-        if (StringUtils.isNotEmpty(type)) {
-            query.like(DictType::getDictType, type);
+        if (StringUtils.isNotEmpty(dictType)) {
+            query.like(DictType::getDictType, dictType);
         }
         final List<DictType> dictTypes = dictTypeMapper.selectList(query);
         Map<String, DictTypeVo> result = Maps.newHashMapWithExpectedSize(dictTypes.size());
@@ -175,13 +179,13 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
             dictTypes.addAll(enumList);
         }
 
-        for (DictType dictType : dictTypes) {
-            final DictTypeVo vo = BeanUtil.copyProperties(dictType, DictTypeVo.class);
+        for (DictType dictTypeItem : dictTypes) {
+            final DictTypeVo vo = BeanUtil.copyProperties(dictTypeItem, DictTypeVo.class);
             result.put(vo.getDictType(), vo);
         }
         String tenantId = OperatorUtils.getOperator().getTenantId();
         List<DictInfoGroup> lists = dictInfoMapper.getAllDictInfoGroup(
-                StringUtils.isNotBlank(type) ? ParameterUtils.fuzzyQuery(type) : type, tenantId);
+                StringUtils.isNotBlank(dictType) ? ParameterUtils.fuzzyQuery(dictType) : dictType, tenantId);
         for (DictInfoGroup info : lists) {
             if (result.containsKey(info.getDictType())) {
                 final DictTypeVo vo = result.get(info.getDictType());
@@ -192,18 +196,18 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     }
 
     @Override
-    public List<DictInfo> treeData(String type) {
-        if (StringUtils.isBlank(type)) {
+    public List<DictInfo> getTreeData(String dictType) {
+        if (StringUtils.isBlank(dictType)) {
             return Collections.emptyList();
         }
         List<String> ids = new ArrayList<>();
         LambdaQueryWrapper<DictType> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(DictType::getDictType, type);
-        DictType dictType = dictTypeMapper.selectOne(wrapper);
-        if (dictType == null) {
+        wrapper.eq(DictType::getDictType, dictType);
+        DictType dictTypeEntity = dictTypeMapper.selectOne(wrapper);
+        if (dictTypeEntity == null) {
             return Collections.emptyList();
         }
-        String currentKey = dictType.getParentKeys();
+        String currentKey = dictTypeEntity.getParentKeys();
         if (StringUtils.isNotBlank(currentKey)) {
             if (currentKey.contains(JOINER)) {
                 ids = Arrays.asList(currentKey.split(JOINER));
@@ -211,7 +215,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
                 ids.add(currentKey);
             }
         } else {
-            ids.add(dictType.getId());
+            ids.add(dictTypeEntity.getId());
         }
         LoginUserDetails operator = ((LoginUserDetails) OperatorUtils.getOperator());
         List<DictInfo> outcomes = dictInfoMapper.treeList(ids, operator.getTenantId());
@@ -219,14 +223,14 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     }
 
     @Override
-    public List<DictInfo> subTreeData(String type) {
+    public List<DictInfo> getSubTreeData(String dictType) {
         List<DictInfo> outcomes = new ArrayList<>();
-        if (StringUtils.isNotBlank(type)) {
+        if (StringUtils.isNotBlank(dictType)) {
             LoginUserDetails operator = ((LoginUserDetails) OperatorUtils.getOperator());
             LambdaQueryWrapper<DictType> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(DictType::getDictType, type);
-            DictType dictType = dictTypeMapper.selectOne(wrapper);
-            String currentKey = dictType.getId();
+            wrapper.eq(DictType::getDictType, dictType);
+            DictType dictTypeEntity = dictTypeMapper.selectOne(wrapper);
+            String currentKey = dictTypeEntity.getId();
             LambdaQueryWrapper<DictType> conditions = new LambdaQueryWrapper<>();
             conditions.likeRight(DictType::getParentKeys, currentKey).or().eq(DictType::getId, currentKey);
             List<DictType> dictTypes = dictTypeMapper.selectList(conditions);
@@ -243,7 +247,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     }
 
     @Override
-    public List<DictInfo> queryDictInfoByParentId(String parentId) {
+    public List<DictInfo> getDictInfoByParentId(String parentId) {
         DictInfo dictInfo = dictInfoMapper.selectById(parentId);
         if (Objects.isNull(dictInfo)) {
             return Collections.emptyList();
@@ -252,8 +256,13 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     }
 
     @Override
-    public void deleteDictInfoById(String id) {
-        dictInfoMapper.deleteById(id);
+    public boolean deleteDictInfoById(String id) {
+        try {
+            dictInfoMapper.deleteById(id);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private List<DictInfo> queryParentDictInfo(DictInfo dictInfo) {
@@ -288,6 +297,40 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     @Override
     protected DictInfoVO entityVO(DictInfo entity) {
         return null;
+    }
+
+    private Map<String, Object> convertQueryDTOToMap(DictInfoQueryDTO queryDTO) {
+        if (queryDTO == null) {
+            return new HashMap<>();
+        }
+
+        Map<String, Object> parameters = new HashMap<>();
+        if (StringUtils.isNotBlank(queryDTO.getDictType())) {
+            parameters.put("dictType", queryDTO.getDictType());
+        }
+        if (StringUtils.isNotBlank(queryDTO.getFieldType())) {
+            parameters.put("fieldType", queryDTO.getFieldType());
+        }
+        if (StringUtils.isNotBlank(queryDTO.getFieldName())) {
+            parameters.put("fieldName", queryDTO.getFieldName());
+        }
+        if (StringUtils.isNotBlank(queryDTO.getParentId())) {
+            parameters.put("parentId", queryDTO.getParentId());
+        }
+        if (queryDTO.getEnableState() != null) {
+            parameters.put("enableState", queryDTO.getEnableState());
+        }
+        if (queryDTO.getSelectable() != null) {
+            parameters.put("selectable", queryDTO.getSelectable());
+        }
+        if (StringUtils.isNotBlank(queryDTO.getTenantId())) {
+            parameters.put("tenantId", queryDTO.getTenantId());
+        }
+        if (queryDTO.getExtraParams() != null && !queryDTO.getExtraParams().isEmpty()) {
+            parameters.putAll(queryDTO.getExtraParams());
+        }
+
+        return parameters;
     }
 
     private static class MapTypeToken extends TypeToken<Map<String, Object>> {}

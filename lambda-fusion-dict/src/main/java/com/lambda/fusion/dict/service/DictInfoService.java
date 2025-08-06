@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.dict.dao.entity.DictInfo;
+import com.lambda.fusion.dict.dto.DictInfoQueryDTO;
+import com.lambda.fusion.dict.dto.DictStateOperationDTO;
 import com.lambda.fusion.dict.vo.DictTypeVo;
 import java.util.List;
 import java.util.Map;
@@ -16,21 +18,21 @@ import java.util.Map;
 public interface DictInfoService extends IService<DictInfo> {
 
     /**
-     * 分页查询
+     * 分页查询字典信息
      *
-     * @param pageable
-     * @param parameters
-     * @return
+     * @param pageable 分页参数
+     * @param queryDTO 查询条件
+     * @return 分页结果
      */
-    Page<DictInfo> page(Page<DictInfo> pageable, Map<String, Object> parameters);
+    Page<DictInfo> page(Page<DictInfo> pageable, DictInfoQueryDTO queryDTO);
 
     /**
-     * 条件查询
+     * 根据条件查询字典信息列表
      *
-     * @param parameters
-     * @return
+     * @param queryDTO 查询条件
+     * @return 字典信息列表
      */
-    List<DictInfo> selectDictInfo(Map<String, Object> parameters);
+    List<DictInfo> selectDictInfo(DictInfoQueryDTO queryDTO);
 
     /**
      * 新增数据字典详细信息
@@ -50,65 +52,64 @@ public interface DictInfoService extends IService<DictInfo> {
     DictInfo updateDictInfo(DictInfo dictInfo);
 
     /**
-     * 启用/禁用字典
+     * 修改字典启用状态
      *
-     * @param state
-     * @param id
+     * @param operationDTO 状态操作参数
      */
-    void changeState(int state, String id);
+    void updateEnableState(DictStateOperationDTO operationDTO);
 
     /**
-     * 设置可选/不可选择
+     * 修改字典可选择状态
      *
-     * @param state
-     * @param id
+     * @param operationDTO 状态操作参数
      */
-    void changeSelectable(int state, String id);
+    void updateSelectableState(DictStateOperationDTO operationDTO);
 
     /**
-     * 获取所有已启用的静态字典
+     * 获取已启用的静态字典分组
      *
-     * @param type 字典类型
-     * @return
+     * @param dictType 字典类型，支持模糊查询
+     * @return 静态字典分组数据
      */
-    Map<String, Object> getStaticDictInfoGroup(String type);
+    Map<String, Object> getStaticDictInfoGroup(String dictType);
 
     /**
-     * 获取所有启用的动态字典
+     * 获取已启用的动态字典分组
      *
-     * @param type
-     * @return
+     * @param dictType 字典类型，支持模糊查询
+     * @return 动态字典分组数据
      */
-    Map<String, DictTypeVo> getDynamicDictInfoGroup(String type);
+    Map<String, DictTypeVo> getDynamicDictInfoGroup(String dictType);
 
     /**
-     * 根据字典类型获取树型结构数据项
+     * 根据字典类型获取树型结构数据
      *
-     * @param type
-     * @return
+     * @param dictType 字典类型
+     * @return 树型结构的字典数据
      */
-    List<DictInfo> treeData(String type);
+    List<DictInfo> getTreeData(String dictType);
 
     /**
-     * 根据数据类型查询包含子集数据类型的数据项
+     * 根据字典类型查询包含子集的树型数据
      *
-     * @param type
-     * @return
+     * @param dictType 字典类型
+     * @return 包含子集的树型字典数据
      */
-    List<DictInfo> subTreeData(String type);
+    List<DictInfo> getSubTreeData(String dictType);
 
     /**
-     * 根据数据项父ID查询数据项
+     * 根据父级ID查询子级字典数据
      *
-     * @param parentId
-     * @return
+     * @param parentId 父级ID
+     * @return 子级字典数据列表
      */
-    List<DictInfo> queryDictInfoByParentId(String parentId);
+    List<DictInfo> getDictInfoByParentId(String parentId);
 
     /**
-     * 删除字典详细信息
+     * 根据ID删除字典信息
      *
-     * @param id
+     * @param id 字典ID
+     * @return 是否删除成功
      */
-    void deleteDictInfoById(String id);
+    boolean deleteDictInfoById(String id);
 }

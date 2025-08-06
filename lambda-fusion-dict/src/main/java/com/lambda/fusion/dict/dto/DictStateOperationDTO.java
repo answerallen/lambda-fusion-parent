@@ -1,0 +1,33 @@
+package com.lambda.fusion.dict.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(description = "字典状态操作参数")
+public class DictStateOperationDTO {
+
+    @NotBlank(message = "字典ID不能为空")
+    @Schema(description = "字典ID", required = true)
+    private String id;
+
+    @NotNull(message = "状态值不能为空")
+    @Schema(description = "状态值", required = true)
+    private Integer state;
+
+    @Schema(description = "操作类型: ENABLE_STATE, SELECTABLE")
+    private OperationType operationType;
+
+    public enum OperationType {
+        ENABLE_STATE,
+        SELECTABLE
+    }
+}

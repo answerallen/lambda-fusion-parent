@@ -1,40 +1,31 @@
 package com.lambda.fusion.configs.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
-import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.cloud.logger.context.LogContext;
 import com.lambda.fusion.configs.core.DatabaseContextRefresher;
-import com.lambda.fusion.configs.domain.dto.Parameters;
-import com.lambda.fusion.configs.domain.dto.Query;
+import com.lambda.fusion.configs.domain.dto.*;
 import com.lambda.fusion.configs.domain.entity.ConfigEntity;
 import com.lambda.fusion.configs.domain.entity.ConfigOptionEntity;
-import com.lambda.fusion.configs.domain.vo.ConfigBatchQueryVO;
-import com.lambda.fusion.configs.domain.vo.ConfigVO;
 import com.lambda.fusion.configs.service.ConfigChangedService;
 import com.lambda.fusion.configs.service.ConfigOptionService;
 import com.lambda.fusion.configs.service.ConfigService;
-import com.lambda.fusion.core.Constants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "系统配置管理")
 @RestController
@@ -53,71 +44,56 @@ public class ConfigsController {
     @Operation(
             summary = "分页查询所有数据列表",
             parameters = {
-                    @Parameter(
-                            name = "number",
-                            description = "当前页码",
-                            in = ParameterIn.PATH,
-                            schema = @Schema(defaultValue = "1")),
-                    @Parameter(
-                            name = "size",
-                            description = "每页条数",
-                            in = ParameterIn.PATH,
-                            schema = @Schema(defaultValue = "20"))
+                @Parameter(
+                        name = "number",
+                        description = "当前页码",
+                        in = ParameterIn.PATH,
+                        schema = @Schema(defaultValue = "1")),
+                @Parameter(
+                        name = "size",
+                        description = "每页条数",
+                        in = ParameterIn.PATH,
+                        schema = @Schema(defaultValue = "20"))
             })
     @GetMapping({"/manager/page/{number:\\d+}", "/manager/page/{number:\\d+}/size/{size:\\d+}"})
     public Page<ConfigEntity> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
-            @Valid Parameters parameters) {
-        return configService.page(new Page<>(number, size), parameters);
+            @Valid ConfigPageQueryDTO configPageQueryDTO) {
+        return configService.pageConfigs(new Page<>(number, size), configPageQueryDTO);
     }
 
-    @Operation(
-            summary = "查询所有数据列表",
-            parameters = {
-                    @Parameter(name = "key", description = "配置信息键,支持右侧模糊查询", in = ParameterIn.QUERY),
-                    @Parameter(name = "ids", description = "查询的id列表，以“,”分割", in = ParameterIn.QUERY),
-                    @Parameter(name = "keys", description = "查询的key列表，以“,”分割", in = ParameterIn.QUERY)
-            })
+    @Operation(summary = "查询配置列表", description = "支持按键名、ID列表、键列表进行查询")
     @GetMapping
-    public List<ConfigEntity> list(
-            @RequestParam(name = "key", required = false) String key,
-            @RequestParam(name = "ids", required = false) String ids,
-            @RequestParam(name = "keys", required = false) String keys) {
-        LambdaQueryWrapper<ConfigEntity> queryWrapper = Wrappers.lambdaQuery(ConfigEntity.class);
-        if (StringUtils.isNotBlank(key)) {
-            queryWrapper.likeRight(ConfigEntity::getKey, key);
+    public List<ConfigEntity> listConfigs(@Valid ConfigListQueryDTO queryDTO) {
+        // 处理逗号分隔的字符串参数
+        if (queryDTO.getIds() == null && StringUtils.isNotBlank(queryDTO.getIdsString())) {
+            queryDTO.setIds(Arrays.asList(queryDTO.getIdsString().split(",")));
         }
-        if (StringUtils.isNotBlank(ids)) {
-            queryWrapper.in(ConfigEntity::getId, Arrays.asList(ids.split(Constants.DELIMITER)));
+        if (queryDTO.getKeys() == null && StringUtils.isNotBlank(queryDTO.getKeysString())) {
+            queryDTO.setKeys(Arrays.asList(queryDTO.getKeysString().split(",")));
         }
-        if (StringUtils.isNotBlank(keys)) {
-            queryWrapper.in(ConfigEntity::getKey, Arrays.asList(keys.split(Constants.DELIMITER)));
-        }
-        return configService.list(queryWrapper);
+        return configService.listConfigs(queryDTO);
     }
 
     @OperationLog
     @SaCheckRole("ROLE_DEV")
     @PostMapping("/manager")
     @Operation(summary = "新增配置信息")
-    public ConfigEntity save(@Parameter(description = "配置信息", required = true) @RequestBody ConfigVO source) {
-        return configService.saveConfig(application, source);
+    public ConfigEntity save(@RequestBody ConfigSaveDTO source) {
+        source.setApplication(application);
+        return configService.saveConfigWithOptions(source);
     }
 
     @OperationLog
     @SaCheckRole("ROLE_DEV")
     @PutMapping("/manager/{id}")
     @Operation(summary = "根据编号更新配置信息")
-    public ConfigEntity update(
+    public ConfigEntity updateConfig(
             @Parameter(description = "配置编号", required = true) @PathVariable String id,
-            @Parameter(description = "配置信息", required = true) @RequestBody ConfigVO source) {
-        ConfigEntity target = configService.getById(id);
-        BeanUtil.copyProperties(source, target);
-        target.setId(id);
-        configService.updateById(target);
-        LogContext.setDetail("UPDATE: " + target.getKey() + "=" + target.getValue());
-        return target;
+            @Parameter(description = "配置信息", required = true) @RequestBody @Valid ConfigUpdateDTO updateDTO) {
+        updateDTO.setId(id);
+        return configService.updateConfigWithOptions(updateDTO);
     }
 
     @OperationLog
@@ -158,25 +134,25 @@ public class ConfigsController {
         return configEntity.getOptions();
     }
 
-    @Operation(summary = "根据多个编号查询配置列表")
-    @PostMapping("/manager/byids")
-    public List<ConfigEntity> getMultipleConfigsByIds(@RequestBody Query query)  {
-        return configService.queryConfigsByConditions(query);
+    @Operation(summary = "根据多个编号批量查询配置列表")
+    @PostMapping("/batch")
+    public List<ConfigEntity> batchQueryConfigs(@RequestBody @Valid ConfigQueryDTO configQueryDTO) {
+        return configService.batchQueryConfigs(configQueryDTO);
     }
 
     @GetMapping("/systems")
     @Operation(summary = "查询系统配置信息", description = "用于运维人员或管理员")
     public List<ConfigEntity> getSystemConfig() {
-        return configService.queryConfigsByConditions(application, null);
+        ConfigQueryDTO configQueryDTO = new ConfigQueryDTO();
+        configQueryDTO.setApplication(application);
+        return configService.batchQueryConfigs(configQueryDTO);
     }
 
-    @PutMapping
-    @Operation(summary = "更新系统配置信息", description = "用于运维人员或管理员")
-    public void updateSystemConfig(@RequestBody List<ConfigEntity> updated) {
-        if (CollectionUtils.isNotEmpty(updated)) {
-            configService.updateBatchByApplication(null, updated);
-            configChangedService.execute();
-            contextRefresher.doRefresh();
-        }
+    @PutMapping("/batch")
+    @Operation(summary = "批量更新系统配置信息", description = "用于运维人员或管理员")
+    public void batchUpdateConfigs(@RequestBody @Valid ConfigBatchUpdateDTO batchUpdateDTO) {
+        configService.batchUpdateConfigs(batchUpdateDTO);
+        configChangedService.execute();
+        contextRefresher.doRefresh();
     }
 }

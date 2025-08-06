@@ -8,8 +8,8 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-@Schema(description = "配置查询参数")
-public class Parameters {
+@Schema(description = "配置分页查询参数")
+public class ConfigPageQueryDTO {
 
     @Schema(description = "配置信息键")
     private String key;
