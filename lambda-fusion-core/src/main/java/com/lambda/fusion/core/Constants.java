@@ -12,6 +12,9 @@ import org.apache.commons.lang.StringUtils;
  */
 public final class Constants {
 
+    public static final String SEPARATOR0 = "";
+    public static final String TENANT_HOST_REDIS_KEY = "tenant_host";
+
     private Constants() {}
 
     // ========== 系统基础常量 ==========

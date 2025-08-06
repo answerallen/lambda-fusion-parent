@@ -144,7 +144,7 @@ public final class ConfigConstants {
          * 数据源配置未找到警告消息
          */
         public static final String DATASOURCE_CONFIG_NOT_FOUND =
-                "Could not find dataSource configuration, ignored. More details: https://tiamaes.yuque.com/tiam/gp7ci8/zqie8r";
+                "Could not find dataSource configuration, ignored. ";
 
         /**
          * 获取数据源属性失败警告消息

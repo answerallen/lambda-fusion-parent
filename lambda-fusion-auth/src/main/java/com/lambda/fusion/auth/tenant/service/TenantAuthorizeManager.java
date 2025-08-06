@@ -1,0 +1,247 @@
+package com.lambda.fusion.auth.tenant.service;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.cloud.core.utils.Assert;
+import com.lambda.fusion.auth.resource.bean.MutableResource;
+import com.lambda.fusion.auth.resource.persistence.ResourceMapper;
+import com.lambda.fusion.auth.role.bean.SimpleRole;
+import com.lambda.fusion.auth.role.persistence.RoleMapper;
+import com.lambda.fusion.auth.tenant.bean.TenantEntity;
+import com.lambda.fusion.auth.user.domain.MutableUser;
+import com.lambda.fusion.auth.user.domain.ResetPwdParameter;
+import com.lambda.fusion.auth.user.mapper.UserInfoMapper;
+import com.lambda.fusion.auth.user.mapper.UserMapper;
+import com.lambda.fusion.auth.user.service.UserService;
+import com.lambda.fusion.autoconfig.AuthorizeConstants;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.core.Constants.*;
+
+/**
+ * 租户授权数据管理器
+ * <pre>
+ * 依次在各个租户的主库映射库中执行相关数据的增删改操作
+ * 资源：同步增删改
+ * 角色权限：仅同步ROLE_TENANT相关的权限操作，在租户主库中，操作的是ROLE_ADMIN
+ * 用户：同步增删改，租户管理员在租户主库中，视作管理员
+ *
+ * </pre>
+ *
+ 
+ */
+@Slf4j
+
+public class TenantAuthorizeManager {
+
+    private TenantService tenantService;
+
+    private UserService userService;
+    private UserMapper userMapper;
+    private UserInfoMapper userInfoMapper;
+    private ResourceMapper resourceMapper;
+    private PasswordEncoder passwordEncoder;
+    private RoleMapper roleMapper;
+
+
+    /*
+      ------------------------------------------------------------
+      如果数据源切换失败，请参考以下措施：
+      如果从controller层调用，被调用方法上*不应该*加任何事务控制注解
+      如果从service层等已经有事务控制的方法中调用，被调用方法需要加上@Transactional(propagation = Propagation.NOT_SUPPORTED)注解来禁用事务
+      ------------------------------------------------------------
+     */
+
+    public void initTenantMainDataBase(String tenantId, LoginUser operator) {
+    }
+
+    /**
+     * 保存租户映射主库中的管理员角色权限
+     * <pre>
+     * 租户管理员在租户主库中，视作管理员角色
+     * 租户主库里的资源，就是租户管理员所拥有的资源
+     * 需要根据租户管理员的权限来对资源表数据进行操作
+     * </pre>
+     *
+     * @param authority 角色
+     * @param resources 相关的资源列表
+     * @param status    状态
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void saveAuth(String authority, List<MutableResource> resources, int status) {
+        // 只处理租户管理员角色
+        if (!isTenantAdmin(authority)) {
+            return;
+        }
+
+        // 租户管理员的authority格式是ROLE_TENANT@tenantid
+
+    }
+
+    /**
+     * 删除租户映射主库中的管理员角色权限
+     *
+     * @param authority 角色
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void deleteAuthorization(String authority, List<MutableResource> resources) {
+        // 只处理租户管理员角色
+        if (!isTenantAdmin(authority)) {
+            return;
+        }
+        // 租户管理员的authority格式是ROLE_TENANT@tenantid
+
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void addUser(MutableUser mutableUser) {
+        if (!isTenantAdmin(mutableUser)) {
+            return;
+        }
+        // 租户管理员的tenantid属性为null，其所属组织id才是租户id
+        String tenantid = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
+        // 在租户库中视作管理员，不能有租户id
+        mutableUser.setTenantid(null);
+        List<SimpleRole> roles = new ArrayList<>();
+        roles.add(new SimpleRole(ROLE_ADMIN));
+        mutableUser.setAuthorities(roles);
+        //todo 添加用户
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void updateUser(MutableUser mutableUser) {
+        // 租户管理员的tenantid属性为null，其所属组织id才是租户id
+        String tenantid = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
+        // 在租户库中视作管理员，不能有租户id
+        mutableUser.setTenantid(null);
+        //todo 添加用户
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void deleteUser(String username) {
+        MutableUser mutableUser = userService.getMutableUserByUsername(username);
+        if (!isTenantAdmin(mutableUser)) {
+            return;
+        }
+        // 租户管理员的tenantid属性为null，其所属组织id才是租户id
+        String tenantid = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
+//        execute(tenantid, () -> userService.deleteUser(SystemUser.get(), username));
+    }
+
+    public void resetPassword(ResetPwdParameter resetPwdParameter) {
+        String username = resetPwdParameter.getUsername();
+        String newPassword = resetPwdParameter.getNewPassword();
+        if (StringUtils.isBlank(newPassword)) {
+            return;
+        }
+        MutableUser mutableUser = userService.getMutableUserByUsername(username);
+        if (!isTenantAdmin(mutableUser)) {
+            return;
+        }
+
+        // 租户管理员的tenantid属性为null，其所属组织id才是租户id
+        String tenantid = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
+        if (StringUtils.isBlank(tenantid)) {
+            return;
+        }
+        // 租户主库的密码要和主库的租户管理员密码同步
+
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void prohibitUser(Integer type, String username) {
+        MutableUser mutableUser = userService.getMutableUserByUsername(username);
+        if (!isTenantAdmin(mutableUser)) {
+            return;
+        }
+        String tenantid = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
+
+    }
+
+    private void hasOperation(LoginUser operator, String tenantId) {
+        String crrTenantId = operator.getTenantId();
+        if (org.apache.commons.lang.StringUtils.isNotBlank(crrTenantId)) {
+            Assert.isTrue(crrTenantId.equals(tenantId), AuthorizeConstants.TENANT_NO_AUTHORITY);
+        }
+    }
+
+    private boolean isTenantAdmin(String authority) {
+        return ROLE_TENANT.equals(authority) || authority.startsWith(ROLE_TENANT + AT);
+    }
+
+    private boolean isTenantAdmin(MutableUser mutableUser) {
+        boolean isTenantAdmin = false;
+        List<SimpleRole> roles = mutableUser.getAuthorities();
+        if (roles != null && !roles.isEmpty()) {
+            // 判断是否为租户管理员
+            isTenantAdmin = roles.stream().anyMatch(role -> isTenantAdmin(role.getAuthority()));
+        }
+        return isTenantAdmin;
+    }
+
+    /**
+     * 在所有设置了主库映射的租户主库中执行
+     *
+     * @param runnable runnable
+     */
+    @SuppressWarnings("unused")
+    private void execute(Runnable runnable) {
+        List<String> tenantDsKey = getTenantDsKey();
+        if (tenantDsKey == null || tenantDsKey.isEmpty()) {
+            return;
+        }
+        // 依次操作租户库
+        for (String dsKey : tenantDsKey) {
+            try {
+                if (StringUtils.isNotBlank(dsKey)) {
+//                TODO    DynamicDataSourceWrapper.wrap(dsKey, runnable);
+                }
+            } catch (Exception e) {
+                log.error("租户主库执行异常，数据源id:{}", dsKey);
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * 在指定租户主库中执行
+     *
+     * @param tenantid 租户id
+     * @param runnable runnable
+     */
+    private void execute(String tenantid, Runnable runnable) {
+        if (StringUtils.isBlank(tenantid)) {
+            return;
+        }
+        //TODO 数据库执行
+    }
+
+    private List<String> getTenantIds() {
+        LambdaQueryWrapper<TenantEntity> wrapper = Wrappers.lambdaQuery(TenantEntity.class)
+                .eq(TenantEntity::getEnabled, Optional.of(1))
+                .eq(TenantEntity::getExamineState, Optional.of(1));
+        List<TenantEntity> tenants = tenantService.list(wrapper);
+        if (tenants == null || tenants.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return tenants.stream().map(TenantEntity::getTenantid).collect(Collectors.toList());
+    }
+
+    private List<String> getTenantDsKey() {
+        List<String> tenantIds = getTenantIds();
+        if (tenantIds == null || tenantIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>();
+    }
+}
