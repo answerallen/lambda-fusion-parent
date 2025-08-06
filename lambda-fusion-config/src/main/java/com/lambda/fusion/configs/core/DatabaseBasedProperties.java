@@ -17,8 +17,6 @@ import org.apache.commons.lang3.StringUtils;
 public class DatabaseBasedProperties extends Properties {
     @Serial
     private static final long serialVersionUID = 1L;
-
-    // 使用常量类中定义的PUBLIC_APPLICATION常量
     private static final String SQL = SELECT_CONFIGS_SQL;
 
     @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")

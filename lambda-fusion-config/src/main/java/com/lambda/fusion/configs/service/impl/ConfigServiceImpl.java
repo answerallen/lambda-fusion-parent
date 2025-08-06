@@ -1,16 +1,12 @@
 package com.lambda.fusion.configs.service.impl;
 
-import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
-
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.logger.context.LogContext;
 import com.lambda.fusion.configs.domain.dto.Parameters;
-import com.lambda.fusion.configs.domain.dto.Query;
 import com.lambda.fusion.configs.domain.entity.ConfigEntity;
 import com.lambda.fusion.configs.domain.entity.ConfigOptionEntity;
 import com.lambda.fusion.configs.domain.vo.ConfigOptionVO;
@@ -18,9 +14,6 @@ import com.lambda.fusion.configs.domain.vo.ConfigVO;
 import com.lambda.fusion.configs.mapper.ConfigsMapper;
 import com.lambda.fusion.configs.mapper.ConfigsOptionMapper;
 import com.lambda.fusion.configs.service.ConfigService;
-import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -28,6 +21,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.List;
+
+import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -45,28 +44,13 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigsMapper, ConfigEntity> 
         if (StringUtils.isNotBlank(parameters.getName())) {
             parameters.setName(fuzzyQuery(parameters.getName()));
         }
-        return configsMapper.selectPage2(page, parameters);
+        return configsMapper.selectConfigPage(page, parameters);
     }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-    public List<ConfigEntity> queryConfigsByConditions(Map<String, Object> parameters) {
-        return configsMapper.selectAllSystemConfigs(parameters);
-    }
-
-    @Override
-    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-    public List<ConfigEntity> queryConfigsByConditions(Query query) {
-        Map<String, Object> parameters = Maps.newHashMap();
-        if (query != null) {
-            if (StringUtils.isNotBlank(query.getApplication())) {
-                parameters.put("application", query.getApplication());
-            }
-            if (CollectionUtils.isNotEmpty(query.getIds())) {
-                parameters.put("ids", query.getIds());
-            }
-        }
-        return queryConfigsByConditions(parameters);
+    public List<ConfigEntity> queryConfigsByConditions(String application, Collection<String> ids) {
+        return configsMapper.selectAllSystemConfigs(application, ids);
     }
 
     @Override

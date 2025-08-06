@@ -6,8 +6,9 @@ import com.lambda.fusion.configs.domain.dto.Parameters;
 import com.lambda.fusion.configs.domain.dto.Query;
 import com.lambda.fusion.configs.domain.entity.ConfigEntity;
 import com.lambda.fusion.configs.domain.vo.ConfigVO;
+
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 public interface ConfigService extends IService<ConfigEntity> {
 
@@ -22,16 +23,20 @@ public interface ConfigService extends IService<ConfigEntity> {
     /**
      * 根据查询参数查询配置属性列表
      *
-     * @param parameters
+     * @param application 应用名称
+     * @param ids         配置ID列表
      */
-    List<ConfigEntity> queryConfigsByConditions(Map<String, Object> parameters);
+    List<ConfigEntity> queryConfigsByConditions(String application, Collection<String> ids);
 
     /**
      * 根据查询参数查询配置属性列表
-     *
-     * @param parameters
+     * <p>
+     * Query query
      */
-    List<ConfigEntity> queryConfigsByConditions(Query parameters);
+    default List<ConfigEntity> queryConfigsByConditions(Query query) {
+        return queryConfigsByConditions(query.getApplication(), query.getIds());
+    }
+
 
     /**
      * 保存或更新系统配置属性

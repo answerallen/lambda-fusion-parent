@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.tiamaes.cloud.lambda.fusion.config.mapper.lambda.fusionConfigMapper">
-    <resultMap id="lambda.fusionConfigEntity" type="com.tiamaes.cloud.lambda.fusion.config.pojo.lambda.fusionConfigEntity">
+<mapper namespace="com.lambda.fusion.configs.mapper.ConfigsMapper">
+    <resultMap id="ConfigEntityMap" type="com.lambda.fusion.configs.domain.entity.ConfigEntity">
         <id column="PROPERTY_ID" property="id"/>
         <result column="PROPERTY_NAME" property="name"/>
         <result column="PROPERTY_KEY" property="key"/>
@@ -10,7 +10,25 @@
         <result column="PROPERTY_TYPE" property="type"/>
         <result column="PROPERTY_DESC" property="description"/>
         <result column="APPLICATION" property="application"/>
-        <collection property="options" ofType="com.tiamaes.cloud.lambda.fusion.config.pojo.lambda.fusionConfigOptionEntity">
+        <collection property="options" ofType="com.lambda.fusion.configs.domain.entity.ConfigOptionEntity">
+            <id column="OPTION_ID" property="id"/>
+            <result column="OPTION_NAME" property="name"/>
+            <result column="OPTION_VALUE" property="value"/>
+            <result column="OPTION_DESC" property="description"/>
+            <result column="APPLICATION" property="application"/>
+            <result column="PROPERTY_ID" property="pid"/>
+        </collection>
+    </resultMap>
+
+    <resultMap id="ConfigVOMap" type="com.lambda.fusion.configs.domain.vo.ConfigVO">
+        <id column="PROPERTY_ID" property="id"/>
+        <result column="PROPERTY_NAME" property="name"/>
+        <result column="PROPERTY_KEY" property="key"/>
+        <result column="PROPERTY_VALUE" property="value"/>
+        <result column="PROPERTY_TYPE" property="type"/>
+        <result column="PROPERTY_DESC" property="description"/>
+        <result column="APPLICATION" property="application"/>
+        <collection property="options" ofType="com.lambda.fusion.configs.domain.vo.ConfigOptionVO">
             <id column="OPTION_ID" property="id"/>
             <result column="OPTION_NAME" property="name"/>
             <result column="OPTION_VALUE" property="value"/>
@@ -18,54 +36,58 @@
         </collection>
     </resultMap>
 
-    <select id="selectPage2" resultMap="lambda.fusionConfigEntity">
+    <select id="selectConfigPage" resultMap="ConfigVOMap">
         SELECT T1.PROPERTY_ID, T1.PROPERTY_NAME, T1.PROPERTY_KEY, T1.PROPERTY_VALUE, T1.PROPERTY_TYPE, T1.PROPERTY_DESC, T1.APPLICATION
         FROM LA_CONFIGS T1
         <where>
-        <if test="parameters.key != '' and parameters.key != null">
-            T1.PROPERTY_KEY LIKE CONCAT(#{parameters.key}, '%')
-        </if>
-        <choose>
-            <when test="parameters.tenantOnly == 1">
-                AND T1.APPLICATION IN ('tenant_custom', 'tenant_system')
-            </when>
-            <otherwise>
-                <if test="parameters.application != '' and parameters.application != null">
-                    AND T1.APPLICATION = #{parameters.application}
+            <if test="parameters != null">
+                <if test="parameters.key != null and parameters.key != ''">
+                    T1.PROPERTY_KEY LIKE CONCAT(#{parameters.key}, '%')
                 </if>
-            </otherwise>
-        </choose>
-        <if test="parameters.name != '' and parameters.name != null">
-            AND T1.PROPERTY_NAME LIKE #{parameters.name}
-        </if>
+                <choose>
+                    <when test="parameters.tenantOnly != null and parameters.tenantOnly == 1">
+                        AND T1.APPLICATION IN ('tenant_custom', 'tenant_system')
+                    </when>
+                    <otherwise>
+                        <if test="parameters.application != null and parameters.application != ''">
+                            AND T1.APPLICATION = #{parameters.application}
+                        </if>
+                    </otherwise>
+                </choose>
+                <if test="parameters.name != null and parameters.name != ''">
+                    AND T1.PROPERTY_NAME LIKE CONCAT('%', #{parameters.name}, '%')
+                </if>
+            </if>
         </where>
         ORDER BY T1.PROPERTY_KEY
     </select>
 
     <select id="checkExist" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_CONFIGS WHERE PROPERTY_KEY = #{key} AND APPLICATION = #{application})
+        SELECT CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END 
+        FROM LA_CONFIGS 
+        WHERE PROPERTY_KEY = #{key} AND APPLICATION = #{application}
     </select>
 
-    <select id="selectConfigById" resultMap="lambda.fusionConfigEntity">
+    <select id="selectConfigById" resultMap="ConfigEntityMap">
         SELECT T1.PROPERTY_ID, T1.PROPERTY_NAME, T1.PROPERTY_KEY, T1.PROPERTY_VALUE, T1.PROPERTY_TYPE, T1.PROPERTY_DESC,
-            T1.APPLICATION,T2.OPTION_ID, T2.OPTION_NAME, T2.OPTION_VALUE, T2.OPTION_DESC
-            FROM LA_CONFIGS T1
-            LEFT JOIN LA_CONFIG_OPTIONS T2
-            ON T1.PROPERTY_ID = T2.PROPERTY_ID AND T1.APPLICATION = T2.APPLICATION
+            T1.APPLICATION, T2.OPTION_ID, T2.OPTION_NAME, T2.OPTION_VALUE, T2.OPTION_DESC
+        FROM LA_CONFIGS T1
+            LEFT JOIN LA_CONFIG_OPTIONS T2 ON T1.PROPERTY_ID = T2.PROPERTY_ID AND T1.APPLICATION = T2.APPLICATION
         WHERE T1.PROPERTY_ID = #{id}
     </select>
 
-    <select id="selectAllSystemConfigs" resultMap="lambda.fusionConfigEntity">
+    <select id="selectAllSystemConfigs" resultMap="ConfigEntityMap">
         SELECT T1.PROPERTY_ID, T1.PROPERTY_NAME, T1.PROPERTY_KEY, T1.PROPERTY_VALUE, T1.PROPERTY_TYPE, T1.PROPERTY_DESC, T1.APPLICATION,
             T2.OPTION_ID, T2.OPTION_NAME, T2.OPTION_VALUE, T2.OPTION_DESC
-            FROM LA_CONFIGS T1
-            LEFT JOIN LA_CONFIG_OPTIONS T2
-            ON T1.PROPERTY_ID = T2.PROPERTY_ID AND T1.APPLICATION = T2.APPLICATION
+        FROM LA_CONFIGS T1
+            LEFT JOIN LA_CONFIG_OPTIONS T2 ON T1.PROPERTY_ID = T2.PROPERTY_ID AND T1.APPLICATION = T2.APPLICATION
         <where>
-            <if test="application != null">T1.APPLICATION = #{application}</if>
-            <if test="ids !=null and ids.size > 0">
-               AND T1.PROPERTY_ID IN <foreach collection="ids" item="item" separator="," open="(" close=")">#{item}</foreach>
+            <if test="application != null and application != ''">T1.APPLICATION = #{application}</if>
+            <if test="ids != null and ids.size() > 0">
+                AND T1.PROPERTY_ID IN 
+                <foreach collection="ids" item="item" separator="," open="(" close=")">#{item}</foreach>
             </if>
         </where>
+        ORDER BY T1.PROPERTY_KEY
     </select>
 </mapper>

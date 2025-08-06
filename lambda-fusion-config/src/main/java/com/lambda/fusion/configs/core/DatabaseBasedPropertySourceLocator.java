@@ -6,7 +6,6 @@ import static com.lambda.fusion.configs.ConfigConstants.LogMessages.*;
 import static com.lambda.fusion.configs.ConfigConstants.PropertySource.*;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.configs.utils.DataSourcePropertyHelper;
 import com.lambda.fusion.configs.utils.DataSourcePropertyUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -63,7 +62,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
 
     private DataSourceProperty getDataSourceProperty(Environment environment) {
         try {
-            return DataSourcePropertyHelper.getProperty(environment);
+            return DataSourcePropertyUtils.getProperty(environment);
         } catch (Exception e) {
             log.warn(FAILED_TO_GET_DATASOURCE_PROPERTY, e);
             return null;
@@ -82,7 +81,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
 
         dataSourceLock.writeLock().lock();
         try {
-            // 双重检查锁定
+
             if (dataSource == null) {
                 HikariConfig config = createHikariConfig(property);
                 dataSource = new HikariDataSource(config);

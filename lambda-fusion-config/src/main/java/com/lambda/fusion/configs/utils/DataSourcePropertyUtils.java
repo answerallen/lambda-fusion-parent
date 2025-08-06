@@ -1,23 +1,33 @@
 package com.lambda.fusion.configs.utils;
 
 import static com.lambda.fusion.configs.ConfigConstants.DataSource.*;
+import static com.lambda.fusion.configs.ConfigConstants.Nacos.*;
 
+import com.alibaba.cloud.nacos.NacosPropertySourceRepository;
+import com.google.common.collect.Lists;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
+import com.lambda.fusion.configs.core.DatabaseBasedEnvironment;
+import java.util.Collections;
+import java.util.List;
 import javax.annotation.Nonnull;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.boot.context.properties.bind.BindResult;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.bind.PlaceholdersResolver;
 import org.springframework.boot.context.properties.bind.PropertySourcesPlaceholdersResolver;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
-import org.springframework.core.env.Environment;
+import org.springframework.core.env.*;
+import org.springframework.util.ClassUtils;
 
 /**
  * DataSourcePropertyUtils
  *
  * @author Jin
  */
+@Slf4j
 @UtilityClass
 public class DataSourcePropertyUtils {
 
@@ -28,10 +38,49 @@ public class DataSourcePropertyUtils {
      * @return DataSourceProperty
      */
     public static DataSourceProperty getProperty(Environment environment) {
-        if (enableConfigIndependentDataSource(environment)) {
-            return buildConfigIndependentDataSourceProperty(environment);
+        Environment enhancedEnvironment = enhanceEnvironmentWithNacos(environment);
+        
+        if (enableConfigIndependentDataSource(enhancedEnvironment)) {
+            return buildConfigIndependentDataSourceProperty(enhancedEnvironment);
         }
-        return DataSourcePropertyUtils.getProperty(environment);
+        
+        return null;
+    }
+
+    /**
+     * 使用Nacos配置增强环境
+     *
+     * @param environment 原始环境
+     * @return 增强后的环境
+     */
+    private static Environment enhanceEnvironmentWithNacos(Environment environment) {
+        List<MapPropertySource> nacosPropertySources = getNacosPropertySources();
+        if (CollectionUtils.isNotEmpty(nacosPropertySources)) {
+            MutablePropertySources propertySources = new MutablePropertySources();
+            for (PropertySource<?> source : nacosPropertySources) {
+                propertySources.addLast(source);
+            }
+            if (ClassUtils.isAssignableValue(ConfigurableEnvironment.class, environment)) {
+                for (PropertySource<?> source : ((ConfigurableEnvironment) environment).getPropertySources()) {
+                    propertySources.addLast(source);
+                }
+            }
+            return new DatabaseBasedEnvironment(propertySources);
+        }
+        return environment;
+    }
+
+    /**
+     * 获取Nacos配置源
+     *
+     * @return MapPropertySource列表
+     */
+    private static List<MapPropertySource> getNacosPropertySources() {
+        ClassLoader classLoader = DataSourcePropertyUtils.class.getClassLoader();
+        if (ClassUtils.isPresent(PROPERTY_SOURCE_REPOSITORY_CLASS, classLoader)) {
+            return Lists.newArrayList(NacosPropertySourceRepository.getAll());
+        }
+        return Collections.emptyList();
     }
 
     /**
