@@ -147,7 +147,6 @@ public interface ResourceMapper {
      */
     void updateResourceParentkeys(List<MutableResource> resources);
 
-
     /**
      * 是否已经执行过
      *

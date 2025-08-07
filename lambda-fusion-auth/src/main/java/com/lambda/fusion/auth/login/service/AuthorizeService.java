@@ -1,16 +1,12 @@
 package com.lambda.fusion.auth.login.service;
 
-
-
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.auth.NavigationParameter;
 import com.lambda.fusion.auth.resource.model.Resource;
 import com.lambda.fusion.auth.user.domain.SimpleUser;
 import com.lambda.security.service.ThirdPartyLoginService;
 import com.lambda.security.service.UserDetailService;
-
 import java.util.List;
-
 
 public interface AuthorizeService extends UserDetailService, ThirdPartyLoginService {
 
@@ -31,7 +27,7 @@ public interface AuthorizeService extends UserDetailService, ThirdPartyLoginServ
      * @param user
      * @param parameter 资源参数
      */
-    default List<Resource> getNavigation(LoginUser user, NavigationParameter parameter){
+    default List<Resource> getNavigation(LoginUser user, NavigationParameter parameter) {
         return getNavigation(user, parameter.getParentId(), parameter.getLevel());
     }
 
@@ -41,5 +37,4 @@ public interface AuthorizeService extends UserDetailService, ThirdPartyLoginServ
      * @param roleid
      */
     List<SimpleUser> getUsersByRoleId(String roleid);
-
 }

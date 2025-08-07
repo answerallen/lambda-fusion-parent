@@ -22,7 +22,6 @@ import org.springframework.util.MultiValueMap;
 public class DefaultTreeDataFilter implements ITreeDataFilter {
 
     @Override
-    @SuppressWarnings("squid:S3776")
     public <T> List<T> filter(
             List<T> target,
             String queryStr,

@@ -1,13 +1,9 @@
 package com.lambda.fusion.auth.login.domain;
 
-
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.core.base.user.LoginUserDetails;
-import lombok.Data;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-
 import java.util.Date;
-
+import lombok.Data;
 
 @Data
 public class UserDTO {
@@ -20,9 +16,7 @@ public class UserDTO {
     private Boolean enabled;
     private Date expiredTime;
 
-
     public LoginUser toUser() {
         return new LoginUserDetails();
     }
-
 }

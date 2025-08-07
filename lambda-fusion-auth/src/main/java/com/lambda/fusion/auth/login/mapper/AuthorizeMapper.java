@@ -5,12 +5,10 @@ import com.lambda.fusion.auth.login.domain.UserDTO;
 import com.lambda.fusion.auth.organization.domain.Organization;
 import com.lambda.fusion.auth.resource.model.Resource;
 import com.lambda.fusion.auth.user.domain.SimpleUser;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
 import java.util.Map;
-
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface AuthorizeMapper {
@@ -60,5 +58,4 @@ public interface AuthorizeMapper {
      * @param roleid
      */
     List<SimpleUser> getUsersByRoleId(@Param("roleid") String roleid);
-
 }

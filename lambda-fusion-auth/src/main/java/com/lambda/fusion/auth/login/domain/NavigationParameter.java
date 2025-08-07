@@ -1,6 +1,7 @@
 package com.lambda.fusion.auth.login.domain;
 
 import lombok.Data;
+
 @Data
 public class NavigationParameter {
     /**
@@ -30,7 +31,7 @@ public class NavigationParameter {
     int all = 0;
 
     public int getMode() {
-        if (null != model){
+        if (null != model) {
             this.mode = model;
         }
         return mode;

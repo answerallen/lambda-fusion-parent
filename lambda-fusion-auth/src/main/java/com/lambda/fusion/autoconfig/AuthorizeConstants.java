@@ -38,5 +38,4 @@ public final class AuthorizeConstants {
     public static final String DEFAULT_GROUP_NAME = "默认分组";
 
     public static final String MANAGED = "1";
-
 }
