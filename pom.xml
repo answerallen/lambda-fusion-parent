@@ -30,7 +30,7 @@
     <modules>
         <module>lambda-fusion-core</module>
         <module>lambda-fusion-config</module>
-        <module>lambda-fusion-auth</module>
+        <module>lambda-fusion-authority</module>
         <module>lambda-fusion-dict</module>
         <module>lambda-fusion-log</module>
         <module>lambda-fusion-bom</module>

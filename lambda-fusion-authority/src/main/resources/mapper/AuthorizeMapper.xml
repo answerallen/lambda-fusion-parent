@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.lambda.fusion.authority.login.mapper.AuthorizeMapper">
+    <resultMap id="User" type="com.lambda.fusion.authority.login.domain.UserDTO">
+        <id column="username" property="username" javaType="String"/>
+        <result column="nickname" property="nickname" javaType="String"/>
+        <result column="password" property="password" javaType="String"/>
+        <result column="orgid" property="orgid" javaType="String"/>
+        <result column="enabled" property="enabled" javaType="Boolean" />
+        <result column="tenant_id" property="tenant_id" javaType="String"/>
+        <result column="expired_time" property="expiredTime"/>
+        <collection property="authorities" ofType="org.springframework.security.core.authority.SimpleGrantedAuthority">
+            <constructor>
+                <idArg column="authority" javaType="String"/>
+            </constructor>
+        </collection>
+    </resultMap>
+
+    <select id="loadUserDetailByUsername" parameterType="String" resultMap="User">
+        <![CDATA[
+            SELECT
+                T.username,
+                T.nickname,
+                T.password,
+                T.enabled,
+                R.authority,
+                UO.organizationid AS orgid,
+                T.tenantId AS tenantId,
+                T.EXPIRED_TIME
+            FROM
+                LA_USERS T
+                LEFT JOIN LA_USER_ROLES UR ON UR.userid = T.username
+                LEFT JOIN LA_ROLES R ON R.authority = UR.authority AND R.enabled = 1
+                LEFT JOIN LA_USER_ORGANIZATION UO ON UO.userid = T.username
+            WHERE T.username = #{username}
+        ]]>
+    </select>
+    <select id="loadUserDetailByMobile" parameterType="String" resultMap="User">
+        <![CDATA[
+            SELECT
+                T.username,
+                T.nickname,
+                T.password,
+                T.enabled,
+                R.authority,
+                UO.organizationid AS orgid,
+                T.tenantId,
+                T.EXPIRED_TIME
+            FROM
+                LA_USERS T
+                LEFT JOIN LA_USER_ROLES UR ON UR.userid = T.username
+                LEFT JOIN LA_ROLES R ON R.authority = UR.authority AND R.enabled = 1
+                LEFT JOIN LA_USER_ORGANIZATION UO ON UO.userid = T.username
+            WHERE T.mobile = #{mobile}
+        ]]>
+    </select>
+
+    <!-- 根据用户id和条件获取用户菜单 -->
+    <select id="getNavigationByParams" resultType="com.lambda.fusion.authority.resource.model.Resource">
+        SELECT
+        T1.id,
+        T1.res_name,
+        T1.res_path,
+        T1.ico,
+        T1.res_rank,
+        T1.orderNo,
+        T1.parentId,
+        T1.res_type,
+        T1.hidden,
+        T1.res_mode,
+        T1.remark,
+        T1.res_url,
+        T1.key_name,
+        T1.keep_alive,
+        T1.expand,
+        T1.business_expand
+        FROM LA_RESOURCES T1
+        WHERE T1.res_type != 0
+        AND T1.res_mode = #{mode}
+        <if test="ids != null and ids.size > 0">
+            AND T1.ID IN (
+            SELECT DISTINCT T.RESOURCEID FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY IN
+            <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
+            )
+        </if>
+        <if test="level != null">
+            AND T1.res_rank = #{level}
+        </if>
+        <if test="parentId != null and parentId != ''">
+            AND T1.parentkeys LIKE CONCAT(#{parentId}, '%')
+        </if>
+        ORDER BY T1.res_rank, T1.parentId, T1.orderNo
+    </select>
+
+    <select id="getAllResourcesSimple" resultType="com.lambda.fusion.authority.resource.model.Resource">
+        SELECT
+            T1.id,
+            T1.res_name,
+            T1.parentId,
+            T1.business_expand
+        FROM LA_RESOURCES T1
+        inner join la_role_resources T2 on T1.id = T2.RESOURCEID and T2.AUTHORITY  = 'ROLE_ADMIN'
+        <where>
+            T1.res_mode = #{mode}
+            <if test="types != null">
+                AND T1.res_type IN <foreach collection="types" open="(" close=")" separator="," item="item">#{item}</foreach>
+            </if>
+        </where>
+        ORDER BY T1.res_rank, T1.parentId, T1.orderNo
+    </select>
+
+    <select id="queryOrganizationByUser" resultType="com.lambda.fusion.authority.organization.domain.Organization">
+        SELECT
+        id,
+        alias
+        FROM LA_ORGANIZATION T1
+        INNER JOIN LA_USER_ORGANIZATION T2 ON T2.ORGANIZATIONID = T1.id
+        WHERE T2.userid = #{username}
+    </select>
+
+    <select id="getUsersByRoleId" resultType="com.lambda.fusion.authority.user.domain.SimpleUser">
+        SELECT
+        U.username,
+        U.nickname
+        FROM
+        LA_USER_ROLES UR
+        INNER JOIN LA_USERS U ON U.USERNAME = UR.USERID
+        AND UR.AUTHORITY = #{roleid}
+    </select>
+
+</mapper>

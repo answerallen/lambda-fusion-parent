@@ -1,0 +1,27 @@
+package com.lambda.fusion.authority.client.domain.vo;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
+import java.util.Date;
+import lombok.Data;
+
+@Data
+@Schema(description = "SaveTokenVO对象")
+public class SaveTokenVO {
+
+    private static final long serialVersionUID = 1L;
+
+    @Schema(description = "描述")
+    private String description;
+
+    @Schema(description = "IP白名单，多个用','分割")
+    private String ipWhiteList;
+
+    @Schema(description = "是否可用 1 启用")
+    @NotNull(message = " 启用状态不能为空")
+    private Integer enabled;
+
+    @Schema(description = "失效时间")
+    @NotNull(message = " 失效时间不能为空")
+    private Date expirationTime;
+}
