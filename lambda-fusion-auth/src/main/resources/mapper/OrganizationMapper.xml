@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.lambda.fusion.auth.organization.mapper.OrganizationMapper">
+
+    <resultMap id="MutableOrganization" type="com.lambda.fusion.auth.organization.domain.MutableOrganization">
+        <id column="username" property="username" javaType="String"/>
+        <result column="id" property="id"/>
+        <result column="alias" property="alias"/>
+        <result column="parentId" property="parentId"/>
+    </resultMap>
+
+    <!-- 查询用户组织列表 -->
+    <select id="getAllOrganMutableUsers" parameterType="com.lambda.fusion.auth.user.domain.MutableUser"
+            resultMap="MutableOrganization">
+        SELECT
+        T.USERID as username, O.id, O.alias, O.parentId
+        FROM LA_USER_ORGANIZATION T
+        LEFT JOIN LA_ORGANIZATION O ON O.id = T.ORGANIZATIONID AND O.enabled = 1
+        WHERE T.userid IN
+        <foreach collection="list" open="(" close=")" separator="," item="user">#{user.username}</foreach>
+    </select>
+
+    <resultMap id="Organization" type="com.lambda.fusion.auth.organization.domain.Organization">
+        <id column="id" property="id"/>
+        <result column="organization" property="name"/>
+        <result column="alias" property="alias"/>
+        <result column="org_owner" property="owner"/>
+        <result column="tenant_id" property="tenant_id"/>
+        <result column="parentId" property="parentId"/>
+        <result column="org_rank" property="level"/>
+        <result column="createDate" property="createDate"/>
+        <result column="remarks" property="remarks"/>
+        <result column="parentKeys" property="parentkeys"/>
+        <result column="org_category" property="tenant"/>
+        <result column="enabled" property="enabled"/>
+        <result column="org_type" property="type"/>
+        <result column="order_no" property="orderNo"/>
+    </resultMap>
+    <!-- 查询用户组织列表 -->
+    <select id="getAllMutableOrgan" resultMap="Organization">
+        SELECT
+            id,
+            organization,
+            alias,
+            org_owner,
+            tenant_id,
+            parentId,
+            org_rank,
+            createDate,
+            remarks,
+            parentKeys,
+            org_category,
+            enabled,
+            org_type,
+            order_no
+        FROM LA_ORGANIZATION O
+        <where>
+            <if test="parameters.enabled == true">
+                O.ENABLED = 1
+            </if>
+            <if test="parameters.owner != null">
+                <choose>
+                    <when test="parameters.owner != ''">
+                        AND O.org_owner = #{parameters.owner}
+                    </when>
+                    <otherwise>
+                        AND O.org_owner IS NULL
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="parameters.ids != null and parameters.ids.size > 0">
+                AND O.id IN
+                <foreach collection="parameters.ids" open="(" close=")" separator="," item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="parameters.tenantId == null || parameters.tenantId == ''">
+                AND O.tenant_id IS NULL
+            </if>
+        </where>
+        ORDER BY O.org_rank, O.order_no, O.parentId, O.organization
+    </select>
+
+    <select id="getOrgansByCondition" resultMap="Organization">
+        SELECT
+            id,
+            organization,
+            alias,
+            org_owner,
+            tenant_id,
+            parentId,
+            org_rank,
+            createDate,
+            remarks,
+            parentKeys,
+            org_category,
+            enabled,
+            org_type,
+            order_no
+        FROM LA_ORGANIZATION O
+        <where>
+            <if test="parameters.owner != null">
+                <choose>
+                    <when test="parameters.owner != ''">
+                        AND O.org_owner = #{parameters.owner}
+                    </when>
+                    <otherwise>
+                        AND O.org_owner IS NULL
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="parameters.name != null and parameters.name != ''">
+                AND O.organization LIKE #{parameters.name}
+            </if>
+            <if test="parameters.alias != null and parameters.alias != ''">
+                AND O.alias LIKE #{parameters.alias}
+            </if>
+            <if test="parameters.ids != null and parameters.ids.size > 0">
+                AND O.id IN
+                <foreach collection="parameters.ids" open="(" close=")" separator="," item="item">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        ORDER BY O.org_rank, O.order_no, O.parentId, O.organization
+    </select>
+
+    <select id="getAllEnabledOrgan" resultType="com.lambda.fusion.auth.organization.domain.SimpleOrg">
+        SELECT id, alias AS name, parentId AS pid
+        FROM LA_ORGANIZATION O
+        WHERE O.enabled = 1
+        <if test="parameters.owner != null">
+            <choose>
+                <when test="parameters.owner != ''">
+                    AND O.org_owner = #{parameters.owner}
+                </when>
+                <otherwise>
+                    AND O.org_owner IS NULL
+                </otherwise>
+            </choose>
+        </if>
+        <if test="parameters.parentkeys != null and parameters.parentkeys != ''">
+            AND O.parentkeys LIKE #{parameters.parentkeys}
+        </if>
+        ORDER BY O.org_rank, O.order_no, O.parentId, O.organization
+    </select>
+
+    <!-- 查询用户组织列表 -->
+    <select id="queryMutableOrgan" resultMap="Organization">
+        SELECT
+            id,
+            organization,
+            alias,
+            parentId,
+            org_rank,
+            createDate,
+            remarks,
+            parentKeys
+        FROM LA_ORGANIZATION O
+        WhERE O.enabled = 1 AND O.id IN
+        <foreach collection="list" open="(" close=")" separator="," item="organ">#{organ.id}</foreach>
+    </select>
+
+    <select id="queryByCondition" resultMap="Organization">
+        SELECT
+            id,
+            organization,
+            alias,
+            parentId,
+            org_rank,
+            createDate,
+            remarks,
+            parentKeys
+        FROM LA_ORGANIZATION O
+        <where>
+            <if test="organization.id != null">
+                AND id != #{organization.id}
+            </if>
+            <if test="organization.name != null">
+                AND organization = #{organization.name}
+            </if>
+            <if test="organization.tenantId != null">
+                AND tenant_id = #{organization.tenant_id}
+            </if>
+            <if test="organization.tenantId == null">
+                AND tenant_id IS NULL
+            </if>
+        </where>
+        ORDER BY createdate
+    </select>
+
+    <select id="existParent" resultType="boolean">
+        SELECT 1 - COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_ORGANIZATION WHERE parentid = #{id})
+    </select>
+
+    <select id="queryOrganizationById" resultMap="Organization">
+        SELECT
+            id,
+            organization,
+            alias,
+            parentId,
+            org_rank,
+            createDate,
+            remarks,
+            parentKeys,
+            org_category,
+            enabled,
+            org_owner,
+            tenant_id
+        FROM LA_ORGANIZATION O WHERE O.id = #{id}
+    </select>
+
+    <select id="queryOrganizationByTenantId" resultMap="Organization">
+        SELECT
+            id,
+            organization,
+            alias,
+            parentId,
+            org_rank,
+            createDate,
+            remarks,
+            parentKeys,
+            org_category,
+            enabled,
+            org_owner,
+            tenant_id
+        FROM LA_ORGANIZATION T WHERE tenant_id = #{id}
+    </select>
+
+    <insert id="addOrganization" parameterType="com.lambda.fusion.auth.organization.domain.Organization">
+        INSERT INTO LA_ORGANIZATION
+        (id, organization, alias, parentId, remarks, org_rank, parentkeys, org_owner, org_category, tenant_id, org_type, spid, order_no)
+        VALUES (#{id}, #{name}, #{alias}, #{parentId,jdbcType=VARCHAR},
+        #{remarks, jdbcType=VARCHAR}, #{level}, #{parentkeys, jdbcType=VARCHAR},
+        #{owner, jdbcType=VARCHAR}, #{tenant}, #{tenant_id, jdbcType=VARCHAR}, #{type}, #{spid,jdbcType=VARCHAR}, #{orderNo})
+    </insert>
+
+
+    <delete id="deleteOrganizationByPk" parameterType="java.lang.String">
+        DELETE FROM LA_ORGANIZATION WHERE ID = #{id}
+    </delete>
+
+    <delete id="deleteTenantOrganizationRole">
+        DELETE FROM LA_ROLES WHERE owner = #{id}
+    </delete>
+
+    <update id="updateOrganizationByPk" parameterType="com.lambda.fusion.auth.organization.domain.Organization">
+        UPDATE LA_ORGANIZATION
+        <set>
+            <if test="name != null">
+                organization = #{name},
+            </if>
+            <if test="alias != null">
+                alias = #{alias},
+            </if>
+            <if test="parentId != null">
+                parentid = #{parentId},
+            </if>
+            <if test="remarks != null">
+                remarks = #{remarks},
+            </if>
+            <if test="type != null">
+                org_type = #{type},
+            </if>
+            <if test="orderNo > 0">
+                order_no = #{orderNo},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="queryUserOrganization" parameterType="java.lang.String"
+            resultType="com.lambda.fusion.auth.organization.domain.UserOrganization">
+        SELECT USERID, ORGANIZATIONID, TENANT_ID FROM LA_USER_ORGANIZATION WHERE USERID = #{userId}
+    </select>
+
+    <delete id="deleteUserOrganizationByUser">
+        DELETE FROM LA_USER_ORGANIZATION WHERE USERID = #{userId}
+    </delete>
+
+    <delete id="deleteUserOrganizationByOrg">
+        DELETE FROM LA_USER_ORGANIZATION WHERE ORGANIZATIONID = #{userId}
+    </delete>
+
+    <insert id="addUserOrganization" parameterType="com.lambda.fusion.auth.organization.domain.UserOrganization">
+        INSERT INTO LA_USER_ORGANIZATION (USERID, ORGANIZATIONID, TENANT_ID) VALUES (#{userId}, #{organizationId}, #{tenant_id, jdbcType=VARCHAR})
+    </insert>
+
+    <update id="updateUserOrganization"
+            parameterType="com.lambda.fusion.auth.organization.domain.UserOrganization">
+        UPDATE LA_USER_ORGANIZATION SET ORGANIZATIONID = #{organizationId} WHERE USERID = #{userId}
+    </update>
+
+    <select id="getChildrenById" resultType="java.lang.String">
+        SELECT id FROM LA_ORGANIZATION T WHERE T.parentkeys LIKE CONCAT(#{id},'%') ORDER BY parentkeys
+    </select>
+
+    <select id="getSubOrgansById" resultMap="Organization">
+        SELECT id, org_category FROM LA_ORGANIZATION T WHERE T.parentkeys LIKE CONCAT(#{id},'-%') OR T.parentkeys = #{id} ORDER BY parentkeys
+    </select>
+
+    <update id="prohibitOrganizationByIds">
+        UPDATE LA_ORGANIZATION SET enabled = #{enabled} WHERE id IN
+        <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
+    </update>
+
+    <update id="prohibitRoleByOrganizationByIds">
+        UPDATE LA_ROLES T SET T.enabled = #{enabled} WHERE T.owner IN
+        <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
+    </update>
+
+    <update id="prohibitOrgUsersByTenantOrgan">
+        UPDATE LA_USERS T SET T.enabled = #{enabled} WHERE T.owner IN
+        <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
+    </update>
+
+    <update id="prohibitOrgUsersByOrdinaryOrgan">
+        UPDATE LA_USERS T SET T.enabled = #{enabled} WHERE T.username IN (
+            SELECT T2.USERID FROM la_user_organization T2
+            INNER JOIN la_organization T3 ON T2.ORGANIZATIONID = T3.ID
+            WHERE T3.ID IN
+            <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
+        )
+    </update>
+
+    <select id="existUser" parameterType="string" resultType="java.lang.Boolean">
+        SELECT COUNT(1) FROM DUAL WHERE EXISTS
+        (SELECT 1 FROM LA_USER_ORGANIZATION T WHERE T.ORGANIZATIONID IN <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>)
+    </select>
+
+    <select id="existTenantOrg" parameterType="string" resultType="java.lang.Boolean">
+        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_ORGANIZATION T WHERE T.org_owner = #{orgId} AND T.org_category = 1 AND T.enabled = 1)
+    </select>
+
+    <select id="getInfo" resultType="com.lambda.fusion.auth.organization.domain.Organization">
+        SELECT id,alias FROM LA_ORGANIZATION WHERE ID = {id}
+    </select>
+
+    <select id="getOrgansByIds" resultMap="Organization">
+        SELECT
+        id,
+        organization,
+        alias,
+        parentId,
+        org_rank,
+        createDate,
+        remarks,
+        parentKeys,
+        org_category,
+        enabled,
+        org_owner,
+        tenantId
+        FROM LA_ORGANIZATION T WHERE id in
+        <foreach collection="ids" open="(" close=")" separator="," item="item">
+            #{item}
+        </foreach>
+    </select>
+
+    <update id="updateChildrensSpid">
+        UPDATE LA_ORGANIZATION SET spid = #{name} WHERE parentid = #{id}
+    </update>
+
+    <delete id="deleteOrgByIdList">
+        DELETE FROM LA_USER_ORGANIZATION WHERE organizationid IN
+        <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
+    </delete>
+
+    <delete id="deleteUserOrgByIdList">
+        DELETE FROM LA_ORGANIZATION WHERE id IN
+        <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
+    </delete>
+
+
+    <select id="directChildrenGetter" resultMap="Organization">
+        SELECT
+            id,
+            alias,
+            parentid,
+            org_rank,
+            parentkeys,
+            order_no
+        FROM LA_ORGANIZATION T
+        <where>
+            <choose>
+                <when test="pid != null">T.parentid = #{pid}</when>
+                <otherwise>T.parentid IS NULL</otherwise>
+            </choose>
+        </where>
+        ORDER BY order_no
+    </select>
+    <select id="allChildrenGetter" resultMap="Organization">
+        SELECT
+            id,
+            alias,
+            parentid,
+            org_rank,
+            parentkeys,
+            order_no
+        FROM LA_ORGANIZATION T
+        WHERE (T.parentkeys = #{parentkeys} OR T.parentkeys LIKE CONCAT(#{parentkeys},'-%'))
+        ORDER BY T.org_rank, T.order_no
+    </select>
+    <update id="batchUpdateOrgsAfterMoved">
+        UPDATE LA_ORGANIZATION T SET
+        T.org_rank = CASE
+        <foreach collection="list" item="item">
+            WHEN id = #{item.id} THEN #{item.level}
+        </foreach>
+        END,
+        parentid = CASE
+        <foreach collection="list" item="item">
+            WHEN id = #{item.id} THEN #{item.parentId}
+        </foreach>
+        END,
+        parentkeys = CASE
+        <foreach collection="list" item="item">
+            WHEN id = #{item.id} THEN #{item.parentkeys}
+        </foreach>
+        END,
+        order_no = CASE
+        <foreach collection="list" item="item">
+            WHEN id = #{item.id} THEN #{item.orderNo}
+        </foreach>
+        END
+        WHERE id IN
+        <foreach collection="list" item="item" separator="," open="(" close=")">
+            #{item.id}
+        </foreach>
+    </update>
+
+</mapper>

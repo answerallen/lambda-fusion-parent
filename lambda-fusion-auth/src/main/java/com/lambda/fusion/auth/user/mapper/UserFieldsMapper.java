@@ -2,10 +2,9 @@ package com.lambda.fusion.auth.user.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.auth.user.domain.UserFields;
-import org.apache.ibatis.annotations.Mapper;
-
 import java.util.List;
 import java.util.Set;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
  * 个人中心扩展字段
@@ -22,7 +21,7 @@ public interface UserFieldsMapper extends BaseMapper<UserFields> {
     /**
      * 查询单个用户的扩展字段信息
      * @param username 用户名称
-     * @return List<M1UserFields>
+     * @return List<UserFields>
      */
     List<UserFields> getListByUsername(String username);
 

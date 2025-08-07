@@ -1,16 +1,13 @@
 package com.lambda.fusion.auth.tenant.service;
 
-
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.auth.tenant.bean.TenantEntity;
 import com.lambda.fusion.auth.tenant.bean.TenantQuery;
-
 import java.util.List;
 import java.util.Map;
-
 
 /**
  * 租户信息表
@@ -51,7 +48,7 @@ public interface TenantService extends IService<TenantEntity> {
      * @param operator  当前用户
      * @param tenantId  租户ID
      */
-    void deleteTenant(LoginUser  operator,String tenantId);
+    void deleteTenant(LoginUser operator, String tenantId);
 
     /**
      * Update config.
@@ -60,8 +57,7 @@ public interface TenantService extends IService<TenantEntity> {
      * @param tenantId   the tenant id
      * @param configMap the config map
      */
-    void updateConfig(LoginUser  operator, String tenantId, Map<String, Object> configMap);
-
+    void updateConfig(LoginUser operator, String tenantId, Map<String, Object> configMap);
 
     /**
      * 获取指定租户的配置信息
@@ -70,8 +66,7 @@ public interface TenantService extends IService<TenantEntity> {
      * @param tenantId the tenant id
      * @return the user tenant configure
      */
-    JsonNode getTenantConfigureById(LoginUser  operator, String tenantId);
-
+    JsonNode getTenantConfigureById(LoginUser operator, String tenantId);
 
     /**
      * Gets tenant configure map by id.
@@ -79,13 +74,12 @@ public interface TenantService extends IService<TenantEntity> {
      * @param tenantId the tenant id
      * @return the tenant configure map by id
      */
-    Map<String, Object> getTenantConfigureMapById( String tenantId);
+    Map<String, Object> getTenantConfigureMapById(String tenantId);
 
     /**
      * 初始化租户的主库
      * @param tenantId
      * @param operator
      */
-    void initTenantMainDataBase(String tenantId, LoginUser  operator);
+    void initTenantMainDataBase(String tenantId, LoginUser operator);
 }
-

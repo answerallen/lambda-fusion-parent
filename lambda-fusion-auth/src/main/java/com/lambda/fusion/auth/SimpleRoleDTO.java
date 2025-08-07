@@ -14,8 +14,7 @@ public class SimpleRoleDTO {
      */
     private String alias;
 
-    public SimpleRoleDTO() {
-    }
+    public SimpleRoleDTO() {}
 
     public SimpleRoleDTO(String authority, String alias) {
         this.authority = authority;

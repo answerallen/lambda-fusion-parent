@@ -1,17 +1,13 @@
 package com.lambda.fusion.auth.user.domain;
 
-
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.web.multipart.MultipartFile;
 
-
 @Setter
 @Getter
 @Schema(description = "更新用户信息")
-
 public class RestUserInfoParameter {
 
     @Schema(description = "用户名")

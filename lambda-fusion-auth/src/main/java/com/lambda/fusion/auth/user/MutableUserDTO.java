@@ -2,11 +2,10 @@ package com.lambda.fusion.auth.user;
 
 import com.lambda.fusion.auth.OrgDTO;
 import com.lambda.fusion.auth.SimpleRoleDTO;
-import lombok.Data;
-
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import lombok.Data;
 
 @Data
 public class MutableUserDTO {
@@ -15,6 +14,7 @@ public class MutableUserDTO {
      * 用户名称
      */
     private String username;
+
     private String password;
     /**
      * 用户昵称
@@ -39,7 +39,7 @@ public class MutableUserDTO {
     /**
      * 租户ID
      */
-    private String tenantid;
+    private String tenantId;
     /**
      * 用户创建人
      */
@@ -76,6 +76,7 @@ public class MutableUserDTO {
      * 扩展属性
      */
     private UserInfoDTO props;
+
     private boolean self;
     /**
      * 最后离线时间

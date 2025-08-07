@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--suppress MybatisXMapperXmlInspection -->
+<mapper namespace="com.lambda.fusion.auth.user.mapper.UserMapper">
+
+    <resultMap id="MutableUser" type="com.lambda.fusion.auth.user.domain.MutableUser">
+        <id column="username" property="username" javaType="String"/>
+        <result column="nickname" property="nickname" javaType="String"/>
+        <result column="mobile" property="mobile"/>
+        <result column="email" property="email"/>
+        <result column="createDate" property="createDate"/>
+        <result column="tenant_id" property="tenant_id"/>
+        <result column="owner" property="owner" />
+        <result column="enabled" property="enabled" />
+        <result column="jobno" property="jobno"/>
+        <result column="ON_LINE" property="online"/>
+        <result column="OFFLINE_TIME" property="offlineTime"/>
+        <result column="CREATOR" property="creator"/>
+        <result column="EXPIRED_TIME" property="expiredTime"/>
+        <association property="org" javaType="com.lambda.fusion.auth.organization.domain.Org">
+            <constructor>
+                <idArg column="orgId" javaType="String"/>
+                <arg column="orgAlias" javaType="String"/>
+            </constructor>
+        </association>
+        <association property="props" javaType="com.lambda.fusion.auth.user.domain.UserInfo">
+            <id column="userid" property="userid"/>
+            <result column="avatar" property="avatar"/>
+            <result column="remark" property="remark"/>
+            <result column="identity_id" property="identityId"/>
+            <result column="group_no" property="groupNo"/>
+            <result column="line_no" property="lineNo"/>
+            <result column="position" property="position"/>
+            <result column="status" property="status"/>
+            <result column="fila_no" property="filaNo"/>
+            <result column="emp_no" property="empNo"/>
+            <result column="dd_no" property="ddNo"/>
+            <result column="wechat_no" property="wechatNo"/>
+            <result column="isupdatepwd" property="updatePwd"/>
+            <result column="extend_param" property="extendParam"/>
+        </association>
+        <collection property="authorities" ofType="com.lambda.fusion.auth.role.bean.SimpleRole">
+            <constructor>
+                <idArg column="authority" javaType="String"/>
+                <arg column="alias" javaType="String"/>
+            </constructor>
+        </collection>
+    </resultMap>
+
+
+    <resultMap id="UserDTO" type="com.lambda.fusion.auth.login.domain.UserDTO">
+        <id column="username" property="username" javaType="String"/>
+        <result column="nickname" property="nickname" javaType="String"/>
+        <result column="password" property="password" javaType="String"/>
+        <result column="orgid" property="orgid" javaType="String"/>
+        <result column="enabled" property="enabled" javaType="Boolean" />
+        <result column="tenant_id" property="tenant_id" javaType="String"/>
+        <result column="expired_time" property="expiredTime"/>
+        <collection property="authorities" ofType="org.springframework.security.core.authority.SimpleGrantedAuthority">
+            <constructor>
+                <idArg column="authority" javaType="String"/>
+            </constructor>
+        </collection>
+    </resultMap>
+
+    <select id="getAllMutableUsersByCondition" resultType="com.lambda.fusion.auth.user.domain.MutableUser">
+        SELECT T.username, T.nickname, T.mobile, T.email, T.enabled, T.jobno FROM LA_USERS T
+        <where>
+            <choose>
+                <when test="parameters.tenantId != null and parameters.tenantId != ''">
+                    T.owner = #{parameters.tenantId}
+                </when>
+                <otherwise>
+                    T.owner IS NULL
+                </otherwise>
+            </choose>
+            <choose>
+                <when test="!parameters.dev">
+                    AND T.username NOT IN (SELECT userid FROM LA_USER_ROLES WHERE authority IN ('ROLE_DEV','ROLE_TENANT','ROLE_SYSTEM'))
+                </when>
+                <otherwise>
+                    AND T.username NOT IN (SELECT userid FROM LA_USER_ROLES WHERE AUTHORITY = 'ROLE_TENANT')
+                </otherwise>
+            </choose>
+            <if test="parameters.authority != null and parameters.authority != ''">
+                AND T.username IN (SELECT userid FROM LA_USER_ROLES WHERE authority = #{parameters.authority})
+            </if>
+            <if test="parameters.username != null and parameters.username.size > 0">
+                AND T.username IN <foreach collection="parameters.username" open="(" close=")" separator="," item="item">#{item}</foreach>
+            </if>
+            <if test="parameters.nickname != null and parameters.nickname != ''">
+                AND T.nickname LIKE #{parameters.nickname}
+            </if>
+            <if test="parameters.mobile != null and parameters.mobile != ''">
+                AND T.mobile LIKE #{parameters.mobile}
+            </if>
+            <if test="parameters.email != null and parameters.email != ''">
+                AND T.email LIKE #{parameters.email}
+            </if>
+            <if test="parameters.organs != null and parameters.organs.size > 0">
+                AND T.username IN (SELECT userid FROM LA_USER_ORGANIZATION WHERE organizationid IN <foreach collection="parameters.organs" open="(" close=")" separator="," item="item">#{item}</foreach>)
+            </if>
+            <if test="parameters.personal != null and parameters.personal.size > 0">
+                AND T.username IN (SELECT username FROM LA_USER_FIELDS WHERE
+                <foreach collection="parameters.personal" item="item" separator="OR" open="(" close=")">
+                    field_name = #{item.fieldName} AND field_value = #{item.fieldValue}
+                </foreach>
+                <if test="parameters.personal.size > 1">
+                    GROUP BY username HAVING COUNT(1) = #{parameters.personal.size}
+                </if>)
+            </if>
+            <if test="parameters.isOnline != null">
+                <choose>
+                    <when test="parameters.isOnline">
+                        AND T.USERNAME IN (SELECT USERNAME FROM LA_ONLINE_LOG WHERE ON_LINE = 1)
+                    </when>
+                    <otherwise>
+                        AND T.USERNAME NOT IN (SELECT USERNAME FROM LA_ONLINE_LOG WHERE ON_LINE = 1)
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        ORDER BY T.CREATEDATE DESC, T.USERNAME
+    </select>
+    <!-- 查询用户列表 -->
+    <select id="getAllMutableUsers" resultMap="MutableUser">
+        SELECT
+        T.username, T.nickname, T.mobile, T.email, T.createDate, T.enabled, T.jobno, T.OWNER,
+        R.AUTHORITY,
+        R.alias, R.tenantId, O.id As orgId, O.alias As orgAlias, OL.ON_LINE, OL.OFFLINE_TIME,
+        TC.NICKNAME CREATOR, T.EXPIRED_TIME
+        FROM LA_USERS T
+        LEFT JOIN (SELECT T1.userid,T1.authority, T2.alias, T2.tenantId FROM LA_USER_ROLES T1
+        INNER JOIN LA_ROLES T2 ON t2.AUTHORITY = T1.authority AND T2.enabled = 1) R ON R.userid = T.username
+        LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.userid
+        LEFT JOIN LA_ORGANIZATION O ON O.id = UO.organizationid
+        LEFT JOIN LA_ONLINE_LOG OL ON  T.USERNAME = OL.USERNAME
+        LEFT JOIN LA_USERS TC ON  T.CREATOR = TC.USERNAME
+        WHERE T.username IN <foreach collection="list" open="(" close=")" separator="," item="user">#{user.username}</foreach>
+        ORDER BY T.CREATEDATE DESC, T.USERNAME
+    </select>
+
+    <!-- 查询用户列表 -->
+    <select id="getAllMutableUsersByKey" parameterType="String" resultMap="MutableUser">
+        SELECT T.username, T.nickname, T.mobile, T.email, T.createDate, T.enabled, T.jobno,
+        R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
+        FROM LA_USERS T
+        LEFT JOIN LA_USER_ROLES U ON U.userid = T.username
+        LEFT JOIN LA_ROLES R ON R.authority = U.authority
+        LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.userid
+        LEFT JOIN LA_ORGANIZATION O ON O.id = UO.organizationid
+        <where>
+            <if test="key != null and key != ''">
+                AND (T.username LIKE CONCAT(CONCAT('%',#{key}),'%')
+                    OR T.nickname LIKE CONCAT(CONCAT('%',#{key}),'%')
+                    OR T.mobile LIKE CONCAT(CONCAT('%',#{key}),'%')
+                    OR T.email LIKE CONCAT(CONCAT('%',#{key}),'%'))
+            </if>
+        </where>
+        ORDER BY T.USERNAME
+    </select>
+
+    <!-- 根据角色查询用户名结合 -->
+    <select id="getUserNamesByAuthority" resultType="java.lang.String">
+        SELECT
+        T5.USERNAME
+        FROM (SELECT T.AUTHORITY, T.ALIAS FROM LA_ROLES T  ) T1
+        LEFT JOIN (SELECT T3.USERNAME, T2.AUTHORITY, T4.ORGANIZATIONID AS ORGID, T3.NICKNAME
+        FROM LA_USER_ROLES T2 INNER JOIN la_users T3 ON T2.USERID = T3.USERNAME
+        INNER JOIN la_user_organization T4 ON T3.USERNAME = T4.USERID)  T5
+        ON T1.AUTHORITY = T5.AUTHORITY
+        <where>
+            T1.AUTHORITY = #{authority}
+            <if test="orgId != null and orgId != ''">
+                AND T5.ORGID = #{orgId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据Id查询用户信息 -->
+    <select id="getMutableUserById" resultMap="MutableUser">
+		SELECT T.username, T.nickname, T.mobile, T.email, T.createDate, T.enabled, T.tenantId, T.jobno,
+            R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
+		FROM LA_USERS T
+		LEFT JOIN LA_USER_ROLES UR ON UR.userid = T.username
+		LEFT JOIN LA_ROLES R ON R.authority = UR.authority
+        LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.userid
+        LEFT JOIN LA_ORGANIZATION O ON O.id = UO.organizationid
+		WHERE T.username = #{username}
+    </select>
+
+    <!-- 根据Id查询用户信息 -->
+    <select id="getPasswordById" resultType="com.lambda.fusion.auth.user.domain.MutableUser">
+        SELECT T.username, T.password FROM LA_USERS T WHERE T.username = #{username}
+    </select>
+    <!-- 保存用户 -->
+    <insert id="insertMutableUser" parameterType="com.lambda.fusion.auth.user.domain.MutableUser">
+        INSERT INTO LA_USERS (username, password, nickname, mobile, email, createdate, enabled, tenantId, owner, jobno, creator, EXPIRED_TIME)
+        VALUES(#{username}, #{password}, #{nickname}, #{mobile,jdbcType=VARCHAR}, #{email, jdbcType=VARCHAR},
+        #{createDate, jdbcType=TIMESTAMP}, 1, #{tenantId, jdbcType=VARCHAR}, #{owner, jdbcType=VARCHAR}, #{jobno, jdbcType=VARCHAR}
+                  , #{creator, jdbcType=VARCHAR}, #{expiredTime, jdbcType=TIMESTAMP})
+    </insert>
+    <!-- 更新用户 -->
+    <update id="updateMutableUser" parameterType="com.lambda.fusion.auth.user.domain.MutableUser">
+        UPDATE LA_USERS SET
+            nickname = #{nickname},
+            mobile = #{mobile, jdbcType=VARCHAR},
+            email = #{email, jdbcType=VARCHAR},
+            EXPIRED_TIME = #{expiredTime, jdbcType=TIMESTAMP}
+            <if test="tenantId != null and tenantId != ''">
+                ,tenantId = #{tenantId, jdbcType=VARCHAR}
+            </if>
+            <if test="jobno != null and jobno != ''">
+                ,jobno = #{jobno, jdbcType=VARCHAR}
+            </if>
+        WHERE username = #{username}
+    </update>
+
+    <!-- 保存用户角色 -->
+    <insert id="addUserRoles" parameterType="com.lambda.fusion.auth.user.domain.MutableUser">
+        INSERT INTO LA_USER_ROLES (userid, authority) VALUES
+        <foreach collection="authorities" item="role" separator=",">
+            (#{username},#{role.authority})
+        </foreach>
+    </insert>
+    <!-- 保存用户角色 -->
+    <insert id="addUserRole" parameterType="HashMap">
+        INSERT INTO LA_USER_ROLES (userid, authority, tenantId) VALUES (#{username},#{authority}, #{tenantId, jdbcType=VARCHAR})
+    </insert>
+    <!-- 删除用户 -->
+    <delete id="deleteUser" parameterType="HashMap">
+        DELETE FROM LA_USERS WHERE username = #{username}
+    </delete>
+    <!-- 删除用户角色 -->
+    <delete id="deleteUserRoles" parameterType="HashMap">
+        DELETE FROM LA_USER_ROLES WHERE userid = #{username}
+    </delete>
+    <!-- 检查用户名是否存在 -->
+    <select id="hasExists" parameterType="String" resultType="boolean">
+        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_USERS T WHERE T.USERNAME = #{username})
+    </select>
+    <!-- 更新用户密码 -->
+    <update id="updatePassword" parameterType="com.lambda.fusion.auth.user.domain.MutableUser">
+        UPDATE LA_USERS SET password = #{password} where username = #{username}
+    </update>
+    <!-- 禁用用户 -->
+    <update id="prohibitUser" parameterType="HashMap">
+        UPDATE LA_USERS SET enabled = #{enabled} WHERE username = #{username}
+    </update>
+
+    <select id="getAllUsers" resultMap="MutableUser">
+        SELECT DISTINCT
+        T.username, T.nickname, T.mobile, T.email, T.createDate, T.enabled, T.jobno,
+        R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
+        FROM LA_USERS T
+        LEFT JOIN LA_USER_ROLES U ON U.userid = T.username
+        LEFT JOIN LA_ROLES R ON R.authority = U.authority
+        LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.userid
+        LEFT JOIN LA_ORGANIZATION O ON O.id = UO.organizationid
+    </select>
+
+    <select id="getAllOrgUsers" parameterType="string" resultMap="MutableUser">
+        SELECT
+        T.username, T.nickname, T.mobile, T.email, T.createDate, T.enabled, T.jobno,
+        R.authority, R.alias, O.id As orgId, O.alias As orgAlias
+        FROM LA_USERS T
+        LEFT JOIN LA_USER_ROLES U ON U.userid = T.username
+        LEFT JOIN LA_ROLES R ON R.authority = U.authority
+        LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.userid
+        LEFT JOIN LA_ORGANIZATION O ON O.id = UO.organizationid
+        WHERE  UO.ORGANIZATIONID = #{orgId}
+    </select>
+    <select id="getUidsByOrg" resultType="java.lang.String">
+        SELECT T.username FROM LA_USERS T
+        INNER JOIN LA_USER_ROLES UR ON UR.userid = T.username
+        INNER JOIN LA_USER_ORGANIZATION UO ON T.username = UO.userid
+        WHERE UO.ORGANIZATIONID = #{orgid}
+        <if test="roleid != null and roleid != ''">
+            AND UR.AUTHORITY = #{roleid}
+        </if>
+    </select>
+    <resultMap id="Permission" type="com.lambda.fusion.auth.user.domain.Permission">
+        <id column="id" property="id"/>
+        <result column="res_name" property="name"/>
+        <result column="parentid" property="pid"/>
+    </resultMap>
+    <select id="getAllUserPermissions" resultMap="Permission">
+        SELECT
+            T1.id,
+            T1.res_name,
+            T1.parentid
+            FROM LA_RESOURCES T1
+        WHERE T1.res_type != 0
+        <if test="ids != null and ids.size > 0">
+            AND T1.ID IN (
+            SELECT DISTINCT T.RESOURCEID FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY IN
+            <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
+            )
+        </if>
+        <if test="mode != null and mode != ''">
+            AND T1.res_mode = #{mode}
+        </if>
+        ORDER BY T1.res_rank, T1.parentid, T1.orderno
+    </select>
+    <select id="getUserPermissions" resultType="java.lang.String">
+        SELECT DISTINCT T.RESOURCEID FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY = #{username}
+    </select>
+
+
+    <select id="getRoleResources" resultType="com.lambda.fusion.auth.user.domain.RoleResources">
+        SELECT T.RESOURCEID,T.LA_MANAGE FROM LA_ROLE_RESOURCES T
+        <where>
+            <if test="authority != null and authority !='' ">
+                T.AUTHORITY = #{authority}
+            </if>
+            <if test="manage != null and manage !='' ">
+                AND T.LA_MANAGE = #{manage}
+            </if>
+            <if test="permissions != null and permissions.size > 0">
+                AND T.RESOURCEID IN
+                <foreach collection="permissions" open="(" close=")" separator="," item="item">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        group by T.RESOURCEID,T.LA_MANAGE
+    </select>
+
+    <insert id="saveUserPermission">
+        INSERT INTO LA_ROLE_RESOURCES (resourceid, authority, tenantId, la_manage)
+        VALUES (#{roleResources.resourceId}, #{uid}, #{tenantId, jdbcType=VARCHAR},#{roleResources.laManage})
+    </insert>
+
+    <!-- 批量更新用户权限 -->
+    <update id="batchUpdateUserPermissions">
+        UPDATE LA_ROLE_RESOURCES SET LA_MANAGE = #{manage},TENANT_ID = #{tenant_id} WHERE AUTHORITY = #{uid} AND resourceid IN
+        <foreach collection="permissions" open="(" close=")" separator="," item="item">
+            #{item.resourceId}
+        </foreach>
+    </update>
+    <select id="getAllSimpleUser" resultType="com.lambda.fusion.auth.user.domain.SimpleUser">
+        SELECT DISTINCT
+            T1.USERNAME,
+            T1.NICKNAME
+        FROM LA_USERS T1
+        LEFT JOIN LA_USER_ORGANIZATION T2 ON T1.USERNAME = T2.USERID
+        <where>
+            <if test="tenantId != null and tenantId !='' ">
+                T1.TENANT_ID = #{tenantId}
+            </if>
+            <if test="organs != null and organs.size > 0">
+                AND T2.ORGANIZATIONID IN
+                <foreach collection="organs" open="(" close=")" separator="," item="item">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="getUsernameByOrgId" resultType="java.lang.String">
+        SELECT USERNAME FROM LA_USERS T1 INNER JOIN LA_USER_ORGANIZATION T2 ON T1.USERNAME = T2.USERID
+        <where>
+            <if test="type != null and type = 1">
+                T2.ORGANIZATIONID IN (SELECT T.ID FROM LA_ORGANIZATION T WHERE T.PARENTKEYS LIKE CONCAT(CONCAT('%', #{orgId}), '%') OR T.ID = #{orgId})
+            </if>
+            <if test="type != null and type = 2">
+               and T2.ORGANIZATIONID = #{orgId}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="getAllMutableUsersNoPage" resultMap="MutableUser">
+        SELECT DISTINCT(T.username), T.nickname, T.mobile, T.email, T.enabled, T.jobno,T.createDate,
+        mi.userid,
+        mi.avatar,
+        mi.remark,
+        mi.identity_id ,
+        mi.group_no ,
+        mi.line_no,
+        mi.position ,
+        mi.status,
+        mi.fila_no,
+        mi.emp_no,
+        mi.dd_no,
+        mi.wechat_no,
+        mi.isupdatepwd,
+        o.orgid,
+        o.alias as orgalias,
+        r.authority,
+        r.alias,
+        mi.extend_param,
+        TC.NICKNAME CREATOR
+        FROM LA_USERS T
+        LEFT JOIN LA_USER_INFO mi ON T.username = mi.userid
+        LEFT JOIN (SELECT  ur.AUTHORITY,mr.ALIAS,ur.USERID	FROM la_user_roles ur LEFT JOIN la_roles mr  ON ur.AUTHORITY = mr.AUTHORITY) R ON T.USERNAME = R.USERID
+        LEFT JOIN (SELECT mo.id orgId, mo.organization, uo.userid, mo.alias FROM LA_USER_ORGANIZATION uo LEFT JOIN la_organization mo ON uo.ORGANIZATIONID = mo.id WHERE mo.id is not null)  O ON T.USERNAME = O.USERID
+        LEFT JOIN (SELECT NICKNAME, USERNAME FROM LA_USERS) TC ON  T.CREATOR = TC.USERNAME
+        <if test="parameters != null and parameters.authority != null and parameters.authority != ''">
+            LEFT JOIN LA_USER_ROLES UR ON UR.USERID = T.USERNAME
+        </if>
+        <if test="parameters.personal != null and parameters.personal.size >0">
+            INNER JOIN
+            (
+            SELECT USERNAME,
+            <foreach collection="parameters.personal" item="item"  separator=" ">
+                MAX(CASE FIELD_NAME WHEN  #{item.fieldName} then field_value ELSE '' END) AS  ${item.fieldName},
+            </foreach>
+            count(*) NUMS
+            FROM  LA_USER_FIELDS
+            GROUP BY USERNAME
+            )  A ON T.USERNAME = A.USERNAME
+            AND
+            <foreach collection="parameters.personal" item="item"  separator="AND">
+                A.${item.fieldName} = #{item.fieldValue}
+            </foreach>
+        </if>
+        <where>
+            <if test="parameters != null">
+                <choose>
+                    <when test="parameters.tenantId != null and parameters.tenantId != ''">
+                        T.owner = #{parameters.tenantId}
+                    </when>
+                    <otherwise>
+                        T.owner is null
+                    </otherwise>
+                </choose>
+                <if test="parameters.username != null and parameters.username.size > 0">
+                    AND T.username IN <foreach collection="parameters.username" open="(" close=")" separator="," item="item">#{item}</foreach>
+                </if>
+                <choose>
+                    <when test="!parameters.dev">
+                        AND T.username NOT IN (SELECT userid FROM LA_USER_ROLES WHERE authority IN ('ROLE_DEV', 'ROLE_SYSTEM') or AUTHORITY LIKE 'ROLE_TENANT@%')
+                    </when>
+                    <otherwise>
+                        AND T.username NOT IN (SELECT userid FROM LA_USER_ROLES WHERE AUTHORITY LIKE 'ROLE_TENANT@%')
+                    </otherwise>
+                </choose>
+                <if test="parameters.nickname != null and parameters.nickname != ''">
+                    AND T.nickname LIKE #{parameters.nickname}
+                </if>
+                <if test="parameters.mobile != null and parameters.mobile != ''">
+                    AND T.mobile LIKE #{parameters.mobile}
+                </if>
+                <if test="parameters.email != null and parameters.email != ''">
+                    AND T.email LIKE #{parameters.email}
+                </if>
+                <if test="parameters.authority != null and parameters.authority != ''">
+                    AND UR.authority = #{parameters.authority}
+                </if>
+                <if test="parameters.organs != null and parameters.organs.size > 0">
+                    AND O.orgId IN <foreach collection="parameters.organs" open="(" close=")" separator="," item="item">#{item}</foreach>
+                </if>
+            </if>
+        </where>
+        ORDER BY T.CREATEDATE DESC, username asc
+    </select>
+
+    <!-- 更新用户手机号 -->
+    <update id="updateMobile" parameterType="com.lambda.fusion.auth.user.domain.MutableUser">
+        UPDATE LA_USERS SET mobile = #{mobile} where username = #{username}
+    </update>
+
+    <!-- 更新用户邮箱 -->
+    <update id="updateEmail" parameterType="com.lambda.fusion.auth.user.domain.MutableUser">
+        UPDATE LA_USERS SET email = #{email} where username = #{username}
+    </update>
+
+    <!-- 更新用户信息 -->
+    <update id="updateInfo" parameterType="com.lambda.fusion.auth.user.domain.RestUserInfoParameter">
+        UPDATE LA_USERS SET nickname = #{nickname},email = #{email} where username = #{username}
+    </update>
+
+    <resultMap id="TenantUser" type="com.lambda.fusion.auth.user.domain.MutableUser">
+        <id column="username" property="username" javaType="String"/>
+        <result column="nickname" property="nickname" javaType="String"/>
+        <result column="mobile" property="mobile"/>
+        <result column="email" property="email"/>
+        <result column="createDate" property="createDate"/>
+        <result column="tenant_id" property="tenant_id"/>
+        <result column="owner" property="owner" />
+        <result column="enabled" property="enabled" />
+        <result column="jobno" property="jobno"/>
+        <association property="org" javaType="com.lambda.fusion.auth.organization.domain.Org">
+            <constructor>
+                <idArg column="orgId" javaType="String"/>
+            </constructor>
+        </association>
+        <collection property="authorities" ofType="com.lambda.fusion.auth.role.bean.SimpleRole">
+            <constructor>
+                <idArg column="authority" javaType="String"/>
+            </constructor>
+        </collection>
+    </resultMap>
+    <!-- 根据租户ID，查询租户管理员用户列表 -->
+    <select id="getAllMutableUsersByTenantId" parameterType="String" resultMap="TenantUser">
+        SELECT T.username, T.nickname, T.mobile, T.email, T.createDate, T.enabled, T.jobno, T.tenantId,
+        UR.AUTHORITY AS authority, UO.ORGANIZATIONID AS orgId
+        FROM LA_USERS T
+        INNER JOIN LA_USER_ROLES UR ON UR.userid = T.username
+        INNER JOIN LA_USER_ORGANIZATION UO ON T.username = UO.userid
+        <where>
+            <if test="tenantId != null and tenantId != ''">
+                AND UO.ORGANIZATIONID = #{tenantId}
+            </if>
+            AND UR.AUTHORITY = 'ROLE_TENANT'
+        </where>
+        ORDER BY T.USERNAME
+    </select>
+    <!-- 检查手机号是否已经绑定-->
+    <select id="checkMobileExists" resultType="boolean">
+        SELECT COUNT(1) FROM DUAL WHERE EXISTS(SELECT 1 FROM LA_USERS T WHERE T.MOBILE = #{mobile})
+    </select>
+    <select id="getSimpleUsers" resultType="com.lambda.fusion.auth.login.domain.UserDTO">
+        SELECT username, nickname FROM LA_USERS
+    </select>
+
+    <!--获取所有启用用户信息-->
+    <select id="loadAllEnabledUsers" parameterType="String" resultMap="UserDTO">
+        <![CDATA[
+        SELECT
+            T.username,
+            T.nickname,
+            T.password,
+            T.enabled,
+            R.authority,
+            UO.organizationid AS orgid,
+            T.tenantId
+        FROM
+            LA_USERS T
+                LEFT JOIN LA_USER_ROLES UR ON UR.userid = T.username
+                LEFT JOIN LA_ROLES R ON R.authority = UR.authority AND R.enabled = 1
+                LEFT JOIN LA_USER_ORGANIZATION UO ON UO.userid = T.username
+        WHERE T.ENABLED = 1
+        ]]>
+    </select>
+
+    <select id="getTenantIdByTenantAdmin" resultType="java.lang.String">
+        SELECT T.TENANT_ID FROM LA_USER_ORGANIZATION UO
+       INNER JOIN LA_USER_ROLES UR ON UR.USERID = UO.USERID
+       INNER JOIN LA_TENANT T ON UO.ORGANIZATIONID = T.TENANT_ID
+        WHERE UR.AUTHORITY = 'ROLE_TENANT'
+          AND UO.USERID = #{username}
+    </select>
+</mapper>

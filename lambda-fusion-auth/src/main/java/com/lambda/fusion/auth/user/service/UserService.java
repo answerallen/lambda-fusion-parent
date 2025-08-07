@@ -23,7 +23,6 @@ public interface UserService {
      */
     List<String> getUserNamesByAuthority(String orgid, @NotBlank String authority);
 
-
     /**
      * 根据组织机构id查询用户名集合
      *
@@ -185,7 +184,7 @@ public interface UserService {
      * @param source      权限来源
      * @param target      复制对象
      * @param permissions 权限
-
+     *
      */
     void batchUpdatePermissions(LoginUser operator, String source, String target, Set<String> permissions);
 
@@ -262,7 +261,6 @@ public interface UserService {
      */
     void updateTenantUser(MutableUser user, LoginUser operator);
 
-
     /**
      * 导出用户列表
      *
@@ -271,5 +269,4 @@ public interface UserService {
      * @param parameters 查询参数
      */
     void exportMutableUsers(Page<MutableUser> pageable, Map<String, Object> parameters, HttpServletResponse response);
-
 }

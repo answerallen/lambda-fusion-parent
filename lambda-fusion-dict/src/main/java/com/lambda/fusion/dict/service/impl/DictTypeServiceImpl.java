@@ -37,8 +37,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 多级数据字典类型
- *
- * @author JIN
  */
 @Service
 @Transactional(rollbackFor = Exception.class)

@@ -1,12 +1,10 @@
 package com.lambda.fusion.auth.tenant.cache;
 
+import static com.lambda.fusion.core.Constants.TENANT_HOST_REDIS_KEY;
 
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.core.Constants;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.RedisTemplate;
-
-import static com.lambda.fusion.core.Constants.TENANT_HOST_REDIS_KEY;
 
 /**
  * 租户域名映射缓存
@@ -28,9 +26,8 @@ public class TenantHostCache {
         if (StringUtils.isBlank(host)) {
             return false;
         }
-        return redisTemplate.opsForHash().hasKey(TENANT_HOST_REDIS_KEY ,   host);
+        return redisTemplate.opsForHash().hasKey(TENANT_HOST_REDIS_KEY, host);
     }
-
 
     /**
      * 更新映射关系
@@ -52,18 +49,17 @@ public class TenantHostCache {
      * @param tenantId  租户id
      */
     public void remove(String tenantId) {
-        redisTemplate.opsForHash().entries(TENANT_HOST_REDIS_KEY)
-                .forEach((host, tid) -> {
-                    if (tenantId.equals(tid.toString())) {
-                        redisTemplate.opsForHash().delete(TENANT_HOST_REDIS_KEY, host.toString());
-                    }
-                });
+        redisTemplate.opsForHash().entries(TENANT_HOST_REDIS_KEY).forEach((host, tid) -> {
+            if (tenantId.equals(tid.toString())) {
+                redisTemplate.opsForHash().delete(TENANT_HOST_REDIS_KEY, host.toString());
+            }
+        });
     }
 
     /**
      * 清空缓存
      */
-    public void clear(){
+    public void clear() {
         redisTemplate.delete(TENANT_HOST_REDIS_KEY);
     }
 }

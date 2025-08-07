@@ -3,18 +3,15 @@ package com.lambda.fusion.auth.tenant.persistence;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.auth.tenant.bean.TenantEntity;
 import com.lambda.fusion.auth.tenant.bean.TenantQuery;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
-
 
 /**
  * 租户信息表
  */
 @Mapper
 public interface TenantMapper extends BaseMapper<TenantEntity> {
-
 
     /**
      * 禁用/启用租户
@@ -32,7 +29,7 @@ public interface TenantMapper extends BaseMapper<TenantEntity> {
 
     /**
      * 查询租户信息列表
-    */
+     */
     List<TenantQuery> queryTenantList();
 
     /**
@@ -49,7 +46,7 @@ public interface TenantMapper extends BaseMapper<TenantEntity> {
      * @param id         the id
      * @param configJson the config json
      */
-    void updateConfig(@Param("id")String id, @Param("configJson")String configJson);
+    void updateConfig(@Param("id") String id, @Param("configJson") String configJson);
 
     /**
      * Gets config json.
@@ -57,5 +54,5 @@ public interface TenantMapper extends BaseMapper<TenantEntity> {
      * @param id the id
      * @return the config json
      */
-    String getConfigJson(@Param("id")String id);
+    String getConfigJson(@Param("id") String id);
 }

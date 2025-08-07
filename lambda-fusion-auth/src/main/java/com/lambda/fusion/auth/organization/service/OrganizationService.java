@@ -2,15 +2,12 @@ package com.lambda.fusion.auth.organization.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.auth.organization.domain.*;
-import com.lambda.fusion.auth.resource.bean.MoveParameter;
+import com.lambda.fusion.auth.resource.model.MoveParameter;
 import com.lambda.fusion.auth.user.domain.MutableUser;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import org.springframework.web.multipart.MultipartFile;
 
 public interface OrganizationService {
 
@@ -27,7 +24,7 @@ public interface OrganizationService {
      * @param parameters 查询参数
      * @return
      */
-    List<Organization> treeList( Parameters parameters);
+    List<Organization> treeList(Parameters parameters);
 
     /**
      * 获取当前用户所有子部门
@@ -128,7 +125,6 @@ public interface OrganizationService {
      * @return
      */
     List<String> getParentsById(String id);
-
 
     /**
      * 禁用/启用组织机构

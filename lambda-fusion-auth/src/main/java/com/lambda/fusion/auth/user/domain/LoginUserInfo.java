@@ -7,7 +7,6 @@ import lombok.EqualsAndHashCode;
 @Data
 @Schema(description = "登陆用户信息")
 @EqualsAndHashCode(callSuper = true)
-
 public class LoginUserInfo extends MutableUser {
     @Schema(description = "当前SessionId")
     private String currentSesssionId;

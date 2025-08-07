@@ -32,7 +32,6 @@ import org.springframework.core.env.Environment;
  * 数据库配置变更监听器，每隔30秒检测数据库配置变动并自动刷新上下文
  * 可通过"lambda.fusion.config.auto-refresh.enabled=false"进行关闭
  *
- * @author Lambda Fusion Team
  */
 @Slf4j
 @SuppressFBWarnings("EI_EXPOSE_REP2")

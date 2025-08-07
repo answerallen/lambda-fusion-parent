@@ -4,7 +4,6 @@ package com.lambda.fusion.configs;
  * 配置核心模块常量定义
  * 集中管理所有硬编码常量，提高代码可维护性
  *
- * @author Lambda Fusion Team
  */
 public final class ConfigConstants {
 
@@ -143,8 +142,7 @@ public final class ConfigConstants {
         /**
          * 数据源配置未找到警告消息
          */
-        public static final String DATASOURCE_CONFIG_NOT_FOUND =
-                "Could not find dataSource configuration, ignored. ";
+        public static final String DATASOURCE_CONFIG_NOT_FOUND = "Could not find dataSource configuration, ignored. ";
 
         /**
          * 获取数据源属性失败警告消息

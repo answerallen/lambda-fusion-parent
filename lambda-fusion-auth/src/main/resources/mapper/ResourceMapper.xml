@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.lambda.fusion.auth.resource.persistence.ResourceMapper">
+    <select id="getAllChildren" resultType="com.lambda.fusion.auth.resource.model.MutableResource">
+        SELECT T.id, T.res_name, T.orderNo, T.parentId, T.res_path, T.res_rank, T.ico, T.method, T.res_type, T.hidden, T.res_mode
+        FROM LA_RESOURCES T
+        WHERE T.DEV = 0
+        <if test="authorities != null and authorities.size > 0">
+            AND T.id IN (
+            SELECT DISTINCT T2.RESOURCEID FROM LA_ROLE_RESOURCES T2 WHERE T2.AUTHORITY IN
+            <foreach collection="authorities" item="item" separator="," open="(" close=")">#{item}</foreach>
+            )
+        </if>
+        <if test="parentkeys != null">
+            AND T.parentkeys LIKE CONCAT(#{parentkeys}, '%')
+        </if>
+        ORDER BY T.res_rank,T.orderNo
+    </select>
+    <select id="getAllParents" resultType="com.lambda.fusion.auth.resource.model.MutableResource">
+        SELECT T.id, T.res_name, T.orderNo, T.parentId, T.res_path, T.res_rank, T.ico, T.method, T.res_type, T.hidden, T.res_mode
+        FROM LA_RESOURCES T
+        WHERE T.DEV = 0
+        <if test="authorities != null and authorities.size > 0">
+            AND T.id IN (
+            SELECT DISTINCT T2.RESOURCEID FROM LA_ROLE_RESOURCES T2 WHERE T2.AUTHORITY IN
+            <foreach collection="authorities" item="item" separator="," open="(" close=")">#{item}</foreach>
+            )
+        </if>
+        <if test="parentkeys != null">
+            AND T.id IN
+            <foreach collection="parentkeys" item="item" separator="," open="(" close=")">#{item}</foreach>
+        </if>
+        ORDER BY T.res_rank, T.orderNo
+    </select>
+    <!-- 递归查询所有资源 -->
+    <select id="getDirectChildren" resultType="com.lambda.fusion.auth.resource.model.Resource">
+        SELECT T.id, T.res_name, T.orderNo, T.parentId, T.res_path, T.res_rank, T.ico, T.method, T.res_type, T.hidden, T.res_mode
+        FROM LA_RESOURCES T
+        <where>
+            <if test="id != null">
+                AND T.parentId = #{id}
+            </if>
+            <if test="id == null">
+                AND T.parentId IS NULL
+            </if>
+        </where>
+        ORDER BY T.orderNo
+    </select>
+    <!-- 根据ID查询下级所有资源 -->
+    <select id="queryAllChildren" resultType="com.lambda.fusion.auth.resource.model.Resource">
+        SELECT T.id, T.res_name, T.orderNo, T.parentId, T.res_path, T.res_rank, T.ico, T.method, T.res_type, T.hidden, parentkeys, T.res_mode
+        FROM LA_RESOURCES T
+        WHERE T.parentkeys LIKE CONCAT(#{parentkeys}, '%')
+        ORDER BY T.res_rank, T.orderNo
+    </select>
+
+    <!-- 根据编号查询资源信息 -->
+    <select id="getResourceById" parameterType="string"
+            resultType="com.lambda.fusion.auth.resource.model.MutableResource">
+        SELECT T.id, T.res_name, T.res_path, T.res_url, T.parentId, T.res_rank, T.orderNo, T.method,
+            T.ico, T.res_type, T.hidden, T.parentkeys, T.res_mode,
+            T.KEY_NAME AS keyName,
+            T.KEEP_ALIVE AS keepAlive,
+            T.EXPAND AS expand,
+            T.BUSINESS_EXPAND AS businessExpand
+        FROM LA_RESOURCES T WHERE T.id = #{id}
+    </select>
+    <!-- 新建资源 -->
+    <!--suppress MybatisXMapperXmlInspection -->
+    <insert id="addResource" parameterType="com.lambda.fusion.auth.resource.model.MutableResource">
+        INSERT INTO LA_RESOURCES
+        (id, res_name, res_rank, res_path, parentId, orderNo, method, ico, res_type, hidden, parentkeys, res_mode, remark, key_name, keep_Alive, expand, business_expand, res_url)
+        VALUES
+        (#{id}, #{resName}, #{resRank}, #{resPath,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{orderNo,jdbcType=INTEGER},
+        #{method,jdbcType=VARCHAR}, #{ico,jdbcType=VARCHAR}, #{resType ,jdbcType=INTEGER}, #{hidden,jdbcType=INTEGER},
+        #{parentkeys, jdbcType=VARCHAR}, #{resMode}, #{remark, jdbcType=VARCHAR}, #{keyName,jdbcType=VARCHAR}, #{keepAlive,jdbcType=INTEGER}, #{expand,jdbcType=VARCHAR}
+        , #{businessExpand,jdbcType=VARCHAR}, #{resUrl,jdbcType=VARCHAR})
+    </insert>
+    <!--suppress MybatisXMapperXmlInspection -->
+    <insert id="addResource" parameterType="com.lambda.fusion.auth.resource.model.MutableResource" databaseId="mysql">
+        INSERT INTO LA_RESOURCES
+        (id, res_name, res_rank, res_path, parentId, orderNo, method, ico, res_type, hidden, parentkeys, res_mode, remark, key_name, keep_Alive, expand, business_expand, res_url)
+        VALUES
+        (#{id}, #{resName}, #{resRank}, #{resPath,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{orderNo,jdbcType=INTEGER},
+        #{method,jdbcType=VARCHAR}, #{ico,jdbcType=VARCHAR}, #{resType ,jdbcType=INTEGER}, #{hidden,jdbcType=INTEGER},
+        #{parentkeys, jdbcType=VARCHAR}, #{resMode}, #{remark, jdbcType=VARCHAR}, #{keyName,jdbcType=VARCHAR}, #{keepAlive,jdbcType=INTEGER}, #{expand,jdbcType=VARCHAR}
+        , #{businessExpand,jdbcType=VARCHAR}, #{resUrl,jdbcType=VARCHAR})
+    </insert>
+    <!-- 删除资源 -->
+    <delete id="deleteResource">
+        DELETE FROM LA_RESOURCES WHERE ID IN
+        <foreach collection="collection" open="(" close=")" separator="," item="id">#{id}</foreach>
+    </delete>
+    <!-- 删除资源相关角色列表 -->
+    <delete id="deleteRolesResource">
+        DELETE FROM LA_ROLE_RESOURCES WHERE RESOURCEID IN
+        <foreach collection="collection" open="(" close=")" separator="," item="id">#{id}</foreach>
+    </delete>
+    <!-- 是否包含下级资源 -->
+    <select id="hasChildren" parameterType="string" resultType="boolean">
+        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.parentId = #{id})
+    </select>
+
+    <!-- 是否包含下级按钮 -->
+    <select id="hasButton" resultType="boolean">
+        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.parentId = #{pid} AND T.ID != #{id}
+        AND T.res_type = 3)
+    </select>
+
+    <!-- 是否包含下级非按钮资源 -->
+    <select id="hasNotButton" resultType="boolean">
+        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.parentId = #{pid} AND T.ID != #{id}
+        AND T.res_type != 3)
+    </select>
+    <!-- 更新资源 -->
+    <update id="updateResource" parameterType="com.lambda.fusion.auth.resource.model.MutableResource">
+        UPDATE LA_RESOURCES T SET
+        <if test="resName != null and resName != ''">
+            T.res_name = #{resName},
+        </if>
+        T.orderNo = #{orderNo},
+        T.parentId = #{parentId, jdbcType=VARCHAR},
+        T.res_path = #{resPath,jdbcType=VARCHAR},
+        T.method = #{method,jdbcType=VARCHAR},
+        T.ico = #{ico,jdbcType=VARCHAR},
+        T.res_type = #{resType,jdbcType=INTEGER},
+        T.res_rank = #{resRank,jdbcType=INTEGER},
+        T.hidden = #{hidden,jdbcType=INTEGER},
+        T.parentkeys = #{parentkeys, jdbcType=VARCHAR},
+        T.res_mode = #{resMode,jdbcType=INTEGER},
+        T.remark = #{remark, jdbcType=VARCHAR},
+        T.key_name = #{keyName,jdbcType=VARCHAR},
+        T.keep_alive = #{keepAlive,jdbcType=INTEGER},
+        T.expand = #{expand,jdbcType=VARCHAR},
+        T.business_expand = #{businessExpand,jdbcType=VARCHAR},
+        T.res_url = #{resUrl,jdbcType=VARCHAR}
+        WHERE T.id = #{id}
+    </update>
+    <!-- 查询可用的所有资源 -->
+    <select id="queryAvailableMutableResources"
+            resultType="com.lambda.fusion.auth.resource.model.MutableResource">
+        SELECT
+        T.id,
+        T.res_name,
+        T.parentId,
+        T.res_rank,
+        T.res_type,
+        T.res_path,
+        T.remark,
+        T.ico,
+        T.orderNo,
+        T.method,
+        T.hidden,
+        T.res_mode,
+        T.parentkeys,
+        T.res_url,
+        T.key_name,
+        T.keep_alive,
+        T.expand,
+        T.business_expand
+        FROM LA_RESOURCES T
+        WHERE T.res_type &gt; 0 and T.res_mode = #{mode}
+        ORDER BY T.res_rank, T.orderNo
+    </select>
+    <!-- 查询可用的所有资源 -->
+    <select id="getAllResourcesByOrderNo"
+            resultType="com.lambda.fusion.auth.resource.model.MutableResource">
+        SELECT id, res_name, res_path, parentid, ico, method, res_rank, remark, orderNo, res_type, res_mode, hidden, parentkeys FROM LA_RESOURCES ORDER BY orderNo
+    </select>
+    <!-- 批量排序 -->
+    <update id="updateResourceOrdered">
+        UPDATE LA_RESOURCES SET orderNo = CASE
+        <foreach collection="list" item="item">
+            WHEN id = #{item.id} THEN #{item.orderNo}
+        </foreach>
+        END
+        WHERE id IN
+        <foreach collection="list" item="item" separator="," open="(" close=")">
+            #{item.id}
+        </foreach>
+    </update>
+    <!-- 批量隐藏资源 -->
+    <update id="updateResourceIsHidden">
+        UPDATE LA_RESOURCES SET hidden = #{status}
+        WHERE id IN
+        <foreach collection="list" item="item" separator="," open="(" close=")">
+            #{item.id}
+        </foreach>
+    </update>
+
+    <update id="updateResourceRank">
+        UPDATE LA_RESOURCES T SET T.res_rank = CASE
+        <foreach collection="list" item="item">
+            WHEN id = #{item.id} THEN #{item.resRank}
+        </foreach>
+        END
+        WHERE id IN
+        <foreach collection="list" item="item" separator="," open="(" close=")">
+            #{item.id}
+        </foreach>
+    </update>
+
+
+
+    <select id="getAllMutableResources"
+            resultType="com.lambda.fusion.auth.resource.model.MutableResource">
+        SELECT
+            T.id, T.res_name, T.res_path, T.parentid, T.ico, T.method, T.res_rank, T.orderNo, T.res_type, T.hidden, T.parentkeys, T.res_mode
+        FROM LA_RESOURCES T
+        ORDER BY T.res_rank, T.orderNo
+    </select>
+    <update id="updateResourceParentkeys">
+        UPDATE LA_RESOURCES SET parentkeys = CASE
+        <foreach collection="list" item="item">
+            WHEN id = #{item.id} THEN #{item.parentkeys, jdbcType=VARCHAR}
+        </foreach>
+        END WHERE id IN
+        <foreach collection="list" item="item" separator="," open="(" close=")">
+            #{item.id}
+        </foreach>
+    </update>
+    <update id="updateMovedResource">
+        UPDATE LA_RESOURCES T SET
+            T.orderNo = #{orderNo},
+            T.parentId = #{parentId, jdbcType=VARCHAR},
+            T.res_rank = #{resRank,jdbcType=INTEGER},
+            T.parentkeys = #{parentkeys, jdbcType=VARCHAR}
+        WHERE T.id = #{id}
+    </update>
+
+    <select id="hasChangedParentkeys" resultType="boolean">
+        SELECT 1 - COUNT(1) FROM DUAL WHERE EXISTS(SELECT 1 FROM databasechangelog where ID = #{id})
+    </select>
+    <select id="getUserIdsByResourcePermissionId" resultType="string">
+        SELECT DISTINCT MRR.USERID
+        FROM LA_API_RESOURCES MAR
+        LEFT JOIN (
+        SELECT USERID, RESOURCEID
+        FROM LA_ROLE_RESOURCES MRR, LA_USER_ROLES MUR
+        WHERE MUR.AUTHORITY LIKE CONCAT( MRR.AUTHORITY, '%' ) OR MRR.AUTHORITY LIKE CONCAT( MUR.AUTHORITY, '%' )
+        UNION ALL
+        SELECT MRR.AUTHORITY USERID, MRR.RESOURCEID FROM LA_ROLE_RESOURCES MRR
+        INNER JOIN LA_USERS MU ON MU.USERNAME = MRR.AUTHORITY
+        ) MRR ON MAR.RESOURCEID = MRR.RESOURCEID
+        WHERE MRR.USERID IS NOT NULL AND MAR.PERMISSIONID = #{permissionId}
+    </select>
+    <select id="queryAvailableServices"
+            resultType="com.lambda.fusion.auth.resource.model.MutableResource">
+        SELECT
+        T.id,
+        T.res_name,
+        T.parentId,
+        T.res_rank,
+        T.res_type,
+        T.res_path,
+        T.res_mode,
+        T.remark,
+        T.ico,
+        T.orderNo,
+        T.method,
+        T.hidden,
+        T.parentkeys
+        FROM LA_RESOURCES T
+        WHERE T.res_type = 0 AND T.res_mode = 0
+        ORDER BY T.res_rank, T.orderNo
+    </select>
+
+
+
+    <select id="getApiIdsByResourceId" resultType="java.lang.String">
+        SELECT PERMISSIONID
+        FROM LA_API_RESOURCES
+        WHERE RESOURCEID = #{resourceId}
+    </select>
+
+
+    <delete id="deleteAllResourceApi">
+        DELETE
+        FROM LA_API_RESOURCES
+        WHERE RESOURCEID = #{resourceId}
+    </delete>
+
+    <!--suppress MybatisXMapperXmlInspection -->
+    <insert id="batchInsertResourceApi" databaseId="mysql">
+        INSERT INTO LA_API_RESOURCES (resourceid, permissionid) VALUES
+        <foreach collection="ids" item="item" separator=",">
+            (#{resourceId},#{item})
+        </foreach>
+    </insert>
+
+    <!--suppress MybatisXMapperXmlInspection -->
+    <insert id="batchInsertResourceApi" databaseId="oracle">
+        INSERT ALL
+        <foreach collection="ids" item="item">
+            INTO LA_API_RESOURCES (resourceid, permissionid) VALUES (#{resourceId},#{item})
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
+
+    <!--postgresql-->
+    <!--suppress MybatisXMapperXmlInspection -->
+    <insert id="batchInsertResourceApi" databaseId="postgresql">
+        INSERT INTO LA_API_RESOURCES (resourceid, permissionid) VALUES
+        <foreach collection="ids" item="item" separator=",">
+            (#{resourceId},#{item})
+        </foreach>
+    </insert>
+
+
+    <select id="getUserPermissions" resultType="com.lambda.fusion.auth.resource.model.UserPermission">
+        SELECT MRR.USERID AS username,MAR.PERMISSIONID AS permissionId
+        FROM LA_API_RESOURCES MAR
+        LEFT JOIN (
+            SELECT USERID, RESOURCEID
+            FROM LA_ROLE_RESOURCES MRR, LA_USER_ROLES MUR
+            WHERE MUR.AUTHORITY LIKE CONCAT( MRR.AUTHORITY, '%' ) OR MRR.AUTHORITY LIKE CONCAT( MUR.AUTHORITY, '%' )
+        ) MRR ON MAR.RESOURCEID = MRR.RESOURCEID
+        WHERE MRR.USERID IS NOT NULL AND MAR.PERMISSIONID IN
+        <foreach collection="list" item="item" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="getAllUserPermissions" resultType="com.lambda.fusion.auth.resource.model.UserPermission">
+        SELECT DISTINCT MAR.PERMISSIONID AS permissionId, TMP.USERID AS username
+        FROM LA_API_RESOURCES MAR
+        LEFT JOIN (
+        SELECT USERID, RESOURCEID
+        FROM LA_USER_ROLES MUR
+        JOIN LA_ROLE_RESOURCES MRR ON MUR.AUTHORITY = MRR.AUTHORITY
+        WHERE USERID = #{username}
+        <if test="tenantId != null">
+            AND MUR.TENANT_ID = #{tenantId}
+        </if>
+        UNION
+        <if test="tenantId != null and isTenantManager">
+            SELECT coalesce(#{username},"USERID") USERID, RESOURCEID
+            FROM LA_ROLE_RESOURCES
+            WHERE AUTHORITY = CONCAT('ROLE_TENANT@', #{tenantId})
+            UNION
+        </if>
+        SELECT AUTHORITY USERID, RESOURCEID
+        FROM LA_ROLE_RESOURCES MRR
+        WHERE AUTHORITY = #{username}
+        <if test="tenantId != null">
+            AND MRR.TENANT_ID = #{tenantId}
+        </if>
+        UNION
+        SELECT CLIENTID USERID, RESOURCEID
+        FROM la_client_resources
+        WHERE CLIENTID = #{username}
+        ) TMP
+        ON MAR.RESOURCEID = TMP.RESOURCEID
+        WHERE TMP.USERID IS NOT NULL
+    </select>
+
+</mapper>

@@ -1,8 +1,6 @@
 package com.lambda.fusion.auth.resource.service;
 
-
-import com.lambda.fusion.auth.resource.bean.MutableResource;
-
+import com.lambda.fusion.auth.resource.model.MutableResource;
 import java.util.Set;
 import java.util.function.Predicate;
 

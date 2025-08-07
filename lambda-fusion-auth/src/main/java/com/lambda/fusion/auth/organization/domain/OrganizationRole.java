@@ -9,10 +9,10 @@ import lombok.NoArgsConstructor;
 @Schema(description = "组织角色")
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class OrganizationRole {
     @Schema(description = "角色ID")
     private String authority;
+
     @Schema(description = "组织ID")
     private String organizationId;
 }

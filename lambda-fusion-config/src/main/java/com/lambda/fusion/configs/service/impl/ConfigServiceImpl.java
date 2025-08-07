@@ -56,7 +56,6 @@ import org.springframework.transaction.annotation.Transactional;
  * <li><strong>批量处理：</strong>优化批量数据的处理性能</li>
  * </ul>
  *
- * @author 系统生成
  * @since 1.0.0
  * @see ConfigService 配置服务接口
  * @see ServiceImpl MyBatis-Plus基础服务实现

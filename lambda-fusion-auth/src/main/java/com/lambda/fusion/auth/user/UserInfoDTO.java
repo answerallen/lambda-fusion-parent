@@ -1,11 +1,10 @@
 package com.lambda.fusion.auth.user;
 
-import com.lambda.fusion.core.base.M1Expanded;
+import com.lambda.fusion.core.base.LambdaExpanded;
 import lombok.Data;
 
-
 @Data
-public class UserInfoDTO implements M1Expanded {
+public class UserInfoDTO implements LambdaExpanded {
     private String userid;
 
     /**

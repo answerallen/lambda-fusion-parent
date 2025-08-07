@@ -1,7 +1,6 @@
 package com.lambda.fusion.auth.role.bean;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,7 +8,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("m1_user_roles")
+@TableName("la_user_roles")
 public class UserRoleDao {
     /**
      * 用户ID
@@ -22,5 +21,5 @@ public class UserRoleDao {
     /**
      * 租户
      */
-    private String tenantid;
+    private String tenantId;
 }

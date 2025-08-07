@@ -50,7 +50,6 @@ import org.springframework.web.bind.annotation.*;
  * <li>使用参数校验确保数据完整性</li>
  * </ul>
  *
- * @author 系统生成
  * @since 1.0.0
  * @see ConfigOptionService 配置选项服务接口
  * @see ConfigOptionEntity 配置选项实体类

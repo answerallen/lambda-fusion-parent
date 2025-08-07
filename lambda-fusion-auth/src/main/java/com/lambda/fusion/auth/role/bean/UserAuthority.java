@@ -1,8 +1,6 @@
 package com.lambda.fusion.auth.role.bean;
 
-
 import lombok.Data;
-
 
 @Data
 public class UserAuthority {

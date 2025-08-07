@@ -2,17 +2,16 @@ package com.lambda.fusion.auth.role.bean;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-
 @Schema(description = "用户角色")
 public class SimpleRole {
 
     @Schema(required = true, description = "角色名")
     private String authority;
+
     @Schema(required = true, description = "别名")
     private String alias;
 
-    public SimpleRole() {
-    }
+    public SimpleRole() {}
 
     public SimpleRole(String authority, String alias) {
         this.authority = authority;
@@ -61,5 +60,4 @@ public class SimpleRole {
     public String toString() {
         return this.authority;
     }
-
 }

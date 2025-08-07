@@ -28,7 +28,6 @@ import java.util.List;
  * <li>提供灵活的查询条件组合</li>
  * </ul>
  *
- * @author 系统生成
  * @since 1.0.0
  * @see ConfigEntity 配置实体类
  * @see IService MyBatis-Plus基础服务接口

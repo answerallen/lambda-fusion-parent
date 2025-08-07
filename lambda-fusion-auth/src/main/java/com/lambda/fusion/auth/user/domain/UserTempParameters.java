@@ -1,12 +1,10 @@
 package com.lambda.fusion.auth.user.domain;
 
 import com.google.common.collect.Sets;
+import java.util.Set;
 import lombok.Data;
 
-import java.util.Set;
-
 @Data
-
 public class UserTempParameters {
 
     private Set<String> uids = Sets.newHashSet();

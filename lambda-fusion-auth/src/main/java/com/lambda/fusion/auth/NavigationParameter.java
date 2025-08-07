@@ -31,7 +31,7 @@ public class NavigationParameter {
     int all = 0;
 
     public int getMode() {
-        if (null != model){
+        if (null != model) {
             this.mode = model;
         }
         return mode;

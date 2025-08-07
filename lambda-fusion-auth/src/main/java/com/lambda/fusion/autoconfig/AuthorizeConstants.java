@@ -1,11 +1,8 @@
 package com.lambda.fusion.autoconfig;
 
-
 public final class AuthorizeConstants {
 
-    private AuthorizeConstants() {
-    }
-
+    private AuthorizeConstants() {}
 
     public static final String USER_NOT_FOUND = "lambda.authority.user.notfound";
     public static final String USER_NAME_NOT_EMPTY = "lambda.authority.user.username.notempty";
@@ -13,7 +10,8 @@ public final class AuthorizeConstants {
     public static final String ROLE_NOT_FOUND = "lambda.authority.role.notfound";
     public static final String ROLE_NAME_NOT_EMPTY = "lambda.authority.role.name.notempty";
     public static final String ROLE_SELF_REFUSED = "lambda.authority.role.authorize.self.refused";
-    public static final String ROLE_GROUP_ILLEGAL_OPERATION_DEL_DEFAULT = "lambda.authority.role.group.illegal.operation.del.default";
+    public static final String ROLE_GROUP_ILLEGAL_OPERATION_DEL_DEFAULT =
+            "lambda.authority.role.group.illegal.operation.del.default";
     public static final String RES_ID_NOT_NULL = "lambda.authority.resource.id.notnull";
     public static final String RES_LOCATION_ERROR = "lambda.authority.resource.button.location.incorrect";
     public static final String ORG_NOT_EMPTY = "lambda.authority.organ.notempty";
@@ -33,18 +31,12 @@ public final class AuthorizeConstants {
 
     public static final String ROLE_MANAGER = "ROLE_MANAGER";
 
-    public static final String CACHE_MANAGER = "m1AuthorityCacheManager";
+    public static final String CACHE_MANAGER = "AuthorityCacheManager";
 
-    public static final String M1_OPERATION_LOG_EXECUTOR = "m1OperationLogExecutor";
+    public static final String LA_OPERATION_LOG_EXECUTOR = "OperationLogExecutor";
 
     public static final String DEFAULT_GROUP_NAME = "默认分组";
 
-    public static final String JEEPLUS_COMPANY = "1";
-
     public static final String MANAGED = "1";
 
-    /**
-     * 租户配置缓存名称
-     */
-    public static final String TENANT_CONFIG_CACHE_NAME = "m1TenantConfigCache";
 }

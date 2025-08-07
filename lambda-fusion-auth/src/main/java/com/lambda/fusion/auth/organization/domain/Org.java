@@ -14,8 +14,7 @@ public class Org {
 
     String fullName;
 
-    public Org() {
-    }
+    public Org() {}
 
     public Org(String id) {
         this.id = id;

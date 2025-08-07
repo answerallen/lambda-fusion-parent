@@ -1,15 +1,13 @@
 package com.lambda.fusion.auth.role.service;
 
-import org.springframework.lang.NonNull;
-
 import java.util.Set;
+import org.springframework.lang.NonNull;
 
 /**
  * 角色基础操作
  *
  */
 public interface RoleManager {
-
 
     /**
      * 根据用户查询该用户有哪些角色

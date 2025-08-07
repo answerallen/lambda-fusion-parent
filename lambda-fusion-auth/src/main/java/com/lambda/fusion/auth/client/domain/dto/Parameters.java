@@ -1,4 +1,5 @@
 package com.lambda.fusion.auth.client.domain.dto;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -6,7 +7,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @Schema(description = "分页查询参数")
-
 public class Parameters {
 
     /**
@@ -22,5 +22,5 @@ public class Parameters {
     /**
      * 租户ID
      */
-    private String tenantid;
+    private String tenantId;
 }

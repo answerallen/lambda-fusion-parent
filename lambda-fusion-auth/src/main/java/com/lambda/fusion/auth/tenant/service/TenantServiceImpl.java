@@ -10,8 +10,8 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.auth.organization.domain.Organization;
 import com.lambda.fusion.auth.organization.mapper.OrganizationMapper;
-import com.lambda.fusion.auth.role.persistence.GroupMapper;
-import com.lambda.fusion.auth.role.persistence.RoleMapper;
+import com.lambda.fusion.auth.role.mapper.GroupMapper;
+import com.lambda.fusion.auth.role.mapper.RoleMapper;
 import com.lambda.fusion.auth.tenant.bean.TenantEntity;
 import com.lambda.fusion.auth.tenant.bean.TenantQuery;
 import com.lambda.fusion.auth.tenant.cache.TenantConfigurationCache;
@@ -20,6 +20,9 @@ import com.lambda.fusion.auth.tenant.event.*;
 import com.lambda.fusion.auth.tenant.persistence.TenantMapper;
 import com.lambda.fusion.autoconfig.AuthorizeConstants;
 import jakarta.annotation.Resource;
+import java.util.*;
+import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -33,19 +36,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.Nonnull;
-import java.util.*;
-import java.util.stream.Collectors;
-
 /**
  * 租户信息表
-
+ *
  */
 @Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)
-
-public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> implements TenantService, ApplicationEventPublisherAware, CommandLineRunner {
+public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
+        implements TenantService, ApplicationEventPublisherAware, CommandLineRunner {
 
     @Resource
     protected TenantMapper tenantMapper;
@@ -59,8 +58,8 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
     @Resource
     protected OrganizationMapper organizationMapper;
 
-//    @Autowired
-//    private M1ConfigService m1ConfigService;
+    //    @Autowired
+    //    private ConfigService laConfigService;
 
     private final ObjectMapper objectMapper;
 
@@ -109,9 +108,9 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
 
     @Override
     public void prohibitTenant(LoginUser operator, Integer enabled, String tenantId) {
-        //判断当前用户是否有操作权限
+        // 判断当前用户是否有操作权限
         this.hasOperation(operator, tenantId);
-        //禁用/启用租户
+        // 禁用/启用租户
         tenantMapper.prohibitTenantByTenantId(enabled, tenantId);
         // 非启用状态下，都要禁用组织和角色
         if (enabled != 1) {
@@ -123,10 +122,10 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
         final List<String> ids = organs.stream().map(Organization::getId).collect(Collectors.toList());
         tenants.add(tenantId);
         if (CollectionUtils.isNotEmpty(ids)) {
-            //禁用/启用组织
+            // 禁用/启用组织
             organizationMapper.prohibitOrganizationByIds(enabled, ids);
         }
-        //禁用/启用用户角色
+        // 禁用/启用用户角色
         prohibitOrgUsersByTenantOrgan(enabled, tenants);
         prohibitOrgUsersByOrdinaryOrgan(enabled, ordinaries);
         configurationCache.removeConfigCache(tenantId);
@@ -151,9 +150,9 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
 
     @Override
     public void examineTenant(LoginUser operator, Integer enabled, String tenantId) {
-        //判断当前用户是否有操作权限
+        // 判断当前用户是否有操作权限
         this.hasOperation(operator, tenantId);
-        //审核租户信息
+        // 审核租户信息
         tenantMapper.examineTenantByTenantId(enabled, tenantId);
         if (enabled == 1) {
             // 审核通过，发布事件
@@ -167,26 +166,26 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
 
     @Override
     public void deleteTenant(LoginUser operator, String tenantId) {
-        //判断当前用户是否拥有操作权限
+        // 判断当前用户是否拥有操作权限
         this.hasOperation(operator, tenantId);
-        //删除租户
+        // 删除租户
         tenantMapper.deleteById(tenantId);
-        //通过租户编号查询组织，删除组织
+        // 通过租户编号查询组织，删除组织
         final List<Organization> organs = queryOrganizationByTenantId(tenantId);
         final List<String> ids = organs.stream().map(Organization::getId).collect(Collectors.toList());
         if (CollectionUtils.isNotEmpty(ids)) {
-            //删除组织
+            // 删除组织
             organizationMapper.deleteOrgByIdList(ids);
-            //删除用户组织
+            // 删除用户组织
             organizationMapper.deleteUserOrgByIdList(ids);
         }
-        //删除分组
+        // 删除分组
         List<String> tenantIds = new ArrayList<>();
         tenantIds.add(tenantId);
         groupMapper.deleteGroupByTenantId(tenantIds);
-        //删除角色权限
+        // 删除角色权限
         roleMapper.deleteRoleByTenantId(tenantIds);
-        //删除角色
+        // 删除角色
         roleMapper.deleteRoleByTenantId(tenantIds);
         configurationCache.removeConfigCache(tenantId);
     }
@@ -198,16 +197,14 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
         Assert.notNull(tenantId, AuthorizeConstants.TENANT_ID_NOT_EMPTY);
         Assert.isTrue(tenantMapper.isExist(tenantId), AuthorizeConstants.TENANT_NOT_FOUND);
         Assert.notNull(configMap, "lambda.authority.tenant.config.notempty");
-        //判断当前用户是否拥有操作权限
+        // 判断当前用户是否拥有操作权限
         this.hasOperation(operator, tenantId);
 
-        //todo 过滤租户不能修改的项
+        // todo 过滤租户不能修改的项
 
+        // todo 更新前需要先查询出原有的配置信息进行合并
 
-        //todo 更新前需要先查询出原有的配置信息进行合并
-
-
-        //todo 发布配置更新事件
+        // todo 发布配置更新事件
         applicationEventPublisher.publishEvent(new TenantConfigurationChangedEvent(tenantId));
     }
 
@@ -233,7 +230,6 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
             tenantAuthorizeManager.initTenantMainDataBase(tenantId, operator);
         }
     }
-
 
     @SneakyThrows
     @SuppressWarnings("squid:S1874")
@@ -263,11 +259,11 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
      */
     private QueryWrapper<TenantEntity> queryWrapper(Map<String, Object> parameters) {
         QueryWrapper<TenantEntity> query = new QueryWrapper<>();
-        //租户名称
+        // 租户名称
         Optional.ofNullable(parameters.get("tenantName")).ifPresent(u -> query.like("TENANT_NAME", u));
-        //地址
+        // 地址
         Optional.ofNullable(parameters.get("tenantAddress")).ifPresent(u -> query.like("TENANT_ADDRESS", u));
-        //法人
+        // 法人
         Optional.ofNullable(parameters.get("legalPerson")).ifPresent(u -> query.eq("LEGAL_PERSON", u));
         query.orderByDesc("CREATE_TIME");
         return query;
@@ -318,8 +314,10 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
 
     protected List<String> getSubOrgansByType(List<Organization> organs, Boolean isTenant) {
         if (CollectionUtils.isNotEmpty(organs)) {
-            return organs.stream().filter(org -> BooleanUtils.toBoolean(org.getTenant()) == isTenant)
-                    .map(Organization::id).collect(Collectors.toList());
+            return organs.stream()
+                    .filter(org -> BooleanUtils.toBoolean(org.getTenant()) == isTenant)
+                    .map(Organization::id)
+                    .collect(Collectors.toList());
         } else {
             return new ArrayList<>();
         }
@@ -348,6 +346,6 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
             return;
         }
 
-     //todo
+        // todo
     }
 }

@@ -1,6 +1,5 @@
 package com.lambda.fusion.auth.tenant;
 
-
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -11,7 +10,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "lambda.tenant")
-
 public class TenantProperties {
 
     /**
@@ -21,7 +19,7 @@ public class TenantProperties {
 
     @Getter
     @Setter
-    public static class TenantHost{
+    public static class TenantHost {
 
         /**
          * 是否启用

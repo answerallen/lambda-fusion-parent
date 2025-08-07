@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.auth.user.domain.UserInfoDO;
 import org.apache.ibatis.annotations.Mapper;
 
-
 @Mapper
 public interface UserInfoMapper extends BaseMapper<UserInfoDO> {
 
@@ -33,5 +32,4 @@ public interface UserInfoMapper extends BaseMapper<UserInfoDO> {
      * @return  返回影响行数
      */
     Integer updateAvatar(String userName, String avatar);
-
 }

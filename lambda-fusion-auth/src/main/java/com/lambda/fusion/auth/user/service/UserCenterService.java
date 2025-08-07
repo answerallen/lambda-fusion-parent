@@ -5,7 +5,6 @@ import com.lambda.fusion.auth.user.domain.RestUserInfoParameter;
 import com.lambda.fusion.auth.user.domain.RestVerifyCodeInfo;
 import org.springframework.lang.NonNull;
 
-
 public interface UserCenterService {
     /**
      * 发送手机验证码
@@ -14,7 +13,6 @@ public interface UserCenterService {
      * @param mobile
      */
     RestVerifyCodeInfo sendMobileVerifyCodeStore(@NonNull String username, @NonNull String mobile);
-
 
     /**
      * 更新用户手机号
@@ -33,7 +31,6 @@ public interface UserCenterService {
      * @param verifyCode 邮箱验证码
      */
     void updateEmail(String username, String email, String verifyCode);
-
 
     /**
      * 更新用户信息

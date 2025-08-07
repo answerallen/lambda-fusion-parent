@@ -1,13 +1,10 @@
 package com.lambda.fusion.auth.user.domain;
 
 import com.lambda.fusion.core.tree.Tree;
+import java.util.List;
 import lombok.Data;
 
-import java.util.List;
-
-
 @Data
-
 public class Permission implements Tree<Permission> {
 
     private String id;

@@ -1,5 +1,8 @@
 package com.lambda.fusion.autoconfig;
 
+import static com.lambda.fusion.autoconfig.AuthorizeConstants.CACHE_MANAGER;
+import static com.lambda.fusion.autoconfig.AuthorizeConstants.LA_OPERATION_LOG_EXECUTOR;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.auth.role.service.DefaultInternalRoleServiceImpl;
 import com.lambda.fusion.auth.role.service.InternalRoleService;
@@ -8,6 +11,9 @@ import com.lambda.fusion.auth.tenant.cache.TenantConfigurationCache;
 import com.lambda.fusion.auth.tenant.cache.TenantConfigurationLocalCache;
 import com.lambda.fusion.auth.tenant.cache.TenantConfigurationRedisCache;
 import com.lambda.fusion.auth.tenant.cache.TenantHostCache;
+import java.time.Duration;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -26,32 +32,23 @@ import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import java.time.Duration;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadPoolExecutor;
-
-import static com.lambda.fusion.autoconfig.AuthorizeConstants.CACHE_MANAGER;
-import static com.lambda.fusion.autoconfig.AuthorizeConstants.M1_OPERATION_LOG_EXECUTOR;
-
-
 @Slf4j
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({AuthorizeProperties.class, TenantProperties.class})
-
 public class AuthorizeConfigure {
 
     @Bean
-    public Executor m1OperationLogExecutor() {
+    public Executor laOperationLogExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        //最大线程数
+        // 最大线程数
         executor.setMaxPoolSize(10);
-        //核心线程数
+        // 核心线程数
         executor.setCorePoolSize(5);
-        //任务队列的大小
+        // 任务队列的大小
         executor.setQueueCapacity(10);
-        //线程前缀名
-        executor.setThreadNamePrefix(M1_OPERATION_LOG_EXECUTOR + "-");
-        //线程存活时间
+        // 线程前缀名
+        executor.setThreadNamePrefix(LA_OPERATION_LOG_EXECUTOR + "-");
+        // 线程存活时间
         executor.setKeepAliveSeconds(30);
         /*
          * 拒绝处理策略
@@ -66,45 +63,46 @@ public class AuthorizeConfigure {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(RedisConnectionFactory.class)
-    public static class M1AuthorizeRedisCacheManagerConfigure {
+    public static class AuthorizeRedisCacheManagerConfigure {
 
         @Bean(CACHE_MANAGER)
-        public CacheManager m1AuthorityCacheManager(RedisConnectionFactory redisConnectionFactory) {
+        public CacheManager laAuthorityCacheManager(RedisConnectionFactory redisConnectionFactory) {
             log.debug("CacheManager: Redis");
             RedisCacheConfiguration redisCacheConfiguration = RedisCacheConfiguration.defaultCacheConfig();
-            redisCacheConfiguration = redisCacheConfiguration.entryTtl(Duration.ofMinutes(30L))
+            redisCacheConfiguration = redisCacheConfiguration
+                    .entryTtl(Duration.ofMinutes(30L))
                     .disableCachingNullValues()
-                    .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                    .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
-            return RedisCacheManager
-                    .builder(RedisCacheWriter.nonLockingRedisCacheWriter(redisConnectionFactory))
-                    .cacheDefaults(redisCacheConfiguration).build();
+                    .serializeKeysWith(
+                            RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                    .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                            new GenericJackson2JsonRedisSerializer()));
+            return RedisCacheManager.builder(RedisCacheWriter.nonLockingRedisCacheWriter(redisConnectionFactory))
+                    .cacheDefaults(redisCacheConfiguration)
+                    .build();
         }
-
     }
 
     @Bean(CACHE_MANAGER)
     @ConditionalOnMissingBean(name = CACHE_MANAGER)
-    public CacheManager m1AuthorityCacheManager() {
+    public CacheManager laAuthorityCacheManager() {
         log.debug("CacheManager: Caffeine");
         CaffeineCacheManager cacheManager = new CaffeineCacheManager("LAClients", "LAResourceOwners");
-//        cacheManager.setCaffeine(Caffeine.newBuilder()
-//                .initialCapacity(200)
-//                .maximumSize(500)
-//                .expireAfterWrite(30, TimeUnit.MINUTES)
-//                .recordStats());
+        //        cacheManager.setCaffeine(Caffeine.newBuilder()
+        //                .initialCapacity(200)
+        //                .maximumSize(500)
+        //                .expireAfterWrite(30, TimeUnit.MINUTES)
+        //                .recordStats());
         return cacheManager;
     }
 
     @ConditionalOnMissingBean
     @Bean
-    public InternalRoleService m1InternalRoleService() {
+    public InternalRoleService laInternalRoleService() {
         return new DefaultInternalRoleServiceImpl();
     }
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "org.springframework.data.redis.connection.RedisConnectionFactory")
-
     public static class TenantConfigurationRedisCacheConfiguration {
 
         @Bean
@@ -113,11 +111,10 @@ public class AuthorizeConfigure {
         }
 
         @Bean
-        public TenantConfigurationCache tenantConfigurationRedisCache(RedisTemplate<String, Object> redisTemplate,
-                                                                      ObjectMapper objectMapper) {
+        public TenantConfigurationCache tenantConfigurationRedisCache(
+                RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper) {
             return new TenantConfigurationRedisCache(redisTemplate, objectMapper);
         }
-
     }
 
     @Bean
@@ -125,5 +122,4 @@ public class AuthorizeConfigure {
     public TenantConfigurationCache tenantConfigurationLocalCache() {
         return new TenantConfigurationLocalCache();
     }
-
 }

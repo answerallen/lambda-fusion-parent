@@ -2,10 +2,9 @@ package com.lambda.fusion.auth.client.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.auth.client.domain.entity.ClientEntity;
 import com.lambda.fusion.auth.client.domain.dto.Parameters;
-import com.lambda.fusion.auth.resource.bean.UserPermission;
-
+import com.lambda.fusion.auth.client.domain.entity.ClientEntity;
+import com.lambda.fusion.auth.resource.model.UserPermission;
 import java.util.List;
 
 public interface ClientService extends IService<ClientEntity> {
@@ -33,4 +32,3 @@ public interface ClientService extends IService<ClientEntity> {
      */
     List<UserPermission> getUserPermissions(List<String> permissionIds);
 }
-

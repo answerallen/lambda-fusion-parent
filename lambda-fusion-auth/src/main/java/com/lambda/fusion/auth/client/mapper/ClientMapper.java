@@ -2,16 +2,14 @@ package com.lambda.fusion.auth.client.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.auth.client.domain.dto.Authorize;
+import com.lambda.fusion.auth.client.domain.vo.Authorize;
 import com.lambda.fusion.auth.client.domain.entity.ClientEntity;
-import com.lambda.fusion.auth.resource.bean.UserPermission;
+import com.lambda.fusion.auth.resource.model.UserPermission;
 import com.lambda.security.web.hmac.model.HmacClient;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
 import java.util.Map;
-
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface ClientMapper extends BaseMapper<ClientEntity> {

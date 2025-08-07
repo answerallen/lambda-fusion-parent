@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.lambda.fusion.auth.role.mapper.AccessPermissionMapper">
+
+    <delete id="deletePermission">
+        DELETE FROM LA_ROLE_RESOURCES WHERE authority = #{authority} AND resourceid = #{id}
+        <if test="tenantId != null and tenantId != ''">
+            AND T.TENANT_ID = #{tenant_id, jdbcType=VARCHAR}
+        </if>
+    </delete>
+
+    <select id="noAnyChildrenPermission" resultType="java.lang.Boolean">
+        SELECT 1- COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_ROLE_RESOURCES T
+        INNER JOIN LA_RESOURCES T2 ON T.RESOURCEID = T2.ID
+        WHERE T.AUTHORITY = #{authority}
+        <if test="tenantId != null and tenantId != ''">
+            AND T.TENANT_ID = #{tenant_id, jdbcType=VARCHAR}
+        </if>
+        AND (T2.PARENTKEYS LIKE CONCAT('%', CONCAT(#{id}, '-%')) OR T2.PARENTID = #{id}))
+    </select>
+</mapper>

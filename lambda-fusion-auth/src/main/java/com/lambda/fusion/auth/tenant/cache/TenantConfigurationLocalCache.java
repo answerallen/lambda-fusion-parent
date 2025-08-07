@@ -4,12 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import jakarta.annotation.Resource;
+import java.util.Map;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cache.Cache;
-
-import java.util.Map;
 
 /**
  * 租户配置本地缓存
@@ -17,19 +16,19 @@ import java.util.Map;
 @Slf4j
 public class TenantConfigurationLocalCache implements TenantConfigurationCache {
 
-    private  Cache cache;
+    private Cache cache;
 
     @Resource
     private ObjectMapper objectMapper;
 
     public TenantConfigurationLocalCache() {
-//        Caffeine.newBuilder()
-//                .initialCapacity(200)
-//                .maximumSize(500)
-//                .expireAfterWrite(30, TimeUnit.MINUTES)
-//                .recordStats()
-//                .build();
-//        this.cache = new CaffeineCache(TENANT_CONFIG_CACHE_NAME, null);
+        //        Caffeine.newBuilder()
+        //                .initialCapacity(200)
+        //                .maximumSize(500)
+        //                .expireAfterWrite(30, TimeUnit.MINUTES)
+        //                .recordStats()
+        //                .build();
+        //        this.cache = new CaffeineCache(TENANT_CONFIG_CACHE_NAME, null);
     }
 
     @Override
@@ -37,7 +36,6 @@ public class TenantConfigurationLocalCache implements TenantConfigurationCache {
         // 清除缓存
         cache.evictIfPresent(getCacheKey(tenantId));
     }
-
 
     @SneakyThrows
     @Override

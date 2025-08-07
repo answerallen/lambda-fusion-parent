@@ -3,7 +3,6 @@ package com.lambda.fusion.dict.common.constants;
 /**
  * 字典模块常量定义
  *
- * @author System Generated
  */
 public final class DictConstants {
 

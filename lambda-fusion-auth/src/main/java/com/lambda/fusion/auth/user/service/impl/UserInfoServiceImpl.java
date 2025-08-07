@@ -7,7 +7,6 @@ import com.lambda.fusion.auth.user.mapper.UserInfoMapper;
 import com.lambda.fusion.auth.user.service.UserInfoService;
 import org.springframework.stereotype.Service;
 
-
 @Service
 public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfoDO> implements UserInfoService {
     @Override
@@ -16,7 +15,5 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfoDO>
     }
 
     @Override
-    public void unbindUserInfo(LoginUser operator, String type, String username) {
-
-    }
+    public void unbindUserInfo(LoginUser operator, String type, String username) {}
 }

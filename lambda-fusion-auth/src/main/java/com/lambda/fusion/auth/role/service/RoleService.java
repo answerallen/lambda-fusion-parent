@@ -2,12 +2,11 @@ package com.lambda.fusion.auth.role.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.fusion.auth.role.bean.AccessPermission;
 import com.lambda.fusion.auth.role.bean.BatchAddRoleUser;
 import com.lambda.fusion.auth.role.bean.GroupRoleVo;
 import com.lambda.fusion.auth.role.bean.GroupVo;
 import com.lambda.fusion.auth.role.bean.MutableRole;
-import com.lambda.fusion.auth.role.bean.AccessPermission;
-
 import java.util.List;
 import java.util.Map;
 
@@ -28,10 +27,10 @@ public interface RoleService {
      * 获取角色分组
      *
      * @param operator 用户
-     * @param tenantid the tenantid
+     * @param tenantId the tenantId
      * @return ig all group roles
      */
-    List<GroupRoleVo> getAllGroupRoles(LoginUser  operator, String tenantid);
+    List<GroupRoleVo> getAllGroupRoles(LoginUser operator, String tenantId);
 
     /***
      * 根据条件分页查询角色列表
@@ -40,7 +39,7 @@ public interface RoleService {
      * @param parameters
      * @return Page<MutableRole>
      */
-    Page<MutableRole > getAllRoles(Page<MutableRole>  pageable, Map<String, Object> parameters);
+    Page<MutableRole> getAllRoles(Page<MutableRole> pageable, Map<String, Object> parameters);
 
     /**
      * 修改角色
@@ -50,7 +49,7 @@ public interface RoleService {
      * @return
      * @throws Exception
      */
-    MutableRole updateRole(LoginUser  operator, MutableRole role);
+    MutableRole updateRole(LoginUser operator, MutableRole role);
 
     /**
      * 增加角色
@@ -61,7 +60,7 @@ public interface RoleService {
      * @return
      * @throws Exception
      */
-    MutableRole saveRole(LoginUser  operator, MutableRole role);
+    MutableRole saveRole(LoginUser operator, MutableRole role);
 
     /**
      * 根据角色编号查询角色信息
@@ -94,7 +93,7 @@ public interface RoleService {
      * @param mode 角色模式
      * @return
      */
-    List<AccessPermission> getAccessPermissions(LoginUser  operator, String id, Integer mode);
+    List<AccessPermission> getAccessPermissions(LoginUser operator, String id, Integer mode);
 
     /**
      * 保存角色权限
@@ -103,7 +102,7 @@ public interface RoleService {
      * @param status
      * @param operator
      */
-    void saveAuthorization(String authority, String resourceid, int status, LoginUser  operator);
+    void saveAuthorization(String authority, String resourceid, int status, LoginUser operator);
 
     /**
      * 删除角色权限
@@ -112,7 +111,7 @@ public interface RoleService {
      * @param resourceid
      * @param operator
      */
-    void deleteAuthorization(String id, String resourceid, LoginUser  operator);
+    void deleteAuthorization(String id, String resourceid, LoginUser operator);
 
     /**
      * 查询该角色名是否被使用
@@ -120,7 +119,6 @@ public interface RoleService {
      * @param authority
      */
     boolean hasUsedAuthority(String authority);
-
 
     /**
      * 启用或禁用角色
@@ -180,5 +178,4 @@ public interface RoleService {
      * @return 列表
      */
     List<GroupVo> listGroups(LoginUser user);
-
 }

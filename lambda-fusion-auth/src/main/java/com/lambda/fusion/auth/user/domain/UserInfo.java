@@ -6,7 +6,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
-
 @Getter
 @Setter
 @Schema(description = "用户扩展信息")
@@ -14,6 +13,4 @@ import lombok.Setter;
 public class UserInfo extends UserInfoDTO {
 
     private Integer passwordModifyDays;
-
 }
-

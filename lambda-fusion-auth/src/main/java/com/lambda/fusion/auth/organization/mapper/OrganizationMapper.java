@@ -3,16 +3,13 @@ package com.lambda.fusion.auth.organization.mapper;
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.lambda.fusion.auth.organization.domain.*;
 import com.lambda.fusion.auth.user.domain.MutableUser;
+import java.util.List;
+import java.util.Set;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.util.List;
-import java.util.Set;
-
-
 @Mapper
 public interface OrganizationMapper {
-
 
     /**
      * 查询用户关联组织角色
@@ -198,7 +195,6 @@ public interface OrganizationMapper {
     @InterceptorIgnore(tenantLine = "true")
     void prohibitRoleByOrganizationByIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
-
     /**
      * 当前机构下是否存在用户
      *
@@ -216,8 +212,6 @@ public interface OrganizationMapper {
     @InterceptorIgnore(tenantLine = "true")
     boolean existTenantOrg(@Param("orgId") String orgId);
 
-
-
     /**
      * 根据ID获取信息
      *
@@ -233,7 +227,6 @@ public interface OrganizationMapper {
      * @return List<Organization>
      */
     List<Organization> getOrgansByIds(@Param("ids") Set<String> ids);
-
 
     /**
      * 根据条件查询组织

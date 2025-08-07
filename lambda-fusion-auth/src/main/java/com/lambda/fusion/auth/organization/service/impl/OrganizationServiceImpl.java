@@ -1,42 +1,34 @@
 package com.lambda.fusion.auth.organization.service.impl;
 
+import static com.lambda.fusion.core.Constants.FUZZY;
+import static com.lambda.fusion.core.Constants.JOINER;
+
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.auth.organization.service.OrganizationService;
-import com.lambda.fusion.auth.user.domain.MutableUser;
-import com.lambda.fusion.autoconfig.AuthorizeConstants;
-import com.lambda.fusion.autoconfig.AuthorizeProperties;
 import com.lambda.fusion.auth.organization.domain.MutableOrganization;
 import com.lambda.fusion.auth.organization.domain.Organization;
 import com.lambda.fusion.auth.organization.domain.Parameters;
 import com.lambda.fusion.auth.organization.domain.SimpleOrg;
 import com.lambda.fusion.auth.organization.domain.UserOrganization;
 import com.lambda.fusion.auth.organization.mapper.OrganizationMapper;
-import com.lambda.fusion.auth.resource.bean.MoveParameter;
+import com.lambda.fusion.auth.organization.service.OrganizationService;
+import com.lambda.fusion.auth.resource.model.MoveParameter;
 import com.lambda.fusion.auth.role.bean.MutableRole;
-import com.lambda.fusion.auth.role.persistence.GroupMapper;
-import com.lambda.fusion.auth.role.persistence.RoleMapper;
+import com.lambda.fusion.auth.role.mapper.GroupMapper;
+import com.lambda.fusion.auth.role.mapper.RoleMapper;
 import com.lambda.fusion.auth.role.service.RoleService;
+import com.lambda.fusion.auth.user.domain.MutableUser;
 import com.lambda.fusion.auth.user.mapper.UserMapper;
+import com.lambda.fusion.autoconfig.AuthorizeConstants;
+import com.lambda.fusion.autoconfig.AuthorizeProperties;
 import com.lambda.fusion.core.tree.DragMode;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.tree.TreeUtils;
 import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang.BooleanUtils;
-import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,24 +39,34 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static com.lambda.fusion.core.Constants.FUZZY;
-import static com.lambda.fusion.core.Constants.JOINER;
+import javax.annotation.Nonnull;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
 @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-
 public class OrganizationServiceImpl implements OrganizationService {
 
     @Resource
     protected UserMapper userMapper;
+
     @Resource
     protected RoleMapper roleMapper;
+
     @Autowired
     protected RoleService roleService;
+
     @Resource
     protected OrganizationMapper organizationMapper;
+
     @Autowired
     private GroupMapper groupMapper;
 
@@ -80,12 +82,12 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<Organization> treeList( Parameters parameters) {
+    public List<Organization> treeList(Parameters parameters) {
         LoginUser operator = OperatorUtils.getOperator();
         String orgId = operator.getOrgId();
         List<Organization> list;
         HashSet<String> orgIds = new HashSet<>();
-        boolean isAdmin = true ;
+        boolean isAdmin = true;
         if (StringUtils.isNotBlank(parameters.getAlias()) || StringUtils.isNotBlank(parameters.getName())) {
             list = getOrgByCondition(operator, parameters);
             if (isAdmin) {
@@ -112,7 +114,8 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @SuppressWarnings("SameParameterValue")
-    private void getParentAndchildrenIds(String orgId, List<Organization> list, HashSet<String> orgIds, boolean isOrgAdmin) {
+    private void getParentAndchildrenIds(
+            String orgId, List<Organization> list, HashSet<String> orgIds, boolean isOrgAdmin) {
         for (Organization org : list) {
             String parentkeys = org.getParentkeys();
             if (StringUtils.isNotBlank(parentkeys)) {
@@ -169,7 +172,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void deleteOrganization( String id) {
+    public void deleteOrganization(String id) {
         LoginUser operator = OperatorUtils.getOperator();
         this.hasOperation(operator, id);
         Organization organization = getOrgById(id);
@@ -311,13 +314,14 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     protected List<String> getSubOrgansByType(List<Organization> organs, Boolean isTenant) {
         if (CollectionUtils.isNotEmpty(organs)) {
-            return organs.stream().filter(org -> BooleanUtils.toBoolean(org.getTenant()) == isTenant)
-                    .map(Organization::id).collect(Collectors.toList());
+            return organs.stream()
+                    .filter(org -> BooleanUtils.toBoolean(org.getTenant()) == isTenant)
+                    .map(Organization::id)
+                    .collect(Collectors.toList());
         } else {
             return new ArrayList<>();
         }
     }
-
 
     /**
      * 判断当前用户是否拥有操作权限
@@ -349,7 +353,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     protected Organization queryByNameAndTenantId(String organization, String tenantId) {
         Organization condition = new Organization();
         condition.setName(organization);
-        condition.setTenantid(tenantId);
+        condition.setTenantId(tenantId);
         List<Organization> organizations = organizationMapper.queryByCondition(condition);
         return CollectionUtils.isEmpty(organizations) ? null : organizations.get(0);
     }
@@ -410,7 +414,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
         resource.setId(orgId);
         resource.setOwner(tenantId);
-        resource.setTenantid(tenantId);
+        resource.setTenantId(tenantId);
         resource.setCreateDate(new Date());
         if (StringUtils.isNotBlank(resource.getParentId())) {
             Organization parent = getOrgById(resource.getParentId());
@@ -427,15 +431,15 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     public List<String> getSubordinateOrgIds(LoginUser operator) {
         List<String> organs = new ArrayList<>();
-//     TODO   if (!OperatorUtils.containsAnyManager(operator)) {
-            String orgId = operator.getOrgId();
-            if (StringUtils.isNotBlank(orgId)) {
-                organs.add(orgId);
-                organs.addAll(getChildrenById(orgId));
-            } else {
-                organs.add("undefined");
-            }
-//        }
+        //     TODO   if (!OperatorUtils.containsAnyManager(operator)) {
+        String orgId = operator.getOrgId();
+        if (StringUtils.isNotBlank(orgId)) {
+            organs.add(orgId);
+            organs.addAll(getChildrenById(orgId));
+        } else {
+            organs.add("undefined");
+        }
+        //        }
         return organs;
     }
 
@@ -451,11 +455,10 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public void addOrganizationByimport(MultipartFile file) {
-        //todo
+        // todo
     }
 
-
-    private void getchildren( Organization organization, List<Organization> successList) {
+    private void getchildren(Organization organization, List<Organization> successList) {
         LoginUser operator = OperatorUtils.getOperator();
         for (Organization org : successList) {
             if (org.getSpid() != null && org.getSpid().equals(organization.getName())) {
@@ -467,7 +470,6 @@ public class OrganizationServiceImpl implements OrganizationService {
             }
         }
     }
-
 
     @Override
     public Organization getRootOrganById(String id) {
@@ -520,9 +522,8 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         Organization source = organizationMapper.queryOrganizationById(id);
         Organization target = organizationMapper.queryOrganizationById(tid);
-        List<Organization> changed = TreeUtils.getAllChangedAfterMoved(source, target, mode,
-                organizationMapper::directChildrenGetter,
-                organizationMapper::allChildrenGetter);
+        List<Organization> changed = TreeUtils.getAllChangedAfterMoved(
+                source, target, mode, organizationMapper::directChildrenGetter, organizationMapper::allChildrenGetter);
         organizationMapper.batchUpdateOrgsAfterMoved(changed);
     }
 }

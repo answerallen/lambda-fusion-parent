@@ -4,20 +4,19 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.lambda.fusion.core.base.M1Expanded;
+import com.lambda.fusion.core.base.LambdaExpanded;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.validator.constraints.Length;
 
-
 @Getter
 @Setter
 @ToString
 @TableName("LA_USER_INFO")
 @Schema(description = "用户扩展信息")
-public class UserInfoDO implements M1Expanded {
+public class UserInfoDO implements LambdaExpanded {
     @TableId
     @JsonIgnore
     private String userid;
@@ -25,6 +24,7 @@ public class UserInfoDO implements M1Expanded {
     @TableField
     @Schema(description = "用户头像")
     private String avatar;
+
     @TableField
     @Schema(description = "用户备注")
     @Length(max = 255)
@@ -91,7 +91,4 @@ public class UserInfoDO implements M1Expanded {
     public String id() {
         return getUserid();
     }
-
-
 }
-

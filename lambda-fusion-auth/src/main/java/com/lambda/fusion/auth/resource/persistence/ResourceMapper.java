@@ -2,19 +2,18 @@ package com.lambda.fusion.auth.resource.persistence;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.lambda.fusion.auth.NavigationParameter;
-import com.lambda.fusion.auth.resource.bean.MutableResource;
-import com.lambda.fusion.auth.resource.bean.Resource;
-import com.lambda.fusion.auth.resource.bean.UserPermission;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-
+import com.lambda.fusion.auth.resource.model.MutableResource;
+import com.lambda.fusion.auth.resource.model.Resource;
+import com.lambda.fusion.auth.resource.model.UserPermission;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * 资源服务数据持久层接口
-
+ *
  */
 @Mapper
 public interface ResourceMapper {
@@ -148,11 +147,6 @@ public interface ResourceMapper {
      */
     void updateResourceParentkeys(List<MutableResource> resources);
 
-    /***
-     * 插入变更日志
-     * @param map
-     */
-    void insertChangelogs(Map<String, Object> map);
 
     /**
      * 是否已经执行过
@@ -232,5 +226,4 @@ public interface ResourceMapper {
      */
     @InterceptorIgnore(tenantLine = "true")
     List<UserPermission> getAllUserPermissions(Map<String, Object> map);
-
 }

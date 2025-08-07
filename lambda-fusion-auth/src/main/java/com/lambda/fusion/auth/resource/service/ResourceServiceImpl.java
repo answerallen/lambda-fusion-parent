@@ -6,7 +6,7 @@ import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.auth.NavigationParameter;
-import com.lambda.fusion.auth.resource.bean.*;
+import com.lambda.fusion.auth.resource.model.*;
 import com.lambda.fusion.auth.resource.persistence.ResourceMapper;
 import com.lambda.fusion.auth.role.service.RoleManager;
 import com.lambda.fusion.autoconfig.AuthorizeConstants;
@@ -14,6 +14,8 @@ import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.ITreeDataFilter;
 import com.lambda.fusion.core.tree.TreeFactory;
 import jakarta.validation.constraints.NotNull;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -23,10 +25,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,7 +32,6 @@ public class ResourceServiceImpl implements ResourceService {
     private final RoleManager roleManager;
     private final ResourceMapper resourceMapper;
     protected final ITreeDataFilter treeDataFilter;
-
 
     @Override
     public List<MutableResource> getAllResources() {
@@ -58,11 +55,17 @@ public class ResourceServiceImpl implements ResourceService {
             BeanUtils.copyProperties(v, tree);
             list.add(tree);
         });
-        final List<Resource> resourceList = treeDataFilter.filter(list, parameter.getName(), Resource::getResName, Resource::getId, Resource::getParentkeys,
-                target -> target.stream().sorted(Comparator.comparing(Resource::getResRank).thenComparing(Resource::getOrderNo)).collect(Collectors.toList()));
+        final List<Resource> resourceList = treeDataFilter.filter(
+                list,
+                parameter.getName(),
+                Resource::getResName,
+                Resource::getId,
+                Resource::getParentkeys,
+                target -> target.stream()
+                        .sorted(Comparator.comparing(Resource::getResRank).thenComparing(Resource::getOrderNo))
+                        .collect(Collectors.toList()));
         return TreeFactory.build(resourceList);
     }
-
 
     @Override
     public List<Resource> getChildren(String id) {
@@ -95,7 +98,6 @@ public class ResourceServiceImpl implements ResourceService {
         return new ArrayList<>();
     }
 
-
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MutableResource addResource(ResourceParameter parameter) {
@@ -117,7 +119,8 @@ public class ResourceServiceImpl implements ResourceService {
         if (StringUtils.isNotBlank(resource.getParentId())) {
             parent = getResourceById(resource.getParentId());
             Assert.notNull(parent, "lambda.authority.resource.parent.notfound");
-            Assert.isFalse(!parent.getResMode().equals(resource.getResMode()), "lambda.authority.resource.model.inconsistent");
+            Assert.isFalse(
+                    !parent.getResMode().equals(resource.getResMode()), "lambda.authority.resource.model.inconsistent");
             rank = parent.getResRank() + 1;
             parentkeys = parent.getParentkeys();
             if (StringUtils.isNotBlank(parentkeys)) {
@@ -184,11 +187,11 @@ public class ResourceServiceImpl implements ResourceService {
         Assert.notNull(resource, "lambda.authority.resource.notfound");
         Assert.notNull(resource.getId(), AuthorizeConstants.RES_ID_NOT_NULL);
         MutableResource source = getResourceById(resource.getId());
-        //更新时只更新属性，不改变上下级关系，因此parentKeys也无须变化
+        // 更新时只更新属性，不改变上下级关系，因此parentKeys也无须变化
         resource.setResRank(source.getResRank());
         resource.setParentkeys(source.getParentkeys());
         Assert.notNull(source, "lambda.authority.resource.update.notfound");
-        //更新时如果没有传顺序号,则不修改顺序值
+        // 更新时如果没有传顺序号,则不修改顺序值
         if (resource.getOrderNo() == 0) {
             resource.setOrderNo(source.getOrderNo());
         }
@@ -281,9 +284,9 @@ public class ResourceServiceImpl implements ResourceService {
         String pid1 = target.getParentId();
         boolean peer = isPeer(pid0, pid1, type);
 
-        //需要改变排序号的资源列表
+        // 需要改变排序号的资源列表
         List<MutableResource> changed = new ArrayList<>();
-        //需要改变parentkeys的资源列表
+        // 需要改变parentkeys的资源列表
         List<MutableResource> changed2 = new ArrayList<>();
         String parentkeys = generateParentkeys(resource.getParentkeys(), resource.getId());
         switch (parameter.getType()) {
@@ -313,8 +316,14 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private void handler2(MutableResource resource, MutableResource target, List<MutableResource> changed,
-                          List<MutableResource> changed2, String pid1, String parentkeys, boolean peer) {
+    private void handler2(
+            MutableResource resource,
+            MutableResource target,
+            List<MutableResource> changed,
+            List<MutableResource> changed2,
+            String pid1,
+            String parentkeys,
+            boolean peer) {
         int n = 1;
         resource.setParentId(pid1);
         resource.setResRank(target.getResRank());
@@ -337,8 +346,14 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private void handler1(MutableResource resource, MutableResource target, List<MutableResource> changed,
-                          List<MutableResource> changed2, String pid1, String parentkeys, boolean peer) {
+    private void handler1(
+            MutableResource resource,
+            MutableResource target,
+            List<MutableResource> changed,
+            List<MutableResource> changed2,
+            String pid1,
+            String parentkeys,
+            boolean peer) {
         int n = 1;
         resource.setParentId(pid1);
         resource.setResRank(target.getResRank());
@@ -361,8 +376,12 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private void handler0(MutableResource resource, MutableResource target, List<MutableResource> changed,
-                          List<MutableResource> changed2, String parentkeys) {
+    private void handler0(
+            MutableResource resource,
+            MutableResource target,
+            List<MutableResource> changed,
+            List<MutableResource> changed2,
+            String parentkeys) {
         resource.setParentId(target.getId());
         resource.setOrderNo(1);
         resource.setResRank(target.getResRank() + 1);
@@ -386,8 +405,12 @@ public class ResourceServiceImpl implements ResourceService {
      * @param children2
      * @param changed2
      */
-    private void parentkeysAndRankHandler(MutableResource resource, MutableResource target, String replacement,
-                                          List<Resource> children2, List<MutableResource> changed2) {
+    private void parentkeysAndRankHandler(
+            MutableResource resource,
+            MutableResource target,
+            String replacement,
+            List<Resource> children2,
+            List<MutableResource> changed2) {
         log.trace("target：{}", target);
         if (CollectionUtils.isNotEmpty(children2)) {
             String searchString = resource.getParentkeys();
@@ -413,7 +436,8 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<MutableResource> getAllChildrenByOperator(@NonNull LoginUser operator, @NonNull MutableResource resource) {
+    public List<MutableResource> getAllChildrenByOperator(
+            @NonNull LoginUser operator, @NonNull MutableResource resource) {
         String parentkeys = resource.getParentkeys();
         if (StringUtils.isNotBlank(parentkeys)) {
             parentkeys = resource.getParentkeys() + Constants.SEPARATOR0 + resource.getId();
@@ -422,26 +446,27 @@ public class ResourceServiceImpl implements ResourceService {
         }
         Map<String, Object> parameters = Maps.newHashMap();
         parameters.put("parentkeys", parentkeys);
-//   TODO     if (!OperatorUtils.isDev(operator)) {
+        //   TODO     if (!OperatorUtils.isDev(operator)) {
         Set<String> authorities = roleManager.getAuthoritiesByUser(operator.getUsername());
         authorities.add(operator.getUsername());
         parameters.put("authorities", authorities);
-//        }
+        //        }
         return resourceMapper.getAllChildren(parameters);
     }
 
     @Override
-    public List<MutableResource> getAllParentsByOperator(@NonNull LoginUser operator, @NonNull MutableResource resource) {
+    public List<MutableResource> getAllParentsByOperator(
+            @NonNull LoginUser operator, @NonNull MutableResource resource) {
         String parentkeys = resource.getParentkeys();
         if (StringUtils.isNotBlank(parentkeys)) {
             List<String> ids = Arrays.asList(parentkeys.split(Constants.SEPARATOR0));
             Map<String, Object> parameters = Maps.newHashMap();
             parameters.put("parentkeys", ids);
-//   TODO         if (!OperatorUtils.isDev(operator)) {
+            //   TODO         if (!OperatorUtils.isDev(operator)) {
             Set<String> authorities = roleManager.getAuthoritiesByUser(operator.getUsername());
             authorities.add(operator.getUsername());
             parameters.put("authorities", authorities);
-//            }
+            //            }
             return resourceMapper.getAllParents(parameters);
         }
         return new ArrayList<>();
@@ -499,5 +524,4 @@ public class ResourceServiceImpl implements ResourceService {
     private String generateParentkeys(String parentkeys, String id) {
         return StringUtils.isNotBlank(parentkeys) ? parentkeys + Constants.SEPARATOR0 + id : id;
     }
-
 }

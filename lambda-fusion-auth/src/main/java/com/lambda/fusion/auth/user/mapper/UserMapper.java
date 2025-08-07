@@ -3,16 +3,15 @@ package com.lambda.fusion.auth.user.mapper;
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.auth.user.domain.*;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * 用户数据持久层操作接口
-
+ *
  */
 @Mapper
 public interface UserMapper {
@@ -90,12 +89,14 @@ public interface UserMapper {
      *
      * @param username
      * @param authority
-     * @param tenantid
-     
+     * @param tenantId
+     *
      * @date 2019-03-22
      */
-    void addUserRole(@Param("username") String username, @Param("authority") String authority,
-                     @Param("tenantid") String tenantid);
+    void addUserRole(
+            @Param("username") String username,
+            @Param("authority") String authority,
+            @Param("tenant_id") String tenantId);
 
     /**
      * 更新用户
@@ -147,7 +148,6 @@ public interface UserMapper {
      **/
     List<MutableUser> getAllUsers();
 
-
     /**
      * 获取组织机构下所有用户
      *
@@ -180,7 +180,6 @@ public interface UserMapper {
      */
     Set<String> getUserPermissions(String source);
 
-
     /**
      * 获取权限数据
      *
@@ -188,20 +187,23 @@ public interface UserMapper {
      * @param manage      是否管理权限
      * @param permissions 权限
      */
-    List<RoleResources> getRoleResources(@Param("authority") String authority, @Param("manage") String manage,
-                                         @Param("permissions") Set<String> permissions);
-
+    List<RoleResources> getRoleResources(
+            @Param("authority") String authority,
+            @Param("manage") String manage,
+            @Param("permissions") Set<String> permissions);
 
     /**
      * 批量保存用户权限
      *
      * @param target        用户或角色
      * @param roleResources 权限
-     * @param tenantid      租户编号
-
+     * @param tenantId      租户编号
+     *
      */
-    void saveUserPermission(@Param("uid") String target, @Param("roleResources") RoleResources roleResources,
-                            @Param("tenantid") String tenantid);
+    void saveUserPermission(
+            @Param("uid") String target,
+            @Param("roleResources") RoleResources roleResources,
+            @Param("tenant_id") String tenantId);
 
     /**
      * 批量更新用户权限
@@ -209,12 +211,14 @@ public interface UserMapper {
      * @param target      用户或角色
      * @param manage      是否管理权限
      * @param permissions 权限
-     * @param tenantid    租户编号
-
+     * @param tenantId    租户编号
+     *
      */
-    void batchUpdateUserPermissions(@Param("uid") String target, @Param("manage") String manage,
-                                    @Param("permissions") List<RoleResources> permissions,
-                                    @Param("tenantid") String tenantid);
+    void batchUpdateUserPermissions(
+            @Param("uid") String target,
+            @Param("manage") String manage,
+            @Param("permissions") List<RoleResources> permissions,
+            @Param("tenant_id") String tenantId);
 
     /**
      * 获取用户下拉列表数据

@@ -61,7 +61,6 @@ import org.springframework.transaction.annotation.Transactional;
  * <li><strong>易测试：</strong>标准接口便于单元测试和集成测试</li>
  * </ul>
  *
- * @author 系统生成
  * @since 1.0.0
  * @see ConfigOptionService 配置选项服务接口
  * @see ServiceImpl MyBatis-Plus基础服务实现

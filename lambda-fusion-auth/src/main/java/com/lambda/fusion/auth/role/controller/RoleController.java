@@ -22,16 +22,14 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.apache.commons.lang.BooleanUtils;
-import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 用户角色API
@@ -43,11 +41,13 @@ public class RoleController {
 
     @Autowired
     private RoleService roleService;
+
     @Autowired
     private UserService userService;
 
     @Autowired
     private InternalRoleService internalRoleService;
+
     @Autowired(required = false)
     private TenantAuthorizeManager tenantResourceManager;
 
@@ -59,7 +59,6 @@ public class RoleController {
         return roleService.getAllRoles(operator);
     }
 
-
     @Operation(description = "分组列表", summary = "分组列表")
     @GetMapping("/group")
     public List<GroupVo> listGroups() {
@@ -67,27 +66,39 @@ public class RoleController {
         return roleService.listGroups(user);
     }
 
-
     @GetMapping("/group/role")
-    @Operation(description = "获取所有角色分组列表", summary = "获取所有角色分组列表", parameters = {
-            @Parameter(name = "tenantid", description = "租户id")
-    })
-    public List<GroupRoleVo> groupRole(String tenantid) {
+    @Operation(
+            description = "获取所有角色分组列表",
+            summary = "获取所有角色分组列表",
+            parameters = {@Parameter(name = "tenant_id", description = "租户id")})
+    public List<GroupRoleVo> groupRole(String tenantId) {
         LoginUser operator = OperatorUtils.getOperator();
-        return roleService.getAllGroupRoles(operator, tenantid);
+        return roleService.getAllGroupRoles(operator, tenantId);
     }
 
     @GetMapping({"/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
-    @Operation(description = "分页查询所有角色列表", summary = "分页查询所有角色列表", parameters = {
-            @Parameter(name = "number", description = "当前页码", in = ParameterIn.PATH, schema = @Schema(defaultValue = "1")),
-            @Parameter(name = "size", description = "每页条数", in = ParameterIn.PATH, schema = @Schema(defaultValue = "20")),
-            @Parameter(name = "alias", description = "角色别名"),
-            @Parameter(name = "groupId", description = "分组ID")
-    })
+    @Operation(
+            description = "分页查询所有角色列表",
+            summary = "分页查询所有角色列表",
+            parameters = {
+                @Parameter(
+                        name = "number",
+                        description = "当前页码",
+                        in = ParameterIn.PATH,
+                        schema = @Schema(defaultValue = "1")),
+                @Parameter(
+                        name = "size",
+                        description = "每页条数",
+                        in = ParameterIn.PATH,
+                        schema = @Schema(defaultValue = "20")),
+                @Parameter(name = "alias", description = "角色别名"),
+                @Parameter(name = "groupId", description = "分组ID")
+            })
     public Page<MutableRole> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
-            String alias, String groupId) {
+            String alias,
+            String groupId) {
         LoginUser operator = OperatorUtils.getOperator();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
         if (ObjectUtil.isNotNull(groupId)) {
@@ -102,15 +113,15 @@ public class RoleController {
         excludes.add(Constants.ROLE_DEV);
         excludes.add(Constants.ROLE_SYSTEM);
         excludes.add(Constants.ROLE_TENANT);
-//        if (!OperatorUtils.isDev(operator)) {
-//            excludes.add(Constants.ROLE_ADMIN);
-//        }
+        //        if (!OperatorUtils.isDev(operator)) {
+        //            excludes.add(Constants.ROLE_ADMIN);
+        //        }
         Set<String> queryExclude = internalRoleService.queryExclude(operator);
         excludes.addAll(queryExclude);
         parameters.put("excludes", excludes);
-        String tenantid = operator.getTenantId();
-        if (StringUtils.isNotBlank(tenantid)) {
-            parameters.put("tenantid", tenantid);
+        String tenantId = operator.getTenantId();
+        if (StringUtils.isNotBlank(tenantId)) {
+            parameters.put("tenant_id", tenantId);
         }
         return roleService.getAllRoles(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(), parameters);
     }
@@ -125,29 +136,24 @@ public class RoleController {
         return StringUtils.isNotBlank(param) ? "%" + param + "%" : null;
     }
 
-
     @GetMapping("/check/{authority}")
     @Operation(description = "检查角色名称是否重复", summary = "检查角色名称是否重复")
-    public Object check(
-            @Parameter(description = "角色名称", required = true) @PathVariable String authority) {
+    public Object check(@Parameter(description = "角色名称", required = true) @PathVariable String authority) {
         Map<String, Object> result = new HashMap<>(1);
         result.put("state", roleService.hasExists(authority));
         return result;
     }
 
-
     @GetMapping("/{authority}")
     @Operation(description = "查询角色信息", summary = "查询角色信息")
-    public MutableRole update(
-            @Parameter(description = "角色名称", required = true) @PathVariable String authority) {
+    public MutableRole update(@Parameter(description = "角色名称", required = true) @PathVariable String authority) {
         Assert.notNull(authority, AuthorizeConstants.ROLE_NAME_NOT_EMPTY);
         return roleService.getRoleByAuthority(authority);
     }
 
     @PostMapping
     @Operation(description = "新增角色信息", summary = "新增角色信息")
-    public MutableRole add(
-            @Parameter(description = "角色信息", required = true) @RequestBody MutableRole mutableRole) {
+    public MutableRole add(@Parameter(description = "角色信息", required = true) @RequestBody MutableRole mutableRole) {
         LoginUser operator = OperatorUtils.getOperator();
         return roleService.saveRole(operator, mutableRole);
     }
@@ -166,8 +172,7 @@ public class RoleController {
 
     @DeleteMapping("/{authority}")
     @Operation(description = "删除角色信息", summary = "删除角色信息")
-    public void delete(
-            @Parameter(description = "角色名称", required = true) @PathVariable String authority) {
+    public void delete(@Parameter(description = "角色名称", required = true) @PathVariable String authority) {
         MutableRole source = roleService.getRoleByAuthority(authority);
         if (source != null) {
             roleService.deleteRoleById(authority);
@@ -176,8 +181,9 @@ public class RoleController {
 
     @GetMapping("/auth/{authority}")
     @Operation(description = "查询指定角色的权限信息", summary = "查询指定角色的权限信息")
-    public List<AccessPermission> auth(@Parameter(description = "角色名称", required = true) @PathVariable String authority,
-                                       @Parameter(description = "模式-0:后台资源,1:APP资源") Integer mode) {
+    public List<AccessPermission> auth(
+            @Parameter(description = "角色名称", required = true) @PathVariable String authority,
+            @Parameter(description = "模式-0:后台资源,1:APP资源") Integer mode) {
         LoginUser operator = OperatorUtils.getOperator();
         return roleService.getAccessPermissions(operator, authority, mode);
     }
@@ -188,7 +194,9 @@ public class RoleController {
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "资源编号", required = true) @PathVariable String resourceid,
             @Parameter(description = "授权模式.-0:角色,1:用户") Integer mode,
-            @Parameter(description = "授权模式.-0:仅使用,1:可管理", schema = @Schema(defaultValue = "1")) @RequestParam(defaultValue = "1") Integer status) {
+            @Parameter(description = "授权模式.-0:仅使用,1:可管理", schema = @Schema(defaultValue = "1"))
+                    @RequestParam(defaultValue = "1")
+                    Integer status) {
         LoginUser operator = OperatorUtils.getOperator();
         roleService.saveAuthorization(authority, resourceid, status, operator);
         if (mode == null || !BooleanUtils.toBoolean(mode)) {
@@ -196,7 +204,6 @@ public class RoleController {
         } else {
             MutableUser user = userService.getMutableUserByUsername(authority);
         }
-
     }
 
     @DeleteMapping("/auth/{authority}/{resourceid}")
@@ -216,7 +223,8 @@ public class RoleController {
 
     @PatchMapping("/{authority}/disabled")
     @Operation(description = "禁用角色", summary = "禁用角色")
-    public void disabled(@Parameter(description = "角色名称", required = true) @PathVariable("authority") String authority) {
+    public void disabled(
+            @Parameter(description = "角色名称", required = true) @PathVariable("authority") String authority) {
         roleService.prohibitRole(0, authority);
         MutableRole role = roleService.getRoleByAuthority(authority);
     }
@@ -256,6 +264,4 @@ public class RoleController {
         LoginUser user = OperatorUtils.getOperator();
         roleService.batchAddRoleUser(user, req);
     }
-
 }
-

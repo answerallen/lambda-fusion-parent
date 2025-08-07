@@ -1,24 +1,22 @@
 package com.lambda.fusion.auth.resource.controller;
 
-
 import cn.dev33.satoken.annotation.SaCheckRole;
 import com.lambda.fusion.auth.NavigationParameter;
-import com.lambda.fusion.auth.client.domain.dto.Authorize;
-import com.lambda.fusion.auth.resource.bean.MoveParameter;
-import com.lambda.fusion.auth.resource.bean.MutableResource;
-import com.lambda.fusion.auth.resource.bean.Resource;
-import com.lambda.fusion.auth.resource.bean.ResourceParameter;
+import com.lambda.fusion.auth.client.domain.vo.Authorize;
+import com.lambda.fusion.auth.resource.model.MoveParameter;
+import com.lambda.fusion.auth.resource.model.MutableResource;
+import com.lambda.fusion.auth.resource.model.Resource;
+import com.lambda.fusion.auth.resource.model.ResourceParameter;
 import com.lambda.fusion.auth.resource.service.ResourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 资源服务API
@@ -32,29 +30,30 @@ public class ResourceController {
     private ResourceService resourceService;
 
     @Autowired
-    public void setM1ResourceService(ResourceService resourceService) {
+    public void setResourceService(ResourceService resourceService) {
         this.resourceService = resourceService;
     }
 
     @GetMapping("/tree")
-    @Operation(summary = "以树形的方式获取资源权限列表", description = "以树形的方式获取资源权限列表", parameters = {
-            @Parameter(name = "parentId", description = "父菜单ID"),
-            @Parameter(name = "level", description = "菜单层级"),
-            @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
-    })
+    @Operation(
+            summary = "以树形的方式获取资源权限列表",
+            description = "以树形的方式获取资源权限列表",
+            parameters = {
+                @Parameter(name = "parentId", description = "父菜单ID"),
+                @Parameter(name = "level", description = "菜单层级"),
+                @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
+            })
     public List<Resource> tree(
             @RequestParam(required = false) @Parameter(description = "资源名称") String name,
             @Parameter NavigationParameter parameter) {
         return resourceService.getChildren(parameter);
     }
 
-
     @GetMapping("/list")
     @Operation(summary = "以平铺的方式获取资源权限列表", description = "以平铺的方式获取资源权限列表")
     public List<MutableResource> list() {
         return resourceService.getAllResources();
     }
-
 
     @PostMapping({"", "/{id}"})
     @Operation(summary = "新增资源信息", description = "当id为非空时新增其子资源信息")
@@ -69,8 +68,7 @@ public class ResourceController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除资源信息", description = "根据编号删除指定的资源信息")
-    public void delete(
-            @Parameter(description = "资源编号", required = true) @PathVariable("id") String id) {
+    public void delete(@Parameter(description = "资源编号", required = true) @PathVariable("id") String id) {
         resourceService.deleteResource(id);
     }
 
@@ -84,10 +82,16 @@ public class ResourceController {
     }
 
     @PatchMapping("/{id}")
-    @Operation(summary = "移动资源", description = "移动指定的资源到其它位置", parameters = {
-            @Parameter(name = "tid", description = "参照对象编号"),
-            @Parameter(name = "type", description = "移动类型(0:下级,1:之前,2:之后)", schema = @Schema(allowableValues = {"0", "1", "2"}))
-    })
+    @Operation(
+            summary = "移动资源",
+            description = "移动指定的资源到其它位置",
+            parameters = {
+                @Parameter(name = "tid", description = "参照对象编号"),
+                @Parameter(
+                        name = "type",
+                        description = "移动类型(0:下级,1:之前,2:之后)",
+                        schema = @Schema(allowableValues = {"0", "1", "2"}))
+            })
     public void move(
             @Parameter(description = "资源编号", required = true) @PathVariable("id") String id,
             @Parameter(description = "参照对象", required = true) @RequestParam("tid") String tid,
@@ -98,7 +102,6 @@ public class ResourceController {
         parameter.setType(type);
         resourceService.move(parameter);
     }
-
 
     private void renameAuthorize0(Authorize authorize) {
         if (StringUtils.isNotBlank(authorize.getUrl())) {

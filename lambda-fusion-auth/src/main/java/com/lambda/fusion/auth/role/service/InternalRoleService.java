@@ -1,11 +1,9 @@
 package com.lambda.fusion.auth.role.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
-
 import java.util.Set;
 
 public interface InternalRoleService {
-
 
     /**
      * 查询时排除的角色
@@ -21,6 +19,5 @@ public interface InternalRoleService {
      * @param operator
      * @return
      */
-    Set<String> deleteExclude(LoginUser  operator);
-
+    Set<String> deleteExclude(LoginUser operator);
 }

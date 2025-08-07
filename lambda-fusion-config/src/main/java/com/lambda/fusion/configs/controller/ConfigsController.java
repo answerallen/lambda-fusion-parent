@@ -45,7 +45,6 @@ import org.springframework.web.bind.annotation.*;
  * <li>查询类操作对所有用户开放</li>
  * </ul>
  *
- * @author 系统生成
  * @since 1.0.0
  */
 @Tag(name = "系统配置管理")

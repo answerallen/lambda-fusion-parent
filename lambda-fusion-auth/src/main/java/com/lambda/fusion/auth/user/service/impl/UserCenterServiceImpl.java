@@ -3,18 +3,16 @@ package com.lambda.fusion.auth.user.service.impl;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.sms.SmsMessageSender;
 import com.lambda.fusion.auth.user.domain.*;
-
-import com.lambda.fusion.auth.user.service.UserCenterService;
-import com.lambda.fusion.autoconfig.AuthorizeConstants;
 import com.lambda.fusion.auth.user.mapper.UserFieldsMapper;
 import com.lambda.fusion.auth.user.mapper.UserInfoMapper;
 import com.lambda.fusion.auth.user.mapper.UserMapper;
+import com.lambda.fusion.auth.user.service.UserCenterService;
+import com.lambda.fusion.autoconfig.AuthorizeConstants;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 @Transactional(rollbackFor = Exception.class)
 @Service
@@ -25,7 +23,6 @@ public class UserCenterServiceImpl implements UserCenterService {
     private final UserInfoMapper userInfoMapper;
     private final UserFieldsMapper userFieldsMapper;
     private final SmsMessageSender shortMessageSender;
-
 
     @Override
     public RestVerifyCodeInfo sendMobileVerifyCodeStore(@NonNull String username, @NonNull String mobile) {
@@ -43,16 +40,15 @@ public class UserCenterServiceImpl implements UserCenterService {
         userMapper.updateMobile(mutableUser);
     }
 
-
     @Override
     public void updateEmail(String username, String email, String verifyCode) {
-        //验证参数
+        // 验证参数
         Assert.notNull(username, AuthorizeConstants.USER_NAME_NOT_EMPTY);
-        //获取用户信息并验证用户是否存在
+        // 获取用户信息并验证用户是否存在
         MutableUser mutableUser = userMapper.getMutableUserById(username);
         Assert.notNull(mutableUser, AuthorizeConstants.USER_NOT_FOUND);
         Assert.notNull(email, "lambda.authority.user.email.notempty");
-        //更新用户邮箱
+        // 更新用户邮箱
         userMapper.updateEmail(mutableUser);
     }
 
@@ -64,11 +60,11 @@ public class UserCenterServiceImpl implements UserCenterService {
         userMapper.updateInfo(restUserInfoParameter);
         String avatar = restUserInfoParameter.getAvatar();
         if (StringUtils.isNotEmpty(avatar)) {
-            //获取用户扩展信息
+            // 获取用户扩展信息
             UserInfoDO userInfo = userInfoMapper.getProps(username);
-            //扩展信息存在，更新头像。扩展信息不存在，插入一条扩展信息
+            // 扩展信息存在，更新头像。扩展信息不存在，插入一条扩展信息
             if (userInfo != null) {
-                //更新用户扩展信息
+                // 更新用户扩展信息
                 userInfoMapper.updateAvatar(username, avatar);
             } else {
                 userInfo = new UserInfoDO();
@@ -80,10 +76,8 @@ public class UserCenterServiceImpl implements UserCenterService {
         user.setOnline(true);
         user.setLocked(true);
 
-        if (StringUtils.isNotEmpty(restUserInfoParameter.getPersonal())) {
+        if (StringUtils.isNotEmpty(restUserInfoParameter.getPersonal())) {}
 
-        }
         return user;
     }
-
 }

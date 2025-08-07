@@ -2,16 +2,15 @@ package com.lambda.fusion.auth.tenant.cache;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
 import lombok.SneakyThrows;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 
-import java.util.Map;
-
 /**
  * 租户配置redis缓存
  */
-public class TenantConfigurationRedisCache implements TenantConfigurationCache{
+public class TenantConfigurationRedisCache implements TenantConfigurationCache {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final HashOperations<String, String, Object> hashOperations;

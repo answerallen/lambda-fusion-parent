@@ -1,17 +1,14 @@
 package com.lambda.fusion.auth.role.service;
 
 import com.google.common.collect.Sets;
-
 import com.lambda.fusion.auth.role.bean.UserAuthority;
-import com.lambda.fusion.auth.role.persistence.RoleMapper;
+import com.lambda.fusion.auth.role.mapper.RoleMapper;
 import com.lambda.fusion.core.Constants;
-import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.stereotype.Service;
-
-import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Set;
-
+import javax.annotation.Nonnull;
+import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.stereotype.Service;
 
 @Service
 public class RoleManagerImpl implements RoleManager {

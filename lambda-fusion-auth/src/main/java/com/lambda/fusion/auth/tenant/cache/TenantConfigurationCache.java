@@ -1,7 +1,6 @@
 package com.lambda.fusion.auth.tenant.cache;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import java.util.Map;
 
 /**

@@ -5,11 +5,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.context.LogContext;
-import com.lambda.fusion.autoconfig.AuthorizeConstants;
+import com.lambda.fusion.auth.client.domain.dto.Parameters;
 import com.lambda.fusion.auth.client.domain.entity.ClientEntity;
 import com.lambda.fusion.auth.client.domain.vo.ClientVO;
-import com.lambda.fusion.auth.client.domain.dto.Parameters;
 import com.lambda.fusion.auth.client.service.ClientService;
+import com.lambda.fusion.autoconfig.AuthorizeConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -28,11 +28,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-
 @RestController
 @RequestMapping({"/clients", "/clients"})
 @Tag(name = "认证管理")
-
 public class ClientController {
 
     private final ClientService clientService;
@@ -42,52 +40,58 @@ public class ClientController {
         this.clientService = clientService;
     }
 
-
     @GetMapping({"/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
-    @Operation(summary = "分页查询所有数据列表", description = "分页查询所有数据列表", parameters = {
-            @Parameter(name = "number", description = "当前页码", in = ParameterIn.PATH, schema = @Schema(defaultValue = "1")),
-            @Parameter(name = "size", description = "每页条数", in = ParameterIn.PATH, schema = @Schema(defaultValue = "20"))
-    })
+    @Operation(
+            summary = "分页查询所有数据列表",
+            description = "分页查询所有数据列表",
+            parameters = {
+                @Parameter(
+                        name = "number",
+                        description = "当前页码",
+                        in = ParameterIn.PATH,
+                        schema = @Schema(defaultValue = "1")),
+                @Parameter(
+                        name = "size",
+                        description = "每页条数",
+                        in = ParameterIn.PATH,
+                        schema = @Schema(defaultValue = "20"))
+            })
     public Page<ClientEntity> page(
-                                   @PathVariable(required = false) Integer number,
-                                   @PathVariable(required = false) Integer size,
-                                   Parameters parameters) {
-        String tenantid = OperatorUtils.getOperator().getTenantId();
-        if (StringUtils.isNotBlank(tenantid)) {
-            parameters.setTenantid(tenantid);
+            @PathVariable(required = false) Integer number,
+            @PathVariable(required = false) Integer size,
+            Parameters parameters) {
+        String tenantId = OperatorUtils.getOperator().getTenantId();
+        if (StringUtils.isNotBlank(tenantId)) {
+            parameters.setTenantId(tenantId);
         }
-        return clientService.page(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(number, size), parameters);
+        return clientService.page(
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(number, size), parameters);
     }
-
 
     @GetMapping("/{id}")
     @Operation(summary = "根据编号查询客户端信息", description = "根据id查询客户端信息")
-    public ClientEntity get(
-                            @Parameter(description = "编号", required = true) @PathVariable String id) {
+    public ClientEntity get(@Parameter(description = "编号", required = true) @PathVariable String id) {
         return clientService.getById(id);
     }
 
-    
     @PostMapping
     @Operation(summary = "新增客户端信息", description = "新增客户端信息")
-    public ClientEntity save(
-                             @Parameter(description = "客户端信息", required = true) @Valid @RequestBody ClientVO entity) {
+    public ClientEntity save(@Parameter(description = "客户端信息", required = true) @Valid @RequestBody ClientVO entity) {
         ClientEntity target = new ClientEntity();
         BeanUtils.copyProperties(entity, target);
-        String tenantid = OperatorUtils.getOperator().getTenantId();
-        if (StringUtils.isNotBlank(tenantid)) {
-            target.setTenantid(tenantid);
+        String tenantId = OperatorUtils.getOperator().getTenantId();
+        if (StringUtils.isNotBlank(tenantId)) {
+            target.setTenantId(tenantId);
         }
         clientService.save(target);
         return clientService.getById(target.getId());
     }
 
-    
     @PutMapping("/{id}")
     @Operation(summary = "更新客户端信息", description = "更新客户端信息")
     public ClientEntity update(
-                               @Parameter(description = "客户端编号", required = true) @PathVariable String id,
-                               @Parameter(description = "客户端信息", required = true) @RequestBody @Valid ClientVO entity) {
+            @Parameter(description = "客户端编号", required = true) @PathVariable String id,
+            @Parameter(description = "客户端信息", required = true) @RequestBody @Valid ClientVO entity) {
         ClientEntity target = new ClientEntity();
         BeanUtils.copyProperties(entity, target);
         target.setId(id);
@@ -96,15 +100,12 @@ public class ClientController {
         return result;
     }
 
-    
     @DeleteMapping("/{id}")
     @Operation(summary = "删除客户端信息", description = "根据编号删除客户端信息")
-    public void delete(
-                       @Parameter(description = "编号", required = true) @PathVariable String id) {
+    public void delete(@Parameter(description = "编号", required = true) @PathVariable String id) {
         ClientEntity client = clientService.getById(id);
         Assert.notNull(client, AuthorizeConstants.CLIENT_NOT_FOUND);
         clientService.removeById(id);
         LogContext.setDescription(StrUtil.format("删除客户端 - 名称:{}", client.getName()));
     }
 }
-

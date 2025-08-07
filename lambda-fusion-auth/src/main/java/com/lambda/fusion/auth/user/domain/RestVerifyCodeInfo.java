@@ -1,16 +1,12 @@
 package com.lambda.fusion.auth.user.domain;
 
-
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
-
 @Setter
 @Getter
 @Schema(description = "短信验证码信息")
-
 public class RestVerifyCodeInfo {
 
     @Schema(description = "id")

@@ -1,21 +1,17 @@
 package com.lambda.fusion.autoconfig;
 
 import cn.hutool.core.collection.CollUtil;
-
 import jakarta.validation.constraints.NotNull;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.ArrayList;
-import java.util.List;
-
-
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "lambda.authorize")
-
 public class AuthorizeProperties {
     /**
      * 是否开启用户注册功能
@@ -47,7 +43,6 @@ public class AuthorizeProperties {
      * 密码策略
      */
     @Data
-    
     public static class PasswordStrategy {
         /**
          * 密码策略模式
@@ -68,11 +63,9 @@ public class AuthorizeProperties {
          */
         private Integer periodChangeDays = 90;
 
-
         /**
          * 密码策略模式
          */
-        
         public enum Mode {
             /**
              * 固定值
@@ -90,7 +83,6 @@ public class AuthorizeProperties {
     }
 
     @Data
-    
     public static class NewPlatform {
         /**
          * 是否开启新平台配置
@@ -116,32 +108,30 @@ public class AuthorizeProperties {
         private boolean basis = false;
     }
 
-
     @Getter
     @Setter
-    
     public static class DevRole {
-        private final String[] defaultWhiteArray = new String[]{
-                "/public/**",
-                "/deploy/**",
-                "/upload/**",
-                "**/dictionaries/**",
-                "/dictionaries/**",
-                "**/purviews/**",
-                "/purviews/**",
-                "/workflow/**",
-                "/report/**",
-                "/dataease/**",
-                "/authority/**",
-                "/fence/**",
-                "/onlform/**",
-                "/api-token/**",
-                "/calendar/**",
-                "/report/**",
-                "/monitor/**",
-                "/error/**",
-                "/error",
-                "/v3/**",
+        private final String[] defaultWhiteArray = new String[] {
+            "/public/**",
+            "/deploy/**",
+            "/upload/**",
+            "**/dictionaries/**",
+            "/dictionaries/**",
+            "**/purviews/**",
+            "/purviews/**",
+            "/workflow/**",
+            "/report/**",
+            "/dataease/**",
+            "/authority/**",
+            "/fence/**",
+            "/onlform/**",
+            "/api-token/**",
+            "/calendar/**",
+            "/report/**",
+            "/monitor/**",
+            "/error/**",
+            "/error",
+            "/v3/**",
         };
         private List<String> whiteList;
 

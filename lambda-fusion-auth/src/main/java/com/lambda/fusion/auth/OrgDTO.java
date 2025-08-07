@@ -2,7 +2,6 @@ package com.lambda.fusion.auth;
 
 import lombok.Data;
 
-
 @Data
 public class OrgDTO {
     String id;
@@ -11,8 +10,7 @@ public class OrgDTO {
 
     String fullName;
 
-    public OrgDTO() {
-    }
+    public OrgDTO() {}
 
     public OrgDTO(String id) {
         this.id = id;

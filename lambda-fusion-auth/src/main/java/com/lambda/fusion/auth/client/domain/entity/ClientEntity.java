@@ -4,14 +4,12 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.Date;
 import lombok.Data;
 
-import java.util.Date;
-
 @Data
-@TableName("m1_clients")
+@TableName("la_clients")
 @Schema(description = "第三方客户端")
-
 public class ClientEntity {
 
     /**
@@ -73,6 +71,6 @@ public class ClientEntity {
      * 租户ID
      */
     @Schema(description = "租户ID")
-    @TableField("tenantid")
-    private String tenantid;
+    @TableField("tenant_id")
+    private String tenantId;
 }

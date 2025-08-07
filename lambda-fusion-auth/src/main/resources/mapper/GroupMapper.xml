@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.lambda.fusion.auth.role.mapper.GroupMapper">
+
+    <select id="getAllGroup" resultType="com.lambda.fusion.auth.role.bean.Group">
+        SELECT T.GROUP_ID,T.GROUP_NAME,T.TENANT_ID
+        FROM LA_GROUPS T
+        <where>
+            <choose>
+                <when test="tenantId != null and tenantId != ''">
+                    AND T.TENANT_ID = #{tenant_id}
+                </when>
+                <otherwise>
+                    AND T.TENANT_ID IS NULL
+                </otherwise>
+            </choose>
+        </where>
+        ORDER BY T.GROUP_ID
+    </select>
+
+    <delete id="deleteGroupByTenantId">
+        DELETE FROM LA_GROUPS WHERE TENANT_ID IN
+        <foreach collection="tenantIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+    </delete>
+</mapper>

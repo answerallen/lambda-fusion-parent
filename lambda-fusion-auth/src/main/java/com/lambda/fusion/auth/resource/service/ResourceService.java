@@ -2,13 +2,12 @@ package com.lambda.fusion.auth.resource.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.auth.NavigationParameter;
-import com.lambda.fusion.auth.resource.bean.MoveParameter;
-import com.lambda.fusion.auth.resource.bean.MutableResource;
-import com.lambda.fusion.auth.resource.bean.Resource;
-import com.lambda.fusion.auth.resource.bean.ResourceParameter;
-import org.springframework.lang.NonNull;
-
+import com.lambda.fusion.auth.resource.model.MoveParameter;
+import com.lambda.fusion.auth.resource.model.MutableResource;
+import com.lambda.fusion.auth.resource.model.Resource;
+import com.lambda.fusion.auth.resource.model.ResourceParameter;
 import java.util.List;
+import org.springframework.lang.NonNull;
 
 public interface ResourceService {
     /**
@@ -113,5 +112,4 @@ public interface ResourceService {
      * @param parameter 移动参数
      */
     void move(MoveParameter parameter);
-
 }

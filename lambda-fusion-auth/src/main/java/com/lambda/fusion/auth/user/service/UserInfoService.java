@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.auth.user.domain.UserInfoDO;
 
-
 public interface UserInfoService extends IService<UserInfoDO> {
 
     /**
@@ -21,5 +20,4 @@ public interface UserInfoService extends IService<UserInfoDO> {
      * @param username  用户名
      */
     void unbindUserInfo(LoginUser operator, String type, String username);
-
 }
