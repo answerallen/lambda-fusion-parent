@@ -11,7 +11,7 @@ import com.lambda.fusion.authority.tenant.bean.TenantEntity;
 import com.lambda.fusion.authority.tenant.bean.TenantQuery;
 import com.lambda.fusion.authority.tenant.bean.TenantVO;
 import com.lambda.fusion.authority.tenant.service.TenantService;
-import com.lambda.fusion.autoconfig.AuthorizeConstants;
+import com.lambda.fusion.autoconfig.AuthorityConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -145,9 +145,9 @@ public class TenantController {
     @Operation(summary = "启用租户")
     public void enabled(@Parameter(description = "租户编号", required = true) @PathVariable("id") String id) {
         LoginUser operator = OperatorUtils.getOperator();
-        Assert.notNull(id, AuthorizeConstants.TENANT_ID_NOT_EMPTY);
+        Assert.notNull(id, AuthorityConstants.TENANT_ID_NOT_EMPTY);
         TenantEntity tenant = tenantService.getById(id);
-        Assert.notNull(tenant, AuthorizeConstants.TENANT_NOT_FOUND);
+        Assert.notNull(tenant, AuthorityConstants.TENANT_NOT_FOUND);
         tenantService.prohibitTenant(operator, 1, id);
     }
 
@@ -155,9 +155,9 @@ public class TenantController {
     @Operation(summary = "禁用租户")
     public void disabled(@Parameter(description = "租户编号", required = true) @PathVariable("id") String id) {
         LoginUser operator = OperatorUtils.getOperator();
-        Assert.notNull(id, AuthorizeConstants.TENANT_ID_NOT_EMPTY);
+        Assert.notNull(id, AuthorityConstants.TENANT_ID_NOT_EMPTY);
         TenantEntity tenant = tenantService.getById(id);
-        Assert.notNull(tenant, AuthorizeConstants.TENANT_NOT_FOUND);
+        Assert.notNull(tenant, AuthorityConstants.TENANT_NOT_FOUND);
         tenantService.prohibitTenant(operator, 0, id);
     }
 
@@ -165,9 +165,9 @@ public class TenantController {
     @Operation(summary = "停用租户")
     public void stop(@Parameter(description = "租户编号", required = true) @PathVariable("id") String id) {
         LoginUser operator = OperatorUtils.getOperator();
-        Assert.notNull(id, AuthorizeConstants.TENANT_ID_NOT_EMPTY);
+        Assert.notNull(id, AuthorityConstants.TENANT_ID_NOT_EMPTY);
         TenantEntity tenant = tenantService.getById(id);
-        Assert.notNull(tenant, AuthorizeConstants.TENANT_NOT_FOUND);
+        Assert.notNull(tenant, AuthorityConstants.TENANT_NOT_FOUND);
         tenantService.prohibitTenant(operator, -1, id);
     }
 
@@ -175,9 +175,9 @@ public class TenantController {
     @Operation(summary = "审核租户")
     public void examine(@Parameter(description = "租户编号", required = true) @PathVariable("id") String id) {
         LoginUser operator = OperatorUtils.getOperator();
-        Assert.notNull(id, AuthorizeConstants.TENANT_ID_NOT_EMPTY);
+        Assert.notNull(id, AuthorityConstants.TENANT_ID_NOT_EMPTY);
         TenantEntity tenant = tenantService.getById(id);
-        Assert.notNull(tenant, AuthorizeConstants.TENANT_NOT_FOUND);
+        Assert.notNull(tenant, AuthorityConstants.TENANT_NOT_FOUND);
         tenantService.examineTenant(operator, 1, id);
     }
 
@@ -187,9 +187,9 @@ public class TenantController {
             @Parameter(description = "租户编号", required = true) @PathVariable("id") String id,
             @Parameter(description = "配置json字符串", required = true) @RequestBody Map<String, Object> configMap) {
         LoginUser operator = OperatorUtils.getOperator();
-        Assert.notNull(id, AuthorizeConstants.TENANT_ID_NOT_EMPTY);
+        Assert.notNull(id, AuthorityConstants.TENANT_ID_NOT_EMPTY);
         TenantEntity tenant = tenantService.getById(id);
-        Assert.notNull(tenant, AuthorizeConstants.TENANT_NOT_FOUND);
+        Assert.notNull(tenant, AuthorityConstants.TENANT_NOT_FOUND);
         log.debug("接收到参数：{}", configMap.toString());
         tenantService.updateConfig(operator, id, configMap);
     }

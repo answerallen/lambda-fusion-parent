@@ -2,16 +2,16 @@ package com.lambda.fusion.authority.user.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.user.domain.UserInfoDO;
+import com.lambda.fusion.authority.user.domain.entity.UserInfoEntity;
 
-public interface UserInfoService extends IService<UserInfoDO> {
+public interface UserInfoService extends IService<UserInfoEntity> {
 
     /**
      * 获取用户附加信息
      * @param id 用户id
      * @return 用户附加信息
      */
-    UserInfoDO getProps(String id);
+    UserInfoEntity getProps(String id);
 
     /**
      * 解除第三方绑定信息

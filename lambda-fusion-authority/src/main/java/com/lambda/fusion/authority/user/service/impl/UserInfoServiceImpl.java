@@ -2,15 +2,15 @@ package com.lambda.fusion.authority.user.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.user.domain.UserInfoDO;
+import com.lambda.fusion.authority.user.domain.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfoDO> implements UserInfoService {
+public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfoEntity> implements UserInfoService {
     @Override
-    public UserInfoDO getProps(String id) {
+    public UserInfoEntity getProps(String id) {
         return baseMapper.getProps(id);
     }
 

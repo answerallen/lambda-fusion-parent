@@ -1,10 +1,10 @@
-package com.lambda.fusion.authority.login.mapper;
+package com.lambda.fusion.authority.authorize.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
-import com.lambda.fusion.authority.login.domain.UserDTO;
+import com.lambda.fusion.authority.authorize.model.SimpleUser;
 import com.lambda.fusion.authority.organization.domain.Organization;
 import com.lambda.fusion.authority.resource.model.Resource;
-import com.lambda.fusion.authority.user.domain.SimpleUser;
+
 import java.util.List;
 import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
@@ -21,7 +21,7 @@ public interface AuthorizeMapper {
      * @throws Exception
      */
     @InterceptorIgnore(tenantLine = "true")
-    UserDTO loadUserDetailByUsername(@Param("username") String username);
+    SimpleUser loadUserDetailByUsername(@Param("username") String username);
 
     /**
      * 根据手机号查询用户
@@ -29,7 +29,7 @@ public interface AuthorizeMapper {
      * @param mobile
      * @return
      */
-    List<UserDTO> loadUserDetailByMobile(@Param("mobile") String mobile);
+    List<SimpleUser> loadUserDetailByMobile(@Param("mobile") String mobile);
 
     /**
      * 根据用户id和条件获取用户菜单<br/>
@@ -57,5 +57,5 @@ public interface AuthorizeMapper {
      *
      * @param roleid
      */
-    List<SimpleUser> getUsersByRoleId(@Param("roleid") String roleid);
+    List<com.lambda.fusion.authority.user.domain.SimpleUser> getUsersByRoleId(@Param("roleid") String roleid);
 }

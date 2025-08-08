@@ -24,7 +24,7 @@ public class ResourceParameter {
     private String id;
 
     @NotNull
-    @Schema(required = true, description = "资源名称")
+    @Schema(description = "资源名称")
     @JsonProperty("name")
     private String resName;
 
@@ -87,7 +87,7 @@ public class ResourceParameter {
     @Setter
     public static class ButtonParameter {
         @NotNull
-        @Schema(required = true, description = "资源名称")
+        @Schema(description = "资源名称")
         @JsonProperty("name")
         private String resName;
 

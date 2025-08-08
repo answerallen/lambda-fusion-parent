@@ -2,16 +2,16 @@ package com.lambda.fusion.authority.user.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.user.domain.UserUpdatePwdLog;
+import com.lambda.fusion.authority.user.domain.entity.UserUpdatePwdLogEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface UserUpdatePwdLogMapper extends BaseMapper<UserUpdatePwdLog> {
+public interface UserUpdatePwdLogMapper extends BaseMapper<UserUpdatePwdLogEntity> {
 
     /**
      * 用户更改密码后插入日志
      * @param updatePwdLog 修改密码日志对象
      */
     @InterceptorIgnore(tenantLine = "1")
-    void insertLog(UserUpdatePwdLog updatePwdLog);
+    void insertLog(UserUpdatePwdLogEntity updatePwdLog);
 }

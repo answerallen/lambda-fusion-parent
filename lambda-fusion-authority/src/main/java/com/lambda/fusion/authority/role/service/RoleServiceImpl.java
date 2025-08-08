@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.role.service;
 
-import static com.lambda.fusion.autoconfig.AuthorizeConstants.CACHE_MANAGER;
-import static com.lambda.fusion.autoconfig.AuthorizeConstants.DEFAULT_GROUP_NAME;
+import static com.lambda.fusion.autoconfig.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.autoconfig.AuthorityConstants.DEFAULT_GROUP_NAME;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;
@@ -23,7 +23,7 @@ import com.lambda.fusion.authority.role.mapper.GroupMapper;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.mapper.UserRolesMapper;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
-import com.lambda.fusion.autoconfig.AuthorizeConstants;
+import com.lambda.fusion.autoconfig.AuthorityConstants;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.TreeFactory;
 import jakarta.annotation.Resource;
@@ -153,7 +153,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MutableRole updateRole(LoginUser operator, MutableRole role) {
-        Assert.notNull(role, AuthorizeConstants.ROLE_NOT_FOUND);
+        Assert.notNull(role, AuthorityConstants.ROLE_NOT_FOUND);
         Assert.notNull(role.getAlias(), "lambda.authority.role.alias.notempty");
         MutableRole source = getRoleByAuthority(role.getAuthority());
         source.setAlias(role.getAlias());
@@ -170,7 +170,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MutableRole saveRole(LoginUser operator, MutableRole role) {
-        Assert.notNull(role, AuthorizeConstants.ROLE_NOT_FOUND);
+        Assert.notNull(role, AuthorityConstants.ROLE_NOT_FOUND);
         Assert.notNull(role.getAlias(), "别名不能为空！");
         String tenantId = operator.getTenantId();
         String authority = UUID.fastUUID().toString();
@@ -188,7 +188,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public MutableRole getRoleByAuthority(String authority) {
-        Assert.notNull(authority, AuthorizeConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
         if (authority.startsWith(Constants.ROLE_TENANT)) {
             authority = Constants.ROLE_TENANT;
         }
@@ -198,7 +198,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteRoleById(String authority) {
-        Assert.notNull(authority, AuthorizeConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
         Set<String> excludes = Stream.of(BUILT_IN_ROLES).collect(Collectors.toSet());
         Set<String> deleteExclude = internalRoleService.deleteExclude(OperatorUtils.getOperator());
         excludes.addAll(deleteExclude);
@@ -215,13 +215,13 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public boolean hasExists(String authority) {
-        Assert.notNull(authority, AuthorizeConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
         return roleMapper.hasExists(authority);
     }
 
     @Override
     public List<AccessPermission> getAccessPermissions(LoginUser operator, String authority, Integer mode) {
-        Assert.notNull(authority, AuthorizeConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
         //        boolean dev = OperatorUtils.isDev(operator);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(3);
         parameters.put("authority", authority);
@@ -246,7 +246,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void saveAuthorization(String authority, String resourceid, int status, LoginUser operator) {
-        Assert.notNull(authority, AuthorizeConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
         Assert.notNull(resourceid, "lambda.authority.role.resource.notempty");
         //        boolean dev = OperatorUtils.isDev(operator);
         //        if (!dev) {
@@ -299,7 +299,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     public void deleteAuthorization(String authority, String resourceid, LoginUser operator) {
-        Assert.notNull(authority, AuthorizeConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
         Assert.notNull(resourceid, "lambda.authority.role.resource.notempty");
         //        boolean dev = OperatorUtils.isDev(operator);
         //        if (!dev) {
@@ -346,10 +346,10 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void prohibitRole(int type, String authority) {
-        Assert.notNull(authority, AuthorizeConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
         MutableRole role = getRoleByAuthority(authority);
         authority = role.getAuthority();
-        Assert.notNull(role, AuthorizeConstants.ROLE_NOT_FOUND);
+        Assert.notNull(role, AuthorityConstants.ROLE_NOT_FOUND);
         roleMapper.prohibitRole(type, authority);
     }
 
@@ -367,7 +367,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void deleteGroup(String groupId) {
-        Assert.isFalse(Objects.equals(groupId, DEFAULT), AuthorizeConstants.ROLE_GROUP_ILLEGAL_OPERATION_DEL_DEFAULT);
+        Assert.isFalse(Objects.equals(groupId, DEFAULT), AuthorityConstants.ROLE_GROUP_ILLEGAL_OPERATION_DEL_DEFAULT);
         groupMapper.updateRoleGroupId(groupId, DEFAULT);
         groupMapper.deleteById(groupId);
     }

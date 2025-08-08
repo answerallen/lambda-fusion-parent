@@ -1,7 +1,7 @@
 package com.lambda.fusion.autoconfig;
 
-import static com.lambda.fusion.autoconfig.AuthorizeConstants.CACHE_MANAGER;
-import static com.lambda.fusion.autoconfig.AuthorizeConstants.LA_OPERATION_LOG_EXECUTOR;
+import static com.lambda.fusion.autoconfig.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.autoconfig.AuthorityConstants.OPERATION_LOG_EXECUTOR;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.authority.role.service.DefaultInternalRoleServiceImpl;
@@ -34,11 +34,11 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Slf4j
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({AuthorizeProperties.class, TenantProperties.class})
-public class AuthorizeConfigure {
+@EnableConfigurationProperties({AuthorityProperties.class, TenantProperties.class})
+public class AuthorityConfigure {
 
     @Bean
-    public Executor laOperationLogExecutor() {
+    public Executor operationLogExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         // 最大线程数
         executor.setMaxPoolSize(10);
@@ -47,7 +47,7 @@ public class AuthorizeConfigure {
         // 任务队列的大小
         executor.setQueueCapacity(10);
         // 线程前缀名
-        executor.setThreadNamePrefix(LA_OPERATION_LOG_EXECUTOR + "-");
+        executor.setThreadNamePrefix(OPERATION_LOG_EXECUTOR + "-");
         // 线程存活时间
         executor.setKeepAliveSeconds(30);
         /*
@@ -66,7 +66,7 @@ public class AuthorizeConfigure {
     public static class AuthorizeRedisCacheManagerConfigure {
 
         @Bean(CACHE_MANAGER)
-        public CacheManager laAuthorityCacheManager(RedisConnectionFactory redisConnectionFactory) {
+        public CacheManager authorityCacheManager(RedisConnectionFactory redisConnectionFactory) {
             log.debug("CacheManager: Redis");
             RedisCacheConfiguration redisCacheConfiguration = RedisCacheConfiguration.defaultCacheConfig();
             redisCacheConfiguration = redisCacheConfiguration
@@ -84,7 +84,7 @@ public class AuthorizeConfigure {
 
     @Bean(CACHE_MANAGER)
     @ConditionalOnMissingBean(name = CACHE_MANAGER)
-    public CacheManager laAuthorityCacheManager() {
+    public CacheManager authorityCacheManager() {
         log.debug("CacheManager: Caffeine");
         CaffeineCacheManager cacheManager = new CaffeineCacheManager("LAClients", "LAResourceOwners");
         //        cacheManager.setCaffeine(Caffeine.newBuilder()
@@ -97,7 +97,7 @@ public class AuthorizeConfigure {
 
     @ConditionalOnMissingBean
     @Bean
-    public InternalRoleService laInternalRoleService() {
+    public InternalRoleService internalRoleService() {
         return new DefaultInternalRoleServiceImpl();
     }
 

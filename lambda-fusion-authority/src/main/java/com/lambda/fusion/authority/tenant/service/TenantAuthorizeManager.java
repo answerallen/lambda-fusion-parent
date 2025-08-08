@@ -16,7 +16,7 @@ import com.lambda.fusion.authority.user.domain.ResetPwdParameter;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.autoconfig.AuthorizeConstants;
+import com.lambda.fusion.autoconfig.AuthorityConstants;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -166,7 +166,7 @@ public class TenantAuthorizeManager {
     private void hasOperation(LoginUser operator, String tenantId) {
         String crrTenantId = operator.getTenantId();
         if (org.apache.commons.lang.StringUtils.isNotBlank(crrTenantId)) {
-            Assert.isTrue(crrTenantId.equals(tenantId), AuthorizeConstants.TENANT_NO_AUTHORITY);
+            Assert.isTrue(crrTenantId.equals(tenantId), AuthorityConstants.TENANT_NO_AUTHORITY);
         }
     }
 

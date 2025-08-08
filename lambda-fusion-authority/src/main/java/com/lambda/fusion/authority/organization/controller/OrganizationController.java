@@ -11,7 +11,7 @@ import com.lambda.fusion.authority.organization.domain.SimpleOrg;
 import com.lambda.fusion.authority.organization.domain.UserOrganization;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
-import com.lambda.fusion.autoconfig.AuthorizeConstants;
+import com.lambda.fusion.autoconfig.AuthorityConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -80,7 +80,7 @@ public class OrganizationController {
         if (StringUtils.isNotBlank(id)) {
             resource.setParentId(id);
             Organization organization = organizationService.queryOrganById(id);
-            Assert.notNull(organization, AuthorizeConstants.ORG_NOT_FOUND);
+            Assert.notNull(organization, AuthorityConstants.ORG_NOT_FOUND);
             resource.setSpid(organization.getName());
         }
         return organizationService.addOrganization(resource);
@@ -92,7 +92,7 @@ public class OrganizationController {
             @Parameter(description = "组织编号", required = true) @PathVariable String id,
             @Parameter(description = "组织信息", required = true) @Valid @RequestBody Organization resource) {
         Organization org = organizationService.queryOrganById(id);
-        Assert.notNull(org, AuthorizeConstants.ORG_NOT_FOUND);
+        Assert.notNull(org, AuthorityConstants.ORG_NOT_FOUND);
         resource.setId(id);
         return organizationService.updateOrganization(resource);
     }
@@ -101,7 +101,7 @@ public class OrganizationController {
     @Operation(summary = "删除组织机构信息", description = "根据编号删除指定的组织机构信息")
     public void delete(@Parameter(description = "组织编号", required = true) @PathVariable String id) {
         Organization org = organizationService.queryOrganById(id);
-        Assert.notNull(org, AuthorizeConstants.ORG_NOT_FOUND);
+        Assert.notNull(org, AuthorityConstants.ORG_NOT_FOUND);
         organizationService.deleteOrganization(id);
     }
 
@@ -142,7 +142,7 @@ public class OrganizationController {
     @Operation(summary = "启用组织机构")
     public void enabled(@Parameter(description = "机构Id", required = true) @PathVariable("id") String id) {
         Organization org = organizationService.queryOrganById(id);
-        Assert.notNull(org, AuthorizeConstants.ORG_NOT_FOUND);
+        Assert.notNull(org, AuthorityConstants.ORG_NOT_FOUND);
         organizationService.prohibitOrganization(1, id);
     }
 
@@ -150,7 +150,7 @@ public class OrganizationController {
     @Operation(summary = "禁用组织机构")
     public void disabled(@Parameter(description = "机构Id", required = true) @PathVariable("id") String id) {
         Organization org = organizationService.queryOrganById(id);
-        Assert.notNull(org, AuthorizeConstants.ORG_NOT_FOUND);
+        Assert.notNull(org, AuthorityConstants.ORG_NOT_FOUND);
         organizationService.prohibitOrganization(0, id);
     }
 

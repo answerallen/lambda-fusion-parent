@@ -12,7 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "lambda.authorize")
-public class AuthorizeProperties {
+public class AuthorityProperties {
     /**
      * 是否开启用户注册功能
      */

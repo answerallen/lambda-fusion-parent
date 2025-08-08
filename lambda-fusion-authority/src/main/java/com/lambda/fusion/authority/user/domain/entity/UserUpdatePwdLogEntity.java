@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.domain;
+package com.lambda.fusion.authority.user.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -10,7 +10,7 @@ import lombok.Data;
 @Data
 @TableName("LA_USER_UPDATE_PWD_LOGS")
 @Schema(description = "日志表实体类")
-public class UserUpdatePwdLog {
+public class UserUpdatePwdLogEntity {
 
     @TableId
     @Schema(description = "主键ID")

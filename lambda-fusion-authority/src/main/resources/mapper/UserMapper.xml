@@ -49,7 +49,7 @@
     </resultMap>
 
 
-    <resultMap id="UserDTO" type="com.lambda.fusion.authority.login.domain.UserDTO">
+    <resultMap id="UserDTO" type="com.lambda.fusion.authority.authorize.model.SimpleUser">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="password" property="password" javaType="String"/>
@@ -512,7 +512,7 @@
     <select id="checkMobileExists" resultType="boolean">
         SELECT COUNT(1) FROM DUAL WHERE EXISTS(SELECT 1 FROM LA_USERS T WHERE T.MOBILE = #{mobile})
     </select>
-    <select id="getSimpleUsers" resultType="com.lambda.fusion.authority.login.domain.UserDTO">
+    <select id="getSimpleUsers" resultType="com.lambda.fusion.authority.authorize.model.SimpleUser">
         SELECT username, nickname FROM LA_USERS
     </select>
 

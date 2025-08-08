@@ -2,11 +2,11 @@ package com.lambda.fusion.authority.user.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.user.domain.UserInfoDO;
+import com.lambda.fusion.authority.user.domain.entity.UserInfoEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface UserInfoMapper extends BaseMapper<UserInfoDO> {
+public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
 
     /**
      * 获取用户附加信息
@@ -14,7 +14,7 @@ public interface UserInfoMapper extends BaseMapper<UserInfoDO> {
      * @return 用户附加信息
      */
     @InterceptorIgnore(tenantLine = "1")
-    UserInfoDO getProps(String id);
+    UserInfoEntity getProps(String id);
 
     /**
      * 重置或修改密码后修改updatePwd

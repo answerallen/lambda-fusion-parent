@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority;
+package com.lambda.fusion.authority.authorize.model;
 
 import lombok.Data;
 

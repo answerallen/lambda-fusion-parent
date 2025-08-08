@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.authority.user.mapper.UserInfoMapper">
 
-    <select id="getProps" resultType="com.lambda.fusion.authority.user.domain.UserInfoDO">
+    <select id="getProps" resultType="com.lambda.fusion.authority.user.domain.entity.UserInfoEntity">
         SELECT
             userid,
             avatar,

@@ -23,8 +23,8 @@ import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.user.domain.MutableUser;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
-import com.lambda.fusion.autoconfig.AuthorizeConstants;
-import com.lambda.fusion.autoconfig.AuthorizeProperties;
+import com.lambda.fusion.autoconfig.AuthorityConstants;
+import com.lambda.fusion.autoconfig.AuthorityProperties;
 import com.lambda.fusion.core.tree.DragMode;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.tree.TreeUtils;
@@ -71,7 +71,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     private GroupMapper groupMapper;
 
     @Autowired
-    private AuthorizeProperties authorizeProperties;
+    private AuthorityProperties authorityProperties;
 
     @Override
     public Parameters getQueryParameter() {
@@ -176,7 +176,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         LoginUser operator = OperatorUtils.getOperator();
         this.hasOperation(operator, id);
         Organization organization = getOrgById(id);
-        Assert.notNull(organization, AuthorizeConstants.ORG_NOT_FOUND);
+        Assert.notNull(organization, AuthorityConstants.ORG_NOT_FOUND);
         List<String> ids = getChildrenById0(id);
         Assert.state(CollectionUtils.isEmpty(ids), "lambda.authority.organ.child.existed");
         ids.add(id);
@@ -203,7 +203,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     public Organization updateOrganization(Organization resource) {
         LoginUser operator = OperatorUtils.getOperator();
         hasOperation(operator, resource.getId());
-        Assert.notNull(resource.getId(), AuthorizeConstants.ORG_ID_NOT_EMPTY);
+        Assert.notNull(resource.getId(), AuthorityConstants.ORG_ID_NOT_EMPTY);
         List<Organization> organizations = organizationMapper.queryByCondition(resource);
         Assert.isTrue(CollectionUtils.isEmpty(organizations), "lambda.authority.organ.name.repeat");
         organizationMapper.updateOrganizationByPk(resource);
@@ -219,19 +219,19 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public UserOrganization queryUserOrganization(UserOrganization resource) {
-        Assert.notNull(resource, AuthorizeConstants.ORG_NOT_EMPTY);
-        Assert.notNull(resource.getUserId(), AuthorizeConstants.ORG_USER_NOT_EMPTY);
+        Assert.notNull(resource, AuthorityConstants.ORG_NOT_EMPTY);
+        Assert.notNull(resource.getUserId(), AuthorityConstants.ORG_USER_NOT_EMPTY);
         return organizationMapper.queryUserOrganization(resource.getUserId());
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public UserOrganization addUserOrganization(UserOrganization resource) {
-        Assert.notNull(resource, AuthorizeConstants.ORG_NOT_EMPTY);
-        Assert.notNull(resource.getUserId(), AuthorizeConstants.ORG_USER_NOT_EMPTY);
-        Assert.notNull(resource.getOrganizationId(), AuthorizeConstants.ORG_ID_NOT_EMPTY);
+        Assert.notNull(resource, AuthorityConstants.ORG_NOT_EMPTY);
+        Assert.notNull(resource.getUserId(), AuthorityConstants.ORG_USER_NOT_EMPTY);
+        Assert.notNull(resource.getOrganizationId(), AuthorityConstants.ORG_ID_NOT_EMPTY);
         Assert.notNull(userMapper.getMutableUserById(resource.getUserId()), "lambda.authority.organ.user.notfound");
-        Assert.notNull(getOrgById(resource.getOrganizationId()), AuthorizeConstants.ORG_NOT_FOUND);
+        Assert.notNull(getOrgById(resource.getOrganizationId()), AuthorityConstants.ORG_NOT_FOUND);
         organizationMapper.addUserOrganization(resource);
         return resource;
     }
@@ -245,9 +245,9 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public UserOrganization updateUserOrganization(UserOrganization resource) {
-        Assert.notNull(resource.getUserId(), AuthorizeConstants.ORG_USER_NOT_EMPTY);
-        Assert.notNull(resource.getOrganizationId(), AuthorizeConstants.ORG_ID_NOT_EMPTY);
-        Assert.notNull(getOrgById(resource.getOrganizationId()), AuthorizeConstants.ORG_NOT_FOUND);
+        Assert.notNull(resource.getUserId(), AuthorityConstants.ORG_USER_NOT_EMPTY);
+        Assert.notNull(resource.getOrganizationId(), AuthorityConstants.ORG_ID_NOT_EMPTY);
+        Assert.notNull(getOrgById(resource.getOrganizationId()), AuthorityConstants.ORG_NOT_FOUND);
         organizationMapper.updateUserOrganization(resource);
         return resource;
     }
@@ -268,9 +268,9 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void prohibitOrganization(Integer enabled, String id) {
-        Assert.notNull(id, AuthorizeConstants.ORG_ID_NOT_EMPTY);
+        Assert.notNull(id, AuthorityConstants.ORG_ID_NOT_EMPTY);
         Organization org = getOrgById(id);
-        Assert.notNull(org, AuthorizeConstants.ORG_NOT_EMPTY);
+        Assert.notNull(org, AuthorityConstants.ORG_NOT_EMPTY);
         LoginUser operator = OperatorUtils.getOperator();
         this.hasOperation(operator, id);
         final List<Organization> organs = getSubOrgans(id);
@@ -304,7 +304,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     protected List<Organization> getSubOrgans(String id) {
         Assert.notNull(id, "id must not be null");
         Organization organ = organizationMapper.queryOrganizationById(id);
-        Assert.notNull(organ, AuthorizeConstants.ORG_NOT_FOUND);
+        Assert.notNull(organ, AuthorityConstants.ORG_NOT_FOUND);
         String keys = organ.getParentkeys();
         if (StringUtils.isNotBlank(keys)) {
             id = keys + JOINER + id;
@@ -400,14 +400,14 @@ public class OrganizationServiceImpl implements OrganizationService {
      * @return void
      */
     private void addOrgInfo(LoginUser operator, Organization resource) {
-        Assert.notNull(resource, AuthorizeConstants.ORG_NOT_EMPTY);
+        Assert.notNull(resource, AuthorityConstants.ORG_NOT_EMPTY);
         Assert.notNull(resource.getName(), "lambda.authority.organ.name.notfound");
         String tenantId = operator.getTenantId();
         Organization checked = queryByNameAndTenantId(resource.getName(), tenantId);
         Assert.isNull(checked, "lambda.authority.organ.name.repeat");
         String orgId;
         // 通过配置来确定组织id的来源
-        if (authorizeProperties.isOrganizationNameAsId()) {
+        if (authorityProperties.isOrganizationNameAsId()) {
             orgId = resource.getName();
         } else {
             orgId = IdWorker.getIdStr();

@@ -1,44 +1,75 @@
-package com.lambda.fusion.authority.login.service;
+package com.lambda.fusion.authority.authorize.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.web.TenantHolder;
-import com.lambda.fusion.authority.NavigationParameter;
-import com.lambda.fusion.authority.login.domain.UserDTO;
-import com.lambda.fusion.authority.login.mapper.AuthorizeMapper;
+import com.lambda.fusion.authority.authorize.mapper.AuthorizeMapper;
+import com.lambda.fusion.authority.authorize.model.NavigationParameter;
+import com.lambda.fusion.authority.authorize.model.SimpleUser;
+import com.lambda.fusion.authority.authorize.service.AuthorizeService;
 import com.lambda.fusion.authority.resource.model.Resource;
-import com.lambda.fusion.authority.user.domain.SimpleUser;
+import com.lambda.fusion.autoconfig.AuthorityConstants;
+import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.TreeFactory;
+import com.lambda.fusion.core.user.User;
+import com.lambda.security.exception.AuthenticationException;
+import com.lambda.security.exception.UsernameNotFoundException;
 import com.lambda.security.provider.ThirdPartLoginResult;
-import java.util.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
+@Service
+@RequiredArgsConstructor
 public class AuthorizeServiceImpl implements AuthorizeService {
 
     private final AuthorizeMapper authorizeMapper;
 
-    public AuthorizeServiceImpl(AuthorizeMapper authorizeMapper) {
-        this.authorizeMapper = authorizeMapper;
+    @Override
+    public LoginUser loginByUsername(String username, String loginType) {
+        Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
+        SimpleUser simpleUser = authorizeMapper.loadUserDetailByUsername(username);
+        if (simpleUser == null) {
+            throw new UsernameNotFoundException(AuthorityConstants.USER_NOT_FOUND);
+        }
+        User source = simpleUser.toUser();
+        if (CollUtil.isEmpty(source.getRoles())) {
+            source.setRoles(Sets.newHashSet(Constants.ROLE_USER));
+        }
+        String tenantId = TenantHolder.getTenantId();
+        if (StrUtil.isNotBlank(tenantId)) {
+            source.setTenantId(tenantId);
+        }
+        return source;
     }
 
     @Override
-    public LoginUser loginByUsername(String username, String loginType) {
-        //        Assert.notNull(username, AuthorizeConstants.USER_NAME_NOT_EMPTY);
-        UserDTO userDTO = authorizeMapper.loadUserDetailByUsername(username);
-        //        if (userDTO == null) {
-        //            throw new UsernameNotFoundException(AuthorizeConstants.USER_NOT_FOUND);
-        //        }
-        LoginUser source = userDTO.toUser();
-        //        RoleUtil.mergeDefaultAuthority(source);
-
-        // 从TenantHolder里获取租户ID，tenantHolder的优先级高于数据库中的租户ID
+    public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
+        List<SimpleUser> simpleUsers = authorizeMapper.loadUserDetailByMobile(mobile);
+        if (CollUtil.isEmpty(simpleUsers)) {
+            throw new UsernameNotFoundException(AuthorityConstants.USER_NOT_FOUND);
+        }
+        if (simpleUsers.size() > 1) {
+            throw new AuthenticationException(AuthorityConstants.USER_MOBILE_EXIST);
+        }
+        User source = simpleUsers.getFirst().toUser();
+        if (CollUtil.isEmpty(source.getRoles())) {
+            source.setRoles(Sets.newHashSet(Constants.ROLE_USER));
+        }
         String tenantId = TenantHolder.getTenantId();
-        //        if (StringUtils.isNotBlank(tenantId)) {
-        //            source.setTenantId(tenantId);
-        //        }
-
+        if (StrUtil.isNotBlank(tenantId)) {
+            source.setTenantId(tenantId);
+        }
         return source;
     }
 
@@ -93,7 +124,7 @@ public class AuthorizeServiceImpl implements AuthorizeService {
     }
 
     @Override
-    public List<SimpleUser> getUsersByRoleId(String roleid) {
+    public List<com.lambda.fusion.authority.user.domain.SimpleUser> getUsersByRoleId(String roleid) {
         return authorizeMapper.getUsersByRoleId(roleid);
     }
 

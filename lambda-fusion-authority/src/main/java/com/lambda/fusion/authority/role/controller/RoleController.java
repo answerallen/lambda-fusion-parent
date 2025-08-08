@@ -14,7 +14,7 @@ import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.domain.MutableUser;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.autoconfig.AuthorizeConstants;
+import com.lambda.fusion.autoconfig.AuthorityConstants;
 import com.lambda.fusion.core.Constants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -147,7 +147,7 @@ public class RoleController {
     @GetMapping("/{authority}")
     @Operation(description = "查询角色信息", summary = "查询角色信息")
     public MutableRole update(@Parameter(description = "角色名称", required = true) @PathVariable String authority) {
-        Assert.notNull(authority, AuthorizeConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
         return roleService.getRoleByAuthority(authority);
     }
 
@@ -163,7 +163,7 @@ public class RoleController {
     public MutableRole update(
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "角色信息", required = true) @RequestBody MutableRole mutableRole) {
-        Assert.notNull(authority, AuthorizeConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
         mutableRole.setAuthority(authority);
         LoginUser operator = OperatorUtils.getOperator();
         MutableRole result = roleService.updateRole(operator, mutableRole);

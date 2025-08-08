@@ -14,16 +14,16 @@ import lombok.Setter;
 @Schema(description = "资源树节点信息")
 public class Authorize implements Tree<Authorize> {
 
-    @Schema(required = true, description = "父节点编号")
+    @Schema(description = "父节点编号")
     private String id;
 
-    @Schema(required = true, description = "资源名称")
+    @Schema(description = "资源名称")
     private String name;
 
     @Schema(required = false, description = "资源路径")
     private String url;
 
-    @Schema(required = true, description = "父节点编号")
+    @Schema(description = "父节点编号")
     private String parentId;
 
     @Schema(description = "是否选中")

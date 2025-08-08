@@ -1,7 +1,7 @@
-package com.lambda.fusion.authority.login.service;
+package com.lambda.fusion.authority.authorize.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.NavigationParameter;
+import com.lambda.fusion.authority.authorize.model.NavigationParameter;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.user.domain.SimpleUser;
 import com.lambda.security.service.ThirdPartyLoginService;

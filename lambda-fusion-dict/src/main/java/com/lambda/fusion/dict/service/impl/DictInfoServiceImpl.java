@@ -16,7 +16,7 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.base.service.BaseServiceImpl;
-import com.lambda.fusion.core.base.user.LoginUserDetails;
+import com.lambda.fusion.core.user.User;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.utils.ParameterUtils;
 import com.lambda.fusion.dict.common.enums.DictContextHolders;
@@ -217,7 +217,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
         } else {
             ids.add(dictTypeEntity.getId());
         }
-        LoginUserDetails operator = ((LoginUserDetails) OperatorUtils.getOperator());
+        User operator = ((User) OperatorUtils.getOperator());
         List<DictInfo> outcomes = dictInfoMapper.treeList(ids, operator.getTenantId());
         return TreeFactory.build(outcomes);
     }
@@ -226,7 +226,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     public List<DictInfo> getSubTreeData(String dictType) {
         List<DictInfo> outcomes = new ArrayList<>();
         if (StringUtils.isNotBlank(dictType)) {
-            LoginUserDetails operator = ((LoginUserDetails) OperatorUtils.getOperator());
+            User operator = ((User) OperatorUtils.getOperator());
             LambdaQueryWrapper<DictType> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(DictType::getDictType, dictType);
             DictType dictTypeEntity = dictTypeMapper.selectOne(wrapper);
@@ -275,7 +275,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
         }
         wrapper.setLevel(dictInfo.getLevel());
         wrapper.setDictType(dictInfo.getDictType());
-        LoginUserDetails operator = ((LoginUserDetails) OperatorUtils.getOperator());
+        User operator = ((User) OperatorUtils.getOperator());
         wrapper.setTenantId(operator.getTenantId());
 
         List<DictInfo> target = dictInfoMapper.getDictInfoList(wrapper);
@@ -325,7 +325,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
         if (queryDTO.getSelectable() != null) {
             parameters.put(FIELD_SELECTABLE, queryDTO.getSelectable());
         }
-        LoginUserDetails operator = (LoginUserDetails) OperatorUtils.getOperator();
+        User operator = (User) OperatorUtils.getOperator();
         parameters.put(FIELD_TENANT_ID, operator.getTenantId());
 
         if (queryDTO.getExtraParams() != null && !queryDTO.getExtraParams().isEmpty()) {

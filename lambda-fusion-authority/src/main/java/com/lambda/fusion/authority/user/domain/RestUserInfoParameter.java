@@ -13,13 +13,13 @@ public class RestUserInfoParameter {
     @Schema(description = "用户名")
     private String username;
 
-    @Schema(required = true, description = "昵称")
+    @Schema(description = "昵称")
     private String nickname;
 
-    @Schema(required = true, description = "邮箱")
+    @Schema(description = "邮箱")
     private String email;
 
-    @Schema(required = true, description = "头像文件")
+    @Schema(description = "头像文件")
     private MultipartFile files;
 
     @Schema(description = "头像")

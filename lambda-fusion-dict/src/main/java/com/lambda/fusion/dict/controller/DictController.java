@@ -6,7 +6,7 @@ import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.annotation.OperationLog;
-import com.lambda.fusion.core.base.user.LoginUserDetails;
+import com.lambda.fusion.core.user.User;
 import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.common.enums.DictHolder;
 import com.lambda.fusion.dict.dao.entity.DictInfo;
@@ -86,7 +86,7 @@ public class DictController {
     public DictType saveDictType(
             @Valid @Parameter(description = "字典类型数据", required = true) @RequestBody DictType dictType) {
         // 只有开发者才能指定字典用途，其他用户只能添加用户字典
-        LoginUserDetails operator = (LoginUserDetails) OperatorUtils.getOperator();
+        User operator = (User) OperatorUtils.getOperator();
         if (operator.isDev()) {
             if (dictType.getDictUsage() == null) {
                 dictType.setDictUsage(DictType.DictUsage.SYSTEM.getValue());
@@ -116,7 +116,7 @@ public class DictController {
             })
     public DictType updateDictType(@Valid DictType dictType) {
         // 非开发者不能修改系统字典用途
-        LoginUserDetails operator = (LoginUserDetails) OperatorUtils.getOperator();
+        User operator = (User) OperatorUtils.getOperator();
         if (!operator.isDev()) {
             DictType source = dictTypeService.getById(dictType.getId());
             if (source != null) {
@@ -203,7 +203,7 @@ public class DictController {
     @PostMapping("/dictinfo")
     @Operation(summary = "添加字典详细信息", description = "添加字典详细信息")
     public DictInfo saveDictInfo(@Valid @RequestBody DictInfo dictInfo) {
-        LoginUserDetails operator = (LoginUserDetails) OperatorUtils.getOperator();
+        User operator = (User) OperatorUtils.getOperator();
         if (StringUtils.isNotBlank(operator.getTenantId())) {
             dictInfo.setTenantId(operator.getTenantId());
         }

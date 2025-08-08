@@ -1,23 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.lambda.fusion.authority.login.mapper.AuthorizeMapper">
-    <resultMap id="User" type="com.lambda.fusion.authority.login.domain.UserDTO">
+<mapper namespace="com.lambda.fusion.authority.authorize.mapper.AuthorizeMapper">
+    <resultMap id="LoginUserMap" type="com.lambda.fusion.authority.authorize.model.SimpleUser">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="password" property="password" javaType="String"/>
-        <result column="orgid" property="orgid" javaType="String"/>
+        <result column="org_id" property="orgId" javaType="String"/>
         <result column="enabled" property="enabled" javaType="Boolean" />
-        <result column="tenant_id" property="tenant_id" javaType="String"/>
+        <result column="tenant_id" property="tenantId" javaType="String"/>
         <result column="expired_time" property="expiredTime"/>
-        <collection property="authorities" ofType="org.springframework.security.core.authority.SimpleGrantedAuthority">
-            <constructor>
-                <idArg column="authority" javaType="String"/>
-            </constructor>
+        <collection property="authorities"  ofType="java.lang.String">
+            <result column="authority" />
         </collection>
     </resultMap>
 
-    <select id="loadUserDetailByUsername" parameterType="String" resultMap="User">
+    <select id="loadUserDetailByUsername" parameterType="String" resultMap="LoginUserMap">
         <![CDATA[
             SELECT
                 T.username,
@@ -25,7 +23,7 @@
                 T.password,
                 T.enabled,
                 R.authority,
-                UO.organizationid AS orgid,
+                UO.organizationid AS orgId,
                 T.tenantId AS tenantId,
                 T.EXPIRED_TIME
             FROM
@@ -36,7 +34,7 @@
             WHERE T.username = #{username}
         ]]>
     </select>
-    <select id="loadUserDetailByMobile" parameterType="String" resultMap="User">
+    <select id="loadUserDetailByMobile" parameterType="String" resultMap="LoginUserMap">
         <![CDATA[
             SELECT
                 T.username,

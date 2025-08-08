@@ -12,9 +12,9 @@ public class ResetPwdParameter {
     @Schema(description = "用户名")
     private String username;
 
-    @Schema(required = true, description = "旧密码")
+    @Schema(description = "旧密码")
     private String oldPassword;
 
-    @Schema(required = true, description = "新密码")
+    @Schema(description = "新密码")
     private String newPassword;
 }

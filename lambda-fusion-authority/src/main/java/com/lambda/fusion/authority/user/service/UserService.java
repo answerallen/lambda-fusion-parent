@@ -3,6 +3,7 @@ package com.lambda.fusion.authority.user.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.user.domain.*;
+import com.lambda.fusion.authority.user.domain.entity.UserInfoEntity;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -220,7 +221,7 @@ public interface UserService {
      * @param names 用户名称列表
      * @return Map<String, MutableUser>
      */
-    Map<String, UserInfoDO> getUserProps(Set<String> names);
+    Map<String, UserInfoEntity> getUserProps(Set<String> names);
 
     /**
      * 获取上级领导集合

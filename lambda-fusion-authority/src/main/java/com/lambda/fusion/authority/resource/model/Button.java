@@ -20,10 +20,10 @@ public class Button {
      */
     private Integer type = 3;
 
-    @Schema(required = true, description = "按钮编号")
+    @Schema(description = "按钮编号")
     private String id;
 
-    @Schema(required = true, description = "按钮名称")
+    @Schema(description = "按钮名称")
     private String name;
 
     @Schema(description = "按钮key")
@@ -38,10 +38,10 @@ public class Button {
     @Schema(description = "是否隐藏")
     private boolean hidden = false;
 
-    @Schema(required = true, description = "按钮级别")
+    @Schema(description = "按钮级别")
     private int rank;
 
-    @Schema(required = true, description = "按钮顺序")
+    @Schema(description = "按钮顺序")
     private int orderNo;
 
     public Button() {}

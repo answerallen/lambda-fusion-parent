@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.domain;
+package com.lambda.fusion.authority.user.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -12,7 +12,7 @@ import lombok.Data;
 @Data
 @TableName("LA_USER_FIELDS")
 @Schema(description = "用户自定义字段信息")
-public class UserFields {
+public class UserFieldsEntity {
 
     @Schema(description = "用户名")
     @TableField("USERNAME")

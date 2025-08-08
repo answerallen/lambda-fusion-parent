@@ -13,10 +13,10 @@ import lombok.Setter;
 @Setter
 @Schema(description = "资源元数据")
 public class MutableResource {
-    @Schema(required = true, description = "资源编号")
+    @Schema(description = "资源编号")
     private String id;
 
-    @Schema(required = true, description = "资源名称")
+    @Schema(description = "资源名称")
     @JsonProperty("name")
     private String resName;
 
@@ -31,11 +31,11 @@ public class MutableResource {
     @Schema(description = "上级资源")
     private String parentId;
 
-    @Schema(required = true, description = "资源级别")
+    @Schema(description = "资源级别")
     @JsonProperty("rank")
     private int resRank;
 
-    @Schema(required = true, description = "资源顺序")
+    @Schema(description = "资源顺序")
     private int orderNo;
 
     @Schema(description = "资源图标")

@@ -16,7 +16,7 @@ import com.lambda.fusion.authority.user.domain.*;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.autoconfig.AuthorizeConstants;
+import com.lambda.fusion.autoconfig.AuthorityConstants;
 import com.lambda.fusion.core.tree.TreeFactory;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,7 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @Slf4j
 @RestController
-@RequestMapping({"/authority/users", "/authority/users"})
+@RequestMapping({"/authority/users"})
 @Tag(name = "用户管理")
 public class UserController {
     private static final String ORGANS = "organs";
@@ -270,7 +270,7 @@ public class UserController {
     public void resetUserPassword(
             @Parameter(description = "重置密码参数", required = true) @RequestBody ResetPwdParameter resetPwdParameter) {
         String username = resetPwdParameter.getUsername();
-        Assert.notNull(username, AuthorizeConstants.USER_NAME_NOT_EMPTY);
+        Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
         String password = userService.resetUserPassword(resetPwdParameter);
         if (tenantAuthorizeManager != null) {
             // 新密码作为租户主库管理员的密码，使数据保持一致

@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.resource.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.NavigationParameter;
+import com.lambda.fusion.authority.authorize.model.NavigationParameter;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.resource.model.Resource;

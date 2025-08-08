@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.domain;
+package com.lambda.fusion.authority.user.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -8,7 +8,7 @@ import lombok.Data;
 
 @Data
 @TableName("la_online_log")
-public class OnlineLog {
+public class OnlineLogEntity {
 
     @TableId("USERNAME")
     private String username;

@@ -1,8 +1,8 @@
 package com.lambda.fusion.autoconfig;
 
-public final class AuthorizeConstants {
+public final class AuthorityConstants {
 
-    private AuthorizeConstants() {}
+    private AuthorityConstants() {}
 
     public static final String USER_NOT_FOUND = "lambda.authority.user.notfound";
     public static final String USER_NAME_NOT_EMPTY = "lambda.authority.user.username.notempty";
@@ -33,7 +33,7 @@ public final class AuthorizeConstants {
 
     public static final String CACHE_MANAGER = "AuthorityCacheManager";
 
-    public static final String LA_OPERATION_LOG_EXECUTOR = "OperationLogExecutor";
+    public static final String OPERATION_LOG_EXECUTOR = "OperationLogExecutor";
 
     public static final String DEFAULT_GROUP_NAME = "默认分组";
 

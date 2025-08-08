@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.domain;
+package com.lambda.fusion.authority.user.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -16,7 +16,7 @@ import org.hibernate.validator.constraints.Length;
 @ToString
 @TableName("LA_USER_INFO")
 @Schema(description = "用户扩展信息")
-public class UserInfoDO implements LambdaExpanded {
+public class UserInfoEntity implements LambdaExpanded {
     @TableId
     @JsonIgnore
     private String userid;

@@ -9,7 +9,7 @@ import com.lambda.fusion.authority.client.domain.dto.Parameters;
 import com.lambda.fusion.authority.client.domain.entity.ClientEntity;
 import com.lambda.fusion.authority.client.domain.vo.ClientVO;
 import com.lambda.fusion.authority.client.service.ClientService;
-import com.lambda.fusion.autoconfig.AuthorizeConstants;
+import com.lambda.fusion.autoconfig.AuthorityConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -104,7 +104,7 @@ public class ClientController {
     @Operation(summary = "删除客户端信息", description = "根据编号删除客户端信息")
     public void delete(@Parameter(description = "编号", required = true) @PathVariable String id) {
         ClientEntity client = clientService.getById(id);
-        Assert.notNull(client, AuthorizeConstants.CLIENT_NOT_FOUND);
+        Assert.notNull(client, AuthorityConstants.CLIENT_NOT_FOUND);
         clientService.removeById(id);
         LogContext.setDescription(StrUtil.format("删除客户端 - 名称:{}", client.getName()));
     }

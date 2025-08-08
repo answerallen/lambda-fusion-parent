@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.resource.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
-import com.lambda.fusion.authority.NavigationParameter;
+import com.lambda.fusion.authority.authorize.model.NavigationParameter;
 import com.lambda.fusion.authority.client.domain.vo.Authorize;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.resource.model.MutableResource;
@@ -101,17 +101,5 @@ public class ResourceController {
         parameter.setTid(tid);
         parameter.setType(type);
         resourceService.move(parameter);
-    }
-
-    private void renameAuthorize0(Authorize authorize) {
-        if (StringUtils.isNotBlank(authorize.getUrl())) {
-            authorize.setName(authorize.getName() + " - [" + authorize.getUrl() + "]");
-        }
-        List<Authorize> children = authorize.getChildren();
-        if (children != null && !children.isEmpty()) {
-            for (Authorize child : children) {
-                renameAuthorize0(child);
-            }
-        }
     }
 }

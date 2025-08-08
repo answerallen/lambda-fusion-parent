@@ -178,7 +178,7 @@ public final class TreeFactory {
             if (rankMap.containsKey(rank)) {
                 rankMap.get(rank).add(obj);
             } else {
-                rankMap.put(rank, new ArrayList<>(Arrays.asList(obj)));
+                rankMap.put(rank, new ArrayList<>(Collections.singletonList(obj)));
             }
             // 非顶级节点需要把自身放入children中, key为pid + 父级rank值
             children.put(pidFc.apply(obj) + Constants.DOT + (rank - 1), obj);

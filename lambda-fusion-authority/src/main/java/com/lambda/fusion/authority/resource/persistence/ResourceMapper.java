@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.resource.persistence;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
-import com.lambda.fusion.authority.NavigationParameter;
+import com.lambda.fusion.authority.authorize.model.NavigationParameter;
 import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.resource.model.UserPermission;
