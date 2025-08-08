@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.authorize.model.dto;
 
+import java.util.List;
 import lombok.Data;
 
 @Data
@@ -29,6 +30,11 @@ public class NavigationQueryDTO {
      * 显示所有菜单，0：不显示，1：显示
      */
     int all = 0;
+
+    /**
+     * 菜单ID
+     */
+    List<String> ids;
 
     public int getMode() {
         if (null != model) {

@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.client.domain.vo;
+package com.lambda.fusion.authority.client.model.vo;
 
 import com.lambda.fusion.core.tree.Tree;
 import io.swagger.v3.oas.annotations.media.Schema;

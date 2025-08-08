@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.client.domain.dto;
+package com.lambda.fusion.authority.client.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;

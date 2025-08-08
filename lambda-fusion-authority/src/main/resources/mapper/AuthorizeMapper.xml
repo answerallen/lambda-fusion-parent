@@ -54,8 +54,7 @@
         ]]>
     </select>
 
-    <!-- 根据用户id和条件获取用户菜单 -->
-    <select id="getNavigationByParams" resultType="com.lambda.fusion.authority.resource.model.Resource">
+    <select id="getNavigationByQuery" resultType="com.lambda.fusion.authority.resource.model.Resource">
         SELECT
         T1.id,
         T1.res_name,
@@ -75,23 +74,26 @@
         T1.business_expand
         FROM LA_RESOURCES T1
         WHERE T1.res_type != 0
-        AND T1.res_mode = #{mode}
-        <if test="ids != null and ids.size > 0">
+        AND T1.res_mode = #{query.mode}
+        <if test="query.ids != null and query.ids.size > 0">
             AND T1.ID IN (
             SELECT DISTINCT T.RESOURCEID FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY IN
-            <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
+            <foreach collection="query.ids" open="(" close=")" separator="," item="item">#{item}</foreach>
             )
         </if>
-        <if test="level != null">
-            AND T1.res_rank = #{level}
+        <if test="query.level != null">
+            AND T1.res_rank = #{query.level}
         </if>
-        <if test="parentId != null and parentId != ''">
-            AND T1.parentkeys LIKE CONCAT(#{parentId}, '%')
+        <if test="query.parentId != null and query.parentId != ''">
+            AND T1.parentkeys LIKE CONCAT(#{query.parentId}, '%')
+        </if>
+        <if test="query.name != null and query.name != ''">
+            AND T1.res_name LIKE CONCAT('%', #{query.name}, '%')
         </if>
         ORDER BY T1.res_rank, T1.parentId, T1.orderNo
     </select>
-
-    <select id="getAllResourcesSimple" resultType="com.lambda.fusion.authority.resource.model.Resource">
+    
+    <select id="getAllResourcesSimpleByQuery" resultType="com.lambda.fusion.authority.resource.model.Resource">
         SELECT
             T1.id,
             T1.res_name,
@@ -100,7 +102,9 @@
         FROM LA_RESOURCES T1
         inner join la_role_resources T2 on T1.id = T2.RESOURCEID and T2.AUTHORITY  = 'ROLE_ADMIN'
         <where>
-            T1.res_mode = #{mode}
+            <if test="mode != null">
+                T1.res_mode = #{mode}
+            </if>
             <if test="types != null">
                 AND T1.res_type IN <foreach collection="types" open="(" close=")" separator="," item="item">#{item}</foreach>
             </if>

@@ -2,8 +2,8 @@ package com.lambda.fusion.authority.client.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.client.domain.dto.ApiTokenInputDTO;
-import com.lambda.fusion.authority.client.domain.entity.ApiTokenEntity;
+import com.lambda.fusion.authority.client.model.dto.ApiTokenInputDTO;
+import com.lambda.fusion.authority.client.model.entity.ApiTokenEntity;
 import com.lambda.fusion.authority.client.service.ApiTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

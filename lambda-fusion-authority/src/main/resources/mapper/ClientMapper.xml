@@ -4,7 +4,7 @@
 <mapper namespace="com.lambda.fusion.authority.client.mapper.ClientMapper">
 
     <!-- 可根据自己的需求，是否要使用 -->
-    <resultMap type="com.lambda.fusion.authority.client.domain.entity.ClientEntity" id="ClientEntity">
+    <resultMap type="com.lambda.fusion.authority.client.model.entity.ClientEntity" id="ClientEntity">
         <result property="id" column="id"/>
         <result property="name" column="name"/>
         <result property="secret" column="secret"/>
@@ -32,7 +32,7 @@
         </collection>
     </resultMap>
 
-    <select id="getAuthorization" resultType="com.lambda.fusion.authority.client.domain.vo.AuthorizeVO">
+    <select id="getAuthorization" resultType="com.lambda.fusion.authority.client.model.vo.AuthorizeVO">
         SELECT DISTINCT
             T.id,
             T.name,

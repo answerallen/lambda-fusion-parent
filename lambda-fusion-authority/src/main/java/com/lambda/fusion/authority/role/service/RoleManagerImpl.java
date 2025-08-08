@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.role.service;
 
 import com.google.common.collect.Sets;
-import com.lambda.fusion.authority.role.model.vo.UserAuthorityVO;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
+import com.lambda.fusion.authority.role.model.vo.UserAuthorityVO;
 import com.lambda.fusion.core.Constants;
 import java.util.List;
 import java.util.Set;

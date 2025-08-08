@@ -2,8 +2,8 @@ package com.lambda.fusion.authority.client.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.authority.client.domain.dto.ClientQueryDTO;
-import com.lambda.fusion.authority.client.domain.entity.ClientEntity;
+import com.lambda.fusion.authority.client.model.dto.ClientQueryDTO;
+import com.lambda.fusion.authority.client.model.entity.ClientEntity;
 import com.lambda.fusion.authority.resource.model.UserPermission;
 import java.util.List;
 

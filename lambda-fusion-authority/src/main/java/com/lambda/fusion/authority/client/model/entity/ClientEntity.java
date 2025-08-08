@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.client.domain.entity;
+package com.lambda.fusion.authority.client.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;

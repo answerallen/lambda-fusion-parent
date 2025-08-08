@@ -1,11 +1,13 @@
 package com.lambda.fusion.authority.authorize.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
+import com.lambda.fusion.authority.authorize.model.dto.NavigationQueryDTO;
+import com.lambda.fusion.authority.authorize.model.dto.ResourceSimpleQueryDTO;
 import com.lambda.fusion.authority.authorize.model.vo.SimpleUserVO;
 import com.lambda.fusion.authority.organization.model.Organization;
 import com.lambda.fusion.authority.resource.model.Resource;
+import com.lambda.fusion.authority.user.domain.SimpleUser;
 import java.util.List;
-import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -34,16 +36,16 @@ public interface AuthorizeMapper {
      * 根据用户id和条件获取用户菜单<br/>
      * level == null且parentId不为空时，将查询level小于id为parentId值的记录level的数据
      *
-     * @param parameters
+     * @param query 导航查询条件
      */
-    List<Resource> getNavigationByParams(Map<String, Object> parameters);
+    List<Resource> getNavigationByQuery(@Param("query") NavigationQueryDTO query);
 
     /**
-     * 获取所有资源，只包含id、名称、扩展参数。只查询ROLE_ADMIN的权限范围
-     * @param parameters
-     * @return
+     * 获取简单资源列表（使用DTO对象）
+     * @param query 查询参数
+     * @return 资源列表
      */
-    List<Resource> getAllResourcesSimple(Map<String, Object> parameters);
+    List<Resource> getAllResourcesSimpleByQuery(ResourceSimpleQueryDTO query);
 
     /***
      * 根据用户名查询所属组织
@@ -56,5 +58,5 @@ public interface AuthorizeMapper {
      *
      * @param roleid
      */
-    List<com.lambda.fusion.authority.user.domain.SimpleUser> getUsersByRoleId(@Param("roleid") String roleid);
+    List<SimpleUser> getUsersByRoleId(@Param("roleid") String roleid);
 }

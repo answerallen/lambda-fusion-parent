@@ -2,9 +2,9 @@ package com.lambda.fusion.authority.role.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
-import com.lambda.fusion.authority.role.model.domain.AccessPermissionDO;
 import com.lambda.fusion.authority.role.model.MutableRole;
+import com.lambda.fusion.authority.role.model.domain.AccessPermissionDO;
+import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
 import com.lambda.fusion.authority.role.model.vo.RoleAuthorityVO;
 import com.lambda.fusion.authority.role.model.vo.UserAuthorityVO;
 import java.util.List;
