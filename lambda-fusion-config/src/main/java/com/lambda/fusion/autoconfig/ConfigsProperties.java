@@ -1,6 +1,6 @@
 package com.lambda.fusion.autoconfig;
 
-import static com.lambda.fusion.configs.ConfigConstants.SystemConfig.*;
+import static com.lambda.fusion.config.ConfigConstants.SystemConfig.*;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.core.JsonGenerator;
