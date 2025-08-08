@@ -2,11 +2,11 @@ package com.lambda.fusion.authority.role.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.role.bean.AccessPermission;
-import com.lambda.fusion.authority.role.bean.AccessPermissionDO;
-import com.lambda.fusion.authority.role.bean.MutableRole;
-import com.lambda.fusion.authority.role.bean.RoleAuthority;
-import com.lambda.fusion.authority.role.bean.UserAuthority;
+import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
+import com.lambda.fusion.authority.role.model.domain.AccessPermissionDO;
+import com.lambda.fusion.authority.role.model.MutableRole;
+import com.lambda.fusion.authority.role.model.vo.RoleAuthorityVO;
+import com.lambda.fusion.authority.role.model.vo.UserAuthorityVO;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -101,14 +101,6 @@ public interface RoleMapper {
     void saveAuthorization(AccessPermissionDO accessPermissionDO);
 
     /**
-     * 批量保存访问授权
-     *
-     * @param parameters
-     * @return void
-     */
-    void batchSaveAuthorization(AccessPermissionDO parameters);
-
-    /**
      * 批量更新访问权限
      *
      * @param parameters
@@ -157,7 +149,7 @@ public interface RoleMapper {
      * @param pid
      * @return
      */
-    List<RoleAuthority> getOrganizationAuthorization(
+    List<RoleAuthorityVO> getOrganizationAuthorization(
             @Param("organizationid") String authority, @Param("pid") String pid);
 
     /**
@@ -209,7 +201,7 @@ public interface RoleMapper {
      *
      * @param parameters
      */
-    List<AccessPermission> getAccessPermissions(@Param("parameters") Map<String, Object> parameters);
+    List<AccessPermissionVO> getAccessPermissions(@Param("parameters") Map<String, Object> parameters);
 
     /**
      * 查询已有的访问权限
@@ -241,5 +233,5 @@ public interface RoleMapper {
      * @return java.util.Set<java.lang.String>
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<UserAuthority> getAuthoritiesByUser(String username);
+    List<UserAuthorityVO> getAuthoritiesByUser(String username);
 }

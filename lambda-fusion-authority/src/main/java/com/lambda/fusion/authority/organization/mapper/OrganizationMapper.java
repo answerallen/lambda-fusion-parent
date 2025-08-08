@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.organization.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
-import com.lambda.fusion.authority.organization.domain.*;
+import com.lambda.fusion.authority.organization.model.*;
 import com.lambda.fusion.authority.user.domain.MutableUser;
 import java.util.List;
 import java.util.Set;

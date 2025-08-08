@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.tenant.bean.TenantEntity;
-import com.lambda.fusion.authority.tenant.bean.TenantQuery;
+import com.lambda.fusion.authority.tenant.model.TenantEntity;
+import com.lambda.fusion.authority.tenant.model.TenantQuery;
 import java.util.List;
 import java.util.Map;
 

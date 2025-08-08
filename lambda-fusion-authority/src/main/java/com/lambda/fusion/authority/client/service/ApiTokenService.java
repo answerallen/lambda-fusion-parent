@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.client.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.authority.client.domain.dto.ApiTokenDO;
+import com.lambda.fusion.authority.client.domain.entity.ApiTokenEntity;
 
 /**
  * <p>
@@ -9,4 +9,4 @@ import com.lambda.fusion.authority.client.domain.dto.ApiTokenDO;
  * </p>
  *
  */
-public interface ApiTokenService extends IService<ApiTokenDO> {}
+public interface ApiTokenService extends IService<ApiTokenEntity> {}

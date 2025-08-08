@@ -1,8 +1,7 @@
 package com.lambda.fusion.authority.resource.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
-import com.lambda.fusion.authority.authorize.model.NavigationParameter;
-import com.lambda.fusion.authority.client.domain.vo.Authorize;
+import com.lambda.fusion.authority.authorize.model.dto.NavigationQueryDTO;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.resource.model.Resource;
@@ -45,7 +44,7 @@ public class ResourceController {
             })
     public List<Resource> tree(
             @RequestParam(required = false) @Parameter(description = "资源名称") String name,
-            @Parameter NavigationParameter parameter) {
+            @Parameter NavigationQueryDTO parameter) {
         return resourceService.getChildren(parameter);
     }
 

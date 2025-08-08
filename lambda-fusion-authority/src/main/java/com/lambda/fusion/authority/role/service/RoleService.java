@@ -2,11 +2,11 @@ package com.lambda.fusion.authority.role.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.role.bean.AccessPermission;
-import com.lambda.fusion.authority.role.bean.BatchAddRoleUser;
-import com.lambda.fusion.authority.role.bean.GroupRoleVo;
-import com.lambda.fusion.authority.role.bean.GroupVo;
-import com.lambda.fusion.authority.role.bean.MutableRole;
+import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
+import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
+import com.lambda.fusion.authority.role.model.vo.GroupRoleVo;
+import com.lambda.fusion.authority.role.model.vo.GroupVo;
+import com.lambda.fusion.authority.role.model.MutableRole;
 import java.util.List;
 import java.util.Map;
 
@@ -93,7 +93,7 @@ public interface RoleService {
      * @param mode 角色模式
      * @return
      */
-    List<AccessPermission> getAccessPermissions(LoginUser operator, String id, Integer mode);
+    List<AccessPermissionVO> getAccessPermissions(LoginUser operator, String id, Integer mode);
 
     /**
      * 保存角色权限
@@ -169,7 +169,7 @@ public interface RoleService {
      * @param user 当前操作用户
      * @param req  请求
      */
-    void batchAddRoleUser(LoginUser user, BatchAddRoleUser req);
+    void batchAddRoleUser(LoginUser user, BatchAddRoleUserDTO req);
 
     /**
      * 分组列表查询

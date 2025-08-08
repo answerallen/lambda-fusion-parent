@@ -5,9 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.context.LogContext;
-import com.lambda.fusion.authority.client.domain.dto.Parameters;
+import com.lambda.fusion.authority.client.domain.dto.ClientInputDTO;
+import com.lambda.fusion.authority.client.domain.dto.ClientQueryDTO;
 import com.lambda.fusion.authority.client.domain.entity.ClientEntity;
-import com.lambda.fusion.authority.client.domain.vo.ClientVO;
 import com.lambda.fusion.authority.client.service.ClientService;
 import com.lambda.fusion.autoconfig.AuthorityConstants;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,13 +59,13 @@ public class ClientController {
     public Page<ClientEntity> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
-            Parameters parameters) {
+            ClientQueryDTO clientQueryDTO) {
         String tenantId = OperatorUtils.getOperator().getTenantId();
         if (StringUtils.isNotBlank(tenantId)) {
-            parameters.setTenantId(tenantId);
+            clientQueryDTO.setTenantId(tenantId);
         }
         return clientService.page(
-                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(number, size), parameters);
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(number, size), clientQueryDTO);
     }
 
     @GetMapping("/{id}")
@@ -76,7 +76,8 @@ public class ClientController {
 
     @PostMapping
     @Operation(summary = "新增客户端信息", description = "新增客户端信息")
-    public ClientEntity save(@Parameter(description = "客户端信息", required = true) @Valid @RequestBody ClientVO entity) {
+    public ClientEntity save(
+            @Parameter(description = "客户端信息", required = true) @Valid @RequestBody ClientInputDTO entity) {
         ClientEntity target = new ClientEntity();
         BeanUtils.copyProperties(entity, target);
         String tenantId = OperatorUtils.getOperator().getTenantId();
@@ -91,13 +92,12 @@ public class ClientController {
     @Operation(summary = "更新客户端信息", description = "更新客户端信息")
     public ClientEntity update(
             @Parameter(description = "客户端编号", required = true) @PathVariable String id,
-            @Parameter(description = "客户端信息", required = true) @RequestBody @Valid ClientVO entity) {
+            @Parameter(description = "客户端信息", required = true) @RequestBody @Valid ClientInputDTO entity) {
         ClientEntity target = new ClientEntity();
         BeanUtils.copyProperties(entity, target);
         target.setId(id);
         clientService.updateById(target);
-        ClientEntity result = clientService.getById(id);
-        return result;
+        return clientService.getById(id);
     }
 
     @DeleteMapping("/{id}")

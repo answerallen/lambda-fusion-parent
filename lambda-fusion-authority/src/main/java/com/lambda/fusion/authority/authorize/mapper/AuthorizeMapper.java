@@ -1,10 +1,9 @@
 package com.lambda.fusion.authority.authorize.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
-import com.lambda.fusion.authority.authorize.model.SimpleUser;
-import com.lambda.fusion.authority.organization.domain.Organization;
+import com.lambda.fusion.authority.authorize.model.vo.SimpleUserVO;
+import com.lambda.fusion.authority.organization.model.Organization;
 import com.lambda.fusion.authority.resource.model.Resource;
-
 import java.util.List;
 import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
@@ -21,7 +20,7 @@ public interface AuthorizeMapper {
      * @throws Exception
      */
     @InterceptorIgnore(tenantLine = "true")
-    SimpleUser loadUserDetailByUsername(@Param("username") String username);
+    SimpleUserVO loadUserDetailByUsername(@Param("username") String username);
 
     /**
      * 根据手机号查询用户
@@ -29,7 +28,7 @@ public interface AuthorizeMapper {
      * @param mobile
      * @return
      */
-    List<SimpleUser> loadUserDetailByMobile(@Param("mobile") String mobile);
+    List<SimpleUserVO> loadUserDetailByMobile(@Param("mobile") String mobile);
 
     /**
      * 根据用户id和条件获取用户菜单<br/>

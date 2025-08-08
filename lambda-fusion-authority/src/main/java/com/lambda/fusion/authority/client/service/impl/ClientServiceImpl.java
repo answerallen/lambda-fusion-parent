@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.client.domain.dto.Parameters;
+import com.lambda.fusion.authority.client.domain.dto.ClientQueryDTO;
 import com.lambda.fusion.authority.client.domain.entity.ClientEntity;
 import com.lambda.fusion.authority.client.mapper.ClientMapper;
 import com.lambda.fusion.authority.client.service.ClientService;
@@ -32,11 +32,11 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, ClientEntity>
         implements ClientService, HmacClientService {
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public Page<ClientEntity> page(Page<ClientEntity> page, Parameters parameters) {
+    public Page<ClientEntity> page(Page<ClientEntity> page, ClientQueryDTO clientQueryDTO) {
         LambdaQueryWrapper<ClientEntity> query = Wrappers.lambdaQuery();
-        String name = parameters.getName();
-        String hosts = parameters.getHosts();
-        String tenantId = parameters.getTenantId();
+        String name = clientQueryDTO.getName();
+        String hosts = clientQueryDTO.getHosts();
+        String tenantId = clientQueryDTO.getTenantId();
         if (StringUtils.isNotBlank(name)) {
             query.like(ClientEntity::getName, "%" + name + "%");
         }

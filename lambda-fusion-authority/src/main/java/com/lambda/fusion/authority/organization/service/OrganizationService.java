@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.organization.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.organization.domain.*;
+import com.lambda.fusion.authority.organization.model.*;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.user.domain.MutableUser;
 import java.util.List;

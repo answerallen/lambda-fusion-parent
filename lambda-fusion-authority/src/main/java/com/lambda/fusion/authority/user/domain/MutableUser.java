@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.user.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.lambda.fusion.authority.organization.domain.Org;
-import com.lambda.fusion.authority.role.bean.SimpleRole;
+import com.lambda.fusion.authority.organization.model.Org;
+import com.lambda.fusion.authority.role.model.SimpleRole;
 import com.lambda.fusion.core.base.LambdaObject;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;

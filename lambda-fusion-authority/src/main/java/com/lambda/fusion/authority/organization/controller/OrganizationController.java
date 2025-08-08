@@ -5,10 +5,10 @@ import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.organization.domain.Organization;
-import com.lambda.fusion.authority.organization.domain.Parameters;
-import com.lambda.fusion.authority.organization.domain.SimpleOrg;
-import com.lambda.fusion.authority.organization.domain.UserOrganization;
+import com.lambda.fusion.authority.organization.model.Organization;
+import com.lambda.fusion.authority.organization.model.Parameters;
+import com.lambda.fusion.authority.organization.model.SimpleOrg;
+import com.lambda.fusion.authority.organization.model.UserOrganization;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.autoconfig.AuthorityConstants;
@@ -18,10 +18,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,10 +39,10 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping({"/authority/organization", "/authority/organization"})
 @Tag(name = "组织管理")
+@RequiredArgsConstructor
 public class OrganizationController {
 
-    @Autowired
-    private OrganizationService organizationService;
+    private final OrganizationService organizationService;
 
     @GetMapping("/tree")
     @Operation(summary = "以树形的方式获取组织机构列表", description = "以树形的方式获取组织机构列表")

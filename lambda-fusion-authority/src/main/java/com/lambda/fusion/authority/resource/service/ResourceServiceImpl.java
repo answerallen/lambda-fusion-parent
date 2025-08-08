@@ -5,9 +5,9 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.authority.authorize.model.NavigationParameter;
+import com.lambda.fusion.authority.authorize.model.dto.NavigationQueryDTO;
 import com.lambda.fusion.authority.resource.model.*;
-import com.lambda.fusion.authority.resource.persistence.ResourceMapper;
+import com.lambda.fusion.authority.resource.mapper.ResourceMapper;
 import com.lambda.fusion.authority.role.service.RoleManager;
 import com.lambda.fusion.autoconfig.AuthorityConstants;
 import com.lambda.fusion.core.Constants;
@@ -40,11 +40,11 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<Resource> getChildren() {
-        return getChildren(new NavigationParameter());
+        return getChildren(new NavigationQueryDTO());
     }
 
     @Override
-    public List<Resource> getChildren(NavigationParameter parameter) {
+    public List<Resource> getChildren(NavigationQueryDTO parameter) {
         List<MutableResource> resources = resourceMapper.queryAvailableMutableResources(parameter);
         if (CollectionUtils.isEmpty(resources)) {
             return new ArrayList<>();

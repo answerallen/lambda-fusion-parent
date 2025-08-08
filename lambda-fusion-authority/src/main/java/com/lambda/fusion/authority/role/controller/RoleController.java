@@ -8,7 +8,11 @@ import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.role.bean.*;
+import com.lambda.fusion.authority.role.model.*;
+import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
+import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
+import com.lambda.fusion.authority.role.model.vo.GroupRoleVo;
+import com.lambda.fusion.authority.role.model.vo.GroupVo;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
@@ -181,7 +185,7 @@ public class RoleController {
 
     @GetMapping("/auth/{authority}")
     @Operation(description = "查询指定角色的权限信息", summary = "查询指定角色的权限信息")
-    public List<AccessPermission> auth(
+    public List<AccessPermissionVO> auth(
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "模式-0:后台资源,1:APP资源") Integer mode) {
         LoginUser operator = OperatorUtils.getOperator();
@@ -259,7 +263,7 @@ public class RoleController {
 
     @Operation(description = "角色批量分配用户", summary = "角色批量分配用户")
     @PostMapping("/batch/user")
-    public void batchAddRoleUser(@Valid @RequestBody BatchAddRoleUser req) {
+    public void batchAddRoleUser(@Valid @RequestBody BatchAddRoleUserDTO req) {
         MutableRole role = roleService.getRoleByAuthority(req.getRoleId());
         LoginUser user = OperatorUtils.getOperator();
         roleService.batchAddRoleUser(user, req);

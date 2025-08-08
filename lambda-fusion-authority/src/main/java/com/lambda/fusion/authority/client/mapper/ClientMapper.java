@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.client.mapper;
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.client.domain.entity.ClientEntity;
-import com.lambda.fusion.authority.client.domain.vo.Authorize;
+import com.lambda.fusion.authority.client.domain.vo.AuthorizeVO;
 import com.lambda.fusion.authority.resource.model.UserPermission;
 import com.lambda.security.web.hmac.model.HmacClient;
 import java.util.List;
@@ -46,7 +46,7 @@ public interface ClientMapper extends BaseMapper<ClientEntity> {
      * @param parameters
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<Authorize> getAuthorization(@Param("parameters") Map<String, Object> parameters);
+    List<AuthorizeVO> getAuthorization(@Param("parameters") Map<String, Object> parameters);
 
     /**
      * 根据appid查询客户端信息

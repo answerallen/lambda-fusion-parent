@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.tenant.persistence;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.tenant.bean.TenantEntity;
-import com.lambda.fusion.authority.tenant.bean.TenantQuery;
+import com.lambda.fusion.authority.tenant.model.TenantEntity;
+import com.lambda.fusion.authority.tenant.model.TenantQuery;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

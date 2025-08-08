@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.client.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.client.domain.dto.ApiTokenDO;
+import com.lambda.fusion.authority.client.domain.entity.ApiTokenEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -11,4 +11,4 @@ import org.apache.ibatis.annotations.Mapper;
  *
  */
 @Mapper
-public interface ApiTokenMapper extends BaseMapper<ApiTokenDO> {}
+public interface ApiTokenMapper extends BaseMapper<ApiTokenEntity> {}

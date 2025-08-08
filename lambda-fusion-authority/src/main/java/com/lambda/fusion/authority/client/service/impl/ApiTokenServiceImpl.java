@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.client.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.authority.client.domain.dto.ApiTokenDO;
+import com.lambda.fusion.authority.client.domain.entity.ApiTokenEntity;
 import com.lambda.fusion.authority.client.mapper.ApiTokenMapper;
 import com.lambda.fusion.authority.client.service.ApiTokenService;
 import org.springframework.stereotype.Service;
@@ -12,4 +12,4 @@ import org.springframework.stereotype.Service;
  * </p>
  */
 @Service
-public class ApiTokenServiceImpl extends ServiceImpl<ApiTokenMapper, ApiTokenDO> implements ApiTokenService {}
+public class ApiTokenServiceImpl extends ServiceImpl<ApiTokenMapper, ApiTokenEntity> implements ApiTokenService {}

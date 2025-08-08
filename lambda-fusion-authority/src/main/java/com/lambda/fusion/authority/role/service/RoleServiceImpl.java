@@ -17,11 +17,18 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.resource.model.ResourceType;
 import com.lambda.fusion.authority.resource.service.ResourceService;
-import com.lambda.fusion.authority.role.bean.*;
+import com.lambda.fusion.authority.role.model.*;
 import com.lambda.fusion.authority.role.mapper.AccessPermissionMapper;
 import com.lambda.fusion.authority.role.mapper.GroupMapper;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.mapper.UserRolesMapper;
+import com.lambda.fusion.authority.role.model.domain.AccessPermissionDO;
+import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
+import com.lambda.fusion.authority.role.model.entity.GroupEntity;
+import com.lambda.fusion.authority.role.model.entity.UserRoleEntity;
+import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
+import com.lambda.fusion.authority.role.model.vo.GroupRoleVo;
+import com.lambda.fusion.authority.role.model.vo.GroupVo;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.autoconfig.AuthorityConstants;
 import com.lambda.fusion.core.Constants;
@@ -106,10 +113,10 @@ public class RoleServiceImpl implements RoleService {
         parameters.put("excludes", excludes);
         parameters.put(Constants.TENANT_ID, tenantId);
         List<MutableRole> roles = roleMapper.getAllRoles(parameters);
-        List<Group> groups = groupMapper.getAllGroup(parameters);
-        Group defaultGroup = newDefaultGroup(tenantId);
-        if (notcontains(groups, defaultGroup)) {
-            groups.add(defaultGroup);
+        List<GroupEntity> groupEntities = groupMapper.getAllGroup(parameters);
+        GroupEntity defaultGroupEntity = newDefaultGroup(tenantId);
+        if (notcontains(groupEntities, defaultGroupEntity)) {
+            groupEntities.add(defaultGroupEntity);
         }
         // Jin 如果当前用户的角色是开发工程师 只返回ROLE_DEV和ROLE_ADMIN
         final Map<String, List<MutableRole>> map = roles.stream()
@@ -124,7 +131,7 @@ public class RoleServiceImpl implements RoleService {
                 .collect(Collectors.groupingBy(MutableRole::getGroupId));
 
         List<GroupRoleVo> result = new ArrayList<>();
-        groups.forEach(item -> {
+        groupEntities.forEach(item -> {
             GroupRoleVo group = BeanUtil.copyProperties(item, GroupRoleVo.class);
             List<MutableRole> children = map.get(group.getGroupId());
             if (CollectionUtils.isNotEmpty(children)) {
@@ -220,7 +227,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<AccessPermission> getAccessPermissions(LoginUser operator, String authority, Integer mode) {
+    public List<AccessPermissionVO> getAccessPermissions(LoginUser operator, String authority, Integer mode) {
         Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
         //        boolean dev = OperatorUtils.isDev(operator);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(3);
@@ -234,7 +241,7 @@ public class RoleServiceImpl implements RoleService {
         //            authorities.add(operator.getUsername());
         //            parameters.put("authorities", authorities);
         //        }
-        List<AccessPermission> permissions = roleMapper.getAccessPermissions(parameters);
+        List<AccessPermissionVO> permissions = roleMapper.getAccessPermissions(parameters);
         if (CollectionUtils.isEmpty(permissions)) {
             return Collections.emptyList();
         }
@@ -361,7 +368,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public GroupVo addGroup(GroupVo groupVo) {
         groupVo.setGroupId(IdWorker.getIdStr());
-        groupMapper.insert(BeanUtil.copyProperties(groupVo, Group.class));
+        groupMapper.insert(BeanUtil.copyProperties(groupVo, GroupEntity.class));
         return groupVo;
     }
 
@@ -374,16 +381,16 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public GroupVo updateGroup(GroupVo groupVo) {
-        groupMapper.updateById(BeanUtil.copyProperties(groupVo, Group.class));
+        groupMapper.updateById(BeanUtil.copyProperties(groupVo, GroupEntity.class));
         return groupVo;
     }
 
     @Override
     public GroupVo getGroupById(String id) {
-        Group group = groupMapper.selectById(id);
-        if (group != null) {
+        GroupEntity groupEntity = groupMapper.selectById(id);
+        if (groupEntity != null) {
             GroupVo target = new GroupVo();
-            BeanUtil.copyProperties(group, target);
+            BeanUtil.copyProperties(groupEntity, target);
             return target;
         }
         return null;
@@ -394,43 +401,43 @@ public class RoleServiceImpl implements RoleService {
         String tenantId = operator.getTenantId();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(1);
         parameters.put(Constants.TENANT_ID, tenantId);
-        Group defaultGroup = newDefaultGroup(tenantId);
-        List<Group> groups = groupMapper.getAllGroup(parameters);
-        if (notcontains(groups, defaultGroup)) {
-            groups.add(defaultGroup);
+        GroupEntity defaultGroupEntity = newDefaultGroup(tenantId);
+        List<GroupEntity> groupEntities = groupMapper.getAllGroup(parameters);
+        if (notcontains(groupEntities, defaultGroupEntity)) {
+            groupEntities.add(defaultGroupEntity);
         }
-        return BeanUtil.copyToList(groups, GroupVo.class);
+        return BeanUtil.copyToList(groupEntities, GroupVo.class);
     }
 
-    private boolean notcontains(List<Group> groups, Group defaultGroup) {
-        return CollectionUtils.isEmpty(groups)
-                || (CollectionUtils.isNotEmpty(groups) && !groups.contains(defaultGroup));
+    private boolean notcontains(List<GroupEntity> groupEntities, GroupEntity defaultGroupEntity) {
+        return CollectionUtils.isEmpty(groupEntities)
+                || (CollectionUtils.isNotEmpty(groupEntities) && !groupEntities.contains(defaultGroupEntity));
     }
 
-    private Group newDefaultGroup(String tenantId) {
-        Group defaultGroup = new Group();
-        defaultGroup.setGroupId(DEFAULT);
-        defaultGroup.setGroupName(DEFAULT_GROUP_NAME);
-        defaultGroup.setTenantId(tenantId);
-        return defaultGroup;
+    private GroupEntity newDefaultGroup(String tenantId) {
+        GroupEntity defaultGroupEntity = new GroupEntity();
+        defaultGroupEntity.setGroupId(DEFAULT);
+        defaultGroupEntity.setGroupName(DEFAULT_GROUP_NAME);
+        defaultGroupEntity.setTenantId(tenantId);
+        return defaultGroupEntity;
     }
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
-    public void batchAddRoleUser(LoginUser user, BatchAddRoleUser req) {
+    public void batchAddRoleUser(LoginUser user, BatchAddRoleUserDTO req) {
         final String authority = req.getRoleId();
-        final LambdaQueryWrapper<UserRoleDao> query = Wrappers.lambdaQuery(UserRoleDao.class);
+        final LambdaQueryWrapper<UserRoleEntity> query = Wrappers.lambdaQuery(UserRoleEntity.class);
         final List<String> usernames = req.getUsername();
-        query.eq(UserRoleDao::getAuthority, req.getRoleId());
-        final List<UserRoleDao> dbResult = userRolesMapper.selectList(query);
+        query.eq(UserRoleEntity::getAuthority, req.getRoleId());
+        final List<UserRoleEntity> dbResult = userRolesMapper.selectList(query);
         final Set<String> dbUsernames =
-                dbResult.stream().map(UserRoleDao::getUserid).collect(Collectors.toSet());
+                dbResult.stream().map(UserRoleEntity::getUserid).collect(Collectors.toSet());
         if (usernames.size() >= dbUsernames.size()) {
             usernames.removeAll(dbUsernames);
             if (CollectionUtils.isNotEmpty(usernames)) {
                 final String tenantId = user.getTenantId();
-                final List<UserRoleDao> saveList = new ArrayList<>(usernames.size());
-                usernames.forEach(username -> saveList.add(new UserRoleDao(username, authority, tenantId)));
+                final List<UserRoleEntity> saveList = new ArrayList<>(usernames.size());
+                usernames.forEach(username -> saveList.add(new UserRoleEntity(username, authority, tenantId)));
                 userRolesMapper.insert(saveList);
             }
         } else {

@@ -1,9 +1,9 @@
 package com.lambda.fusion.authority.client.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.client.domain.dto.ApiTokenDO;
-import com.lambda.fusion.authority.client.domain.vo.SaveTokenVO;
-import com.lambda.fusion.authority.client.domain.vo.UpdateTokenVO;
+import com.lambda.fusion.authority.client.domain.dto.ApiTokenInputDTO;
+import com.lambda.fusion.authority.client.domain.entity.ApiTokenEntity;
 import com.lambda.fusion.authority.client.service.ApiTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,15 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.springframework.beans.BeanUtils;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * <p>
@@ -53,18 +45,17 @@ public class ApiTokenController {
                         in = ParameterIn.PATH,
                         schema = @Schema(defaultValue = "20"))
             })
-    public Page<ApiTokenDO> page(@PathVariable("number") int number, @PathVariable("size") int size) {
+    public Page<ApiTokenEntity> page(@PathVariable("number") int number, @PathVariable("size") int size) {
         return apiTokenService.page(new Page<>(number, size));
     }
 
     @PostMapping
     @Operation(description = "新增AipToken", summary = "新增令牌")
-    public ApiTokenDO save(@RequestBody @Valid SaveTokenVO saveDesignPageVo) {
-        final ApiTokenDO apiTokenDO = new ApiTokenDO();
-        BeanUtils.copyProperties(saveDesignPageVo, apiTokenDO);
-        apiTokenDO.setApiToken(RandomStringUtils.randomAlphanumeric(32));
-        apiTokenService.save(apiTokenDO);
-        return apiTokenService.getById(apiTokenDO.getId());
+    public ApiTokenEntity save(@RequestBody @Valid ApiTokenInputDTO tokenInputDTO) {
+        ApiTokenEntity apiTokenEntity = BeanUtil.copyProperties(tokenInputDTO, ApiTokenEntity.class);
+        apiTokenEntity.setApiToken(RandomStringUtils.secure().nextAlphabetic(32));
+        apiTokenService.save(apiTokenEntity);
+        return apiTokenEntity;
     }
 
     @DeleteMapping
@@ -73,12 +64,12 @@ public class ApiTokenController {
         apiTokenService.removeById(id);
     }
 
-    @PutMapping
+    @PutMapping("/{id}")
     @Operation(description = "修改AipToken", summary = "修改令牌")
-    public ApiTokenDO update(@RequestBody @Valid UpdateTokenVO updateTokenVO) {
-        final ApiTokenDO apiTokenDO = new ApiTokenDO();
-        BeanUtils.copyProperties(updateTokenVO, apiTokenDO);
-        apiTokenService.updateById(apiTokenDO);
-        return apiTokenService.getById(apiTokenDO.getId());
+    public ApiTokenEntity update(@PathVariable("id") String id, @RequestBody @Valid ApiTokenInputDTO tokenInputDTO) {
+        ApiTokenEntity apiTokenEntity = BeanUtil.copyProperties(tokenInputDTO, ApiTokenEntity.class);
+        apiTokenEntity.setId(id);
+        apiTokenService.updateById(apiTokenEntity);
+        return apiTokenEntity;
     }
 }

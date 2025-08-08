@@ -8,8 +8,8 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.authorize.mapper.AuthorizeMapper;
-import com.lambda.fusion.authority.authorize.model.NavigationParameter;
-import com.lambda.fusion.authority.authorize.model.SimpleUser;
+import com.lambda.fusion.authority.authorize.model.dto.NavigationQueryDTO;
+import com.lambda.fusion.authority.authorize.model.vo.SimpleUserVO;
 import com.lambda.fusion.authority.authorize.service.AuthorizeService;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.autoconfig.AuthorityConstants;
@@ -19,14 +19,12 @@ import com.lambda.fusion.core.user.User;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
 import com.lambda.security.provider.ThirdPartLoginResult;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -38,11 +36,11 @@ public class AuthorizeServiceImpl implements AuthorizeService {
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
         Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
-        SimpleUser simpleUser = authorizeMapper.loadUserDetailByUsername(username);
-        if (simpleUser == null) {
+        SimpleUserVO simpleUserVO = authorizeMapper.loadUserDetailByUsername(username);
+        if (simpleUserVO == null) {
             throw new UsernameNotFoundException(AuthorityConstants.USER_NOT_FOUND);
         }
-        User source = simpleUser.toUser();
+        User source = simpleUserVO.toUser();
         if (CollUtil.isEmpty(source.getRoles())) {
             source.setRoles(Sets.newHashSet(Constants.ROLE_USER));
         }
@@ -55,14 +53,14 @@ public class AuthorizeServiceImpl implements AuthorizeService {
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<SimpleUser> simpleUsers = authorizeMapper.loadUserDetailByMobile(mobile);
-        if (CollUtil.isEmpty(simpleUsers)) {
+        List<SimpleUserVO> simpleUserVOS = authorizeMapper.loadUserDetailByMobile(mobile);
+        if (CollUtil.isEmpty(simpleUserVOS)) {
             throw new UsernameNotFoundException(AuthorityConstants.USER_NOT_FOUND);
         }
-        if (simpleUsers.size() > 1) {
+        if (simpleUserVOS.size() > 1) {
             throw new AuthenticationException(AuthorityConstants.USER_MOBILE_EXIST);
         }
-        User source = simpleUsers.getFirst().toUser();
+        User source = simpleUserVOS.getFirst().toUser();
         if (CollUtil.isEmpty(source.getRoles())) {
             source.setRoles(Sets.newHashSet(Constants.ROLE_USER));
         }
@@ -75,7 +73,7 @@ public class AuthorizeServiceImpl implements AuthorizeService {
 
     @Override
     public List<Resource> getNavigation(LoginUser operator, String parentId, Integer level) {
-        NavigationParameter parameter = new NavigationParameter();
+        NavigationQueryDTO parameter = new NavigationQueryDTO();
         parameter.setParentId(parentId);
         parameter.setLevel(level);
         parameter.setMode(0);
@@ -83,7 +81,7 @@ public class AuthorizeServiceImpl implements AuthorizeService {
     }
 
     @Override
-    public List<Resource> getNavigation(LoginUser operator, NavigationParameter parameter) {
+    public List<Resource> getNavigation(LoginUser operator, NavigationQueryDTO parameter) {
         Assert.notNull(operator, "parameter 'operator' cannot be empty or null");
         //        boolean dev = OperatorUtils.isDev(operator);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);

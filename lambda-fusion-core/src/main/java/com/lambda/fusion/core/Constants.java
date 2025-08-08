@@ -2,7 +2,6 @@ package com.lambda.fusion.core;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang.StringUtils;
 
@@ -14,7 +13,6 @@ import org.apache.commons.lang.StringUtils;
  */
 @UtilityClass
 public final class Constants {
-
 
     // ========== 系统基础常量 ==========
     /** 系统标识 */

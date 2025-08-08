@@ -13,7 +13,7 @@
         <result property="updated" column="updated"/>
         <result property="expired" column="expired"/>
         <result property="enabled" column="enabled"/>
-        <result property="tenant_id" column="TENANT_ID"/>
+        <result property="tenant_id" column="tenantId"/>
         <result property="remarks" column="remarks"/>
     </resultMap>
 
@@ -24,7 +24,7 @@
         <result column="expired" property="expired" javaType="java.util.Date"/>
         <result column="hosts" property="hosts" javaType="String"/>
         <result column="enabled" property="enabled" javaType="Boolean" />
-        <result column="TENANT_ID" property="tenant_id" javaType="String"/>
+        <result column="TENANT_ID" property="tenantId" javaType="String"/>
         <collection property="authorities" ofType="org.springframework.security.core.authority.SimpleGrantedAuthority">
             <constructor>
                 <idArg column="authority" javaType="String"/>
@@ -32,7 +32,7 @@
         </collection>
     </resultMap>
 
-    <select id="getAuthorization" resultType="com.lambda.fusion.authority.client.domain.vo.Authorize">
+    <select id="getAuthorization" resultType="com.lambda.fusion.authority.client.domain.vo.AuthorizeVO">
         SELECT DISTINCT
             T.id,
             T.name,
