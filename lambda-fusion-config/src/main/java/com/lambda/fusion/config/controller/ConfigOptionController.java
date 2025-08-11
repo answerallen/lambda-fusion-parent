@@ -57,7 +57,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "系统配置管理")
 @RestController
-@RequestMapping("/configs/options")
+@RequestMapping("/config/options")
 public class ConfigOptionController {
 
     /** 配置选项服务，提供配置选项的业务逻辑处理 */

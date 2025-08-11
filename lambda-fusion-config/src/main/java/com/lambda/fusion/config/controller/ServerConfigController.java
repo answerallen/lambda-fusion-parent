@@ -9,7 +9,7 @@ import cn.hutool.crypto.asymmetric.RSA;
 import cn.hutool.crypto.symmetric.AES;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.autoconfig.ConfigsProperties;
+import com.lambda.fusion.autoconfig.ConfigProperties;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,15 +26,15 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "系统配置管理")
 @RefreshScope
 @RestController
-@RequestMapping("/public/configs/server")
+@RequestMapping("/public/config/server")
 @SuppressFBWarnings("EI_EXPOSE_REP")
 public class ServerConfigController {
     private static final Logger log = LoggerFactory.getLogger(ServerConfigController.class);
 
-    private final ConfigsProperties config;
+    private final ConfigProperties config;
     private ObjectMapper objectMapper;
 
-    public ServerConfigController(ConfigsProperties config) {
+    public ServerConfigController(ConfigProperties config) {
         this.config = config;
     }
 
@@ -46,7 +46,7 @@ public class ServerConfigController {
     @GetMapping
     @Operation(summary = "获取服务配置信息")
     public Object getServerConfig(@RequestParam(required = false) String sessionKey) {
-        ConfigsProperties.Security security = config.getSecurity();
+        ConfigProperties.Security security = config.getSecurity();
         if (security.isConfigEncryptEnabled()) {
             Assert.hasText(sessionKey, CONFIG_ENCRYPT_NO_KEY);
             try {

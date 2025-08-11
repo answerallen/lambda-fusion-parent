@@ -3,9 +3,11 @@ package com.lambda.fusion.autoconfig;
 import com.lambda.fusion.dict.dubbo.RemoteDictService;
 import org.apache.dubbo.config.ServiceConfig;
 import org.apache.dubbo.spring.boot.autoconfigure.DubboAutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -13,8 +15,9 @@ import org.springframework.context.annotation.Configuration;
  *
  * @author Jin
  */
-@Configuration(proxyBeanMethods = false)
-public class DictionaryConfigure {
+@AutoConfiguration
+@ComponentScan("com.lambda.fusion.dict")
+public class DictionaryAutoconfig {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(DubboAutoConfiguration.class)

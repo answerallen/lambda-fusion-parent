@@ -28,7 +28,7 @@ import org.springframework.core.env.Environment;
 @Schema(description = "应用配置信息")
 @ConfigurationProperties(prefix = "lambda.fusion.config")
 @JsonPropertyOrder(alphabetic = true)
-public class ConfigsProperties implements InitializingBean {
+public class ConfigProperties implements InitializingBean {
 
     @Schema(description = "系统名称")
     private String title = "快速开发平台";
@@ -73,7 +73,7 @@ public class ConfigsProperties implements InitializingBean {
         return this.security.isFormVerifyEnabled();
     }
 
-    public ConfigsProperties(Environment environment, Customize customize) {
+    public ConfigProperties(Environment environment, Customize customize) {
         this.customize = customize;
         this.environment = environment;
     }

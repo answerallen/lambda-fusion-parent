@@ -49,7 +49,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "系统配置管理")
 @RestController
-@RequestMapping("/configs")
+@RequestMapping("/config")
 @RequiredArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class ConfigController {
