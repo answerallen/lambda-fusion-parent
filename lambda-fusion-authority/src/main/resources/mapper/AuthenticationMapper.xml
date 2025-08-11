@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.lambda.fusion.authority.authorize.mapper.AuthorizeMapper">
-    <resultMap id="LoginUserMap" type="com.lambda.fusion.authority.authorize.model.vo.SimpleUserVO">
+<mapper namespace="com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper">
+    <resultMap id="LoginUserMap" type="com.lambda.fusion.authority.authentication.model.vo.SimpleUserVO">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="password" property="password" javaType="String"/>
@@ -34,6 +34,7 @@
             WHERE T.username = #{username}
         ]]>
     </select>
+    
     <select id="loadUserDetailByMobile" parameterType="String" resultMap="LoginUserMap">
         <![CDATA[
             SELECT
@@ -112,15 +113,6 @@
         ORDER BY T1.res_rank, T1.parentId, T1.orderNo
     </select>
 
-    <select id="queryOrganizationByUser" resultType="com.lambda.fusion.authority.organization.model.Organization">
-        SELECT
-        id,
-        alias
-        FROM LA_ORGANIZATION T1
-        INNER JOIN LA_USER_ORGANIZATION T2 ON T2.ORGANIZATIONID = T1.id
-        WHERE T2.userid = #{username}
-    </select>
-
     <select id="getUsersByRoleId" resultType="com.lambda.fusion.authority.user.domain.SimpleUser">
         SELECT
         U.username,
@@ -128,7 +120,7 @@
         FROM
         LA_USER_ROLES UR
         INNER JOIN LA_USERS U ON U.USERNAME = UR.USERID
-        AND UR.AUTHORITY = #{roleid}
+        AND UR.AUTHORITY = #{roleId}
     </select>
 
 </mapper>
