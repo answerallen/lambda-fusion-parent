@@ -1,9 +1,11 @@
 package com.lambda.fusion.authority.resource.service;
 
 import com.lambda.fusion.authority.resource.model.MutableResource;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Set;
 import java.util.function.Predicate;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class ChildrenFilter implements Predicate<MutableResource> {
 
     private final MutableResource target;

@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.tenant.cache;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.springframework.data.redis.core.HashOperations;
@@ -10,6 +11,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 /**
  * 租户配置redis缓存
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TenantConfigurationRedisCache implements TenantConfigurationCache {
 
     private final RedisTemplate<String, Object> redisTemplate;

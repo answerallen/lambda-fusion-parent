@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.resource.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
@@ -17,6 +18,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Schema(description = "资源元数据")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class ResourceParameter {
 
     @JsonIgnore

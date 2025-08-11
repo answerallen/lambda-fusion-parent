@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserOrganization {
     @Schema(description = "用户ID")
-    public String userId;
+    private String userId;
 
     @Schema(description = "组织ID")
     private String organizationId;

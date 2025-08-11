@@ -1,12 +1,10 @@
 package com.lambda.fusion.authority.authentication.mapper;
 
-import com.lambda.fusion.authority.authentication.model.dto.NavigationQueryDTO;
-import com.lambda.fusion.authority.authentication.model.dto.ResourceSimpleQueryDTO;
-import com.lambda.fusion.authority.authentication.model.vo.SimpleUserVO;
+import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.authentication.model.ResourceSimpleQuery;
+import com.lambda.fusion.authority.authentication.model.domain.SimpleUser;
 import com.lambda.fusion.authority.resource.model.Resource;
-import com.lambda.fusion.authority.user.domain.SimpleUser;
 import java.util.List;
-import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -23,7 +21,7 @@ public interface AuthenticationMapper {
      * @param username 用户名
      * @return 用户详细信息
      */
-    SimpleUserVO loadUserDetailByUsername(@Param("username") String username);
+    SimpleUser loadUserDetailByUsername(@Param("username") String username);
 
     /**
      * 根据手机号加载用户详细信息
@@ -31,7 +29,7 @@ public interface AuthenticationMapper {
      * @param mobile 手机号
      * @return 用户详细信息列表
      */
-    List<SimpleUserVO> loadUserDetailByMobile(@Param("mobile") String mobile);
+    List<SimpleUser> loadUserDetailByMobile(@Param("mobile") String mobile);
 
     /**
      * 根据查询条件获取导航菜单
@@ -39,7 +37,7 @@ public interface AuthenticationMapper {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    List<Resource> getNavigationByQuery(NavigationQueryDTO query);
+    List<Resource> getNavigationByQuery(NavigationQuery query);
 
     /**
      * 根据查询条件获取简单资源列表
@@ -47,8 +45,7 @@ public interface AuthenticationMapper {
      * @param query 资源查询参数
      * @return 简单资源列表
      */
-    List<Resource> getAllResourcesSimpleByQuery(ResourceSimpleQueryDTO query);
-
+    List<Resource> getAllResourcesSimpleByQuery(ResourceSimpleQuery query);
 
     /**
      * 根据角色ID获取用户列表
@@ -56,5 +53,5 @@ public interface AuthenticationMapper {
      * @param roleId 角色ID
      * @return 用户列表
      */
-    List<SimpleUser> getUsersByRoleId(@Param("roleId") String roleId);
+    List<com.lambda.fusion.authority.user.model.SimpleUser> getUsersByRoleId(@Param("roleId") String roleId);
 }

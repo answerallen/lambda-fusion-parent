@@ -30,7 +30,6 @@ import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
 import com.lambda.fusion.authority.role.model.vo.GroupRoleVo;
 import com.lambda.fusion.authority.role.model.vo.GroupVo;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
-import com.lambda.fusion.autoconfig.AuthorityConstants;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.TreeFactory;
 import jakarta.annotation.Resource;
@@ -160,8 +159,8 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MutableRole updateRole(LoginUser operator, MutableRole role) {
-        Assert.notNull(role, AuthorityConstants.ROLE_NOT_FOUND);
-        Assert.notNull(role.getAlias(), "lambda.authority.role.alias.notempty");
+        Assert.notNull(role, "role不能为空");
+        Assert.notNull(role.getAlias(), "别名不能为空！");
         MutableRole source = getRoleByAuthority(role.getAuthority());
         source.setAlias(role.getAlias());
         source.setRemarks(role.getRemarks());
@@ -177,7 +176,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MutableRole saveRole(LoginUser operator, MutableRole role) {
-        Assert.notNull(role, AuthorityConstants.ROLE_NOT_FOUND);
+        Assert.notNull(role, "role不能为空");
         Assert.notNull(role.getAlias(), "别名不能为空！");
         String tenantId = operator.getTenantId();
         String authority = UUID.fastUUID().toString();
@@ -195,7 +194,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public MutableRole getRoleByAuthority(String authority) {
-        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, "role name 不能为空");
         if (authority.startsWith(Constants.ROLE_TENANT)) {
             authority = Constants.ROLE_TENANT;
         }
@@ -205,7 +204,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteRoleById(String authority) {
-        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, "role name 不能为空");
         Set<String> excludes = Stream.of(BUILT_IN_ROLES).collect(Collectors.toSet());
         Set<String> deleteExclude = internalRoleService.deleteExclude(OperatorUtils.getOperator());
         excludes.addAll(deleteExclude);
@@ -214,7 +213,8 @@ public class RoleServiceImpl implements RoleService {
         authority = role.getAuthority();
         Assert.notNull(role, "角色" + authority + "不存在");
         boolean hasUsedAuthority = hasUsedAuthority(authority);
-        Assert.isTrue(!hasUsedAuthority, "lambda.authority.role.delete.used");
+        Assert.isTrue(!hasUsedAuthority, "角色" + authority + "已被使用");
+        roleMapper.deleteRoleByAuthority(authority);
         roleMapper.deleteResourceRoleByAuthority(authority);
         roleMapper.deleteRoleByAuthority(authority);
         roleMapper.deleteUserRoleByAuthority(authority);
@@ -222,13 +222,13 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public boolean hasExists(String authority) {
-        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, "role name 不能为空");
         return roleMapper.hasExists(authority);
     }
 
     @Override
     public List<AccessPermissionVO> getAccessPermissions(LoginUser operator, String authority, Integer mode) {
-        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, "role name 不能为空");
         //        boolean dev = OperatorUtils.isDev(operator);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(3);
         parameters.put("authority", authority);
@@ -253,8 +253,8 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void saveAuthorization(String authority, String resourceid, int status, LoginUser operator) {
-        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
-        Assert.notNull(resourceid, "lambda.authority.role.resource.notempty");
+        Assert.notNull(authority, "role name 不能为空");
+        Assert.notNull(resourceid, "资源id不能为空！");
         //        boolean dev = OperatorUtils.isDev(operator);
         //        if (!dev) {
         //            boolean self = OperatorUtils.hasAuthorize(operator, authority);
@@ -306,8 +306,8 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     public void deleteAuthorization(String authority, String resourceid, LoginUser operator) {
-        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
-        Assert.notNull(resourceid, "lambda.authority.role.resource.notempty");
+        Assert.notNull(authority, "role name 不能为空");
+        Assert.notNull(resourceid, "资源id不能为空！");
         //        boolean dev = OperatorUtils.isDev(operator);
         //        if (!dev) {
         //            boolean self = OperatorUtils.hasAuthorize(operator, authority);
@@ -353,11 +353,10 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void prohibitRole(int type, String authority) {
-        Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
+        Assert.notNull(authority, "role name 不能为空");
         MutableRole role = getRoleByAuthority(authority);
-        authority = role.getAuthority();
-        Assert.notNull(role, AuthorityConstants.ROLE_NOT_FOUND);
-        roleMapper.prohibitRole(type, authority);
+        Assert.notNull(role, " 角色" + authority + "不存在");
+        roleMapper.prohibitRole(type, role.getAuthority());
     }
 
     @Override
@@ -374,7 +373,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void deleteGroup(String groupId) {
-        Assert.isFalse(Objects.equals(groupId, DEFAULT), AuthorityConstants.ROLE_GROUP_ILLEGAL_OPERATION_DEL_DEFAULT);
+        Assert.isFalse(Objects.equals(groupId, DEFAULT), "默认组不能删除");
         groupMapper.updateRoleGroupId(groupId, DEFAULT);
         groupMapper.deleteById(groupId);
     }

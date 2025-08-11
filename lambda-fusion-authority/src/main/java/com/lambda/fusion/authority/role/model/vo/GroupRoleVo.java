@@ -1,12 +1,14 @@
 package com.lambda.fusion.authority.role.model.vo;
 
 import com.lambda.fusion.authority.role.model.MutableRole;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.Data;
 
 @Data
 @Schema(description = "角色分组信息")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class GroupRoleVo {
     @Schema(description = "分组ID")
     private String groupId;

@@ -1,12 +1,10 @@
 package com.lambda.fusion.authority.organization.model;
 
+import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
 
-@Getter
-@Setter
-@EqualsAndHashCode(callSuper = false)
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class MutableOrganization extends Organization {
     private String username;
 }

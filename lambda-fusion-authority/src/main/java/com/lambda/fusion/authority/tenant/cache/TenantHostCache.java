@@ -3,12 +3,14 @@ package com.lambda.fusion.authority.tenant.cache;
 import static com.lambda.fusion.core.Constants.TENANT_HOST_REDIS_KEY;
 
 import com.lambda.cloud.core.utils.Assert;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 
 /**
  * 租户域名映射缓存
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TenantHostCache {
 
     /**

@@ -2,8 +2,8 @@ package com.lambda.fusion.authority.user.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.user.domain.*;
-import com.lambda.fusion.authority.user.domain.entity.UserInfoEntity;
+import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;

@@ -2,13 +2,15 @@ package com.lambda.fusion.authority.user.service.impl;
 
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.sms.SmsMessageSender;
-import com.lambda.fusion.authority.user.domain.*;
-import com.lambda.fusion.authority.user.domain.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.mapper.UserFieldsMapper;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
+import com.lambda.fusion.authority.user.model.MutableUser;
+import com.lambda.fusion.authority.user.model.RestUserInfoParameter;
+import com.lambda.fusion.authority.user.model.RestVerifyCodeInfo;
+import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.service.UserCenterService;
-import com.lambda.fusion.autoconfig.AuthorityConstants;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.lang.NonNull;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(rollbackFor = Exception.class)
 @Service
 @RequiredArgsConstructor
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class UserCenterServiceImpl implements UserCenterService {
 
     private final UserMapper userMapper;
@@ -33,10 +36,10 @@ public class UserCenterServiceImpl implements UserCenterService {
 
     @Override
     public void updateMobile(String username, String mobile, String verifyCode) {
-        Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
+        Assert.notNull(username, "username must not be empty");
         MutableUser mutableUser = userMapper.getMutableUserById(username);
-        Assert.notNull(mutableUser, AuthorityConstants.USER_NOT_FOUND);
-        Assert.notNull(mobile, "lambda.authority.user.mobile.notempty");
+        Assert.notNull(mutableUser, "user not found");
+        Assert.notNull(mobile, "mobile must not be empty");
         mutableUser.setMobile(mobile);
         userMapper.updateMobile(mutableUser);
     }
@@ -44,10 +47,10 @@ public class UserCenterServiceImpl implements UserCenterService {
     @Override
     public void updateEmail(String username, String email, String verifyCode) {
         // 验证参数
-        Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
+        Assert.notNull(username, "username must not be empty");
         // 获取用户信息并验证用户是否存在
         MutableUser mutableUser = userMapper.getMutableUserById(username);
-        Assert.notNull(mutableUser, AuthorityConstants.USER_NOT_FOUND);
+        Assert.notNull(mutableUser, "user not found");
         Assert.notNull(email, "lambda.authority.user.email.notempty");
         // 更新用户邮箱
         userMapper.updateEmail(mutableUser);
@@ -57,7 +60,7 @@ public class UserCenterServiceImpl implements UserCenterService {
     public MutableUser updateInfo(RestUserInfoParameter restUserInfoParameter) {
         String username = restUserInfoParameter.getUsername();
         MutableUser user = userMapper.getMutableUserById(username);
-        Assert.notNull(user, AuthorityConstants.USER_NOT_FOUND);
+        Assert.notNull(user, "user not found");
         userMapper.updateInfo(restUserInfoParameter);
         String avatar = restUserInfoParameter.getAvatar();
         if (StringUtils.isNotEmpty(avatar)) {
@@ -77,7 +80,10 @@ public class UserCenterServiceImpl implements UserCenterService {
         user.setOnline(true);
         user.setLocked(true);
 
-        if (StringUtils.isNotEmpty(restUserInfoParameter.getPersonal())) {}
+        if (StringUtils.isNotEmpty(restUserInfoParameter.getPersonal())) {
+            // TODO 更新用户扩展信息
+            System.out.println(restUserInfoParameter.getPersonal());
+        }
 
         return user;
     }

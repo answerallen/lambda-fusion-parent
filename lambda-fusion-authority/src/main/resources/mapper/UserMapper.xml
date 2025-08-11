@@ -4,7 +4,7 @@
 <!--suppress MybatisXMapperXmlInspection -->
 <mapper namespace="com.lambda.fusion.authority.user.mapper.UserMapper">
 
-    <resultMap id="MutableUser" type="com.lambda.fusion.authority.user.domain.MutableUser">
+    <resultMap id="MutableUser" type="com.lambda.fusion.authority.user.model.MutableUser">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="mobile" property="mobile"/>
@@ -24,7 +24,7 @@
                 <arg column="orgAlias" javaType="String"/>
             </constructor>
         </association>
-        <association property="props" javaType="com.lambda.fusion.authority.user.domain.UserInfo">
+        <association property="props" javaType="com.lambda.fusion.authority.user.model.UserInfo">
             <id column="userid" property="userid"/>
             <result column="avatar" property="avatar"/>
             <result column="remark" property="remark"/>
@@ -64,7 +64,7 @@
         </collection>
     </resultMap>
 
-    <select id="getAllMutableUsersByCondition" resultType="com.lambda.fusion.authority.user.domain.MutableUser">
+    <select id="getAllMutableUsersByCondition" resultType="com.lambda.fusion.authority.user.model.MutableUser">
         SELECT T.username, T.nickname, T.mobile, T.email, T.enabled, T.jobno FROM LA_USERS T
         <where>
             <choose>
@@ -191,18 +191,18 @@
     </select>
 
     <!-- 根据Id查询用户信息 -->
-    <select id="getPasswordById" resultType="com.lambda.fusion.authority.user.domain.MutableUser">
+    <select id="getPasswordById" resultType="com.lambda.fusion.authority.user.model.MutableUser">
         SELECT T.username, T.password FROM LA_USERS T WHERE T.username = #{username}
     </select>
     <!-- 保存用户 -->
-    <insert id="insertMutableUser" parameterType="com.lambda.fusion.authority.user.domain.MutableUser">
+    <insert id="insertMutableUser" parameterType="com.lambda.fusion.authority.user.model.MutableUser">
         INSERT INTO LA_USERS (username, password, nickname, mobile, email, createdate, enabled, tenantId, owner, jobno, creator, EXPIRED_TIME)
         VALUES(#{username}, #{password}, #{nickname}, #{mobile,jdbcType=VARCHAR}, #{email, jdbcType=VARCHAR},
         #{createDate, jdbcType=TIMESTAMP}, 1, #{tenantId, jdbcType=VARCHAR}, #{owner, jdbcType=VARCHAR}, #{jobno, jdbcType=VARCHAR}
                   , #{creator, jdbcType=VARCHAR}, #{expiredTime, jdbcType=TIMESTAMP})
     </insert>
     <!-- 更新用户 -->
-    <update id="updateMutableUser" parameterType="com.lambda.fusion.authority.user.domain.MutableUser">
+    <update id="updateMutableUser" parameterType="com.lambda.fusion.authority.user.model.MutableUser">
         UPDATE LA_USERS SET
             nickname = #{nickname},
             mobile = #{mobile, jdbcType=VARCHAR},
@@ -218,7 +218,7 @@
     </update>
 
     <!-- 保存用户角色 -->
-    <insert id="addUserRoles" parameterType="com.lambda.fusion.authority.user.domain.MutableUser">
+    <insert id="addUserRoles" parameterType="com.lambda.fusion.authority.user.model.MutableUser">
         INSERT INTO LA_USER_ROLES (userid, authority) VALUES
         <foreach collection="authorities" item="role" separator=",">
             (#{username},#{role.authority})
@@ -241,7 +241,7 @@
         SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_USERS T WHERE T.USERNAME = #{username})
     </select>
     <!-- 更新用户密码 -->
-    <update id="updatePassword" parameterType="com.lambda.fusion.authority.user.domain.MutableUser">
+    <update id="updatePassword" parameterType="com.lambda.fusion.authority.user.model.MutableUser">
         UPDATE LA_USERS SET password = #{password} where username = #{username}
     </update>
     <!-- 禁用用户 -->
@@ -280,7 +280,7 @@
             AND UR.AUTHORITY = #{roleid}
         </if>
     </select>
-    <resultMap id="Permission" type="com.lambda.fusion.authority.user.domain.Permission">
+    <resultMap id="Permission" type="com.lambda.fusion.authority.user.model.Permission">
         <id column="id" property="id"/>
         <result column="res_name" property="name"/>
         <result column="parentid" property="pid"/>
@@ -308,7 +308,7 @@
     </select>
 
 
-    <select id="getRoleResources" resultType="com.lambda.fusion.authority.user.domain.RoleResources">
+    <select id="getRoleResources" resultType="com.lambda.fusion.authority.user.model.RoleResources">
         SELECT T.RESOURCEID,T.LA_MANAGE FROM LA_ROLE_RESOURCES T
         <where>
             <if test="authority != null and authority !='' ">
@@ -339,7 +339,7 @@
             #{item.resourceId}
         </foreach>
     </update>
-    <select id="getAllSimpleUser" resultType="com.lambda.fusion.authority.user.domain.SimpleUser">
+    <select id="getAllSimpleUser" resultType="com.lambda.fusion.authority.user.model.SimpleUser">
         SELECT DISTINCT
             T1.USERNAME,
             T1.NICKNAME
@@ -458,21 +458,21 @@
     </select>
 
     <!-- 更新用户手机号 -->
-    <update id="updateMobile" parameterType="com.lambda.fusion.authority.user.domain.MutableUser">
+    <update id="updateMobile" parameterType="com.lambda.fusion.authority.user.model.MutableUser">
         UPDATE LA_USERS SET mobile = #{mobile} where username = #{username}
     </update>
 
     <!-- 更新用户邮箱 -->
-    <update id="updateEmail" parameterType="com.lambda.fusion.authority.user.domain.MutableUser">
+    <update id="updateEmail" parameterType="com.lambda.fusion.authority.user.model.MutableUser">
         UPDATE LA_USERS SET email = #{email} where username = #{username}
     </update>
 
     <!-- 更新用户信息 -->
-    <update id="updateInfo" parameterType="com.lambda.fusion.authority.user.domain.RestUserInfoParameter">
+    <update id="updateInfo" parameterType="com.lambda.fusion.authority.user.model.RestUserInfoParameter">
         UPDATE LA_USERS SET nickname = #{nickname},email = #{email} where username = #{username}
     </update>
 
-    <resultMap id="TenantUser" type="com.lambda.fusion.authority.user.domain.MutableUser">
+    <resultMap id="TenantUser" type="com.lambda.fusion.authority.user.model.MutableUser">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="mobile" property="mobile"/>

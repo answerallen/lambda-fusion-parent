@@ -1,10 +1,12 @@
-package com.lambda.fusion.authority.user.domain;
+package com.lambda.fusion.authority.user.model;
 
 import com.lambda.fusion.core.tree.Tree;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import lombok.Data;
 
 @Data
+@SuppressFBWarnings({"EI_EXPOSE_REP", "UUF_UNUSED_FIELD", "CT_CONSTRUCTOR_THROW"})
 public class Permission implements Tree<Permission> {
 
     private String id;

@@ -2,13 +2,11 @@ package com.lambda.fusion.core.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.security.SimpleLoginUser;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-import java.time.LocalDateTime;
-
-@Getter
-@Setter
+@EqualsAndHashCode(callSuper = true)
+@Data
 public class User extends SimpleLoginUser {
     private String orgId;
     private String tenantId;

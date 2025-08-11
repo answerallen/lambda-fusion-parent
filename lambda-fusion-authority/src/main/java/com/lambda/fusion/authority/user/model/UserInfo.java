@@ -1,6 +1,7 @@
-package com.lambda.fusion.authority.user.domain;
+package com.lambda.fusion.authority.user.model;
 
 import com.lambda.fusion.core.base.LambdaExpanded;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,6 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Schema(description = "用户扩展信息")
+@SuppressFBWarnings({"UUF_UNUSED_FIELD", "CT_CONSTRUCTOR_THROW"})
 public class UserInfo implements LambdaExpanded {
     private String userid;
 

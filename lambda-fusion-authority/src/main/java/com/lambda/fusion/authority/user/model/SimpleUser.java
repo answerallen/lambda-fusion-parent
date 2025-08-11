@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.domain;
+package com.lambda.fusion.authority.user.model;
 
 import lombok.Getter;
 import lombok.Setter;

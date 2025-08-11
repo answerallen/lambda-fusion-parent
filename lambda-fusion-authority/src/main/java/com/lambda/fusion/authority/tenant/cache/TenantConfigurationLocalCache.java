@@ -3,6 +3,7 @@ package com.lambda.fusion.authority.tenant.cache;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -14,6 +15,7 @@ import org.springframework.cache.Cache;
  * 租户配置本地缓存
  */
 @Slf4j
+@SuppressFBWarnings("NP_UNWRITTEN_FIELD")
 public class TenantConfigurationLocalCache implements TenantConfigurationCache {
 
     private Cache cache;

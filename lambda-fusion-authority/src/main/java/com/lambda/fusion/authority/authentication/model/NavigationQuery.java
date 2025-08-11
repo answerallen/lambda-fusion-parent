@@ -1,5 +1,6 @@
-package com.lambda.fusion.authority.authentication.model.dto;
+package com.lambda.fusion.authority.authentication.model;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.Data;
@@ -10,7 +11,8 @@ import lombok.Data;
  */
 @Data
 @Schema(description = "导航查询参数")
-public class NavigationQueryDTO {
+@SuppressFBWarnings("EI_EXPOSE_REP")
+public class NavigationQuery {
 
     /**
      * 父级菜单ID

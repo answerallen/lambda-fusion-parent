@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Date;
 import lombok.Data;
@@ -17,6 +18,7 @@ import lombok.Data;
 @Data
 @TableName("LA_API_TOKEN")
 @Schema(description = "Api Token授权信息")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class ApiTokenEntity {
 
     @TableId(value = "ID", type = IdType.ASSIGN_ID)

@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.resource.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.fusion.core.tree.Tree;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +15,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "资源信息")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class Resource extends MutableResource implements Tree<Resource> {
 
     @Schema(description = "子资源集合")

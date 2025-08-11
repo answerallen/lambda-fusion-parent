@@ -1,14 +1,19 @@
 package com.lambda.fusion.authority.client.model.dto;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
 
 @Data
 @Schema(description = "SaveTokenVO对象")
-public class ApiTokenInputDTO {
+@SuppressFBWarnings("EI_EXPOSE_REP")
+public class ApiTokenInputDTO implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "描述")

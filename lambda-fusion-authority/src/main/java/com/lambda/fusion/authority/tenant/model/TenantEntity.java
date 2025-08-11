@@ -3,6 +3,7 @@ package com.lambda.fusion.authority.tenant.model;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -18,6 +19,7 @@ import org.apache.commons.lang.StringUtils;
 @Data
 @TableName("la_tenant")
 @Schema(description = "租户信息表")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class TenantEntity {
 
     /**

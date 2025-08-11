@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.role.model;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Date;
 import lombok.Data;
@@ -8,6 +9,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "角色信息")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class MutableRole extends SimpleRole {
 
     @Schema(description = "图标")

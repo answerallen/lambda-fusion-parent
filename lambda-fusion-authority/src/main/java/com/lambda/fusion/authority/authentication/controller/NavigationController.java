@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.authentication.controller;
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.authentication.model.dto.NavigationQueryDTO;
+import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.Resource;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,7 +43,7 @@ public class NavigationController {
                 @Parameter(name = "level", description = "菜单层级"),
                 @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
             })
-    public List<Resource> getNavigation(@Parameter NavigationQueryDTO query) {
+    public List<Resource> getNavigation(@Parameter NavigationQuery query) {
         LoginUser operator = OperatorUtils.getOperator();
         return authenticationService.getNavigation(operator, query);
     }

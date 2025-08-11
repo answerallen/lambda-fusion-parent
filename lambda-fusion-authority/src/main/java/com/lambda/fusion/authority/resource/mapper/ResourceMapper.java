@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.resource.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
-import com.lambda.fusion.authority.authorize.model.dto.NavigationQueryDTO;
+import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.resource.model.UserPermission;
@@ -112,7 +112,7 @@ public interface ResourceMapper {
      * 获取所有可用的资源
      * @param parameter 参数
      */
-    List<MutableResource> queryAvailableMutableResources(NavigationQueryDTO parameter);
+    List<MutableResource> queryAvailableMutableResources(NavigationQuery parameter);
 
     /**
      * 查询系统资源列表

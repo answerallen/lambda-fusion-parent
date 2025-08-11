@@ -5,7 +5,6 @@ import lombok.Data;
 
 @Data
 public class AccessPermissionDO {
-
     private String authority;
     private String tenantId;
     private Set<String> ids;

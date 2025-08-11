@@ -18,7 +18,7 @@ import com.lambda.fusion.authority.tenant.event.*;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
 import com.lambda.fusion.authority.tenant.model.TenantQuery;
 import com.lambda.fusion.authority.tenant.persistence.TenantMapper;
-import com.lambda.fusion.autoconfig.AuthorityConstants;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -43,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
         implements TenantService, ApplicationEventPublisherAware, CommandLineRunner {
 
@@ -194,8 +195,8 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
     @SneakyThrows
     @Transactional(rollbackFor = Exception.class)
     public void updateConfig(LoginUser operator, String tenantId, Map<String, Object> configMap) {
-        Assert.notNull(tenantId, AuthorityConstants.TENANT_ID_NOT_EMPTY);
-        Assert.isTrue(tenantMapper.isExist(tenantId), AuthorityConstants.TENANT_NOT_FOUND);
+        Assert.notNull(tenantId, "租户ID不能为空！");
+        Assert.isTrue(tenantMapper.isExist(tenantId), "租户不存在！");
         Assert.notNull(configMap, "lambda.authority.tenant.config.notempty");
         // 判断当前用户是否拥有操作权限
         this.hasOperation(operator, tenantId);
@@ -210,17 +211,17 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
 
     @Override
     public JsonNode getTenantConfigureById(LoginUser operator, String tenantId) {
-        Assert.notNull(tenantId, AuthorityConstants.TENANT_ID_NOT_EMPTY);
+        Assert.notNull(tenantId, "租户ID不能为空！");
         this.hasOperation(operator, tenantId);
         return getTenantConfigureById(tenantId);
     }
 
     @Override
     public Map<String, Object> getTenantConfigureMapById(String tenantId) {
-        Assert.notNull(tenantId, AuthorityConstants.TENANT_ID_NOT_EMPTY);
+        Assert.notNull(tenantId, "租户ID不能为空！");
         ObjectNode jsonNode = (ObjectNode) getTenantConfigureById(tenantId);
         Map<String, Object> map = new HashMap<>(jsonNode.size());
-        jsonNode.fields().forEachRemaining(entry -> map.put(entry.getKey(), entry.getValue()));
+        jsonNode.properties().forEach(entry -> map.put(entry.getKey(), entry.getValue()));
         return map;
     }
 
@@ -240,7 +241,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
             return objectMapper.readValue(configJson, ObjectNode.class);
         }
         TenantEntity tenant = this.getById(tenantId);
-        Assert.notNull(tenant, AuthorityConstants.TENANT_NOT_FOUND);
+        Assert.notNull(tenant, "Tenant not found");
         configJson = tenant.getConfig();
         if (StringUtils.isBlank(configJson)) {
             configJson = TENANT_CONFIG_EMPTY_MAP;
@@ -278,7 +279,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
     protected void hasOperation(LoginUser operator, String tenantId) {
         String crrTenantId = operator.getTenantId();
         if (StringUtils.isNotBlank(crrTenantId)) {
-            Assert.isTrue(crrTenantId.equals(tenantId), AuthorityConstants.TENANT_NO_AUTHORITY);
+            Assert.isTrue(crrTenantId.equals(tenantId), "当前租户ID与操作租户ID不一致");
         }
     }
 

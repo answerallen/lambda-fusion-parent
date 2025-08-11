@@ -1,12 +1,14 @@
 package com.lambda.fusion.authority.organization.model;
 
 import com.lambda.fusion.core.tree.Tree;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.Data;
 
 @Data
 @Schema(description = "组织机构")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class SimpleOrg implements Tree<SimpleOrg> {
 
     @Schema(description = "主键ID")

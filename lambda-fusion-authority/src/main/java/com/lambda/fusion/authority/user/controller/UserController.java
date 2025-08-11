@@ -12,11 +12,10 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
-import com.lambda.fusion.authority.user.domain.*;
+import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.autoconfig.AuthorityConstants;
 import com.lambda.fusion.core.tree.TreeFactory;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -270,7 +269,7 @@ public class UserController {
     public void resetUserPassword(
             @Parameter(description = "重置密码参数", required = true) @RequestBody ResetPwdParameter resetPwdParameter) {
         String username = resetPwdParameter.getUsername();
-        Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
+        Assert.notNull(username, "username is not empty");
         String password = userService.resetUserPassword(resetPwdParameter);
         if (tenantAuthorizeManager != null) {
             // 新密码作为租户主库管理员的密码，使数据保持一致

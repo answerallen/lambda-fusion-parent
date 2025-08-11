@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.organization.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.lambda.fusion.authority.organization.model.*;
-import com.lambda.fusion.authority.user.domain.MutableUser;
+import com.lambda.fusion.authority.user.model.MutableUser;
 import java.util.List;
 import java.util.Set;
 import org.apache.ibatis.annotations.Mapper;

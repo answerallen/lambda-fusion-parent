@@ -11,7 +11,7 @@
     </resultMap>
 
     <!-- 查询用户组织列表 -->
-    <select id="getAllOrganMutableUsers" parameterType="com.lambda.fusion.authority.user.domain.MutableUser"
+    <select id="getAllOrganMutableUsers" parameterType="com.lambda.fusion.authority.user.model.MutableUser"
             resultMap="MutableOrganization">
         SELECT
         T.USERID as username, O.id, O.alias, O.parentId

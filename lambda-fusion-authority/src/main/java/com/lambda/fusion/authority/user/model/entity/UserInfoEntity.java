@@ -1,10 +1,11 @@
-package com.lambda.fusion.authority.user.domain.entity;
+package com.lambda.fusion.authority.user.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.fusion.core.base.LambdaExpanded;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +17,7 @@ import org.hibernate.validator.constraints.Length;
 @ToString
 @TableName("LA_USER_INFO")
 @Schema(description = "用户扩展信息")
+@SuppressFBWarnings({"CT_CONSTRUCTOR_THROW"})
 public class UserInfoEntity implements LambdaExpanded {
     @TableId
     @JsonIgnore

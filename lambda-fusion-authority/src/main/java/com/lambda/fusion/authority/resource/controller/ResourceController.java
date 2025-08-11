@@ -1,12 +1,13 @@
 package com.lambda.fusion.authority.resource.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
-import com.lambda.fusion.authority.authorize.model.dto.NavigationQueryDTO;
+import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.resource.model.ResourceParameter;
 import com.lambda.fusion.authority.resource.service.ResourceService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @SaCheckRole({"ROLE_DEV", "ROLE_SYSTEM", "ROLE_ADMIN"})
 @RequestMapping({"/authority/resources", "/authority/resources"})
 @Tag(name = "资源管理")
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class ResourceController {
 
     private ResourceService resourceService;
@@ -44,7 +46,7 @@ public class ResourceController {
             })
     public List<Resource> tree(
             @RequestParam(required = false) @Parameter(description = "资源名称") String name,
-            @Parameter NavigationQueryDTO parameter) {
+            @Parameter NavigationQuery parameter) {
         return resourceService.getChildren(parameter);
     }
 

@@ -1,8 +1,10 @@
-package com.lambda.fusion.authority.authentication.model.vo;
+package com.lambda.fusion.authority.authentication.model.domain;
 
-import cn.hutool.core.date.DateUtil;
+import com.lambda.fusion.authority.authentication.model.mapper.SimpleUserMapper;
 import com.lambda.fusion.core.user.User;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Set;
 import lombok.Data;
@@ -13,7 +15,10 @@ import lombok.Data;
  */
 @Data
 @Schema(description = "简单用户信息")
-public class SimpleUserVO {
+public class SimpleUser implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     /**
      * 用户名
@@ -65,19 +70,11 @@ public class SimpleUserVO {
 
     /**
      * 转换为User对象
+     * 使用MapStruct进行对象映射，提供类型安全和高性能的转换
      *
      * @return User对象
      */
     public User toUser() {
-        User user = new User();
-        user.setUsername(this.username);
-        user.setNickname(this.nickname);
-        user.setPassword(this.password);
-        user.setOrgId(this.orgId);
-        user.setTenantId(this.tenantId);
-        user.setAccountLocked(this.enabled);
-        user.setAccountExpired(expiredTime.isAfter(LocalDateTime.now()));
-        user.setRoles(this.authorities);
-        return user;
+        return SimpleUserMapper.INSTANCE.toUser(this);
     }
 }

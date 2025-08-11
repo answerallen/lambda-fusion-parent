@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.tenant.model;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -11,18 +12,19 @@ import lombok.Data;
  */
 @Data
 @Schema(description = "租户信息表")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class TenantVO {
 
     /**
      * 租户编码
      */
-    @Schema(description = "租户编码", required = true)
+    @Schema(description = "租户编码")
     private String tenantCode;
 
     /**
      * 租户名称
      */
-    @Schema(description = "租户名称", required = true)
+    @Schema(description = "租户名称")
     private String tenantName;
     /**
      * 租户地址
@@ -52,12 +54,12 @@ public class TenantVO {
     /**
      * 联系电话
      */
-    @Schema(description = "联系电话", required = true)
+    @Schema(description = "联系电话")
     private String liaisonPhone;
     /**
      * 法人
      */
-    @Schema(description = "法人", required = true)
+    @Schema(description = "法人")
     private String legalPerson;
     /**
      * 经度

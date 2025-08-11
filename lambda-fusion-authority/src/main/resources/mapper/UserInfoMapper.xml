@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.authority.user.mapper.UserInfoMapper">
 
-    <select id="getProps" resultType="com.lambda.fusion.authority.user.domain.entity.UserInfoEntity">
+    <select id="getProps" resultType="com.lambda.fusion.authority.user.model.entity.UserInfoEntity">
         SELECT
             userid,
             avatar,
@@ -34,7 +34,7 @@
             userid = #{userName}
     </update>
     <!--更改用户头像-->
-    <update id="updateAvatar" parameterType="com.lambda.fusion.authority.user.domain.RestUserInfoParameter">
+    <update id="updateAvatar" parameterType="com.lambda.fusion.authority.user.model.RestUserInfoParameter">
         UPDATE LA_USER_INFO
         SET AVATAR = #{avatar}
         WHERE

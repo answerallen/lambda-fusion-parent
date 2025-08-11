@@ -1,6 +1,7 @@
 package com.lambda.fusion.autoconfig;
 
 import cn.hutool.core.collection.CollUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "lambda.authorize")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class AuthorityProperties {
     /**
      * 是否开启用户注册功能
@@ -113,21 +115,9 @@ public class AuthorityProperties {
     public static class DevRole {
         private final String[] defaultWhiteArray = new String[] {
             "/public/**",
-            "/deploy/**",
-            "/upload/**",
             "**/dictionaries/**",
             "/dictionaries/**",
-            "**/purviews/**",
-            "/purviews/**",
-            "/workflow/**",
-            "/report/**",
-            "/dataease/**",
             "/authority/**",
-            "/fence/**",
-            "/onlform/**",
-            "/api-token/**",
-            "/calendar/**",
-            "/report/**",
             "/monitor/**",
             "/error/**",
             "/error",

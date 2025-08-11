@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.domain;
+package com.lambda.fusion.authority.user.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.fusion.authority.organization.model.Org;

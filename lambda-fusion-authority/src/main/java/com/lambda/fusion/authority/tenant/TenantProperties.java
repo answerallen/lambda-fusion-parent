@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.tenant;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -10,6 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "lambda.tenant")
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class TenantProperties {
 
     /**

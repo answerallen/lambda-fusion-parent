@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.domain;
+package com.lambda.fusion.authority.user.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;

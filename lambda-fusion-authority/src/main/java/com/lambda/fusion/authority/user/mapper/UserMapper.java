@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.user.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.user.domain.*;
+import com.lambda.fusion.authority.user.model.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

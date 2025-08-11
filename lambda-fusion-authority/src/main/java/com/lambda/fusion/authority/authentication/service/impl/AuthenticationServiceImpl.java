@@ -7,12 +7,10 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
-import com.lambda.fusion.authority.authentication.model.dto.NavigationQueryDTO;
-import com.lambda.fusion.authority.authentication.model.vo.SimpleUserVO;
+import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.authentication.model.domain.SimpleUser;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.Resource;
-import com.lambda.fusion.authority.user.domain.SimpleUser;
-import com.lambda.fusion.autoconfig.AuthorityConstants;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.user.User;
@@ -37,29 +35,30 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
-        Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
-        SimpleUserVO userVO = authenticationMapper.loadUserDetailByUsername(username);
+        Assert.notNull(username, "parameter 'username' cannot be empty or null");
+        SimpleUser userVO = authenticationMapper.loadUserDetailByUsername(username);
         if (userVO == null) {
-            throw new UsernameNotFoundException(AuthorityConstants.USER_NOT_FOUND);
+            throw new UsernameNotFoundException("user in not found");
         }
         return buildLoginUser(userVO.toUser());
     }
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<SimpleUserVO> userVOList = authenticationMapper.loadUserDetailByMobile(mobile);
-        if (CollUtil.isEmpty(userVOList)) {
-            throw new UsernameNotFoundException(AuthorityConstants.USER_NOT_FOUND);
+        List<SimpleUser> simpleUsers = authenticationMapper.loadUserDetailByMobile(mobile);
+        if (CollUtil.isEmpty(simpleUsers)) {
+            throw new UsernameNotFoundException("mobile in not found");
         }
-        if (userVOList.size() > 1) {
-            throw new AuthenticationException(AuthorityConstants.USER_MOBILE_EXIST);
+        if (simpleUsers.size() > 1) {
+            throw new AuthenticationException("mobile in not unique");
         }
-        return buildLoginUser(userVOList.getFirst().toUser());
+        SimpleUser simpleUser = simpleUsers.getFirst();
+        return buildLoginUser(simpleUser.toUser());
     }
 
     @Override
     public List<Resource> getNavigation(LoginUser operator, String parentId, Integer level) {
-        NavigationQueryDTO query = new NavigationQueryDTO();
+        NavigationQuery query = new NavigationQuery();
         query.setParentId(parentId);
         query.setLevel(level);
         query.setMode(0);
@@ -67,7 +66,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<Resource> getNavigation(LoginUser operator, NavigationQueryDTO query) {
+    public List<Resource> getNavigation(LoginUser operator, NavigationQuery query) {
         Assert.notNull(operator, "parameter 'operator' cannot be empty or null");
         Assert.notNull(query, "parameter 'query' cannot be empty or null");
         List<Resource> resources = authenticationMapper.getNavigationByQuery(query);
@@ -75,7 +74,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<SimpleUser> getUsersByRoleId(String roleId) {
+    public List<com.lambda.fusion.authority.user.model.SimpleUser> getUsersByRoleId(String roleId) {
         return authenticationMapper.getUsersByRoleId(roleId);
     }
 
@@ -87,7 +86,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     /**
      * 构建登录用户信息
-     * 
+     *
      * @param user 用户对象
      * @return 登录用户
      */

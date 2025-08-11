@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.organization.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.fusion.core.tree.Tree;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Date;
@@ -14,6 +15,7 @@ import org.hibernate.validator.constraints.Length;
 @Data
 @Schema(description = "组织元数据")
 @NoArgsConstructor
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class Organization implements Tree<Organization> {
     @Schema(description = "主键ID")
     private String id;

@@ -11,12 +11,12 @@ import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
-import com.lambda.fusion.authority.user.domain.MutableUser;
-import com.lambda.fusion.authority.user.domain.ResetPwdParameter;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
+import com.lambda.fusion.authority.user.model.MutableUser;
+import com.lambda.fusion.authority.user.model.ResetPwdParameter;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.autoconfig.AuthorityConstants;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 @Slf4j
+@SuppressFBWarnings("NP_UNWRITTEN_FIELD")
 public class TenantAuthorizeManager {
 
     private TenantService tenantService;
@@ -59,7 +60,9 @@ public class TenantAuthorizeManager {
      ------------------------------------------------------------
     */
 
-    public void initTenantMainDataBase(String tenantId, LoginUser operator) {}
+    public void initTenantMainDataBase(String tenantId, LoginUser operator) {
+        System.out.println("initTenantMainDataBase " + tenantId + " " + operator);
+    }
 
     /**
      * 保存租户映射主库中的管理员角色权限
@@ -112,6 +115,7 @@ public class TenantAuthorizeManager {
         roles.add(new SimpleRole(ROLE_ADMIN));
         mutableUser.setAuthorities(roles);
         // todo 添加用户
+        System.out.println(tenantId);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -121,6 +125,7 @@ public class TenantAuthorizeManager {
         // 在租户库中视作管理员，不能有租户id
         mutableUser.setTenantId(null);
         // todo 添加用户
+        System.out.println(tenantId);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -132,6 +137,7 @@ public class TenantAuthorizeManager {
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
         String tenantId = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
         //        execute(tenantId, () -> userService.deleteUser(SystemUser.get(), username));
+        System.out.println(tenantId);
     }
 
     public void resetPassword(ResetPwdParameter resetPwdParameter) {
@@ -151,7 +157,7 @@ public class TenantAuthorizeManager {
             return;
         }
         // 租户主库的密码要和主库的租户管理员密码同步
-
+        System.out.println(tenantId);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -161,12 +167,13 @@ public class TenantAuthorizeManager {
             return;
         }
         String tenantId = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
+        System.out.println(tenantId);
     }
 
     private void hasOperation(LoginUser operator, String tenantId) {
         String crrTenantId = operator.getTenantId();
         if (org.apache.commons.lang.StringUtils.isNotBlank(crrTenantId)) {
-            Assert.isTrue(crrTenantId.equals(tenantId), AuthorityConstants.TENANT_NO_AUTHORITY);
+            Assert.isTrue(crrTenantId.equals(tenantId), "tenant not match");
         }
     }
 

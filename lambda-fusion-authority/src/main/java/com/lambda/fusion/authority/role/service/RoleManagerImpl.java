@@ -4,6 +4,7 @@ import com.google.common.collect.Sets;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.vo.UserAuthorityVO;
 import com.lambda.fusion.core.Constants;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -11,6 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
 @Service
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class RoleManagerImpl implements RoleManager {
     private final RoleMapper roleMapper;
 

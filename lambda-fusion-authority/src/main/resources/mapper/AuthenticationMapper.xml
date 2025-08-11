@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper">
-    <resultMap id="LoginUserMap" type="com.lambda.fusion.authority.authentication.model.vo.SimpleUserVO">
+    <resultMap id="LoginUserMap" type="com.lambda.fusion.authority.authentication.model.SimpleUser">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="password" property="password" javaType="String"/>
@@ -113,7 +113,7 @@
         ORDER BY T1.res_rank, T1.parentId, T1.orderNo
     </select>
 
-    <select id="getUsersByRoleId" resultType="com.lambda.fusion.authority.user.domain.SimpleUser">
+    <select id="getUsersByRoleId" resultType="com.lambda.fusion.authority.user.model.SimpleUser">
         SELECT
         U.username,
         U.nickname

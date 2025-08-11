@@ -5,14 +5,14 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.authority.authorize.model.dto.NavigationQueryDTO;
+import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.mapper.ResourceMapper;
 import com.lambda.fusion.authority.resource.model.*;
 import com.lambda.fusion.authority.role.service.RoleManager;
-import com.lambda.fusion.autoconfig.AuthorityConstants;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.ITreeDataFilter;
 import com.lambda.fusion.core.tree.TreeFactory;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class ResourceServiceImpl implements ResourceService {
     private final RoleManager roleManager;
     private final ResourceMapper resourceMapper;
@@ -40,11 +41,11 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<Resource> getChildren() {
-        return getChildren(new NavigationQueryDTO());
+        return getChildren(new NavigationQuery());
     }
 
     @Override
-    public List<Resource> getChildren(NavigationQueryDTO parameter) {
+    public List<Resource> getChildren(NavigationQuery parameter) {
         List<MutableResource> resources = resourceMapper.queryAvailableMutableResources(parameter);
         if (CollectionUtils.isEmpty(resources)) {
             return new ArrayList<>();
@@ -167,9 +168,9 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteResource(String id) {
-        Assert.notNull(id, AuthorityConstants.RES_ID_NOT_NULL);
+        Assert.notNull(id, "Resource id can't be null");
         MutableResource resource = getResourceById(id);
-        Assert.notNull(resource, "lambda.authority.resource.delete.notfound");
+        Assert.notNull(resource, "Resource not found");
 
         List<MutableResource> children = queryAvailableChildren(resource);
         children.add(0, resource);
@@ -184,13 +185,13 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public MutableResource updateResource(MutableResource resource) {
-        Assert.notNull(resource, "lambda.authority.resource.notfound");
-        Assert.notNull(resource.getId(), AuthorityConstants.RES_ID_NOT_NULL);
+        Assert.notNull(resource, "Resource can't be null");
+        Assert.notNull(resource.getId(), "Resource id can't be null");
         MutableResource source = getResourceById(resource.getId());
         // 更新时只更新属性，不改变上下级关系，因此parentKeys也无须变化
         resource.setResRank(source.getResRank());
         resource.setParentkeys(source.getParentkeys());
-        Assert.notNull(source, "lambda.authority.resource.update.notfound");
+        Assert.notNull(source, "resource not found");
         // 更新时如果没有传顺序号,则不修改顺序值
         if (resource.getOrderNo() == 0) {
             resource.setOrderNo(source.getOrderNo());
@@ -227,7 +228,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public MutableResource getResourceById(String id) {
-        Assert.notNull(id, AuthorityConstants.RES_ID_NOT_NULL);
+        Assert.notNull(id, "Resource id can't be null");
         return resourceMapper.getResourceById(id);
     }
 
@@ -258,7 +259,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<MutableResource> queryAvailableChildren(@NotNull MutableResource target) {
-        Assert.notNull(target.getId(), AuthorityConstants.RES_ID_NOT_NULL);
+        Assert.notNull(target.getId(), "Resource id can't be null");
         String parentkeys = generateParentkeys(target.getParentkeys(), target.getId());
         List<Resource> resources = resourceMapper.queryAllChildren(parentkeys);
         if (CollectionUtils.isNotEmpty(resources)) {
@@ -276,8 +277,8 @@ public class ResourceServiceImpl implements ResourceService {
         String id = parameter.getId();
         String tid = parameter.getTid();
         int type = parameter.getType();
-        Assert.notNull(id, AuthorityConstants.RES_ID_NOT_NULL);
-        Assert.notNull(tid, AuthorityConstants.RES_ID_NOT_NULL);
+        Assert.notNull(id, "Resource id can't be null");
+        Assert.notNull(tid, "Resource id can't be null");
         MutableResource resource = resourceMapper.getResourceById(id);
         MutableResource target = resourceMapper.getResourceById(tid);
         String pid0 = resource.getParentId();

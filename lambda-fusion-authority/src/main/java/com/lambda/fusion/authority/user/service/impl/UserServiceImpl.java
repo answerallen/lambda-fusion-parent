@@ -25,14 +25,14 @@ import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
 import com.lambda.fusion.authority.tenant.persistence.TenantMapper;
-import com.lambda.fusion.authority.user.domain.*;
-import com.lambda.fusion.authority.user.domain.entity.UserFieldsEntity;
-import com.lambda.fusion.authority.user.domain.entity.UserInfoEntity;
-import com.lambda.fusion.authority.user.domain.entity.UserUpdatePwdLogEntity;
 import com.lambda.fusion.authority.user.mapper.UserFieldsMapper;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.mapper.UserUpdatePwdLogMapper;
+import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.entity.UserFieldsEntity;
+import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
+import com.lambda.fusion.authority.user.model.entity.UserUpdatePwdLogEntity;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.autoconfig.AuthorityConstants;
 import com.lambda.fusion.autoconfig.AuthorityProperties;
@@ -135,7 +135,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public MutableUser getMutableUserByUsername(String username) {
-        Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
+        Assert.notNull(username, "username is not empty");
         MutableUser user = userMapper.getMutableUserById(username);
         if (user != null) {
             //            user.setOnline(laAuthorizeHelper.isOnline(username));
@@ -153,7 +153,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    @SuppressWarnings("java:S6809")
     @Override
     public MutableUser getCurrentMutableUser(LoginUser operator) {
         MutableUser mutableUser = this.getMutableUserByUsername(operator.getUsername());
@@ -201,7 +200,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Page<MutableUser> getAllMutableUsers(Page<MutableUser> pagination, Map<String, Object> parameters) {
         // 当前登陆用户编号
-        String uid = MapUtils.getString(parameters, "uid");
+        //        String uid = MapUtils.getString(parameters, "uid");
         String tenantId = MapUtils.getString(parameters, "tenant_id");
         setUsernames(parameters);
         setUserFields(parameters);
@@ -473,9 +472,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<Permission> getUserPermissions(String username, String mode) {
-        Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
+        Assert.notNull(username, "username not empty");
         MutableUser user = userMapper.getMutableUserById(username);
-        Assert.notNull(user, AuthorityConstants.USER_NOT_FOUND);
+        Assert.notNull(user, "user not found");
         List<String> ids = Lists.newArrayList(username);
         List<SimpleRole> authorities = user.getAuthorities();
         if (CollectionUtils.isNotEmpty(authorities)) {
@@ -494,9 +493,9 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
     public String addMutableUser(MutableUser user, LoginUser operator) {
-        Assert.notNull(user, AuthorityConstants.USER_NOT_FOUND);
+        Assert.notNull(user, "user is not null");
         String username = user.getUsername();
-        Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
+        Assert.notNull(username, "username is not null");
         // TODO 系统保留用户名
         Assert.isTrue(!userMapper.hasExists(username), "该用户名已被使用");
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
@@ -530,17 +529,17 @@ public class UserServiceImpl implements UserService {
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
     public void updateMutableUser(MutableUser source, LoginUser operator) {
-        Assert.notNull(source, AuthorityConstants.USER_NOT_FOUND);
-        Assert.notNull(source.getUsername(), AuthorityConstants.USER_NAME_NOT_EMPTY);
+        Assert.notNull(source, "user is not null");
+        Assert.notNull(source.getUsername(), "username not empty");
         String username = source.getUsername();
         MutableUser target = userMapper.getMutableUserById(username);
-        Assert.notNull(target, AuthorityConstants.USER_NOT_FOUND);
+        Assert.notNull(target, "user not empty");
         Org original = target.getOrg();
         // 如果要修改的用户是租户角色，则不允许修改其组织
         //        if (!RoleUtil.isTenant(source)) {
         updateUserOrg(username, source.getOrg(), original, operator);
         //        }
-        // todo 对比现属性和原属性差别，判断是否需要修改扩展属性
+
         checkPropsUpdated(source.getProps(), target.getProps());
 
         BeanUtils.copyProperties(source, target);
@@ -581,14 +580,16 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 判断扩展属性是否变化
+     * 判断扩展属性是否变化 TODO
      *
      * @param source 原始用户信息
      * @param actual 当前用户信息
      * @return java.util.Map<java.lang.String, java.lang.Object>
      */
-    private Object checkPropsUpdated(UserInfo source, UserInfo actual) {
-        return null;
+    private void checkPropsUpdated(UserInfo source, UserInfo actual) {
+
+        // todo 对比现属性和原属性差别，判断是否需要修改扩展属性
+        System.out.printf("%s", "todo 对比现属性和原属性差别，判断是否需要修改扩展属性");
     }
 
     /**
@@ -597,7 +598,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void registeredMutableUser(MutableUser user) {
         Assert.isTrue(properties.isEnabledRegistered(), "User registration is not enabled!");
-        Assert.notNull(user, AuthorityConstants.USER_NOT_FOUND);
+        Assert.notNull(user, "user not empty");
         String username = user.getUsername();
         // todo 系统保留用户名
         Assert.isTrue(!userMapper.hasExists(username), "用户名已存在");
@@ -660,12 +661,10 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteUser(LoginUser operator, String username) {
-        Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
+        Assert.notNull(username, "username not empty");
         Assert.isTrue(!username.equals(operator.getUsername()), "lambda.authority.no.operation.authority");
         boolean exists = userMapper.hasExists(username);
         if (exists) {
-            MutableUser target = new MutableUser();
-            target.setUsername(username);
             userMapper.deleteUser(username);
             userMapper.deleteUserRoles(username);
             roleMapper.deleteResourceRoleByAuthority(username);
@@ -678,7 +677,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<MutableUser> getAllMutableUsersByKey(String key) {
-        Assert.notNull(key, "lambda.authority.user.searchkey.notempty");
+        Assert.notNull(key, "key not empty");
         return userMapper.getAllMutableUsersByKey(key);
     }
 
@@ -692,10 +691,10 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isNotEmpty(roles)) {
             for (SimpleRole role : roles) {
                 String authority = role.getAuthority();
-                Assert.notNull(authority, AuthorityConstants.ROLE_NAME_NOT_EMPTY);
-                //                if (authority.startsWith(Constants.ROLE_TENANT)) {
-                //                    authority = Constants.ROLE_TENANT;
-                //                }
+                Assert.notNull(authority, "role not found");
+                if (authority.startsWith(Constants.ROLE_TENANT)) {
+                    authority = Constants.ROLE_TENANT;
+                }
                 userMapper.addUserRole(user.getUsername(), authority, tenantId);
             }
         }
@@ -704,7 +703,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void updateUserPassword(String username, String oldpassword, String newpassword) {
         MutableUser mutableUser = userMapper.getPasswordById(username);
-        Assert.notNull(mutableUser, AuthorityConstants.USER_NOT_FOUND);
+        Assert.notNull(mutableUser, "user not found");
         boolean isChecked = passwordEncoder.matches(oldpassword, mutableUser.getPassword());
         Assert.isTrue(isChecked, "lambda.authority.user.password.incorrect");
         mutableUser.setPassword(passwordEncoder.encode(newpassword));
@@ -739,9 +738,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void prohibitUser(LoginUser operator, Integer type, String username) {
-        Assert.notNull(username, AuthorityConstants.USER_NAME_NOT_EMPTY);
+        Assert.notNull(username, "username not null");
         MutableUser user = userMapper.getMutableUserById(username);
-        Assert.notNull(user, AuthorityConstants.USER_NOT_FOUND);
+        Assert.notNull(user, "user not found");
         Assert.isTrue(!operator.getUsername().equals(username), "lambda.authority.no.operation.authority");
         userMapper.prohibitUser(type, username);
     }
@@ -815,7 +814,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Map<String, UserInfoEntity> getUserProps(Set<String> names) {
-        List<UserInfoEntity> userInfoEntity = userInfoMapper.selectBatchIds(names);
+        List<UserInfoEntity> userInfoEntity = userInfoMapper.selectByIds(names);
         Map<String, UserInfoEntity> userInfoMap = Maps.newHashMap();
         if (CollectionUtils.isNotEmpty(userInfoEntity)) {
             userInfoEntity.forEach(item -> userInfoMap.put(item.getUserid(), item));
@@ -842,7 +841,7 @@ public class UserServiceImpl implements UserService {
         return userMapper.getAllMutableUsersNoPage(parameters);
     }
 
-    @SuppressWarnings({"squid:S3252", "unchecked"})
+    // 设置用户字段 todo 待完善
     private void setUserFields(Map<String, Object> parameters) {
         if (parameters.get(USER_PERSONAL) != null) {
             String personal = parameters.get(USER_PERSONAL).toString();
@@ -873,11 +872,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateTenantUser(MutableUser source, LoginUser operator) {
-        Assert.notNull(source, AuthorityConstants.USER_NOT_FOUND);
-        Assert.notNull(source.getUsername(), AuthorityConstants.USER_NAME_NOT_EMPTY);
+        Assert.notNull(source, "user must not be null");
+        Assert.notNull(source.getUsername(), "username must not be null");
         String username = source.getUsername();
         MutableUser target = userMapper.getMutableUserById(username);
-        Assert.notNull(target, AuthorityConstants.USER_NOT_FOUND);
+        Assert.notNull(target, "user not found");
         BeanUtils.copyProperties(source, target);
         target.setNicknameAbbr(PinyinUtil.getPinyin(target.getNickname()));
         userMapper.updateMutableUser(target);
