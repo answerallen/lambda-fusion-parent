@@ -23,7 +23,7 @@ import com.lambda.fusion.authority.role.model.MutableRole;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.MutableUser;
-import com.lambda.fusion.autoconfig.AuthorityProperties;
+import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.core.tree.DragMode;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.tree.TreeUtils;

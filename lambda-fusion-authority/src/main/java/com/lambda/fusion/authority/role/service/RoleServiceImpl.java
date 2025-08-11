@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.role.service;
 
-import static com.lambda.fusion.autoconfig.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.autoconfig.AuthorityConstants.DEFAULT_GROUP_NAME;
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.DEFAULT_GROUP_NAME;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;

@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.user.service.impl;
 
-import static com.lambda.fusion.autoconfig.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.autoconfig.AuthorityConstants.MANAGED;
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
 import static com.lambda.fusion.core.Constants.ROLE_DEV;
 import static com.lambda.fusion.core.tree.Tree.SPLIT;
 
@@ -34,8 +34,8 @@ import com.lambda.fusion.authority.user.model.entity.UserFieldsEntity;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.entity.UserUpdatePwdLogEntity;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.autoconfig.AuthorityConstants;
-import com.lambda.fusion.autoconfig.AuthorityProperties;
+import com.lambda.fusion.authority.AuthorityConstants;
+import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.core.Constants;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;

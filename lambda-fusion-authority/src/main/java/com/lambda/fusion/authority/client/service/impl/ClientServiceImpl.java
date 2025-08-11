@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.client.service.impl;
 
-import static com.lambda.fusion.autoconfig.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
