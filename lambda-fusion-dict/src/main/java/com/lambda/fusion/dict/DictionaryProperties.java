@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.config;
+package com.lambda.fusion.dict;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 @Setter
 @Configuration(proxyBeanMethods = false)
-@ConfigurationProperties(prefix = "lambda.fusion.dictionary")
+@ConfigurationProperties(prefix = "lambda.fusion.dict")
 public class DictionaryProperties {
 
     /**

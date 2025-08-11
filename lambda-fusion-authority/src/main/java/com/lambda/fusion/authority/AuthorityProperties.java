@@ -12,7 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Getter
 @Setter
-@ConfigurationProperties(prefix = "lambda.authorize")
+@ConfigurationProperties(prefix = "lambda.fusion.authorize")
 @SuppressFBWarnings("EI_EXPOSE_REP")
 public class AuthorityProperties {
     /**
@@ -28,10 +28,7 @@ public class AuthorityProperties {
      * 组织名称作为id使用并入库
      */
     private boolean organizationNameAsId = false;
-    /**
-     * 新平台配置相关
-     */
-    private NewPlatform newPlatform = new NewPlatform();
+
     /**
      * 密码策略
      */
@@ -83,33 +80,6 @@ public class AuthorityProperties {
             CIPHERTEXT
         }
     }
-
-    @Data
-    public static class NewPlatform {
-        /**
-         * 是否开启新平台配置
-         */
-        private boolean enabled = false;
-        /**
-         * 所属新平台的系统编号
-         */
-        @NotNull
-        private String systemId;
-        /***
-         * 是否同步数据
-         */
-        private boolean synchronize = true;
-        /**
-         * 新平台的接口地址前缀
-         */
-        private String url = "http://127.0.0.1:8080";
-
-        /**
-         * 是否开启基础平台单点登陆
-         */
-        private boolean basis = false;
-    }
-
     @Getter
     @Setter
     public static class DevRole {
