@@ -202,10 +202,10 @@ public interface UserService {
      * 获取所有用户下拉数据
      *
      * @param operator
-     * @param organs
+     * @param orgIds
      * @return
      */
-    List<SimpleUser> getAllSimpleUser(LoginUser operator, List<String> organs);
+    List<SimpleUser> getAllSimpleUser(LoginUser operator, List<String> orgIds);
 
     /**
      * 当前用户组织机构数据权限
@@ -214,7 +214,7 @@ public interface UserService {
      * @param operator operator
      * @return 返回组织机构集合
      */
-    Set<String> getSubOrgans(String orgid, LoginUser operator);
+    Set<String> getSubOrgIds(String orgid, LoginUser operator);
 
     /**
      * 根据用户名称列表查询用户的扩展属性

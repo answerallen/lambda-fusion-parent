@@ -1,14 +1,12 @@
 package com.lambda.fusion.authority.resource.service;
 
-import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.resource.model.ResourceParameter;
-import java.util.List;
-
 import com.lambda.fusion.core.user.User;
+import java.util.List;
 import org.springframework.lang.NonNull;
 
 public interface ResourceService {

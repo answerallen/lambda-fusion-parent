@@ -117,10 +117,10 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
         if (enabled != 1) {
             enabled = (Integer) 0;
         }
-        final List<Organization> organs = queryOrganizationByTenantId(tenantId);
-        final List<String> tenants = getSubOrgansByType(organs, true);
-        final List<String> ordinaries = getSubOrgansByType(organs, false);
-        final List<String> ids = organs.stream().map(Organization::getId).collect(Collectors.toList());
+        final List<Organization> orgIds = queryOrganizationByTenantId(tenantId);
+        final List<String> tenants = getSubOrgIdsByType(orgIds, true);
+        final List<String> ordinaries = getSubOrgIdsByType(orgIds, false);
+        final List<String> ids = orgIds.stream().map(Organization::getId).collect(Collectors.toList());
         tenants.add(tenantId);
         if (CollectionUtils.isNotEmpty(ids)) {
             // 禁用/启用组织
@@ -172,8 +172,8 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
         // 删除租户
         tenantMapper.deleteById(tenantId);
         // 通过租户编号查询组织，删除组织
-        final List<Organization> organs = queryOrganizationByTenantId(tenantId);
-        final List<String> ids = organs.stream().map(Organization::getId).collect(Collectors.toList());
+        final List<Organization> orgIds = queryOrganizationByTenantId(tenantId);
+        final List<String> ids = orgIds.stream().map(Organization::getId).collect(Collectors.toList());
         if (CollectionUtils.isNotEmpty(ids)) {
             // 删除组织
             organizationMapper.deleteOrgByIdList(ids);
@@ -313,9 +313,9 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
         return organizationMapper.queryOrganizationByTenantId(tenantId);
     }
 
-    protected List<String> getSubOrgansByType(List<Organization> organs, Boolean isTenant) {
-        if (CollectionUtils.isNotEmpty(organs)) {
-            return organs.stream()
+    protected List<String> getSubOrgIdsByType(List<Organization> orgIds, Boolean isTenant) {
+        if (CollectionUtils.isNotEmpty(orgIds)) {
+            return orgIds.stream()
                     .filter(org -> BooleanUtils.toBoolean(org.getTenant()) == isTenant)
                     .map(Organization::id)
                     .collect(Collectors.toList());

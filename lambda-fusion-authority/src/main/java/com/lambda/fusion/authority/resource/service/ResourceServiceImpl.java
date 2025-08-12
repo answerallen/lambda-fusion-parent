@@ -14,6 +14,8 @@ import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.user.User;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotNull;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -22,9 +24,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -433,8 +432,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<MutableResource> getAllChildrenByOperator(
-            @NonNull User operator, @NonNull MutableResource resource) {
+    public List<MutableResource> getAllChildrenByOperator(@NonNull User operator, @NonNull MutableResource resource) {
         String parentKeys = resource.getParentKeys();
         if (StringUtils.isNotBlank(parentKeys)) {
             parentKeys = resource.getParentKeys() + Constants.SEPARATOR0 + resource.getId();
@@ -452,8 +450,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<MutableResource> getAllParentsByOperator(
-            @NonNull User operator, @NonNull MutableResource resource) {
+    public List<MutableResource> getAllParentsByOperator(@NonNull User operator, @NonNull MutableResource resource) {
         String parentKeys = resource.getParentKeys();
         if (StringUtils.isNotBlank(parentKeys)) {
             List<String> ids = Arrays.asList(parentKeys.split(Constants.SEPARATOR0));

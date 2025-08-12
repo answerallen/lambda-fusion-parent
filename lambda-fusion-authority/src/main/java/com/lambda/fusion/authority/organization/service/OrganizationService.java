@@ -32,7 +32,7 @@ public interface OrganizationService {
      * @param parameters
      * @return
      */
-    List<Organization> getSubordinateOrgans(Parameters parameters);
+    List<Organization> getSubordinateOrgIds(Parameters parameters);
 
     /**
      * 根据ID查询组织信息
@@ -178,7 +178,7 @@ public interface OrganizationService {
      * @param ids 组织id
      * @return Map<String, Organization
      */
-    Map<String, Organization> getOrgansByIds(Set<String> ids);
+    Map<String, Organization> getOrgIdsByIds(Set<String> ids);
 
     /**
      * 移动组织树节点

@@ -1,5 +1,10 @@
 package com.lambda.fusion.authority.user.service.impl;
 
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
+import static com.lambda.fusion.core.Constants.ROLE_DEV;
+import static com.lambda.fusion.core.tree.Tree.SPLIT;
+
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjectUtil;
@@ -35,6 +40,10 @@ import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.user.User;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -53,16 +62,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
-import static com.lambda.fusion.core.Constants.ROLE_DEV;
-import static com.lambda.fusion.core.tree.Tree.SPLIT;
 
 @Slf4j
 @Service
@@ -140,8 +139,8 @@ public class UserServiceImpl implements UserService {
         MutableUser mutableUser = this.getMutableUserByUsername(operator.getUsername());
         UserInfo props = mutableUser.getProps();
         if (props != null && properties.getPasswordStrategy().getEnablePeriodChange()) {
-            boolean notMatched = !operator.isDev() && !operator.isAdmin() &&
-                    !operator.isManager() && !operator.isTenantManager();
+            boolean notMatched =
+                    !operator.isDev() && !operator.isAdmin() && !operator.isManager() && !operator.isTenantManager();
             // 判断密码是否需要更新
             if (notMatched && ObjectUtil.equals(props.getUpdatePwd(), false)) {
                 List<UserUpdatePwdLogEntity> userUpdatePwdLogEntities =
@@ -312,7 +311,7 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(orgids)) {
             return Collections.emptyMap();
         }
-        List<Organization> orgs = organizationMapper.getOrgansByIds(orgids);
+        List<Organization> orgs = organizationMapper.getOrgIdsByIds(orgids);
         if (CollectionUtils.isEmpty(orgs)) {
             return Collections.emptyMap();
         }
@@ -331,7 +330,7 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(parentKeys)) {
             return result;
         }
-        List<Organization> parents = organizationMapper.getOrgansByIds(parentKeys);
+        List<Organization> parents = organizationMapper.getOrgIdsByIds(parentKeys);
         Map<String, String> names1 =
                 parents.stream().collect(Collectors.toMap(Organization::id, Organization::getName));
         map1.forEach((key, value) -> {
@@ -775,22 +774,22 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<SimpleUser> getAllSimpleUser(LoginUser operator, List<String> organs) {
-        return userMapper.getAllSimpleUser(operator.getTenantId(), organs);
+    public List<SimpleUser> getAllSimpleUser(LoginUser operator, List<String> orgIds) {
+        return userMapper.getAllSimpleUser(operator.getTenantId(), orgIds);
     }
 
     @Override
-    public Set<String> getSubOrgans(String orgid, LoginUser operator) {
-        Set<String> organs = new HashSet<>();
+    public Set<String> getSubOrgIds(String orgid, LoginUser operator) {
+        Set<String> orgIds = new HashSet<>();
         //      todo  boolean admin = OperatorUtils.isAdmin(operator);
         boolean admin = true;
         if (StringUtils.isNotBlank(orgid)) {
-            organs.add(orgid);
-            organs.addAll(organizationService.getChildrenById(orgid));
+            orgIds.add(orgid);
+            orgIds.addAll(organizationService.getChildrenById(orgid));
         } else {
-            organs.addAll(admin ? Collections.emptyList() : organizationService.getSubordinateOrgIds(operator));
+            orgIds.addAll(admin ? Collections.emptyList() : organizationService.getSubordinateOrgIds(operator));
         }
-        return organs;
+        return orgIds;
     }
 
     @Override

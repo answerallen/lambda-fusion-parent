@@ -82,7 +82,7 @@
         ORDER BY O.org_rank, O.order_no, O.parentId, O.organization
     </select>
 
-    <select id="getOrgansByCondition" resultMap="Organization">
+    <select id="getOrgIdsByCondition" resultMap="Organization">
         SELECT
             id,
             organization,
@@ -296,7 +296,7 @@
         SELECT id FROM LA_ORGANIZATION T WHERE T.parentKeys LIKE CONCAT(#{id},'%') ORDER BY parentKeys
     </select>
 
-    <select id="getSubOrgansById" resultMap="Organization">
+    <select id="getSubOrgIdsById" resultMap="Organization">
         SELECT id, org_category FROM LA_ORGANIZATION T WHERE T.parentKeys LIKE CONCAT(#{id},'-%') OR T.parentKeys = #{id} ORDER BY parentKeys
     </select>
 
@@ -337,7 +337,7 @@
         SELECT id,alias FROM LA_ORGANIZATION WHERE ID = {id}
     </select>
 
-    <select id="getOrgansByIds" resultMap="Organization">
+    <select id="getOrgIdsByIds" resultMap="Organization">
         SELECT
         id,
         organization,

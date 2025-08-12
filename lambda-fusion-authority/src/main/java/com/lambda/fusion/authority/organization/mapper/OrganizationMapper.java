@@ -157,7 +157,7 @@ public interface OrganizationMapper {
      * @return 子组织列表
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<Organization> getSubOrgansById(String id);
+    List<Organization> getSubOrgIdsById(String id);
 
     /**
      * 批量禁用/启用组织机构
@@ -226,7 +226,7 @@ public interface OrganizationMapper {
      * @param ids 组织id
      * @return List<Organization>
      */
-    List<Organization> getOrgansByIds(@Param("ids") Set<String> ids);
+    List<Organization> getOrgIdsByIds(@Param("ids") Set<String> ids);
 
     /**
      * 根据条件查询组织
@@ -234,7 +234,7 @@ public interface OrganizationMapper {
      * @param parameters 条件参数
      * @return 组织
      */
-    List<Organization> getOrgansByCondition(@Param("parameters") Parameters parameters);
+    List<Organization> getOrgIdsByCondition(@Param("parameters") Parameters parameters);
 
     /**
      * 根据父id更改spid

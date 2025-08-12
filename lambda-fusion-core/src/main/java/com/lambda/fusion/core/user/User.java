@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.security.SimpleLoginUser;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class User extends SimpleLoginUser {
@@ -26,6 +27,7 @@ public class User extends SimpleLoginUser {
     public Boolean isManager() {
         return CollUtil.contains(getRoles(), "ROLE_MANAGER");
     }
+
     @JsonIgnore
     public Boolean isTenantManager() {
         return CollUtil.contains(getRoles(), "ROLE_TENANT_MANAGER");

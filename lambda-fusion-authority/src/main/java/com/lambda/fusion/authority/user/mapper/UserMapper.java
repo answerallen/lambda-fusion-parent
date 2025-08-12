@@ -224,10 +224,10 @@ public interface UserMapper {
      * 获取用户下拉列表数据
      *
      * @param tenantId
-     * @param organs
+     * @param orgIds
      * @return
      */
-    List<SimpleUser> getAllSimpleUser(@Param("tenantId") String tenantId, List<String> organs);
+    List<SimpleUser> getAllSimpleUser(@Param("tenantId") String tenantId, List<String> orgIds);
 
     /**
      * 查询所有用户

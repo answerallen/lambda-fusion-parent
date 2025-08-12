@@ -24,13 +24,13 @@ public interface GroupMapper extends BaseMapper<GroupEntity> {
 
     /**
      * 根据组织机构删除角色分组
-     * @param organs
+     * @param orgIds
      */
     @Delete("<script>" + "DELETE FROM LA_GROUPS WHERE GROUP_ID IN "
-            + "<foreach collection='organs' open='(' item='id' separator=',' close=')'> #{id}</foreach>"
+            + "<foreach collection='orgIds' open='(' item='id' separator=',' close=')'> #{id}</foreach>"
             + "</script>")
     @InterceptorIgnore(tenantLine = "true")
-    void deleteByOrgIds(List<String> organs);
+    void deleteByOrgIds(List<String> orgIds);
 
     /**
      * 获取角色分组信息

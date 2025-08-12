@@ -27,6 +27,7 @@ import com.lambda.fusion.authority.user.model.MutableUser;
 import com.lambda.fusion.core.tree.DragMode;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.tree.TreeUtils;
+import com.lambda.fusion.core.user.User;
 import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -82,15 +83,14 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<Organization> treeList(Parameters parameters) {
-        LoginUser operator = OperatorUtils.getOperator();
+        User operator = OperatorUtils.getLoginUser(User.class);
         String orgId = operator.getOrgId();
         List<Organization> list;
         HashSet<String> orgIds = new HashSet<>();
-        boolean isAdmin = true;
         if (StringUtils.isNotBlank(parameters.getAlias()) || StringUtils.isNotBlank(parameters.getName())) {
             list = getOrgByCondition(operator, parameters);
-            if (isAdmin) {
-                getParentAndchildrenIds(orgId, list, orgIds, true);
+            if (operator.isAdmin()) {
+                getParentAndChildrenIds(orgId, list, orgIds, true);
                 if (CollectionUtils.isNotEmpty(orgIds)) {
                     parameters.setIds(new ArrayList<>(orgIds));
                     list.addAll(organizationMapper.getAllMutableOrgan(parameters));
@@ -98,10 +98,10 @@ public class OrganizationServiceImpl implements OrganizationService {
             }
             list = list.stream().distinct().collect(Collectors.toList());
         } else {
-            list = getSubordinateOrgans(parameters);
+            list = getSubordinateOrgIds(parameters);
         }
         for (Organization org : list) {
-            if (!isAdmin && org.getId().equals(orgId)) {
+            if (!operator.isAdmin() && org.getId().equals(orgId)) {
                 org.setNoPermission(true);
             }
             if (!Objects.equals(operator.getTenantId(), org.getOwner())) {
@@ -112,8 +112,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         return TreeFactory.build(list);
     }
 
-    @SuppressWarnings("SameParameterValue")
-    private void getParentAndchildrenIds(
+    private void getParentAndChildrenIds(
             String orgId, List<Organization> list, HashSet<String> orgIds, boolean isOrgAdmin) {
         for (Organization org : list) {
             String parentKeys = org.getParentKeys();
@@ -132,21 +131,21 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<Organization> getSubordinateOrgans(Parameters parameters) {
+    public List<Organization> getSubordinateOrgIds(Parameters parameters) {
         LoginUser operator = OperatorUtils.getOperator();
-        List<String> organs = getSubordinateOrgIds(operator);
-        if (CollectionUtils.isNotEmpty(organs)) {
-            parameters.setIds(organs);
+        List<String> orgIds = getSubordinateOrgIds(operator);
+        if (CollectionUtils.isNotEmpty(orgIds)) {
+            parameters.setIds(orgIds);
         }
         return organizationMapper.getAllMutableOrgan(parameters);
     }
 
     public List<Organization> getOrgByCondition(LoginUser operator, Parameters parameters) {
-        List<String> organs = getSubordinateOrgIds(operator);
-        if (CollectionUtils.isNotEmpty(organs)) {
-            parameters.setIds(organs);
+        List<String> orgIds = getSubordinateOrgIds(operator);
+        if (CollectionUtils.isNotEmpty(orgIds)) {
+            parameters.setIds(orgIds);
         }
-        return organizationMapper.getOrgansByCondition(parameters);
+        return organizationMapper.getOrgIdsByCondition(parameters);
     }
 
     @Override
@@ -271,10 +270,10 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(org, "org is not null");
         LoginUser operator = OperatorUtils.getOperator();
         this.hasOperation(operator, id);
-        final List<Organization> organs = getSubOrgans(id);
-        final List<String> tenants = getSubOrgansByType(organs, true);
-        final List<String> ordinaries = getSubOrgansByType(organs, false);
-        final List<String> ids = organs.stream().map(Organization::getId).collect(Collectors.toList());
+        final List<Organization> orgIds = getSubOrgIds(id);
+        final List<String> tenants = getSubOrgIdsByType(orgIds, true);
+        final List<String> ordinaries = getSubOrgIdsByType(orgIds, false);
+        final List<String> ids = orgIds.stream().map(Organization::getId).collect(Collectors.toList());
         ids.add(id);
         if (BooleanUtils.toBoolean(org.getTenant())) {
             tenants.add(id);
@@ -292,14 +291,14 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     private List<String> getChildrenById0(String id) {
-        List<Organization> organs = getSubOrgans(id);
-        if (CollectionUtils.isNotEmpty(organs)) {
-            return organs.stream().distinct().map(Organization::getId).collect(Collectors.toList());
+        List<Organization> orgIds = getSubOrgIds(id);
+        if (CollectionUtils.isNotEmpty(orgIds)) {
+            return orgIds.stream().distinct().map(Organization::getId).collect(Collectors.toList());
         }
         return Lists.newArrayList();
     }
 
-    protected List<Organization> getSubOrgans(String id) {
+    protected List<Organization> getSubOrgIds(String id) {
         Assert.notNull(id, "id must not be null");
         Organization organ = organizationMapper.queryOrganizationById(id);
         Assert.notNull(organ, "机构不存在！");
@@ -307,12 +306,12 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (StringUtils.isNotBlank(keys)) {
             id = keys + JOINER + id;
         }
-        return organizationMapper.getSubOrgansById(id);
+        return organizationMapper.getSubOrgIdsById(id);
     }
 
-    protected List<String> getSubOrgansByType(List<Organization> organs, Boolean isTenant) {
-        if (CollectionUtils.isNotEmpty(organs)) {
-            return organs.stream()
+    protected List<String> getSubOrgIdsByType(List<Organization> orgIds, Boolean isTenant) {
+        if (CollectionUtils.isNotEmpty(orgIds)) {
+            return orgIds.stream()
                     .filter(org -> BooleanUtils.toBoolean(org.getTenant()) == isTenant)
                     .map(Organization::id)
                     .collect(Collectors.toList());
@@ -428,17 +427,17 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<String> getSubordinateOrgIds(LoginUser operator) {
-        List<String> organs = new ArrayList<>();
+        List<String> orgIds = new ArrayList<>();
         //     TODO   if (!OperatorUtils.containsAnyManager(operator)) {
         String orgId = operator.getOrgId();
         if (StringUtils.isNotBlank(orgId)) {
-            organs.add(orgId);
-            organs.addAll(getChildrenById(orgId));
+            orgIds.add(orgId);
+            orgIds.addAll(getChildrenById(orgId));
         } else {
-            organs.add("undefined");
+            orgIds.add("undefined");
         }
         //        }
-        return organs;
+        return orgIds;
     }
 
     @Override
@@ -481,11 +480,11 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public Map<String, Organization> getOrgansByIds(Set<String> ids) {
+    public Map<String, Organization> getOrgIdsByIds(Set<String> ids) {
         if (CollectionUtils.isEmpty(ids)) {
             return Collections.emptyMap();
         }
-        List<Organization> organizations = organizationMapper.getOrgansByIds(ids);
+        List<Organization> organizations = organizationMapper.getOrgIdsByIds(ids);
         Set<String> companyIds = new HashSet<>();
         Map<String, String> orgMap = Maps.newHashMap();
         for (Organization organization : organizations) {
@@ -499,7 +498,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             companyIds.add(companyId);
         }
 
-        List<Organization> companies = organizationMapper.getOrgansByIds(companyIds);
+        List<Organization> companies = organizationMapper.getOrgIdsByIds(companyIds);
         Map<String, Organization> companyMap = Maps.newHashMap();
         for (Organization company : companies) {
             companyMap.put(company.getId(), company);

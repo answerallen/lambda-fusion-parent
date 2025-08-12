@@ -1,5 +1,8 @@
 package com.lambda.fusion.authority.role.service;
 
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.DEFAULT_GROUP_NAME;
+
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;
@@ -9,7 +12,6 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.resource.model.MutableResource;
@@ -33,6 +35,9 @@ import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.user.User;
 import jakarta.annotation.Resource;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -42,19 +47,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.DEFAULT_GROUP_NAME;
-
 @Service
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class RoleServiceImpl implements RoleService {
 
     private static final String[] BUILT_IN_ROLES = {
-            "ROLE_SYSTEM", "ROLE_ADMIN", "ROLE_DEV", "ROLE_USER", "ROLE_MANAGER", "ROLE_ORG"
+        "ROLE_SYSTEM", "ROLE_ADMIN", "ROLE_DEV", "ROLE_USER", "ROLE_MANAGER", "ROLE_ORG"
     };
     public static final String DEFAULT = "default";
 
@@ -123,8 +121,8 @@ public class RoleServiceImpl implements RoleService {
         final Map<String, List<MutableRole>> map = roles.stream()
                 .filter(mutableRole -> {
                     if (operator.isDev()) {
-                        return (mutableRole.getAuthority().equals(Constants.ROLE_DEV) ||
-                                mutableRole.getAuthority().equals(Constants.ROLE_ADMIN));
+                        return (mutableRole.getAuthority().equals(Constants.ROLE_DEV)
+                                || mutableRole.getAuthority().equals(Constants.ROLE_ADMIN));
                     } else {
                         return true;
                     }
@@ -258,7 +256,7 @@ public class RoleServiceImpl implements RoleService {
         }
         String tenantId = operator.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
-//        todo    tenantId = RoleUtil.getTenantId(authority);
+            //        todo    tenantId = RoleUtil.getTenantId(authority);
         }
         MutableResource resource = resourceService.getResourceById(resourceid);
         if (null != resource) {
@@ -308,7 +306,7 @@ public class RoleServiceImpl implements RoleService {
         }
         String tenantId = operator.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
-            //todo  tenantId = RoleUtil.getTenantId(authority);
+            // todo  tenantId = RoleUtil.getTenantId(authority);
         }
         MutableResource resource = resourceService.getResourceById(resourceid);
         if (null != resource) {

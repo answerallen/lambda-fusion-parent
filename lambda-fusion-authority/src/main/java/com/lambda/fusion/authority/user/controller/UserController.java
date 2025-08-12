@@ -1,5 +1,7 @@
 package com.lambda.fusion.authority.user.controller;
 
+import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
+
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
@@ -11,6 +13,7 @@ import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.dto.UserPageQueryDTO;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
@@ -24,6 +27,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -32,10 +36,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.*;
-
-import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 
 /**
  * 用户信息Api
@@ -46,7 +46,6 @@ import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 @RequestMapping({"/authority/users"})
 @Tag(name = "用户管理")
 public class UserController {
-    private static final String ORGANS = "organs";
 
     @Resource
     private UserService userService;
@@ -66,91 +65,63 @@ public class UserController {
     @Autowired(required = false)
     private TenantAuthorizeManager tenantAuthorizeManager;
 
-    @GetMapping(value = {"/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
-    @Operation(
-            summary = "分页查询所有用户列表",
-            parameters = {
-                    @Parameter(
-                            name = "number",
-                            description = "当前页码",
-                            in = ParameterIn.PATH,
-                            schema = @Schema(defaultValue = "1")),
-                    @Parameter(
-                            name = "size",
-                            description = "每页条数",
-                            in = ParameterIn.PATH,
-                            schema = @Schema(defaultValue = "20")),
-                    @Parameter(name = "username", description = "用户名称", in = ParameterIn.QUERY),
-                    @Parameter(name = "nickname", description = "用户昵称", in = ParameterIn.QUERY),
-                    @Parameter(name = "authority", description = "角色名称", in = ParameterIn.QUERY),
-                    @Parameter(name = "mobile", description = "电话号码", in = ParameterIn.QUERY),
-                    @Parameter(name = "email", description = "电子邮箱", in = ParameterIn.QUERY),
-                    @Parameter(name = "organizationId", description = "组织ID", in = ParameterIn.QUERY),
-                    @Parameter(
-                            name = "subordinate",
-                            description = "是否查询下级组织的人员",
-                            in = ParameterIn.QUERY,
-                            schema = @Schema(defaultValue = "true")),
-                    @Parameter(
-                            name = "allocation",
-                            description = "是否是分配人员接口调用",
-                            in = ParameterIn.QUERY,
-                            schema = @Schema(defaultValue = "false")),
-                    @Parameter(name = "personal", description = "新增查询字段", in = ParameterIn.QUERY),
-                    @Parameter(name = "isOnline", description = "是否在线", in = ParameterIn.QUERY),
-                    @Parameter(name = "isExport", description = "是否导出", in = ParameterIn.QUERY)
-            })
-    public Page<MutableUser> page(
-            @PathVariable(required = false) Integer number,
-            @PathVariable(required = false) Integer size,
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String nickname,
-            @RequestParam(required = false) String authority,
-            @RequestParam(required = false) String mobile,
-            @RequestParam(required = false) String email,
-            @RequestParam(required = false) String organizationId,
-            @RequestParam(required = false, defaultValue = "true") boolean subordinate,
-            @RequestParam(required = false) String personal,
-            @RequestParam(required = false) Boolean isOnline,
-            @RequestParam(required = false) Boolean isExport,
-            @RequestParam(required = false) String exportColumns,
-            HttpServletResponse response) {
+    @PostMapping("/page")
+    @Operation(summary = "分页查询所有用户列表")
+    public Page<MutableUser> page(@RequestBody @Valid UserPageQueryDTO queryDTO, HttpServletResponse response) {
+        Map<String, Object> parameters = buildQueryParameters(queryDTO);
+        if (queryDTO.getIsExport() != null && queryDTO.getIsExport()) {
+            parameters.put("exportColumns", queryDTO.getExportColumns());
+            userService.exportMutableUsers(queryDTO.getPage(), parameters, response);
+            return null;
+        }
+        return userService.getAllMutableUsers(queryDTO.getPage(), parameters);
+    }
+
+    /**
+     * 构建查询参数
+     *
+     * @param queryDTO 查询DTO
+     * @return 查询参数Map
+     */
+    private Map<String, Object> buildQueryParameters(UserPageQueryDTO queryDTO) {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(11);
         User operator = OperatorUtils.getLoginUser(User.class);
         String tenantId = operator.getTenantId();
-        parameters.put("username", username);
+
+        parameters.put("username", queryDTO.getUsername());
         parameters.put("dev", operator.isDev());
         parameters.put("admin", operator.isAdmin());
         parameters.put("uid", operator.getUsername());
-        if (StringUtils.isNotBlank(email)) {
-            parameters.put("email", fuzzyQuery(email));
+
+        if (StringUtils.isNotBlank(queryDTO.getEmail())) {
+            parameters.put("email", fuzzyQuery(queryDTO.getEmail()));
         }
-        if (StringUtils.isNotBlank(nickname)) {
-            parameters.put("nickname", fuzzyQuery(nickname));
+        if (StringUtils.isNotBlank(queryDTO.getNickname())) {
+            parameters.put("nickname", fuzzyQuery(queryDTO.getNickname()));
         }
-        if (StringUtils.isNotBlank(mobile)) {
-            parameters.put("mobile", fuzzyQuery(mobile));
+        if (StringUtils.isNotBlank(queryDTO.getMobile())) {
+            parameters.put("mobile", fuzzyQuery(queryDTO.getMobile()));
         }
         if (StringUtils.isNotBlank(operator.getTenantId())) {
             parameters.put("tenant_id", tenantId);
         }
-        if (StringUtils.isNotBlank(authority)) {
-            parameters.put("authority", authority);
+        if (StringUtils.isNotBlank(queryDTO.getAuthority())) {
+            parameters.put("authority", queryDTO.getAuthority());
         }
-        if (StringUtils.isNotBlank(personal)) {
-            parameters.put("personal", personal);
+        if (StringUtils.isNotBlank(queryDTO.getPersonal())) {
+            parameters.put("personal", queryDTO.getPersonal());
         }
-        if (isOnline != null) {
-            parameters.put("isOnline", isOnline);
+        if (queryDTO.getIsOnline() != null) {
+            parameters.put("isOnline", queryDTO.getIsOnline());
         }
-        addOrgansParameter(organizationId, subordinate, parameters, true);
-        Page<MutableUser> pageable = new Page<>(number, size);
-        if (isExport != null && isExport) {
-            parameters.put("exportColumns", exportColumns);
-            userService.exportMutableUsers(pageable, parameters, response);
-            return null;
-        }
-        return userService.getAllMutableUsers(pageable, parameters);
+
+        addOrganizationParameter(
+                queryDTO.getOrganizationId(),
+                queryDTO.getSubordinate() != null ? queryDTO.getSubordinate() : true,
+                parameters,
+                queryDTO.getDataRight() != null ? queryDTO.getDataRight() : true);
+
+        return parameters;
     }
 
     @GetMapping(value = "/{username}/check")
@@ -176,9 +147,9 @@ public class UserController {
     @Operation(summary = "查询用户下拉列表")
     public List<SimpleUser> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
         LoginUser operator = OperatorUtils.getOperator();
-        List<String> organs =
+        List<String> orgIds =
                 isAll != null && isAll ? Collections.emptyList() : organizationService.getSubordinateOrgIds(operator);
-        return userService.getAllSimpleUser(operator, organs);
+        return userService.getAllSimpleUser(operator, orgIds);
     }
 
     @GetMapping("/my")
@@ -201,12 +172,8 @@ public class UserController {
         User operator = OperatorUtils.getLoginUser(User.class);
         LoginUserInfo loginUserInfo = new LoginUserInfo();
         if (operator != null) {
-            MutableUser mutableUserByUsername = userService.getCurrentMutableUser(operator);
-            if (null != mutableUserByUsername) {
-                BeanUtils.copyProperties(mutableUserByUsername, loginUserInfo);
-            } else {
-                BeanUtils.copyProperties(operator, loginUserInfo);
-            }
+            MutableUser mutableUser = userService.getCurrentMutableUser(operator);
+            BeanUtils.copyProperties(Objects.requireNonNullElse(mutableUser, operator), loginUserInfo);
         }
         return loginUserInfo;
     }
@@ -258,12 +225,12 @@ public class UserController {
     public void updateUserPassword(
             @Parameter(description = "修改密码参数", required = true) @RequestBody ResetPwdParameter resetPwdParameter) {
         LoginUser operator = OperatorUtils.getOperator();
-        String oldpassword = resetPwdParameter.getOldPassword();
-        String newpassword = resetPwdParameter.getNewPassword();
-        Assert.notNull(oldpassword, "lambda.authority.user.originalpassword.notempty");
-        Assert.notNull(newpassword, "lambda.authority.user.newpassword.notempty");
+        String oldPassword = resetPwdParameter.getOldPassword();
+        String newPassword = resetPwdParameter.getNewPassword();
+        Assert.notNull(oldPassword, "原密码不能为空！");
+        Assert.notNull(newPassword, "新密码不能为空！");
         resetPwdParameter.setUsername(operator.getUsername());
-        userService.updateUserPassword(operator.getUsername(), oldpassword, newpassword);
+        userService.updateUserPassword(operator.getUsername(), oldPassword, newPassword);
     }
 
     @PutMapping("/password/reset")
@@ -344,28 +311,28 @@ public class UserController {
     @Operation(
             summary = "不分页查询所有用户列表",
             parameters = {
-                    @Parameter(name = "username", description = "用户名称", in = ParameterIn.QUERY),
-                    @Parameter(name = "nickname", description = "用户昵称", in = ParameterIn.QUERY),
-                    @Parameter(name = "authority", description = "角色名称", in = ParameterIn.QUERY),
-                    @Parameter(name = "mobile", description = "电话号码", in = ParameterIn.QUERY),
-                    @Parameter(name = "email", description = "电子邮箱", in = ParameterIn.QUERY),
-                    @Parameter(name = "organizationId", description = "组织ID", in = ParameterIn.QUERY),
-                    @Parameter(
-                            name = "subordinate",
-                            description = "是否查询下级组织的人员",
-                            in = ParameterIn.QUERY,
-                            schema = @Schema(defaultValue = "true")),
-                    @Parameter(
-                            name = "allocation",
-                            description = "是否是分配人员接口调用",
-                            in = ParameterIn.QUERY,
-                            schema = @Schema(defaultValue = "false")),
-                    @Parameter(
-                            name = "dataRight",
-                            description = "是否开启数据权限",
-                            in = ParameterIn.QUERY,
-                            schema = @Schema(defaultValue = "true")),
-                    @Parameter(name = "personal", description = "新增查询字段", in = ParameterIn.QUERY)
+                @Parameter(name = "username", description = "用户名称", in = ParameterIn.QUERY),
+                @Parameter(name = "nickname", description = "用户昵称", in = ParameterIn.QUERY),
+                @Parameter(name = "authority", description = "角色名称", in = ParameterIn.QUERY),
+                @Parameter(name = "mobile", description = "电话号码", in = ParameterIn.QUERY),
+                @Parameter(name = "email", description = "电子邮箱", in = ParameterIn.QUERY),
+                @Parameter(name = "organizationId", description = "组织ID", in = ParameterIn.QUERY),
+                @Parameter(
+                        name = "subordinate",
+                        description = "是否查询下级组织的人员",
+                        in = ParameterIn.QUERY,
+                        schema = @Schema(defaultValue = "true")),
+                @Parameter(
+                        name = "allocation",
+                        description = "是否是分配人员接口调用",
+                        in = ParameterIn.QUERY,
+                        schema = @Schema(defaultValue = "false")),
+                @Parameter(
+                        name = "dataRight",
+                        description = "是否开启数据权限",
+                        in = ParameterIn.QUERY,
+                        schema = @Schema(defaultValue = "true")),
+                @Parameter(name = "personal", description = "新增查询字段", in = ParameterIn.QUERY)
             })
     public List<MutableUser> list(
             @RequestParam(required = false) String username,
@@ -402,7 +369,7 @@ public class UserController {
         if (StringUtils.isNotBlank(personal)) {
             parameters.put("personal", personal);
         }
-        addOrgansParameter(organizationId, subordinate, parameters, dataRight);
+        addOrganizationParameter(organizationId, subordinate, parameters, dataRight);
         return userService.getAllMutableUsersNoPage(parameters);
     }
 
@@ -411,8 +378,8 @@ public class UserController {
     public void unbind(
             @Parameter(description = "用户编号", required = true) @PathVariable("username") String username,
             @Parameter(description = "第三方绑定类型(1、钉钉；2、微信)", required = true, schema = @Schema(defaultValue = "1"))
-            @PathVariable("type")
-            String type) {
+                    @PathVariable("type")
+                    String type) {
         LoginUser operator = OperatorUtils.getOperator();
         userInfoService.unbindUserInfo(operator, type, operator.getUsername());
     }
@@ -439,9 +406,9 @@ public class UserController {
     @Operation(
             summary = "更新个人信息",
             parameters = {
-                    @Parameter(name = "nickname", description = "昵称", required = true),
-                    @Parameter(name = "email", description = "邮箱", required = true),
-                    @Parameter(name = "personal", description = "新增字段")
+                @Parameter(name = "nickname", description = "昵称", required = true),
+                @Parameter(name = "email", description = "邮箱", required = true),
+                @Parameter(name = "personal", description = "新增字段")
             })
     public MutableUser updateInfo(
             MultipartFile avatar,
@@ -502,22 +469,22 @@ public class UserController {
      * @param parameters     参数信息
      * @param dataRight      是否包含数据权限
      */
-    private void addOrgansParameter(
+    private void addOrganizationParameter(
             String organizationId, boolean subordinate, Map<String, Object> parameters, boolean dataRight) {
         LoginUser operator = OperatorUtils.getOperator();
         if (subordinate || StringUtils.isBlank(organizationId)) {
             if (!dataRight) {
                 if (StringUtils.isNotBlank(organizationId)) {
-                    List<String> subOrgans = organizationService.getChildrenById(organizationId);
-                    parameters.put(ORGANS, Sets.newHashSet(subOrgans));
+                    List<String> subOrgIds = organizationService.getChildrenById(organizationId);
+                    parameters.put("orgIds", Sets.newHashSet(subOrgIds));
                 }
             } else {
-                parameters.put(ORGANS, userService.getSubOrgans(organizationId, operator));
+                parameters.put("orgIds", userService.getSubOrgIds(organizationId, operator));
             }
         } else {
             List<String> list = new ArrayList<>();
             list.add(organizationId);
-            parameters.put(ORGANS, list);
+            parameters.put("orgIds", list);
         }
     }
 }

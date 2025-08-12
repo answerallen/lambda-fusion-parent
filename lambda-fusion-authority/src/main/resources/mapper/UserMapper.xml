@@ -98,8 +98,8 @@
             <if test="parameters.email != null and parameters.email != ''">
                 AND T.email LIKE #{parameters.email}
             </if>
-            <if test="parameters.organs != null and parameters.organs.size > 0">
-                AND T.username IN (SELECT userid FROM LA_USER_ORGANIZATION WHERE organizationid IN <foreach collection="parameters.organs" open="(" close=")" separator="," item="item">#{item}</foreach>)
+            <if test="parameters.orgIds != null and parameters.orgIds.size > 0">
+                AND T.username IN (SELECT userid FROM LA_USER_ORGANIZATION WHERE organizationid IN <foreach collection="parameters.orgIds" open="(" close=")" separator="," item="item">#{item}</foreach>)
             </if>
             <if test="parameters.personal != null and parameters.personal.size > 0">
                 AND T.username IN (SELECT username FROM LA_USER_FIELDS WHERE
@@ -349,9 +349,9 @@
             <if test="tenantId != null and tenantId !='' ">
                 T1.TENANT_ID = #{tenantId}
             </if>
-            <if test="organs != null and organs.size > 0">
+            <if test="orgIds != null and orgIds.size > 0">
                 AND T2.ORGANIZATIONID IN
-                <foreach collection="organs" open="(" close=")" separator="," item="item">
+                <foreach collection="orgIds" open="(" close=")" separator="," item="item">
                     #{item}
                 </foreach>
             </if>
@@ -449,8 +449,8 @@
                 <if test="parameters.authority != null and parameters.authority != ''">
                     AND UR.authority = #{parameters.authority}
                 </if>
-                <if test="parameters.organs != null and parameters.organs.size > 0">
-                    AND O.orgId IN <foreach collection="parameters.organs" open="(" close=")" separator="," item="item">#{item}</foreach>
+                <if test="parameters.orgIds != null and parameters.orgIds.size > 0">
+                    AND O.orgId IN <foreach collection="parameters.orgIds" open="(" close=")" separator="," item="item">#{item}</foreach>
                 </if>
             </if>
         </where>
