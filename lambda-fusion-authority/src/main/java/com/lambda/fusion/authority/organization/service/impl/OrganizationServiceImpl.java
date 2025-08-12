@@ -90,7 +90,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (StringUtils.isNotBlank(parameters.getAlias()) || StringUtils.isNotBlank(parameters.getName())) {
             list = getOrgByCondition(operator, parameters);
             if (operator.isAdmin()) {
-                getParentAndChildrenIds(orgId, list, orgIds, true);
+                getParentAndChildrenIds(orgId, list, orgIds, operator.isAdmin());
                 if (CollectionUtils.isNotEmpty(orgIds)) {
                     parameters.setIds(new ArrayList<>(orgIds));
                     list.addAll(organizationMapper.getAllMutableOrgan(parameters));
