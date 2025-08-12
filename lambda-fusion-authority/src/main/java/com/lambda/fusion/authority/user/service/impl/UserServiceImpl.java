@@ -1,10 +1,5 @@
 package com.lambda.fusion.authority.user.service.impl;
 
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
-import static com.lambda.fusion.core.Constants.ROLE_DEV;
-import static com.lambda.fusion.core.tree.Tree.SPLIT;
-
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjectUtil;
@@ -17,6 +12,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
+import com.lambda.fusion.authority.AuthorityConstants;
+import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.model.Org;
 import com.lambda.fusion.authority.organization.model.Organization;
@@ -34,15 +31,10 @@ import com.lambda.fusion.authority.user.model.entity.UserFieldsEntity;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.entity.UserUpdatePwdLogEntity;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.authority.AuthorityConstants;
-import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.user.User;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +45,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.NonNull;
@@ -62,6 +53,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
+import static com.lambda.fusion.core.Constants.ROLE_DEV;
+import static com.lambda.fusion.core.tree.Tree.SPLIT;
 
 @Slf4j
 @Service
@@ -135,13 +136,12 @@ public class UserServiceImpl implements UserService {
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @Override
-    public MutableUser getCurrentMutableUser(LoginUser operator) {
+    public MutableUser getCurrentMutableUser(User operator) {
         MutableUser mutableUser = this.getMutableUserByUsername(operator.getUsername());
         UserInfo props = mutableUser.getProps();
         if (props != null && properties.getPasswordStrategy().getEnablePeriodChange()) {
-            //            boolean notMatched = !OperatorUtils.isDev(operator) && !OperatorUtils.isAdmin(operator) &&
-            // !OperatorUtils.isManager(operator) && !OperatorUtils.isTenantManager(operator);
-            boolean notMatched = true;
+            boolean notMatched = !operator.isDev() && !operator.isAdmin() &&
+                    !operator.isManager() && !operator.isTenantManager();
             // 判断密码是否需要更新
             if (notMatched && ObjectUtil.equals(props.getUpdatePwd(), false)) {
                 List<UserUpdatePwdLogEntity> userUpdatePwdLogEntities =
@@ -318,20 +318,20 @@ public class UserServiceImpl implements UserService {
         }
         Map<String, String> map1 = Maps.newHashMap();
         Map<String, String> names0 = Maps.newHashMap();
-        Set<String> parentkeys = Sets.newHashSet();
+        Set<String> parentKeys = Sets.newHashSet();
         for (Organization item : orgs) {
-            String parentkeys1 = item.getParentkeys();
+            String parentKeys1 = item.getParentKeys();
             names0.put(item.getId(), item.getAlias());
-            map1.put(item.getId(), parentkeys1);
-            if (StringUtils.isNotBlank(parentkeys1)) {
-                Collections.addAll(parentkeys, parentkeys1.split(SPLIT));
+            map1.put(item.getId(), parentKeys1);
+            if (StringUtils.isNotBlank(parentKeys1)) {
+                Collections.addAll(parentKeys, parentKeys1.split(SPLIT));
             }
         }
         Map<String, String> result = Maps.newHashMap();
-        if (CollectionUtils.isEmpty(parentkeys)) {
+        if (CollectionUtils.isEmpty(parentKeys)) {
             return result;
         }
-        List<Organization> parents = organizationMapper.getOrgansByIds(parentkeys);
+        List<Organization> parents = organizationMapper.getOrgansByIds(parentKeys);
         Map<String, String> names1 =
                 parents.stream().collect(Collectors.toMap(Organization::id, Organization::getName));
         map1.forEach((key, value) -> {

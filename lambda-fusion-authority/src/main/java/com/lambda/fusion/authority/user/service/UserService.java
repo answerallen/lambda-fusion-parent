@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
+import com.lambda.fusion.core.user.User;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -56,7 +57,7 @@ public interface UserService {
     /***
      * 获取当前用户得详情
      */
-    MutableUser getCurrentMutableUser(LoginUser operator);
+    MutableUser getCurrentMutableUser(User operator);
 
     /***
      * 查询注册用户列表

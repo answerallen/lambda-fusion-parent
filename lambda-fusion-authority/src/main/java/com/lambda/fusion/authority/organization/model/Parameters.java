@@ -14,7 +14,7 @@ public class Parameters {
 
     String owner;
 
-    String parentkeys;
+    String parentKeys;
 
     String name;
 

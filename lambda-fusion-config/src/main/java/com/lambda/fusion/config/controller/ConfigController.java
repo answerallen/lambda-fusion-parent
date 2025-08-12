@@ -251,7 +251,7 @@ public class ConfigController {
      * @param id 配置ID，路径参数，不能为空
      * @param updateDTO 配置更新DTO，支持增量更新，通过参数校验
      * @return 更新后的完整配置实体
-
+     *
      * @see ConfigUpdateDTO 更新参数详细说明
      */
     @OperationLog

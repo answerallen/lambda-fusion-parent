@@ -80,9 +80,9 @@ public class DictInfo extends BaseDO implements Tree<DictInfo> {
     @Schema(description = "额外信息详情")
     private Map<String, Object> parameters;
 
-    @TableField("parentkeys")
+    @TableField("parentKeys")
     @Schema(description = "树节点父节点")
-    private String parentkeys;
+    private String parentKeys;
 
     @TableField("level")
     @Schema(description = "级别：最顶层为1，后边层数累加", hidden = true)

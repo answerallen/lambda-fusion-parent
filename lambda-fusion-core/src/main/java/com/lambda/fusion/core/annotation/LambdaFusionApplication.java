@@ -1,10 +1,9 @@
 package com.lambda.fusion.core.annotation;
 
+import java.lang.annotation.*;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.annotation.AliasFor;
-
-import java.lang.annotation.*;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -27,5 +26,4 @@ public @interface LambdaFusionApplication {
 
     @AliasFor(annotation = SpringBootApplication.class, attribute = "proxyBeanMethods")
     boolean proxyBeanMethods() default true;
-
 }

@@ -1,13 +1,11 @@
 package com.lambda.fusion.authority.client.service.impl;
 
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+
 import cn.hutool.core.lang.UUID;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.client.mapper.ClientMapper;
-import com.lambda.fusion.authority.client.model.dto.ClientPageQueryDTO;
 import com.lambda.fusion.authority.client.model.entity.ClientEntity;
 import com.lambda.fusion.authority.client.service.ClientService;
 import com.lambda.fusion.authority.resource.model.UserPermission;
@@ -15,17 +13,13 @@ import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
 import com.lambda.security.service.HmacClientService;
 import com.lambda.security.web.hmac.model.HmacClient;
-import org.apache.commons.lang.StringUtils;
+import java.util.Date;
+import java.util.List;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Date;
-import java.util.List;
-
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 
 @Service
 @Transactional(rollbackFor = Exception.class)

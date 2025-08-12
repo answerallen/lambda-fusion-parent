@@ -55,8 +55,8 @@
             <if test="parameters.name != null and parameters.name != ''">
                 AND T.DICT_NAME LIKE #{parameters.name}
             </if>
-            <if test="parameters.parentkeys != null and parameters.parentkeys != ''">
-                OR T.PARENTKEYS LIKE #{parameters.parentkeys}
+            <if test="parameters.parentKeys != null and parameters.parentKeys != ''">
+                OR T.PARENTKEYS LIKE #{parameters.parentKeys}
             </if>
         </where>
         ORDER BY T.RANK2, CONVERT(T.DICT_NAME USING gbk)
@@ -78,8 +78,8 @@
                 <if test="parameters.name != null and parameters.name != ''">
                     AND T.DICT_NAME LIKE #{parameters.name}
                 </if>
-                <if test="parameters.parentkeys != null and parameters.parentkeys != ''">
-                    OR T.PARENTKEYS LIKE #{parameters.parentkeys}
+                <if test="parameters.parentKeys != null and parameters.parentKeys != ''">
+                    OR T.PARENTKEYS LIKE #{parameters.parentKeys}
                 </if>
             </where>
             ORDER BY RANK2, NLSSORT(T.DICT_NAME ,'NLS_SORT = SCHINESE_PINYIN_M')
@@ -101,8 +101,8 @@
                 <if test="parameters.name != null and parameters.name != ''">
                     AND T.DICT_NAME LIKE #{parameters.name}
                 </if>
-                <if test="parameters.parentkeys != null and parameters.parentkeys != ''">
-                    OR T.PARENTKEYS LIKE #{parameters.parentkeys}
+                <if test="parameters.parentKeys != null and parameters.parentKeys != ''">
+                    OR T.PARENTKEYS LIKE #{parameters.parentKeys}
                 </if>
             </where>
             ORDER BY RANK2, NLSSORT(T.DICT_NAME ,'NLS_SORT = SCHINESE_PINYIN_M')

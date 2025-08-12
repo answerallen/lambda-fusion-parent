@@ -33,7 +33,7 @@ public interface Tree<T> {
      *
      * @return
      */
-    default String parentkeys() {
+    default String parentKeys() {
         return null;
     }
 
@@ -51,7 +51,7 @@ public interface Tree<T> {
      */
     default String buildParentKeys() {
         String pid = this.id();
-        String keys = this.parentkeys();
+        String keys = this.parentKeys();
         if (StringUtils.isNotBlank(keys)) {
             return keys + SPLIT + pid;
         }
@@ -113,11 +113,11 @@ public interface Tree<T> {
     /**
      * 设置节点所有父节点
      *
-     * @param parentkeys
+     * @param parentKeys
      * @return void
      *
      */
-    default void parentkeys(String parentkeys) {
+    default void parentKeys(String parentKeys) {
         throw new NotSupportedException();
     }
 }

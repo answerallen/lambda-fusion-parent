@@ -2,7 +2,6 @@ package com.lambda.fusion.authority;
 
 import cn.hutool.core.collection.CollUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
@@ -80,6 +79,7 @@ public class AuthorityProperties {
             CIPHERTEXT
         }
     }
+
     @Getter
     @Setter
     public static class DevRole {

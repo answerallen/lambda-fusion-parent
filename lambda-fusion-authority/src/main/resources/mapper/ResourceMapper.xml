@@ -12,8 +12,8 @@
             <foreach collection="authorities" item="item" separator="," open="(" close=")">#{item}</foreach>
             )
         </if>
-        <if test="parentkeys != null">
-            AND T.parentkeys LIKE CONCAT(#{parentkeys}, '%')
+        <if test="parentKeys != null">
+            AND T.parentKeys LIKE CONCAT(#{parentKeys}, '%')
         </if>
         ORDER BY T.res_rank,T.orderNo
     </select>
@@ -27,9 +27,9 @@
             <foreach collection="authorities" item="item" separator="," open="(" close=")">#{item}</foreach>
             )
         </if>
-        <if test="parentkeys != null">
+        <if test="parentKeys != null">
             AND T.id IN
-            <foreach collection="parentkeys" item="item" separator="," open="(" close=")">#{item}</foreach>
+            <foreach collection="parentKeys" item="item" separator="," open="(" close=")">#{item}</foreach>
         </if>
         ORDER BY T.res_rank, T.orderNo
     </select>
@@ -49,9 +49,9 @@
     </select>
     <!-- 根据ID查询下级所有资源 -->
     <select id="queryAllChildren" resultType="com.lambda.fusion.authority.resource.model.Resource">
-        SELECT T.id, T.res_name, T.orderNo, T.parentId, T.res_path, T.res_rank, T.ico, T.method, T.res_type, T.hidden, parentkeys, T.res_mode
+        SELECT T.id, T.res_name, T.orderNo, T.parentId, T.res_path, T.res_rank, T.ico, T.method, T.res_type, T.hidden, parentKeys, T.res_mode
         FROM LA_RESOURCES T
-        WHERE T.parentkeys LIKE CONCAT(#{parentkeys}, '%')
+        WHERE T.parentKeys LIKE CONCAT(#{parentKeys}, '%')
         ORDER BY T.res_rank, T.orderNo
     </select>
 
@@ -59,7 +59,7 @@
     <select id="getResourceById" parameterType="string"
             resultType="com.lambda.fusion.authority.resource.model.MutableResource">
         SELECT T.id, T.res_name, T.res_path, T.res_url, T.parentId, T.res_rank, T.orderNo, T.method,
-            T.ico, T.res_type, T.hidden, T.parentkeys, T.res_mode,
+            T.ico, T.res_type, T.hidden, T.parentKeys, T.res_mode,
             T.KEY_NAME AS keyName,
             T.KEEP_ALIVE AS keepAlive,
             T.EXPAND AS expand,
@@ -70,21 +70,21 @@
     <!--suppress MybatisXMapperXmlInspection -->
     <insert id="addResource" parameterType="com.lambda.fusion.authority.resource.model.MutableResource">
         INSERT INTO LA_RESOURCES
-        (id, res_name, res_rank, res_path, parentId, orderNo, method, ico, res_type, hidden, parentkeys, res_mode, remark, key_name, keep_Alive, expand, business_expand, res_url)
+        (id, res_name, res_rank, res_path, parentId, orderNo, method, ico, res_type, hidden, parentKeys, res_mode, remark, key_name, keep_Alive, expand, business_expand, res_url)
         VALUES
         (#{id}, #{resName}, #{resRank}, #{resPath,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{orderNo,jdbcType=INTEGER},
         #{method,jdbcType=VARCHAR}, #{ico,jdbcType=VARCHAR}, #{resType ,jdbcType=INTEGER}, #{hidden,jdbcType=INTEGER},
-        #{parentkeys, jdbcType=VARCHAR}, #{resMode}, #{remark, jdbcType=VARCHAR}, #{keyName,jdbcType=VARCHAR}, #{keepAlive,jdbcType=INTEGER}, #{expand,jdbcType=VARCHAR}
+        #{parentKeys, jdbcType=VARCHAR}, #{resMode}, #{remark, jdbcType=VARCHAR}, #{keyName,jdbcType=VARCHAR}, #{keepAlive,jdbcType=INTEGER}, #{expand,jdbcType=VARCHAR}
         , #{businessExpand,jdbcType=VARCHAR}, #{resUrl,jdbcType=VARCHAR})
     </insert>
     <!--suppress MybatisXMapperXmlInspection -->
     <insert id="addResource" parameterType="com.lambda.fusion.authority.resource.model.MutableResource" databaseId="mysql">
         INSERT INTO LA_RESOURCES
-        (id, res_name, res_rank, res_path, parentId, orderNo, method, ico, res_type, hidden, parentkeys, res_mode, remark, key_name, keep_Alive, expand, business_expand, res_url)
+        (id, res_name, res_rank, res_path, parentId, orderNo, method, ico, res_type, hidden, parentKeys, res_mode, remark, key_name, keep_Alive, expand, business_expand, res_url)
         VALUES
         (#{id}, #{resName}, #{resRank}, #{resPath,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{orderNo,jdbcType=INTEGER},
         #{method,jdbcType=VARCHAR}, #{ico,jdbcType=VARCHAR}, #{resType ,jdbcType=INTEGER}, #{hidden,jdbcType=INTEGER},
-        #{parentkeys, jdbcType=VARCHAR}, #{resMode}, #{remark, jdbcType=VARCHAR}, #{keyName,jdbcType=VARCHAR}, #{keepAlive,jdbcType=INTEGER}, #{expand,jdbcType=VARCHAR}
+        #{parentKeys, jdbcType=VARCHAR}, #{resMode}, #{remark, jdbcType=VARCHAR}, #{keyName,jdbcType=VARCHAR}, #{keepAlive,jdbcType=INTEGER}, #{expand,jdbcType=VARCHAR}
         , #{businessExpand,jdbcType=VARCHAR}, #{resUrl,jdbcType=VARCHAR})
     </insert>
     <!-- 删除资源 -->
@@ -127,7 +127,7 @@
         T.res_type = #{resType,jdbcType=INTEGER},
         T.res_rank = #{resRank,jdbcType=INTEGER},
         T.hidden = #{hidden,jdbcType=INTEGER},
-        T.parentkeys = #{parentkeys, jdbcType=VARCHAR},
+        T.parentKeys = #{parentKeys, jdbcType=VARCHAR},
         T.res_mode = #{resMode,jdbcType=INTEGER},
         T.remark = #{remark, jdbcType=VARCHAR},
         T.key_name = #{keyName,jdbcType=VARCHAR},
@@ -153,7 +153,7 @@
         T.method,
         T.hidden,
         T.res_mode,
-        T.parentkeys,
+        T.parentKeys,
         T.res_url,
         T.key_name,
         T.keep_alive,
@@ -166,7 +166,7 @@
     <!-- 查询可用的所有资源 -->
     <select id="getAllResourcesByOrderNo"
             resultType="com.lambda.fusion.authority.resource.model.MutableResource">
-        SELECT id, res_name, res_path, parentid, ico, method, res_rank, remark, orderNo, res_type, res_mode, hidden, parentkeys FROM LA_RESOURCES ORDER BY orderNo
+        SELECT id, res_name, res_path, parentid, ico, method, res_rank, remark, orderNo, res_type, res_mode, hidden, parentKeys FROM LA_RESOURCES ORDER BY orderNo
     </select>
     <!-- 批量排序 -->
     <update id="updateResourceOrdered">
@@ -206,14 +206,14 @@
     <select id="getAllMutableResources"
             resultType="com.lambda.fusion.authority.resource.model.MutableResource">
         SELECT
-            T.id, T.res_name, T.res_path, T.parentid, T.ico, T.method, T.res_rank, T.orderNo, T.res_type, T.hidden, T.parentkeys, T.res_mode
+            T.id, T.res_name, T.res_path, T.parentid, T.ico, T.method, T.res_rank, T.orderNo, T.res_type, T.hidden, T.parentKeys, T.res_mode
         FROM LA_RESOURCES T
         ORDER BY T.res_rank, T.orderNo
     </select>
     <update id="updateResourceParentkeys">
-        UPDATE LA_RESOURCES SET parentkeys = CASE
+        UPDATE LA_RESOURCES SET parentKeys = CASE
         <foreach collection="list" item="item">
-            WHEN id = #{item.id} THEN #{item.parentkeys, jdbcType=VARCHAR}
+            WHEN id = #{item.id} THEN #{item.parentKeys, jdbcType=VARCHAR}
         </foreach>
         END WHERE id IN
         <foreach collection="list" item="item" separator="," open="(" close=")">
@@ -225,7 +225,7 @@
             T.orderNo = #{orderNo},
             T.parentId = #{parentId, jdbcType=VARCHAR},
             T.res_rank = #{resRank,jdbcType=INTEGER},
-            T.parentkeys = #{parentkeys, jdbcType=VARCHAR}
+            T.parentKeys = #{parentKeys, jdbcType=VARCHAR}
         WHERE T.id = #{id}
     </update>
 
@@ -260,7 +260,7 @@
         T.orderNo,
         T.method,
         T.hidden,
-        T.parentkeys
+        T.parentKeys
         FROM LA_RESOURCES T
         WHERE T.res_type = 0 AND T.res_mode = 0
         ORDER BY T.res_rank, T.orderNo

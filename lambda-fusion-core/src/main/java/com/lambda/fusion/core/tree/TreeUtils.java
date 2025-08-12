@@ -43,7 +43,7 @@ public final class TreeUtils {
         final String id1 = resource.id();
         final String id2 = target.id();
         final String pid2 = target.pid();
-        final String parentkeys1 = resource.parentkeys();
+        final String parentKeys1 = resource.parentKeys();
         List<T> changed = Lists.newArrayList();
         boolean differently = CHILD.equals(mode);
         List<T> children = directChildrenGetter.apply(CHILD.equals(mode) ? id2 : pid2);
@@ -55,20 +55,20 @@ public final class TreeUtils {
         T target1 = optional2.orElse(target);
 
         if (CHILD.equals(mode)) {
-            String parentkeys = generateParentkeys(target1.parentkeys(), target1.id());
+            String parentKeys = generateParentkeys(target1.parentKeys(), target1.id());
             source1.pid(id2);
-            source1.parentkeys(parentkeys);
-            source1.level(level(parentkeys));
+            source1.parentKeys(parentKeys);
+            source1.level(level(parentKeys));
             children.add(0, source1);
         } else {
             if (optional1.isPresent()) {
                 children.remove(source1);
             } else {
                 differently = true;
-                String parentkeys = target1.parentkeys();
+                String parentKeys = target1.parentKeys();
                 source1.pid(pid2);
-                source1.parentkeys(parentkeys);
-                source1.level(level(parentkeys));
+                source1.parentKeys(parentKeys);
+                source1.level(level(parentKeys));
             }
             int index = children.indexOf(target1);
             children.add(BEFORE.equals(mode) ? index : index + 1, source1);
@@ -83,33 +83,33 @@ public final class TreeUtils {
             i++;
         }
         if (differently) {
-            List<T> children2 = allChildrenGetter.apply(generateParentkeys(parentkeys1, id1));
-            changed.addAll(childrenHandler(parentkeys1, source1.parentkeys(), children2));
+            List<T> children2 = allChildrenGetter.apply(generateParentkeys(parentKeys1, id1));
+            changed.addAll(childrenHandler(parentKeys1, source1.parentKeys(), children2));
         }
 
         return changed;
     }
 
-    public static int level(String parentkeys) {
-        if (StringUtils.isBlank(parentkeys)) {
+    public static int level(String parentKeys) {
+        if (StringUtils.isBlank(parentKeys)) {
             return 0;
         }
-        return StringUtils.split(parentkeys, Constants.JOINER).length;
+        return StringUtils.split(parentKeys, Constants.JOINER).length;
     }
 
     /***
-     * 生成parentkeys
-     * @param parentkeys
+     * 生成parentKeys
+     * @param parentKeys
      * @param id
      * @return java.lang.String
      *
      */
-    private static String generateParentkeys(String parentkeys, String id) {
-        return StringUtils.isNotBlank(parentkeys) ? parentkeys + Constants.JOINER + id : id;
+    private static String generateParentkeys(String parentKeys, String id) {
+        return StringUtils.isNotBlank(parentKeys) ? parentKeys + Constants.JOINER + id : id;
     }
 
     /***
-     * 处理需要更新parentkeys属性的对象
+     * 处理需要更新parentKeys属性的对象
      * @param searchString
      * @param replacement
      * @param children2
@@ -121,7 +121,7 @@ public final class TreeUtils {
         if (CollectionUtils.isNotEmpty(children2)) {
             for (T item : children2) {
                 String result = replace(item, searchString, replacement);
-                item.parentkeys(result);
+                item.parentKeys(result);
                 item.level(level(result));
                 changed2.add(item);
             }
@@ -133,14 +133,14 @@ public final class TreeUtils {
         String result;
         if (StringUtils.isNotBlank(searchString)) {
             if (StringUtils.isNotBlank(replacement)) {
-                result = StringUtils.replace(item.parentkeys(), searchString, replacement);
+                result = StringUtils.replace(item.parentKeys(), searchString, replacement);
             } else {
-                result = StringUtils.removeStart(item.parentkeys(), searchString + Constants.JOINER);
+                result = StringUtils.removeStart(item.parentKeys(), searchString + Constants.JOINER);
             }
         } else if (StringUtils.isNotBlank(replacement)) {
-            result = replacement + Constants.JOINER + item.parentkeys();
+            result = replacement + Constants.JOINER + item.parentKeys();
         } else {
-            result = item.parentkeys();
+            result = item.parentKeys();
         }
         return result;
     }

@@ -52,7 +52,7 @@ public class MutableResource {
     private Integer resType;
 
     @Hidden
-    private String parentkeys;
+    private String parentKeys;
 
     @Schema(description = "资源模式.0: 后台资源, 1: app资源")
     @JsonProperty("mode")

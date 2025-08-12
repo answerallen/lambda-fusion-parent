@@ -95,7 +95,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
         if (StringUtils.isNotBlank(source.getParentId())) {
             DictInfo parent = dictInfoMapper.selectById(source.getParentId());
             if (null != parent) {
-                source.setParentkeys(parent.buildParentKeys());
+                source.setParentKeys(parent.buildParentKeys());
                 source.setLevel(parent.getLevel() + 1);
             }
         } else {
@@ -267,7 +267,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
 
     private List<DictInfo> queryParentDictInfo(DictInfo dictInfo) {
         DictInfo wrapper = new DictInfo();
-        String keys = dictInfo.getParentkeys();
+        String keys = dictInfo.getParentKeys();
         if (StringUtils.isNotBlank(keys)) {
             wrapper.setParentId(ParameterUtils.fuzzyQuery(keys.substring(keys.length() - PARENT_KEY_SUBSTRING_LENGTH)));
         } else {

@@ -9,6 +9,7 @@ import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.model.MutableOrganization;
 import com.lambda.fusion.authority.organization.model.Organization;
@@ -23,7 +24,6 @@ import com.lambda.fusion.authority.role.model.MutableRole;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.MutableUser;
-import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.core.tree.DragMode;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.tree.TreeUtils;
@@ -116,12 +116,12 @@ public class OrganizationServiceImpl implements OrganizationService {
     private void getParentAndchildrenIds(
             String orgId, List<Organization> list, HashSet<String> orgIds, boolean isOrgAdmin) {
         for (Organization org : list) {
-            String parentkeys = org.getParentkeys();
-            if (StringUtils.isNotBlank(parentkeys)) {
-                String[] split = StringUtils.split(parentkeys, JOINER);
+            String parentKeys = org.getParentKeys();
+            if (StringUtils.isNotBlank(parentKeys)) {
+                String[] split = StringUtils.split(parentKeys, JOINER);
                 List<String> ids = new ArrayList<>(Arrays.asList(split));
                 if (isOrgAdmin) {
-                    String substring = StringUtils.substring(parentkeys, StringUtils.indexOf(parentkeys, orgId));
+                    String substring = StringUtils.substring(parentKeys, StringUtils.indexOf(parentKeys, orgId));
                     split = StringUtils.split(substring, JOINER);
                     ids = new ArrayList<>(Arrays.asList(split));
                 }
@@ -255,7 +255,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(id, "id must not be null");
         Organization organ = organizationMapper.queryOrganizationById(id);
         if (organ != null) {
-            String parentKeys = organ.getParentkeys();
+            String parentKeys = organ.getParentKeys();
             if (StringUtils.isNotBlank(parentKeys)) {
                 return Lists.newArrayList(parentKeys.split(JOINER));
             }
@@ -303,7 +303,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(id, "id must not be null");
         Organization organ = organizationMapper.queryOrganizationById(id);
         Assert.notNull(organ, "机构不存在！");
-        String keys = organ.getParentkeys();
+        String keys = organ.getParentKeys();
         if (StringUtils.isNotBlank(keys)) {
             id = keys + JOINER + id;
         }
@@ -342,7 +342,7 @@ public class OrganizationServiceImpl implements OrganizationService {
      */
     protected String parentKeysParameter(Organization org) {
         if (StringUtils.isNotBlank(org.getParentId())) {
-            return org.getParentkeys() + JOINER + org.getId() + FUZZY;
+            return org.getParentKeys() + JOINER + org.getId() + FUZZY;
         } else {
             return org.getId() + FUZZY;
         }
@@ -417,9 +417,9 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (StringUtils.isNotBlank(resource.getParentId())) {
             Organization parent = getOrgById(resource.getParentId());
             Assert.notNull(parent, "lambda.authority.organ.parent.notfound");
-            String parentkeys = parent.buildParentKeys();
-            resource.setParentkeys(parentkeys);
-            resource.setLevel(TreeUtils.level(parentkeys));
+            String parentKeys = parent.buildParentKeys();
+            resource.setParentKeys(parentKeys);
+            resource.setLevel(TreeUtils.level(parentKeys));
         } else {
             resource.setLevel(0);
             resource.setParentId(TreeUtils.TOP);
@@ -461,7 +461,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         for (Organization org : successList) {
             if (org.getSpid() != null && org.getSpid().equals(organization.getName())) {
                 addOrgInfo(operator, org);
-                org.setParentkeys(organization.buildParentKeys());
+                org.setParentKeys(organization.buildParentKeys());
                 org.setParentId(organization.getId());
                 org.setLevel(organization.getLevel() + 1);
                 getchildren(org, successList);
@@ -490,8 +490,8 @@ public class OrganizationServiceImpl implements OrganizationService {
         Map<String, String> orgMap = Maps.newHashMap();
         for (Organization organization : organizations) {
             String companyId;
-            if (StringUtils.isNotBlank(organization.getParentkeys())) {
-                companyId = organization.getParentkeys().split(JOINER)[0];
+            if (StringUtils.isNotBlank(organization.getParentKeys())) {
+                companyId = organization.getParentKeys().split(JOINER)[0];
             } else {
                 companyId = organization.getId();
             }

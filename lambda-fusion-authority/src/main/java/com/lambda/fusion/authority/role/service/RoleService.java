@@ -7,6 +7,8 @@ import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
 import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
 import com.lambda.fusion.authority.role.model.vo.GroupRoleVo;
 import com.lambda.fusion.authority.role.model.vo.GroupVo;
+import com.lambda.fusion.core.user.User;
+
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +23,7 @@ public interface RoleService {
      * @param operator
      * @return
      */
-    List<MutableRole> getAllRoles(LoginUser operator);
+    List<MutableRole> getAllRoles(User operator);
 
     /**
      * 获取角色分组
@@ -30,7 +32,7 @@ public interface RoleService {
      * @param tenantId the tenantId
      * @return ig all group roles
      */
-    List<GroupRoleVo> getAllGroupRoles(LoginUser operator, String tenantId);
+    List<GroupRoleVo> getAllGroupRoles(User operator, String tenantId);
 
     /***
      * 根据条件分页查询角色列表
@@ -49,7 +51,7 @@ public interface RoleService {
      * @return
      * @throws Exception
      */
-    MutableRole updateRole(LoginUser operator, MutableRole role);
+    MutableRole updateRole(User operator, MutableRole role);
 
     /**
      * 增加角色
@@ -60,7 +62,7 @@ public interface RoleService {
      * @return
      * @throws Exception
      */
-    MutableRole saveRole(LoginUser operator, MutableRole role);
+    MutableRole saveRole(User operator, MutableRole role);
 
     /**
      * 根据角色编号查询角色信息
@@ -93,7 +95,7 @@ public interface RoleService {
      * @param mode 角色模式
      * @return
      */
-    List<AccessPermissionVO> getAccessPermissions(LoginUser operator, String id, Integer mode);
+    List<AccessPermissionVO> getAccessPermissions(User operator, String id, Integer mode);
 
     /**
      * 保存角色权限
@@ -102,7 +104,7 @@ public interface RoleService {
      * @param status
      * @param operator
      */
-    void saveAuthorization(String authority, String resourceid, int status, LoginUser operator);
+    void saveAuthorization(String authority, String resourceid, int status, User operator);
 
     /**
      * 删除角色权限
@@ -111,7 +113,7 @@ public interface RoleService {
      * @param resourceid
      * @param operator
      */
-    void deleteAuthorization(String id, String resourceid, LoginUser operator);
+    void deleteAuthorization(String id, String resourceid, User operator);
 
     /**
      * 查询该角色名是否被使用
@@ -169,7 +171,7 @@ public interface RoleService {
      * @param user 当前操作用户
      * @param req  请求
      */
-    void batchAddRoleUser(LoginUser user, BatchAddRoleUserDTO req);
+    void batchAddRoleUser(User user, BatchAddRoleUserDTO req);
 
     /**
      * 分组列表查询
@@ -177,5 +179,5 @@ public interface RoleService {
      * @param user 当前用户
      * @return 列表
      */
-    List<GroupVo> listGroups(LoginUser user);
+    List<GroupVo> listGroups(User user);
 }

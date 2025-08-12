@@ -42,9 +42,9 @@ public interface ResourceMapper {
 
     /***
      * 查询所有下级资源(直接下级和间接下级)的资源信息
-     * @param parentkeys
+     * @param parentKeys
      */
-    List<Resource> queryAllChildren(@Param("parentkeys") String parentkeys);
+    List<Resource> queryAllChildren(@Param("parentKeys") String parentKeys);
 
     /**
      * 是否包含下级资源

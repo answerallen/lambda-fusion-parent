@@ -11,9 +11,9 @@ import org.apache.commons.lang.StringUtils;
 
 /**
  * 客户端分页查询DTO
- * 
+ *
  * <p>继承PageQuery基类，提供统一的分页查询功能，支持按客户端名称、主机IP等条件查询。
- * 
+ *
  * <h3>功能特性：</h3>
  * <ul>
  * <li>支持客户端名称模糊查询</li>

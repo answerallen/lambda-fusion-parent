@@ -7,14 +7,13 @@ import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.resource.model.ResourceParameter;
 import com.lambda.fusion.authority.resource.service.ResourceService;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,18 +22,12 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @SaCheckRole({"ROLE_DEV", "ROLE_SYSTEM", "ROLE_ADMIN"})
-@RequestMapping({"/authority/resources", "/authority/resources"})
+@RequestMapping({"/authority/resources"})
 @Tag(name = "资源管理")
-@SuppressFBWarnings("EI_EXPOSE_REP2")
+@RequiredArgsConstructor
 public class ResourceController {
 
-    private ResourceService resourceService;
-
-    @Autowired
-    public void setResourceService(ResourceService resourceService) {
-        this.resourceService = resourceService;
-    }
-
+    private final ResourceService resourceService;
     @GetMapping("/tree")
     @Operation(
             summary = "以树形的方式获取资源权限列表",
@@ -44,9 +37,7 @@ public class ResourceController {
                 @Parameter(name = "level", description = "菜单层级"),
                 @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
             })
-    public List<Resource> tree(
-            @RequestParam(required = false) @Parameter(description = "资源名称") String name,
-            @Parameter NavigationQuery parameter) {
+    public List<Resource> tree(@Parameter NavigationQuery parameter) {
         return resourceService.getChildren(parameter);
     }
 
@@ -56,11 +47,11 @@ public class ResourceController {
         return resourceService.getAllResources();
     }
 
-    @PostMapping({"", "/{id}"})
+    @PostMapping({ "/{id}"})
     @Operation(summary = "新增资源信息", description = "当id为非空时新增其子资源信息")
     public MutableResource add(
-            @Parameter(description = "资源编号") @PathVariable(value = "id", required = false) String id,
-            @Validated @Parameter(description = "资源信息", required = true) @RequestBody ResourceParameter parameter) {
+            @PathVariable(value = "id", required = false) String id,
+            @Validated @RequestBody ResourceParameter parameter) {
         if (StringUtils.isNotBlank(id)) {
             parameter.setParentId(id);
         }
@@ -76,8 +67,7 @@ public class ResourceController {
     @PutMapping("/{id}")
     @Operation(summary = "更新资源信息", description = "根据编号更新指定的资源信息")
     public MutableResource update(
-            @Parameter(description = "资源编号", required = true) @PathVariable("id") String id,
-            @Parameter(description = "资源信息", required = true) @RequestBody MutableResource resource) {
+            @Parameter(description = "资源编号", required = true) @PathVariable("id") String id, @RequestBody MutableResource resource) {
         resource.setId(id);
         return resourceService.updateResource(resource);
     }
@@ -94,13 +84,8 @@ public class ResourceController {
                         schema = @Schema(allowableValues = {"0", "1", "2"}))
             })
     public void move(
-            @Parameter(description = "资源编号", required = true) @PathVariable("id") String id,
-            @Parameter(description = "参照对象", required = true) @RequestParam("tid") String tid,
-            @Parameter(description = "移动类型", required = true) @RequestParam("type") int type) {
-        MoveParameter parameter = new MoveParameter();
+            @Parameter(description = "资源编号", required = true) @PathVariable("id") String id, @RequestBody MoveParameter parameter) {
         parameter.setId(id);
-        parameter.setTid(tid);
-        parameter.setType(type);
         resourceService.move(parameter);
     }
 }

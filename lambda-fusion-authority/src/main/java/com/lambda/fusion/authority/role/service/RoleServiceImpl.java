@@ -1,8 +1,6 @@
 package com.lambda.fusion.authority.role.service;
 
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.DEFAULT_GROUP_NAME;
-
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -21,7 +19,7 @@ import com.lambda.fusion.authority.role.mapper.AccessPermissionMapper;
 import com.lambda.fusion.authority.role.mapper.GroupMapper;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.mapper.UserRolesMapper;
-import com.lambda.fusion.authority.role.model.*;
+import com.lambda.fusion.authority.role.model.MutableRole;
 import com.lambda.fusion.authority.role.model.domain.AccessPermissionDO;
 import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
 import com.lambda.fusion.authority.role.model.entity.GroupEntity;
@@ -30,12 +28,11 @@ import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
 import com.lambda.fusion.authority.role.model.vo.GroupRoleVo;
 import com.lambda.fusion.authority.role.model.vo.GroupVo;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
+import com.lambda.fusion.authority.utils.MybatisUtils;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.TreeFactory;
+import com.lambda.fusion.core.user.User;
 import jakarta.annotation.Resource;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -45,12 +42,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.DEFAULT_GROUP_NAME;
+
 @Service
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class RoleServiceImpl implements RoleService {
 
     private static final String[] BUILT_IN_ROLES = {
-        "ROLE_SYSTEM", "ROLE_ADMIN", "ROLE_DEV", "ROLE_USER", "ROLE_MANAGER", "ROLE_ORG"
+            "ROLE_SYSTEM", "ROLE_ADMIN", "ROLE_DEV", "ROLE_USER", "ROLE_MANAGER", "ROLE_ORG"
     };
     public static final String DEFAULT = "default";
 
@@ -78,12 +82,10 @@ public class RoleServiceImpl implements RoleService {
     private TenantAuthorizeManager tenantAuthorizeManager;
 
     @Override
-    public List<MutableRole> getAllRoles(LoginUser operator) {
-        //        boolean dev = OperatorUtils.isDev(operator);
-        //        boolean admin = OperatorUtils.isAdmin(operator);
+    public List<MutableRole> getAllRoles(User operator) {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
-        //        parameters.put("dev", dev);
-        //        parameters.put(ADMIN, admin);
+        parameters.put("dev", operator.isDev());
+        parameters.put(ADMIN, operator.isAdmin());
         parameters.put("userid", operator.getUsername());
         parameters.put(Constants.TENANT_ID, operator.getTenantId());
         return roleMapper.getAllRoles(parameters);
@@ -91,7 +93,7 @@ public class RoleServiceImpl implements RoleService {
 
     @SuppressWarnings("squid:S3776")
     @Override
-    public List<GroupRoleVo> getAllGroupRoles(LoginUser operator, String tenantId) {
+    public List<GroupRoleVo> getAllGroupRoles(User operator, String tenantId) {
         if (StringUtils.isBlank(tenantId) || StringUtils.isNotBlank(operator.getTenantId())) {
             tenantId = operator.getTenantId();
         }
@@ -100,12 +102,12 @@ public class RoleServiceImpl implements RoleService {
         excludes.add(Constants.ROLE_HMAC);
         excludes.add(Constants.ROLE_SYSTEM);
         excludes.add(Constants.ROLE_TENANT);
-        //        if (!OperatorUtils.isDev(operator)) {
-        //            excludes.add(Constants.ROLE_DEV);
-        //            if (!OperatorUtils.isAdmin(operator)) {
-        //                excludes.add(Constants.ROLE_ADMIN);
-        //            }
-        //        }
+        if (!operator.isDev()) {
+            excludes.add(Constants.ROLE_DEV);
+            if (!operator.isAdmin()) {
+                excludes.add(Constants.ROLE_ADMIN);
+            }
+        }
         Set<String> queryExclude = internalRoleService.queryExclude(operator);
         excludes.addAll(queryExclude);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(2);
@@ -120,12 +122,12 @@ public class RoleServiceImpl implements RoleService {
         // Jin 如果当前用户的角色是开发工程师 只返回ROLE_DEV和ROLE_ADMIN
         final Map<String, List<MutableRole>> map = roles.stream()
                 .filter(mutableRole -> {
-                    //                    if (OperatorUtils.isDev(operator)) {
-                    //                        return (mutableRole.getAuthority().equals(Constants.ROLE_DEV) ||
-                    // mutableRole.getAuthority().equals(Constants.ROLE_ADMIN));
-                    //                    } else {
-                    return true;
-                    //                    }
+                    if (operator.isDev()) {
+                        return (mutableRole.getAuthority().equals(Constants.ROLE_DEV) ||
+                                mutableRole.getAuthority().equals(Constants.ROLE_ADMIN));
+                    } else {
+                        return true;
+                    }
                 })
                 .collect(Collectors.groupingBy(MutableRole::getGroupId));
 
@@ -158,7 +160,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public MutableRole updateRole(LoginUser operator, MutableRole role) {
+    public MutableRole updateRole(User operator, MutableRole role) {
         Assert.notNull(role, "role不能为空");
         Assert.notNull(role.getAlias(), "别名不能为空！");
         MutableRole source = getRoleByAuthority(role.getAuthority());
@@ -175,7 +177,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public MutableRole saveRole(LoginUser operator, MutableRole role) {
+    public MutableRole saveRole(User operator, MutableRole role) {
         Assert.notNull(role, "role不能为空");
         Assert.notNull(role.getAlias(), "别名不能为空！");
         String tenantId = operator.getTenantId();
@@ -227,43 +229,37 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<AccessPermissionVO> getAccessPermissions(LoginUser operator, String authority, Integer mode) {
+    public List<AccessPermissionVO> getAccessPermissions(User operator, String authority, Integer mode) {
         Assert.notNull(authority, "role name 不能为空");
-        //        boolean dev = OperatorUtils.isDev(operator);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(3);
         parameters.put("authority", authority);
         parameters.put("mode", Optional.ofNullable(mode).orElse(0));
-        ////        if (!dev) {
-        //            boolean self = OperatorUtils.hasAuthorize(operator, authority);
-        //            Assert.isTrue(!self, AuthorizeConstants.ROLE_SELF_REFUSED);
-        //            Set<String> authorities = operator.getAuthorities().stream()
-        //                    .map(SimpleGrantedAuthority::getAuthority).collect(Collectors.toSet());
-        //            authorities.add(operator.getUsername());
-        //            parameters.put("authorities", authorities);
-        //        }
+        if (!operator.isDev()) {
+            StpUtil.checkPermission(authority);
+            Set<String> authorities = operator.getPermissions();
+            authorities.add(operator.getUsername());
+            parameters.put("authorities", authorities);
+        }
         List<AccessPermissionVO> permissions = roleMapper.getAccessPermissions(parameters);
         if (CollectionUtils.isEmpty(permissions)) {
             return Collections.emptyList();
         }
-        //        NavigationUtils.migratePermissions(permissions);
         return TreeFactory.build(permissions);
     }
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void saveAuthorization(String authority, String resourceid, int status, LoginUser operator) {
+    public void saveAuthorization(String authority, String resourceid, int status, User operator) {
         Assert.notNull(authority, "role name 不能为空");
         Assert.notNull(resourceid, "资源id不能为空！");
-        //        boolean dev = OperatorUtils.isDev(operator);
-        //        if (!dev) {
-        //            boolean self = OperatorUtils.hasAuthorize(operator, authority);
-        //            Assert.isTrue(!self, AuthorizeConstants.ROLE_SELF_REFUSED);
-        //        }
+        if (!operator.isDev()) {
+            StpUtil.checkPermission(authority);
+        }
         String tenantId = operator.getTenantId();
-        //        if (StringUtils.isBlank(tenantId)) {
-        //            tenantId = RoleUtil.getTenantId(authority);
-        //        }
+        if (StringUtils.isBlank(tenantId)) {
+//        todo    tenantId = RoleUtil.getTenantId(authority);
+        }
         MutableResource resource = resourceService.getResourceById(resourceid);
         if (null != resource) {
             List<MutableResource> resources = resourceService.getAllParentsByOperator(operator, resource);
@@ -284,15 +280,14 @@ public class RoleServiceImpl implements RoleService {
             }
             Set<String> differently = Sets.difference(ids, authorized);
             if (!CollectionUtils.isEmpty(differently)) {
-                String finalTenantId = tenantId;
-                //                MybatisUtils.batchInsert(differently, RoleMapper.class, (id, mapper) -> {
-                //                    AccessPermissionDO parameters = new AccessPermissionDO();
-                //                    parameters.setAuthority(authority);
-                //                    parameters.setTenantId(finalTenantId);
-                //                    parameters.setStatus(status);
-                //                    parameters.setId(id);
-                //                    mapper.saveAuthorization(parameters);
-                //                });
+                MybatisUtils.batchInsert(differently, RoleMapper.class, (id, mapper) -> {
+                    AccessPermissionDO parameters = new AccessPermissionDO();
+                    parameters.setAuthority(authority);
+                    parameters.setTenantId(tenantId);
+                    parameters.setStatus(status);
+                    parameters.setId(id);
+                    mapper.saveAuthorization(parameters);
+                });
             }
 
             // 处理租户主库
@@ -305,18 +300,16 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
-    public void deleteAuthorization(String authority, String resourceid, LoginUser operator) {
+    public void deleteAuthorization(String authority, String resourceid, User operator) {
         Assert.notNull(authority, "role name 不能为空");
         Assert.notNull(resourceid, "资源id不能为空！");
-        //        boolean dev = OperatorUtils.isDev(operator);
-        //        if (!dev) {
-        //            boolean self = OperatorUtils.hasAuthorize(operator, authority);
-        //            Assert.isTrue(!self, AuthorizeConstants.ROLE_SELF_REFUSED);
-        //        }
+        if (!operator.isDev()) {
+            StpUtil.checkPermission(authority);
+        }
         String tenantId = operator.getTenantId();
-        //        if (StringUtils.isBlank(tenantId)) {
-        //            tenantId = RoleUtil.getTenantId(authority);
-        //        }
+        if (StringUtils.isBlank(tenantId)) {
+            //todo  tenantId = RoleUtil.getTenantId(authority);
+        }
         MutableResource resource = resourceService.getResourceById(resourceid);
         if (null != resource) {
             List<MutableResource> resources = resourceService.getAllChildrenByOperator(operator, resource);
@@ -396,7 +389,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<GroupVo> listGroups(LoginUser operator) {
+    public List<GroupVo> listGroups(User operator) {
         String tenantId = operator.getTenantId();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(1);
         parameters.put(Constants.TENANT_ID, tenantId);
@@ -423,7 +416,7 @@ public class RoleServiceImpl implements RoleService {
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
-    public void batchAddRoleUser(LoginUser user, BatchAddRoleUserDTO req) {
+    public void batchAddRoleUser(User user, BatchAddRoleUserDTO req) {
         final String authority = req.getRoleId();
         final LambdaQueryWrapper<UserRoleEntity> query = Wrappers.lambdaQuery(UserRoleEntity.class);
         final List<String> usernames = req.getUsername();

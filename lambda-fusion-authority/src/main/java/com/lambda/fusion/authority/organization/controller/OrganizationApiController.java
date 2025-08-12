@@ -22,7 +22,7 @@ public class OrganizationApiController {
 
     @GetMapping("/{orgid}")
     @Operation(summary = "根据组织机构ID获取父节点", description = "根据组织机构ID获取父节点")
-    public List<String> getParentKeysById(@PathVariable String orgid) {
+    public List<String> getparentKeysById(@PathVariable String orgid) {
         return organizationService.getParentsById(orgid);
     }
 }

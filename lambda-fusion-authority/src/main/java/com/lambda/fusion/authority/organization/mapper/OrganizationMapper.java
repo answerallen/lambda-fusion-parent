@@ -277,7 +277,7 @@ public interface OrganizationMapper {
     /**
      * 获取节点的所有下级，包含下级的下级
      *
-     * @param parentkeys
+     * @param parentKeys
      */
-    List<Organization> allChildrenGetter(String parentkeys);
+    List<Organization> allChildrenGetter(String parentKeys);
 }

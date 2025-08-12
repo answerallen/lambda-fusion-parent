@@ -107,7 +107,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
                 key = conditions.getId();
             }
             parameters.put("id", key);
-            parameters.put("parentkeys", ParameterUtils.fuzzyQuery(key));
+            parameters.put("parentKeys", ParameterUtils.fuzzyQuery(key));
             parameters.put("level", conditions.getLevel());
         }
         return TreeFactory.build(dictTypeMapper.treeList(parameters));
@@ -137,7 +137,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
                         key = conditions.getId();
                     }
                     parameters.put("id", key);
-                    parameters.put("parentkeys", ParameterUtils.fuzzyQuery(key));
+                    parameters.put("parentKeys", ParameterUtils.fuzzyQuery(key));
                 }
                 getEnumDict(queryDictTree, name, result);
             } else {

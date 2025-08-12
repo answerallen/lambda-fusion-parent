@@ -118,7 +118,7 @@ public final class DictConstants {
     public static final String FIELD_ID = "id";
 
     /** 父级键字段 */
-    public static final String FIELD_PARENT_KEYS = "parentkeys";
+    public static final String FIELD_PARENT_KEYS = "parentKeys";
 
     /** 层级字段 */
     public static final String FIELD_LEVEL = "level";

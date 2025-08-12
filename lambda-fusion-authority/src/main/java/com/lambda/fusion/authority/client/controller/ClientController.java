@@ -42,8 +42,7 @@ public class ClientController {
 
     @PostMapping
     @Operation(summary = "新增客户端信息", description = "新增客户端信息")
-    public void save(
-            @Parameter(description = "客户端信息", required = true) @Valid @RequestBody ClientInputDTO entity) {
+    public void save(@Parameter(description = "客户端信息", required = true) @Valid @RequestBody ClientInputDTO entity) {
         ClientEntity target = new ClientEntity();
         BeanUtils.copyProperties(entity, target);
         String tenantId = OperatorUtils.getOperator().getTenantId();

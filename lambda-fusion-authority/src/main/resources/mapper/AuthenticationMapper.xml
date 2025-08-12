@@ -86,7 +86,7 @@
             AND T1.res_rank = #{query.level}
         </if>
         <if test="query.parentId != null and query.parentId != ''">
-            AND T1.parentkeys LIKE CONCAT(#{query.parentId}, '%')
+            AND T1.parentKeys LIKE CONCAT(#{query.parentId}, '%')
         </if>
         <if test="query.name != null and query.name != ''">
             AND T1.res_name LIKE CONCAT('%', #{query.name}, '%')

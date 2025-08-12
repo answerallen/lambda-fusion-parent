@@ -51,7 +51,7 @@ public class Organization implements Tree<Organization> {
     private List<Organization> children;
 
     @Schema(description = "树的父节点", hidden = true)
-    private String parentkeys;
+    private String parentKeys;
 
     @Schema(description = "租户Id", hidden = true)
     private String tenantId;
@@ -89,8 +89,8 @@ public class Organization implements Tree<Organization> {
     }
 
     @Override
-    public String parentkeys() {
-        return this.parentkeys;
+    public String parentKeys() {
+        return this.parentKeys;
     }
 
     @Override
@@ -112,8 +112,8 @@ public class Organization implements Tree<Organization> {
     }
 
     @Override
-    public void parentkeys(String parentkeys) {
-        setParentkeys(parentkeys);
+    public void parentKeys(String parentKeys) {
+        setparentKeys(parentKeys);
     }
 
     @Override

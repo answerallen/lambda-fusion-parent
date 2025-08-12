@@ -18,7 +18,7 @@ public interface ITreeDataFilter {
      *         if (parameters.getSelf() != null) {
      *             list.add(parameters.getSelf());
      *         }
-     *         final List<Organization> results = treeDataFilter.filter(list, parameters.getName(), Organization::getName, Organization::getId, Organization::getParentkeys,
+     *         final List<Organization> results = treeDataFilter.filter(list, parameters.getName(), Organization::getName, Organization::getId, Organization::getParentKeys,
      *                 (target) -> target.stream().sorted(Comparator.comparing(Organization::getLevel).thenComparing(Organization::getName)).collect(Collectors.toList()));
      *         return TreeFactory.build(results);
      *     }

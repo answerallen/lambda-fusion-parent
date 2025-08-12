@@ -31,7 +31,7 @@
         <result column="org_rank" property="level"/>
         <result column="createDate" property="createDate"/>
         <result column="remarks" property="remarks"/>
-        <result column="parentKeys" property="parentkeys"/>
+        <result column="parentKeys" property="parentKeys"/>
         <result column="org_category" property="tenant"/>
         <result column="enabled" property="enabled"/>
         <result column="org_type" property="type"/>
@@ -140,8 +140,8 @@
                 </otherwise>
             </choose>
         </if>
-        <if test="parameters.parentkeys != null and parameters.parentkeys != ''">
-            AND O.parentkeys LIKE #{parameters.parentkeys}
+        <if test="parameters.parentKeys != null and parameters.parentKeys != ''">
+            AND O.parentKeys LIKE #{parameters.parentKeys}
         </if>
         ORDER BY O.org_rank, O.order_no, O.parentId, O.organization
     </select>
@@ -230,9 +230,9 @@
 
     <insert id="addOrganization" parameterType="com.lambda.fusion.authority.organization.model.Organization">
         INSERT INTO LA_ORGANIZATION
-        (id, organization, alias, parentId, remarks, org_rank, parentkeys, org_owner, org_category, tenant_id, org_type, spid, order_no)
+        (id, organization, alias, parentId, remarks, org_rank, parentKeys, org_owner, org_category, tenant_id, org_type, spid, order_no)
         VALUES (#{id}, #{name}, #{alias}, #{parentId,jdbcType=VARCHAR},
-        #{remarks, jdbcType=VARCHAR}, #{level}, #{parentkeys, jdbcType=VARCHAR},
+        #{remarks, jdbcType=VARCHAR}, #{level}, #{parentKeys, jdbcType=VARCHAR},
         #{owner, jdbcType=VARCHAR}, #{tenant}, #{tenant_id, jdbcType=VARCHAR}, #{type}, #{spid,jdbcType=VARCHAR}, #{orderNo})
     </insert>
 
@@ -293,11 +293,11 @@
     </update>
 
     <select id="getChildrenById" resultType="java.lang.String">
-        SELECT id FROM LA_ORGANIZATION T WHERE T.parentkeys LIKE CONCAT(#{id},'%') ORDER BY parentkeys
+        SELECT id FROM LA_ORGANIZATION T WHERE T.parentKeys LIKE CONCAT(#{id},'%') ORDER BY parentKeys
     </select>
 
     <select id="getSubOrgansById" resultMap="Organization">
-        SELECT id, org_category FROM LA_ORGANIZATION T WHERE T.parentkeys LIKE CONCAT(#{id},'-%') OR T.parentkeys = #{id} ORDER BY parentkeys
+        SELECT id, org_category FROM LA_ORGANIZATION T WHERE T.parentKeys LIKE CONCAT(#{id},'-%') OR T.parentKeys = #{id} ORDER BY parentKeys
     </select>
 
     <update id="prohibitOrganizationByIds">
@@ -378,7 +378,7 @@
             alias,
             parentid,
             org_rank,
-            parentkeys,
+            parentKeys,
             order_no
         FROM LA_ORGANIZATION T
         <where>
@@ -395,10 +395,10 @@
             alias,
             parentid,
             org_rank,
-            parentkeys,
+            parentKeys,
             order_no
         FROM LA_ORGANIZATION T
-        WHERE (T.parentkeys = #{parentkeys} OR T.parentkeys LIKE CONCAT(#{parentkeys},'-%'))
+        WHERE (T.parentKeys = #{parentKeys} OR T.parentKeys LIKE CONCAT(#{parentKeys},'-%'))
         ORDER BY T.org_rank, T.order_no
     </select>
     <update id="batchUpdateOrgsAfterMoved">
@@ -413,9 +413,9 @@
             WHEN id = #{item.id} THEN #{item.parentId}
         </foreach>
         END,
-        parentkeys = CASE
+        parentKeys = CASE
         <foreach collection="list" item="item">
-            WHEN id = #{item.id} THEN #{item.parentkeys}
+            WHEN id = #{item.id} THEN #{item.parentKeys}
         </foreach>
         END,
         order_no = CASE
