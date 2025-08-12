@@ -6,8 +6,8 @@ import static com.lambda.fusion.core.Constants.BEARER;
 import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import com.lambda.fusion.dict.config.DictionaryProperties;
 import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.dict.DictionaryProperties;
 import com.lambda.fusion.dict.common.model.DictValueType;
 import com.lambda.fusion.dict.common.model.DynamicDict;
 import com.lambda.fusion.dict.dao.entity.DictType;

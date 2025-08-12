@@ -3,8 +3,6 @@ package com.lambda.fusion.config.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.config.domain.dto.*;
-import com.lambda.fusion.dict.config.domain.dto.*;
-import com.lambda.fusion.dict.domain.dto.*;
 import com.lambda.fusion.config.domain.entity.ConfigEntity;
 import java.util.List;
 
@@ -187,7 +185,6 @@ public interface ConfigService extends IService<ConfigEntity> {
      * @param updateDTO 批量更新参数，包含应用名称和配置更新项列表
      * @return 更新是否成功，true表示全部更新成功，false表示存在更新失败的项
      *
-     * @throws BusinessException 当更新操作失败时抛出
      * @see ConfigBatchUpdateDTO 批量更新参数说明
      * @since 1.0.0
      */
@@ -232,8 +229,6 @@ public interface ConfigService extends IService<ConfigEntity> {
      * @param updateDTO 配置更新参数，支持增量更新，通过参数校验
      * @return 更新后的完整配置实体，包含最新的选项信息
      *
-     * @throws EntityNotFoundException 当配置不存在时抛出
-     * @throws BusinessException 当更新操作失败时抛出
      * @see ConfigUpdateDTO 更新参数详细说明
      * @since 1.0.0
      */
@@ -287,8 +282,6 @@ public interface ConfigService extends IService<ConfigEntity> {
      * @param saveDTO 配置保存参数，包含配置基本信息和选项，必须通过参数校验
      * @return 保存后的完整配置实体，包含生成的ID和创建时间
      *
-     * @throws BusinessException 当配置键已存在时抛出
-     * @throws DataAccessException 当数据保存失败时抛出
      * @see ConfigSaveDTO 保存参数详细说明
      * @since 1.0.0
      */

@@ -1,6 +1,7 @@
 package com.lambda.fusion.authority.client.controller;
 
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
@@ -19,29 +20,20 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping({"/clients", "/clients"})
+@RequestMapping({"/clients"})
 @Tag(name = "认证管理")
 @RequiredArgsConstructor
 public class ClientController {
 
     private final ClientService clientService;
     @PostMapping("/page")
-    @Operation(
-            summary = "分页查询客户端列表（推荐）",
-            description = "基于PageQuery基类的分页查询，支持更丰富的查询条件和统一的分页处理")
-    public Page<ClientEntity> page(@Valid @RequestBody ClientPageQueryDTO queryDTO) {
-
-        // 租户隔离处理
+    @Operation(summary = "分页查询客户端列表", description = "分页查询客户端列表")
+    public Page<ClientEntity> page(@Valid @RequestBody ClientPageQueryDTO clientPageQueryDTO) {
         String tenantId = OperatorUtils.getOperator().getTenantId();
         if (StringUtils.isNotBlank(tenantId)) {
-            queryDTO.setTenantId(tenantId);
+            clientPageQueryDTO.setTenantId(tenantId);
         }
-
-        // 使用PageQuery基类的分页对象
-        Page<ClientEntity> page = queryDTO.getPage();
-
-        // 执行分页查询
-        return clientService.page(page, queryDTO);
+        return clientService.page(clientPageQueryDTO.getPage(), clientPageQueryDTO.getLambdaQueryWrapper());
     }
 
     @GetMapping("/{id}")

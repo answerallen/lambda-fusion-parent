@@ -6,8 +6,6 @@ import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.cloud.logger.context.LogContext;
 import com.lambda.fusion.config.core.DatabaseContextRefresher;
 import com.lambda.fusion.config.domain.dto.*;
-import com.lambda.fusion.dict.config.domain.dto.*;
-import com.lambda.fusion.dict.domain.dto.*;
 import com.lambda.fusion.config.domain.entity.ConfigEntity;
 import com.lambda.fusion.config.domain.entity.ConfigOptionEntity;
 import com.lambda.fusion.config.service.ConfigChangedService;
@@ -212,8 +210,6 @@ public class ConfigController {
      * @param source 配置保存DTO，包含配置基本信息和选项，必须通过参数校验
      * @return 保存后的完整配置实体，包含生成的ID和创建时间
      *
-     * @throws BusinessException 当配置键已存在时抛出
-     * @throws AccessDeniedException 当用户权限不足时抛出
      * @see ConfigSaveDTO 保存参数详细说明
      * @since 1.0.0
      */
@@ -255,11 +251,8 @@ public class ConfigController {
      * @param id 配置ID，路径参数，不能为空
      * @param updateDTO 配置更新DTO，支持增量更新，通过参数校验
      * @return 更新后的完整配置实体
-     *
-     * @throws EntityNotFoundException 当配置不存在时抛出
-     * @throws AccessDeniedException 当用户权限不足时抛出
+
      * @see ConfigUpdateDTO 更新参数详细说明
-     * @since 1.0.0
      */
     @OperationLog
     @SaCheckRole("ROLE_DEV")
@@ -296,9 +289,6 @@ public class ConfigController {
      * <p>需要 ROLE_DEV 角色权限。
      *
      * @param id 配置ID，不能为空
-     *
-     * @throws EntityNotFoundException 当配置不存在时抛出
-     * @throws AccessDeniedException 当用户权限不足时抛出
      * @since 1.0.0
      */
     @OperationLog
@@ -366,9 +356,6 @@ public class ConfigController {
      *
      * @param id 配置ID，不能为空
      * @return 配置完整实体信息
-     *
-     * @throws EntityNotFoundException 当配置不存在时抛出
-     * @throws AccessDeniedException 当用户权限不足时抛出
      * @since 1.0.0
      */
     @SaCheckRole("ROLE_DEV")
@@ -395,9 +382,6 @@ public class ConfigController {
      *
      * @param id 配置ID，不能为空
      * @return 配置选项列表，如果没有选项则返回空列表
-     *
-     * @throws EntityNotFoundException 当配置不存在时抛出
-     * @throws AccessDeniedException 当用户权限不足时抛出
      * @since 1.0.0
      */
     @SaCheckRole("ROLE_DEV")
@@ -509,7 +493,6 @@ public class ConfigController {
      * @param batchUpdateDTO 批量更新参数，包含应用名称和配置更新项列表
      *
      * @throws IllegalArgumentException 当参数不合法时抛出
-     * @throws BusinessException 当更新操作失败时抛出
      * @see ConfigBatchUpdateDTO 批量更新参数说明
      * @since 1.0.0
      */

@@ -11,7 +11,6 @@ import lombok.Data;
 @Data
 @TableName("la_clients")
 @Schema(description = "第三方客户端")
-@SuppressFBWarnings("EI_EXPOSE_REP")
 public class ClientEntity {
 
     /**

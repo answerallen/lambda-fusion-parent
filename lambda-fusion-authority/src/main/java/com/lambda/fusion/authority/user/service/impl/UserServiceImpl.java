@@ -45,6 +45,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -65,39 +66,19 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-    @Autowired
-    private UserMapper userMapper;
-
-    @Autowired
-    private RoleMapper roleMapper;
-
-    @Autowired
-    private TenantMapper tenantMapper;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private AuthorityProperties properties;
-
-    @Autowired
-    private UserInfoMapper userInfoMapper;
-
-    @Autowired
-    private UserFieldsMapper userFieldsMapper;
-
-    @Autowired
-    private OrganizationMapper organizationMapper;
-
-    @Autowired
-    private UserUpdatePwdLogMapper userUpdatePwdLogMapper;
-
-    @Autowired
-    private OrganizationService organizationService;
-
-    @Autowired
-    protected ApplicationEventPublisher applicationEventPublisher;
+    private final UserMapper userMapper;
+    private final RoleMapper roleMapper;
+    private final TenantMapper tenantMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthorityProperties properties;
+    private final UserInfoMapper userInfoMapper;
+    private final UserFieldsMapper userFieldsMapper;
+    private final OrganizationMapper organizationMapper;
+    private final UserUpdatePwdLogMapper userUpdatePwdLogMapper;
+    private final OrganizationService organizationService;
+    protected final ApplicationEventPublisher applicationEventPublisher;
 
     /**
      * 用户新增字段key

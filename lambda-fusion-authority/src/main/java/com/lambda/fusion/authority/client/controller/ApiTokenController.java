@@ -3,6 +3,7 @@ package com.lambda.fusion.authority.client.controller;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.client.model.dto.ApiTokenInputDTO;
+import com.lambda.fusion.authority.client.model.dto.ApiTokenPageQueryDTO;
 import com.lambda.fusion.authority.client.model.entity.ApiTokenEntity;
 import com.lambda.fusion.authority.client.service.ApiTokenService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,24 +30,10 @@ public class ApiTokenController {
     @Resource
     private ApiTokenService apiTokenService;
 
-    @GetMapping(value = {"/pages/{number:\\d+}", "/pages/{number:\\d+}/size/{size:\\d+}"})
-    @Operation(
-            summary = "分页查询令牌",
-            description = "分页查询令牌",
-            parameters = {
-                @Parameter(
-                        name = "number",
-                        description = "当前页码",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "1")),
-                @Parameter(
-                        name = "size",
-                        description = "每页条数",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "20"))
-            })
-    public Page<ApiTokenEntity> page(@PathVariable("number") int number, @PathVariable("size") int size) {
-        return apiTokenService.page(new Page<>(number, size));
+    @PostMapping("/page")
+    @Operation(summary = "分页查询令牌", description = "分页查询令牌")
+    public Page<ApiTokenEntity> page(@Valid @RequestBody ApiTokenPageQueryDTO apiTokenPageQueryDTO) {
+        return apiTokenService.page(apiTokenPageQueryDTO.getPage(), apiTokenPageQueryDTO.getLambdaQueryWrapper());
     }
 
     @PostMapping

@@ -31,12 +31,6 @@ import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 @Transactional(rollbackFor = Exception.class)
 public class ClientServiceImpl extends ServiceImpl<ClientMapper, ClientEntity>
         implements ClientService, HmacClientService {
-    @Override
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public Page<ClientEntity> page(ClientPageQueryDTO clientQueryDTO) {
-        LambdaQueryWrapper<ClientEntity> lambdaQueryWrapper = clientQueryDTO.getLambdaQueryWrapper();
-        return baseMapper.selectPage(clientQueryDTO.getPage(), lambdaQueryWrapper);
-    }
 
     @Override
     public boolean save(ClientEntity entity) {
@@ -48,7 +42,7 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, ClientEntity>
     }
 
     @Override
-    @CacheEvict(value = "LAClients", key = "#entity.id", cacheManager = CACHE_MANAGER)
+    @CacheEvict(value = "Clients", key = "#entity.id", cacheManager = CACHE_MANAGER)
     public boolean updateById(ClientEntity entity) {
         Date now = new Date();
         entity.setUpdated(now);
@@ -63,7 +57,7 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, ClientEntity>
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    @Cacheable(value = "LAClients", key = "#appid", cacheManager = CACHE_MANAGER)
+    @Cacheable(value = "Clients", key = "#appid", cacheManager = CACHE_MANAGER)
     public LoginUser loadClientByAppid(String appid) {
         HmacClient client = this.baseMapper.getClientById(appid);
         if (client == null) {

@@ -10,8 +10,6 @@ import com.google.common.collect.Lists;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.logger.context.LogContext;
 import com.lambda.fusion.config.domain.dto.*;
-import com.lambda.fusion.dict.config.domain.dto.*;
-import com.lambda.fusion.dict.domain.dto.*;
 import com.lambda.fusion.config.domain.entity.ConfigEntity;
 import com.lambda.fusion.config.domain.entity.ConfigOptionEntity;
 import com.lambda.fusion.config.mapper.ConfigMapper;
@@ -109,7 +107,6 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      * @param queryParams 查询条件DTO，包含各种筛选条件
      * @return 分页结果对象，包含当前页数据和分页元信息
      *
-     * @see ParameterUtils#fuzzyQuery(String) 模糊查询参数处理工具
      * @since 1.0.0
      */
     @Override
@@ -214,7 +211,6 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      * @param queryDTO 批量查询参数，包含应用名称和可选的ID列表
      * @return 配置实体列表，包含完整的配置信息和选项数据
      *
-     * @see ConfigMapper#selectAllSystemConfigs(String, List) 自定义批量查询方法
      * @since 1.0.0
      */
     @Override
@@ -306,8 +302,6 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      * @param updateDTO 批量更新参数对象，包含应用名称和更新项列表
      * @return 更新操作是否成功，true表示全部成功，false表示存在失败
      *
-     * @see ServiceImpl#saveOrUpdateBatch(Collection) MyBatis-Plus批量操作方法
-     * @since 1.0.0
      */
     @Override
     public boolean batchUpdateConfigs(ConfigBatchUpdateDTO updateDTO) {
@@ -385,10 +379,8 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      * @param updateDTO 配置更新参数对象，包含要更新的字段信息
      * @return 更新后的完整配置实体，包含最新的选项信息
      *
-     * @throws BusinessException 当配置不存在时抛出
      * @see Assert#notNull(Object, String) 业务断言工具
      * @see LogContext#setDetail(String) 操作日志记录
-     * @since 1.0.0
      */
     @Override
     public ConfigEntity updateConfigWithOptions(ConfigUpdateDTO updateDTO) {
@@ -423,7 +415,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
                 Set<String> oldOptionIds = target.getOptions().stream()
                         .map(ConfigOptionEntity::getId)
                         .collect(Collectors.toSet());
-                configOptionMapper.deleteBatchIds(oldOptionIds);
+                configOptionMapper.deleteByIds(oldOptionIds);
             }
 
             // 创建新的选项
@@ -503,10 +495,8 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      * @param saveDTO 配置保存参数对象，包含配置基本信息和选项列表
      * @return 保存后的完整配置实体，包含生成的ID和选项信息
      *
-     * @throws BusinessException 当配置键已存在时抛出
      * @see ConfigMapper#checkExist(String, String) 唯一性检查方法
      * @see Assert#isFalse(boolean, String) 业务断言工具
-     * @since 1.0.0
      */
     @Override
     public ConfigEntity saveConfigWithOptions(ConfigSaveDTO saveDTO) {

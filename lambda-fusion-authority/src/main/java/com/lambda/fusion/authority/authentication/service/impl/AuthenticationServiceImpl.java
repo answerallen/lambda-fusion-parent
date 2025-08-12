@@ -52,7 +52,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (simpleUsers.size() > 1) {
             throw new AuthenticationException("mobile in not unique");
         }
-        SimpleUser simpleUser = simpleUsers.getFirst();
+        SimpleUser simpleUser = simpleUsers.get(0);
         return buildLoginUser(simpleUser.toUser());
     }
 
