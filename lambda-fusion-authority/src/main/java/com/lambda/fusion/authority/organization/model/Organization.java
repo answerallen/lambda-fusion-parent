@@ -113,7 +113,7 @@ public class Organization implements Tree<Organization> {
 
     @Override
     public void parentKeys(String parentKeys) {
-        setparentKeys(parentKeys);
+        setParentKeys(parentKeys);
     }
 
     @Override
