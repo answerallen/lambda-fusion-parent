@@ -6,58 +6,42 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.context.LogContext;
 import com.lambda.fusion.authority.client.model.dto.ClientInputDTO;
-import com.lambda.fusion.authority.client.model.dto.ClientQueryDTO;
+import com.lambda.fusion.authority.client.model.dto.ClientPageQueryDTO;
 import com.lambda.fusion.authority.client.model.entity.ClientEntity;
 import com.lambda.fusion.authority.client.service.ClientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping({"/clients", "/clients"})
 @Tag(name = "认证管理")
+@RequiredArgsConstructor
 public class ClientController {
 
     private final ClientService clientService;
-
-    @Autowired
-    public ClientController(ClientService clientService) {
-        this.clientService = clientService;
-    }
-
-    @GetMapping({"/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
+    @PostMapping("/page")
     @Operation(
-            summary = "分页查询所有数据列表",
-            description = "分页查询所有数据列表",
-            parameters = {
-                @Parameter(
-                        name = "number",
-                        description = "当前页码",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "1")),
-                @Parameter(
-                        name = "size",
-                        description = "每页条数",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "20"))
-            })
-    public Page<ClientEntity> page(
-            @PathVariable(required = false) Integer number,
-            @PathVariable(required = false) Integer size,
-            ClientQueryDTO clientQueryDTO) {
+            summary = "分页查询客户端列表（推荐）",
+            description = "基于PageQuery基类的分页查询，支持更丰富的查询条件和统一的分页处理")
+    public Page<ClientEntity> page(@Valid @RequestBody ClientPageQueryDTO queryDTO) {
+
+        // 租户隔离处理
         String tenantId = OperatorUtils.getOperator().getTenantId();
         if (StringUtils.isNotBlank(tenantId)) {
-            clientQueryDTO.setTenantId(tenantId);
+            queryDTO.setTenantId(tenantId);
         }
-        return clientService.page(
-                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(number, size), clientQueryDTO);
+
+        // 使用PageQuery基类的分页对象
+        Page<ClientEntity> page = queryDTO.getPage();
+
+        // 执行分页查询
+        return clientService.page(page, queryDTO);
     }
 
     @GetMapping("/{id}")
