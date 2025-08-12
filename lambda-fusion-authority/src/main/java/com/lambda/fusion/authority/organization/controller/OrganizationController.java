@@ -36,7 +36,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @RestController
-@RequestMapping({"/authority/organization", "/authority/organization"})
+@RequestMapping({"/authority/organization"})
 @Tag(name = "组织管理")
 @RequiredArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -132,7 +132,7 @@ public class OrganizationController {
 
     @PutMapping("/user/{username}")
     @Operation(summary = "更新用户组织关系", description = "更新用户组织关系")
-    public UserOrganization updateUserOrgan(
+    public UserOrganization updateUserOrganization(
             @Parameter(description = "用户名称", required = true) @PathVariable String username,
             @Parameter(description = "用户组织信息", required = true) @RequestBody UserOrganization resource) {
         resource.setUserId(username);
