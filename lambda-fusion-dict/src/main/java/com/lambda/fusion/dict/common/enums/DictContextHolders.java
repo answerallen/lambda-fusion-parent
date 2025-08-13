@@ -2,8 +2,8 @@ package com.lambda.fusion.dict.common.enums;
 
 import com.lambda.fusion.dict.common.model.DictValueType;
 import com.lambda.fusion.dict.common.model.DynamicDict;
-import com.lambda.fusion.dict.dao.entity.DictInfo;
-import com.lambda.fusion.dict.dao.entity.DictType;
+import com.lambda.fusion.dict.model.entity.DictInfo;
+import com.lambda.fusion.dict.model.entity.DictType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;

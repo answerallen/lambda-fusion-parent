@@ -158,11 +158,11 @@ public interface UserMapper {
     /**
      * 根据组织查询用户列表
      *
-     * @param orgid
-     * @param roleid
+     * @param orgId
+     * @param roleId
      * @return
      */
-    List<String> getUidsByOrg(String orgid, String roleid);
+    List<String> getUidsByOrg(@Param("orgId")String orgId, @Param("roleId")String roleId);
 
     /**
      * 根据用户ID和角色查询所有权限

@@ -10,5 +10,5 @@ import lombok.Data;
 public class UserTempParameters {
 
     private Set<String> uids = Sets.newHashSet();
-    private Set<String> orgids = Sets.newHashSet();
+    private Set<String> orgIds = Sets.newHashSet();
 }

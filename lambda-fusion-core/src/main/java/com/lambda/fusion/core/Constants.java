@@ -128,12 +128,6 @@ public final class Constants {
     /** 系统角色 */
     public static final String ROLE_SYSTEM = ROLE_PREFIX + "SYSTEM";
 
-    // ========== 分页相关常量 ==========
-    /** 页码不能为空的错误消息 */
-    public static final String MSG_PAGE_NUM_NOT_NULL = "pageNum不能为空";
-    /** 页面大小不能为空的错误消息 */
-    public static final String MSG_PAGE_SIZE_NOT_NULL = "pageSize不能为空";
-
     // ========== 树形结构相关常量 ==========
     /** 树结构顶级节点标识 */
     public static final String TREE_TOP_LEVEL = "";

@@ -10,12 +10,11 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
 import com.lambda.fusion.authority.tenant.model.TenantQuery;
 import com.lambda.fusion.authority.tenant.model.TenantVO;
+import com.lambda.fusion.authority.tenant.model.dto.TenantPageQueryDTO;
 import com.lambda.fusion.authority.tenant.service.TenantService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.Map;
@@ -40,42 +39,54 @@ public class TenantController {
 
     private final TenantService tenantService;
 
-    @GetMapping({"/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
-    @Operation(
-            summary = "分页查询所有租户数据列表",
-            description = "分页查询所有数据列表",
-            parameters = {
-                @Parameter(
-                        name = "number",
-                        description = "当前页码",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "1")),
-                @Parameter(
-                        name = "size",
-                        description = "每页条数",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "20")),
-                @Parameter(name = "tenantName", description = "租户名称", in = ParameterIn.QUERY),
-                @Parameter(name = "tenantAddress", description = "地址", in = ParameterIn.QUERY),
-                @Parameter(name = "legalPerson", description = "法人", in = ParameterIn.QUERY)
-            })
-    public Page<TenantEntity> page(
-            @PathVariable(required = false) Integer number,
-            @PathVariable(required = false) Integer size,
-            @RequestParam(required = false) String tenantName,
-            @RequestParam(required = false) String tenantAddress,
-            @RequestParam(required = false) String legalPerson) {
-        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(5);
-        if (StringUtils.isNotBlank(tenantName)) {
-            parameters.put("tenantName", tenantName);
+    @PostMapping("/page")
+    @Operation(summary = "分页查询所有租户数据列表（V2版本）", description = "使用LambdaQueryWrapper进行分页查询，支持更灵活的排序和查询条件")
+    public Page<TenantEntity> pageV2(@RequestBody TenantPageQueryDTO queryDTO) {
+        return tenantService.page(queryDTO.getPage(), queryDTO.getLambdaQueryWrapper());
+    }
+
+    /**
+     * 构建查询参数
+     *
+     * @param queryDTO 查询DTO
+     * @return 查询参数Map
+     */
+    private Map<String, Object> buildQueryParameters(TenantPageQueryDTO queryDTO) {
+        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(10);
+        if (StringUtils.isNotBlank(queryDTO.getTenantName())) {
+            parameters.put("tenantName", queryDTO.getTenantName());
         }
-        if (StringUtils.isNotBlank(tenantAddress)) {
-            parameters.put("tenantAddress", tenantAddress);
+        if (StringUtils.isNotBlank(queryDTO.getTenantAddress())) {
+            parameters.put("tenantAddress", queryDTO.getTenantAddress());
         }
-        if (StringUtils.isNotBlank(legalPerson)) {
-            parameters.put("legalPerson", legalPerson);
+        if (StringUtils.isNotBlank(queryDTO.getLegalPerson())) {
+            parameters.put("legalPerson", queryDTO.getLegalPerson());
         }
-        return tenantService.page(new Page<>(number, size), parameters);
+        if (StringUtils.isNotBlank(queryDTO.getTenantCode())) {
+            parameters.put("tenantCode", queryDTO.getTenantCode());
+        }
+        if (StringUtils.isNotBlank(queryDTO.getLiaisonMan())) {
+            parameters.put("liaisonMan", queryDTO.getLiaisonMan());
+        }
+        if (StringUtils.isNotBlank(queryDTO.getLiaisonPhone())) {
+            parameters.put("liaisonPhone", queryDTO.getLiaisonPhone());
+        }
+        if (queryDTO.getEnabled() != null) {
+            parameters.put("enabled", queryDTO.getEnabled());
+        }
+        if (queryDTO.getExamineState() != null) {
+            parameters.put("examineState", queryDTO.getExamineState());
+        }
+        if (StringUtils.isNotBlank(queryDTO.getOwner())) {
+            parameters.put("owner", queryDTO.getOwner());
+        }
+        if (StringUtils.isNotBlank(queryDTO.getAlias())) {
+            parameters.put("alias", queryDTO.getAlias());
+        }
+        if (StringUtils.isNotBlank(queryDTO.getPrefecture())) {
+            parameters.put("prefecture", queryDTO.getPrefecture());
+        }
+        return parameters;
     }
 
     @GetMapping("/list")

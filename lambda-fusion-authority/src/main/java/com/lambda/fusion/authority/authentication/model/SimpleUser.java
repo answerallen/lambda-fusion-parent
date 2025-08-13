@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.authentication.model.domain;
+package com.lambda.fusion.authority.authentication.model;
 
 import com.lambda.fusion.authority.authentication.model.mapper.SimpleUserMapper;
 import com.lambda.fusion.core.user.User;

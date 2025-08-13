@@ -267,8 +267,7 @@ public interface UserService {
      * 导出用户列表
      *
      * @param pageable   分页
-     * @param response   http响应
      * @param parameters 查询参数
      */
-    void exportMutableUsers(Page<MutableUser> pageable, Map<String, Object> parameters, HttpServletResponse response);
+    void exportMutableUsers(Page<MutableUser> pageable, Map<String, Object> parameters);
 }

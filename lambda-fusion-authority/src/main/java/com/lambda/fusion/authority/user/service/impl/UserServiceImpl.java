@@ -38,7 +38,6 @@ import com.lambda.fusion.authority.user.model.entity.UserUpdatePwdLogEntity;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.user.User;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -180,7 +179,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Page<MutableUser> getAllMutableUsers(Page<MutableUser> pagination, Map<String, Object> parameters) {
         // 当前登陆用户编号
-        //        String uid = MapUtils.getString(parameters, "uid");
+         String uid = MapUtils.getString(parameters, "uid");
         String tenantId = MapUtils.getString(parameters, "tenant_id");
         setUsernames(parameters);
         setUserFields(parameters);
@@ -190,8 +189,8 @@ public class UserServiceImpl implements UserService {
             List<MutableUser> records = userMapper.getAllMutableUsers(users);
             UserTempParameters temp0 = getUserTempParameters(records);
             Set<String> uids = temp0.getUids();
-            Set<String> orgids = temp0.getOrgids();
-            Map<String, String> orgnames = getOrgFullNamesByOrgids(orgids);
+            Set<String> orgIds = temp0.getOrgIds();
+            Map<String, String> orgnames = getOrgFullNamesByOrgIds(orgIds);
             Map<String, Map<String, String>> persons = getPersonsByUids(uids);
             for (MutableUser item : records) {
                 supplementUserOrgInfo(orgnames, item);
@@ -217,16 +216,16 @@ public class UserServiceImpl implements UserService {
      */
     private UserTempParameters getUserTempParameters(List<MutableUser> users) {
         Set<String> uids = Sets.newHashSet();
-        Set<String> orgids = Sets.newHashSet();
+        Set<String> orgIds = Sets.newHashSet();
         for (MutableUser item : users) {
             uids.add(item.getUsername());
             if (isBindOrg(item)) {
-                orgids.add(item.getOrg().getId());
+                orgIds.add(item.getOrg().getId());
             }
         }
         UserTempParameters parameters = new UserTempParameters();
         parameters.setUids(uids);
-        parameters.setOrgids(orgids);
+        parameters.setOrgIds(orgIds);
         return parameters;
     }
 
@@ -304,21 +303,21 @@ public class UserServiceImpl implements UserService {
     /**
      * 获取组织全名
      *
-     * @param orgids
+     * @param orgIds
      * @return
      */
-    private Map<String, String> getOrgFullNamesByOrgids(Set<String> orgids) {
-        if (CollectionUtils.isEmpty(orgids)) {
+    private Map<String, String> getOrgFullNamesByOrgIds(Set<String> orgIds) {
+        if (CollectionUtils.isEmpty(orgIds)) {
             return Collections.emptyMap();
         }
-        List<Organization> orgs = organizationMapper.getOrgIdsByIds(orgids);
-        if (CollectionUtils.isEmpty(orgs)) {
+        List<Organization> organizations = organizationMapper.getOrgIdsByIds(orgIds);
+        if (CollectionUtils.isEmpty(organizations)) {
             return Collections.emptyMap();
         }
         Map<String, String> map1 = Maps.newHashMap();
         Map<String, String> names0 = Maps.newHashMap();
         Set<String> parentKeys = Sets.newHashSet();
-        for (Organization item : orgs) {
+        for (Organization item : organizations) {
             String parentKeys1 = item.getParentKeys();
             names0.put(item.getId(), item.getAlias());
             map1.put(item.getId(), parentKeys1);
@@ -336,8 +335,8 @@ public class UserServiceImpl implements UserService {
         map1.forEach((key, value) -> {
             StringBuilder builder = new StringBuilder();
             if (StringUtils.isNotBlank(value)) {
-                for (String splited : value.split(SPLIT)) {
-                    builder.append(names1.get(splited)).append(SPLIT);
+                for (String token : value.split(SPLIT)) {
+                    builder.append(names1.get(token)).append(SPLIT);
                 }
             }
             builder.append(names0.get(key));
@@ -865,6 +864,5 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportMutableUsers(
-            Page<MutableUser> pageable, Map<String, Object> parameters, HttpServletResponse response) {}
+    public void exportMutableUsers(Page<MutableUser> pageable, Map<String, Object> parameters) {}
 }

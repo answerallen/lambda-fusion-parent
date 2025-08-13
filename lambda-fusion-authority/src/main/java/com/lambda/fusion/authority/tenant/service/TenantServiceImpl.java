@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.tenant.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -97,9 +98,8 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public Page<TenantEntity> page(Page<TenantEntity> pageable, Map<String, Object> parameters) {
-        QueryWrapper<TenantEntity> query = queryWrapper(parameters);
-        return baseMapper.selectPage(pageable, query);
+    public Page<TenantEntity> page(Page<TenantEntity> pageable, LambdaQueryWrapper<TenantEntity> queryWrapper) {
+        return baseMapper.selectPage(pageable, queryWrapper);
     }
 
     @Override

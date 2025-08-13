@@ -3,10 +3,10 @@ package com.lambda.fusion.dict.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.dict.dao.entity.DictInfo;
-import com.lambda.fusion.dict.dto.DictInfoQueryDTO;
-import com.lambda.fusion.dict.dto.DictStateOperationDTO;
-import com.lambda.fusion.dict.vo.DictTypeVo;
+import com.lambda.fusion.dict.model.dto.DictInfoQueryDTO;
+import com.lambda.fusion.dict.model.dto.DictStateOperationDTO;
+import com.lambda.fusion.dict.model.entity.DictInfo;
+import com.lambda.fusion.dict.model.vo.DictTypeVo;
 import java.util.List;
 import java.util.Map;
 

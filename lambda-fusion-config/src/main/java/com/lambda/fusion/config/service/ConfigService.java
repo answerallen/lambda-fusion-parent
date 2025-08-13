@@ -1,5 +1,6 @@
 package com.lambda.fusion.config.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.config.domain.dto.*;
@@ -72,6 +73,18 @@ public interface ConfigService extends IService<ConfigEntity> {
      * @since 1.0.0
      */
     Page<ConfigEntity> pageConfigs(Page<ConfigEntity> page, ConfigPageQueryDTO queryParams);
+
+    /**
+     * 分页查询配置列表（使用LambdaQueryWrapper）
+     *
+     * <p>使用LambdaQueryWrapper进行分页查询，支持更灵活的排序和查询条件。
+     *
+     * @param page 分页参数，包含当前页码和每页大小，不能为null
+     * @param wrapper LambdaQueryWrapper查询条件，支持复杂查询逻辑
+     * @return 分页结果，包含配置实体列表和分页元数据
+     * @since 1.0.0
+     */
+    Page<ConfigEntity> page(Page<ConfigEntity> page, LambdaQueryWrapper<ConfigEntity> wrapper);
 
     /**
      * 根据条件查询配置列表

@@ -27,9 +27,17 @@ public class ApiTokenController {
     @Resource
     private ApiTokenService apiTokenService;
 
-    @PostMapping("/page")
+    @GetMapping({"/page","/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询令牌", description = "分页查询令牌")
-    public Page<ApiTokenEntity> page(@Valid @RequestBody ApiTokenPageQueryDTO apiTokenPageQueryDTO) {
+    public Page<ApiTokenEntity> page(@PathVariable(required = false) Integer number,
+                                     @PathVariable(required = false) Integer size,
+                                     @Valid ApiTokenPageQueryDTO apiTokenPageQueryDTO) {
+        if (number != null) {
+            apiTokenPageQueryDTO.setPageNum(number);
+        }
+        if (size != null) {
+            apiTokenPageQueryDTO.setPageSize(size);
+        }
         return apiTokenService.page(apiTokenPageQueryDTO.getPage(), apiTokenPageQueryDTO.getLambdaQueryWrapper());
     }
 

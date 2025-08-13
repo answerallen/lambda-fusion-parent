@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.tenant.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -15,11 +16,11 @@ import java.util.Map;
 public interface TenantService extends IService<TenantEntity> {
 
     /***
-     * 分页查询
+     * 分页查询（使用LambdaQueryWrapper）
      * @param pageable  分页信息
-     * @param parameters 查询参数
+     * @param queryWrapper 查询条件
      */
-    Page<TenantEntity> page(Page<TenantEntity> pageable, Map<String, Object> parameters);
+    Page<TenantEntity> page(Page<TenantEntity> pageable, LambdaQueryWrapper<TenantEntity> queryWrapper);
 
     /**
      * 查询租户下拉列表

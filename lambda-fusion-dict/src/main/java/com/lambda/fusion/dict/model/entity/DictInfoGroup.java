@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.dao.entity;
+package com.lambda.fusion.dict.model.entity;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;

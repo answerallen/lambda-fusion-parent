@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.client.model.dto;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.fusion.authority.client.model.entity.ApiTokenEntity;
-import com.lambda.fusion.core.base.page.PageQuery;
+import com.lambda.fusion.core.base.page.PageQueryDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Date;
 import lombok.Data;
@@ -18,7 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "Api Token分页查询DTO")
-public class ApiTokenPageQueryDTO extends PageQuery<ApiTokenEntity> {
+public class ApiTokenPageQueryDTO extends PageQueryDTO<ApiTokenEntity> {
 
     @Schema(description = "Api Token")
     private String apiToken;

@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.vo;
+package com.lambda.fusion.dict.model.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;

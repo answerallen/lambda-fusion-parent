@@ -120,6 +120,31 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
     }
 
     /**
+     * 分页查询配置列表（使用LambdaQueryWrapper）
+     *
+     * <p>使用LambdaQueryWrapper进行分页查询，支持更灵活的排序和查询条件。
+     * 该方法直接使用MyBatis-Plus的基础分页功能，适用于简单的查询场景。
+     *
+     * <h3>实现特点：</h3>
+     * <ul>
+     * <li><strong>类型安全：</strong>使用Lambda表达式避免字段名硬编码</li>
+     * <li><strong>灵活查询：</strong>支持复杂的查询条件组合</li>
+     * <li><strong>性能优化：</strong>使用只读事务减少数据库开销</li>
+     * <li><strong>标准分页：</strong>基于MyBatis-Plus标准分页实现</li>
+     * </ul>
+     *
+     * @param page 分页参数，包含当前页码和每页大小，不能为null
+     * @param wrapper LambdaQueryWrapper查询条件，支持复杂查询逻辑
+     * @return 分页结果，包含配置实体列表和分页元数据
+     * @since 1.0.0
+     */
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
+    public Page<ConfigEntity> page(Page<ConfigEntity> page, LambdaQueryWrapper<ConfigEntity> wrapper) {
+        return baseMapper.selectPage(page, wrapper);
+    }
+
+    /**
      * 条件查询配置列表的具体实现
      *
      * <p>使用MyBatis-Plus的LambdaQueryWrapper构建类型安全的查询条件，

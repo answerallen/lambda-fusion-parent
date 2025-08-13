@@ -103,25 +103,19 @@ public class ConfigController {
      */
     @Operation(
             summary = "分页查询配置列表",
-            description = "支持按条件分页查询系统配置信息，用于管理后台配置管理界面",
-            parameters = {
-                @Parameter(
-                        name = "number",
-                        description = "当前页码，默认1，必须为正整数",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "1", minimum = "1")),
-                @Parameter(
-                        name = "size",
-                        description = "每页条数，默认20，必须为正整数，最大100",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "20", minimum = "1", maximum = "100"))
-            })
-    @GetMapping({"/manager/page/{number:\\d+}", "/manager/page/{number:\\d+}/size/{size:\\d+}"})
+            description = "支持按条件分页查询系统配置信息，用于管理后台配置管理界面")
+    @GetMapping({"/page","/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     public Page<ConfigEntity> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
             @Valid ConfigPageQueryDTO configPageQueryDTO) {
-        return configService.pageConfigs(new Page<>(number, size), configPageQueryDTO);
+        if (number != null) {
+            configPageQueryDTO.setPageNum(number);
+        }
+        if (size != null) {
+            configPageQueryDTO.setPageSize(size);
+        }
+        return configService.page(configPageQueryDTO.getPage(), configPageQueryDTO.getLambdaQueryWrapper());
     }
 
     /**

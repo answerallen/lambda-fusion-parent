@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.dao.entity;
+package com.lambda.fusion.dict.model.entity;
 
 import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 

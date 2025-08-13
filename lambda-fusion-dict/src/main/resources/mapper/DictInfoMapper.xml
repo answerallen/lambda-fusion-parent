@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.lambda.fusion.dict.dao.mapper.DictInfoMapper">
+<mapper namespace="com.lambda.fusion.dict.mapper.DictInfoMapper">
 
-    <resultMap type="com.lambda.fusion.dict.dao.entity.DictInfo" id="MultiDictInfo">
+    <resultMap type="com.lambda.fusion.dict.model.entity.DictInfo" id="MultiDictInfo">
         <result property="id" column="ID"/>
         <result property="dictType" column="DICT_TYPE"/>
         <result property="dictName" column="DICT_NAME"/>
@@ -20,10 +20,10 @@
         <result property="selectable" column="SELECT_ABLE"/>
     </resultMap>
 
-    <resultMap id="dictInfoGroupMap" type="com.lambda.fusion.dict.dao.entity.DictInfoGroup">
+    <resultMap id="dictInfoGroupMap" type="com.lambda.fusion.dict.model.entity.DictInfoGroup">
         <result property="dictType" column="dictType"/>
         <!-- 描述集合属性 -->
-        <collection property="dictList" ofType="com.lambda.fusion.dict.dao.entity.DictInfo" >
+        <collection property="dictList" ofType="com.lambda.fusion.dict.model.entity.DictInfo" >
             <result property="dictType" column="dictType"/>
             <result property="fieldType" column="fieldType"/>
             <result property="fieldName" column="fieldName"/>
@@ -56,7 +56,7 @@
         GROUP BY DICT_TYPE,FIELD_TYPE,FIELD_NAME,parentId,TENANT_ID,REMARKS,SELECT_ABLE,SORT ORDER BY SORT ASC
     </select>
 
-    <select id="page" parameterType="HashMap" resultType="com.lambda.fusion.dict.dao.entity.DictInfo">
+    <select id="page" parameterType="HashMap" resultType="com.lambda.fusion.dict.model.entity.DictInfo">
         SELECT DI.ID,
         DI.DICT_TYPE ,
         DI.FIELD_TYPE ,
@@ -102,7 +102,7 @@
         ORDER BY DI.DICT_TYPE, DI.SORT ASC, DI.ID DESC
     </select>
 
-    <select id="getDictInfoList" resultType="com.lambda.fusion.dict.dao.entity.DictInfo">
+    <select id="getDictInfoList" resultType="com.lambda.fusion.dict.model.entity.DictInfo">
         SELECT DI.ID,
         DI.DICT_TYPE ,
         DI.FIELD_TYPE ,
@@ -137,7 +137,7 @@
             <![CDATA[ AND DI.RANK2 <= #{dictInfo.rank} ]]>
         </if>
     </select>
-    <select id="treeList" resultType="com.lambda.fusion.dict.dao.entity.DictInfo">
+    <select id="treeList" resultType="com.lambda.fusion.dict.model.entity.DictInfo">
         SELECT DI.ID,
         DI.DICT_TYPE ,
         DI.FIELD_TYPE ,
@@ -169,7 +169,7 @@
         </if>
     </select>
 
-    <select id="selectDictInfo" resultType="com.lambda.fusion.dict.dao.entity.DictInfo">
+    <select id="selectDictInfo" resultType="com.lambda.fusion.dict.model.entity.DictInfo">
         SELECT DI.*
         FROM SYS_DICT_INFO DI
         INNER JOIN SYS_DICT_TYPE DT ON DT.DICT_TYPE = DI.DICT_TYPE

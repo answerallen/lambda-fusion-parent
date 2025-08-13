@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.authentication.model.mapper;
 
-import com.lambda.fusion.authority.authentication.model.domain.SimpleUser;
+import com.lambda.fusion.authority.authentication.model.SimpleUser;
 import com.lambda.fusion.core.user.User;
 import java.time.LocalDateTime;
 import org.mapstruct.Mapper;

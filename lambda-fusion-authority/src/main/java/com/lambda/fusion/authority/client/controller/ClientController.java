@@ -24,13 +24,18 @@ public class ClientController {
 
     private final ClientService clientService;
 
-    @PostMapping("/page")
+    @GetMapping({"/page","/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询客户端列表", description = "分页查询客户端列表")
-    public Page<ClientEntity> page(@Valid @RequestBody ClientPageQueryDTO clientPageQueryDTO) {
-        String tenantId = OperatorUtils.getOperator().getTenantId();
-        if (StringUtils.isNotBlank(tenantId)) {
-            clientPageQueryDTO.setTenantId(tenantId);
+    public Page<ClientEntity> page(@PathVariable(required = false) Integer number,
+                                   @PathVariable(required = false) Integer size,
+                                   @Valid ClientPageQueryDTO clientPageQueryDTO) {
+        if (number != null) {
+            clientPageQueryDTO.setPageNum(number);
         }
+        if (size != null) {
+            clientPageQueryDTO.setPageSize(size);
+        }
+        clientPageQueryDTO.setTenantId(OperatorUtils.getOperator().getTenantId());
         return clientService.page(clientPageQueryDTO.getPage(), clientPageQueryDTO.getLambdaQueryWrapper());
     }
 

@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.authentication.mapper;
 
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.authentication.model.ResourceSimpleQuery;
-import com.lambda.fusion.authority.authentication.model.domain.SimpleUser;
+import com.lambda.fusion.authority.authentication.model.SimpleUser;
 import com.lambda.fusion.authority.resource.model.Resource;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;

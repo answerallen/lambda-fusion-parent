@@ -10,7 +10,7 @@ import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.dict.DictionaryProperties;
 import com.lambda.fusion.dict.common.model.DictValueType;
 import com.lambda.fusion.dict.common.model.DynamicDict;
-import com.lambda.fusion.dict.dao.entity.DictType;
+import com.lambda.fusion.dict.model.entity.DictType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.Cookie;

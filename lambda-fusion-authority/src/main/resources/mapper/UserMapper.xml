@@ -49,13 +49,13 @@
     </resultMap>
 
 
-    <resultMap id="UserDTO" type="com.lambda.fusion.authority.authorize.model.vo.SimpleUserVO">
+    <resultMap id="UserDTO" type="com.lambda.fusion.authority.authentication.model.SimpleUser">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="password" property="password" javaType="String"/>
-        <result column="orgid" property="orgid" javaType="String"/>
+        <result column="org_id" property="orgId" javaType="String"/>
         <result column="enabled" property="enabled" javaType="Boolean" />
-        <result column="tenant_id" property="tenant_id" javaType="String"/>
+        <result column="tenant_id" property="tenantId" javaType="String"/>
         <result column="expired_time" property="expiredTime"/>
         <collection property="authorities" ofType="org.springframework.security.core.authority.SimpleGrantedAuthority">
             <constructor>
@@ -275,9 +275,9 @@
         SELECT T.username FROM LA_USERS T
         INNER JOIN LA_USER_ROLES UR ON UR.userid = T.username
         INNER JOIN LA_USER_ORGANIZATION UO ON T.username = UO.userid
-        WHERE UO.ORGANIZATIONID = #{orgid}
+        WHERE UO.ORGANIZATIONID = #{orgId}
         <if test="roleid != null and roleid != ''">
-            AND UR.AUTHORITY = #{roleid}
+            AND UR.AUTHORITY = #{roleId}
         </if>
     </select>
     <resultMap id="Permission" type="com.lambda.fusion.authority.user.model.Permission">

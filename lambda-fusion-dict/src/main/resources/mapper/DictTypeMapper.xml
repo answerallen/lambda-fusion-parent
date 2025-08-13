@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.mapper.DictTypeMapper">
 
-    <resultMap type="com.lambda.fusion.dict.dao.entity.DictType" id="MultiDictType">
+    <resultMap type="com.lambda.fusion.dict.model.entity.DictType" id="MultiDictType">
         <result property="id" column="ID"/>
         <result property="dictType" column="DICT_TYPE"/>
         <result property="dictName" column="DICT_NAME"/>
@@ -14,7 +14,7 @@
         <result property="dataTypeValue" column="DATA_TYPE_VALUE"/>
     </resultMap>
 
-    <select id="getDictTypeList" parameterType="string" resultType="com.lambda.fusion.dict.dao.entity.DictType">
+    <select id="getDictTypeList" parameterType="string" resultType="com.lambda.fusion.dict.model.entity.DictType">
         SELECT ID, DICT_TYPE, DICT_NAME, DATA_TYPE, DICT_USAGE, DATA_TYPE_VALUE  FROM SYS_DICT_TYPE
         <where>
             <if test="type != null and type != ''">
@@ -24,7 +24,7 @@
         ORDER BY DICT_TYPE DESC
     </select>
 
-    <select id="pageDictType" resultType="com.lambda.fusion.dict.dao.entity.DictType">
+    <select id="pageDictType" resultType="com.lambda.fusion.dict.model.entity.DictType">
         SELECT ID, DICT_TYPE, DICT_NAME, DATA_TYPE, DICT_USAGE, DATA_TYPE_VALUE FROM SYS_DICT_TYPE
         <where>
             <if test="parameters.dictName != null and parameters.dictName != ''">
@@ -34,13 +34,13 @@
         ORDER BY DICT_TYPE DESC
     </select>
 
-    <select id="selectParentByType" parameterType="string" resultType="com.lambda.fusion.dict.dao.entity.DictType">
+    <select id="selectParentByType" parameterType="string" resultType="com.lambda.fusion.dict.model.entity.DictType">
         SELECT * FROM SYS_DICT_TYPE T WHERE T.ID =
         (SELECT (CASE WHEN T2.PARENTID IS NULL THEN T2.ID ELSE T2.PARENTID END) ID  FROM SYS_DICT_TYPE T2 WHERE T2.DICT_TYPE = #{type})
     </select>
 
     <!--suppress MybatisXMapperXmlInspection -->
-    <select id="treeList" resultType="com.lambda.fusion.dict.dao.entity.DictType" databaseId="mysql">
+    <select id="treeList" resultType="com.lambda.fusion.dict.model.entity.DictType" databaseId="mysql">
         SELECT T.* FROM SYS_DICT_TYPE T
         <where>
             <if test="parameters.userOnly != null and parameters.userOnly == true">
@@ -63,7 +63,7 @@
     </select>
 
     <!--suppress MybatisXMapperXmlInspection -->
-    <select id="treeList" resultType="com.lambda.fusion.dict.dao.entity.DictType" databaseId="oracle">
+    <select id="treeList" resultType="com.lambda.fusion.dict.model.entity.DictType" databaseId="oracle">
             SELECT T.* FROM SYS_DICT_TYPE T
             <where>
                 <if test="parameters.userOnly != null and parameters.userOnly == true">
@@ -86,7 +86,7 @@
     </select>
 
     <!--suppress MybatisXMapperXmlInspection -->
-    <select id="treeList" resultType="com.lambda.fusion.dict.dao.entity.DictType" databaseId="postgresql">
+    <select id="treeList" resultType="com.lambda.fusion.dict.model.entity.DictType" databaseId="postgresql">
             SELECT T.* FROM SYS_DICT_TYPE T
             <where>
                 <if test="parameters.userOnly != null and parameters.userOnly == true">
@@ -109,10 +109,10 @@
     </select>
 
 
-    <resultMap extends="MultiDictType" id="cascadeDictType" type="com.lambda.fusion.dict.dao.entity.DictType">
-        <collection property="children" ofType="com.lambda.fusion.dict.dao.entity.DictType"
+    <resultMap extends="MultiDictType" id="cascadeDictType" type="com.lambda.fusion.dict.model.entity.DictType">
+        <collection property="children" ofType="com.lambda.fusion.dict.model.entity.DictType"
                     column="ID"
-                    select="com.lambda.fusion.dict.dao.mapper.DictTypeMapper.getChildrenDictType">
+                    select="com.lambda.fusion.dict.mapper.DictTypeMapper.getChildrenDictType">
         </collection>
     </resultMap>
 

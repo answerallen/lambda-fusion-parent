@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.dto;
+package com.lambda.fusion.dict.model.dto;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
