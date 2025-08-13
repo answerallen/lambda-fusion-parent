@@ -29,7 +29,7 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, ClientEntity>
     @Override
     public boolean save(ClientEntity entity) {
         Date now = new Date();
-        entity.setSecret(UUID.fastUUID().toString());
+
         entity.setCreated(now);
         entity.setUpdated(now);
         return super.save(entity);

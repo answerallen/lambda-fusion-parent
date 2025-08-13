@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,10 +23,9 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "令牌管理")
 @RestController
 @RequestMapping("/api-token")
+@RequiredArgsConstructor
 public class ApiTokenController {
-
-    @Resource
-    private ApiTokenService apiTokenService;
+    private final ApiTokenService apiTokenService;
 
     @GetMapping({"/page","/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询令牌", description = "分页查询令牌")
@@ -44,7 +44,7 @@ public class ApiTokenController {
     @PostMapping
     @Operation(description = "新增AipToken", summary = "新增令牌")
     public void save(@RequestBody @Valid ApiTokenInputDTO tokenInputDTO) {
-        ApiTokenEntity apiTokenEntity = BeanUtil.copyProperties(tokenInputDTO, ApiTokenEntity.class);
+        ApiTokenEntity apiTokenEntity = tokenInputDTO.convertToEntity();
         apiTokenEntity.setApiToken(RandomStringUtils.secure().nextAlphabetic(32));
         apiTokenService.save(apiTokenEntity);
     }
@@ -58,7 +58,7 @@ public class ApiTokenController {
     @PutMapping("/{id}")
     @Operation(description = "修改AipToken", summary = "修改令牌")
     public void update(@PathVariable("id") String id, @RequestBody @Valid ApiTokenInputDTO tokenInputDTO) {
-        ApiTokenEntity apiTokenEntity = BeanUtil.copyProperties(tokenInputDTO, ApiTokenEntity.class);
+        ApiTokenEntity apiTokenEntity = tokenInputDTO.convertToEntity();
         apiTokenEntity.setId(id);
         apiTokenService.updateById(apiTokenEntity);
     }
