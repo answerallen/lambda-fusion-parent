@@ -6,30 +6,33 @@ import com.lambda.security.SimpleLoginUser;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.Set;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class User extends SimpleLoginUser {
-    private String orgId;
-    private String tenantId;
+
     private String nickname;
+
+    private Set<String> roles;
 
     @JsonIgnore
     public Boolean isDev() {
-        return CollUtil.contains(getRoles(), "ROLE_DEV");
+        return CollUtil.contains(roles, "ROLE_DEV");
     }
 
     @JsonIgnore
     public Boolean isAdmin() {
-        return CollUtil.contains(getRoles(), "ROLE_ADMIN");
+        return CollUtil.contains(roles, "ROLE_ADMIN");
     }
 
     @JsonIgnore
     public Boolean isManager() {
-        return CollUtil.contains(getRoles(), "ROLE_MANAGER");
+        return CollUtil.contains(roles, "ROLE_MANAGER");
     }
 
     @JsonIgnore
     public Boolean isTenantManager() {
-        return CollUtil.contains(getRoles(), "ROLE_TENANT_MANAGER");
+        return CollUtil.contains(roles, "ROLE_TENANT_MANAGER");
     }
 }
