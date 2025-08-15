@@ -3,6 +3,7 @@ package com.lambda.fusion.authority.organization.service.impl;
 import static com.lambda.fusion.core.Constants.FUZZY;
 import static com.lambda.fusion.core.Constants.JOINER;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -189,10 +190,12 @@ public class OrganizationServiceImpl implements OrganizationService {
                     }
                 }
             }
-            organizationMapper.deleteTenantOrganizationRole(id);
+            organizationMapper.delete(new LambdaQueryWrapper<Organization>()
+                    .eq(Organization::getOwner, id)
+            );
         }
         groupMapper.deleteByOrgIds(ids);
-        organizationMapper.deleteOrganizationByPk(id);
+        organizationMapper.deleteById(id);
         organizationMapper.deleteUserOrganizationByOrg(id);
     }
 
@@ -204,7 +207,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(resource.getId(), "机构ID不能为空");
         List<Organization> organizations = organizationMapper.queryByCondition(resource);
         Assert.isTrue(CollectionUtils.isEmpty(organizations), "lambda.authority.organ.name.repeat");
-        organizationMapper.updateOrganizationByPk(resource);
+        organizationMapper.updateById(resource);
         organizationMapper.updateChildrensSpid(resource.getId(), resource.getName());
         return getOrgById(resource.getId());
     }

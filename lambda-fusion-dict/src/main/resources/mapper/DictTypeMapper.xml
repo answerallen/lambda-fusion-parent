@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.lambda.fusion.mapper.DictTypeMapper">
+<mapper namespace="com.lambda.fusion.dict.mapper.DictTypeMapper">
 
     <resultMap type="com.lambda.fusion.dict.model.entity.DictType" id="MultiDictType">
         <result property="id" column="ID"/>
@@ -24,15 +24,6 @@
         ORDER BY DICT_TYPE DESC
     </select>
 
-    <select id="pageDictType" resultType="com.lambda.fusion.dict.model.entity.DictType">
-        SELECT ID, DICT_TYPE, DICT_NAME, DATA_TYPE, DICT_USAGE, DATA_TYPE_VALUE FROM SYS_DICT_TYPE
-        <where>
-            <if test="parameters.dictName != null and parameters.dictName != ''">
-                DICT_NAME LIKE #{parameters.dictName}
-            </if>
-        </where>
-        ORDER BY DICT_TYPE DESC
-    </select>
 
     <select id="selectParentByType" parameterType="string" resultType="com.lambda.fusion.dict.model.entity.DictType">
         SELECT * FROM SYS_DICT_TYPE T WHERE T.ID =

@@ -76,30 +76,7 @@
         DI.SELECT_ABLE
         FROM SYS_DICT_INFO DI
         INNER JOIN SYS_DICT_TYPE DT ON DT.DICT_TYPE = DI.DICT_TYPE
-        <where>
-            (
-            DI.TENANT_ID IS NULL
-            <if test="parameters.tenantId != null and parameters.tenantId != ''">
-                OR DI.TENANT_ID = #{parameters.tenantId}
-            </if>
-            )
-            <if test="parameters.dictType != null and parameters.dictType != ''">
-                AND DI.DICT_TYPE = #{parameters.dictType}
-            </if>
-            <if test="parameters.fieldType != null and parameters.fieldType != ''">
-                AND DI.FIELD_TYPE LIKE  #{parameters.fieldType}
-            </if>
-            <if test="parameters.fieldName != null and parameters.fieldName != ''">
-                AND DI.FIELD_NAME LIKE  #{parameters.fieldName}
-            </if>
-            <if test="parameters.enableState != null">
-                AND DI.ENABLE_STATE = #{parameters.enableState}
-            </if>
-            <if test="parameters.dictInfoId != null">
-                AND DI.PARENTID = #{parameters.dictInfoId}
-            </if>
-        </where>
-        ORDER BY DI.DICT_TYPE, DI.SORT ASC, DI.ID DESC
+
     </select>
 
     <select id="getDictInfoList" resultType="com.lambda.fusion.dict.model.entity.DictInfo">
@@ -173,29 +150,6 @@
         SELECT DI.*
         FROM SYS_DICT_INFO DI
         INNER JOIN SYS_DICT_TYPE DT ON DT.DICT_TYPE = DI.DICT_TYPE
-        <where>
-            (
-            DI.TENANT_ID IS NULL
-            <if test="parameters.tenantId != null and parameters.tenantId != ''">
-                OR DI.TENANT_ID = #{parameters.tenantId}
-            </if>
-            )
-            <if test="parameters.dictType != null and parameters.dictType != ''">
-                AND DI.DICT_TYPE = #{parameters.dictType}
-            </if>
-            <if test="parameters.fieldType != null and parameters.fieldType != ''">
-                AND DI.FIELD_TYPE LIKE  #{parameters.fieldType}
-            </if>
-            <if test="parameters.fieldName != null and parameters.fieldName != ''">
-                AND DI.FIELD_NAME LIKE  #{parameters.fieldName}
-            </if>
-            <if test="parameters.enableState != null">
-                AND DI.ENABLE_STATE = #{parameters.enableState}
-            </if>
-            <if test="parameters.dictInfoId != null">
-                AND DI.PARENTID = #{parameters.dictInfoId}
-            </if>
-        </where>
-        ORDER BY DI.DICT_TYPE, DI.SORT ASC, DI.ID DESC
+        ${ew.customSqlSegment}
     </select>
 </mapper>

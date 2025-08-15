@@ -26,15 +26,6 @@ public interface DictTypeMapper extends BaseMapper<DictType> {
     List<DictType> getDictTypeList(@Param("type") String type);
 
     /**
-     * 分页查询数据分类
-     *
-     * @param pagination
-     * @param parameters
-     * @return
-     */
-    Page<DictType> pageDictType(Page<DictType> pagination, @Param("parameters") Map<String, String> parameters);
-
-    /**
      * 根据字典类型查询上一级字典类型
      *
      * @param type

@@ -52,16 +52,7 @@ public interface DictTypeService extends IService<DictType> {
      * @return
      */
     List<DictType> getDictTypeList(String type);
-
-    /**
-     * 分页查询数据类型
-     *
-     * @param pageable
-     * @param parameters
-     * @return
-     */
-    Page<DictType> queryDictTypePage(Page<DictType> pageable, Map<String, String> parameters);
-
+    
     /**
      * 查询SQL类型字典
      *

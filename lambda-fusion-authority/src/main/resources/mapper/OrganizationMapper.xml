@@ -236,40 +236,6 @@
         #{owner, jdbcType=VARCHAR}, #{tenant}, #{tenant_id, jdbcType=VARCHAR}, #{type}, #{spid,jdbcType=VARCHAR}, #{orderNo})
     </insert>
 
-
-    <delete id="deleteOrganizationByPk" parameterType="java.lang.String">
-        DELETE FROM LA_ORGANIZATION WHERE ID = #{id}
-    </delete>
-
-    <delete id="deleteTenantOrganizationRole">
-        DELETE FROM LA_ROLES WHERE owner = #{id}
-    </delete>
-
-    <update id="updateOrganizationByPk" parameterType="com.lambda.fusion.authority.organization.model.Organization">
-        UPDATE LA_ORGANIZATION
-        <set>
-            <if test="name != null">
-                organization = #{name},
-            </if>
-            <if test="alias != null">
-                alias = #{alias},
-            </if>
-            <if test="parentId != null">
-                parentid = #{parentId},
-            </if>
-            <if test="remarks != null">
-                remarks = #{remarks},
-            </if>
-            <if test="type != null">
-                org_type = #{type},
-            </if>
-            <if test="orderNo > 0">
-                order_no = #{orderNo},
-            </if>
-        </set>
-        WHERE id = #{id}
-    </update>
-
     <select id="queryUserOrganization" parameterType="java.lang.String"
             resultType="com.lambda.fusion.authority.organization.model.UserOrganization">
         SELECT USERID, ORGANIZATIONID, TENANT_ID FROM LA_USER_ORGANIZATION WHERE USERID = #{userId}

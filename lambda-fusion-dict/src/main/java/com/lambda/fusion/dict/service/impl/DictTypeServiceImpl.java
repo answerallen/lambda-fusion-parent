@@ -124,7 +124,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
         }
 
         List<DictType> result = new ArrayList<>();
-        if (dataType == null || dataType == DATA_TYPE_ENUM) {
+        if (dataType == null || dataType.equals(DATA_TYPE_ENUM)) {
             // 枚举字典
             if (StringUtils.isNotBlank(type)) {
                 DictType conditions =
@@ -238,11 +238,6 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
     @Override
     public List<DictType> getDictTypeList(String type) {
         return dictTypeMapper.getDictTypeList(StringUtils.isNotBlank(type) ? ParameterUtils.fuzzyQuery(type) : type);
-    }
-
-    @Override
-    public Page<DictType> queryDictTypePage(Page<DictType> pagination, Map<String, String> parameters) {
-        return dictTypeMapper.pageDictType(pagination, parameters);
     }
 
     @Override

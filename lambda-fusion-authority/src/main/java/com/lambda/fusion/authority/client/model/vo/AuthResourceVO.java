@@ -12,7 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Schema(description = "资源树节点信息")
-public class AuthorizeVO implements Tree<AuthorizeVO> {
+public class AuthResourceVO implements Tree<AuthResourceVO> {
 
     @Schema(description = "父节点编号")
     private String id;
@@ -30,7 +30,7 @@ public class AuthorizeVO implements Tree<AuthorizeVO> {
     private Boolean checked;
 
     @Schema(description = "下级子节点信息")
-    private List<AuthorizeVO> children;
+    private List<AuthResourceVO> children;
 
     @Override
     public String id() {
@@ -43,7 +43,7 @@ public class AuthorizeVO implements Tree<AuthorizeVO> {
     }
 
     @Override
-    public void children(List<AuthorizeVO> children) {
+    public void children(List<AuthResourceVO> children) {
         this.children = children;
     }
 }

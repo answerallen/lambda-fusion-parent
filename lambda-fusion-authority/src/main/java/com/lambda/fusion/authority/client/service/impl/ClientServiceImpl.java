@@ -27,19 +27,8 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, ClientEntity>
         implements ClientService, HmacClientService {
 
     @Override
-    public boolean save(ClientEntity entity) {
-        Date now = new Date();
-
-        entity.setCreated(now);
-        entity.setUpdated(now);
-        return super.save(entity);
-    }
-
-    @Override
     @CacheEvict(value = "Clients", key = "#entity.id", cacheManager = CACHE_MANAGER)
     public boolean updateById(ClientEntity entity) {
-        Date now = new Date();
-        entity.setUpdated(now);
         return super.updateById(entity);
     }
 

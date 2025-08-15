@@ -1,17 +1,12 @@
 package com.lambda.fusion.dict.controller;
 
-import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
-
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.user.User;
 import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.common.enums.DictHolder;
-import com.lambda.fusion.dict.model.dto.DictInfoQueryDTO;
-import com.lambda.fusion.dict.model.dto.DictStateOperationDTO;
-import com.lambda.fusion.dict.model.dto.QueryDictTree;
+import com.lambda.fusion.dict.model.dto.*;
 import com.lambda.fusion.dict.model.entity.DictInfo;
 import com.lambda.fusion.dict.model.entity.DictType;
 import com.lambda.fusion.dict.model.vo.DictInfoVO;
@@ -22,16 +17,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 /**
  * 多级数据字典类型相关接口
@@ -48,14 +46,14 @@ public class DictController {
     private final DictInfoService dictInfoService;
 
     @OperationLog
-    @GetMapping("/dicttypeall")
+    @GetMapping("/dictType")
     @Operation(summary = "获取所有字典分类", description = "可以根据字典类型查询")
     public List<DictType> getDictTypeList(
             @Parameter(description = "字典类型") @RequestParam(required = false) String type) {
         return dictTypeService.getDictTypeList(type);
     }
 
-    @GetMapping("/dictinfoall/dynamic")
+    @GetMapping("/dictInfo/dynamic")
     @Operation(summary = "获取所有启用的动态字典", description = "获取所有启用的字典")
     public Map<String, DictTypeVo> getAllDynamicDictInfo(
             @Parameter(description = "字典类型") @RequestParam(required = false) String type) {
@@ -74,14 +72,14 @@ public class DictController {
         return dictInfoService.getTreeData(type);
     }
 
-    @GetMapping("/dict/tree/subdata/{type}")
+    @GetMapping("/dict/tree/subData/{type}")
     @Operation(summary = "根据数据类型查询包含子集数据类型的数据项", description = "根据数据类型查询包含子集数据类型的数据项")
     public List<DictInfo> subTreeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
         return dictInfoService.getSubTreeData(type);
     }
 
     @OperationLog
-    @PostMapping("/dicttype")
+    @PostMapping("/dictType")
     @Operation(summary = "添加字典类型", description = "添加字典类型")
     public DictType saveDictType(
             @Valid @Parameter(description = "字典类型数据", required = true) @RequestBody DictType dictType) {
@@ -98,7 +96,7 @@ public class DictController {
     }
 
     @OperationLog
-    @GetMapping("/dictinfo/tree/data/{parentid}")
+    @GetMapping("/dictInfo/tree/data/{parentid}")
     @Operation(summary = "根据数据项父节点查询数据项树", description = "根据数据项父节点查询数据项树")
     public List<DictInfo> queryDictInfoByParentId(
             @Parameter(description = "数据项父ID", required = true) @PathVariable String parentid) {
@@ -106,13 +104,13 @@ public class DictController {
     }
 
     @OperationLog
-    @PutMapping("/dicttype")
+    @PutMapping("/dictType")
     @Operation(
             summary = "更新字典类型",
             description = "更新字典类型",
             parameters = {
-                @Parameter(name = "id", description = "id", required = true, in = ParameterIn.QUERY),
-                @Parameter(name = "dictName", description = "字典名称", required = true, in = ParameterIn.QUERY)
+                    @Parameter(name = "id", description = "id", required = true, in = ParameterIn.QUERY),
+                    @Parameter(name = "dictName", description = "字典名称", required = true, in = ParameterIn.QUERY)
             })
     public DictType updateDictType(@Valid DictType dictType) {
         // 非开发者不能修改系统字典用途
@@ -128,7 +126,7 @@ public class DictController {
     }
 
     @OperationLog
-    @DeleteMapping("/dicttype/{id}")
+    @DeleteMapping("/dictType/{id}")
     @Operation(summary = "删除字典类型信息", description = "删除字典类型信息")
     public void deleteDictType(@Parameter(description = "字典类型编号", required = true) @PathVariable String id) {
         dictTypeService.deleteDictType(id);
@@ -137,70 +135,42 @@ public class DictController {
     /**
      * 字典类型分页查询
      */
-    @GetMapping({"/dicttype/page/{number:\\d+}", "/dicttype/page/{number:\\d+}/size/{size:\\d+}"})
+    @GetMapping({"/dictType/page","/dictType/page/{number:\\d+}", "/dictType/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(
             summary = "字典类型分页查询",
-            description = "字典类型分页查询",
-            parameters = {
-                @Parameter(
-                        name = "number",
-                        description = "当前页码",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "1")),
-                @Parameter(
-                        name = "size",
-                        description = "每页条数",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = DEFAULT_PAGE_SIZE)),
-                @Parameter(name = "dictName", description = "字典名称", in = ParameterIn.QUERY)
-            })
-    public Page<DictType> dictTypeList(
-            @PathVariable(required = false) Integer number,
-            @PathVariable(required = false) Integer size,
-            String dictName) {
-        Map<String, String> parameters = new HashMap<>(1);
-        if (StringUtils.isNotBlank(dictName)) {
-            parameters.put("dictName", fuzzyQuery(dictName));
+            description = "字典类型分页查询，支持多条件查询和排序")
+    public Page<DictType> dictTypeList(@PathVariable(required = false) Integer number,
+                                       @PathVariable(required = false) Integer size,
+                                       @Valid DictTypePageQueryDTO pageQueryDTO) {
+        if(number!= null){
+            pageQueryDTO.setPageNum(number);
         }
-        return dictTypeService.queryDictTypePage(new Page<>(number, size), parameters);
+        if(size!= null){
+            pageQueryDTO.setPageSize(size);
+        }
+        return dictTypeService.page(pageQueryDTO.getPage(), pageQueryDTO.getLambdaQueryWrapper());
     }
 
-    @GetMapping({"/dictinfo/page/{number:\\d+}", "/dictinfo/page/{number:\\d+}/size/{size:\\d+}"})
+    @GetMapping({"/dictType/page","/dictInfo/page/{number:\\d+}", "/dictInfo/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(
             summary = "分页查询所有数据列表",
-            description = "分页查询所有数据列表",
-            parameters = {
-                @Parameter(
-                        name = "number",
-                        description = "当前页码",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "1")),
-                @Parameter(
-                        name = "size",
-                        description = "每页条数",
-                        in = ParameterIn.PATH,
-                        schema = @Schema(defaultValue = "20")),
-                @Parameter(name = "dictType", description = "字典类型", in = ParameterIn.QUERY),
-                @Parameter(name = "fieldType", description = "字段类型", in = ParameterIn.QUERY),
-                @Parameter(name = "dictInfoId", description = "数据项Id", in = ParameterIn.QUERY),
-                @Parameter(name = "fieldName", description = "字段名称", in = ParameterIn.QUERY),
-                @Parameter(name = "enableState", description = "启用状态", in = ParameterIn.QUERY)
-            })
-    public Page<DictInfo> pageDictInfo(
-            @PathVariable(required = false) Integer number,
-            @PathVariable(required = false) Integer size,
-            DictInfoQueryDTO dictInfoQueryDTO) {
-        return dictInfoService.page(new Page<>(number, size), dictInfoQueryDTO);
+            description = "分页查询所有数据列表，支持多条件查询和排序")
+    public Page<DictInfo> pageDictInfo(@PathVariable(required = false) Integer number,
+                                       @PathVariable(required = false) Integer size,
+                                       @Valid DictInfoPageQueryDTO pageQueryDTO) {
+        Page<DictInfo> page = pageQueryDTO.getPage();
+        DictInfoQueryDTO queryDTO = pageQueryDTO.toDictInfoQueryDTO();
+        return dictInfoService.page(page, queryDTO);
     }
 
-    @GetMapping("/dictinfo/data/select")
+    @GetMapping("/dictInfo/data/select")
     @Operation(summary = "数据项条件查询", description = "分页查询所有数据列表")
     public List<DictInfo> selectDictInfo(DictInfoQueryDTO dictInfoQueryDTO) {
         return dictInfoService.selectDictInfo(dictInfoQueryDTO);
     }
 
     @OperationLog
-    @PostMapping("/dictinfo")
+    @PostMapping("/dictInfo")
     @Operation(summary = "添加字典详细信息", description = "添加字典详细信息")
     public DictInfo saveDictInfo(@Valid @RequestBody DictInfo dictInfo) {
         User operator = (User) OperatorUtils.getOperator();
@@ -211,7 +181,7 @@ public class DictController {
     }
 
     @OperationLog
-    @PutMapping("/dictinfo")
+    @PutMapping("/dictInfo")
     @Operation(summary = "更新字典详细信息", description = "更新字典详细信息")
     public DictInfo updateDictInfo(
             @Valid DictInfoVO dictInfoVO, @RequestBody(required = false) DictInfo.Additional additional) {
@@ -224,13 +194,13 @@ public class DictController {
     }
 
     @OperationLog
-    @DeleteMapping("/dictinfo/{id}")
+    @DeleteMapping("/dictInfo/{id}")
     @Operation(summary = "删除字典详细信息", description = "删除字典详细信息")
     public void deleteDictInfo(@Parameter(description = "字典类型编号", required = true) @PathVariable String id) {
         dictInfoService.deleteDictInfoById(id);
     }
 
-    @PutMapping("/dictinfo/{id}/enable")
+    @PutMapping("/dictInfo/{id}/enable")
     @Operation(summary = "启用字典", description = "启用字典")
     public void changeEnable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
         dictInfoService.updateEnableState(DictStateOperationDTO.builder()
@@ -239,7 +209,7 @@ public class DictController {
                 .build());
     }
 
-    @PutMapping("/dictinfo/{id}/disable")
+    @PutMapping("/dictInfo/{id}/disable")
     @Operation(summary = "禁用字典", description = "禁用字典")
     public void changeDisable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
         dictInfoService.updateEnableState(DictStateOperationDTO.builder()
@@ -248,7 +218,7 @@ public class DictController {
                 .build());
     }
 
-    @PutMapping("/dictinfo/{id}/selectable")
+    @PutMapping("/dictInfo/{id}/selectable")
     @Operation(summary = "设置可选择", description = "设置可选择")
     public void changeSelectable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
         dictInfoService.updateSelectableState(DictStateOperationDTO.builder()
@@ -257,7 +227,7 @@ public class DictController {
                 .build());
     }
 
-    @PutMapping("/dictinfo/{id}/unselectable")
+    @PutMapping("/dictInfo/{id}/unselectable")
     @Operation(summary = "设置不可选择", description = "设置不可选择")
     public void changeUnselectable(
             @PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {

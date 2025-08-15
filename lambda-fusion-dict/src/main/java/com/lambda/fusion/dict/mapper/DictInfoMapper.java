@@ -1,6 +1,8 @@
 package com.lambda.fusion.dict.mapper;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.dict.model.entity.DictInfo;
 import com.lambda.fusion.dict.model.entity.DictInfoGroup;
@@ -34,10 +36,9 @@ public interface DictInfoMapper extends BaseMapper<DictInfo> {
 
     /**
      * 条件查询
-     * @param parameters
      * @return
      */
-    List<DictInfo> selectDictInfo(@Param("parameters") Map<String, Object> parameters);
+    List<DictInfo> selectDictInfo(@Param(Constants.WRAPPER) LambdaQueryWrapper<DictInfo> wrapper);
 
     /**
      * 获取数据项列表

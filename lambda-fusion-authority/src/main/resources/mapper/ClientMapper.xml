@@ -3,21 +3,22 @@
 
 <mapper namespace="com.lambda.fusion.authority.client.mapper.ClientMapper">
 
-    <!-- 可根据自己的需求，是否要使用 -->
     <resultMap type="com.lambda.fusion.authority.client.model.entity.ClientEntity" id="ClientEntity">
         <result property="id" column="id"/>
         <result property="name" column="name"/>
         <result property="secret" column="secret"/>
         <result property="hosts" column="hosts"/>
-        <result property="created" column="created"/>
-        <result property="updated" column="updated"/>
         <result property="expired" column="expired"/>
         <result property="enabled" column="enabled"/>
-        <result property="tenant_id" column="tenantId"/>
+        <result property="tenantId" column="tenant_id"/>
         <result property="remarks" column="remarks"/>
+        <result property="createUser" column="create_user"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateUser" column="update_user"/>
+        <result property="updateTime" column="update_time"/>
     </resultMap>
 
-    <resultMap id="HmacUser" type="HmacClient">
+    <resultMap id="HmacUser" type="com.lambda.security.web.hmac.model.HmacClient">
         <id column="appid" property="appid" javaType="String"/>
         <result column="secret" property="secret" javaType="String"/>
         <result column="name" property="nickname" javaType="String"/>
@@ -25,14 +26,12 @@
         <result column="hosts" property="hosts" javaType="String"/>
         <result column="enabled" property="enabled" javaType="Boolean" />
         <result column="TENANT_ID" property="tenantId" javaType="String"/>
-        <collection property="authorities" ofType="org.springframework.security.core.authority.SimpleGrantedAuthority">
-            <constructor>
-                <idArg column="authority" javaType="String"/>
-            </constructor>
+        <collection property="authorities"  ofType="java.lang.String">
+            <result column="authority" />
         </collection>
     </resultMap>
 
-    <select id="getAuthorization" resultType="com.lambda.fusion.authority.client.model.vo.AuthorizeVO">
+    <select id="getAuthorization" resultType="com.lambda.fusion.authority.client.model.vo.AuthResourceVO">
         SELECT DISTINCT
             T.id,
             T.name,
@@ -44,20 +43,20 @@
         WHERE T.DEV = 0 AND T.TYPE = 0 And T.HIDDEN = 0
         ORDER BY T.RANK, T.PARENTID, T.ORDERNO
     </select>
-    <delete id="batchDeleteAuthorization">
+    <delete id="batchDeleteAuthResources">
         DELETE FROM LA_CLIENT_RESOURCES WHERE clientid = #{clientid}
         AND resourceid IN
         <foreach collection="ids" item="item" open="(" close=")" separator=",">
             #{item}
         </foreach>
     </delete>
-    <insert id="batchSaveAuthorization" databaseId="mysql">
+    <insert id="batchSaveAuthResources" databaseId="mysql">
         INSERT INTO LA_CLIENT_RESOURCES (resourceid, clientid) VALUES
         <foreach collection="ids" item="item" separator=",">
             (#{item},#{clientid})
         </foreach>
     </insert>
-    <insert id="batchSaveAuthorization" databaseId="oracle">
+    <insert id="batchSaveAuthResources" databaseId="oracle">
         INSERT ALL
         <foreach collection="ids" item="item">
             INTO LA_CLIENT_RESOURCES (resourceid,clientid) VALUES (#{item},#{clientid})
@@ -66,7 +65,7 @@
     </insert>
 
     <!--postgresql-->
-    <insert id="batchSaveAuthorization" databaseId="postgresql">
+    <insert id="batchSaveAuthResources" databaseId="postgresql">
         INSERT INTO LA_CLIENT_RESOURCES (resourceid, clientid) VALUES
         <foreach collection="ids" item="item" separator=",">
             (#{item},#{clientid})

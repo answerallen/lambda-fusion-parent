@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.client.mapper;
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.client.model.entity.ClientEntity;
-import com.lambda.fusion.authority.client.model.vo.AuthorizeVO;
+import com.lambda.fusion.authority.client.model.vo.AuthResourceVO;
 import com.lambda.fusion.authority.resource.model.UserPermission;
 import com.lambda.security.web.hmac.model.HmacClient;
 import java.util.List;
@@ -16,29 +16,29 @@ public interface ClientMapper extends BaseMapper<ClientEntity> {
     /**
      * 获取已经拥有的资源编号
      *
-     * @param clientid
+     * @param clientId
      * @return java.util.List<java.lang.String>
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<String> hasAuthorized(@Param("clientid") String clientid);
+    List<String> hasAuthorized(@Param("clientId") String clientId);
 
     /**
      * 批量保存客户端的接口授权
      *
-     * @param clientid
+     * @param clientId
      * @param ids
      */
     @InterceptorIgnore(tenantLine = "true")
-    void batchSaveAuthorization(@Param("clientid") String clientid, @Param("ids") List<String> ids);
+    void batchSaveAuthResources(@Param("clientId") String clientId, @Param("ids") List<String> ids);
 
     /**
      * 批量删除客户端的接口授权
      *
-     * @param clientid
+     * @param clientId
      * @param ids
      */
     @InterceptorIgnore(tenantLine = "true")
-    void batchDeleteAuthorization(@Param("clientid") String clientid, @Param("ids") List<String> ids);
+    void batchDeleteAuthResources(@Param("clientId") String clientId, @Param("ids") List<String> ids);
 
     /**
      * 查询角色权限
@@ -46,7 +46,7 @@ public interface ClientMapper extends BaseMapper<ClientEntity> {
      * @param parameters
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<AuthorizeVO> getAuthorization(@Param("parameters") Map<String, Object> parameters);
+    List<AuthResourceVO> getAuthorization(@Param("parameters") Map<String, Object> parameters);
 
     /**
      * 根据appid查询客户端信息

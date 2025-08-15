@@ -1,6 +1,7 @@
 package com.lambda.fusion.authority.organization.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.organization.model.*;
 import com.lambda.fusion.authority.user.model.MutableUser;
 import java.util.List;
@@ -9,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
-public interface OrganizationMapper {
+public interface OrganizationMapper extends BaseMapper<Organization> {
 
     /**
      * 查询用户关联组织角色
@@ -80,28 +81,6 @@ public interface OrganizationMapper {
      */
     @InterceptorIgnore(tenantLine = "true")
     boolean existParent(@Param("id") String id);
-
-    /**
-     * 通过主键删除
-     *
-     * @param id 主键
-     */
-    void deleteOrganizationByPk(String id);
-
-    /**
-     * 删除多租户机构创建的内置角色
-     *
-     * @param id 主键
-     */
-    @InterceptorIgnore(tenantLine = "true")
-    void deleteTenantOrganizationRole(String id);
-
-    /**
-     * 通过主键更新
-     *
-     * @param resource 主键查询
-     */
-    void updateOrganizationByPk(Organization resource);
 
     /**
      * 查询用户关联组织

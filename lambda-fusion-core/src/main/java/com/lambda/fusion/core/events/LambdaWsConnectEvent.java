@@ -11,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @SuppressFBWarnings({"EI_EXPOSE_REP"})
-public class LambdaExchangeWsConnectEvent {
+public class LambdaWsConnectEvent {
 
     /**
      * 用户名

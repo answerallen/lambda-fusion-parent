@@ -1,9 +1,7 @@
 package com.lambda.fusion.dict.service.impl;
 
-import static com.lambda.fusion.core.Constants.JOINER;
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
-
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -30,12 +28,16 @@ import com.lambda.fusion.dict.model.entity.DictType;
 import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import com.lambda.fusion.dict.model.vo.DictTypeVo;
 import com.lambda.fusion.dict.service.DictInfoService;
-import java.util.*;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.core.Constants.JOINER;
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 /**
  * 多级数据字典详细信息
@@ -57,6 +59,15 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
     @Override
     public Page<DictInfo> page(Page<DictInfo> pageable, DictInfoQueryDTO queryDTO) {
         Map<String, Object> parameters = convertQueryDTOToMap(queryDTO);
+        LambdaQueryWrapper<DictInfo> lambdaQuery = Wrappers.lambdaQuery();
+        lambdaQuery.eq(DictInfo::getTenantId, parameters.get(FIELD_TENANT_ID));
+        lambdaQuery.eq(StrUtil.isNotEmpty(queryDTO.getDictType()), DictInfo::getDictType, queryDTO.getDictType());
+        lambdaQuery.like(StrUtil.isNotEmpty(queryDTO.getFieldType()), DictInfo::getFieldType, queryDTO.getFieldType());
+        lambdaQuery.like(StrUtil.isNotEmpty(queryDTO.getFieldName()), DictInfo::getFieldName, queryDTO.getFieldName());
+        lambdaQuery.eq(queryDTO.getEnableState() != null, DictInfo::getEnableState, queryDTO.getEnableState());
+        lambdaQuery.eq(StrUtil.isNotEmpty(queryDTO.getDictInfoId()), DictInfo::getParentId, queryDTO.getDictInfoId());
+        lambdaQuery.orderByAsc(DictInfo::getDictType, DictInfo::getSort)
+                .orderByDesc(DictInfo::getId);
         pageable = dictInfoMapper.page(pageable, parameters);
         pageable.getRecords().forEach(info -> {
             info.setParameters(convertMap(info.getExtra()));
@@ -67,8 +78,17 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
 
     @Override
     public List<DictInfo> selectDictInfo(DictInfoQueryDTO queryDTO) {
-        Map<String, Object> parameters = convertQueryDTOToMap(queryDTO);
-        List<DictInfo> outcomes = dictInfoMapper.selectDictInfo(parameters);
+        String tenantId = OperatorUtils.getOperator().getTenantId();
+        LambdaQueryWrapper<DictInfo> lambdaQuery = Wrappers.lambdaQuery();
+        lambdaQuery.eq(StrUtil.isNotEmpty(tenantId), DictInfo::getTenantId, tenantId)
+                .eq(StrUtil.isNotEmpty(queryDTO.getDictType()), DictInfo::getDictType, queryDTO.getDictType())
+                .like(StrUtil.isNotEmpty(queryDTO.getFieldType()), DictInfo::getFieldType, queryDTO.getFieldType())
+                .like(StrUtil.isNotEmpty(queryDTO.getFieldName()), DictInfo::getFieldName, queryDTO.getFieldName())
+                .eq(queryDTO.getEnableState() != null, DictInfo::getEnableState, queryDTO.getEnableState())
+                .eq(StrUtil.isNotEmpty(queryDTO.getDictInfoId()), DictInfo::getParentId, queryDTO.getDictInfoId())
+                .orderByAsc(DictInfo::getDictType, DictInfo::getSort)
+                .orderByDesc(DictInfo::getId);
+        List<DictInfo> outcomes = dictInfoMapper.selectDictInfo(lambdaQuery);
         if (CollectionUtils.isEmpty(outcomes)) {
             return Collections.emptyList();
         }
@@ -334,5 +354,6 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfo, DictInfoVO, D
         return parameters;
     }
 
-    private static class MapTypeToken extends TypeToken<Map<String, Object>> {}
+    private static class MapTypeToken extends TypeToken<Map<String, Object>> {
+    }
 }
