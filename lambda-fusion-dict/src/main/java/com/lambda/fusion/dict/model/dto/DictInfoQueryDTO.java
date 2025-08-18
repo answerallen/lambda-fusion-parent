@@ -2,7 +2,7 @@ package com.lambda.fusion.dict.model.dto;
 
 import com.lambda.cloud.core.base.BaseDTO;
 import com.lambda.cloud.core.convert.BaseConverter;
-import com.lambda.fusion.dict.model.entity.DictInfo;
+import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
@@ -16,7 +16,7 @@ import lombok.*;
 @AllArgsConstructor
 @Schema(description = "字典信息查询参数")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class DictInfoQueryDTO extends BaseDTO<DictInfoQueryDTO, DictInfo> {
+public class DictInfoQueryDTO extends BaseDTO<DictInfoQueryDTO, DictInfoVO> {
 
     @Schema(description = "字典类型")
     private String dictType;
@@ -43,7 +43,7 @@ public class DictInfoQueryDTO extends BaseDTO<DictInfoQueryDTO, DictInfo> {
     private Map<String, Object> extraParams;
 
     @Override
-    protected BaseConverter<DictInfoQueryDTO, DictInfo> getConverter() {
+    protected BaseConverter<DictInfoQueryDTO, DictInfoVO> getConverter() {
         return null;
     }
 }

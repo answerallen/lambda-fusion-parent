@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.dict.model.entity.DictInfo;
+import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import com.lambda.fusion.dict.model.entity.DictInfoGroup;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +16,7 @@ import org.apache.ibatis.annotations.Param;
  * @author jin
  */
 @Mapper
-public interface DictInfoMapper extends BaseMapper<DictInfo> {
+public interface DictInfoMapper extends BaseMapper<DictInfoVO> {
 
     /**
      * 获取所有启用的字典
@@ -32,20 +32,20 @@ public interface DictInfoMapper extends BaseMapper<DictInfo> {
      * @param parameters
      * @return
      */
-    Page<DictInfo> page(Page<DictInfo> pagination, @Param("parameters") Map<String, Object> parameters);
+    Page<DictInfoVO> page(Page<DictInfoVO> pagination, @Param("parameters") Map<String, Object> parameters);
 
     /**
      * 条件查询
      * @return
      */
-    List<DictInfo> selectDictInfo(@Param(Constants.WRAPPER) LambdaQueryWrapper<DictInfo> wrapper);
+    List<DictInfoVO> selectDictInfo(@Param(Constants.WRAPPER) LambdaQueryWrapper<DictInfoVO> wrapper);
 
     /**
      * 获取数据项列表
-     * @param dictInfo
+     * @param dictInfoVO
      * @return
      */
-    List<DictInfo> getDictInfoList(@Param("dictInfo") DictInfo dictInfo);
+    List<DictInfoVO> getDictInfoList(@Param("dictInfo") DictInfoVO dictInfoVO);
 
     /**
      * 根据parentKeys构建树形数据项
@@ -53,5 +53,5 @@ public interface DictInfoMapper extends BaseMapper<DictInfo> {
      * @param tenantId
      * @return
      */
-    List<DictInfo> treeList(@Param("ids") List<String> ids, @Param("tenantId") String tenantId);
+    List<DictInfoVO> treeList(@Param("ids") List<String> ids, @Param("tenantId") String tenantId);
 }

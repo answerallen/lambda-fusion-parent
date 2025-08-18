@@ -7,7 +7,6 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.utils.Assert;
@@ -21,7 +20,7 @@ import com.lambda.fusion.dict.common.resolve.IDynamicDictResolve;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
 import com.lambda.fusion.dict.model.dto.QueryDictTree;
-import com.lambda.fusion.dict.model.entity.DictInfo;
+import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import com.lambda.fusion.dict.model.entity.DictType;
 import com.lambda.fusion.dict.service.DictTypeService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -207,7 +206,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
             });
         }
         if (CollectionUtils.isNotEmpty(dictTypes)) {
-            dictInfoMapper.delete(Wrappers.lambdaQuery(DictInfo.class).in(DictInfo::getDictType, dictTypes));
+            dictInfoMapper.delete(Wrappers.lambdaQuery(DictInfoVO.class).in(DictInfoVO::getDictType, dictTypes));
         }
         if (CollectionUtils.isNotEmpty(dictTypeIds)) {
             dictTypeMapper.deleteByIds(dictTypeIds);
@@ -247,43 +246,43 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
             for (IDynamicDictResolve dynamicDictResolve : dynamicDictResolves) {
                 if (dynamicDictResolve.isSupport(dictType.getDataType())) {
                     final List<DynamicDict> list = dynamicDictResolve.doResolve(dictType);
-                    List<DictInfo> dictInfos = new ArrayList<>(list.size());
+                    List<DictInfoVO> dictInfoVOS = new ArrayList<>(list.size());
                     AtomicBoolean hasRank = new AtomicBoolean(false);
                     if (CollectionUtils.isNotEmpty(list)) {
                         list.forEach(v -> {
-                            final DictInfo dictInfo = new DictInfo();
-                            dictInfo.setId(
+                            final DictInfoVO dictInfoVO = new DictInfoVO();
+                            dictInfoVO.setId(
                                     StringUtils.isNotBlank(v.getId())
                                             ? v.getId()
                                             : v.getVal().toString());
-                            dictInfo.setDictType(dictType.getDictType());
-                            dictInfo.setDictName(dictType.getDictName());
-                            dictInfo.setFieldType(v.getVal().toString());
-                            dictInfo.setFieldName(v.getKey());
-                            dictInfo.setParentId(v.getPid());
-                            dictInfo.setSelectable(v.getSelectable());
+                            dictInfoVO.setDictType(dictType.getDictType());
+                            dictInfoVO.setDictName(dictType.getDictName());
+                            dictInfoVO.setFieldType(v.getVal().toString());
+                            dictInfoVO.setFieldName(v.getKey());
+                            dictInfoVO.setParentId(v.getPid());
+                            dictInfoVO.setSelectable(v.getSelectable());
                             if (v.getLevel() != null) {
                                 hasRank.set(true);
-                                dictInfo.setLevel(v.getLevel());
+                                dictInfoVO.setLevel(v.getLevel());
                             }
-                            dictInfos.add(dictInfo);
+                            dictInfoVOS.add(dictInfoVO);
                         });
                     }
-                    List<DictInfo> dictInfoList;
+                    List<DictInfoVO> dictInfoVOList;
                     if (hasRank.get()) {
                         // 有级别
-                        dictInfoList = TreeFactory.build3(
-                                dictInfos,
-                                DictInfo::getId,
-                                DictInfo::getParentId,
-                                DictInfo::level,
-                                DictInfo::setChildren);
+                        dictInfoVOList = TreeFactory.build3(
+                                dictInfoVOS,
+                                DictInfoVO::getId,
+                                DictInfoVO::getParentId,
+                                DictInfoVO::level,
+                                DictInfoVO::setChildren);
                     } else {
                         // 无级别
-                        dictInfoList = TreeFactory.build2(
-                                dictInfos, DictInfo::getId, DictInfo::getParentId, DictInfo::setChildren);
+                        dictInfoVOList = TreeFactory.build2(
+                                dictInfoVOS, DictInfoVO::getId, DictInfoVO::getParentId, DictInfoVO::setChildren);
                     }
-                    dictType.setData(dictInfoList);
+                    dictType.setData(dictInfoVOList);
                     break;
                 }
             }

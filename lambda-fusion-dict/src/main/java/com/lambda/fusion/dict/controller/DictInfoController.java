@@ -3,16 +3,12 @@ package com.lambda.fusion.dict.controller;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.user.User;
-import com.lambda.fusion.dict.common.enums.DictContextHolders;
-import com.lambda.fusion.dict.common.enums.DictHolder;
+import com.lambda.fusion.dict.model.dto.DictInfoInputDTO;
 import com.lambda.fusion.dict.model.dto.DictInfoQueryDTO;
 import com.lambda.fusion.dict.model.dto.DictStateOperationDTO;
-import com.lambda.fusion.dict.model.entity.DictInfo;
-import com.lambda.fusion.dict.model.entity.DictType;
 import com.lambda.fusion.dict.model.vo.DictInfoVO;
-import com.lambda.fusion.dict.model.vo.DictTypeVo;
+import com.lambda.fusion.dict.model.vo.DictTypeVO;
 import com.lambda.fusion.dict.service.DictInfoService;
-import com.lambda.fusion.dict.service.DictTypeService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -20,7 +16,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,7 +38,7 @@ public class DictInfoController {
 
     @GetMapping("/dynamic")
     @Operation(summary = "获取所有启用的动态字典", description = "获取所有启用的字典")
-    public Map<String, DictTypeVo> getAllDynamicDictInfo(
+    public Map<String, DictTypeVO> getAllDynamicDictInfo(
             @Parameter(description = "字典类型") @RequestParam(required = false) String type) {
         return dictInfoService.getDynamicDictInfoGroup(type);
     }
@@ -51,52 +46,47 @@ public class DictInfoController {
 
     @GetMapping("/dict/tree/data/{type}")
     @Operation(summary = "查询树形结构的数据项", description = "根据字典类型查询树形结构数据项")
-    public List<DictInfo> treeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
+    public List<DictInfoVO> treeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
         return dictInfoService.getTreeData(type);
     }
 
     @GetMapping("/dict/tree/subData/{type}")
     @Operation(summary = "根据数据类型查询包含子集数据类型的数据项", description = "根据数据类型查询包含子集数据类型的数据项")
-    public List<DictInfo> subTreeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
+    public List<DictInfoVO> subTreeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
         return dictInfoService.getSubTreeData(type);
     }
 
     @OperationLog
     @GetMapping("/tree/data/{parentid}")
     @Operation(summary = "根据数据项父节点查询数据项树", description = "根据数据项父节点查询数据项树")
-    public List<DictInfo> queryDictInfoByParentId(
+    public List<DictInfoVO> queryDictInfoByParentId(
             @Parameter(description = "数据项父ID", required = true) @PathVariable String parentid) {
         return dictInfoService.getDictInfoByParentId(parentid);
     }
 
     @GetMapping("/data/select")
     @Operation(summary = "数据项条件查询", description = "分页查询所有数据列表")
-    public List<DictInfo> selectDictInfo(DictInfoQueryDTO dictInfoQueryDTO) {
+    public List<DictInfoVO> selectDictInfo(DictInfoQueryDTO dictInfoQueryDTO) {
         return dictInfoService.selectDictInfo(dictInfoQueryDTO);
     }
 
     @OperationLog
-    @PostMapping("")
+    @PostMapping
     @Operation(summary = "添加字典详细信息", description = "添加字典详细信息")
-    public DictInfo saveDictInfo(@Valid @RequestBody DictInfo dictInfo) {
+    public DictInfoVO saveDictInfo(@Valid @RequestBody DictInfoVO dictInfoVO) {
         User operator = (User) OperatorUtils.getOperator();
         if (StringUtils.isNotBlank(operator.getTenantId())) {
-            dictInfo.setTenantId(operator.getTenantId());
+            dictInfoVO.setTenantId(operator.getTenantId());
         }
-        return dictInfoService.saveDictInfo(operator, dictInfo);
+        return dictInfoService.saveDictInfo(operator, dictInfoVO);
     }
 
     @OperationLog
-    @PutMapping("")
+    @PutMapping("/{id}")
     @Operation(summary = "更新字典详细信息", description = "更新字典详细信息")
-    public DictInfo updateDictInfo(
-            @Valid DictInfoVO dictInfoVO, @RequestBody(required = false) DictInfo.Additional additional) {
-        DictInfo dictInfo = new DictInfo();
-        BeanUtils.copyProperties(dictInfoVO, dictInfo);
-        if (null != additional) {
-            dictInfo.setParameters(additional.getParameters());
-        }
-        return dictInfoService.updateDictInfo(dictInfo);
+    public void updateDictInfo(@PathVariable("id") String id,
+                               @Valid DictInfoInputDTO dictInfoInputDTO) {
+        dictInfoService.updateDictInfo(id, dictInfoInputDTO.toEntity());
     }
 
     @OperationLog

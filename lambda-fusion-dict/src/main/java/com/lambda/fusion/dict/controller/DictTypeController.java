@@ -2,16 +2,11 @@ package com.lambda.fusion.dict.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.user.User;
 import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.common.enums.DictHolder;
 import com.lambda.fusion.dict.model.dto.*;
-import com.lambda.fusion.dict.model.entity.DictInfo;
 import com.lambda.fusion.dict.model.entity.DictType;
-import com.lambda.fusion.dict.model.vo.DictInfoVO;
-import com.lambda.fusion.dict.model.vo.DictTypeVo;
-import com.lambda.fusion.dict.service.DictInfoService;
 import com.lambda.fusion.dict.service.DictTypeService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,14 +15,10 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 /**
  * 多级数据字典类型相关接口

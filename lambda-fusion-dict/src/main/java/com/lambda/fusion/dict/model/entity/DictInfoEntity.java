@@ -1,7 +1,5 @@
 package com.lambda.fusion.dict.model.entity;
 
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
-
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -12,12 +10,15 @@ import com.lambda.fusion.core.tree.Tree;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import java.util.List;
-import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
+import java.util.Map;
+
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 /**
  * 字典信息(值)
@@ -26,7 +27,7 @@ import lombok.Setter;
 @EqualsAndHashCode(callSuper = true)
 @TableName(value = TABLE_SYS_DICT_INFO)
 @Data
-public class DictInfo extends BaseDO implements Tree<DictInfo> {
+public class DictInfoEntity extends BaseDO {
     @TableId
     @Schema(description = "id")
     private String id;
@@ -60,7 +61,7 @@ public class DictInfo extends BaseDO implements Tree<DictInfo> {
     @Schema(description = "可选择状态（0不能用于下拉列表，1可以用于下拉列表）", example = "1", defaultValue = "1")
     private Integer selectable = SELECTABLE_ENABLED;
 
-    @TableField("parentid")
+    @TableField("parent_id")
     @Schema(description = "父节点")
     private String parentId;
 
@@ -71,16 +72,11 @@ public class DictInfo extends BaseDO implements Tree<DictInfo> {
     @Schema(description = "备注", example = "备注")
     private String notes;
 
-    @JsonIgnore
     @TableField("extra")
     @Schema(description = "额外信息(文本入库使用)", hidden = true)
     private String extra;
 
-    @TableField(exist = false)
-    @Schema(description = "额外信息详情")
-    private Map<String, Object> parameters;
-
-    @TableField("parentKeys")
+    @TableField("parent_keys")
     @Schema(description = "树节点父节点")
     private String parentKeys;
 
@@ -88,30 +84,4 @@ public class DictInfo extends BaseDO implements Tree<DictInfo> {
     @Schema(description = "级别：最顶层为1，后边层数累加", hidden = true)
     @JsonProperty("level")
     private Integer level = DEFAULT_LEVEL;
-
-    @TableField(exist = false)
-    @Schema(description = "子节点", hidden = true)
-    private List<DictInfo> children;
-
-    @Override
-    public String id() {
-        return id;
-    }
-
-    @Override
-    public String pid() {
-        return parentId;
-    }
-
-    @Override
-    public void children(List<DictInfo> children) {
-        this.children = children;
-    }
-
-    @Getter
-    @Setter
-    public static class Additional {
-
-        private Map<String, Object> parameters;
-    }
 }

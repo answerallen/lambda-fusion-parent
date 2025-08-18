@@ -1,6 +1,5 @@
 package com.lambda.fusion.dict.model.vo;
 
-import com.lambda.fusion.dict.model.entity.DictInfo;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
@@ -13,7 +12,7 @@ import lombok.Data;
 @SuppressFBWarnings({"EI_EXPOSE_REP"})
 @Data
 @Schema(description = "数据字典简略信息")
-public class DictTypeVo {
+public class DictTypeVO {
 
     @Schema(description = "id", hidden = true)
     private String id;
@@ -32,5 +31,5 @@ public class DictTypeVo {
     private String dataTypeValue;
 
     @Schema(description = "子节点数据", hidden = true)
-    private List<DictInfo> data;
+    private List<DictInfoVO> data;
 }

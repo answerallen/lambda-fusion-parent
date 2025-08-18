@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.lambda.cloud.core.base.BaseDO;
 import com.lambda.fusion.core.tree.Tree;
+import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
@@ -74,7 +75,7 @@ public class DictType extends BaseDO implements Tree<DictType> {
 
     @TableField(exist = false)
     @Schema(description = "子节点数据", hidden = true)
-    private List<DictInfo> data;
+    private List<DictInfoVO> data;
 
     @Override
     public void children(List<DictType> children) {

@@ -2,7 +2,7 @@ package com.lambda.fusion.dict.common.enums;
 
 import com.lambda.fusion.dict.common.model.DictValueType;
 import com.lambda.fusion.dict.common.model.DynamicDict;
-import com.lambda.fusion.dict.model.entity.DictInfo;
+import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import com.lambda.fusion.dict.model.entity.DictType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
@@ -57,17 +57,17 @@ public class DictContextHolders {
         dictType.setLevel(1);
 
         final List<DynamicDict> dictHolderList = dictHolder.getList();
-        List<DictInfo> dictInfos = new ArrayList<>(dictHolderList.size());
+        List<DictInfoVO> dictInfoVOS = new ArrayList<>(dictHolderList.size());
         for (DynamicDict dynamicDict : dictHolderList) {
-            final DictInfo dictInfo = new DictInfo();
-            dictInfo.setId(dynamicDict.getKey());
-            dictInfo.setDictType(dictType.getDictType());
-            dictInfo.setDictName(dictType.getDictName());
-            dictInfo.setFieldType(dynamicDict.getVal().toString());
-            dictInfo.setFieldName(dynamicDict.getKey());
-            dictInfos.add(dictInfo);
+            final DictInfoVO dictInfoVO = new DictInfoVO();
+            dictInfoVO.setId(dynamicDict.getKey());
+            dictInfoVO.setDictType(dictType.getDictType());
+            dictInfoVO.setDictName(dictType.getDictName());
+            dictInfoVO.setFieldType(dynamicDict.getVal().toString());
+            dictInfoVO.setFieldName(dynamicDict.getKey());
+            dictInfoVOS.add(dictInfoVO);
         }
-        dictType.setData(dictInfos);
+        dictType.setData(dictInfoVOS);
         return dictType;
     }
 }
