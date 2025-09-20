@@ -178,30 +178,65 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Page<MutableUser> getAllMutableUsers(Page<MutableUser> pagination, Map<String, Object> parameters) {
-        // 当前登陆用户编号
-         String uid = MapUtils.getString(parameters, "uid");
         String tenantId = MapUtils.getString(parameters, "tenant_id");
-        setUsernames(parameters);
-        setUserFields(parameters);
+        
+        // 预处理查询参数
+        preprocessQueryParameters(parameters);
+        
+        // 执行分页查询
         pagination = userMapper.getAllMutableUsersByCondition(pagination, parameters);
         List<MutableUser> users = pagination.getRecords();
+        
         if (CollectionUtils.isNotEmpty(users)) {
-            List<MutableUser> records = userMapper.getAllMutableUsers(users);
-            UserTempParameters temp0 = getUserTempParameters(records);
-            Set<String> uids = temp0.getUids();
-            Set<String> orgIds = temp0.getOrgIds();
-            Map<String, String> orgnames = getOrgFullNamesByOrgIds(orgIds);
-            Map<String, Map<String, String>> persons = getPersonsByUids(uids);
-            for (MutableUser item : records) {
-                supplementUserOrgInfo(orgnames, item);
-                supplementUserPersonInfo(persons, item);
-                supplementUserLockState(item);
-                supplementUserPermissionInfo(item, tenantId);
-                item.getAuthorities().sort(Comparator.comparing(SimpleRole::getAuthority));
-            }
-            pagination.setRecords(records);
+            // 补充用户详细信息
+            List<MutableUser> enrichedUsers = enrichUserDetails(users, tenantId);
+            pagination.setRecords(enrichedUsers);
         }
+        
         return pagination;
+    }
+
+    /**
+     * 预处理查询参数
+     */
+    private void preprocessQueryParameters(Map<String, Object> parameters) {
+        setUsernames(parameters);
+        setUserFields(parameters);
+    }
+
+    /**
+     * 丰富用户详细信息
+     */
+    private List<MutableUser> enrichUserDetails(List<MutableUser> users, String tenantId) {
+        List<MutableUser> records = userMapper.getAllMutableUsers(users);
+        UserTempParameters tempParams = getUserTempParameters(records);
+        
+        // 批量获取关联数据
+        Map<String, String> orgNames = getOrgFullNamesByOrgIds(tempParams.getOrgIds());
+        Map<String, Map<String, String>> personInfo = getPersonsByUids(tempParams.getUids());
+        
+        // 补充用户信息
+        for (MutableUser user : records) {
+            enrichSingleUserInfo(user, orgNames, personInfo, tenantId);
+        }
+        
+        return records;
+    }
+
+    /**
+     * 补充单个用户的详细信息
+     */
+    private void enrichSingleUserInfo(MutableUser user, Map<String, String> orgNames, 
+                                     Map<String, Map<String, String>> personInfo, String tenantId) {
+        supplementUserOrgInfo(orgNames, user);
+        supplementUserPersonInfo(personInfo, user);
+        supplementUserLockState(user);
+        supplementUserPermissionInfo(user, tenantId);
+        
+        // 角色排序
+        if (CollectionUtils.isNotEmpty(user.getAuthorities())) {
+            user.getAuthorities().sort(Comparator.comparing(SimpleRole::getAuthority));
+        }
     }
 
     private Map<String, Map<String, String>> getPersonsByUids(Set<String> uids) {
@@ -559,16 +594,24 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 判断扩展属性是否变化 TODO
+     * 判断扩展属性是否变化
      *
      * @param source 原始用户信息
      * @param actual 当前用户信息
-     * @return java.util.Map<java.lang.String, java.lang.Object>
+     * @return 是否需要更新扩展属性
      */
-    private void checkPropsUpdated(UserInfo source, UserInfo actual) {
-
-        // todo 对比现属性和原属性差别，判断是否需要修改扩展属性
-        System.out.printf("%s", "todo 对比现属性和原属性差别，判断是否需要修改扩展属性");
+    private boolean checkPropsUpdated(UserInfo source, UserInfo actual) {
+        if (source == null || actual == null) {
+            return false;
+        }
+        
+        // 比较关键属性是否发生变化
+        return !Objects.equals(source.getEmail(), actual.getEmail()) ||
+               !Objects.equals(source.getMobile(), actual.getMobile()) ||
+               !Objects.equals(source.getRealName(), actual.getRealName()) ||
+               !Objects.equals(source.getAvatar(), actual.getAvatar()) ||
+               !Objects.equals(source.getGender(), actual.getGender()) ||
+               !Objects.equals(source.getBirthday(), actual.getBirthday());
     }
 
     /**

@@ -3,10 +3,9 @@ package com.lambda.fusion.core.user;
 import cn.hutool.core.collection.CollUtil;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.security.SimpleLoginUser;
+import java.util.Set;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import java.util.Set;
 
 @Data
 @EqualsAndHashCode(callSuper = true)

@@ -41,6 +41,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
+
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.BooleanUtils;
@@ -53,26 +55,16 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
 public class OrganizationServiceImpl implements OrganizationService {
 
-    @Resource
-    protected UserMapper userMapper;
-
-    @Resource
-    protected RoleMapper roleMapper;
-
-    @Autowired
-    protected RoleService roleService;
-
-    @Resource
-    protected OrganizationMapper organizationMapper;
-
-    @Autowired
-    private GroupMapper groupMapper;
-
-    @Autowired
-    private AuthorityProperties authorityProperties;
+    private final UserMapper userMapper;
+    private final RoleMapper roleMapper;
+    private final RoleService roleService;
+    private final OrganizationMapper organizationMapper;
+    private final GroupMapper groupMapper;
+    private final AuthorityProperties authorityProperties;
 
     @Override
     public Parameters getQueryParameter() {
@@ -85,49 +77,102 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     public List<Organization> treeList(Parameters parameters) {
         User operator = OperatorUtils.getLoginUser(User.class);
-        String orgId = operator.getOrgId();
-        List<Organization> list;
-        HashSet<String> orgIds = new HashSet<>();
-        if (StringUtils.isNotBlank(parameters.getAlias()) || StringUtils.isNotBlank(parameters.getName())) {
-            list = getOrgByCondition(operator, parameters);
-            if (operator.isAdmin()) {
-                getParentAndChildrenIds(orgId, list, orgIds, operator.isAdmin());
-                if (CollectionUtils.isNotEmpty(orgIds)) {
-                    parameters.setIds(new ArrayList<>(orgIds));
-                    list.addAll(organizationMapper.getAllMutableOrgan(parameters));
-                }
-            }
-            list = list.stream().distinct().collect(Collectors.toList());
+        List<Organization> organizations = getOrganizationsByCondition(operator, parameters);
+        applyPermissionConstraints(organizations, operator);
+        return TreeFactory.build(organizations);
+    }
+
+    /**
+     * 根据条件获取组织列表
+     *
+     * @param operator 操作用户
+     * @param parameters 查询参数
+     * @return 组织列表
+     */
+    private List<Organization> getOrganizationsByCondition(User operator, Parameters parameters) {
+        if (hasSearchCondition(parameters)) {
+            return getOrganizationsBySearchCondition(operator, parameters);
         } else {
-            list = getSubordinateOrgIds(parameters);
+            return getSubordinateOrgIds(parameters);
         }
+    }
+
+    /**
+     * 检查是否有搜索条件
+     */
+    private boolean hasSearchCondition(Parameters parameters) {
+        return StringUtils.isNotBlank(parameters.getAlias()) || 
+               StringUtils.isNotBlank(parameters.getName());
+    }
+
+    /**
+     * 根据搜索条件获取组织列表
+     */
+    private List<Organization> getOrganizationsBySearchCondition(User operator, Parameters parameters) {
+        List<Organization> list = getOrgByCondition(operator, parameters);
+        
+        if (operator.isAdmin()) {
+            Set<String> additionalOrgIds = collectAdditionalOrgIds(operator.getOrgId(), list);
+            if (CollectionUtils.isNotEmpty(additionalOrgIds)) {
+                parameters.setIds(new ArrayList<>(additionalOrgIds));
+                list.addAll(organizationMapper.getAllMutableOrgan(parameters));
+            }
+        }
+        
+        return list.stream().distinct().collect(Collectors.toList());
+    }
+
+    /**
+     * 收集额外的组织ID（父级和子级）
+     */
+    private Set<String> collectAdditionalOrgIds(String orgId, List<Organization> list) {
+        Set<String> orgIds = new HashSet<>();
         for (Organization org : list) {
-            if (!operator.isAdmin() && org.getId().equals(orgId)) {
+            addParentOrgIds(orgId, org, orgIds, true);
+            orgIds.addAll(getChildrenById(org.getId()));
+        }
+        return orgIds;
+    }
+
+    /**
+     * 添加父级组织ID
+     */
+    private void addParentOrgIds(String orgId, Organization org, Set<String> orgIds, boolean isAdmin) {
+        String parentKeys = org.getParentKeys();
+        if (StringUtils.isBlank(parentKeys)) {
+            return;
+        }
+        
+        String[] split = StringUtils.split(parentKeys, JOINER);
+        List<String> ids = new ArrayList<>(Arrays.asList(split));
+        
+        if (isAdmin && StringUtils.isNotBlank(orgId)) {
+            String substring = StringUtils.substring(parentKeys, StringUtils.indexOf(parentKeys, orgId));
+            split = StringUtils.split(substring, JOINER);
+            ids = new ArrayList<>(Arrays.asList(split));
+        }
+        
+        orgIds.addAll(ids);
+    }
+
+    /**
+     * 应用权限约束
+     */
+    private void applyPermissionConstraints(List<Organization> organizations, User operator) {
+        String operatorOrgId = operator.getOrgId();
+        String operatorTenantId = operator.getTenantId();
+        
+        for (Organization org : organizations) {
+            // 设置操作权限
+            if (!operator.isAdmin() && org.getId().equals(operatorOrgId)) {
                 org.setNoPermission(true);
             }
-            if (!Objects.equals(operator.getTenantId(), org.getOwner())) {
+            
+            // 设置租户权限
+            if (!Objects.equals(operatorTenantId, org.getOwner())) {
                 org.setNoPermission(true);
                 org.setInAvailable(true);
             }
-        }
-        return TreeFactory.build(list);
-    }
-
-    private void getParentAndChildrenIds(
-            String orgId, List<Organization> list, HashSet<String> orgIds, boolean isOrgAdmin) {
-        for (Organization org : list) {
-            String parentKeys = org.getParentKeys();
-            if (StringUtils.isNotBlank(parentKeys)) {
-                String[] split = StringUtils.split(parentKeys, JOINER);
-                List<String> ids = new ArrayList<>(Arrays.asList(split));
-                if (isOrgAdmin) {
-                    String substring = StringUtils.substring(parentKeys, StringUtils.indexOf(parentKeys, orgId));
-                    split = StringUtils.split(substring, JOINER);
-                    ids = new ArrayList<>(Arrays.asList(split));
-                }
-                orgIds.addAll(ids);
-            }
-            orgIds.addAll(getChildrenById(org.getId()));
         }
     }
 
@@ -173,30 +218,71 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteOrganization(String id) {
         LoginUser operator = OperatorUtils.getOperator();
-        this.hasOperation(operator, id);
+        
+        // 权限检查
+        validateDeletePermission(operator, id);
+        
+        // 获取组织信息
         Organization organization = getOrgById(id);
         Assert.notNull(organization, "组织不存在！");
-        List<String> ids = getChildrenById0(id);
-        Assert.state(CollectionUtils.isEmpty(ids), "");
-        ids.add(id);
-        boolean hasUser = organizationMapper.existUser(ids);
-        Assert.state(!hasUser, "user not empty");
+        
+        // 检查删除前置条件
+        validateDeleteConditions(id);
+        
+        // 执行删除操作
+        performDeletion(organization, id);
+    }
+
+    /**
+     * 验证删除权限
+     */
+    private void validateDeletePermission(LoginUser operator, String id) {
+        this.hasOperation(operator, id);
+    }
+
+    /**
+     * 验证删除前置条件
+     */
+    private void validateDeleteConditions(String id) {
+        List<String> childIds = getChildrenById0(id);
+        Assert.state(CollectionUtils.isEmpty(childIds), "存在子组织，无法删除");
+        
+        List<String> allIds = new ArrayList<>(childIds);
+        allIds.add(id);
+        
+        boolean hasUser = organizationMapper.existUser(allIds);
+        Assert.state(!hasUser, "组织下存在用户，无法删除");
+    }
+
+    /**
+     * 执行删除操作
+     */
+    private void performDeletion(Organization organization, String id) {
         if (BooleanUtils.toBoolean(organization.getTenant())) {
-            List<MutableRole> roles = roleMapper.getTenantRolesByOwner(id);
-            if (CollectionUtils.isNotEmpty(roles)) {
-                for (MutableRole role : roles) {
-                    if (!BooleanUtils.toBoolean(role.getRoleType())) {
-                        roleService.deleteRoleById(role.getAuthority());
-                    }
-                }
-            }
-            organizationMapper.delete(new LambdaQueryWrapper<Organization>()
-                    .eq(Organization::getOwner, id)
-            );
+            deleteTenantRelatedData(id);
         }
+        
+        List<String> ids = Collections.singletonList(id);
         groupMapper.deleteByOrgIds(ids);
         organizationMapper.deleteById(id);
         organizationMapper.deleteUserOrganizationByOrg(id);
+    }
+
+    /**
+     * 删除租户相关数据
+     */
+    private void deleteTenantRelatedData(String tenantId) {
+        List<MutableRole> roles = roleMapper.getTenantRolesByOwner(tenantId);
+        if (CollectionUtils.isNotEmpty(roles)) {
+            for (MutableRole role : roles) {
+                if (!BooleanUtils.toBoolean(role.getRoleType())) {
+                    roleService.deleteRoleById(role.getAuthority());
+                }
+            }
+        }
+        
+        organizationMapper.delete(new LambdaQueryWrapper<Organization>()
+                .eq(Organization::getOwner, tenantId));
     }
 
     @Override

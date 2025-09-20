@@ -12,6 +12,32 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang.BooleanUtils;
 import org.hibernate.validator.constraints.Length;
 
+/**
+ * 组织机构实体类
+ * 
+ * <p>表示系统中的组织机构信息，支持树形结构管理，包含部门和租户两种类型。
+ * 实现了Tree接口，支持树形数据的构建和操作。
+ * 
+ * <h3>功能特性：</h3>
+ * <ul>
+ * <li><strong>树形结构：</strong>支持多级组织架构，通过parentId和parentKeys维护层级关系</li>
+ * <li><strong>多租户支持：</strong>支持租户隔离，通过tenant字段区分部门(0)和租户(1)</li>
+ * <li><strong>权限控制：</strong>支持操作权限和选择权限的细粒度控制</li>
+ * <li><strong>数据校验：</strong>集成Bean Validation，确保数据完整性</li>
+ * </ul>
+ * 
+ * <h3>使用场景：</h3>
+ * <ul>
+ * <li>企业组织架构管理</li>
+ * <li>多租户系统的租户管理</li>
+ * <li>权限系统的组织维度控制</li>
+ * <li>用户归属组织的管理</li>
+ * </ul>
+ * 
+ * @author Lambda Fusion Team
+ * @since 1.0.0
+ * @see Tree 树形数据接口
+ */
 @Data
 @Schema(description = "组织元数据")
 @NoArgsConstructor
@@ -102,6 +128,17 @@ public class Organization implements Tree<Organization> {
         this.id = id;
     }
 
+    /**
+     * 判断当前组织是否为租户类型
+     * 
+     * <p>根据tenant字段判断组织类型：
+     * <ul>
+     * <li>0 - 普通部门</li>
+     * <li>1 - 租户组织</li>
+     * </ul>
+     * 
+     * @return true表示租户组织，false表示普通部门
+     */
     public boolean typeOfTenant() {
         return BooleanUtils.toBoolean(this.tenant);
     }
