@@ -1,5 +1,7 @@
 package com.lambda.fusion.dict.controller;
 
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.user.User;
@@ -14,14 +16,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
-
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 /**
  * 多级数据字典类型相关接口
@@ -42,7 +41,6 @@ public class DictInfoController {
             @Parameter(description = "字典类型") @RequestParam(required = false) String type) {
         return dictInfoService.getDynamicDictInfoGroup(type);
     }
-
 
     @GetMapping("/dict/tree/data/{type}")
     @Operation(summary = "查询树形结构的数据项", description = "根据字典类型查询树形结构数据项")
@@ -84,8 +82,7 @@ public class DictInfoController {
     @OperationLog
     @PutMapping("/{id}")
     @Operation(summary = "更新字典详细信息", description = "更新字典详细信息")
-    public void updateDictInfo(@PathVariable("id") String id,
-                               @Valid DictInfoInputDTO dictInfoInputDTO) {
+    public void updateDictInfo(@PathVariable("id") String id, @Valid DictInfoInputDTO dictInfoInputDTO) {
         dictInfoService.updateDictInfo(id, dictInfoInputDTO.toEntity());
     }
 

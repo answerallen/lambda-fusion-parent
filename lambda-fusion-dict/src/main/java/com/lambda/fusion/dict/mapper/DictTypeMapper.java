@@ -2,7 +2,6 @@ package com.lambda.fusion.dict.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.dict.model.entity.DictType;
 import java.util.List;
 import java.util.Map;

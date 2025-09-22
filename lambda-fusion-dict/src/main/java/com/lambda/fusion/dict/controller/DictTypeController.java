@@ -14,11 +14,10 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 多级数据字典类型相关接口
@@ -61,8 +60,8 @@ public class DictTypeController {
             summary = "更新字典类型",
             description = "更新字典类型",
             parameters = {
-                    @Parameter(name = "id", description = "id", required = true, in = ParameterIn.QUERY),
-                    @Parameter(name = "dictName", description = "字典名称", required = true, in = ParameterIn.QUERY)
+                @Parameter(name = "id", description = "id", required = true, in = ParameterIn.QUERY),
+                @Parameter(name = "dictName", description = "字典名称", required = true, in = ParameterIn.QUERY)
             })
     public DictType updateDictType(@Valid DictType dictType) {
         // 非开发者不能修改系统字典用途
@@ -83,22 +82,20 @@ public class DictTypeController {
         dictTypeService.deleteDictType(id);
     }
 
-    @GetMapping({"/page","/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
-    @Operation(
-            summary = "字典类型分页查询",
-            description = "字典类型分页查询，支持多条件查询和排序")
-    public Page<DictType> dictTypeList(@PathVariable(required = false) Integer number,
-                                       @PathVariable(required = false) Integer size,
-                                       @Valid DictTypePageQueryDTO pageQueryDTO) {
-        if(number!= null){
+    @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
+    @Operation(summary = "字典类型分页查询", description = "字典类型分页查询，支持多条件查询和排序")
+    public Page<DictType> dictTypeList(
+            @PathVariable(required = false) Integer number,
+            @PathVariable(required = false) Integer size,
+            @Valid DictTypePageQueryDTO pageQueryDTO) {
+        if (number != null) {
             pageQueryDTO.setPageNum(number);
         }
-        if(size!= null){
+        if (size != null) {
             pageQueryDTO.setPageSize(size);
         }
         return dictTypeService.page(pageQueryDTO.getPage(), pageQueryDTO.getLambdaQueryWrapper());
     }
-
 
     @GetMapping("/tree/dynamic")
     @Operation(summary = "查询树形结构的字典类型(动态字典)包含上下级节点", description = "查询树形结构的字典类型")

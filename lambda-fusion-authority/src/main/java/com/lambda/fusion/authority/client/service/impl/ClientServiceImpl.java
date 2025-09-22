@@ -2,7 +2,6 @@ package com.lambda.fusion.authority.client.service.impl;
 
 import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 
-import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.client.mapper.ClientMapper;
@@ -13,7 +12,6 @@ import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
 import com.lambda.security.service.HmacClientService;
 import com.lambda.security.web.hmac.model.HmacClient;
-import java.util.Date;
 import java.util.List;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;

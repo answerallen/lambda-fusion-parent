@@ -1,5 +1,8 @@
 package com.lambda.fusion.dict.service.impl;
 
+import static com.lambda.fusion.core.Constants.JOINER;
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -20,25 +23,21 @@ import com.lambda.fusion.core.utils.ParameterUtils;
 import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
+import com.lambda.fusion.dict.model.dto.DictInfoInputDTO;
 import com.lambda.fusion.dict.model.dto.DictInfoQueryDTO;
 import com.lambda.fusion.dict.model.dto.DictStateOperationDTO;
 import com.lambda.fusion.dict.model.entity.DictInfoEntity;
-import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import com.lambda.fusion.dict.model.entity.DictInfoGroup;
 import com.lambda.fusion.dict.model.entity.DictType;
-import com.lambda.fusion.dict.model.dto.DictInfoInputDTO;
+import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import com.lambda.fusion.dict.model.vo.DictTypeVO;
 import com.lambda.fusion.dict.service.DictInfoService;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.core.Constants.JOINER;
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 /**
  * 多级数据字典详细信息
@@ -63,12 +62,13 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfoVO, DictInfoInp
         LambdaQueryWrapper<DictInfoVO> lambdaQuery = Wrappers.lambdaQuery();
         lambdaQuery.eq(DictInfoVO::getTenantId, parameters.get(FIELD_TENANT_ID));
         lambdaQuery.eq(StrUtil.isNotEmpty(queryDTO.getDictType()), DictInfoVO::getDictType, queryDTO.getDictType());
-        lambdaQuery.like(StrUtil.isNotEmpty(queryDTO.getFieldType()), DictInfoVO::getFieldType, queryDTO.getFieldType());
-        lambdaQuery.like(StrUtil.isNotEmpty(queryDTO.getFieldName()), DictInfoVO::getFieldName, queryDTO.getFieldName());
+        lambdaQuery.like(
+                StrUtil.isNotEmpty(queryDTO.getFieldType()), DictInfoVO::getFieldType, queryDTO.getFieldType());
+        lambdaQuery.like(
+                StrUtil.isNotEmpty(queryDTO.getFieldName()), DictInfoVO::getFieldName, queryDTO.getFieldName());
         lambdaQuery.eq(queryDTO.getEnableState() != null, DictInfoVO::getEnableState, queryDTO.getEnableState());
         lambdaQuery.eq(StrUtil.isNotEmpty(queryDTO.getDictInfoId()), DictInfoVO::getParentId, queryDTO.getDictInfoId());
-        lambdaQuery.orderByAsc(DictInfoVO::getDictType, DictInfoVO::getSort)
-                .orderByDesc(DictInfoVO::getId);
+        lambdaQuery.orderByAsc(DictInfoVO::getDictType, DictInfoVO::getSort).orderByDesc(DictInfoVO::getId);
         pageable = dictInfoMapper.page(pageable, parameters);
         pageable.getRecords().forEach(info -> {
             info.setParameters(convertMap(info.getExtra()));
@@ -81,7 +81,8 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfoVO, DictInfoInp
     public List<DictInfoVO> selectDictInfo(DictInfoQueryDTO queryDTO) {
         String tenantId = OperatorUtils.getOperator().getTenantId();
         LambdaQueryWrapper<DictInfoVO> lambdaQuery = Wrappers.lambdaQuery();
-        lambdaQuery.eq(StrUtil.isNotEmpty(tenantId), DictInfoVO::getTenantId, tenantId)
+        lambdaQuery
+                .eq(StrUtil.isNotEmpty(tenantId), DictInfoVO::getTenantId, tenantId)
                 .eq(StrUtil.isNotEmpty(queryDTO.getDictType()), DictInfoVO::getDictType, queryDTO.getDictType())
                 .like(StrUtil.isNotEmpty(queryDTO.getFieldType()), DictInfoVO::getFieldType, queryDTO.getFieldType())
                 .like(StrUtil.isNotEmpty(queryDTO.getFieldName()), DictInfoVO::getFieldName, queryDTO.getFieldName())
@@ -146,7 +147,9 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfoVO, DictInfoInp
         Assert.notNull(dictInfoMapper.selectById(id), MSG_DICT_UPDATE_DATA_NOT_EXISTED);
 
         dictInfoVO.setExtra(
-                CollectionUtils.isNotEmpty(dictInfoVO.getParameters()) ? convertJson(dictInfoVO.getParameters()) : null);
+                CollectionUtils.isNotEmpty(dictInfoVO.getParameters())
+                        ? convertJson(dictInfoVO.getParameters())
+                        : null);
         if (dictInfoExists(dictInfoVO)) {
             dictInfoVO.setFieldType(null);
         }
@@ -352,6 +355,5 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfoVO, DictInfoInp
         return parameters;
     }
 
-    private static class MapTypeToken extends TypeToken<Map<String, Object>> {
-    }
+    private static class MapTypeToken extends TypeToken<Map<String, Object>> {}
 }

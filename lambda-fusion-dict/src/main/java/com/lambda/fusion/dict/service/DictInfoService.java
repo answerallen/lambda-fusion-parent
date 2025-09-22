@@ -8,7 +8,6 @@ import com.lambda.fusion.dict.model.dto.DictStateOperationDTO;
 import com.lambda.fusion.dict.model.entity.DictInfoEntity;
 import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import com.lambda.fusion.dict.model.vo.DictTypeVO;
-
 import java.util.List;
 import java.util.Map;
 

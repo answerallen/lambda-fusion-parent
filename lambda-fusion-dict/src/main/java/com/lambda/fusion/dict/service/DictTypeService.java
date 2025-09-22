@@ -1,11 +1,9 @@
 package com.lambda.fusion.dict.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.dict.model.dto.QueryDictTree;
 import com.lambda.fusion.dict.model.entity.DictType;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 多级数据字典类型
@@ -52,7 +50,7 @@ public interface DictTypeService extends IService<DictType> {
      * @return
      */
     List<DictType> getDictTypeList(String type);
-    
+
     /**
      * 查询SQL类型字典
      *

@@ -7,15 +7,12 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.lambda.cloud.core.base.BaseDO;
 import com.lambda.fusion.core.tree.Tree;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 /**
  * 字典信息(值)
@@ -103,6 +100,4 @@ public class DictInfoVO implements Tree<DictInfoVO> {
     public void children(List<DictInfoVO> children) {
         this.children = children;
     }
-
-
 }

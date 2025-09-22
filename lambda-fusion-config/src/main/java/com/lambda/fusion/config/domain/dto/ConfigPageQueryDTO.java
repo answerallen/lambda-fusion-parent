@@ -53,25 +53,25 @@ public class ConfigPageQueryDTO extends PageQueryDTO<ConfigEntity> {
     @Override
     public LambdaQueryWrapper<ConfigEntity> getLambdaQueryWrapper() {
         LambdaQueryWrapper<ConfigEntity> wrapper = new LambdaQueryWrapper<>();
-        
+
         // 配置键模糊查询
         wrapper.like(StringUtils.isNotBlank(key), ConfigEntity::getKey, key);
-        
+
         // 配置名称模糊查询
         wrapper.like(StringUtils.isNotBlank(name), ConfigEntity::getName, name);
-        
+
         // 应用名称精确匹配
         wrapper.eq(StringUtils.isNotBlank(application), ConfigEntity::getApplication, application);
-        
+
         // 配置类型精确匹配
         wrapper.eq(type != null, ConfigEntity::getType, type);
-        
+
         // 配置描述模糊查询
         wrapper.like(StringUtils.isNotBlank(description), ConfigEntity::getDescription, description);
-        
+
         // 默认按创建时间降序排序
         wrapper.orderByDesc(ConfigEntity::getId);
-        
+
         return wrapper;
     }
 }

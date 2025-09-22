@@ -1,6 +1,5 @@
 package com.lambda.fusion.authority.client.controller;
 
-import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.client.model.dto.ApiTokenInputDTO;
 import com.lambda.fusion.authority.client.model.dto.ApiTokenPageQueryDTO;
@@ -8,7 +7,6 @@ import com.lambda.fusion.authority.client.model.entity.ApiTokenEntity;
 import com.lambda.fusion.authority.client.service.ApiTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -27,11 +25,12 @@ import org.springframework.web.bind.annotation.*;
 public class ApiTokenController {
     private final ApiTokenService apiTokenService;
 
-    @GetMapping({"/page","/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
+    @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询令牌", description = "分页查询令牌")
-    public Page<ApiTokenEntity> page(@PathVariable(required = false) Integer number,
-                                     @PathVariable(required = false) Integer size,
-                                     @Valid ApiTokenPageQueryDTO apiTokenPageQueryDTO) {
+    public Page<ApiTokenEntity> page(
+            @PathVariable(required = false) Integer number,
+            @PathVariable(required = false) Integer size,
+            @Valid ApiTokenPageQueryDTO apiTokenPageQueryDTO) {
         if (number != null) {
             apiTokenPageQueryDTO.setPageNum(number);
         }

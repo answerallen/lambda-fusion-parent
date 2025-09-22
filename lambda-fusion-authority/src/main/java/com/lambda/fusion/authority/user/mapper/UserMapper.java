@@ -162,7 +162,7 @@ public interface UserMapper {
      * @param roleId
      * @return
      */
-    List<String> getUidsByOrg(@Param("orgId")String orgId, @Param("roleId")String roleId);
+    List<String> getUidsByOrg(@Param("orgId") String orgId, @Param("roleId") String roleId);
 
     /**
      * 根据用户ID和角色查询所有权限

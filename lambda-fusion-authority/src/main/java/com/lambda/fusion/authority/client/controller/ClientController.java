@@ -23,9 +23,10 @@ public class ClientController {
 
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询客户端列表", description = "分页查询客户端列表")
-    public Page<ClientEntity> page(@PathVariable(required = false) Integer number,
-                                   @PathVariable(required = false) Integer size,
-                                   @Valid ClientPageQueryDTO clientPageQueryDTO) {
+    public Page<ClientEntity> page(
+            @PathVariable(required = false) Integer number,
+            @PathVariable(required = false) Integer size,
+            @Valid ClientPageQueryDTO clientPageQueryDTO) {
         if (number != null) {
             clientPageQueryDTO.setPageNum(number);
         }
@@ -44,7 +45,8 @@ public class ClientController {
 
     @PostMapping
     @Operation(summary = "新增客户端信息", description = "新增客户端信息")
-    public void save(@Parameter(description = "客户端信息", required = true) @Valid @RequestBody ClientInputDTO clientInputDTO) {
+    public void save(
+            @Parameter(description = "客户端信息", required = true) @Valid @RequestBody ClientInputDTO clientInputDTO) {
         ClientEntity clientEntity = clientInputDTO.convertToEntity();
         clientService.save(clientEntity);
     }

@@ -179,20 +179,20 @@ public class UserServiceImpl implements UserService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Page<MutableUser> getAllMutableUsers(Page<MutableUser> pagination, Map<String, Object> parameters) {
         String tenantId = MapUtils.getString(parameters, "tenant_id");
-        
+
         // 预处理查询参数
         preprocessQueryParameters(parameters);
-        
+
         // 执行分页查询
         pagination = userMapper.getAllMutableUsersByCondition(pagination, parameters);
         List<MutableUser> users = pagination.getRecords();
-        
+
         if (CollectionUtils.isNotEmpty(users)) {
             // 补充用户详细信息
             List<MutableUser> enrichedUsers = enrichUserDetails(users, tenantId);
             pagination.setRecords(enrichedUsers);
         }
-        
+
         return pagination;
     }
 
@@ -210,29 +210,32 @@ public class UserServiceImpl implements UserService {
     private List<MutableUser> enrichUserDetails(List<MutableUser> users, String tenantId) {
         List<MutableUser> records = userMapper.getAllMutableUsers(users);
         UserTempParameters tempParams = getUserTempParameters(records);
-        
+
         // 批量获取关联数据
         Map<String, String> orgNames = getOrgFullNamesByOrgIds(tempParams.getOrgIds());
         Map<String, Map<String, String>> personInfo = getPersonsByUids(tempParams.getUids());
-        
+
         // 补充用户信息
         for (MutableUser user : records) {
             enrichSingleUserInfo(user, orgNames, personInfo, tenantId);
         }
-        
+
         return records;
     }
 
     /**
      * 补充单个用户的详细信息
      */
-    private void enrichSingleUserInfo(MutableUser user, Map<String, String> orgNames, 
-                                     Map<String, Map<String, String>> personInfo, String tenantId) {
+    private void enrichSingleUserInfo(
+            MutableUser user,
+            Map<String, String> orgNames,
+            Map<String, Map<String, String>> personInfo,
+            String tenantId) {
         supplementUserOrgInfo(orgNames, user);
         supplementUserPersonInfo(personInfo, user);
         supplementUserLockState(user);
         supplementUserPermissionInfo(user, tenantId);
-        
+
         // 角色排序
         if (CollectionUtils.isNotEmpty(user.getAuthorities())) {
             user.getAuthorities().sort(Comparator.comparing(SimpleRole::getAuthority));
@@ -604,14 +607,14 @@ public class UserServiceImpl implements UserService {
         if (source == null || actual == null) {
             return false;
         }
-        
+
         // 比较关键属性是否发生变化
-        return !Objects.equals(source.getEmail(), actual.getEmail()) ||
-               !Objects.equals(source.getMobile(), actual.getMobile()) ||
-               !Objects.equals(source.getRealName(), actual.getRealName()) ||
-               !Objects.equals(source.getAvatar(), actual.getAvatar()) ||
-               !Objects.equals(source.getGender(), actual.getGender()) ||
-               !Objects.equals(source.getBirthday(), actual.getBirthday());
+        return !Objects.equals(source.getEmail(), actual.getEmail())
+                || !Objects.equals(source.getMobile(), actual.getMobile())
+                || !Objects.equals(source.getRealName(), actual.getRealName())
+                || !Objects.equals(source.getAvatar(), actual.getAvatar())
+                || !Objects.equals(source.getGender(), actual.getGender())
+                || !Objects.equals(source.getBirthday(), actual.getBirthday());
     }
 
     /**

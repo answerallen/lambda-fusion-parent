@@ -14,8 +14,6 @@ import com.lambda.fusion.config.service.ConfigService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.Arrays;
@@ -101,10 +99,8 @@ public class ConfigController {
      * @see Page MyBatis-Plus分页对象
      * @since 1.0.0
      */
-    @Operation(
-            summary = "分页查询配置列表",
-            description = "支持按条件分页查询系统配置信息，用于管理后台配置管理界面")
-    @GetMapping({"/page","/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
+    @Operation(summary = "分页查询配置列表", description = "支持按条件分页查询系统配置信息，用于管理后台配置管理界面")
+    @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     public Page<ConfigEntity> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,

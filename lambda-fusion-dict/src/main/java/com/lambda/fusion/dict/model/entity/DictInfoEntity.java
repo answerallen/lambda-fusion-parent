@@ -1,24 +1,17 @@
 package com.lambda.fusion.dict.model.entity;
 
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.cloud.core.base.BaseDO;
-import com.lambda.fusion.core.tree.Tree;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-
-import java.util.List;
-import java.util.Map;
-
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 /**
  * 字典信息(值)

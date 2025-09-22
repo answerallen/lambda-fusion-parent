@@ -6,7 +6,6 @@ import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
-
 import lombok.*;
 
 @EqualsAndHashCode(callSuper = true)

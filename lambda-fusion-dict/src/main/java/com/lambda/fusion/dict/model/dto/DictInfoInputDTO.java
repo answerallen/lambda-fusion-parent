@@ -1,5 +1,7 @@
 package com.lambda.fusion.dict.model.dto;
 
+import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+
 import cn.hutool.extra.spring.SpringUtil;
 import com.lambda.cloud.core.base.BaseDTO;
 import com.lambda.cloud.core.convert.BaseConverter;
@@ -9,14 +11,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.Map;
-
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 /**
  * @author Jin
@@ -56,7 +55,6 @@ public class DictInfoInputDTO extends BaseDTO<DictInfoInputDTO, DictInfoEntity> 
     private String dictType;
 
     private Additional additional;
-
 
     @Getter
     @Setter

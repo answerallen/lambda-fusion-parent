@@ -9,7 +9,7 @@ import org.mapstruct.Mapping;
 @AutoConverter
 public interface DictInfoDtoConverter extends BaseConverter<DictInfoInputDTO, DictInfoEntity> {
 
-    @Mapping(source = "additional", target = "extra",qualifiedByName = "mapToString")
+    @Mapping(source = "additional", target = "extra", qualifiedByName = "mapToString")
     @Override
     DictInfoEntity convertTo(DictInfoInputDTO source);
 }

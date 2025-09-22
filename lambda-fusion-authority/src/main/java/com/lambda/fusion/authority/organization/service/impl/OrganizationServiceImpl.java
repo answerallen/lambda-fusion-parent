@@ -29,7 +29,6 @@ import com.lambda.fusion.core.tree.DragMode;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.tree.TreeUtils;
 import com.lambda.fusion.core.user.User;
-import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,13 +40,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,8 +98,7 @@ public class OrganizationServiceImpl implements OrganizationService {
      * 检查是否有搜索条件
      */
     private boolean hasSearchCondition(Parameters parameters) {
-        return StringUtils.isNotBlank(parameters.getAlias()) || 
-               StringUtils.isNotBlank(parameters.getName());
+        return StringUtils.isNotBlank(parameters.getAlias()) || StringUtils.isNotBlank(parameters.getName());
     }
 
     /**
@@ -110,7 +106,7 @@ public class OrganizationServiceImpl implements OrganizationService {
      */
     private List<Organization> getOrganizationsBySearchCondition(User operator, Parameters parameters) {
         List<Organization> list = getOrgByCondition(operator, parameters);
-        
+
         if (operator.isAdmin()) {
             Set<String> additionalOrgIds = collectAdditionalOrgIds(operator.getOrgId(), list);
             if (CollectionUtils.isNotEmpty(additionalOrgIds)) {
@@ -118,7 +114,7 @@ public class OrganizationServiceImpl implements OrganizationService {
                 list.addAll(organizationMapper.getAllMutableOrgan(parameters));
             }
         }
-        
+
         return list.stream().distinct().collect(Collectors.toList());
     }
 
@@ -142,16 +138,16 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (StringUtils.isBlank(parentKeys)) {
             return;
         }
-        
+
         String[] split = StringUtils.split(parentKeys, JOINER);
         List<String> ids = new ArrayList<>(Arrays.asList(split));
-        
+
         if (isAdmin && StringUtils.isNotBlank(orgId)) {
             String substring = StringUtils.substring(parentKeys, StringUtils.indexOf(parentKeys, orgId));
             split = StringUtils.split(substring, JOINER);
             ids = new ArrayList<>(Arrays.asList(split));
         }
-        
+
         orgIds.addAll(ids);
     }
 
@@ -161,13 +157,13 @@ public class OrganizationServiceImpl implements OrganizationService {
     private void applyPermissionConstraints(List<Organization> organizations, User operator) {
         String operatorOrgId = operator.getOrgId();
         String operatorTenantId = operator.getTenantId();
-        
+
         for (Organization org : organizations) {
             // 设置操作权限
             if (!operator.isAdmin() && org.getId().equals(operatorOrgId)) {
                 org.setNoPermission(true);
             }
-            
+
             // 设置租户权限
             if (!Objects.equals(operatorTenantId, org.getOwner())) {
                 org.setNoPermission(true);
@@ -218,17 +214,17 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteOrganization(String id) {
         LoginUser operator = OperatorUtils.getOperator();
-        
+
         // 权限检查
         validateDeletePermission(operator, id);
-        
+
         // 获取组织信息
         Organization organization = getOrgById(id);
         Assert.notNull(organization, "组织不存在！");
-        
+
         // 检查删除前置条件
         validateDeleteConditions(id);
-        
+
         // 执行删除操作
         performDeletion(organization, id);
     }
@@ -246,10 +242,10 @@ public class OrganizationServiceImpl implements OrganizationService {
     private void validateDeleteConditions(String id) {
         List<String> childIds = getChildrenById0(id);
         Assert.state(CollectionUtils.isEmpty(childIds), "存在子组织，无法删除");
-        
+
         List<String> allIds = new ArrayList<>(childIds);
         allIds.add(id);
-        
+
         boolean hasUser = organizationMapper.existUser(allIds);
         Assert.state(!hasUser, "组织下存在用户，无法删除");
     }
@@ -261,7 +257,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (BooleanUtils.toBoolean(organization.getTenant())) {
             deleteTenantRelatedData(id);
         }
-        
+
         List<String> ids = Collections.singletonList(id);
         groupMapper.deleteByOrgIds(ids);
         organizationMapper.deleteById(id);
@@ -280,9 +276,8 @@ public class OrganizationServiceImpl implements OrganizationService {
                 }
             }
         }
-        
-        organizationMapper.delete(new LambdaQueryWrapper<Organization>()
-                .eq(Organization::getOwner, tenantId));
+
+        organizationMapper.delete(new LambdaQueryWrapper<Organization>().eq(Organization::getOwner, tenantId));
     }
 
     @Override

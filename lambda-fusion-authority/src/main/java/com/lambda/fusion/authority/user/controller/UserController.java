@@ -1,5 +1,7 @@
 package com.lambda.fusion.authority.user.controller;
 
+import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
+
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
@@ -22,9 +24,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -34,10 +35,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.*;
-
-import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 
 /**
  * 用户信息Api
@@ -62,11 +59,12 @@ public class UserController {
         this.tenantAuthorizeManager = tenantAuthorizeManager;
     }
 
-    @GetMapping({"/page","/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
+    @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询所有用户列表")
-    public Page<MutableUser> page(@PathVariable(required = false) Integer number,
-                                  @PathVariable(required = false) Integer size,
-                                  @Valid UserPageQueryDTO queryDTO) {
+    public Page<MutableUser> page(
+            @PathVariable(required = false) Integer number,
+            @PathVariable(required = false) Integer size,
+            @Valid UserPageQueryDTO queryDTO) {
         if (number != null) {
             queryDTO.setPageNum(number);
         }
@@ -311,28 +309,28 @@ public class UserController {
     @Operation(
             summary = "不分页查询所有用户列表",
             parameters = {
-                    @Parameter(name = "username", description = "用户名称", in = ParameterIn.QUERY),
-                    @Parameter(name = "nickname", description = "用户昵称", in = ParameterIn.QUERY),
-                    @Parameter(name = "authority", description = "角色名称", in = ParameterIn.QUERY),
-                    @Parameter(name = "mobile", description = "电话号码", in = ParameterIn.QUERY),
-                    @Parameter(name = "email", description = "电子邮箱", in = ParameterIn.QUERY),
-                    @Parameter(name = "organizationId", description = "组织ID", in = ParameterIn.QUERY),
-                    @Parameter(
-                            name = "subordinate",
-                            description = "是否查询下级组织的人员",
-                            in = ParameterIn.QUERY,
-                            schema = @Schema(defaultValue = "true")),
-                    @Parameter(
-                            name = "allocation",
-                            description = "是否是分配人员接口调用",
-                            in = ParameterIn.QUERY,
-                            schema = @Schema(defaultValue = "false")),
-                    @Parameter(
-                            name = "dataRight",
-                            description = "是否开启数据权限",
-                            in = ParameterIn.QUERY,
-                            schema = @Schema(defaultValue = "true")),
-                    @Parameter(name = "personal", description = "新增查询字段", in = ParameterIn.QUERY)
+                @Parameter(name = "username", description = "用户名称", in = ParameterIn.QUERY),
+                @Parameter(name = "nickname", description = "用户昵称", in = ParameterIn.QUERY),
+                @Parameter(name = "authority", description = "角色名称", in = ParameterIn.QUERY),
+                @Parameter(name = "mobile", description = "电话号码", in = ParameterIn.QUERY),
+                @Parameter(name = "email", description = "电子邮箱", in = ParameterIn.QUERY),
+                @Parameter(name = "organizationId", description = "组织ID", in = ParameterIn.QUERY),
+                @Parameter(
+                        name = "subordinate",
+                        description = "是否查询下级组织的人员",
+                        in = ParameterIn.QUERY,
+                        schema = @Schema(defaultValue = "true")),
+                @Parameter(
+                        name = "allocation",
+                        description = "是否是分配人员接口调用",
+                        in = ParameterIn.QUERY,
+                        schema = @Schema(defaultValue = "false")),
+                @Parameter(
+                        name = "dataRight",
+                        description = "是否开启数据权限",
+                        in = ParameterIn.QUERY,
+                        schema = @Schema(defaultValue = "true")),
+                @Parameter(name = "personal", description = "新增查询字段", in = ParameterIn.QUERY)
             })
     public List<MutableUser> list(
             @RequestParam(required = false) String username,
@@ -378,8 +376,8 @@ public class UserController {
     public void unbind(
             @Parameter(description = "用户编号", required = true) @PathVariable("username") String username,
             @Parameter(description = "第三方绑定类型(1、钉钉；2、微信)", required = true, schema = @Schema(defaultValue = "1"))
-            @PathVariable("type")
-            String type) {
+                    @PathVariable("type")
+                    String type) {
         LoginUser operator = OperatorUtils.getOperator();
         userInfoService.unbindUserInfo(operator, type, operator.getUsername());
     }
@@ -406,9 +404,9 @@ public class UserController {
     @Operation(
             summary = "更新个人信息",
             parameters = {
-                    @Parameter(name = "nickname", description = "昵称", required = true),
-                    @Parameter(name = "email", description = "邮箱", required = true),
-                    @Parameter(name = "personal", description = "新增字段")
+                @Parameter(name = "nickname", description = "昵称", required = true),
+                @Parameter(name = "email", description = "邮箱", required = true),
+                @Parameter(name = "personal", description = "新增字段")
             })
     public MutableUser updateInfo(
             MultipartFile avatar,
