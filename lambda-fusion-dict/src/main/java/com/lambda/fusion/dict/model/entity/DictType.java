@@ -4,7 +4,7 @@ import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.lambda.cloud.core.base.BaseDO;
+import com.lambda.cloud.core.shared.BaseDO;
 import com.lambda.fusion.core.tree.Tree;
 import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

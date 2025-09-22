@@ -142,18 +142,18 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfoVO, DictInfoInp
     }
 
     @Override
-    public DictInfoVO updateDictInfo(String id, DictInfoEntity dictInfoVO) {
+    public DictInfoVO updateDictInfo(String id, DictInfoEntity dictInfoEntity) {
         Assert.notNull(id, MSG_DICT_ID_NOT_EMPTY);
         Assert.notNull(dictInfoMapper.selectById(id), MSG_DICT_UPDATE_DATA_NOT_EXISTED);
 
-        dictInfoVO.setExtra(
-                CollectionUtils.isNotEmpty(dictInfoVO.getParameters())
-                        ? convertJson(dictInfoVO.getParameters())
-                        : null);
-        if (dictInfoExists(dictInfoVO)) {
-            dictInfoVO.setFieldType(null);
-        }
-        dictInfoMapper.updateById(dictInfoVO);
+        //        dictInfoVO.setExtra(
+        //                CollectionUtils.isNotEmpty(dictInfoVO.getParameters())
+        //                        ? convertJson(dictInfoVO.getParameters())
+        //                        : null);
+        //        if (dictInfoExists(dictInfoVO)) {
+        //            dictInfoVO.setFieldType(null);
+        //        }
+        //        dictInfoMapper.updateById(dictInfoEntity);
         return dictInfoMapper.selectById(id);
     }
 

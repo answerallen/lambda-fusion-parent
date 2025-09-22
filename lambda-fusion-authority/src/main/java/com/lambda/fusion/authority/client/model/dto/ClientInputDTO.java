@@ -1,8 +1,7 @@
 package com.lambda.fusion.authority.client.model.dto;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.IdUtil;
-import com.lambda.cloud.core.base.BaseDTO;
+import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.client.model.entity.ClientEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,7 +15,7 @@ import org.hibernate.validator.constraints.Length;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Schema(description = "客户端信息")
-public class ClientInputDTO extends BaseDTO<ClientInputDTO, ClientEntity> {
+public class ClientInputDTO extends BaseDTO<ClientEntity> {
     /**
      * 客户端名称
      */
@@ -46,14 +45,13 @@ public class ClientInputDTO extends BaseDTO<ClientInputDTO, ClientEntity> {
     @Schema(description = "备注")
     private String remarks;
 
-    @Override
-    public ClientEntity convertToEntity() {
-        ClientEntity target = BeanUtil.copyProperties(this, ClientEntity.class);
+    public ClientEntity toEntity() {
+        ClientEntity entity = super.toEntity();
         String tenantId = OperatorUtils.getOperator().getTenantId();
         if (StringUtils.isNotBlank(tenantId)) {
-            target.setTenantId(tenantId);
+            entity.setTenantId(tenantId);
         }
-        target.setSecret(IdUtil.fastUUID());
-        return target;
+        entity.setSecret(IdUtil.fastUUID());
+        return entity;
     }
 }

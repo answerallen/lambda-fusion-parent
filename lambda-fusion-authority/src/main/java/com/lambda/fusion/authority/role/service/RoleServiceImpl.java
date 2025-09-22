@@ -234,7 +234,7 @@ public class RoleServiceImpl implements RoleService {
         parameters.put("mode", Optional.ofNullable(mode).orElse(0));
         if (!operator.isDev()) {
             StpUtil.checkPermission(authority);
-            Set<String> authorities = operator.getPermissions();
+            Set<String> authorities = operator.getRoles();
             authorities.add(operator.getUsername());
             parameters.put("authorities", authorities);
         }

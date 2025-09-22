@@ -43,7 +43,7 @@ public class ApiTokenController {
     @PostMapping
     @Operation(description = "新增AipToken", summary = "新增令牌")
     public void save(@RequestBody @Valid ApiTokenInputDTO tokenInputDTO) {
-        ApiTokenEntity apiTokenEntity = tokenInputDTO.convertToEntity();
+        ApiTokenEntity apiTokenEntity = tokenInputDTO.toEntity();
         apiTokenEntity.setApiToken(RandomStringUtils.secure().nextAlphabetic(32));
         apiTokenService.save(apiTokenEntity);
     }
@@ -57,7 +57,7 @@ public class ApiTokenController {
     @PutMapping("/{id}")
     @Operation(description = "修改AipToken", summary = "修改令牌")
     public void update(@PathVariable("id") String id, @RequestBody @Valid ApiTokenInputDTO tokenInputDTO) {
-        ApiTokenEntity apiTokenEntity = tokenInputDTO.convertToEntity();
+        ApiTokenEntity apiTokenEntity = tokenInputDTO.toEntity();
         apiTokenEntity.setId(id);
         apiTokenService.updateById(apiTokenEntity);
     }

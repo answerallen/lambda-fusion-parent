@@ -47,7 +47,7 @@ public class ClientController {
     @Operation(summary = "新增客户端信息", description = "新增客户端信息")
     public void save(
             @Parameter(description = "客户端信息", required = true) @Valid @RequestBody ClientInputDTO clientInputDTO) {
-        ClientEntity clientEntity = clientInputDTO.convertToEntity();
+        ClientEntity clientEntity = clientInputDTO.toEntity();
         clientService.save(clientEntity);
     }
 
@@ -56,7 +56,7 @@ public class ClientController {
     public void update(
             @Parameter(description = "客户端编号", required = true) @PathVariable String id,
             @Parameter(description = "客户端信息", required = true) @RequestBody @Valid ClientInputDTO clientInputDTO) {
-        ClientEntity clientEntity = clientInputDTO.convertToEntity();
+        ClientEntity clientEntity = clientInputDTO.toEntity();
         clientEntity.setId(id);
         clientService.updateById(clientEntity);
     }

@@ -89,7 +89,7 @@ public class UserController {
         parameters.put("username", queryDTO.getUsername());
         parameters.put("dev", operator.isDev());
         parameters.put("admin", operator.isAdmin());
-        parameters.put("uid", operator.getUsername());
+        parameters.put("uid", operator.getName());
 
         if (StringUtils.isNotBlank(queryDTO.getEmail())) {
             parameters.put("email", fuzzyQuery(queryDTO.getEmail()));
@@ -154,12 +154,12 @@ public class UserController {
     @Operation(summary = "查询当前用户的详细信息")
     public MutableUser getUserById() {
         LoginUser operator = OperatorUtils.getOperator();
-        return userService.getMutableUserByUsername(operator.getUsername());
+        return userService.getMutableUserByUsername(operator.getName());
     }
 
     @GetMapping("/authority/{authority}")
     @Operation(summary = "根据角色查询用户名", description = "根据角色查询用户")
-    public List<String> getUserNamesByAuthority(@PathVariable String authority) {
+    public List<String> getNamesByAuthority(@PathVariable String authority) {
         LoginUser operator = OperatorUtils.getOperator();
         return userService.getUserNamesByAuthority(operator.getOrgId(), authority);
     }
@@ -227,8 +227,8 @@ public class UserController {
         String newPassword = resetPwdParameter.getNewPassword();
         Assert.notNull(oldPassword, "原密码不能为空！");
         Assert.notNull(newPassword, "新密码不能为空！");
-        resetPwdParameter.setUsername(operator.getUsername());
-        userService.updateUserPassword(operator.getUsername(), oldPassword, newPassword);
+        resetPwdParameter.setUsername(operator.getName());
+        userService.updateUserPassword(operator.getName(), oldPassword, newPassword);
     }
 
     @PutMapping("/password/reset")
@@ -348,7 +348,7 @@ public class UserController {
         parameters.put("username", username);
         parameters.put("dev", operator.isDev());
         parameters.put("admin", operator.isAdmin());
-        parameters.put("uid", operator.getUsername());
+        parameters.put("uid", operator.getName());
         if (StringUtils.isNotBlank(email)) {
             parameters.put("email", fuzzyQuery(email));
         }
@@ -379,7 +379,7 @@ public class UserController {
                     @PathVariable("type")
                     String type) {
         LoginUser operator = OperatorUtils.getOperator();
-        userInfoService.unbindUserInfo(operator, type, operator.getUsername());
+        userInfoService.unbindUserInfo(operator, type, operator.getName());
     }
 
     @PutMapping(value = "/update/mobile")
@@ -388,7 +388,7 @@ public class UserController {
             @Parameter(description = "手机号", required = true) @RequestParam("mobile") String mobile,
             @Parameter(description = "验证码", required = true) @RequestParam("verifyCode") String verifyCode) {
         LoginUser operator = OperatorUtils.getOperator();
-        userCenterService.updateMobile(operator.getUsername(), mobile, verifyCode);
+        userCenterService.updateMobile(operator.getName(), mobile, verifyCode);
     }
 
     @PutMapping(value = "/update/email")
@@ -397,7 +397,7 @@ public class UserController {
             @Parameter(description = "邮箱", required = true) @RequestParam("email") String email,
             @Parameter(description = "验证码", required = true) @RequestParam("verifyCode") String verifyCode) {
         LoginUser operator = OperatorUtils.getOperator();
-        userCenterService.updateEmail(operator.getUsername(), email, verifyCode);
+        userCenterService.updateEmail(operator.getName(), email, verifyCode);
     }
 
     @PostMapping(value = "/update/info")
@@ -417,7 +417,7 @@ public class UserController {
         RestUserInfoParameter parameter = new RestUserInfoParameter();
         parameter.setEmail(email);
         parameter.setNickname(nickname);
-        parameter.setUsername(operator.getUsername());
+        parameter.setUsername(operator.getName());
         parameter.setPersonal(personal);
         if (avatar != null) {
             log.info("file: {}", avatar);
@@ -431,7 +431,7 @@ public class UserController {
     public RestVerifyCodeInfo sendMobileVerifyCodeStore(
             @Parameter(description = "手机号", required = true) @RequestParam("mobile") String mobile) {
         LoginUser operator = OperatorUtils.getOperator();
-        return userCenterService.sendMobileVerifyCodeStore(operator.getUsername(), mobile);
+        return userCenterService.sendMobileVerifyCodeStore(operator.getName(), mobile);
     }
 
     @GetMapping("/tenant")

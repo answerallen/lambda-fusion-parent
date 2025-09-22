@@ -34,7 +34,6 @@ import org.springframework.stereotype.Component;
  * }
  * </pre>
  *
- * @see DictValueType
  * @see DictFactory
  * @author Jin
  */
@@ -45,8 +44,7 @@ public class DictRegistryPostProcessor implements BeanDefinitionRegistryPostProc
     public void postProcessBeanDefinitionRegistry(@NonNull BeanDefinitionRegistry registry) throws BeansException {
         final DictScanner scanner = new DictScanner(registry, false);
         List<String> packages = new ArrayList<>();
-        if (registry instanceof DefaultListableBeanFactory) {
-            final DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) registry;
+        if (registry instanceof DefaultListableBeanFactory beanFactory) {
             packages.addAll(AutoConfigurationPackages.get(beanFactory));
         } else {
             packages.add("com.lambda.cloud");
@@ -58,8 +56,7 @@ public class DictRegistryPostProcessor implements BeanDefinitionRegistryPostProc
 
     @Override
     public Object postProcessAfterInitialization(@NonNull Object bean, @NonNull String beanName) throws BeansException {
-        if (bean instanceof DictFactory) {
-            final DictFactory dictFactory = (DictFactory) bean;
+        if (bean instanceof DictFactory dictFactory) {
             final DictHolder dictHolder = dictFactory.getDictHolder();
             DictContextHolders.MAPPER_HOLDERS.put(dictHolder.getDictName(), dictHolder);
             log.info("process {} success.", bean.getClass());

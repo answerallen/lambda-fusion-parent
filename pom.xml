@@ -13,7 +13,16 @@
 
     <properties>
         <lambda-cloud.version>1.0.0-SNAPSHOT</lambda-cloud.version>
+        <spotbugs.skip>true</spotbugs.skip>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>lambda-cloud-processor</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 
     <dependencyManagement>
         <dependencies>

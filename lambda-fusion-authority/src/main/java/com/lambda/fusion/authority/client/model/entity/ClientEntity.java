@@ -3,11 +3,13 @@ package com.lambda.fusion.authority.client.model.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.lambda.cloud.core.base.BaseDO;
+import com.lambda.cloud.core.shared.BaseDO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Date;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("la_clients")
 @Schema(description = "第三方客户端")

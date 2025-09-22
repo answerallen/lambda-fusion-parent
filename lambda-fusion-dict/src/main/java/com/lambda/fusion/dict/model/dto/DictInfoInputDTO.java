@@ -2,10 +2,9 @@ package com.lambda.fusion.dict.model.dto;
 
 import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
-import cn.hutool.extra.spring.SpringUtil;
-import com.lambda.cloud.core.base.BaseDTO;
-import com.lambda.cloud.core.convert.BaseConverter;
-import com.lambda.fusion.dict.converter.DictInfoDtoConverter;
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.shared.BaseDTO;
+import com.lambda.fusion.dict.converter.DictInfoConverter;
 import com.lambda.fusion.dict.model.entity.DictInfoEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
@@ -20,14 +19,11 @@ import lombok.Setter;
 /**
  * @author Jin
  */
+@AutoConverter(converter = DictInfoConverter.class, target = DictInfoEntity.class)
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Schema(description = "更新数据字典对象")
-public class DictInfoInputDTO extends BaseDTO<DictInfoInputDTO, DictInfoEntity> {
-    @Override
-    protected BaseConverter<DictInfoInputDTO, DictInfoEntity> getConverter() {
-        return SpringUtil.getBean(DictInfoDtoConverter.class);
-    }
+public class DictInfoInputDTO extends BaseDTO<DictInfoEntity> {
 
     @NotBlank
     String id;

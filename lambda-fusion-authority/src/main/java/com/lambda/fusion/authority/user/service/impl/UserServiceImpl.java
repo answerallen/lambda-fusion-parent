@@ -135,7 +135,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @Override
     public MutableUser getCurrentMutableUser(User operator) {
-        MutableUser mutableUser = this.getMutableUserByUsername(operator.getUsername());
+        MutableUser mutableUser = this.getMutableUserByUsername(operator.getName());
         UserInfo props = mutableUser.getProps();
         if (props != null && properties.getPasswordStrategy().getEnablePeriodChange()) {
             boolean notMatched =
@@ -145,7 +145,7 @@ public class UserServiceImpl implements UserService {
                 List<UserUpdatePwdLogEntity> userUpdatePwdLogEntities =
                         userUpdatePwdLogMapper.selectList(new LambdaQueryWrapper<UserUpdatePwdLogEntity>()
                                 .select(UserUpdatePwdLogEntity::getUpdateTime)
-                                .eq(UserUpdatePwdLogEntity::getUserName, operator.getUsername())
+                                .eq(UserUpdatePwdLogEntity::getUserName, operator.getName())
                                 .isNotNull(UserUpdatePwdLogEntity::getUpdateTime)
                                 .orderByDesc(UserUpdatePwdLogEntity::getUpdateTime));
                 if (CollectionUtils.isNotEmpty(userUpdatePwdLogEntities)) {
@@ -525,11 +525,11 @@ public class UserServiceImpl implements UserService {
             user.setOrg(new Org(orgid));
         }
         user.setCreateDate(new Date());
-        user.setCreateAccount(operator.getUsername());
+        user.setCreateAccount(operator.getName());
         user.setNicknameAbbr(PinyinUtil.getPinyin(user.getNickname()));
         user.setTenantId(operator.getTenantId());
         user.setOwner(operator.getTenantId());
-        user.setCreator(operator.getUsername());
+        user.setCreator(operator.getName());
         if (Objects.isNull(user.getProps())) {
             user.setProps(new UserInfo());
         }
@@ -609,12 +609,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // 比较关键属性是否发生变化
-        return !Objects.equals(source.getEmail(), actual.getEmail())
-                || !Objects.equals(source.getMobile(), actual.getMobile())
-                || !Objects.equals(source.getRealName(), actual.getRealName())
-                || !Objects.equals(source.getAvatar(), actual.getAvatar())
-                || !Objects.equals(source.getGender(), actual.getGender())
-                || !Objects.equals(source.getBirthday(), actual.getBirthday());
+        return !Objects.equals(source.getAvatar(), actual.getAvatar());
     }
 
     /**
@@ -687,7 +682,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteUser(LoginUser operator, String username) {
         Assert.notNull(username, "username not empty");
-        Assert.isTrue(!username.equals(operator.getUsername()), "lambda.authority.no.operation.authority");
+        Assert.isTrue(!username.equals(operator.getName()), "lambda.authority.no.operation.authority");
         boolean exists = userMapper.hasExists(username);
         if (exists) {
             userMapper.deleteUser(username);
@@ -766,7 +761,7 @@ public class UserServiceImpl implements UserService {
         Assert.notNull(username, "username not null");
         MutableUser user = userMapper.getMutableUserById(username);
         Assert.notNull(user, "user not found");
-        Assert.isTrue(!operator.getUsername().equals(username), "lambda.authority.no.operation.authority");
+        Assert.isTrue(!operator.getName().equals(username), "lambda.authority.no.operation.authority");
         userMapper.prohibitUser(type, username);
     }
 

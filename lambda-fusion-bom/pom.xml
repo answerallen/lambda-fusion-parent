@@ -27,11 +27,6 @@
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
-            <artifactId>lambda-fusion-dict-api</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-fusion-log</artifactId>
             <version>${project.version}</version>
         </dependency>
