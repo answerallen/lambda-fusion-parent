@@ -3,6 +3,7 @@ package com.lambda.fusion.authority.user.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.core.user.User;
 import jakarta.validation.constraints.NotBlank;
@@ -122,7 +123,7 @@ public interface UserService {
      * @param pwdParameter
      * @return java.lang.String
      */
-    String resetUserPassword(ResetPwdParameter pwdParameter);
+    String resetUserPassword(ResetPwdDTO pwdParameter);
 
     /**
      * 禁用/启用用户帐号
@@ -231,13 +232,6 @@ public interface UserService {
      * @return
      */
     List<String> getSuperiors(String uid, Integer rank);
-
-    /**
-     * 根据参数查询所有用户 包含角色 组织 扩展信息<不分页>
-     *
-     * @param parameters 参数列表 和分页查询的参数一样
-     */
-    List<MutableUser> getAllMutableUsersNoPage(Map<String, Object> parameters);
 
     /**
      * 增加用户新增字段信息

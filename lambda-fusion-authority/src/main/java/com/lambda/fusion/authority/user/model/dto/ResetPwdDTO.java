@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.model;
+package com.lambda.fusion.authority.user.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -7,7 +7,7 @@ import lombok.Setter;
 @Setter
 @Getter
 @Schema(description = "重置密码")
-public class ResetPwdParameter {
+public class ResetPwdDTO {
 
     @Schema(description = "用户名")
     private String username;

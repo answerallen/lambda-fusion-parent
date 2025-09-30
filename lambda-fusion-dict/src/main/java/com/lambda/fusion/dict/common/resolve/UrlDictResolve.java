@@ -1,8 +1,6 @@
 package com.lambda.fusion.dict.common.resolve;
 
 import static com.lambda.cloud.mvc.WebHttpUtils.X_AUTHORIZED_BEARER;
-import static com.lambda.fusion.core.Constants.AUTHORIZATION;
-import static com.lambda.fusion.core.Constants.BEARER;
 import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 import cn.hutool.core.text.CharSequenceUtil;
@@ -108,9 +106,9 @@ public class UrlDictResolve implements IDynamicDictResolve {
     private static class ListParameterizedTypeReference extends ParameterizedTypeReference<List<DynamicDict>> {}
 
     public static String getAccessToken(HttpServletRequest request) {
-        String payload = request.getHeader(AUTHORIZATION);
-        if (StringUtils.isNotBlank(payload) && payload.startsWith(BEARER)) {
-            return payload.replace(BEARER, StringUtils.EMPTY);
+        String payload = request.getHeader(Constants.AUTHORIZATION);
+        if (StringUtils.isNotBlank(payload) && payload.startsWith(Constants.BEARER)) {
+            return payload.replace(Constants.BEARER, StringUtils.EMPTY);
         }
         Cookie cookie = WebUtils.getCookie(request, X_AUTHORIZED_BEARER);
         if (cookie != null && StringUtils.isNotBlank(cookie.getValue())) {

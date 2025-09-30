@@ -14,7 +14,7 @@ import com.lambda.fusion.authority.tenant.model.TenantEntity;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.MutableUser;
-import com.lambda.fusion.authority.user.model.ResetPwdParameter;
+import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
 import com.lambda.fusion.authority.user.service.UserService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
@@ -140,9 +140,9 @@ public class TenantAuthorizeManager {
         System.out.println(tenantId);
     }
 
-    public void resetPassword(ResetPwdParameter resetPwdParameter) {
-        String username = resetPwdParameter.getUsername();
-        String newPassword = resetPwdParameter.getNewPassword();
+    public void resetPassword(ResetPwdDTO resetPwdDTO) {
+        String username = resetPwdDTO.getUsername();
+        String newPassword = resetPwdDTO.getNewPassword();
         if (StringUtils.isBlank(newPassword)) {
             return;
         }

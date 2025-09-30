@@ -1,48 +1,28 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>com.lambda.cloud</groupId>
-        <artifactId>lambda-cloud-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <artifactId>lambda-cloud-project-parent</artifactId>
+        <version>2025.1.1-SNAPSHOT</version>
+        <relativePath/>
     </parent>
 
     <artifactId>lambda-fusion-parent</artifactId>
     <packaging>pom</packaging>
 
     <properties>
-        <lambda-cloud.version>1.0.0-SNAPSHOT</lambda-cloud.version>
+        <skip-executable-jar>true</skip-executable-jar>
         <spotbugs.skip>true</spotbugs.skip>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>lambda-cloud-processor</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-    </dependencies>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.lambda.cloud</groupId>
-                <artifactId>lambda-cloud-starter-dependencies</artifactId>
-                <version>${lambda-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <modules>
+        <module>lambda-fusion-bom</module>
         <module>lambda-fusion-core</module>
         <module>lambda-fusion-config</module>
         <module>lambda-fusion-authority</module>
         <module>lambda-fusion-dict</module>
         <module>lambda-fusion-log</module>
-        <module>lambda-fusion-bom</module>
         <module>lambda-fusion-extension</module>
         <module>lambda-fusion-datasource</module>
     </modules>

@@ -1,7 +1,9 @@
 package com.lambda.fusion.authority.role.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 
+@Data
 @Schema(description = "用户角色")
 public class SimpleRole {
 
@@ -11,7 +13,8 @@ public class SimpleRole {
     @Schema(description = "别名")
     private String alias;
 
-    public SimpleRole() {}
+    public SimpleRole() {
+    }
 
     public SimpleRole(String authority, String alias) {
         this.authority = authority;
@@ -20,22 +23,6 @@ public class SimpleRole {
 
     public SimpleRole(String authority) {
         this.authority = authority;
-    }
-
-    public String getAuthority() {
-        return authority;
-    }
-
-    public void setAuthority(String authority) {
-        this.authority = authority;
-    }
-
-    public String getAlias() {
-        return alias;
-    }
-
-    public void setAlias(String alias) {
-        this.alias = alias;
     }
 
     @Override

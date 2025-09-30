@@ -1,11 +1,22 @@
 package com.lambda.fusion.authority.user.optimizer;
 
-import com.lambda.fusion.authority.user.model.MutableUser;
-import java.util.*;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.authority.organization.service.OrganizationService;
+import com.lambda.fusion.authority.user.model.dto.UserPageQueryDTO;
+import com.lambda.fusion.authority.user.service.UserService;
+import com.lambda.fusion.core.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 
 /**
  * 用户查询优化工具类
@@ -19,102 +30,79 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class UserQueryOptimizer {
+    private final OrganizationService organizationService;
+    private final UserService userService;
 
     /**
-     * 批量获取用户组织信息映射
+     * 构建查询参数
      *
-     * @param orgIds 组织ID集合
-     * @return 组织ID到组织名称的映射
+     * @param queryDTO 查询DTO
+     * @return 查询参数Map
      */
-    public Map<String, String> batchGetOrgNames(Set<String> orgIds) {
-        if (CollectionUtils.isEmpty(orgIds)) {
-            return Collections.emptyMap();
+    public Map<String, Object> getMutableUsersQueryParameters(UserPageQueryDTO queryDTO) {
+        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(11);
+        User operator = OperatorUtils.getLoginUser(User.class);
+        String tenantId = operator.getTenantId();
+
+        parameters.put("username", queryDTO.getUsername());
+        parameters.put("dev", operator.isDev());
+        parameters.put("admin", operator.isAdmin());
+        parameters.put("uid", operator.getName());
+
+        if (StringUtils.isNotBlank(queryDTO.getEmail())) {
+            parameters.put("email", fuzzyQuery(queryDTO.getEmail()));
+        }
+        if (StringUtils.isNotBlank(queryDTO.getNickname())) {
+            parameters.put("nickname", fuzzyQuery(queryDTO.getNickname()));
+        }
+        if (StringUtils.isNotBlank(queryDTO.getMobile())) {
+            parameters.put("mobile", fuzzyQuery(queryDTO.getMobile()));
+        }
+        if (StringUtils.isNotBlank(operator.getTenantId())) {
+            parameters.put("tenant_id", tenantId);
+        }
+        if (StringUtils.isNotBlank(queryDTO.getAuthority())) {
+            parameters.put("authority", queryDTO.getAuthority());
+        }
+        if (StringUtils.isNotBlank(queryDTO.getPersonal())) {
+            parameters.put("personal", queryDTO.getPersonal());
+        }
+        if (queryDTO.getIsOnline() != null) {
+            parameters.put("isOnline", queryDTO.getIsOnline());
         }
 
-        // TODO: 实现批量查询组织名称的逻辑
-        // 这里应该调用OrganizationMapper的批量查询方法
-        return new HashMap<>();
+        addOrganizationParameter(
+                queryDTO.getOrganizationId(),
+                queryDTO.getSubordinate() != null ? queryDTO.getSubordinate() : true,
+                parameters,
+                queryDTO.getDataRight() != null ? queryDTO.getDataRight() : true, operator);
+
+        return parameters;
     }
 
     /**
-     * 批量获取用户个人信息映射
+     * 增加组织机构参数
      *
-     * @param userIds 用户ID集合
-     * @return 用户ID到个人信息的映射
+     * @param organizationId 组织id
+     * @param subordinate    是否包含下级机构
+     * @param parameters     参数信息
+     * @param dataRight      是否包含数据权限
      */
-    public Map<String, Map<String, String>> batchGetPersonInfo(Set<String> userIds) {
-        if (CollectionUtils.isEmpty(userIds)) {
-            return Collections.emptyMap();
-        }
-
-        // TODO: 实现批量查询用户个人信息的逻辑
-        return new HashMap<>();
-    }
-
-    /**
-     * 批量获取用户在线状态
-     *
-     * @param userIds 用户ID集合
-     * @return 在线用户ID集合
-     */
-    public Set<String> batchGetOnlineUsers(Set<String> userIds) {
-        if (CollectionUtils.isEmpty(userIds)) {
-            return Collections.emptySet();
-        }
-
-        // TODO: 实现批量查询用户在线状态的逻辑
-        return new HashSet<>();
-    }
-
-    /**
-     * 从用户列表中提取所有相关的ID信息
-     *
-     * @param users 用户列表
-     * @return 包含用户ID、组织ID等信息的参数对象
-     */
-    public UserBatchQueryParams extractBatchQueryParams(List<MutableUser> users) {
-        if (CollectionUtils.isEmpty(users)) {
-            return new UserBatchQueryParams();
-        }
-
-        Set<String> userIds = new HashSet<>();
-        Set<String> orgIds = new HashSet<>();
-
-        for (MutableUser user : users) {
-            if (user.id() != null) {
-                userIds.add(user.id());
+    private void addOrganizationParameter(
+            String organizationId, boolean subordinate, Map<String, Object> parameters, boolean dataRight, User operator) {
+        if (subordinate || StringUtils.isBlank(organizationId)) {
+            if (!dataRight) {
+                if (StringUtils.isNotBlank(organizationId)) {
+                    List<String> subOrgIds = organizationService.getChildrenById(organizationId);
+                    parameters.put("orgIds", Sets.newHashSet(subOrgIds));
+                }
+            } else {
+                parameters.put("orgIds", userService.getSubOrgIds(organizationId, operator));
             }
-            if (user.getOrg() != null) {
-                orgIds.add(user.getOrg().getId());
-            }
-        }
-
-        return new UserBatchQueryParams(userIds, orgIds);
-    }
-
-    /**
-     * 批量查询参数封装类
-     */
-    public static class UserBatchQueryParams {
-        private final Set<String> userIds;
-        private final Set<String> orgIds;
-
-        public UserBatchQueryParams() {
-            this.userIds = new HashSet<>();
-            this.orgIds = new HashSet<>();
-        }
-
-        public UserBatchQueryParams(Set<String> userIds, Set<String> orgIds) {
-            this.userIds = userIds != null ? userIds : new HashSet<>();
-            this.orgIds = orgIds != null ? orgIds : new HashSet<>();
-        }
-
-        public Set<String> getUserIds() {
-            return userIds;
-        }
-
-        public Set<String> getOrgIds() {
-            return orgIds;
+        } else {
+            List<String> list = new ArrayList<>();
+            list.add(organizationId);
+            parameters.put("orgIds", list);
         }
     }
 }

@@ -1,19 +1,18 @@
 package com.lambda.fusion.authority.user.controller;
 
-import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
-
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
-import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
 import com.lambda.fusion.authority.user.model.dto.UserPageQueryDTO;
+import com.lambda.fusion.authority.user.optimizer.UserQueryOptimizer;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
@@ -21,7 +20,6 @@ import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.user.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -30,7 +28,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -47,11 +44,11 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class UserController {
 
+    private final OrganizationService organizationService;
     private final UserService userService;
-    private final RoleService roleService;
+    private final UserQueryOptimizer userQueryOptimizer;
     private final UserCenterService userCenterService;
     private final UserInfoService userInfoService;
-    private final OrganizationService organizationService;
     private TenantAuthorizeManager tenantAuthorizeManager;
 
     @Autowired(required = false)
@@ -71,56 +68,10 @@ public class UserController {
         if (size != null) {
             queryDTO.setPageSize(size);
         }
-        Map<String, Object> parameters = buildQueryParameters(queryDTO);
+        Map<String, Object> parameters = userQueryOptimizer.getMutableUsersQueryParameters(queryDTO);
         return userService.getAllMutableUsers(queryDTO.getPage(), parameters);
     }
 
-    /**
-     * 构建查询参数
-     *
-     * @param queryDTO 查询DTO
-     * @return 查询参数Map
-     */
-    private Map<String, Object> buildQueryParameters(UserPageQueryDTO queryDTO) {
-        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(11);
-        User operator = OperatorUtils.getLoginUser(User.class);
-        String tenantId = operator.getTenantId();
-
-        parameters.put("username", queryDTO.getUsername());
-        parameters.put("dev", operator.isDev());
-        parameters.put("admin", operator.isAdmin());
-        parameters.put("uid", operator.getName());
-
-        if (StringUtils.isNotBlank(queryDTO.getEmail())) {
-            parameters.put("email", fuzzyQuery(queryDTO.getEmail()));
-        }
-        if (StringUtils.isNotBlank(queryDTO.getNickname())) {
-            parameters.put("nickname", fuzzyQuery(queryDTO.getNickname()));
-        }
-        if (StringUtils.isNotBlank(queryDTO.getMobile())) {
-            parameters.put("mobile", fuzzyQuery(queryDTO.getMobile()));
-        }
-        if (StringUtils.isNotBlank(operator.getTenantId())) {
-            parameters.put("tenant_id", tenantId);
-        }
-        if (StringUtils.isNotBlank(queryDTO.getAuthority())) {
-            parameters.put("authority", queryDTO.getAuthority());
-        }
-        if (StringUtils.isNotBlank(queryDTO.getPersonal())) {
-            parameters.put("personal", queryDTO.getPersonal());
-        }
-        if (queryDTO.getIsOnline() != null) {
-            parameters.put("isOnline", queryDTO.getIsOnline());
-        }
-
-        addOrganizationParameter(
-                queryDTO.getOrganizationId(),
-                queryDTO.getSubordinate() != null ? queryDTO.getSubordinate() : true,
-                parameters,
-                queryDTO.getDataRight() != null ? queryDTO.getDataRight() : true);
-
-        return parameters;
-    }
 
     @GetMapping(value = "/{username}/check")
     @Operation(summary = "检查用户名是否存在")
@@ -164,7 +115,7 @@ public class UserController {
         return userService.getUserNamesByAuthority(operator.getOrgId(), authority);
     }
 
-    @GetMapping("/currentuser/info")
+    @GetMapping("/currentUser/info")
     @Operation(summary = "获取当前登陆用户详细信息")
     public LoginUserInfo getCurrentUserInfo() {
         User operator = OperatorUtils.getLoginUser(User.class);
@@ -181,8 +132,7 @@ public class UserController {
     public MutableUser add(
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody MutableUser mutableUser) {
         LoginUser operator = OperatorUtils.getOperator();
-        // 去除username中前后可能存在的空格
-        mutableUser.setUsername(mutableUser.getUsername().trim());
+        mutableUser.setUsername(StrUtil.trim(mutableUser.getUsername()));
         MutableUser copy = BeanUtil.toBean(mutableUser, MutableUser.class);
         String password = userService.addMutableUser(mutableUser, operator);
         MutableUser user = userService.getMutableUserByUsername(mutableUser.getUsername());
@@ -221,27 +171,26 @@ public class UserController {
     @PutMapping("/password/edit")
     @Operation(summary = "修改用户密码", description = "用于用户自己修改密码")
     public void updateUserPassword(
-            @Parameter(description = "修改密码参数", required = true) @RequestBody ResetPwdParameter resetPwdParameter) {
+            @Parameter(description = "修改密码参数", required = true) @RequestBody ResetPwdDTO resetPwdDTO) {
         LoginUser operator = OperatorUtils.getOperator();
-        String oldPassword = resetPwdParameter.getOldPassword();
-        String newPassword = resetPwdParameter.getNewPassword();
+        String oldPassword = resetPwdDTO.getOldPassword();
+        String newPassword = resetPwdDTO.getNewPassword();
         Assert.notNull(oldPassword, "原密码不能为空！");
         Assert.notNull(newPassword, "新密码不能为空！");
-        resetPwdParameter.setUsername(operator.getName());
+        resetPwdDTO.setUsername(operator.getName());
         userService.updateUserPassword(operator.getName(), oldPassword, newPassword);
     }
 
     @PutMapping("/password/reset")
     @Operation(summary = "重置用户密码", description = "主要由用户管理员使用")
     public void resetUserPassword(
-            @Parameter(description = "重置密码参数", required = true) @RequestBody ResetPwdParameter resetPwdParameter) {
-        String username = resetPwdParameter.getUsername();
+            @Parameter(description = "重置密码参数", required = true) @RequestBody ResetPwdDTO resetPwdDTO) {
+        String username = resetPwdDTO.getUsername();
         Assert.notNull(username, "username is not empty");
-        String password = userService.resetUserPassword(resetPwdParameter);
+        String password = userService.resetUserPassword(resetPwdDTO);
         if (tenantAuthorizeManager != null) {
-            // 新密码作为租户主库管理员的密码，使数据保持一致
-            resetPwdParameter.setNewPassword(password);
-            tenantAuthorizeManager.resetPassword(resetPwdParameter);
+            resetPwdDTO.setNewPassword(password);
+            tenantAuthorizeManager.resetPassword(resetPwdDTO);
         }
     }
 
@@ -305,72 +254,6 @@ public class UserController {
         }
     }
 
-    @GetMapping(value = {"/list"})
-    @Operation(
-            summary = "不分页查询所有用户列表",
-            parameters = {
-                @Parameter(name = "username", description = "用户名称", in = ParameterIn.QUERY),
-                @Parameter(name = "nickname", description = "用户昵称", in = ParameterIn.QUERY),
-                @Parameter(name = "authority", description = "角色名称", in = ParameterIn.QUERY),
-                @Parameter(name = "mobile", description = "电话号码", in = ParameterIn.QUERY),
-                @Parameter(name = "email", description = "电子邮箱", in = ParameterIn.QUERY),
-                @Parameter(name = "organizationId", description = "组织ID", in = ParameterIn.QUERY),
-                @Parameter(
-                        name = "subordinate",
-                        description = "是否查询下级组织的人员",
-                        in = ParameterIn.QUERY,
-                        schema = @Schema(defaultValue = "true")),
-                @Parameter(
-                        name = "allocation",
-                        description = "是否是分配人员接口调用",
-                        in = ParameterIn.QUERY,
-                        schema = @Schema(defaultValue = "false")),
-                @Parameter(
-                        name = "dataRight",
-                        description = "是否开启数据权限",
-                        in = ParameterIn.QUERY,
-                        schema = @Schema(defaultValue = "true")),
-                @Parameter(name = "personal", description = "新增查询字段", in = ParameterIn.QUERY)
-            })
-    public List<MutableUser> list(
-            @RequestParam(required = false) String username,
-            @RequestParam(required = false) String nickname,
-            @RequestParam(required = false) String authority,
-            @RequestParam(required = false) String mobile,
-            @RequestParam(required = false) String email,
-            @RequestParam(required = false) String organizationId,
-            @RequestParam(required = false, defaultValue = "true") boolean subordinate,
-            @RequestParam(required = false, defaultValue = "true") boolean dataRight,
-            @RequestParam(required = false) String personal) {
-        User operator = OperatorUtils.getLoginUser(User.class);
-        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(11);
-        String tenantId = operator.getTenantId();
-        parameters.put("username", username);
-        parameters.put("dev", operator.isDev());
-        parameters.put("admin", operator.isAdmin());
-        parameters.put("uid", operator.getName());
-        if (StringUtils.isNotBlank(email)) {
-            parameters.put("email", fuzzyQuery(email));
-        }
-        if (StringUtils.isNotBlank(nickname)) {
-            parameters.put("nickname", fuzzyQuery(nickname));
-        }
-        if (StringUtils.isNotBlank(mobile)) {
-            parameters.put("mobile", fuzzyQuery(mobile));
-        }
-        if (StringUtils.isNotBlank(tenantId)) {
-            parameters.put("tenant_id", tenantId);
-        }
-        if (StringUtils.isNotBlank(authority)) {
-            parameters.put("authority", authority);
-        }
-        if (StringUtils.isNotBlank(personal)) {
-            parameters.put("personal", personal);
-        }
-        addOrganizationParameter(organizationId, subordinate, parameters, dataRight);
-        return userService.getAllMutableUsersNoPage(parameters);
-    }
-
     @PatchMapping(value = "/unbind/{username}/{type}")
     @Operation(summary = "解除第三方绑定")
     public void unbind(
@@ -379,7 +262,7 @@ public class UserController {
                     @PathVariable("type")
                     String type) {
         LoginUser operator = OperatorUtils.getOperator();
-        userInfoService.unbindUserInfo(operator, type, operator.getName());
+        userInfoService.unbindUserInfo(operator, type, username);
     }
 
     @PutMapping(value = "/update/mobile")
@@ -421,7 +304,6 @@ public class UserController {
         parameter.setPersonal(personal);
         if (avatar != null) {
             log.info("file: {}", avatar);
-            //
         }
         return userCenterService.updateInfo(parameter);
     }
@@ -457,32 +339,5 @@ public class UserController {
         }
 
         return updated;
-    }
-
-    /**
-     * 增加组织机构参数
-     *
-     * @param organizationId 组织id
-     * @param subordinate    是否包含下级机构
-     * @param parameters     参数信息
-     * @param dataRight      是否包含数据权限
-     */
-    private void addOrganizationParameter(
-            String organizationId, boolean subordinate, Map<String, Object> parameters, boolean dataRight) {
-        LoginUser operator = OperatorUtils.getOperator();
-        if (subordinate || StringUtils.isBlank(organizationId)) {
-            if (!dataRight) {
-                if (StringUtils.isNotBlank(organizationId)) {
-                    List<String> subOrgIds = organizationService.getChildrenById(organizationId);
-                    parameters.put("orgIds", Sets.newHashSet(subOrgIds));
-                }
-            } else {
-                parameters.put("orgIds", userService.getSubOrgIds(organizationId, operator));
-            }
-        } else {
-            List<String> list = new ArrayList<>();
-            list.add(organizationId);
-            parameters.put("orgIds", list);
-        }
     }
 }

@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -37,19 +38,19 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping({"/authority/roles", "/authority/roles"})
 @Tag(name = "角色管理")
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class RoleController {
 
-    @Autowired
-    private RoleService roleService;
+    private final RoleService roleService;
+    private final UserService userService;
+    private final InternalRoleService internalRoleService;
 
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private InternalRoleService internalRoleService;
+    private TenantAuthorizeManager tenantResourceManager;
 
     @Autowired(required = false)
-    private TenantAuthorizeManager tenantResourceManager;
+    public void setTenantResourceManager(TenantAuthorizeManager tenantResourceManager) {
+        this.tenantResourceManager = tenantResourceManager;
+    }
 
     @GetMapping
     @SaCheckLogin

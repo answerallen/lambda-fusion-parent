@@ -32,6 +32,7 @@ import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.mapper.UserUpdatePwdLogMapper;
 import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
 import com.lambda.fusion.authority.user.model.entity.UserFieldsEntity;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.entity.UserUpdatePwdLogEntity;
@@ -149,7 +150,7 @@ public class UserServiceImpl implements UserService {
                                 .isNotNull(UserUpdatePwdLogEntity::getUpdateTime)
                                 .orderByDesc(UserUpdatePwdLogEntity::getUpdateTime));
                 if (CollectionUtils.isNotEmpty(userUpdatePwdLogEntities)) {
-                    UserUpdatePwdLogEntity userUpdatePwdLogEntity = userUpdatePwdLogEntities.get(0);
+                    UserUpdatePwdLogEntity userUpdatePwdLogEntity = userUpdatePwdLogEntities.getFirst();
                     Integer passwordModifyDays =
                             properties.getPasswordStrategy().getPeriodChangeDays();
                     LocalDateTime nowTime = LocalDateTime.now();
@@ -737,18 +738,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String resetUserPassword(ResetPwdParameter resetPwdParameter) {
+    public String resetUserPassword(ResetPwdDTO resetPwdDTO) {
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
-        String parameter = resetPwdParameter.getNewPassword();
+        String parameter = resetPwdDTO.getNewPassword();
         Password password = obtainPassword(strategy, parameter);
         MutableUser mutableUser = new MutableUser();
-        mutableUser.setUsername(resetPwdParameter.getUsername());
+        mutableUser.setUsername(resetPwdDTO.getUsername());
         mutableUser.setPassword(passwordEncoder.encode(password.getEncrypted()));
         userMapper.updatePassword(mutableUser);
         UserInfoEntity userInfoEntity = new UserInfoEntity();
-        userInfoEntity.setUserid(resetPwdParameter.getUsername());
+        userInfoEntity.setUserid(resetPwdDTO.getUsername());
         userInfoEntity.setUpdatePwd(true);
-        int count = userInfoMapper.updateStatus(resetPwdParameter.getUsername(), true);
+        int count = userInfoMapper.updateStatus(resetPwdDTO.getUsername(), true);
         if (0 == count) {
             userInfoMapper.insert(userInfoEntity);
         }
@@ -845,20 +846,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<String> getSuperiors(String uid, Integer rank) {
         return List.of();
-    }
-
-    /**
-     * 查询所有人员信息 包含<角色 组织  扩展信息>不分页
-     *
-     * @param parameters 参数列表
-     * @return 人员列表
-     */
-    @Override
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public List<MutableUser> getAllMutableUsersNoPage(Map<String, Object> parameters) {
-        setUsernames(parameters);
-        setUserFields(parameters);
-        return userMapper.getAllMutableUsersNoPage(parameters);
     }
 
     // 设置用户字段 todo 待完善
