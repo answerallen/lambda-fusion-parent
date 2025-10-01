@@ -1,5 +1,7 @@
 package com.lambda.fusion.authority.user.optimizer;
 
+import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
+
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.OperatorUtils;
@@ -7,16 +9,13 @@ import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.user.model.dto.UserPageQueryDTO;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.user.User;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 
 /**
  * 用户查询优化工具类
@@ -75,7 +74,8 @@ public class UserQueryOptimizer {
                 queryDTO.getOrganizationId(),
                 queryDTO.getSubordinate() != null ? queryDTO.getSubordinate() : true,
                 parameters,
-                queryDTO.getDataRight() != null ? queryDTO.getDataRight() : true, operator);
+                queryDTO.getDataRight() != null ? queryDTO.getDataRight() : true,
+                operator);
 
         return parameters;
     }
@@ -89,7 +89,11 @@ public class UserQueryOptimizer {
      * @param dataRight      是否包含数据权限
      */
     private void addOrganizationParameter(
-            String organizationId, boolean subordinate, Map<String, Object> parameters, boolean dataRight, User operator) {
+            String organizationId,
+            boolean subordinate,
+            Map<String, Object> parameters,
+            boolean dataRight,
+            User operator) {
         if (subordinate || StringUtils.isBlank(organizationId)) {
             if (!dataRight) {
                 if (StringUtils.isNotBlank(organizationId)) {

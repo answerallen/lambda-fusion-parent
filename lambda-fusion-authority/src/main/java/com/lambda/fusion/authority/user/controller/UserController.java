@@ -1,7 +1,6 @@
 package com.lambda.fusion.authority.user.controller;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
@@ -11,7 +10,11 @@ import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
+import com.lambda.fusion.authority.user.model.dto.UserCreateDTO;
 import com.lambda.fusion.authority.user.model.dto.UserPageQueryDTO;
+import com.lambda.fusion.authority.user.model.dto.UserUpdateDTO;
+import com.lambda.fusion.authority.user.model.vo.LoginUserInfoVO;
+import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import com.lambda.fusion.authority.user.optimizer.UserQueryOptimizer;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
@@ -58,7 +61,7 @@ public class UserController {
 
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询所有用户列表")
-    public Page<MutableUser> page(
+    public Page<MutableUserVO> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
             @Valid UserPageQueryDTO queryDTO) {
@@ -72,7 +75,6 @@ public class UserController {
         return userService.getAllMutableUsers(queryDTO.getPage(), parameters);
     }
 
-
     @GetMapping(value = "/{username}/check")
     @Operation(summary = "检查用户名是否存在")
     public Boolean checkName(
@@ -82,13 +84,13 @@ public class UserController {
 
     @GetMapping(value = "/{username}")
     @Operation(summary = "查询用户信息")
-    public MutableUser get(@Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
+    public MutableUserVO get(@Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
         return userService.getMutableUserByUsername(username);
     }
 
     @GetMapping("/search")
     @Operation(summary = "根据关键字模糊查询用户列表")
-    public List<MutableUser> search(@Parameter(description = "关键字", required = true) @RequestParam("key") String key) {
+    public List<MutableUserVO> search(@Parameter(description = "关键字", required = true) @RequestParam("key") String key) {
         return userService.getAllMutableUsersByKey(key);
     }
 
@@ -103,7 +105,7 @@ public class UserController {
 
     @GetMapping("/my")
     @Operation(summary = "查询当前用户的详细信息")
-    public MutableUser getUserById() {
+    public MutableUserVO getUserById() {
         LoginUser operator = OperatorUtils.getOperator();
         return userService.getMutableUserByUsername(operator.getName());
     }
@@ -117,11 +119,11 @@ public class UserController {
 
     @GetMapping("/currentUser/info")
     @Operation(summary = "获取当前登陆用户详细信息")
-    public LoginUserInfo getCurrentUserInfo() {
+    public LoginUserInfoVO getCurrentUserInfo() {
         User operator = OperatorUtils.getLoginUser(User.class);
-        LoginUserInfo loginUserInfo = new LoginUserInfo();
+        LoginUserInfoVO loginUserInfo = new LoginUserInfoVO();
         if (operator != null) {
-            MutableUser mutableUser = userService.getCurrentMutableUser(operator);
+            MutableUserVO mutableUser = userService.getCurrentMutableUser(operator);
             BeanUtils.copyProperties(Objects.requireNonNullElse(mutableUser, operator), loginUserInfo);
         }
         return loginUserInfo;
@@ -129,17 +131,20 @@ public class UserController {
 
     @PostMapping
     @Operation(summary = "新增用户信息")
-    public MutableUser add(
-            @Parameter(description = "用户信息", required = true) @Valid @RequestBody MutableUser mutableUser) {
+    public MutableUserVO add(
+            @Parameter(description = "用户信息", required = true) @Valid @RequestBody UserCreateDTO userCreateDTO) {
         LoginUser operator = OperatorUtils.getOperator();
-        mutableUser.setUsername(StrUtil.trim(mutableUser.getUsername()));
-        MutableUser copy = BeanUtil.toBean(mutableUser, MutableUser.class);
-        String password = userService.addMutableUser(mutableUser, operator);
-        MutableUser user = userService.getMutableUserByUsername(mutableUser.getUsername());
-        if (MapUtils.isNotEmpty(mutableUser.getPersonal())) {
-            userService.addUserFields(mutableUser.getPersonal(), mutableUser.getUsername());
+
+        String password = userService.addUser(userCreateDTO, operator);
+
+        MutableUserVO user = userService.getMutableUserByUsername(userCreateDTO.getUsername());
+
+        if (MapUtils.isNotEmpty(userCreateDTO.getPersonal())) {
+            userService.addUserFields(userCreateDTO.getPersonal(), userCreateDTO.getUsername());
         }
+
         user.setPassword(password);
+
         if (tenantAuthorizeManager != null) {
             tenantAuthorizeManager.addUser(copy);
         }
@@ -149,12 +154,12 @@ public class UserController {
 
     @PutMapping(value = "/{username}")
     @Operation(summary = "更新用户信息")
-    public MutableUser update(
+    public MutableUserVO update(
             @Parameter(description = "用户名称", required = true) @PathVariable("username") String username,
-            @Parameter(description = "用户信息", required = true) @Valid @RequestBody MutableUser mutableUser) {
+            @Parameter(description = "用户信息", required = true) @Valid @RequestBody UserUpdateDTO mutableUser) {
         LoginUser operator = OperatorUtils.getOperator();
         mutableUser.setUsername(username);
-        userService.updateMutableUser(mutableUser, operator);
+        userService.updateUser(mutableUser, operator);
         return userService.getMutableUserByUsername(username);
     }
 
@@ -291,7 +296,7 @@ public class UserController {
                 @Parameter(name = "email", description = "邮箱", required = true),
                 @Parameter(name = "personal", description = "新增字段")
             })
-    public MutableUser updateInfo(
+    public MutableUserVO updateInfo(
             MultipartFile avatar,
             @RequestParam("nickname") String nickname,
             @RequestParam("email") String email,
@@ -318,21 +323,21 @@ public class UserController {
 
     @GetMapping("/tenant")
     @Operation(summary = "根据租户ID查询租户管理员")
-    public List<MutableUser> tenant(
+    public List<MutableUserVO> tenant(
             @Parameter(description = "租户ID", required = true) @RequestParam("tenantId") String tenantId) {
         return userService.getAllMutableUsersByTenantId(tenantId);
     }
 
     @PutMapping(value = "/tenant/{username}")
     @Operation(summary = "更新租户管理员用户信息")
-    public MutableUser updateTenantUser(
+    public MutableUserVO updateTenantUser(
             @Parameter(description = "用户名称", required = true) @PathVariable("username") String username,
-            @Parameter(description = "用户信息", required = true) @Valid @RequestBody MutableUser mutableUser) {
+            @Parameter(description = "用户信息", required = true) @Valid @RequestBody MutableUserVO mutableUser) {
         LoginUser operator = OperatorUtils.getOperator();
         mutableUser.setUsername(username);
-        MutableUser copy = BeanUtil.toBean(mutableUser, MutableUser.class);
+        MutableUserVO copy = BeanUtil.toBean(mutableUser, MutableUserVO.class);
         userService.updateTenantUser(mutableUser, operator);
-        MutableUser updated = userService.getMutableUserByUsername(username);
+        MutableUserVO updated = userService.getMutableUserByUsername(username);
 
         if (tenantAuthorizeManager != null) {
             tenantAuthorizeManager.updateUser(copy);

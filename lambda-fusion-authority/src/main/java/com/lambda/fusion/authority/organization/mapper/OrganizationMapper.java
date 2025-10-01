@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.organization.mapper;
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.organization.model.*;
-import com.lambda.fusion.authority.user.model.MutableUser;
+import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import java.util.List;
 import java.util.Set;
 import org.apache.ibatis.annotations.Mapper;
@@ -18,7 +18,7 @@ public interface OrganizationMapper extends BaseMapper<Organization> {
      * @param users 用户信息
      * @return 用户信息列表
      */
-    List<MutableOrganization> getAllOrganMutableUsers(List<MutableUser> users);
+    List<MutableOrganization> getAllOrganMutableUsers(List<MutableUserVO> users);
 
     /**
      * 查询全部组织角色

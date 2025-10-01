@@ -1,13 +1,9 @@
 package com.lambda.fusion.authority.user.service.impl;
 
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
-import static com.lambda.fusion.core.Constants.ROLE_DEV;
-import static com.lambda.fusion.core.tree.Tree.SPLIT;
-
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.pinyin.PinyinUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -27,23 +23,16 @@ import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
 import com.lambda.fusion.authority.tenant.persistence.TenantMapper;
-import com.lambda.fusion.authority.user.mapper.UserFieldsMapper;
-import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
-import com.lambda.fusion.authority.user.mapper.UserMapper;
-import com.lambda.fusion.authority.user.mapper.UserUpdatePwdLogMapper;
+import com.lambda.fusion.authority.user.mapper.*;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
-import com.lambda.fusion.authority.user.model.entity.UserFieldsEntity;
-import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
-import com.lambda.fusion.authority.user.model.entity.UserUpdatePwdLogEntity;
+import com.lambda.fusion.authority.user.model.dto.UserCreateDTO;
+import com.lambda.fusion.authority.user.model.entity.*;
+import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.user.User;
 import jakarta.validation.constraints.NotBlank;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +52,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
+import static com.lambda.fusion.core.Constants.ROLE_DEV;
+import static com.lambda.fusion.core.tree.Tree.SPLIT;
+
 @Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -71,11 +70,12 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
     private final TenantMapper tenantMapper;
+    private final UserRoleMapper userRoleMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuthorityProperties properties;
     private final UserInfoMapper userInfoMapper;
     private final UserFieldsMapper userFieldsMapper;
-    private final OrganizationMapper organizationMapper;
+    private final UserOrganizationMapper userOrganizationMapper;
     private final UserUpdatePwdLogMapper userUpdatePwdLogMapper;
     private final OrganizationService organizationService;
     protected final ApplicationEventPublisher applicationEventPublisher;
@@ -84,6 +84,7 @@ public class UserServiceImpl implements UserService {
      * 用户新增字段key
      */
     private static final String USER_PERSONAL = "personal";
+    private OrganizationMapper organizationMapper;
 
     /***
      * @param username 用户账号
@@ -109,15 +110,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public List<MutableUser> getAllUsers() {
+    public List<MutableUserVO> getAllUsers() {
         return userMapper.getAllUsers();
     }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public MutableUser getMutableUserByUsername(String username) {
+    public MutableUserVO getMutableUserByUsername(String username) {
         Assert.notNull(username, "username is not empty");
-        MutableUser user = userMapper.getMutableUserById(username);
+        MutableUserVO user = userMapper.getMutableUserById(username);
         if (user != null) {
             //            user.setOnline(laAuthorizeHelper.isOnline(username));
             //            user.setLocked(laAuthorizeHelper.getLockedState(username));
@@ -135,8 +136,8 @@ public class UserServiceImpl implements UserService {
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @Override
-    public MutableUser getCurrentMutableUser(User operator) {
-        MutableUser mutableUser = this.getMutableUserByUsername(operator.getName());
+    public MutableUserVO getCurrentMutableUser(User operator) {
+        MutableUserVO mutableUser = this.getMutableUserByUsername(operator.getName());
         UserInfo props = mutableUser.getProps();
         if (props != null && properties.getPasswordStrategy().getEnablePeriodChange()) {
             boolean notMatched =
@@ -169,7 +170,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public List<MutableUser> getAllMutableUsers(List<MutableUser> users) {
+    public List<MutableUserVO> getAllMutableUsers(List<MutableUserVO> users) {
         if (CollectionUtils.isEmpty(users)) {
             return users;
         }
@@ -178,7 +179,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public Page<MutableUser> getAllMutableUsers(Page<MutableUser> pagination, Map<String, Object> parameters) {
+    public Page<MutableUserVO> getAllMutableUsers(Page<MutableUserVO> pagination, Map<String, Object> parameters) {
         String tenantId = MapUtils.getString(parameters, "tenant_id");
 
         // 预处理查询参数
@@ -186,11 +187,11 @@ public class UserServiceImpl implements UserService {
 
         // 执行分页查询
         pagination = userMapper.getAllMutableUsersByCondition(pagination, parameters);
-        List<MutableUser> users = pagination.getRecords();
+        List<MutableUserVO> users = pagination.getRecords();
 
         if (CollectionUtils.isNotEmpty(users)) {
             // 补充用户详细信息
-            List<MutableUser> enrichedUsers = enrichUserDetails(users, tenantId);
+            List<MutableUserVO> enrichedUsers = enrichUserDetails(users, tenantId);
             pagination.setRecords(enrichedUsers);
         }
 
@@ -208,8 +209,8 @@ public class UserServiceImpl implements UserService {
     /**
      * 丰富用户详细信息
      */
-    private List<MutableUser> enrichUserDetails(List<MutableUser> users, String tenantId) {
-        List<MutableUser> records = userMapper.getAllMutableUsers(users);
+    private List<MutableUserVO> enrichUserDetails(List<MutableUserVO> users, String tenantId) {
+        List<MutableUserVO> records = userMapper.getAllMutableUsers(users);
         UserTempParameters tempParams = getUserTempParameters(records);
 
         // 批量获取关联数据
@@ -217,7 +218,7 @@ public class UserServiceImpl implements UserService {
         Map<String, Map<String, String>> personInfo = getPersonsByUids(tempParams.getUids());
 
         // 补充用户信息
-        for (MutableUser user : records) {
+        for (MutableUserVO user : records) {
             enrichSingleUserInfo(user, orgNames, personInfo, tenantId);
         }
 
@@ -228,7 +229,7 @@ public class UserServiceImpl implements UserService {
      * 补充单个用户的详细信息
      */
     private void enrichSingleUserInfo(
-            MutableUser user,
+            MutableUserVO user,
             Map<String, String> orgNames,
             Map<String, Map<String, String>> personInfo,
             String tenantId) {
@@ -253,10 +254,10 @@ public class UserServiceImpl implements UserService {
      *
      * @param users
      */
-    private UserTempParameters getUserTempParameters(List<MutableUser> users) {
+    private UserTempParameters getUserTempParameters(List<MutableUserVO> users) {
         Set<String> uids = Sets.newHashSet();
         Set<String> orgIds = Sets.newHashSet();
-        for (MutableUser item : users) {
+        for (MutableUserVO item : users) {
             uids.add(item.getUsername());
             if (isBindOrg(item)) {
                 orgIds.add(item.getOrg().getId());
@@ -275,7 +276,7 @@ public class UserServiceImpl implements UserService {
      * @param tenantId
      * @return void
      */
-    private void supplementUserPermissionInfo(MutableUser item, String tenantId) {
+    private void supplementUserPermissionInfo(MutableUserVO item, String tenantId) {
         // todo       if (RoleUtil.isTenant(item)) {
         //            item.setDisAllocation(true);
         //        }
@@ -287,7 +288,7 @@ public class UserServiceImpl implements UserService {
      *
      * @param item
      */
-    private void supplementUserLockState(MutableUser item) {
+    private void supplementUserLockState(MutableUserVO item) {
         // 锁定状态
     }
 
@@ -298,7 +299,7 @@ public class UserServiceImpl implements UserService {
      * @param item
      * @param uid     当前登陆用户编号
      */
-    private void supplementUserOnlineInfo(Set<String> onlines, MutableUser item, String uid) {
+    private void supplementUserOnlineInfo(Set<String> onlines, MutableUserVO item, String uid) {
         String username = item.getUsername();
         item.setOnline(onlines.contains(username));
         boolean self = username.equals(uid);
@@ -309,7 +310,7 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private void supplementUserPersonInfo(Map<String, Map<String, String>> allPersonUserMap, MutableUser item) {
+    private void supplementUserPersonInfo(Map<String, Map<String, String>> allPersonUserMap, MutableUserVO item) {
         if (allPersonUserMap.containsKey(item.getUsername())) {
             item.setPersonal(allPersonUserMap.get(item.getUsername()));
         }
@@ -321,7 +322,7 @@ public class UserServiceImpl implements UserService {
      * @param orgnames
      * @param item
      */
-    private void supplementUserOrgInfo(Map<String, String> orgnames, MutableUser item) {
+    private void supplementUserOrgInfo(Map<String, String> orgnames, MutableUserVO item) {
         if (isBindOrg(item)) {
             Org org = item.getOrg();
             org.setFullName(orgnames.getOrDefault(org.getId(), org.getAlias()));
@@ -334,7 +335,7 @@ public class UserServiceImpl implements UserService {
      * @param user0
      * @return boolean
      */
-    private boolean isBindOrg(@NonNull MutableUser user0) {
+    private boolean isBindOrg(@NonNull MutableUserVO user0) {
         Org org = user0.getOrg();
         return org != null && StringUtils.isNotBlank(org.getId());
     }
@@ -442,7 +443,7 @@ public class UserServiceImpl implements UserService {
      * @param tenantId 租户id
      * @param item 当前用户
      */
-    private void extractedPermission(String tenantId, MutableUser item) {
+    private void extractedPermission(String tenantId, MutableUserVO item) {
         if (StringUtils.isNotBlank(item.getTenantId()) && !Objects.equals(tenantId, item.getOwner())) {
             item.setNoPermission(true);
         }
@@ -491,7 +492,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<Permission> getUserPermissions(String username, String mode) {
         Assert.notNull(username, "username not empty");
-        MutableUser user = userMapper.getMutableUserById(username);
+        MutableUserVO user = userMapper.getMutableUserById(username);
         Assert.notNull(user, "user not found");
         List<String> ids = Lists.newArrayList(username);
         List<SimpleRole> authorities = user.getAuthorities();
@@ -510,53 +511,77 @@ public class UserServiceImpl implements UserService {
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
-    public String addMutableUser(MutableUser user, LoginUser operator) {
-        Assert.notNull(user, "user is not null");
-        String username = user.getUsername();
-        Assert.notNull(username, "username is not null");
-        // TODO 系统保留用户名
-        Assert.isTrue(!userMapper.hasExists(username), "该用户名已被使用");
+    public String addUser(UserCreateDTO userCreateDTO, LoginUser operator) {
+        UserEntity userEntity = userCreateDTO.toEntity();
+        Assert.notNull(userEntity, "user is not null");
+
+        boolean hasExists = userMapper.hasExists(userEntity.getUserid());
+        Assert.isTrue(hasExists, "该用户名已被使用");
+
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
-        String parameter = user.getPassword();
-        Password password = obtainPassword(strategy, parameter);
-        user.setPassword(passwordEncoder.encode(password.getEncrypted()));
-        // TODO 如果是租户
-        if (true) {
-            String orgid = user.getTenantId();
-            user.setOrg(new Org(orgid));
+        String originPassword = userEntity.getPassword();
+        Password encodePassword = obtainPassword(strategy, originPassword);
+        userEntity.setPassword(passwordEncoder.encode(encodePassword.getEncrypted()));
+
+        userEntity.setCreateDate(new Date());
+        userEntity.setNicknameAbbr(PinyinUtil.getPinyin(userEntity.getNickname()));
+        userEntity.setTenantId(operator.getTenantId());
+        userEntity.setOwner(operator.getTenantId());
+        userEntity.setCreator(operator.getName());
+        userMapper.insert(userEntity);
+
+
+        List<SimpleRole> roles = userCreateDTO.getAuthorities();
+        addUserRoles(operator, roles, userEntity);
+
+        if (Objects.isNull(userCreateDTO.getProps())) {
+            userCreateDTO.setProps(new UserInfo());
         }
-        user.setCreateDate(new Date());
-        user.setCreateAccount(operator.getName());
-        user.setNicknameAbbr(PinyinUtil.getPinyin(user.getNickname()));
-        user.setTenantId(operator.getTenantId());
-        user.setOwner(operator.getTenantId());
-        user.setCreator(operator.getName());
-        if (Objects.isNull(user.getProps())) {
-            user.setProps(new UserInfo());
-        }
-        user.getProps().setUpdatePwd(true);
-        userMapper.insertMutableUser(user);
-        addUserRoles(user, operator.getTenantId());
-        Org org = user.getOrg();
+        userCreateDTO.getProps().setUpdatePwd(true);
+
+        Org org = userCreateDTO.getOrg();
         if (org != null && StringUtils.isNotBlank(org.getId())) {
-            organizationMapper.addUserOrganization(new UserOrganization(username, org.getId(), operator.getTenantId()));
+            userOrganizationMapper.insert(new UserOrganizationEntity(userEntity.getUserid(), org.getId(), operator.getTenantId()));
         }
-        return password.getOrigin();
+        return encodePassword.getOrigin();
+    }
+
+    private void addUserRoles(LoginUser operator, List<SimpleRole> roles, UserEntity userEntity) {
+        if (CollectionUtils.isNotEmpty(roles)) {
+            List<UserRole> userRoles = roles.stream()
+                    .map(SimpleRole::getAuthority)
+                    .filter(StrUtil::isNotEmpty)
+                    .map(authority -> {
+                        Assert.notNull(authority, "role not found");
+                        if (authority.startsWith(Constants.ROLE_TENANT)) {
+                            authority = Constants.ROLE_TENANT;
+                        }
+                        UserRole userRole = new UserRole();
+                        userRole.setAuthority(authority);
+                        userRole.setTenantId(operator.getTenantId());
+                        userRole.setUserid(userEntity.getUserid());
+                        return userRole;
+                    }).collect(Collectors.toList());
+            userRoleMapper.insert(userRoles);
+        }
     }
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
-    public void updateMutableUser(MutableUser source, LoginUser operator) {
+    public void updateUser(MutableUserVO source, LoginUser operator) {
         Assert.notNull(source, "user is not null");
         Assert.notNull(source.getUsername(), "username not empty");
         String username = source.getUsername();
-        MutableUser target = userMapper.getMutableUserById(username);
+
+        UserEntity userEntity = userMapper.selectById(username);
+
+        MutableUserVO target = userMapper.getMutableUserById(username);
         Assert.notNull(target, "user not empty");
         Org original = target.getOrg();
         // 如果要修改的用户是租户角色，则不允许修改其组织
-        //        if (!RoleUtil.isTenant(source)) {
-        updateUserOrg(username, source.getOrg(), original, operator);
-        //        }
+//        if (!source) {
+//        updateUserOrg(username, source.getOrg(), original, operator);
+//        }
 
         checkPropsUpdated(source.getProps(), target.getProps());
 
@@ -564,7 +589,7 @@ public class UserServiceImpl implements UserService {
         target.setNicknameAbbr(PinyinUtil.getPinyin(target.getNickname()));
         userMapper.updateMutableUser(target);
         userMapper.deleteUserRoles(username);
-        addUserRoles(target, operator.getTenantId());
+        addUserRoles(, operator.getTenantId(),userEntity);
         if (MapUtils.isNotEmpty(source.getPersonal())) {
             List<UserFieldsEntity> fields = this.convertPersonBean(source.getPersonal(), username);
             this.userFieldsMapper.deleteByUsername(username);
@@ -613,30 +638,6 @@ public class UserServiceImpl implements UserService {
         return !Objects.equals(source.getAvatar(), actual.getAvatar());
     }
 
-    /**
-     * @param user 当前用户
-     **/
-    @Override
-    public void registeredMutableUser(MutableUser user) {
-        Assert.isTrue(properties.isEnabledRegistered(), "User registration is not enabled!");
-        Assert.notNull(user, "user not empty");
-        String username = user.getUsername();
-        // todo 系统保留用户名
-        Assert.isTrue(!userMapper.hasExists(username), "用户名已存在");
-        String password = passwordEncoder.encode(md5f2(user.getPassword()));
-        String orgId = getOrgId(user.getOrg());
-        Assert.notNull(orgId, "lambda.authority.organ.id.notempty");
-        Organization org = organizationMapper.queryOrganizationById(orgId);
-        String owner = org.getOwner();
-        user.setPassword(password);
-        user.setCreateDate(new Date());
-        user.setTenantId(owner);
-        user.setNicknameAbbr(PinyinUtil.getPinyin(user.getNickname()));
-        userMapper.insertMutableUser(user);
-        addUserRoles(user, org.getTenantId());
-
-        organizationMapper.addUserOrganization(new UserOrganization(username, orgId, org.getTenantId()));
-    }
 
     /**
      * <ol>
@@ -697,33 +698,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public List<MutableUser> getAllMutableUsersByKey(String key) {
+    public List<MutableUserVO> getAllMutableUsersByKey(String key) {
         Assert.notNull(key, "key not empty");
         return userMapper.getAllMutableUsersByKey(key);
     }
 
-    /**
-     * 插入用户角色信息，由于需要兼容oracle，只能单条插入
-     *
-     * @param user 用户对象
-     */
-    private void addUserRoles(MutableUser user, String tenantId) {
-        List<SimpleRole> roles = user.getAuthorities();
-        if (CollectionUtils.isNotEmpty(roles)) {
-            for (SimpleRole role : roles) {
-                String authority = role.getAuthority();
-                Assert.notNull(authority, "role not found");
-                if (authority.startsWith(Constants.ROLE_TENANT)) {
-                    authority = Constants.ROLE_TENANT;
-                }
-                userMapper.addUserRole(user.getUsername(), authority, tenantId);
-            }
-        }
-    }
 
     @Override
     public void updateUserPassword(String username, String oldpassword, String newpassword) {
-        MutableUser mutableUser = userMapper.getPasswordById(username);
+        MutableUserVO mutableUser = userMapper.getPasswordById(username);
         Assert.notNull(mutableUser, "user not found");
         boolean isChecked = passwordEncoder.matches(oldpassword, mutableUser.getPassword());
         Assert.isTrue(isChecked, "lambda.authority.user.password.incorrect");
@@ -742,7 +725,7 @@ public class UserServiceImpl implements UserService {
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
         String parameter = resetPwdDTO.getNewPassword();
         Password password = obtainPassword(strategy, parameter);
-        MutableUser mutableUser = new MutableUser();
+        MutableUserVO mutableUser = new MutableUserVO();
         mutableUser.setUsername(resetPwdDTO.getUsername());
         mutableUser.setPassword(passwordEncoder.encode(password.getEncrypted()));
         userMapper.updatePassword(mutableUser);
@@ -760,14 +743,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public void prohibitUser(LoginUser operator, Integer type, String username) {
         Assert.notNull(username, "username not null");
-        MutableUser user = userMapper.getMutableUserById(username);
+        MutableUserVO user = userMapper.getMutableUserById(username);
         Assert.notNull(user, "user not found");
         Assert.isTrue(!operator.getName().equals(username), "lambda.authority.no.operation.authority");
         userMapper.prohibitUser(type, username);
     }
 
     @Override
-    public void unlockUser(String username, LoginUser operator) {}
+    public void unlockUser(String username, LoginUser operator) {
+    }
 
     public static String md5f2(String password) {
         return DigestUtils.md5Hex(DigestUtils.md5Hex(password));
@@ -872,17 +856,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<MutableUser> getAllMutableUsersByTenantId(String tenantId) {
+    public List<MutableUserVO> getAllMutableUsersByTenantId(String tenantId) {
         Assert.notNull(tenantId, "租户id不能为空");
         return userMapper.getAllMutableUsersByTenantId(tenantId);
     }
 
     @Override
-    public void updateTenantUser(MutableUser source, LoginUser operator) {
+    public void updateTenantUser(MutableUserVO source, LoginUser operator) {
         Assert.notNull(source, "user must not be null");
         Assert.notNull(source.getUsername(), "username must not be null");
         String username = source.getUsername();
-        MutableUser target = userMapper.getMutableUserById(username);
+        MutableUserVO target = userMapper.getMutableUserById(username);
         Assert.notNull(target, "user not found");
         BeanUtils.copyProperties(source, target);
         target.setNicknameAbbr(PinyinUtil.getPinyin(target.getNickname()));
@@ -892,5 +876,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportMutableUsers(Page<MutableUser> pageable, Map<String, Object> parameters) {}
+    public void exportMutableUsers(Page<MutableUserVO> pageable, Map<String, Object> parameters) {
+    }
 }

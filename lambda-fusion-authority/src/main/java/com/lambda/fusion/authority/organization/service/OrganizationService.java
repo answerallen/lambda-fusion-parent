@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.organization.service;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.organization.model.*;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
-import com.lambda.fusion.authority.user.model.MutableUser;
+import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,7 +69,7 @@ public interface OrganizationService {
      * @param users 用户信息
      * @return {@link Organization}
      */
-    List<MutableOrganization> getAllOrganMutableUsers(List<MutableUser> users);
+    List<MutableOrganization> getAllOrganMutableUsers(List<MutableUserVO> users);
 
     /**
      * 以平铺的方式获取组织权限列表

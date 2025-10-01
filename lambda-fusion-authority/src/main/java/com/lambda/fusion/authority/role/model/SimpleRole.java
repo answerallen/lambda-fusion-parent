@@ -13,8 +13,7 @@ public class SimpleRole {
     @Schema(description = "别名")
     private String alias;
 
-    public SimpleRole() {
-    }
+    public SimpleRole() {}
 
     public SimpleRole(String authority, String alias) {
         this.authority = authority;

@@ -24,7 +24,7 @@ import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.MutableRole;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
-import com.lambda.fusion.authority.user.model.MutableUser;
+import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import com.lambda.fusion.core.tree.DragMode;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.tree.TreeUtils;
@@ -294,7 +294,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<MutableOrganization> getAllOrganMutableUsers(List<MutableUser> users) {
+    public List<MutableOrganization> getAllOrganMutableUsers(List<MutableUserVO> users) {
         return organizationMapper.getAllOrganMutableUsers(users);
     }
 

@@ -1,12 +1,9 @@
-package com.lambda.fusion.authority.user.model.dto;
+package com.lambda.fusion.authority.user.model.vo;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.lambda.cloud.core.annotation.AutoConverter;
-import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.authority.organization.model.Org;
 import com.lambda.fusion.authority.role.model.SimpleRole;
 import com.lambda.fusion.authority.user.model.UserInfo;
-import com.lambda.fusion.authority.user.model.entity.UserEntity;
 import com.lambda.fusion.core.base.LambdaObject;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,23 +11,17 @@ import jakarta.validation.Valid;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import org.hibernate.validator.constraints.Length;
 
 /**
  * 易变的用户信息
  */
-@EqualsAndHashCode(callSuper = true)
-@AutoConverter(target = UserEntity.class)
 @Data
 @Schema(description = "用户信息")
-public class UserCreateDTO extends BaseDTO<UserEntity> {
+public class MutableUserVO implements LambdaObject {
 
     @Schema(description = "用户名称")
-    @NotNull(message = "username not found")
     private String username;
 
     @Hidden
@@ -41,7 +32,6 @@ public class UserCreateDTO extends BaseDTO<UserEntity> {
     private String nickname;
 
     @Schema(description = "手机号码")
-    @NotNull(message = "mobile not found")
     private String mobile;
 
     @Schema(description = "电子邮箱")
@@ -108,4 +98,8 @@ public class UserCreateDTO extends BaseDTO<UserEntity> {
     @JsonProperty("personal")
     private Map<String, String> personal;
 
+    @Override
+    public String id() {
+        return this.getUsername();
+    }
 }

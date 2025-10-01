@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.user.service;
 
-import com.lambda.fusion.authority.user.model.MutableUser;
+import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import com.lambda.fusion.authority.user.model.RestUserInfoParameter;
 import com.lambda.fusion.authority.user.model.RestVerifyCodeInfo;
 import org.springframework.lang.NonNull;
@@ -37,5 +37,5 @@ public interface UserCenterService {
      *
      * @param restUserInfoParameter 用户信息
      */
-    MutableUser updateInfo(RestUserInfoParameter restUserInfoParameter);
+    MutableUserVO updateInfo(RestUserInfoParameter restUserInfoParameter);
 }

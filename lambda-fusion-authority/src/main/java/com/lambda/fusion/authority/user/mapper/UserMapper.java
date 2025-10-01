@@ -1,11 +1,15 @@
 package com.lambda.fusion.authority.user.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.user.model.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.lambda.fusion.authority.user.model.entity.UserEntity;
+import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,7 +18,7 @@ import org.apache.ibatis.annotations.Param;
  *
  */
 @Mapper
-public interface UserMapper {
+public interface UserMapper extends BaseMapper<UserEntity> {
 
     /**
      * 根据角色查询用户集合
@@ -41,7 +45,7 @@ public interface UserMapper {
      * @return
      * @throws Exception
      */
-    MutableUser getMutableUserById(@Param("username") String username);
+    MutableUserVO getMutableUserById(@Param("username") String username);
 
     /**
      * 根据用户名称获取密码
@@ -50,7 +54,7 @@ public interface UserMapper {
      * @return
      * @throws Exception
      */
-    MutableUser getPasswordById(@Param("username") String username);
+    MutableUserVO getPasswordById(@Param("username") String username);
 
     /**
      * 查询所有用户
@@ -58,7 +62,7 @@ public interface UserMapper {
      * @param users
      * @return
      */
-    List<MutableUser> getAllMutableUsers(List<MutableUser> users);
+    List<MutableUserVO> getAllMutableUsers(List<MutableUserVO> users);
 
     /**
      * 查询所有用户
@@ -67,7 +71,7 @@ public interface UserMapper {
      * @param parameters
      * @return
      */
-    Page<MutableUser> getAllMutableUsersByCondition(Page<MutableUser> page, Map<String, Object> parameters);
+    Page<MutableUserVO> getAllMutableUsersByCondition(Page<MutableUserVO> page, Map<String, Object> parameters);
 
     /**
      * 根据关键字模糊查询用户列表
@@ -75,14 +79,15 @@ public interface UserMapper {
      * @param key
      * @return
      */
-    List<MutableUser> getAllMutableUsersByKey(@Param("key") String key);
+    List<MutableUserVO> getAllMutableUsersByKey(@Param("key") String key);
 
     /**
      * 保存用户
      *
      * @param user
      */
-    void insertMutableUser(MutableUser user);
+    @Deprecated
+    void insertMutableUser(MutableUserVO user);
 
     /**
      * 添加用户角色
@@ -93,6 +98,7 @@ public interface UserMapper {
      *
      * @date 2019-03-22
      */
+    @Deprecated
     void addUserRole(
             @Param("username") String username,
             @Param("authority") String authority,
@@ -103,14 +109,14 @@ public interface UserMapper {
      *
      * @param user
      */
-    void updateMutableUser(MutableUser user);
+    void updateMutableUser(MutableUserVO user);
 
     /**
      * 修改指定用户的密码
      *
      * @param user
      */
-    void updatePassword(MutableUser user);
+    void updatePassword(MutableUserVO user);
 
     /**
      * 删除用户
@@ -146,14 +152,14 @@ public interface UserMapper {
     /**
      * 查询所有用户信息
      **/
-    List<MutableUser> getAllUsers();
+    List<MutableUserVO> getAllUsers();
 
     /**
      * 获取组织机构下所有用户
      *
      * @param orgId
      **/
-    List<MutableUser> getAllOrgUsers(@Param("orgId") String orgId);
+    List<MutableUserVO> getAllOrgUsers(@Param("orgId") String orgId);
 
     /**
      * 根据组织查询用户列表
@@ -235,21 +241,21 @@ public interface UserMapper {
      * @param parameters
      * @return
      */
-    List<MutableUser> getAllMutableUsersNoPage(@Param("parameters") Map<String, Object> parameters);
+    List<MutableUserVO> getAllMutableUsersNoPage(@Param("parameters") Map<String, Object> parameters);
 
     /**
      * 修改用户手机号
      *
      * @param user 用户修改信息
      */
-    void updateMobile(MutableUser user);
+    void updateMobile(MutableUserVO user);
 
     /**
      * 修改用户邮箱
      *
      * @param user 用户修改信息
      */
-    void updateEmail(MutableUser user);
+    void updateEmail(MutableUserVO user);
 
     /**
      * 修改用户昵称
@@ -264,7 +270,7 @@ public interface UserMapper {
      * @param tenantId 租户ID
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<MutableUser> getAllMutableUsersByTenantId(@Param("tenantId") String tenantId);
+    List<MutableUserVO> getAllMutableUsersByTenantId(@Param("tenantId") String tenantId);
 
     /**
      * 检查手机号是否绑定用户

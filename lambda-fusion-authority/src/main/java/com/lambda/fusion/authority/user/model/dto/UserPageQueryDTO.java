@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.user.model.dto;
 
-import com.lambda.fusion.authority.user.model.MutableUser;
+import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import com.lambda.fusion.core.base.page.PageQueryDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -14,7 +14,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "用户分页查询参数")
-public class UserPageQueryDTO extends PageQueryDTO<MutableUser> {
+public class UserPageQueryDTO extends PageQueryDTO<MutableUserVO> {
 
     @Schema(description = "用户名称")
     private String username;
