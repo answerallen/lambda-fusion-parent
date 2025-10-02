@@ -5,6 +5,7 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
 import com.lambda.fusion.authority.user.model.dto.UserCreateDTO;
+import com.lambda.fusion.authority.user.model.dto.UserUpdateDTO;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import com.lambda.fusion.core.user.User;
@@ -88,7 +89,7 @@ public interface UserService {
      * @param user      更新对象
      * @param operator  当前操作人
      */
-    void updateUser(MutableUserVO user, LoginUser operator);
+    void updateUser(UserUpdateDTO user, LoginUser operator);
 
     /***
      * 根据用户名删除用户

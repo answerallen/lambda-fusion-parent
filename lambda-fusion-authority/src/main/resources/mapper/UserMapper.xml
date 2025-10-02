@@ -24,7 +24,7 @@
                 <arg column="orgAlias" javaType="String"/>
             </constructor>
         </association>
-        <association property="props" javaType="com.lambda.fusion.authority.user.model.UserInfo">
+        <association property="props" javaType="com.lambda.fusion.authority.user.model.vo.UserInfoVO">
             <id column="userid" property="userid"/>
             <result column="avatar" property="avatar"/>
             <result column="remark" property="remark"/>

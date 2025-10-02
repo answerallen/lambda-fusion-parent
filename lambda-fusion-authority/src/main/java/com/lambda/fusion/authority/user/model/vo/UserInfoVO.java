@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.model;
+package com.lambda.fusion.authority.user.model.vo;
 
 import com.lambda.fusion.core.base.LambdaExpanded;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 @Schema(description = "用户扩展信息")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "CT_CONSTRUCTOR_THROW"})
-public class UserInfo implements LambdaExpanded {
+public class UserInfoVO implements LambdaExpanded {
     private String userid;
 
     /**

@@ -1,9 +1,12 @@
 package com.lambda.fusion.authority.role.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.role.model.MutableRole;
 import com.lambda.fusion.authority.role.model.domain.AccessPermissionDO;
+import com.lambda.fusion.authority.role.model.entity.RoleEntity;
 import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
 import com.lambda.fusion.authority.role.model.vo.RoleAuthorityVO;
 import com.lambda.fusion.authority.role.model.vo.UserAuthorityVO;
@@ -14,7 +17,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
-public interface RoleMapper {
+public interface RoleMapper extends BaseMapper<RoleEntity> {
     /**
      * 获取所有角色
      *
@@ -65,16 +68,18 @@ public interface RoleMapper {
     /**
      * 根据id删除角色相关的用户关系
      *
-     * @param authority
+     * @param authority authority
      */
     void deleteUserRoleByAuthority(String authority);
 
     /**
      * 根据id删除角色相关的资源关系
      *
-     * @param authority
+     * @param authority authority
      */
-    void deleteResourceRoleByAuthority(String authority);
+    default void deleteResourceRoleByAuthority(String authority) {
+        delete(new LambdaQueryWrapper<RoleEntity>().eq(RoleEntity::getAuthority, authority));
+    }
 
     /**
      * 根据authority查询是否可用

@@ -15,9 +15,5 @@
         WHERE t.username = #{username}
     </select>
 
-    <delete id="deleteByUsername">
-        DELETE FROM la_user_fields  WHERE username = #{username}
-    </delete>
-
 </mapper>
 

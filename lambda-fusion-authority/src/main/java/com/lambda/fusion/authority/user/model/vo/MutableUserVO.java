@@ -3,7 +3,6 @@ package com.lambda.fusion.authority.user.model.vo;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.fusion.authority.organization.model.Org;
 import com.lambda.fusion.authority.role.model.SimpleRole;
-import com.lambda.fusion.authority.user.model.UserInfo;
 import com.lambda.fusion.core.base.LambdaObject;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -75,7 +74,7 @@ public class MutableUserVO implements LambdaObject {
     @Schema(description = "扩展属性")
     @Valid
     @JsonProperty("props")
-    private UserInfo props;
+    private UserInfoVO props;
 
     private boolean self;
 

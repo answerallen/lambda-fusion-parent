@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.user.service;
 
-import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import com.lambda.fusion.authority.user.model.RestUserInfoParameter;
 import com.lambda.fusion.authority.user.model.RestVerifyCodeInfo;
+import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import org.springframework.lang.NonNull;
 
 public interface UserCenterService {

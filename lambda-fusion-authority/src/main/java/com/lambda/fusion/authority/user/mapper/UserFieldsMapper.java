@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.user.mapper;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.user.model.entity.UserFieldsEntity;
 import java.util.List;
@@ -27,8 +28,10 @@ public interface UserFieldsMapper extends BaseMapper<UserFieldsEntity> {
 
     /**
      * 根据用户名删除用户扩展字段信息
+     *
      * @param username 用户名称
-     * @return  int 删除数量
      */
-    int deleteByUsername(String username);
+    default void deleteByUsername(String username) {
+        delete(new LambdaQueryWrapper<UserFieldsEntity>().eq(UserFieldsEntity::getUsername, username));
+    }
 }

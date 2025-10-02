@@ -5,17 +5,15 @@ import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.authority.organization.model.Org;
 import com.lambda.fusion.authority.role.model.SimpleRole;
-import com.lambda.fusion.authority.user.model.UserInfo;
 import com.lambda.fusion.authority.user.model.entity.UserEntity;
-import com.lambda.fusion.core.base.LambdaObject;
+import com.lambda.fusion.authority.user.model.vo.UserInfoVO;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.hibernate.validator.constraints.Length;
@@ -31,7 +29,7 @@ public class UserCreateDTO extends BaseDTO<UserEntity> {
 
     @Schema(description = "用户名称")
     @NotNull(message = "username not found")
-    private String username;
+    private String userid;
 
     @Hidden
     private String password;
@@ -85,7 +83,7 @@ public class UserCreateDTO extends BaseDTO<UserEntity> {
     @Schema(description = "扩展属性")
     @Valid
     @JsonProperty("props")
-    private UserInfo props;
+    private UserInfoVO props;
 
     private boolean self;
 
@@ -107,5 +105,4 @@ public class UserCreateDTO extends BaseDTO<UserEntity> {
     @Schema(description = "用户新增字段信息")
     @JsonProperty("personal")
     private Map<String, String> personal;
-
 }

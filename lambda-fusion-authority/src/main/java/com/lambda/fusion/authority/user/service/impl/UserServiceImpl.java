@@ -1,5 +1,10 @@
 package com.lambda.fusion.authority.user.service.impl;
 
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
+import static com.lambda.fusion.core.Constants.ROLE_DEV;
+import static com.lambda.fusion.core.tree.Tree.SPLIT;
+
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjectUtil;
@@ -27,12 +32,18 @@ import com.lambda.fusion.authority.user.mapper.*;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
 import com.lambda.fusion.authority.user.model.dto.UserCreateDTO;
+import com.lambda.fusion.authority.user.model.dto.UserUpdateDTO;
 import com.lambda.fusion.authority.user.model.entity.*;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
+import com.lambda.fusion.authority.user.model.vo.UserInfoVO;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.user.User;
 import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -51,16 +62,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
-import static com.lambda.fusion.core.Constants.ROLE_DEV;
-import static com.lambda.fusion.core.tree.Tree.SPLIT;
 
 @Slf4j
 @Service
@@ -84,6 +85,7 @@ public class UserServiceImpl implements UserService {
      * 用户新增字段key
      */
     private static final String USER_PERSONAL = "personal";
+
     private OrganizationMapper organizationMapper;
 
     /***
@@ -122,8 +124,8 @@ public class UserServiceImpl implements UserService {
         if (user != null) {
             //            user.setOnline(laAuthorizeHelper.isOnline(username));
             //            user.setLocked(laAuthorizeHelper.getLockedState(username));
-            //            UserInfo props = decorator.getTargetPropsById(username);
-            //            user.setProps(props);
+            //                        UserInfoVO props = decorator.getTargetPropsById(username);
+            //                        user.setProps(props);
             List<UserFieldsEntity> fields = userFieldsMapper.getListByUsername(username);
             Map<String, Map<String, String>> allPersonUserMap;
             if (CollectionUtils.isNotEmpty(fields)) {
@@ -138,7 +140,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public MutableUserVO getCurrentMutableUser(User operator) {
         MutableUserVO mutableUser = this.getMutableUserByUsername(operator.getName());
-        UserInfo props = mutableUser.getProps();
+        UserInfoVO props = mutableUser.getProps();
         if (props != null && properties.getPasswordStrategy().getEnablePeriodChange()) {
             boolean notMatched =
                     !operator.isDev() && !operator.isAdmin() && !operator.isManager() && !operator.isTenantManager();
@@ -530,25 +532,25 @@ public class UserServiceImpl implements UserService {
         userEntity.setCreator(operator.getName());
         userMapper.insert(userEntity);
 
-
         List<SimpleRole> roles = userCreateDTO.getAuthorities();
         addUserRoles(operator, roles, userEntity);
 
         if (Objects.isNull(userCreateDTO.getProps())) {
-            userCreateDTO.setProps(new UserInfo());
+            userCreateDTO.setProps(new UserInfoVO());
         }
         userCreateDTO.getProps().setUpdatePwd(true);
 
         Org org = userCreateDTO.getOrg();
         if (org != null && StringUtils.isNotBlank(org.getId())) {
-            userOrganizationMapper.insert(new UserOrganizationEntity(userEntity.getUserid(), org.getId(), operator.getTenantId()));
+            userOrganizationMapper.insert(
+                    new UserOrganizationEntity(userEntity.getUserid(), org.getId(), operator.getTenantId()));
         }
         return encodePassword.getOrigin();
     }
 
     private void addUserRoles(LoginUser operator, List<SimpleRole> roles, UserEntity userEntity) {
         if (CollectionUtils.isNotEmpty(roles)) {
-            List<UserRole> userRoles = roles.stream()
+            List<UserRoleEntity> userRoleEntities = roles.stream()
                     .map(SimpleRole::getAuthority)
                     .filter(StrUtil::isNotEmpty)
                     .map(authority -> {
@@ -556,43 +558,29 @@ public class UserServiceImpl implements UserService {
                         if (authority.startsWith(Constants.ROLE_TENANT)) {
                             authority = Constants.ROLE_TENANT;
                         }
-                        UserRole userRole = new UserRole();
-                        userRole.setAuthority(authority);
-                        userRole.setTenantId(operator.getTenantId());
-                        userRole.setUserid(userEntity.getUserid());
-                        return userRole;
-                    }).collect(Collectors.toList());
-            userRoleMapper.insert(userRoles);
+                        UserRoleEntity userRoleEntity = new UserRoleEntity();
+                        userRoleEntity.setAuthority(authority);
+                        userRoleEntity.setTenantId(operator.getTenantId());
+                        userRoleEntity.setUserid(userEntity.getUserid());
+                        return userRoleEntity;
+                    })
+                    .collect(Collectors.toList());
+            userRoleMapper.insert(userRoleEntities);
         }
     }
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
-    public void updateUser(MutableUserVO source, LoginUser operator) {
-        Assert.notNull(source, "user is not null");
-        Assert.notNull(source.getUsername(), "username not empty");
-        String username = source.getUsername();
-
-        UserEntity userEntity = userMapper.selectById(username);
-
-        MutableUserVO target = userMapper.getMutableUserById(username);
-        Assert.notNull(target, "user not empty");
-        Org original = target.getOrg();
-        // 如果要修改的用户是租户角色，则不允许修改其组织
-//        if (!source) {
-//        updateUserOrg(username, source.getOrg(), original, operator);
-//        }
-
-        checkPropsUpdated(source.getProps(), target.getProps());
-
-        BeanUtils.copyProperties(source, target);
-        target.setNicknameAbbr(PinyinUtil.getPinyin(target.getNickname()));
-        userMapper.updateMutableUser(target);
-        userMapper.deleteUserRoles(username);
-        addUserRoles(, operator.getTenantId(),userEntity);
-        if (MapUtils.isNotEmpty(source.getPersonal())) {
-            List<UserFieldsEntity> fields = this.convertPersonBean(source.getPersonal(), username);
-            this.userFieldsMapper.deleteByUsername(username);
+    public void updateUser(UserUpdateDTO userUpdateDTO, LoginUser operator) {
+        UserEntity userEntity = userUpdateDTO.toEntity();
+        userEntity.setNicknameAbbr(PinyinUtil.getPinyin(userEntity.getNickname()));
+        int updated = userMapper.updateById(userEntity);
+        Assert.isTrue(updated == 0, "用户更新失败！");
+        userRoleMapper.deleteUserRoles(userEntity.getUserid());
+        addUserRoles(operator, userUpdateDTO.getAuthorities(), userEntity);
+        if (MapUtils.isNotEmpty(userUpdateDTO.getPersonal())) {
+            List<UserFieldsEntity> fields = this.convertPersonBean(userUpdateDTO.getPersonal(), userEntity.getUserid());
+            this.userFieldsMapper.deleteByUsername(userEntity.getUserid());
             this.userFieldsMapper.insert(fields);
         }
     }
@@ -629,7 +617,7 @@ public class UserServiceImpl implements UserService {
      * @param actual 当前用户信息
      * @return 是否需要更新扩展属性
      */
-    private boolean checkPropsUpdated(UserInfo source, UserInfo actual) {
+    private boolean checkPropsUpdated(UserInfoVO source, UserInfoVO actual) {
         if (source == null || actual == null) {
             return false;
         }
@@ -637,7 +625,6 @@ public class UserServiceImpl implements UserService {
         // 比较关键属性是否发生变化
         return !Objects.equals(source.getAvatar(), actual.getAvatar());
     }
-
 
     /**
      * <ol>
@@ -688,7 +675,7 @@ public class UserServiceImpl implements UserService {
         boolean exists = userMapper.hasExists(username);
         if (exists) {
             userMapper.deleteUser(username);
-            userMapper.deleteUserRoles(username);
+            userRoleMapper.deleteUserRoles(username);
             roleMapper.deleteResourceRoleByAuthority(username);
             organizationMapper.deleteUserOrganizationByUser(username);
             userFieldsMapper.deleteByUsername(username);
@@ -703,19 +690,18 @@ public class UserServiceImpl implements UserService {
         return userMapper.getAllMutableUsersByKey(key);
     }
 
-
     @Override
     public void updateUserPassword(String username, String oldpassword, String newpassword) {
-        MutableUserVO mutableUser = userMapper.getPasswordById(username);
-        Assert.notNull(mutableUser, "user not found");
-        boolean isChecked = passwordEncoder.matches(oldpassword, mutableUser.getPassword());
+        UserEntity userEntity = userMapper.selectById(username);
+        Assert.notNull(userEntity, "user not found");
+        boolean isChecked = passwordEncoder.matches(oldpassword, userEntity.getPassword());
         Assert.isTrue(isChecked, "lambda.authority.user.password.incorrect");
-        mutableUser.setPassword(passwordEncoder.encode(newpassword));
+        String encoded = passwordEncoder.encode(newpassword);
         UserUpdatePwdLogEntity userUpdatePwdLogEntity = new UserUpdatePwdLogEntity();
-        userUpdatePwdLogEntity.setPassWord(passwordEncoder.encode(newpassword));
+        userUpdatePwdLogEntity.setPassWord(encoded);
         userUpdatePwdLogEntity.setUserName(username);
         userUpdatePwdLogMapper.insertLog(userUpdatePwdLogEntity);
-        userMapper.updatePassword(mutableUser);
+        userMapper.updatePassword(username, encoded);
         userInfoMapper.updateStatus(username, false);
         // todo 初始化令牌
     }
@@ -723,12 +709,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public String resetUserPassword(ResetPwdDTO resetPwdDTO) {
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
-        String parameter = resetPwdDTO.getNewPassword();
-        Password password = obtainPassword(strategy, parameter);
-        MutableUserVO mutableUser = new MutableUserVO();
-        mutableUser.setUsername(resetPwdDTO.getUsername());
-        mutableUser.setPassword(passwordEncoder.encode(password.getEncrypted()));
-        userMapper.updatePassword(mutableUser);
+        Password password = obtainPassword(strategy, resetPwdDTO.getNewPassword());
+        userMapper.updatePassword(resetPwdDTO.getUsername(), passwordEncoder.encode(password.getEncrypted()));
         UserInfoEntity userInfoEntity = new UserInfoEntity();
         userInfoEntity.setUserid(resetPwdDTO.getUsername());
         userInfoEntity.setUpdatePwd(true);
@@ -750,8 +732,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void unlockUser(String username, LoginUser operator) {
-    }
+    public void unlockUser(String username, LoginUser operator) {}
 
     public static String md5f2(String password) {
         return DigestUtils.md5Hex(DigestUtils.md5Hex(password));
@@ -872,10 +853,9 @@ public class UserServiceImpl implements UserService {
         target.setNicknameAbbr(PinyinUtil.getPinyin(target.getNickname()));
         userMapper.updateMutableUser(target);
         userMapper.deleteUserRoles(username);
-        addUserRoles(target, operator.getTenantId());
+        //        addUserRoles(target, operator.getTenantId());
     }
 
     @Override
-    public void exportMutableUsers(Page<MutableUserVO> pageable, Map<String, Object> parameters) {
-    }
+    public void exportMutableUsers(Page<MutableUserVO> pageable, Map<String, Object> parameters) {}
 }

@@ -1,15 +1,15 @@
 package com.lambda.fusion.authority.user.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.entity.UserEntity;
+import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.lambda.fusion.authority.user.model.entity.UserEntity;
-import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -46,15 +46,6 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @throws Exception
      */
     MutableUserVO getMutableUserById(@Param("username") String username);
-
-    /**
-     * 根据用户名称获取密码
-     *
-     * @param username
-     * @return
-     * @throws Exception
-     */
-    MutableUserVO getPasswordById(@Param("username") String username);
 
     /**
      * 查询所有用户
@@ -116,7 +107,11 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      *
      * @param user
      */
-    void updatePassword(MutableUserVO user);
+    default void updatePassword(String username, String newPassword) {
+        update(new LambdaUpdateWrapper<UserEntity>()
+                .eq(UserEntity::getUserid, username)
+                .set(UserEntity::getPassword, newPassword));
+    }
 
     /**
      * 删除用户
@@ -130,6 +125,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      *
      * @param username
      */
+    @Deprecated
     void deleteUserRoles(@Param("username") String username);
 
     /**

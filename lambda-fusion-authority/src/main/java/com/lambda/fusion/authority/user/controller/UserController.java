@@ -84,13 +84,15 @@ public class UserController {
 
     @GetMapping(value = "/{username}")
     @Operation(summary = "查询用户信息")
-    public MutableUserVO get(@Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
+    public MutableUserVO get(
+            @Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
         return userService.getMutableUserByUsername(username);
     }
 
     @GetMapping("/search")
     @Operation(summary = "根据关键字模糊查询用户列表")
-    public List<MutableUserVO> search(@Parameter(description = "关键字", required = true) @RequestParam("key") String key) {
+    public List<MutableUserVO> search(
+            @Parameter(description = "关键字", required = true) @RequestParam("key") String key) {
         return userService.getAllMutableUsersByKey(key);
     }
 
@@ -134,21 +136,14 @@ public class UserController {
     public MutableUserVO add(
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody UserCreateDTO userCreateDTO) {
         LoginUser operator = OperatorUtils.getOperator();
-
-        String password = userService.addUser(userCreateDTO, operator);
-
-        MutableUserVO user = userService.getMutableUserByUsername(userCreateDTO.getUsername());
-
+        userService.addUser(userCreateDTO, operator);
+        MutableUserVO user = userService.getMutableUserByUsername(userCreateDTO.getUserid());
         if (MapUtils.isNotEmpty(userCreateDTO.getPersonal())) {
-            userService.addUserFields(userCreateDTO.getPersonal(), userCreateDTO.getUsername());
+            userService.addUserFields(userCreateDTO.getPersonal(), userCreateDTO.getUserid());
         }
-
-        user.setPassword(password);
-
         if (tenantAuthorizeManager != null) {
-            tenantAuthorizeManager.addUser(copy);
+            // 添加租户用户
         }
-
         return user;
     }
 
@@ -156,10 +151,10 @@ public class UserController {
     @Operation(summary = "更新用户信息")
     public MutableUserVO update(
             @Parameter(description = "用户名称", required = true) @PathVariable("username") String username,
-            @Parameter(description = "用户信息", required = true) @Valid @RequestBody UserUpdateDTO mutableUser) {
+            @Parameter(description = "用户信息", required = true) @Valid @RequestBody UserUpdateDTO userUpdateDTO) {
         LoginUser operator = OperatorUtils.getOperator();
-        mutableUser.setUsername(username);
-        userService.updateUser(mutableUser, operator);
+        userUpdateDTO.setUsername(username);
+        userService.updateUser(userUpdateDTO, operator);
         return userService.getMutableUserByUsername(username);
     }
 

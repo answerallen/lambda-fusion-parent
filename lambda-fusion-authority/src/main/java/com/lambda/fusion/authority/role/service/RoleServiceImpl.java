@@ -8,7 +8,6 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -20,16 +19,16 @@ import com.lambda.fusion.authority.resource.service.ResourceService;
 import com.lambda.fusion.authority.role.mapper.AccessPermissionMapper;
 import com.lambda.fusion.authority.role.mapper.GroupMapper;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
-import com.lambda.fusion.authority.role.mapper.UserRolesMapper;
 import com.lambda.fusion.authority.role.model.MutableRole;
 import com.lambda.fusion.authority.role.model.domain.AccessPermissionDO;
 import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
 import com.lambda.fusion.authority.role.model.entity.GroupEntity;
-import com.lambda.fusion.authority.role.model.entity.UserRoleEntity;
 import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
 import com.lambda.fusion.authority.role.model.vo.GroupRoleVo;
 import com.lambda.fusion.authority.role.model.vo.GroupVo;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
+import com.lambda.fusion.authority.user.mapper.UserRoleMapper;
+import com.lambda.fusion.authority.user.model.entity.UserRoleEntity;
 import com.lambda.fusion.authority.utils.MybatisUtils;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.TreeFactory;
@@ -68,7 +67,7 @@ public class RoleServiceImpl implements RoleService {
     private GroupMapper groupMapper;
 
     @Autowired
-    private UserRolesMapper userRolesMapper;
+    private UserRoleMapper userRoleMapper;
 
     @Resource
     private AccessPermissionMapper accessPermissionMapper;
@@ -416,10 +415,9 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public void batchAddRoleUser(User user, BatchAddRoleUserDTO req) {
         final String authority = req.getRoleId();
-        final LambdaQueryWrapper<UserRoleEntity> query = Wrappers.lambdaQuery(UserRoleEntity.class);
         final List<String> usernames = req.getUsername();
-        query.eq(UserRoleEntity::getAuthority, req.getRoleId());
-        final List<UserRoleEntity> dbResult = userRolesMapper.selectList(query);
+        final List<UserRoleEntity> dbResult = userRoleMapper.selectList(
+                new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getAuthority, req.getRoleId()));
         final Set<String> dbUsernames =
                 dbResult.stream().map(UserRoleEntity::getUserid).collect(Collectors.toSet());
         if (usernames.size() >= dbUsernames.size()) {
@@ -428,13 +426,13 @@ public class RoleServiceImpl implements RoleService {
                 final String tenantId = user.getTenantId();
                 final List<UserRoleEntity> saveList = new ArrayList<>(usernames.size());
                 usernames.forEach(username -> saveList.add(new UserRoleEntity(username, authority, tenantId)));
-                userRolesMapper.insert(saveList);
+                userRoleMapper.insert(saveList);
             }
         } else {
             if (CollectionUtils.isNotEmpty(usernames)) {
                 dbUsernames.removeIf(usernames::contains);
             }
-            userRolesMapper.batchDelete(authority, new ArrayList<>(dbUsernames));
+            userRoleMapper.batchDelete(authority, new ArrayList<>(dbUsernames));
         }
     }
 }

@@ -64,9 +64,6 @@
     <delete id="deleteUserRoleByAuthority" parameterType="string">
         DELETE FROM LA_USER_ROLES WHERE authority = #{authority}
     </delete>
-    <delete id="deleteResourceRoleByAuthority" parameterType="string">
-        DELETE FROM LA_ROLE_RESOURCES WHERE authority = #{authority}
-    </delete>
     <delete id="deleteRoleByAuthority" parameterType="string">
         DELETE FROM LA_ROLES WHERE authority = #{authority}
     </delete>
