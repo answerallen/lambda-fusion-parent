@@ -5,6 +5,8 @@ import com.lambda.fusion.authority.authentication.model.ResourceSimpleQuery;
 import com.lambda.fusion.authority.authentication.model.SimpleUser;
 import com.lambda.fusion.authority.resource.model.Resource;
 import java.util.List;
+
+import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -53,5 +55,5 @@ public interface AuthenticationMapper {
      * @param roleId 角色ID
      * @return 用户列表
      */
-    List<com.lambda.fusion.authority.user.model.SimpleUser> getUsersByRoleId(@Param("roleId") String roleId);
+    List<SimpleUserVO> getUsersByRoleId(@Param("roleId") String roleId);
 }

@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.authentication.service;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.model.Resource;
-import com.lambda.fusion.authority.user.model.SimpleUser;
+import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
 import com.lambda.security.service.ThirdPartyLoginService;
 import com.lambda.security.service.UserDetailService;
 import java.util.List;
@@ -41,5 +41,5 @@ public interface AuthenticationService extends UserDetailService, ThirdPartyLogi
      * @param roleId 角色ID
      * @return 用户列表
      */
-    List<SimpleUser> getUsersByRoleId(String roleId);
+    List<SimpleUserVO> getUsersByRoleId(String roleId);
 }

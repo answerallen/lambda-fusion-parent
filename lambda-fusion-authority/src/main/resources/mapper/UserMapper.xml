@@ -280,7 +280,7 @@
             AND UR.AUTHORITY = #{roleId}
         </if>
     </select>
-    <resultMap id="Permission" type="com.lambda.fusion.authority.user.model.Permission">
+    <resultMap id="Permission" type="com.lambda.fusion.authority.user.model.vo.PermissionVO">
         <id column="id" property="id"/>
         <result column="res_name" property="name"/>
         <result column="parentid" property="pid"/>
@@ -308,7 +308,7 @@
     </select>
 
 
-    <select id="getRoleResources" resultType="com.lambda.fusion.authority.user.model.RoleResources">
+    <select id="getRoleResources" resultType="com.lambda.fusion.authority.user.model.vo.RoleResourcesVO">
         SELECT T.RESOURCEID,T.LA_MANAGE FROM LA_ROLE_RESOURCES T
         <where>
             <if test="authority != null and authority !='' ">
@@ -339,7 +339,7 @@
             #{item.resourceId}
         </foreach>
     </update>
-    <select id="getAllSimpleUser" resultType="com.lambda.fusion.authority.user.model.SimpleUser">
+    <select id="getAllSimpleUser" resultType="com.lambda.fusion.authority.user.model.vo.SimpleUserVO">
         SELECT DISTINCT
             T1.USERNAME,
             T1.NICKNAME
@@ -457,18 +457,13 @@
         ORDER BY T.CREATEDATE DESC, username asc
     </select>
 
-    <!-- 更新用户手机号 -->
-    <update id="updateMobile" parameterType="com.lambda.fusion.authority.user.model.vo.MutableUserVO">
-        UPDATE LA_USERS SET mobile = #{mobile} where username = #{username}
-    </update>
-
     <!-- 更新用户邮箱 -->
     <update id="updateEmail" parameterType="com.lambda.fusion.authority.user.model.vo.MutableUserVO">
         UPDATE LA_USERS SET email = #{email} where username = #{username}
     </update>
 
     <!-- 更新用户信息 -->
-    <update id="updateInfo" parameterType="com.lambda.fusion.authority.user.model.RestUserInfoParameter">
+    <update id="updateInfo" parameterType="com.lambda.fusion.authority.user.model.dto.RestUserInfoDTO">
         UPDATE LA_USERS SET nickname = #{nickname},email = #{email} where username = #{username}
     </update>
 

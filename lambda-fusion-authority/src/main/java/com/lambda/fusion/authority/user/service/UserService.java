@@ -2,12 +2,13 @@ package com.lambda.fusion.authority.user.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
 import com.lambda.fusion.authority.user.model.dto.UserCreateDTO;
 import com.lambda.fusion.authority.user.model.dto.UserUpdateDTO;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
+import com.lambda.fusion.authority.user.model.vo.PermissionVO;
+import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
 import com.lambda.fusion.core.user.User;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -192,7 +193,7 @@ public interface UserService {
      * @param username
      * @param mode
      */
-    List<Permission> getUserPermissions(String username, String mode);
+    List<PermissionVO> getUserPermissions(String username, String mode);
 
     /**
      * 获取所有用户下拉数据
@@ -201,7 +202,7 @@ public interface UserService {
      * @param orgIds
      * @return
      */
-    List<SimpleUser> getAllSimpleUser(LoginUser operator, List<String> orgIds);
+    List<SimpleUserVO> getAllSimpleUser(LoginUser operator, List<String> orgIds);
 
     /**
      * 当前用户组织机构数据权限

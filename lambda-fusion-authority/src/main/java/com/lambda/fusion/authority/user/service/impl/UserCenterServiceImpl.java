@@ -5,8 +5,8 @@ import com.lambda.cloud.sms.SmsMessageSender;
 import com.lambda.fusion.authority.user.mapper.UserFieldsMapper;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
-import com.lambda.fusion.authority.user.model.RestUserInfoParameter;
-import com.lambda.fusion.authority.user.model.RestVerifyCodeInfo;
+import com.lambda.fusion.authority.user.model.dto.RestUserInfoDTO;
+import com.lambda.fusion.authority.user.model.vo.VerifyCodeVO;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import com.lambda.fusion.authority.user.service.UserCenterService;
@@ -29,7 +29,7 @@ public class UserCenterServiceImpl implements UserCenterService {
     private final SmsMessageSender shortMessageSender;
 
     @Override
-    public RestVerifyCodeInfo sendMobileVerifyCodeStore(@NonNull String username, @NonNull String mobile) {
+    public VerifyCodeVO sendMobileVerifyCodeStore(@NonNull String username, @NonNull String mobile) {
 
         return null;
     }
@@ -37,11 +37,9 @@ public class UserCenterServiceImpl implements UserCenterService {
     @Override
     public void updateMobile(String username, String mobile, String verifyCode) {
         Assert.notNull(username, "username must not be empty");
-        MutableUserVO mutableUser = userMapper.getMutableUserById(username);
-        Assert.notNull(mutableUser, "user not found");
+        Assert.isFalse(userMapper.hasExists(username), "user not found");
         Assert.notNull(mobile, "mobile must not be empty");
-        mutableUser.setMobile(mobile);
-        userMapper.updateMobile(mutableUser);
+        userMapper.updateMobile(username,mobile);
     }
 
     @Override
@@ -51,18 +49,18 @@ public class UserCenterServiceImpl implements UserCenterService {
         // 获取用户信息并验证用户是否存在
         MutableUserVO mutableUser = userMapper.getMutableUserById(username);
         Assert.notNull(mutableUser, "user not found");
-        Assert.notNull(email, "lambda.authority.user.email.notempty");
+        Assert.notNull(email, "email not found");
         // 更新用户邮箱
-        userMapper.updateEmail(mutableUser);
+        userMapper.updateEmail(username,email);
     }
 
     @Override
-    public MutableUserVO updateInfo(RestUserInfoParameter restUserInfoParameter) {
-        String username = restUserInfoParameter.getUsername();
+    public MutableUserVO updateInfo(RestUserInfoDTO userInfoDTO) {
+        String username = userInfoDTO.getUsername();
         MutableUserVO user = userMapper.getMutableUserById(username);
         Assert.notNull(user, "user not found");
-        userMapper.updateInfo(restUserInfoParameter);
-        String avatar = restUserInfoParameter.getAvatar();
+        userMapper.updateInfo(username,userInfoDTO.getEmail(),userInfoDTO.getNickname());
+        String avatar = userInfoDTO.getAvatar();
         if (StringUtils.isNotEmpty(avatar)) {
             // 获取用户扩展信息
             UserInfoEntity userInfo = userInfoMapper.getProps(username);
@@ -80,9 +78,9 @@ public class UserCenterServiceImpl implements UserCenterService {
         user.setOnline(true);
         user.setLocked(true);
 
-        if (StringUtils.isNotEmpty(restUserInfoParameter.getPersonal())) {
+        if (StringUtils.isNotEmpty(userInfoDTO.getPersonal())) {
             // TODO 更新用户扩展信息
-            System.out.println(restUserInfoParameter.getPersonal());
+            System.out.println(userInfoDTO.getPersonal());
         }
 
         return user;

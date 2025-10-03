@@ -8,11 +8,10 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
-import com.lambda.fusion.authority.user.model.*;
-import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
-import com.lambda.fusion.authority.user.model.dto.UserCreateDTO;
-import com.lambda.fusion.authority.user.model.dto.UserPageQueryDTO;
-import com.lambda.fusion.authority.user.model.dto.UserUpdateDTO;
+import com.lambda.fusion.authority.user.model.vo.PermissionVO;
+import com.lambda.fusion.authority.user.model.vo.VerifyCodeVO;
+import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
+import com.lambda.fusion.authority.user.model.dto.*;
 import com.lambda.fusion.authority.user.model.vo.LoginUserInfoVO;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import com.lambda.fusion.authority.user.optimizer.UserQueryOptimizer;
@@ -26,7 +25,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -35,6 +33,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.*;
 
 /**
  * 用户信息Api
@@ -98,7 +98,7 @@ public class UserController {
 
     @GetMapping()
     @Operation(summary = "查询用户下拉列表")
-    public List<SimpleUser> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
+    public List<SimpleUserVO> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
         LoginUser operator = OperatorUtils.getOperator();
         List<String> orgIds =
                 isAll != null && isAll ? Collections.emptyList() : organizationService.getSubordinateOrgIds(operator);
@@ -225,10 +225,10 @@ public class UserController {
 
     @GetMapping("/permission/{username}")
     @Operation(summary = "查询用户所有权限")
-    public List<Permission> userPermissions(
+    public List<PermissionVO> userPermissions(
             @Parameter(description = "用户ID", required = true) @PathVariable("username") String username,
             @RequestParam(required = false) String mode) {
-        List<Permission> permissions = userService.getUserPermissions(username, mode);
+        List<PermissionVO> permissions = userService.getUserPermissions(username, mode);
         return TreeFactory.build(permissions);
     }
 
@@ -259,8 +259,8 @@ public class UserController {
     public void unbind(
             @Parameter(description = "用户编号", required = true) @PathVariable("username") String username,
             @Parameter(description = "第三方绑定类型(1、钉钉；2、微信)", required = true, schema = @Schema(defaultValue = "1"))
-                    @PathVariable("type")
-                    String type) {
+            @PathVariable("type")
+            String type) {
         LoginUser operator = OperatorUtils.getOperator();
         userInfoService.unbindUserInfo(operator, type, username);
     }
@@ -287,30 +287,23 @@ public class UserController {
     @Operation(
             summary = "更新个人信息",
             parameters = {
-                @Parameter(name = "nickname", description = "昵称", required = true),
-                @Parameter(name = "email", description = "邮箱", required = true),
-                @Parameter(name = "personal", description = "新增字段")
+                    @Parameter(name = "nickname", description = "昵称", required = true),
+                    @Parameter(name = "email", description = "邮箱", required = true),
+                    @Parameter(name = "personal", description = "新增字段")
             })
     public MutableUserVO updateInfo(
-            MultipartFile avatar,
-            @RequestParam("nickname") String nickname,
-            @RequestParam("email") String email,
-            @RequestParam("personal") String personal) {
+            MultipartFile avatar, RestUserInfoDTO restUserInfoDTO) {
         LoginUser operator = OperatorUtils.getOperator();
-        RestUserInfoParameter parameter = new RestUserInfoParameter();
-        parameter.setEmail(email);
-        parameter.setNickname(nickname);
-        parameter.setUsername(operator.getName());
-        parameter.setPersonal(personal);
+        restUserInfoDTO.setUsername(operator.getName());
         if (avatar != null) {
             log.info("file: {}", avatar);
         }
-        return userCenterService.updateInfo(parameter);
+        return userCenterService.updateInfo(restUserInfoDTO);
     }
 
     @PostMapping(value = "/send/mobile/code")
     @Operation(summary = "发送手机验证码")
-    public RestVerifyCodeInfo sendMobileVerifyCodeStore(
+    public VerifyCodeVO sendMobileVerifyCodeStore(
             @Parameter(description = "手机号", required = true) @RequestParam("mobile") String mobile) {
         LoginUser operator = OperatorUtils.getOperator();
         return userCenterService.sendMobileVerifyCodeStore(operator.getName(), mobile);

@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.model;
+package com.lambda.fusion.authority.user.model.bo;
 
 import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

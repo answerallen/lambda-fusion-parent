@@ -11,6 +11,7 @@ import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.authentication.model.SimpleUser;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.Resource;
+import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.user.User;
@@ -74,7 +75,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<com.lambda.fusion.authority.user.model.SimpleUser> getUsersByRoleId(String roleId) {
+    public List<SimpleUserVO> getUsersByRoleId(String roleId) {
         return authenticationMapper.getUsersByRoleId(roleId);
     }
 

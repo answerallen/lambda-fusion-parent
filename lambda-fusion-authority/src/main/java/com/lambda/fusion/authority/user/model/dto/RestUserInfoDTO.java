@@ -1,5 +1,6 @@
-package com.lambda.fusion.authority.user.model;
+package com.lambda.fusion.authority.user.model.dto;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,8 +9,9 @@ import org.springframework.web.multipart.MultipartFile;
 @Setter
 @Getter
 @Schema(description = "更新用户信息")
-public class RestUserInfoParameter {
+public class RestUserInfoDTO {
 
+    @Hidden
     @Schema(description = "用户名")
     private String username;
 

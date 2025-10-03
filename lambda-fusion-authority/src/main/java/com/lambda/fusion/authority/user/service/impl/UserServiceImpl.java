@@ -29,13 +29,12 @@ import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
 import com.lambda.fusion.authority.tenant.persistence.TenantMapper;
 import com.lambda.fusion.authority.user.mapper.*;
-import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.bo.UserTempParameters;
 import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
 import com.lambda.fusion.authority.user.model.dto.UserCreateDTO;
 import com.lambda.fusion.authority.user.model.dto.UserUpdateDTO;
 import com.lambda.fusion.authority.user.model.entity.*;
-import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
-import com.lambda.fusion.authority.user.model.vo.UserInfoVO;
+import com.lambda.fusion.authority.user.model.vo.*;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.user.User;
@@ -475,24 +474,24 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(permissions)) {
             return;
         }
-        List<RoleResources> insertResources = userMapper.getRoleResources(source, null, permissions);
+        List<RoleResourcesVO> insertResources = userMapper.getRoleResources(source, null, permissions);
         String tenantId = operator.getTenantId();
         // TODO 批量保存权限性能优化
-        for (RoleResources roleResources : insertResources) {
+        for (RoleResourcesVO roleResources : insertResources) {
             userMapper.saveUserPermission(target, roleResources, tenantId);
         }
     }
 
     @Override
     public void batchUpdatePermissions(LoginUser operator, String source, String target, Set<String> permissions) {
-        List<RoleResources> updateResources = userMapper.getRoleResources(source, MANAGED, permissions);
+        List<RoleResourcesVO> updateResources = userMapper.getRoleResources(source, MANAGED, permissions);
         if (CollectionUtils.isNotEmpty(updateResources)) {
             userMapper.batchUpdateUserPermissions(target, MANAGED, updateResources, operator.getTenantId());
         }
     }
 
     @Override
-    public List<Permission> getUserPermissions(String username, String mode) {
+    public List<PermissionVO> getUserPermissions(String username, String mode) {
         Assert.notNull(username, "username not empty");
         MutableUserVO user = userMapper.getMutableUserById(username);
         Assert.notNull(user, "user not found");
@@ -780,7 +779,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<SimpleUser> getAllSimpleUser(LoginUser operator, List<String> orgIds) {
+    public List<SimpleUserVO> getAllSimpleUser(LoginUser operator, List<String> orgIds) {
         return userMapper.getAllSimpleUser(operator.getTenantId(), orgIds);
     }
 

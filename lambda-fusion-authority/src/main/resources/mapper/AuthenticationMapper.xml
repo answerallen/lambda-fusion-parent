@@ -113,7 +113,7 @@
         ORDER BY T1.res_rank, T1.parentId, T1.orderNo
     </select>
 
-    <select id="getUsersByRoleId" resultType="com.lambda.fusion.authority.user.model.SimpleUser">
+    <select id="getUsersByRoleId" resultType="com.lambda.fusion.authority.user.model.vo.SimpleUserVO">
         SELECT
         U.username,
         U.nickname

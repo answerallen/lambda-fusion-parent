@@ -3,43 +3,5 @@
 
 <mapper namespace="com.lambda.fusion.authority.user.mapper.UserInfoMapper">
 
-    <select id="getProps" resultType="com.lambda.fusion.authority.user.model.entity.UserInfoEntity">
-        SELECT
-            userid,
-            avatar,
-            remark,
-            IDENTITY_ID,
-            GROUP_NO,
-            LINE_NO,
-            POSITION,
-            STATUS,
-            FILA_NO,
-            EMP_NO,
-            DD_NO,
-            DD_NICK,
-            WECHAT_NO,
-            ISUPDATEPWD AS updatePwd,
-            EXTEND_PARAM,
-            WECHAT_NAME
-        FROM
-            LA_USER_INFO
-        WHERE
-            userid = #{id}
-    </select>
-
-    <update id="updateStatus">
-        UPDATE LA_USER_INFO
-        SET ISUPDATEPWD = #{updatePwd}
-        WHERE
-            userid = #{userName}
-    </update>
-    <!--更改用户头像-->
-    <update id="updateAvatar" parameterType="com.lambda.fusion.authority.user.model.RestUserInfoParameter">
-        UPDATE LA_USER_INFO
-        SET AVATAR = #{avatar}
-        WHERE
-            userid = #{userName}
-    </update>
-
 </mapper>
 

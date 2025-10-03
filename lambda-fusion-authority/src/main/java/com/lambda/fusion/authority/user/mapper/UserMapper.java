@@ -4,12 +4,15 @@ import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.entity.UserEntity;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.lambda.fusion.authority.user.model.vo.PermissionVO;
+import com.lambda.fusion.authority.user.model.vo.RoleResourcesVO;
+import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -172,7 +175,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param ids
      * @param mode
      */
-    List<Permission> getAllUserPermissions(List<String> ids, @Param("mode") String mode);
+    List<PermissionVO> getAllUserPermissions(List<String> ids, @Param("mode") String mode);
 
     /**
      * 查询用户的权限
@@ -189,7 +192,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param manage      是否管理权限
      * @param permissions 权限
      */
-    List<RoleResources> getRoleResources(
+    List<RoleResourcesVO> getRoleResources(
             @Param("authority") String authority,
             @Param("manage") String manage,
             @Param("permissions") Set<String> permissions);
@@ -204,7 +207,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      */
     void saveUserPermission(
             @Param("uid") String target,
-            @Param("roleResources") RoleResources roleResources,
+            @Param("roleResources") RoleResourcesVO roleResources,
             @Param("tenant_id") String tenantId);
 
     /**
@@ -219,7 +222,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
     void batchUpdateUserPermissions(
             @Param("uid") String target,
             @Param("manage") String manage,
-            @Param("permissions") List<RoleResources> permissions,
+            @Param("permissions") List<RoleResourcesVO> permissions,
             @Param("tenant_id") String tenantId);
 
     /**
@@ -229,7 +232,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param orgIds
      * @return
      */
-    List<SimpleUser> getAllSimpleUser(@Param("tenantId") String tenantId, List<String> orgIds);
+    List<SimpleUserVO> getAllSimpleUser(@Param("tenantId") String tenantId, List<String> orgIds);
 
     /**
      * 查询所有用户
@@ -242,23 +245,41 @@ public interface UserMapper extends BaseMapper<UserEntity> {
     /**
      * 修改用户手机号
      *
-     * @param user 用户修改信息
+     * @param username 用户修改信息
+     * @param mobile 用户修改信息
      */
-    void updateMobile(MutableUserVO user);
+    default void updateMobile(String username,String mobile){
+        update(new LambdaUpdateWrapper<UserEntity>()
+                .eq(UserEntity::getUserid, username)
+                .set(UserEntity::getMobile, mobile));
+    }
 
     /**
      * 修改用户邮箱
      *
-     * @param user 用户修改信息
+     * @param username 用户修改信息
+     * @param email 用户修改信息
      */
-    void updateEmail(MutableUserVO user);
+    default void updateEmail(String username,String email){
+        update(new LambdaUpdateWrapper<UserEntity>()
+                .eq(UserEntity::getUserid, username)
+                .set(UserEntity::getEmail, email));
+    }
 
     /**
      * 修改用户昵称
      *
-     * @param user 用户修改信息
+     * @param username 用户修改信息
+     * @param email 用户修改信息
+     * @param nickname 用户修改信息
      */
-    void updateInfo(RestUserInfoParameter user);
+    default void updateInfo(String username,String email,String nickname){
+        update(new LambdaUpdateWrapper<UserEntity>()
+                .eq(UserEntity::getUserid, username)
+                .set(UserEntity::getEmail, email)
+                .set(UserEntity::getNickname, nickname))
+        ;
+    }
 
     /**
      * 根据租户ID，查询租户管理员列表

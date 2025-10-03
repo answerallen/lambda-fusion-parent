@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.model;
+package com.lambda.fusion.authority.user.model.vo;
 
 import com.lambda.fusion.core.tree.Tree;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 @SuppressFBWarnings({"EI_EXPOSE_REP", "UUF_UNUSED_FIELD", "CT_CONSTRUCTOR_THROW"})
-public class Permission implements Tree<Permission> {
+public class PermissionVO implements Tree<PermissionVO> {
 
     private String id;
 
@@ -15,7 +15,7 @@ public class Permission implements Tree<Permission> {
 
     private String pid;
 
-    private List<Permission> children;
+    private List<PermissionVO> children;
 
     @Override
     public String id() {
@@ -28,7 +28,7 @@ public class Permission implements Tree<Permission> {
     }
 
     @Override
-    public void children(List<Permission> children) {
+    public void children(List<PermissionVO> children) {
         this.children = children;
     }
 }
