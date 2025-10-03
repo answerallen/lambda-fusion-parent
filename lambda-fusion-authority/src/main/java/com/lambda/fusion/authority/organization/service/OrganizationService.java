@@ -2,6 +2,8 @@ package com.lambda.fusion.authority.organization.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.organization.model.*;
+import com.lambda.fusion.authority.organization.model.dto.OrganizationCreateDTO;
+import com.lambda.fusion.authority.organization.model.dto.OrganizationUpdateDTO;
 import com.lambda.fusion.authority.organization.model.vo.SimpleOrgVO;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
@@ -40,7 +42,7 @@ public interface OrganizationService {
      *
      * @param id
      */
-    OrganizationVO queryOrganById(String id);
+    OrganizationVO queryOrganizationById(String id);
 
     /**
      * 新增组织信息
@@ -48,7 +50,7 @@ public interface OrganizationService {
      * @param resource 组织机构
      * @return {@link OrganizationVO}
      */
-    OrganizationVO addOrganization(OrganizationVO resource);
+    OrganizationVO addOrganization(OrganizationCreateDTO resource);
 
     /***
      * 删除组织信息
@@ -62,7 +64,7 @@ public interface OrganizationService {
      * @param resource 组织
      * @return {@link OrganizationVO}
      */
-    OrganizationVO updateOrganization(OrganizationVO resource);
+    OrganizationVO updateOrganization(OrganizationUpdateDTO resource);
 
     /**
      * 获取用户组织、角色信息

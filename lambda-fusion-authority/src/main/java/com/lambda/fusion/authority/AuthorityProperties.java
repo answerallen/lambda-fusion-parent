@@ -15,10 +15,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @SuppressFBWarnings("EI_EXPOSE_REP")
 public class AuthorityProperties {
     /**
-     * 是否开启用户注册功能
-     */
-    private boolean enabledRegistered;
-    /**
      * 是否开启数据角色
      */
     private boolean dataRoleEnabled = false;

@@ -147,7 +147,7 @@
     </select>
 
     <!-- 查询用户组织列表 -->
-    <select id="queryMutableOrgan" resultMap="Organization">
+    <select id="queryOrganizationList" resultMap="Organization">
         SELECT
             id,
             organization,
@@ -227,14 +227,6 @@
             tenant_id
         FROM LA_ORGANIZATION T WHERE tenant_id = #{id}
     </select>
-
-    <insert id="addOrganization" parameterType="com.lambda.fusion.authority.organization.model.OrganizationVO">
-        INSERT INTO LA_ORGANIZATION
-        (id, organization, alias, parentId, remarks, org_rank, parentKeys, org_owner, org_category, tenant_id, org_type, spid, order_no)
-        VALUES (#{id}, #{name}, #{alias}, #{parentId,jdbcType=VARCHAR},
-        #{remarks, jdbcType=VARCHAR}, #{level}, #{parentKeys, jdbcType=VARCHAR},
-        #{owner, jdbcType=VARCHAR}, #{tenant}, #{tenant_id, jdbcType=VARCHAR}, #{type}, #{spid,jdbcType=VARCHAR}, #{orderNo})
-    </insert>
 
     <select id="queryUserOrganization" parameterType="java.lang.String"
             resultType="com.lambda.fusion.authority.organization.model.UserOrganization">

@@ -15,6 +15,9 @@ import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.model.MutableOrganizationVO;
 import com.lambda.fusion.authority.organization.model.OrganizationVO;
 import com.lambda.fusion.authority.organization.model.Parameters;
+import com.lambda.fusion.authority.organization.model.dto.OrganizationCreateDTO;
+import com.lambda.fusion.authority.organization.model.dto.OrganizationUpdateDTO;
+import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
 import com.lambda.fusion.authority.organization.model.vo.SimpleOrgVO;
 import com.lambda.fusion.authority.organization.model.UserOrganization;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
@@ -202,11 +205,11 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public OrganizationVO queryOrganById(String id) {
-        return getOrgById(id);
+    public OrganizationVO queryOrganizationById(String id) {
+        return getOrganizationById(id);
     }
 
-    private OrganizationVO getOrgById(String id) {
+    private OrganizationVO getOrganizationById(String id) {
         return organizationMapper.queryOrganizationById(id);
     }
 
@@ -219,7 +222,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         validateDeletePermission(operator, id);
 
         // 获取组织信息
-        OrganizationVO organization = getOrgById(id);
+        OrganizationVO organization = getOrganizationById(id);
         Assert.notNull(organization, "组织不存在！");
 
         // 检查删除前置条件
@@ -277,20 +280,23 @@ public class OrganizationServiceImpl implements OrganizationService {
             }
         }
 
-        organizationMapper.delete(new LambdaQueryWrapper<OrganizationVO>().eq(OrganizationVO::getOwner, tenantId));
+        organizationMapper.delete(new LambdaQueryWrapper<OrganizationEntity>().eq(OrganizationEntity::getOwner, tenantId));
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public OrganizationVO updateOrganization(OrganizationVO resource) {
+    public OrganizationVO updateOrganization(OrganizationUpdateDTO resource) {
         LoginUser operator = OperatorUtils.getOperator();
         hasOperation(operator, resource.getId());
         Assert.notNull(resource.getId(), "机构ID不能为空");
-        List<OrganizationVO> organizations = organizationMapper.queryByCondition(resource);
+       List<OrganizationEntity> organizations = organizationMapper.selectList(new LambdaQueryWrapper<OrganizationEntity>()
+                .eq(OrganizationEntity::getName,resource.getName())
+                .eq(OrganizationEntity::getOwner, operator.getTenantId())
+        );
         Assert.isTrue(CollectionUtils.isEmpty(organizations), "lambda.authority.organ.name.repeat");
-        organizationMapper.updateById(resource);
-        organizationMapper.updateChildrensSpid(resource.getId(), resource.getName());
-        return getOrgById(resource.getId());
+        OrganizationEntity organizationEntity = resource.toEntity();
+        organizationMapper.updateById(organizationEntity);
+        return getOrganizationById(resource.getId());
     }
 
     @Override
@@ -312,7 +318,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(resource.getUserId(), "user id must not be null");
         Assert.notNull(resource.getOrganizationId(), "organization id must not be null");
         Assert.notNull(userMapper.getMutableUserById(resource.getUserId()), "lambda.authority.organ.user.notfound");
-        Assert.notNull(getOrgById(resource.getOrganizationId()), "机构不存在！");
+        Assert.notNull(getOrganizationById(resource.getOrganizationId()), "机构不存在！");
         organizationMapper.addUserOrganization(resource);
         return resource;
     }
@@ -328,7 +334,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     public UserOrganization updateUserOrganization(UserOrganization resource) {
         Assert.notNull(resource.getUserId(), "user id must not be null");
         Assert.notNull(resource.getOrganizationId(), "organization id must not be null");
-        Assert.notNull(getOrgById(resource.getOrganizationId()), "机构不存在！");
+        Assert.notNull(getOrganizationById(resource.getOrganizationId()), "机构不存在！");
         organizationMapper.updateUserOrganization(resource);
         return resource;
     }
@@ -350,7 +356,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void prohibitOrganization(Integer enabled, String id) {
         Assert.notNull(id, "id is not empty");
-        OrganizationVO org = getOrgById(id);
+        OrganizationVO org = getOrganizationById(id);
         Assert.notNull(org, "org is not null");
         LoginUser operator = OperatorUtils.getOperator();
         this.hasOperation(operator, id);
@@ -431,12 +437,13 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
     }
 
-    protected OrganizationVO queryByNameAndTenantId(String organization, String tenantId) {
-        OrganizationVO condition = new OrganizationVO();
-        condition.setName(organization);
-        condition.setTenantId(tenantId);
-        List<OrganizationVO> organizations = organizationMapper.queryByCondition(condition);
-        return CollectionUtils.isEmpty(organizations) ? null : organizations.get(0);
+    protected OrganizationEntity queryByNameAndTenantId(String organization, String tenantId) {
+        List<OrganizationEntity> organizations = organizationMapper.selectList(new LambdaQueryWrapper<OrganizationEntity>()
+                .eq(organization!=null,OrganizationEntity::getName,organization)
+                .eq(tenantId!=null,OrganizationEntity::getTenantId,tenantId)
+                .isNull(tenantId==null,OrganizationEntity::getTenantId)
+        );
+        return CollectionUtils.isEmpty(organizations) ? null : organizations.getFirst();
     }
 
     /**
@@ -466,48 +473,38 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public OrganizationVO addOrganization(OrganizationVO resource) {
+    public OrganizationVO addOrganization(OrganizationCreateDTO organizationCreateDTO) {
         LoginUser operator = OperatorUtils.getOperator();
-        addOrgInfo(operator, resource);
-        organizationMapper.addOrganization(resource);
-        return resource;
-    }
-
-    /**
-     * 根据当前操作人补充组织机构信息
-     *
-     * @param operator
-     * @param resource
-     * @return void
-     */
-    private void addOrgInfo(LoginUser operator, OrganizationVO resource) {
-        Assert.notNull(resource, "organ must not be null");
-        Assert.notNull(resource.getName(), "lambda.authority.organ.name.notfound");
+        OrganizationEntity entity = organizationCreateDTO.toEntity();
+        Assert.notNull(entity.getName(), "组织机构名称不能为空");
         String tenantId = operator.getTenantId();
-        OrganizationVO checked = queryByNameAndTenantId(resource.getName(), tenantId);
-        Assert.isNull(checked, "lambda.authority.organ.name.repeat");
+        OrganizationEntity checked = queryByNameAndTenantId(organizationCreateDTO.getName(), tenantId);
+        Assert.isNull(checked, "组织机构名称重复！");
         String orgId;
         // 通过配置来确定组织id的来源
         if (authorityProperties.isOrganizationNameAsId()) {
-            orgId = resource.getName();
+            orgId = organizationCreateDTO.getName();
         } else {
             orgId = IdWorker.getIdStr();
         }
-        resource.setId(orgId);
-        resource.setOwner(tenantId);
-        resource.setTenantId(tenantId);
-        resource.setCreateDate(new Date());
-        if (StringUtils.isNotBlank(resource.getParentId())) {
-            OrganizationVO parent = getOrgById(resource.getParentId());
-            Assert.notNull(parent, "lambda.authority.organ.parent.notfound");
+        entity.setId(orgId);
+        entity.setOwner(tenantId);
+        entity.setTenantId(tenantId);
+        entity.setCreateDate(new Date());
+        if (StringUtils.isNotBlank(organizationCreateDTO.getParentId())) {
+            OrganizationVO parent = getOrganizationById(organizationCreateDTO.getParentId());
+            Assert.notNull(parent, "上级组织未查询到！");
             String parentKeys = parent.buildParentKeys();
-            resource.setParentKeys(parentKeys);
-            resource.setLevel(TreeUtils.level(parentKeys));
+            entity.setParentKeys(parentKeys);
+            entity.setRank(TreeUtils.level(parentKeys));
         } else {
-            resource.setLevel(0);
-            resource.setParentId(TreeUtils.TOP);
+            entity.setRank(0);
+            entity.setParentId(TreeUtils.TOP);
         }
+        organizationMapper.insert(entity);
+        return getOrganizationById(orgId);
     }
+
 
     @Override
     public List<String> getSubordinateOrgIds(LoginUser operator) {
@@ -539,18 +536,6 @@ public class OrganizationServiceImpl implements OrganizationService {
         // todo 导入
     }
 
-    private void getchildren(OrganizationVO organization, List<OrganizationVO> successList) {
-        LoginUser operator = OperatorUtils.getOperator();
-        for (OrganizationVO org : successList) {
-            if (org.getSpid() != null && org.getSpid().equals(organization.getName())) {
-                addOrgInfo(operator, org);
-                org.setParentKeys(organization.buildParentKeys());
-                org.setParentId(organization.getId());
-                org.setLevel(organization.getLevel() + 1);
-                getchildren(org, successList);
-            }
-        }
-    }
 
     @Override
     public OrganizationVO getRootOrganById(String id) {
@@ -558,7 +543,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         List<String> parentKeys = getParentsById(id);
         if (CollectionUtils.isNotEmpty(parentKeys)) {
             String rootKey = parentKeys.get(0);
-            root = queryOrganById(rootKey);
+            root = queryOrganizationById(rootKey);
         }
         return root;
     }

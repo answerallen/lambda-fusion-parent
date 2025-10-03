@@ -1,8 +1,10 @@
 package com.lambda.fusion.authority.organization.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.organization.model.*;
+import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
 import com.lambda.fusion.authority.organization.model.vo.SimpleOrgVO;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import java.util.List;
@@ -11,7 +13,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
-public interface OrganizationMapper extends BaseMapper<OrganizationVO> {
+public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
 
     /**
      * 查询用户关联组织角色
@@ -43,7 +45,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationVO> {
      * @param ids 组织、角色ID
      * @return 组织角色信息
      */
-    List<OrganizationVO> queryMutableOrgan(List<OrganizationVO> ids);
+    List<OrganizationVO> queryOrganizationList(List<OrganizationVO> ids);
 
     /***
      * 根据编号查询组织详情
@@ -59,20 +61,10 @@ public interface OrganizationMapper extends BaseMapper<OrganizationVO> {
     @InterceptorIgnore(tenantLine = "true")
     List<OrganizationVO> queryOrganizationByTenantId(String id);
 
-    /**
-     * 条件查询
-     *
-     * @param organization 查询条件
-     * @return 组织列表
-     */
-    List<OrganizationVO> queryByCondition(@Param("organization") OrganizationVO organization);
 
-    /**
-     * 添加组织
-     *
-     * @param organization 组织信息
-     */
-    void addOrganization(OrganizationVO organization);
+    default List<OrganizationEntity> queryByCondition(String id, String name,String tenantId) {
+
+    }
 
     /**
      * 是否存在上级组织
