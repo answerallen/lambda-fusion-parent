@@ -1,7 +1,6 @@
 package com.lambda.fusion.authority.organization.model.dto;
 
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
@@ -12,11 +11,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.apache.commons.lang.BooleanUtils;
 import org.hibernate.validator.constraints.Length;
-
-import java.util.Date;
-import java.util.List;
 
 /**
  * 组织机构实体类
@@ -50,7 +45,7 @@ import java.util.List;
 @Schema(description = "组织元数据")
 @NoArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class OrganizationCreateDTO extends BaseDTO<OrganizationEntity>{
+public class OrganizationCreateDTO extends BaseDTO<OrganizationEntity> {
     @Schema(description = "主键ID")
     private String id;
 

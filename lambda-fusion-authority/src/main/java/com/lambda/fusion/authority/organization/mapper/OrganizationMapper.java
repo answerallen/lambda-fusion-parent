@@ -1,7 +1,6 @@
 package com.lambda.fusion.authority.organization.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.organization.model.*;
 import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
@@ -61,11 +60,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
     @InterceptorIgnore(tenantLine = "true")
     List<OrganizationVO> queryOrganizationByTenantId(String id);
 
-
-    default List<OrganizationEntity> queryByCondition(String id, String name,String tenantId) {
-
-    }
-
     /**
      * 是否存在上级组织
      *
@@ -74,44 +68,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      */
     @InterceptorIgnore(tenantLine = "true")
     boolean existParent(@Param("id") String id);
-
-    /**
-     * 查询用户关联组织
-     *
-     * @param userId 用户ID
-     * @return 用户组织信息
-     */
-    UserOrganization queryUserOrganization(String userId);
-
-    /**
-     * 用户关联组织
-     *
-     * @param userOrganization 用户组织信息
-     */
-    void addUserOrganization(UserOrganization userOrganization);
-
-    /**
-     * 更新用户组织
-     *
-     * @param userOrganization 用户组织信息
-     */
-    void updateUserOrganization(UserOrganization userOrganization);
-
-    /**
-     * 根据用户删除用户组织关系
-     *
-     * @param username 用户编号
-     */
-    @InterceptorIgnore(tenantLine = "true")
-    void deleteUserOrganizationByUser(String username);
-
-    /**
-     * 根据组织删除用户组织关系
-     *
-     * @param orgId 组织编号
-     */
-    @InterceptorIgnore(tenantLine = "true")
-    void deleteUserOrganizationByOrg(String orgId);
 
     /**
      * 获取指定节点的所有子节点

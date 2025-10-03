@@ -6,9 +6,9 @@ import com.lambda.fusion.authority.user.mapper.UserFieldsMapper;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.dto.RestUserInfoDTO;
-import com.lambda.fusion.authority.user.model.vo.VerifyCodeVO;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
+import com.lambda.fusion.authority.user.model.vo.VerifyCodeVO;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +39,7 @@ public class UserCenterServiceImpl implements UserCenterService {
         Assert.notNull(username, "username must not be empty");
         Assert.isFalse(userMapper.hasExists(username), "user not found");
         Assert.notNull(mobile, "mobile must not be empty");
-        userMapper.updateMobile(username,mobile);
+        userMapper.updateMobile(username, mobile);
     }
 
     @Override
@@ -51,7 +51,7 @@ public class UserCenterServiceImpl implements UserCenterService {
         Assert.notNull(mutableUser, "user not found");
         Assert.notNull(email, "email not found");
         // 更新用户邮箱
-        userMapper.updateEmail(username,email);
+        userMapper.updateEmail(username, email);
     }
 
     @Override
@@ -59,7 +59,7 @@ public class UserCenterServiceImpl implements UserCenterService {
         String username = userInfoDTO.getUsername();
         MutableUserVO user = userMapper.getMutableUserById(username);
         Assert.notNull(user, "user not found");
-        userMapper.updateInfo(username,userInfoDTO.getEmail(),userInfoDTO.getNickname());
+        userMapper.updateInfo(username, userInfoDTO.getEmail(), userInfoDTO.getNickname());
         String avatar = userInfoDTO.getAvatar();
         if (StringUtils.isNotEmpty(avatar)) {
             // 获取用户扩展信息

@@ -5,10 +5,9 @@ import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.authority.role.model.entity.RoleEntity;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.Date;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import java.util.Date;
 
 @AutoConverter(target = RoleEntity.class)
 @Data

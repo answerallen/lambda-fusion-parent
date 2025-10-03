@@ -6,13 +6,12 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.user.model.entity.UserEntity;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.lambda.fusion.authority.user.model.vo.PermissionVO;
 import com.lambda.fusion.authority.user.model.vo.RoleResourcesVO;
 import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -205,13 +204,10 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param tenantId      租户编号
      *
      */
-   default void saveUserPermission(
+    default void saveUserPermission(
             @Param("uid") String target,
             @Param("roleResources") RoleResourcesVO roleResources,
-            @Param("tenant_id") String tenantId){
-
-
-    }
+            @Param("tenant_id") String tenantId) {}
 
     /**
      * 批量更新用户权限
@@ -251,7 +247,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param username 用户修改信息
      * @param mobile 用户修改信息
      */
-    default void updateMobile(String username,String mobile){
+    default void updateMobile(String username, String mobile) {
         update(new LambdaUpdateWrapper<UserEntity>()
                 .eq(UserEntity::getUserid, username)
                 .set(UserEntity::getMobile, mobile));
@@ -263,7 +259,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param username 用户修改信息
      * @param email 用户修改信息
      */
-    default void updateEmail(String username,String email){
+    default void updateEmail(String username, String email) {
         update(new LambdaUpdateWrapper<UserEntity>()
                 .eq(UserEntity::getUserid, username)
                 .set(UserEntity::getEmail, email));
@@ -276,12 +272,11 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param email 用户修改信息
      * @param nickname 用户修改信息
      */
-    default void updateInfo(String username,String email,String nickname){
+    default void updateInfo(String username, String email, String nickname) {
         update(new LambdaUpdateWrapper<UserEntity>()
                 .eq(UserEntity::getUserid, username)
                 .set(UserEntity::getEmail, email)
-                .set(UserEntity::getNickname, nickname))
-        ;
+                .set(UserEntity::getNickname, nickname));
     }
 
     /**

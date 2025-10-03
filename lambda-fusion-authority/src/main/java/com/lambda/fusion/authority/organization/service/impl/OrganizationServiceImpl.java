@@ -15,11 +15,11 @@ import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.model.MutableOrganizationVO;
 import com.lambda.fusion.authority.organization.model.OrganizationVO;
 import com.lambda.fusion.authority.organization.model.Parameters;
+import com.lambda.fusion.authority.organization.model.UserOrganization;
 import com.lambda.fusion.authority.organization.model.dto.OrganizationCreateDTO;
 import com.lambda.fusion.authority.organization.model.dto.OrganizationUpdateDTO;
 import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
 import com.lambda.fusion.authority.organization.model.vo.SimpleOrgVO;
-import com.lambda.fusion.authority.organization.model.UserOrganization;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.role.mapper.GroupMapper;
@@ -280,7 +280,8 @@ public class OrganizationServiceImpl implements OrganizationService {
             }
         }
 
-        organizationMapper.delete(new LambdaQueryWrapper<OrganizationEntity>().eq(OrganizationEntity::getOwner, tenantId));
+        organizationMapper.delete(
+                new LambdaQueryWrapper<OrganizationEntity>().eq(OrganizationEntity::getOwner, tenantId));
     }
 
     @Override
@@ -289,10 +290,10 @@ public class OrganizationServiceImpl implements OrganizationService {
         LoginUser operator = OperatorUtils.getOperator();
         hasOperation(operator, resource.getId());
         Assert.notNull(resource.getId(), "机构ID不能为空");
-       List<OrganizationEntity> organizations = organizationMapper.selectList(new LambdaQueryWrapper<OrganizationEntity>()
-                .eq(OrganizationEntity::getName,resource.getName())
-                .eq(OrganizationEntity::getOwner, operator.getTenantId())
-        );
+        List<OrganizationEntity> organizations =
+                organizationMapper.selectList(new LambdaQueryWrapper<OrganizationEntity>()
+                        .eq(OrganizationEntity::getName, resource.getName())
+                        .eq(OrganizationEntity::getOwner, operator.getTenantId()));
         Assert.isTrue(CollectionUtils.isEmpty(organizations), "lambda.authority.organ.name.repeat");
         OrganizationEntity organizationEntity = resource.toEntity();
         organizationMapper.updateById(organizationEntity);
@@ -438,11 +439,11 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     protected OrganizationEntity queryByNameAndTenantId(String organization, String tenantId) {
-        List<OrganizationEntity> organizations = organizationMapper.selectList(new LambdaQueryWrapper<OrganizationEntity>()
-                .eq(organization!=null,OrganizationEntity::getName,organization)
-                .eq(tenantId!=null,OrganizationEntity::getTenantId,tenantId)
-                .isNull(tenantId==null,OrganizationEntity::getTenantId)
-        );
+        List<OrganizationEntity> organizations =
+                organizationMapper.selectList(new LambdaQueryWrapper<OrganizationEntity>()
+                        .eq(organization != null, OrganizationEntity::getName, organization)
+                        .eq(tenantId != null, OrganizationEntity::getTenantId, tenantId)
+                        .isNull(tenantId == null, OrganizationEntity::getTenantId));
         return CollectionUtils.isEmpty(organizations) ? null : organizations.getFirst();
     }
 
@@ -505,7 +506,6 @@ public class OrganizationServiceImpl implements OrganizationService {
         return getOrganizationById(orgId);
     }
 
-
     @Override
     public List<String> getSubordinateOrgIds(LoginUser operator) {
         List<String> orgIds = new ArrayList<>();
@@ -535,7 +535,6 @@ public class OrganizationServiceImpl implements OrganizationService {
     public void addOrganizationByimport(MultipartFile file) {
         // todo 导入
     }
-
 
     @Override
     public OrganizationVO getRootOrganById(String id) {

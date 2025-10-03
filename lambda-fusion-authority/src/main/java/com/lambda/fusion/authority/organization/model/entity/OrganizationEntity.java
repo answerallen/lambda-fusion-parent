@@ -1,9 +1,8 @@
 package com.lambda.fusion.authority.organization.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import lombok.Data;
-
 import java.util.Date;
+import lombok.Data;
 
 @Data
 @TableName("la_organization") // 表名
@@ -47,5 +46,4 @@ public class OrganizationEntity {
 
     @TableField(value = "ORDER_NO")
     private Integer orderNo; // 组织排序号，默认值1
-
 }

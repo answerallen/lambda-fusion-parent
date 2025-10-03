@@ -15,7 +15,7 @@ public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
      * @return 用户附加信息
      */
     @InterceptorIgnore(tenantLine = "1")
-    default UserInfoEntity getProps(String id){
+    default UserInfoEntity getProps(String id) {
         return selectById(id);
     }
 
@@ -26,11 +26,10 @@ public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
      * @return 返回影响行数
      */
     @InterceptorIgnore(tenantLine = "1")
-    default Integer updateStatus(String userName, Boolean updatePwd){
+    default Integer updateStatus(String userName, Boolean updatePwd) {
         return update(new LambdaUpdateWrapper<UserInfoEntity>()
-                .eq(UserInfoEntity::getUserid,userName)
-                .set(UserInfoEntity::getUpdatePwd,updatePwd)
-        );
+                .eq(UserInfoEntity::getUserid, userName)
+                .set(UserInfoEntity::getUpdatePwd, updatePwd));
     }
 
     /**
@@ -39,10 +38,9 @@ public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
      * @param userName 用户名
      * @param avatar   头像
      */
-    default void updateAvatar(String userName, String avatar){
+    default void updateAvatar(String userName, String avatar) {
         update(new LambdaUpdateWrapper<UserInfoEntity>()
                 .eq(UserInfoEntity::getUserid, userName)
-                .set(UserInfoEntity::getAvatar, avatar)
-        );
+                .set(UserInfoEntity::getAvatar, avatar));
     }
 }

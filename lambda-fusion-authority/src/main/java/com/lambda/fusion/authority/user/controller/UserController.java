@@ -8,12 +8,12 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
-import com.lambda.fusion.authority.user.model.vo.PermissionVO;
-import com.lambda.fusion.authority.user.model.vo.VerifyCodeVO;
-import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
 import com.lambda.fusion.authority.user.model.dto.*;
 import com.lambda.fusion.authority.user.model.vo.LoginUserInfoVO;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
+import com.lambda.fusion.authority.user.model.vo.PermissionVO;
+import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
+import com.lambda.fusion.authority.user.model.vo.VerifyCodeVO;
 import com.lambda.fusion.authority.user.optimizer.UserQueryOptimizer;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
@@ -25,6 +25,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -33,8 +34,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.*;
 
 /**
  * 用户信息Api
@@ -259,8 +258,8 @@ public class UserController {
     public void unbind(
             @Parameter(description = "用户编号", required = true) @PathVariable("username") String username,
             @Parameter(description = "第三方绑定类型(1、钉钉；2、微信)", required = true, schema = @Schema(defaultValue = "1"))
-            @PathVariable("type")
-            String type) {
+                    @PathVariable("type")
+                    String type) {
         LoginUser operator = OperatorUtils.getOperator();
         userInfoService.unbindUserInfo(operator, type, username);
     }
@@ -287,12 +286,11 @@ public class UserController {
     @Operation(
             summary = "更新个人信息",
             parameters = {
-                    @Parameter(name = "nickname", description = "昵称", required = true),
-                    @Parameter(name = "email", description = "邮箱", required = true),
-                    @Parameter(name = "personal", description = "新增字段")
+                @Parameter(name = "nickname", description = "昵称", required = true),
+                @Parameter(name = "email", description = "邮箱", required = true),
+                @Parameter(name = "personal", description = "新增字段")
             })
-    public MutableUserVO updateInfo(
-            MultipartFile avatar, RestUserInfoDTO restUserInfoDTO) {
+    public MutableUserVO updateInfo(MultipartFile avatar, RestUserInfoDTO restUserInfoDTO) {
         LoginUser operator = OperatorUtils.getOperator();
         restUserInfoDTO.setUsername(operator.getName());
         if (avatar != null) {

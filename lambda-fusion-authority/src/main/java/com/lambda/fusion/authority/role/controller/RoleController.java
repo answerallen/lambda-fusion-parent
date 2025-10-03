@@ -25,15 +25,14 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 用户角色API
@@ -141,7 +140,8 @@ public class RoleController {
 
     @PostMapping
     @Operation(description = "新增角色信息", summary = "新增角色信息")
-    public MutableRoleVO add(@Parameter(description = "角色信息", required = true) @RequestBody RoleCreateDTO roleCreateDTO) {
+    public MutableRoleVO add(
+            @Parameter(description = "角色信息", required = true) @RequestBody RoleCreateDTO roleCreateDTO) {
         User operator = OperatorUtils.getLoginUser(User.class);
         return roleService.saveRole(operator, roleCreateDTO);
     }
@@ -182,8 +182,8 @@ public class RoleController {
             @Parameter(description = "资源编号", required = true) @PathVariable String resourceId,
             @Parameter(description = "授权模式.-0:角色,1:用户") Integer mode,
             @Parameter(description = "授权模式.-0:仅使用,1:可管理", schema = @Schema(defaultValue = "1"))
-            @RequestParam(defaultValue = "1")
-            Integer status) {
+                    @RequestParam(defaultValue = "1")
+                    Integer status) {
         User operator = OperatorUtils.getLoginUser(User.class);
         roleService.saveAuthorization(authority, resourceId, status, operator);
     }

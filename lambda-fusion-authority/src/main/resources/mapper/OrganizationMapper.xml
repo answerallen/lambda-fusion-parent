@@ -162,34 +162,6 @@
         <foreach collection="list" open="(" close=")" separator="," item="organ">#{organ.id}</foreach>
     </select>
 
-    <select id="queryByCondition" resultMap="Organization">
-        SELECT
-            id,
-            organization,
-            alias,
-            parentId,
-            org_rank,
-            createDate,
-            remarks,
-            parentKeys
-        FROM LA_ORGANIZATION O
-        <where>
-            <if test="organization.id != null">
-                AND id != #{organization.id}
-            </if>
-            <if test="organization.name != null">
-                AND organization = #{organization.name}
-            </if>
-            <if test="organization.tenantId != null">
-                AND tenant_id = #{organization.tenant_id}
-            </if>
-            <if test="organization.tenantId == null">
-                AND tenant_id IS NULL
-            </if>
-        </where>
-        ORDER BY createdate
-    </select>
-
     <select id="existParent" resultType="boolean">
         SELECT 1 - COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_ORGANIZATION WHERE parentid = #{id})
     </select>

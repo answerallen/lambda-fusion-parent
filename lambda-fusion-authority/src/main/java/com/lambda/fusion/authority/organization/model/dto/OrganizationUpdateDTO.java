@@ -45,7 +45,7 @@ import org.hibernate.validator.constraints.Length;
 @Schema(description = "组织元数据")
 @NoArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class OrganizationUpdateDTO extends BaseDTO<OrganizationEntity>{
+public class OrganizationUpdateDTO extends BaseDTO<OrganizationEntity> {
     @Schema(description = "主键ID")
     private String id;
 
