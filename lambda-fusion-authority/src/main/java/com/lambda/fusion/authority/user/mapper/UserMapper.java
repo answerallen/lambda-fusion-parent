@@ -205,10 +205,13 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param tenantId      租户编号
      *
      */
-    void saveUserPermission(
+   default void saveUserPermission(
             @Param("uid") String target,
             @Param("roleResources") RoleResourcesVO roleResources,
-            @Param("tenant_id") String tenantId);
+            @Param("tenant_id") String tenantId){
+
+
+    }
 
     /**
      * 批量更新用户权限

@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.authority.organization.mapper.OrganizationMapper">
 
-    <resultMap id="MutableOrganization" type="com.lambda.fusion.authority.organization.model.MutableOrganization">
+    <resultMap id="MutableOrganization" type="com.lambda.fusion.authority.organization.model.MutableOrganizationVO">
         <id column="username" property="username" javaType="String"/>
         <result column="id" property="id"/>
         <result column="alias" property="alias"/>
@@ -21,7 +21,7 @@
         <foreach collection="list" open="(" close=")" separator="," item="user">#{user.username}</foreach>
     </select>
 
-    <resultMap id="Organization" type="com.lambda.fusion.authority.organization.model.Organization">
+    <resultMap id="Organization" type="com.lambda.fusion.authority.organization.model.OrganizationVO">
         <id column="id" property="id"/>
         <result column="organization" property="name"/>
         <result column="alias" property="alias"/>
@@ -126,7 +126,7 @@
         ORDER BY O.org_rank, O.order_no, O.parentId, O.organization
     </select>
 
-    <select id="getAllEnabledOrgan" resultType="com.lambda.fusion.authority.organization.model.SimpleOrg">
+    <select id="getAllEnabledOrgan" resultType="com.lambda.fusion.authority.organization.model.vo.SimpleOrgVO">
         SELECT id, alias AS name, parentId AS pid
         FROM LA_ORGANIZATION O
         WHERE O.enabled = 1
@@ -228,7 +228,7 @@
         FROM LA_ORGANIZATION T WHERE tenant_id = #{id}
     </select>
 
-    <insert id="addOrganization" parameterType="com.lambda.fusion.authority.organization.model.Organization">
+    <insert id="addOrganization" parameterType="com.lambda.fusion.authority.organization.model.OrganizationVO">
         INSERT INTO LA_ORGANIZATION
         (id, organization, alias, parentId, remarks, org_rank, parentKeys, org_owner, org_category, tenant_id, org_type, spid, order_no)
         VALUES (#{id}, #{name}, #{alias}, #{parentId,jdbcType=VARCHAR},
@@ -299,7 +299,7 @@
         SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_ORGANIZATION T WHERE T.org_owner = #{orgId} AND T.org_category = 1 AND T.enabled = 1)
     </select>
 
-    <select id="getInfo" resultType="com.lambda.fusion.authority.organization.model.Organization">
+    <select id="getInfo" resultType="com.lambda.fusion.authority.organization.model.OrganizationVO">
         SELECT id,alias FROM LA_ORGANIZATION WHERE ID = {id}
     </select>
 

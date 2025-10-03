@@ -1,7 +1,9 @@
 package com.lambda.fusion.authority.role.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.role.model.MutableRole;
+import com.lambda.fusion.authority.role.model.dto.RoleCreateDTO;
+import com.lambda.fusion.authority.role.model.dto.RoleUpdateDTO;
+import com.lambda.fusion.authority.role.model.vo.MutableRoleVO;
 import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
 import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
 import com.lambda.fusion.authority.role.model.vo.GroupRoleVo;
@@ -21,7 +23,7 @@ public interface RoleService {
      * @param operator
      * @return
      */
-    List<MutableRole> getAllRoles(User operator);
+    List<MutableRoleVO> getAllRoles(User operator);
 
     /**
      * 获取角色分组
@@ -39,7 +41,7 @@ public interface RoleService {
      * @param parameters
      * @return Page<MutableRole>
      */
-    Page<MutableRole> getAllRoles(Page<MutableRole> pageable, Map<String, Object> parameters);
+    Page<MutableRoleVO> getAllRoles(Page<MutableRoleVO> pageable, Map<String, Object> parameters);
 
     /**
      * 修改角色
@@ -49,7 +51,7 @@ public interface RoleService {
      * @return
      * @throws Exception
      */
-    MutableRole updateRole(User operator, MutableRole role);
+    MutableRoleVO updateRole(User operator, RoleUpdateDTO role);
 
     /**
      * 增加角色
@@ -60,7 +62,7 @@ public interface RoleService {
      * @return
      * @throws Exception
      */
-    MutableRole saveRole(User operator, MutableRole role);
+    MutableRoleVO saveRole(User operator, RoleCreateDTO role);
 
     /**
      * 根据角色编号查询角色信息
@@ -68,7 +70,7 @@ public interface RoleService {
      * @param id
      * @return
      */
-    MutableRole getRoleByAuthority(String id);
+    MutableRoleVO getRoleByAuthority(String id);
 
     /**
      * 根据id删除指定的角色
@@ -131,7 +133,7 @@ public interface RoleService {
     /**
      * 获取机构为多租户的所有角色
      */
-    List<MutableRole> getTenantRolesByOwner(String owner);
+    List<MutableRoleVO> getTenantRolesByOwner(String owner);
 
     /**
      * 添加组

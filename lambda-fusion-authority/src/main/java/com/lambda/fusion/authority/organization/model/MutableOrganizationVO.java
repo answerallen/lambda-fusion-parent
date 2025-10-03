@@ -5,6 +5,6 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class MutableOrganization extends Organization {
+public class MutableOrganizationVO extends OrganizationVO {
     private String username;
 }

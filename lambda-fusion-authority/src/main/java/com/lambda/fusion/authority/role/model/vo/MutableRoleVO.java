@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.role.model;
+package com.lambda.fusion.authority.role.model.vo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "角色信息")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class MutableRole extends SimpleRole {
+public class MutableRoleVO extends SimpleRoleVO {
 
     @Schema(description = "图标")
     private String icon;
@@ -48,11 +48,11 @@ public class MutableRole extends SimpleRole {
     @Schema(description = "是否不可用")
     private Boolean inAvailable;
 
-    public MutableRole() {
+    public MutableRoleVO() {
         super();
     }
 
-    public MutableRole(String authority) {
+    public MutableRoleVO(String authority) {
         super(authority);
     }
 

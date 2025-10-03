@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.organization.model;
+package com.lambda.fusion.authority.organization.model.vo;
 
 import com.lambda.fusion.core.tree.Tree;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 @Schema(description = "组织机构")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class SimpleOrg implements Tree<SimpleOrg> {
+public class SimpleOrgVO implements Tree<SimpleOrgVO> {
 
     @Schema(description = "主键ID")
     String id;
@@ -21,7 +21,7 @@ public class SimpleOrg implements Tree<SimpleOrg> {
     String pid;
 
     @Schema(description = "下级节点")
-    List<SimpleOrg> children;
+    List<SimpleOrgVO> children;
 
     @Override
     public String id() {
@@ -34,7 +34,7 @@ public class SimpleOrg implements Tree<SimpleOrg> {
     }
 
     @Override
-    public void children(List<SimpleOrg> children) {
+    public void children(List<SimpleOrgVO> children) {
         this.children = children;
     }
 }

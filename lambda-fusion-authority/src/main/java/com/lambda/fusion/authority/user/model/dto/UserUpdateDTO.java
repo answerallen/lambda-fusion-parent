@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.authority.organization.model.Org;
-import com.lambda.fusion.authority.role.model.SimpleRole;
+import com.lambda.fusion.authority.role.model.vo.SimpleRoleVO;
 import com.lambda.fusion.authority.user.model.entity.UserEntity;
 import com.lambda.fusion.authority.user.model.vo.UserInfoVO;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -78,7 +78,7 @@ public class UserUpdateDTO extends BaseDTO<UserEntity> {
 
     @Schema(description = "角色信息")
     @JsonProperty("authorities")
-    private List<SimpleRole> authorities;
+    private List<SimpleRoleVO> authorities;
 
     @Schema(description = "扩展属性")
     @Valid

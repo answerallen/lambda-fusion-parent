@@ -40,7 +40,7 @@
             <result column="isupdatepwd" property="updatePwd"/>
             <result column="extend_param" property="extendParam"/>
         </association>
-        <collection property="authorities" ofType="com.lambda.fusion.authority.role.model.SimpleRole">
+        <collection property="authorities" ofType="com.lambda.fusion.authority.role.model.vo.SimpleRoleVO">
             <constructor>
                 <idArg column="authority" javaType="String"/>
                 <arg column="alias" javaType="String"/>
@@ -49,7 +49,7 @@
     </resultMap>
 
 
-    <resultMap id="UserDTO" type="com.lambda.fusion.authority.authentication.model.SimpleUser">
+    <resultMap id="SimpleUser" type="com.lambda.fusion.authority.authentication.model.SimpleUser">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="password" property="password" javaType="String"/>
@@ -58,6 +58,28 @@
         <result column="tenant_id" property="tenantId" javaType="String"/>
         <result column="expired_time" property="expiredTime"/>
         <collection property="authorities" ofType="org.springframework.security.core.authority.SimpleGrantedAuthority">
+            <constructor>
+                <idArg column="authority" javaType="String"/>
+            </constructor>
+        </collection>
+    </resultMap>
+
+    <resultMap id="TenantUser" type="com.lambda.fusion.authority.user.model.vo.MutableUserVO">
+        <id column="username" property="username" javaType="String"/>
+        <result column="nickname" property="nickname" javaType="String"/>
+        <result column="mobile" property="mobile"/>
+        <result column="email" property="email"/>
+        <result column="createDate" property="createDate"/>
+        <result column="tenant_id" property="tenant_id"/>
+        <result column="owner" property="owner" />
+        <result column="enabled" property="enabled" />
+        <result column="jobno" property="jobno"/>
+        <association property="org" javaType="com.lambda.fusion.authority.organization.model.Org">
+            <constructor>
+                <idArg column="orgId" javaType="String"/>
+            </constructor>
+        </association>
+        <collection property="authorities" ofType="com.lambda.fusion.authority.role.model.vo.SimpleRoleVO">
             <constructor>
                 <idArg column="authority" javaType="String"/>
             </constructor>
@@ -339,6 +361,7 @@
             #{item.resourceId}
         </foreach>
     </update>
+
     <select id="getAllSimpleUser" resultType="com.lambda.fusion.authority.user.model.vo.SimpleUserVO">
         SELECT DISTINCT
             T1.USERNAME,
@@ -457,37 +480,6 @@
         ORDER BY T.CREATEDATE DESC, username asc
     </select>
 
-    <!-- 更新用户邮箱 -->
-    <update id="updateEmail" parameterType="com.lambda.fusion.authority.user.model.vo.MutableUserVO">
-        UPDATE LA_USERS SET email = #{email} where username = #{username}
-    </update>
-
-    <!-- 更新用户信息 -->
-    <update id="updateInfo" parameterType="com.lambda.fusion.authority.user.model.dto.RestUserInfoDTO">
-        UPDATE LA_USERS SET nickname = #{nickname},email = #{email} where username = #{username}
-    </update>
-
-    <resultMap id="TenantUser" type="com.lambda.fusion.authority.user.model.vo.MutableUserVO">
-        <id column="username" property="username" javaType="String"/>
-        <result column="nickname" property="nickname" javaType="String"/>
-        <result column="mobile" property="mobile"/>
-        <result column="email" property="email"/>
-        <result column="createDate" property="createDate"/>
-        <result column="tenant_id" property="tenant_id"/>
-        <result column="owner" property="owner" />
-        <result column="enabled" property="enabled" />
-        <result column="jobno" property="jobno"/>
-        <association property="org" javaType="com.lambda.fusion.authority.organization.model.Org">
-            <constructor>
-                <idArg column="orgId" javaType="String"/>
-            </constructor>
-        </association>
-        <collection property="authorities" ofType="com.lambda.fusion.authority.role.model.SimpleRole">
-            <constructor>
-                <idArg column="authority" javaType="String"/>
-            </constructor>
-        </collection>
-    </resultMap>
     <!-- 根据租户ID，查询租户管理员用户列表 -->
     <select id="getAllMutableUsersByTenantId" parameterType="String" resultMap="TenantUser">
         SELECT T.username, T.nickname, T.mobile, T.email, T.createDate, T.enabled, T.jobno, T.tenantId,
@@ -503,16 +495,14 @@
         </where>
         ORDER BY T.USERNAME
     </select>
+
     <!-- 检查手机号是否已经绑定-->
     <select id="checkMobileExists" resultType="boolean">
         SELECT COUNT(1) FROM DUAL WHERE EXISTS(SELECT 1 FROM LA_USERS T WHERE T.MOBILE = #{mobile})
     </select>
-    <select id="getSimpleUsers" resultType="com.lambda.fusion.authority.authorize.model.vo.SimpleUserVO">
-        SELECT username, nickname FROM LA_USERS
-    </select>
 
     <!--获取所有启用用户信息-->
-    <select id="loadAllEnabledUsers" parameterType="String" resultMap="UserDTO">
+    <select id="loadAllEnabledUsers" parameterType="String" resultMap="SimpleUser">
         <![CDATA[
         SELECT
             T.username,

@@ -9,7 +9,7 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.authority.resource.mapper.ResourceMapper;
 import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
-import com.lambda.fusion.authority.role.model.SimpleRole;
+import com.lambda.fusion.authority.role.model.vo.SimpleRoleVO;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
@@ -111,8 +111,8 @@ public class TenantAuthorizeManager {
         String tenantId = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
         // 在租户库中视作管理员，不能有租户id
         mutableUser.setTenantId(null);
-        List<SimpleRole> roles = new ArrayList<>();
-        roles.add(new SimpleRole(ROLE_ADMIN));
+        List<SimpleRoleVO> roles = new ArrayList<>();
+        roles.add(new SimpleRoleVO(ROLE_ADMIN));
         mutableUser.setAuthorities(roles);
         // todo 添加用户
         System.out.println(tenantId);
@@ -183,7 +183,7 @@ public class TenantAuthorizeManager {
 
     private boolean isTenantAdmin(MutableUserVO mutableUser) {
         boolean isTenantAdmin = false;
-        List<SimpleRole> roles = mutableUser.getAuthorities();
+        List<SimpleRoleVO> roles = mutableUser.getAuthorities();
         if (roles != null && !roles.isEmpty()) {
             // 判断是否为租户管理员
             isTenantAdmin = roles.stream().anyMatch(role -> isTenantAdmin(role.getAuthority()));

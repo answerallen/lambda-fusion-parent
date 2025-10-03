@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.role.model.MutableRole;
+import com.lambda.fusion.authority.role.model.vo.MutableRoleVO;
 import com.lambda.fusion.authority.role.model.domain.AccessPermissionDO;
 import com.lambda.fusion.authority.role.model.entity.RoleEntity;
 import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
@@ -24,7 +24,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @param parameters
      * @return
      */
-    List<MutableRole> getAllRoles(Map<String, Object> parameters);
+    List<MutableRoleVO> getAllRoles(Map<String, Object> parameters);
 
     /**
      * 根据条件分页查询用户角色记录
@@ -34,7 +34,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @return
      */
     @InterceptorIgnore(tenantLine = "true")
-    Page<MutableRole> getAllMutableRoles(Page<MutableRole> page, @Param("parameters") Map<String, Object> parameters);
+    Page<MutableRoleVO> getAllMutableRoles(Page<MutableRoleVO> page, @Param("parameters") Map<String, Object> parameters);
 
     /**
      * 根据id查询角色信息
@@ -42,21 +42,21 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @param authority
      * @return
      */
-    MutableRole getRoleByAuthority(String authority);
+    MutableRoleVO getRoleByAuthority(String authority);
 
     /**
      * 保存新角色
      *
      * @param role
      */
-    void insertRole(MutableRole role);
+    void insertRole(MutableRoleVO role);
 
     /**
      * 更新角色信息
      *
      * @param role
      */
-    void updateRole(MutableRole role);
+    void updateRole(MutableRoleVO role);
 
     /**
      * 根据authority删除指定的角色信息
@@ -199,7 +199,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @param owner
      * @return
      */
-    List<MutableRole> getTenantRolesByOwner(@Param("owner") String owner);
+    List<MutableRoleVO> getTenantRolesByOwner(@Param("owner") String owner);
 
     /**
      * 查询用户权限

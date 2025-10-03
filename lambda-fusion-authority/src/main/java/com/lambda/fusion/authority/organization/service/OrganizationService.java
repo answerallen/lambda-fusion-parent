@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.organization.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.organization.model.*;
+import com.lambda.fusion.authority.organization.model.vo.SimpleOrgVO;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import java.util.List;
@@ -24,7 +25,7 @@ public interface OrganizationService {
      * @param parameters 查询参数
      * @return
      */
-    List<Organization> treeList(Parameters parameters);
+    List<OrganizationVO> treeList(Parameters parameters);
 
     /**
      * 获取当前用户所有子部门
@@ -32,22 +33,22 @@ public interface OrganizationService {
      * @param parameters
      * @return
      */
-    List<Organization> getSubordinateOrgIds(Parameters parameters);
+    List<OrganizationVO> getSubordinateOrgIds(Parameters parameters);
 
     /**
      * 根据ID查询组织信息
      *
      * @param id
      */
-    Organization queryOrganById(String id);
+    OrganizationVO queryOrganById(String id);
 
     /**
      * 新增组织信息
      *
      * @param resource 组织机构
-     * @return {@link Organization}
+     * @return {@link OrganizationVO}
      */
-    Organization addOrganization(Organization resource);
+    OrganizationVO addOrganization(OrganizationVO resource);
 
     /***
      * 删除组织信息
@@ -59,17 +60,17 @@ public interface OrganizationService {
      * 更新组织信息
      *
      * @param resource 组织
-     * @return {@link Organization}
+     * @return {@link OrganizationVO}
      */
-    Organization updateOrganization(Organization resource);
+    OrganizationVO updateOrganization(OrganizationVO resource);
 
     /**
      * 获取用户组织、角色信息
      *
      * @param users 用户信息
-     * @return {@link Organization}
+     * @return {@link OrganizationVO}
      */
-    List<MutableOrganization> getAllOrganMutableUsers(List<MutableUserVO> users);
+    List<MutableOrganizationVO> getAllOrganMutableUsers(List<MutableUserVO> users);
 
     /**
      * 以平铺的方式获取组织权限列表
@@ -77,7 +78,7 @@ public interface OrganizationService {
      * @param parameters 查询参数
      * @return ig
      */
-    List<Organization> selectAll(Parameters parameters);
+    List<OrganizationVO> selectAll(Parameters parameters);
 
     /**
      * 查询用户组织信息
@@ -139,7 +140,7 @@ public interface OrganizationService {
      *
      * @param parameters
      */
-    List<SimpleOrg> getSimpleOrgTree(Parameters parameters);
+    List<SimpleOrgVO> getSimpleOrgTree(Parameters parameters);
 
     /**
      * 根据用户所在组织机构获取当前机构含子集id
@@ -170,7 +171,7 @@ public interface OrganizationService {
      * @param id 组织id
      * @return Organization
      */
-    Organization getRootOrganById(String id);
+    OrganizationVO getRootOrganById(String id);
 
     /**
      * 根据提供的组织列表查询该组织都属于哪些公司
@@ -178,7 +179,7 @@ public interface OrganizationService {
      * @param ids 组织id
      * @return Map<String, Organization
      */
-    Map<String, Organization> getOrgIdsByIds(Set<String> ids);
+    Map<String, OrganizationVO> getOrgIdsByIds(Set<String> ids);
 
     /**
      * 移动组织树节点

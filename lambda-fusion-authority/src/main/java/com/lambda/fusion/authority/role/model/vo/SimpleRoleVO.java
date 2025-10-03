@@ -1,11 +1,11 @@
-package com.lambda.fusion.authority.role.model;
+package com.lambda.fusion.authority.role.model.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 @Data
 @Schema(description = "用户角色")
-public class SimpleRole {
+public class SimpleRoleVO {
 
     @Schema(description = "角色名")
     private String authority;
@@ -13,14 +13,14 @@ public class SimpleRole {
     @Schema(description = "别名")
     private String alias;
 
-    public SimpleRole() {}
+    public SimpleRoleVO() {}
 
-    public SimpleRole(String authority, String alias) {
+    public SimpleRoleVO(String authority, String alias) {
         this.authority = authority;
         this.alias = alias;
     }
 
-    public SimpleRole(String authority) {
+    public SimpleRoleVO(String authority) {
         this.authority = authority;
     }
 
@@ -30,8 +30,8 @@ public class SimpleRole {
             return true;
         }
 
-        if (obj instanceof SimpleRole) {
-            return authority.equals(((SimpleRole) obj).authority);
+        if (obj instanceof SimpleRoleVO) {
+            return authority.equals(((SimpleRoleVO) obj).authority);
         }
 
         return false;

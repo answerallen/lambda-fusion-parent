@@ -22,11 +22,11 @@ import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.model.Org;
-import com.lambda.fusion.authority.organization.model.Organization;
+import com.lambda.fusion.authority.organization.model.OrganizationVO;
 import com.lambda.fusion.authority.organization.model.UserOrganization;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
-import com.lambda.fusion.authority.role.model.SimpleRole;
+import com.lambda.fusion.authority.role.model.vo.SimpleRoleVO;
 import com.lambda.fusion.authority.tenant.persistence.TenantMapper;
 import com.lambda.fusion.authority.user.mapper.*;
 import com.lambda.fusion.authority.user.model.bo.UserTempParameters;
@@ -241,7 +241,7 @@ public class UserServiceImpl implements UserService {
 
         // 角色排序
         if (CollectionUtils.isNotEmpty(user.getAuthorities())) {
-            user.getAuthorities().sort(Comparator.comparing(SimpleRole::getAuthority));
+            user.getAuthorities().sort(Comparator.comparing(SimpleRoleVO::getAuthority));
         }
     }
 
@@ -351,14 +351,14 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(orgIds)) {
             return Collections.emptyMap();
         }
-        List<Organization> organizations = organizationMapper.getOrgIdsByIds(orgIds);
+        List<OrganizationVO> organizations = organizationMapper.getOrgIdsByIds(orgIds);
         if (CollectionUtils.isEmpty(organizations)) {
             return Collections.emptyMap();
         }
         Map<String, String> map1 = Maps.newHashMap();
         Map<String, String> names0 = Maps.newHashMap();
         Set<String> parentKeys = Sets.newHashSet();
-        for (Organization item : organizations) {
+        for (OrganizationVO item : organizations) {
             String parentKeys1 = item.getParentKeys();
             names0.put(item.getId(), item.getAlias());
             map1.put(item.getId(), parentKeys1);
@@ -370,9 +370,9 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(parentKeys)) {
             return result;
         }
-        List<Organization> parents = organizationMapper.getOrgIdsByIds(parentKeys);
+        List<OrganizationVO> parents = organizationMapper.getOrgIdsByIds(parentKeys);
         Map<String, String> names1 =
-                parents.stream().collect(Collectors.toMap(Organization::id, Organization::getName));
+                parents.stream().collect(Collectors.toMap(OrganizationVO::id, OrganizationVO::getName));
         map1.forEach((key, value) -> {
             StringBuilder builder = new StringBuilder();
             if (StringUtils.isNotBlank(value)) {
@@ -496,11 +496,11 @@ public class UserServiceImpl implements UserService {
         MutableUserVO user = userMapper.getMutableUserById(username);
         Assert.notNull(user, "user not found");
         List<String> ids = Lists.newArrayList(username);
-        List<SimpleRole> authorities = user.getAuthorities();
+        List<SimpleRoleVO> authorities = user.getAuthorities();
         if (CollectionUtils.isNotEmpty(authorities)) {
             boolean admin = authorities.stream().anyMatch(e -> ROLE_DEV.equals(e.getAuthority()));
             if (!admin) {
-                for (SimpleRole role : authorities) {
+                for (SimpleRoleVO role : authorities) {
                     ids.add(role.getAuthority());
                 }
             } else {
@@ -531,7 +531,7 @@ public class UserServiceImpl implements UserService {
         userEntity.setCreator(operator.getName());
         userMapper.insert(userEntity);
 
-        List<SimpleRole> roles = userCreateDTO.getAuthorities();
+        List<SimpleRoleVO> roles = userCreateDTO.getAuthorities();
         addUserRoles(operator, roles, userEntity);
 
         if (Objects.isNull(userCreateDTO.getProps())) {
@@ -547,10 +547,10 @@ public class UserServiceImpl implements UserService {
         return encodePassword.getOrigin();
     }
 
-    private void addUserRoles(LoginUser operator, List<SimpleRole> roles, UserEntity userEntity) {
+    private void addUserRoles(LoginUser operator, List<SimpleRoleVO> roles, UserEntity userEntity) {
         if (CollectionUtils.isNotEmpty(roles)) {
             List<UserRoleEntity> userRoleEntities = roles.stream()
-                    .map(SimpleRole::getAuthority)
+                    .map(SimpleRoleVO::getAuthority)
                     .filter(StrUtil::isNotEmpty)
                     .map(authority -> {
                         Assert.notNull(authority, "role not found");

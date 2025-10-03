@@ -5,9 +5,9 @@ import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.organization.model.Organization;
+import com.lambda.fusion.authority.organization.model.OrganizationVO;
 import com.lambda.fusion.authority.organization.model.Parameters;
-import com.lambda.fusion.authority.organization.model.SimpleOrg;
+import com.lambda.fusion.authority.organization.model.vo.SimpleOrgVO;
 import com.lambda.fusion.authority.organization.model.UserOrganization;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
@@ -47,7 +47,7 @@ public class OrganizationController {
 
     @GetMapping("/tree")
     @Operation(summary = "以树形的方式获取组织机构列表", description = "以树形的方式获取组织机构列表")
-    public List<Organization> tree(
+    public List<OrganizationVO> tree(
             @RequestParam(required = false) @Parameter(description = "组织编码") String name,
             @RequestParam(required = false) @Parameter(description = "组织别名") String alias,
             @RequestParam(required = false) Boolean enabled) {
@@ -68,7 +68,7 @@ public class OrganizationController {
 
     @GetMapping("/list")
     @Operation(summary = "获取组织机构树形下拉列表", description = "查询组织机构列表树形下拉列表")
-    public List<SimpleOrg> list() {
+    public List<SimpleOrgVO> list() {
         Parameters parameters = organizationService.getQueryParameter();
         parameters.setEnabled(true);
         return organizationService.getSimpleOrgTree(parameters);
@@ -76,12 +76,12 @@ public class OrganizationController {
 
     @PostMapping({"", "/{id}"})
     @Operation(summary = "新增组织机构信息", description = "当id为非空时新增其子组织机构信息")
-    public Organization add(
+    public OrganizationVO add(
             @Parameter(description = "组织编号") @PathVariable(required = false) String id,
-            @Parameter(description = "组织信息", required = true) @Valid @RequestBody Organization resource) {
+            @Parameter(description = "组织信息", required = true) @Valid @RequestBody OrganizationVO resource) {
         if (StringUtils.isNotBlank(id)) {
             resource.setParentId(id);
-            Organization organization = organizationService.queryOrganById(id);
+            OrganizationVO organization = organizationService.queryOrganById(id);
             Assert.notNull(organization, "上级机构不存在！");
             resource.setSpid(organization.getName());
         }
@@ -90,10 +90,10 @@ public class OrganizationController {
 
     @PutMapping("/{id}")
     @Operation(summary = "更新组织机构信息", description = "根据编号更新指定的组织机构信息")
-    public Organization update(
+    public OrganizationVO update(
             @Parameter(description = "组织编号", required = true) @PathVariable String id,
-            @Parameter(description = "组织信息", required = true) @Valid @RequestBody Organization resource) {
-        Organization org = organizationService.queryOrganById(id);
+            @Parameter(description = "组织信息", required = true) @Valid @RequestBody OrganizationVO resource) {
+        OrganizationVO org = organizationService.queryOrganById(id);
         Assert.notNull(org, "组织机构不存在！");
         resource.setId(id);
         return organizationService.updateOrganization(resource);
@@ -102,7 +102,7 @@ public class OrganizationController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除组织机构信息", description = "根据编号删除指定的组织机构信息")
     public void delete(@Parameter(description = "组织编号", required = true) @PathVariable String id) {
-        Organization org = organizationService.queryOrganById(id);
+        OrganizationVO org = organizationService.queryOrganById(id);
         Assert.notNull(org, "组织机构不存在！");
         organizationService.deleteOrganization(id);
     }
@@ -143,7 +143,7 @@ public class OrganizationController {
     @PatchMapping("/{id}/enabled")
     @Operation(summary = "启用组织机构")
     public void enabled(@Parameter(description = "机构Id", required = true) @PathVariable("id") String id) {
-        Organization org = organizationService.queryOrganById(id);
+        OrganizationVO org = organizationService.queryOrganById(id);
         Assert.notNull(org, "组织机构不存在！");
         organizationService.prohibitOrganization(1, id);
     }
@@ -151,7 +151,7 @@ public class OrganizationController {
     @PatchMapping("/{id}/disabled")
     @Operation(summary = "禁用组织机构")
     public void disabled(@Parameter(description = "机构Id", required = true) @PathVariable("id") String id) {
-        Organization org = organizationService.queryOrganById(id);
+        OrganizationVO org = organizationService.queryOrganById(id);
         Assert.notNull(org, "组织机构不存在！");
         organizationService.prohibitOrganization(0, id);
     }

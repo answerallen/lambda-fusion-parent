@@ -42,7 +42,7 @@ import org.hibernate.validator.constraints.Length;
 @Schema(description = "组织元数据")
 @NoArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class Organization implements Tree<Organization> {
+public class OrganizationVO implements Tree<OrganizationVO> {
     @Schema(description = "主键ID")
     private String id;
 
@@ -74,7 +74,7 @@ public class Organization implements Tree<Organization> {
     private Integer tenant = 0;
 
     @Schema(description = "子节点")
-    private List<Organization> children;
+    private List<OrganizationVO> children;
 
     @Schema(description = "树的父节点", hidden = true)
     private String parentKeys;
@@ -120,11 +120,11 @@ public class Organization implements Tree<Organization> {
     }
 
     @Override
-    public void children(List<Organization> children) {
+    public void children(List<OrganizationVO> children) {
         this.setChildren(children);
     }
 
-    public Organization(String id) {
+    public OrganizationVO(String id) {
         this.id = id;
     }
 

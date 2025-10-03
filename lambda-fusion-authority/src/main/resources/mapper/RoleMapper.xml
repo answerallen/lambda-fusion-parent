@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.authority.role.mapper.RoleMapper">
 
-    <select id="getAllRoles" resultType="com.lambda.fusion.authority.role.model.MutableRole">
+    <select id="getAllRoles" resultType="com.lambda.fusion.authority.role.model.vo.MutableRoleVO">
         SELECT T.authority, T.alias, (CASE WHEN T.GROUP_ID IS NULL THEN 'default' ELSE T.GROUP_ID END) AS groupId
         FROM LA_ROLES T WHERE ENABLED = 1
         <if test="excludes != null and excludes.size > 0">
@@ -20,7 +20,7 @@
         ORDER BY T.ALIAS
     </select>
 
-    <select id="getAllMutableRoles" resultType="com.lambda.fusion.authority.role.model.MutableRole">
+    <select id="getAllMutableRoles" resultType="com.lambda.fusion.authority.role.model.vo.MutableRoleVO">
         SELECT T.authority, T.alias, T.tenantId, T.enabled,T.roleType,T.dataType, T.icon, T.remarks, T.createDate, CASE WHEN T.GROUP_ID IS NULL THEN 'default' ELSE T.GROUP_ID END GROUP_ID
         FROM LA_ROLES T
         <where>
@@ -45,7 +45,7 @@
         ORDER BY T.ALIAS
     </select>
 
-    <insert id="insertRole" parameterType="com.lambda.fusion.authority.role.model.MutableRole">
+    <insert id="insertRole" parameterType="com.lambda.fusion.authority.role.model.vo.MutableRoleVO">
         INSERT INTO LA_ROLES (authority,alias,icon,remarks,createDate,tenantId,owner,roletype, datatype, enabled, group_id)
         VALUES(
         #{authority},
@@ -58,7 +58,7 @@
         #{roleType,jdbcType=INTEGER},#{dataType,jdbcType=INTEGER},1, #{groupId})
     </insert>
     <select id="getRoleByAuthority" parameterType="string"
-            resultType="com.lambda.fusion.authority.role.model.MutableRole">
+            resultType="com.lambda.fusion.authority.role.model.vo.MutableRoleVO">
         SELECT authority, alias, roleType, datatype, enabled, icon, remarks, createDate, CASE WHEN group_id IS NULL THEN 'default' ELSE group_id END group_id FROM LA_ROLES WHERE authority = #{authority}
     </select>
     <delete id="deleteUserRoleByAuthority" parameterType="string">
@@ -67,7 +67,7 @@
     <delete id="deleteRoleByAuthority" parameterType="string">
         DELETE FROM LA_ROLES WHERE authority = #{authority}
     </delete>
-    <update id="updateRole" parameterType="com.lambda.fusion.authority.role.model.MutableRole">
+    <update id="updateRole" parameterType="com.lambda.fusion.authority.role.model.vo.MutableRoleVO">
         UPDATE LA_ROLES SET
         alias = #{alias,jdbcType=VARCHAR},
         remarks = #{remarks,jdbcType=VARCHAR},
@@ -168,7 +168,7 @@
     </update>
 
 
-    <select id="getTenantRolesByOwner" resultType="com.lambda.fusion.authority.role.model.MutableRole">
+    <select id="getTenantRolesByOwner" resultType="com.lambda.fusion.authority.role.model.vo.MutableRoleVO">
         SELECT T.authority, T.alias, T.roleType, T.dataType FROM LA_ROLES T WHERE T.OWNER = #{owner}
     </select>
     <resultMap id="AccessPermission" type="com.lambda.fusion.authority.role.model.vo.AccessPermissionVO">

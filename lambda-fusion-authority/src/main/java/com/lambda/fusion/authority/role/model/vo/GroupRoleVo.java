@@ -1,6 +1,5 @@
 package com.lambda.fusion.authority.role.model.vo;
 
-import com.lambda.fusion.authority.role.model.MutableRole;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
@@ -17,7 +16,7 @@ public class GroupRoleVo {
     private String groupName;
 
     @Schema(description = "角色列表")
-    private List<MutableRole> roles;
+    private List<MutableRoleVO> roles;
 
     @Schema(description = "是否拥有操作权限")
     private Boolean noPermission;

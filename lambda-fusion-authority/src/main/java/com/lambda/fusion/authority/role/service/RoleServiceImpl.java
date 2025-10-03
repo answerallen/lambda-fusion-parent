@@ -19,7 +19,10 @@ import com.lambda.fusion.authority.resource.service.ResourceService;
 import com.lambda.fusion.authority.role.mapper.AccessPermissionMapper;
 import com.lambda.fusion.authority.role.mapper.GroupMapper;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
-import com.lambda.fusion.authority.role.model.MutableRole;
+import com.lambda.fusion.authority.role.model.dto.RoleCreateDTO;
+import com.lambda.fusion.authority.role.model.dto.RoleUpdateDTO;
+import com.lambda.fusion.authority.role.model.entity.RoleEntity;
+import com.lambda.fusion.authority.role.model.vo.MutableRoleVO;
 import com.lambda.fusion.authority.role.model.domain.AccessPermissionDO;
 import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
 import com.lambda.fusion.authority.role.model.entity.GroupEntity;
@@ -79,7 +82,7 @@ public class RoleServiceImpl implements RoleService {
     private TenantAuthorizeManager tenantAuthorizeManager;
 
     @Override
-    public List<MutableRole> getAllRoles(User operator) {
+    public List<MutableRoleVO> getAllRoles(User operator) {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
         parameters.put("dev", operator.isDev());
         parameters.put(ADMIN, operator.isAdmin());
@@ -110,14 +113,14 @@ public class RoleServiceImpl implements RoleService {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(2);
         parameters.put("excludes", excludes);
         parameters.put(Constants.TENANT_ID, tenantId);
-        List<MutableRole> roles = roleMapper.getAllRoles(parameters);
+        List<MutableRoleVO> roles = roleMapper.getAllRoles(parameters);
         List<GroupEntity> groupEntities = groupMapper.getAllGroup(parameters);
         GroupEntity defaultGroupEntity = newDefaultGroup(tenantId);
         if (notcontains(groupEntities, defaultGroupEntity)) {
             groupEntities.add(defaultGroupEntity);
         }
         // Jin 如果当前用户的角色是开发工程师 只返回ROLE_DEV和ROLE_ADMIN
-        final Map<String, List<MutableRole>> map = roles.stream()
+        final Map<String, List<MutableRoleVO>> map = roles.stream()
                 .filter(mutableRole -> {
                     if (operator.isDev()) {
                         return (mutableRole.getAuthority().equals(Constants.ROLE_DEV)
@@ -126,12 +129,12 @@ public class RoleServiceImpl implements RoleService {
                         return true;
                     }
                 })
-                .collect(Collectors.groupingBy(MutableRole::getGroupId));
+                .collect(Collectors.groupingBy(MutableRoleVO::getGroupId));
 
         List<GroupRoleVo> result = new ArrayList<>();
         groupEntities.forEach(item -> {
             GroupRoleVo group = BeanUtil.copyProperties(item, GroupRoleVo.class);
-            List<MutableRole> children = map.get(group.getGroupId());
+            List<MutableRoleVO> children = map.get(group.getGroupId());
             if (CollectionUtils.isNotEmpty(children)) {
                 group.setRoles(children);
                 group.setInAvailable(true);
@@ -143,11 +146,11 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public Page<MutableRole> getAllRoles(Page<MutableRole> pageable, Map<String, Object> parameters) {
+    public Page<MutableRoleVO> getAllRoles(Page<MutableRoleVO> pageable, Map<String, Object> parameters) {
         pageable = roleMapper.getAllMutableRoles(pageable, parameters);
-        List<MutableRole> roles = pageable.getRecords();
+        List<MutableRoleVO> roles = pageable.getRecords();
         if (CollectionUtils.isNotEmpty(roles)) {
-            for (MutableRole item : roles) {
+            for (MutableRoleVO item : roles) {
                 String authority = item.getAuthority();
                 item.setBuiltIn(ArrayUtils.contains(BUILT_IN_ROLES, authority));
             }
@@ -157,42 +160,36 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public MutableRole updateRole(User operator, MutableRole role) {
-        Assert.notNull(role, "role不能为空");
-        Assert.notNull(role.getAlias(), "别名不能为空！");
-        MutableRole source = getRoleByAuthority(role.getAuthority());
-        source.setAlias(role.getAlias());
-        source.setRemarks(role.getRemarks());
-        source.setIcon(role.getIcon());
-        source.setDataType(role.getDataType());
-        source.setRoleType(role.getRoleType());
-        source.setGroupId(role.getGroupId());
-        roleMapper.updateRole(source);
-        source = getRoleByAuthority(role.getAuthority());
-        return source;
+    public MutableRoleVO updateRole(User operator, RoleUpdateDTO roleUpdateDTO) {
+        Assert.notNull(roleUpdateDTO, "role不能为空");
+        Assert.notNull(roleUpdateDTO.getAlias(), "别名不能为空！");
+        RoleEntity roleEntity = roleUpdateDTO.toEntity();
+        roleMapper.updateById(roleEntity);
+        return getRoleByAuthority(roleUpdateDTO.getAuthority());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public MutableRole saveRole(User operator, MutableRole role) {
-        Assert.notNull(role, "role不能为空");
-        Assert.notNull(role.getAlias(), "别名不能为空！");
+    public MutableRoleVO saveRole(User operator, RoleCreateDTO roleCreateDTO) {
+        Assert.notNull(roleCreateDTO, "role不能为空");
+        Assert.notNull(roleCreateDTO.getAlias(), "别名不能为空！");
         String tenantId = operator.getTenantId();
         String authority = UUID.fastUUID().toString();
-        Assert.isTrue(!roleMapper.hasExists(authority), "角色" + authority + "已存在");
-        role.setAuthority(authority);
-        role.setCreateDate(new Date());
-        role.setAuthority(authority);
-        role.setOwner(tenantId);
-        role.setTenantId(tenantId);
-        String groupId = Optional.ofNullable(role.getGroupId()).orElse(DEFAULT);
-        role.setGroupId(groupId);
-        roleMapper.insertRole(role);
+        Assert.isTrue(roleMapper.hasExists(authority), "角色" + authority + "已存在");
+        roleCreateDTO.setAuthority(authority);
+        roleCreateDTO.setCreateDate(new Date());
+        roleCreateDTO.setAuthority(authority);
+        roleCreateDTO.setOwner(tenantId);
+        roleCreateDTO.setTenantId(tenantId);
+        String groupId = Optional.ofNullable(roleCreateDTO.getGroupId()).orElse(DEFAULT);
+        roleCreateDTO.setGroupId(groupId);
+        RoleEntity roleEntity = roleCreateDTO.toEntity();
+        roleMapper.insert(roleEntity);
         return getRoleByAuthority(authority);
     }
 
     @Override
-    public MutableRole getRoleByAuthority(String authority) {
+    public MutableRoleVO getRoleByAuthority(String authority) {
         Assert.notNull(authority, "role name 不能为空");
         if (authority.startsWith(Constants.ROLE_TENANT)) {
             authority = Constants.ROLE_TENANT;
@@ -208,14 +205,13 @@ public class RoleServiceImpl implements RoleService {
         Set<String> deleteExclude = internalRoleService.deleteExclude(OperatorUtils.getOperator());
         excludes.addAll(deleteExclude);
         Assert.isTrue(!excludes.contains(authority), "角色" + authority + "不能删除");
-        MutableRole role = getRoleByAuthority(authority);
+        MutableRoleVO role = getRoleByAuthority(authority);
         authority = role.getAuthority();
         Assert.notNull(role, "角色" + authority + "不存在");
         boolean hasUsedAuthority = hasUsedAuthority(authority);
         Assert.isTrue(!hasUsedAuthority, "角色" + authority + "已被使用");
         roleMapper.deleteRoleByAuthority(authority);
         roleMapper.deleteResourceRoleByAuthority(authority);
-        roleMapper.deleteRoleByAuthority(authority);
         roleMapper.deleteUserRoleByAuthority(authority);
     }
 
@@ -244,7 +240,7 @@ public class RoleServiceImpl implements RoleService {
         return TreeFactory.build(permissions);
     }
 
-    @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
+    @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void saveAuthorization(String authority, String resourceid, int status, User operator) {
@@ -296,7 +292,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
+    @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     public void deleteAuthorization(String authority, String resourceid, User operator) {
         Assert.notNull(authority, "role name 不能为空");
         Assert.notNull(resourceid, "资源id不能为空！");
@@ -344,13 +340,13 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public void prohibitRole(int type, String authority) {
         Assert.notNull(authority, "role name 不能为空");
-        MutableRole role = getRoleByAuthority(authority);
+        MutableRoleVO role = getRoleByAuthority(authority);
         Assert.notNull(role, " 角色" + authority + "不存在");
         roleMapper.prohibitRole(type, role.getAuthority());
     }
 
     @Override
-    public List<MutableRole> getTenantRolesByOwner(String owner) {
+    public List<MutableRoleVO> getTenantRolesByOwner(String owner) {
         return roleMapper.getTenantRolesByOwner(owner);
     }
 
@@ -411,7 +407,7 @@ public class RoleServiceImpl implements RoleService {
         return defaultGroupEntity;
     }
 
-    @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
+    @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
     public void batchAddRoleUser(User user, BatchAddRoleUserDTO req) {
         final String authority = req.getRoleId();

@@ -20,13 +20,13 @@ public class RoleEntity {
     @TableField("ICON")
     private String icon;
 
-    @TableField("CREATEDATE")
+    @TableField("CREATE_DATE")
     private LocalDateTime createDate;
 
     @TableField("REMARKS")
     private String remarks;
 
-    @TableField("TENANTID")
+    @TableField("TENANT_ID")
     private String tenantId;
 
     @TableField("OWNER")
@@ -38,10 +38,10 @@ public class RoleEntity {
     @TableField("ENABLED")
     private Integer enabled;
 
-    @TableField("DATATYPE")
+    @TableField("DATA_TYPE")
     private Integer dataType;
 
-    @TableField("ROLETYPE")
+    @TableField("ROLE_TYPE")
     private Integer roleType;
 
     @TableField("GROUP_ID")
