@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 @Schema(description = "组织机构")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class SimpleOrgVO implements Tree<SimpleOrgVO> {
+public class OrganizationTreeVO implements Tree<OrganizationTreeVO> {
 
     @Schema(description = "主键ID")
     String id;
@@ -21,7 +21,7 @@ public class SimpleOrgVO implements Tree<SimpleOrgVO> {
     String pid;
 
     @Schema(description = "下级节点")
-    List<SimpleOrgVO> children;
+    List<OrganizationTreeVO> children;
 
     @Override
     public String id() {
@@ -34,7 +34,7 @@ public class SimpleOrgVO implements Tree<SimpleOrgVO> {
     }
 
     @Override
-    public void children(List<SimpleOrgVO> children) {
+    public void children(List<OrganizationTreeVO> children) {
         this.children = children;
     }
 }

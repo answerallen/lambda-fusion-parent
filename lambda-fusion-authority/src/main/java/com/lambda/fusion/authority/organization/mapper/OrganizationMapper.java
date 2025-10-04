@@ -2,9 +2,11 @@ package com.lambda.fusion.authority.organization.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.organization.model.*;
+import com.lambda.fusion.authority.organization.model.dto.OrganizationQueryDTO;
 import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
-import com.lambda.fusion.authority.organization.model.vo.SimpleOrgVO;
+import com.lambda.fusion.authority.organization.model.vo.MutableOrganizationVO;
+import com.lambda.fusion.authority.organization.model.vo.OrganizationTreeVO;
+import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import java.util.List;
 import java.util.Set;
@@ -28,7 +30,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param parameters 查询参数
      * @return 组织列表
      */
-    List<OrganizationVO> getAllMutableOrgan(@Param("parameters") Parameters parameters);
+    List<OrganizationVO> getAllMutableOrgan(@Param("parameters") OrganizationQueryDTO parameters);
 
     /**
      * 查询所有可用组织
@@ -36,7 +38,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param parameters 查询参数
      * @return java.util.List<SimpleOrg>
      */
-    List<SimpleOrgVO> getAllEnabledOrgan(@Param("parameters") Parameters parameters);
+    List<OrganizationTreeVO> getAllEnabledOrgan(@Param("parameters") OrganizationQueryDTO parameters);
 
     /**
      * 查询组织、角色信息
@@ -162,7 +164,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param parameters 条件参数
      * @return 组织
      */
-    List<OrganizationVO> getOrgIdsByCondition(@Param("parameters") Parameters parameters);
+    List<OrganizationVO> getOrgIdsByCondition(@Param("parameters") OrganizationQueryDTO parameters);
 
     /**
      * 根据父id更改spid

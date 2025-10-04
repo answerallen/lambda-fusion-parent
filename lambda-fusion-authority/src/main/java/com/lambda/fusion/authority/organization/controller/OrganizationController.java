@@ -5,12 +5,13 @@ import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.organization.model.OrganizationVO;
-import com.lambda.fusion.authority.organization.model.Parameters;
-import com.lambda.fusion.authority.organization.model.UserOrganization;
 import com.lambda.fusion.authority.organization.model.dto.OrganizationCreateDTO;
+import com.lambda.fusion.authority.organization.model.dto.OrganizationQueryDTO;
 import com.lambda.fusion.authority.organization.model.dto.OrganizationUpdateDTO;
-import com.lambda.fusion.authority.organization.model.vo.SimpleOrgVO;
+import com.lambda.fusion.authority.organization.model.dto.UserOrganizationChangeDTO;
+import com.lambda.fusion.authority.organization.model.vo.OrganizationTreeVO;
+import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
+import com.lambda.fusion.authority.organization.model.vo.UserOrganizationVO;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -54,7 +55,7 @@ public class OrganizationController {
             @RequestParam(required = false) @Parameter(description = "组织别名") String alias,
             @RequestParam(required = false) Boolean enabled) {
         LoginUser operator = OperatorUtils.getOperator();
-        Parameters parameters = organizationService.getQueryParameter();
+        OrganizationQueryDTO parameters = organizationService.getQueryParameter();
         if (BooleanUtils.isTrue(enabled)) {
             parameters.setEnabled(true);
         }
@@ -70,8 +71,8 @@ public class OrganizationController {
 
     @GetMapping("/list")
     @Operation(summary = "获取组织机构树形下拉列表", description = "查询组织机构列表树形下拉列表")
-    public List<SimpleOrgVO> list() {
-        Parameters parameters = organizationService.getQueryParameter();
+    public List<OrganizationTreeVO> list() {
+        OrganizationQueryDTO parameters = organizationService.getQueryParameter();
         parameters.setEnabled(true);
         return organizationService.getSimpleOrgTree(parameters);
     }
@@ -112,18 +113,18 @@ public class OrganizationController {
 
     @GetMapping("/user/{username}")
     @Operation(summary = "查询用户组织信息", description = "查询用户组织信息")
-    public UserOrganization queryUserOrganization(
+    public UserOrganizationVO queryUserOrganization(
             @Parameter(description = "用户名称", required = true) @PathVariable String username) {
-        UserOrganization resource = new UserOrganization();
+        UserOrganizationChangeDTO resource = new UserOrganizationChangeDTO();
         resource.setUserId(username);
         return organizationService.queryUserOrganization(resource);
     }
 
     @PostMapping("/user/{username}")
     @Operation(summary = "添加用户组织信息", description = "添加用户组织信息")
-    public UserOrganization addUserOrgan(
+    public UserOrganizationVO addUserOrgan(
             @Parameter(description = "用户名称", required = true) @PathVariable String username,
-            @Parameter(description = "用户组织信息", required = true) @RequestBody UserOrganization resource) {
+            @Parameter(description = "用户组织信息", required = true) @RequestBody UserOrganizationChangeDTO resource) {
         resource.setUserId(username);
         return organizationService.addUserOrganization(resource);
     }
@@ -136,9 +137,9 @@ public class OrganizationController {
 
     @PutMapping("/user/{username}")
     @Operation(summary = "更新用户组织关系", description = "更新用户组织关系")
-    public UserOrganization updateUserOrganization(
+    public UserOrganizationVO updateUserOrganization(
             @Parameter(description = "用户名称", required = true) @PathVariable String username,
-            @Parameter(description = "用户组织信息", required = true) @RequestBody UserOrganization resource) {
+            @Parameter(description = "用户组织信息", required = true) @RequestBody UserOrganizationChangeDTO resource) {
         resource.setUserId(username);
         return organizationService.updateUserOrganization(resource);
     }

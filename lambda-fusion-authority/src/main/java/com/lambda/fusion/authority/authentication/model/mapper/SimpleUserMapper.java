@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.authentication.model.mapper;
 
-import com.lambda.fusion.authority.authentication.model.SimpleUser;
+import com.lambda.fusion.authority.authentication.model.vo.SimpleUserVO;
 import com.lambda.fusion.core.user.User;
 import java.time.LocalDateTime;
 import org.mapstruct.Mapper;
@@ -30,7 +30,7 @@ public interface SimpleUserMapper {
     @Mapping(target = "accountExpired", source = "expiredTime", qualifiedByName = "mapAccountExpired")
     @Mapping(target = "roles", source = "authorities")
     @Mapping(target = "dev", ignore = true)
-    User toUser(SimpleUser simpleUser);
+    User toUser(SimpleUserVO simpleUser);
 
     /**
      * 映射账户过期状态

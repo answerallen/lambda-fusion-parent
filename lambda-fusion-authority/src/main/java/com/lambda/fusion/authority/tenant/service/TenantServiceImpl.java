@@ -10,14 +10,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
-import com.lambda.fusion.authority.organization.model.OrganizationVO;
+import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
 import com.lambda.fusion.authority.role.mapper.GroupMapper;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationCache;
 import com.lambda.fusion.authority.tenant.cache.TenantHostCache;
 import com.lambda.fusion.authority.tenant.event.*;
-import com.lambda.fusion.authority.tenant.model.TenantEntity;
-import com.lambda.fusion.authority.tenant.model.TenantQuery;
+import com.lambda.fusion.authority.tenant.model.entity.TenantEntity;
+import com.lambda.fusion.authority.tenant.model.vo.TenantOptionVO;
 import com.lambda.fusion.authority.tenant.persistence.TenantMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
@@ -103,7 +103,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
     }
 
     @Override
-    public List<TenantQuery> getTenantList() {
+    public List<TenantOptionVO> getTenantOptions() {
         return tenantMapper.queryTenantList();
     }
 

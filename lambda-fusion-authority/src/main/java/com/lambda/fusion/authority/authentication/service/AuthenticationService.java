@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.authentication.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.authentication.model.dto.NavigationQueryDTO;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
 import com.lambda.security.service.ThirdPartyLoginService;
@@ -31,7 +31,7 @@ public interface AuthenticationService extends UserDetailService, ThirdPartyLogi
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    default List<Resource> getNavigation(LoginUser user, NavigationQuery query) {
+    default List<Resource> getNavigation(LoginUser user, NavigationQueryDTO query) {
         return getNavigation(user, query.getParentId(), query.getLevel());
     }
 

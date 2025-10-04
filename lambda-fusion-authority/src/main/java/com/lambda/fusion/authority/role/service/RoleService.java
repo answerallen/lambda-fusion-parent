@@ -5,8 +5,8 @@ import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
 import com.lambda.fusion.authority.role.model.dto.RoleCreateDTO;
 import com.lambda.fusion.authority.role.model.dto.RoleUpdateDTO;
 import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
-import com.lambda.fusion.authority.role.model.vo.GroupRoleVo;
-import com.lambda.fusion.authority.role.model.vo.GroupVo;
+import com.lambda.fusion.authority.role.model.vo.GroupRoleVO;
+import com.lambda.fusion.authority.role.model.vo.GroupVO;
 import com.lambda.fusion.authority.role.model.vo.MutableRoleVO;
 import com.lambda.fusion.core.user.User;
 import java.util.List;
@@ -32,7 +32,7 @@ public interface RoleService {
      * @param tenantId the tenantId
      * @return ig all group roles
      */
-    List<GroupRoleVo> getAllGroupRoles(User operator, String tenantId);
+    List<GroupRoleVO> getAllGroupRoles(User operator, String tenantId);
 
     /***
      * 根据条件分页查询角色列表
@@ -141,7 +141,7 @@ public interface RoleService {
      * @param groupVo 分组信息
      * @return 结果
      */
-    GroupVo addGroup(GroupVo groupVo);
+    GroupVO addGroup(GroupVO groupVo);
 
     /**
      * 删除分组信息
@@ -156,14 +156,14 @@ public interface RoleService {
      * @param groupVo 分组信息
      * @return ig
      */
-    GroupVo updateGroup(GroupVo groupVo);
+    GroupVO updateGroup(GroupVO groupVo);
 
     /**
      * 根据组ID查询组信息
      *
      * @param id
      */
-    GroupVo getGroupById(String id);
+    GroupVO getGroupById(String id);
 
     /**
      * 批量添加角色用户
@@ -179,5 +179,5 @@ public interface RoleService {
      * @param user 当前用户
      * @return 列表
      */
-    List<GroupVo> listGroups(User user);
+    List<GroupVO> listGroups(User user);
 }

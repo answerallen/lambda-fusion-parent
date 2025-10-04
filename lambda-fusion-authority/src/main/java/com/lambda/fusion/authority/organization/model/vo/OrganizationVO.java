@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.organization.model;
+package com.lambda.fusion.authority.organization.model.vo;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.cloud.core.annotation.AutoConverter;

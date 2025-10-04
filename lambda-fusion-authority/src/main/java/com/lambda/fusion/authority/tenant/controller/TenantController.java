@@ -7,10 +7,10 @@ import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.tenant.model.TenantEntity;
-import com.lambda.fusion.authority.tenant.model.TenantQuery;
-import com.lambda.fusion.authority.tenant.model.TenantVO;
 import com.lambda.fusion.authority.tenant.model.dto.TenantPageQueryDTO;
+import com.lambda.fusion.authority.tenant.model.entity.TenantEntity;
+import com.lambda.fusion.authority.tenant.model.vo.TenantOptionVO;
+import com.lambda.fusion.authority.tenant.model.vo.TenantVO;
 import com.lambda.fusion.authority.tenant.service.TenantService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
@@ -89,10 +89,10 @@ public class TenantController {
         return parameters;
     }
 
-    @GetMapping("/list")
+    @GetMapping("/options")
     @Operation(summary = "获取租户下拉列表", description = "查询租户下拉列表")
-    public List<TenantQuery> list() {
-        return tenantService.getTenantList();
+    public List<TenantOptionVO> tenantOptions() {
+        return tenantService.getTenantOptions();
     }
 
     @GetMapping("/{id}")

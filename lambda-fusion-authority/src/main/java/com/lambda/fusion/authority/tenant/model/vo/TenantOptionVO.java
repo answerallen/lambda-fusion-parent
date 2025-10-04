@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.tenant.model;
+package com.lambda.fusion.authority.tenant.model.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -10,7 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Schema(description = "租户信息表分页查询参数")
-public class TenantQuery {
+public class TenantOptionVO {
 
     /**
      * 租户编码

@@ -7,11 +7,10 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
-import com.lambda.fusion.authority.authentication.model.NavigationQuery;
-import com.lambda.fusion.authority.authentication.model.SimpleUser;
+import com.lambda.fusion.authority.authentication.model.dto.NavigationQueryDTO;
+import com.lambda.fusion.authority.authentication.model.vo.SimpleUserVO;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.Resource;
-import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.TreeFactory;
 import com.lambda.fusion.core.user.User;
@@ -37,7 +36,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
         Assert.notNull(username, "parameter 'username' cannot be empty or null");
-        SimpleUser userVO = authenticationMapper.loadUserDetailByUsername(username);
+        SimpleUserVO userVO = authenticationMapper.loadUserDetailByUsername(username);
         if (userVO == null) {
             throw new UsernameNotFoundException("user in not found");
         }
@@ -46,20 +45,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<SimpleUser> simpleUsers = authenticationMapper.loadUserDetailByMobile(mobile);
+        List<SimpleUserVO> simpleUsers = authenticationMapper.loadUserDetailByMobile(mobile);
         if (CollUtil.isEmpty(simpleUsers)) {
             throw new UsernameNotFoundException("mobile in not found");
         }
         if (simpleUsers.size() > 1) {
             throw new AuthenticationException("mobile in not unique");
         }
-        SimpleUser simpleUser = simpleUsers.get(0);
+        SimpleUserVO simpleUser = simpleUsers.get(0);
         return buildLoginUser(simpleUser.toUser());
     }
 
     @Override
     public List<Resource> getNavigation(LoginUser operator, String parentId, Integer level) {
-        NavigationQuery query = new NavigationQuery();
+        NavigationQueryDTO query = new NavigationQueryDTO();
         query.setParentId(parentId);
         query.setLevel(level);
         query.setMode(0);
@@ -67,7 +66,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<Resource> getNavigation(LoginUser operator, NavigationQuery query) {
+    public List<Resource> getNavigation(LoginUser operator, NavigationQueryDTO query) {
         Assert.notNull(operator, "parameter 'operator' cannot be empty or null");
         Assert.notNull(query, "parameter 'query' cannot be empty or null");
         List<Resource> resources = authenticationMapper.getNavigationByQuery(query);
@@ -75,7 +74,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<SimpleUserVO> getUsersByRoleId(String roleId) {
+    public List<com.lambda.fusion.authority.user.model.vo.SimpleUserVO> getUsersByRoleId(String roleId) {
         return authenticationMapper.getUsersByRoleId(roleId);
     }
 

@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.resource.service;
 
-import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.authentication.model.dto.NavigationQueryDTO;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.resource.model.Resource;
@@ -18,7 +18,7 @@ public interface ResourceService {
     /**
      * 获取系统资源
      */
-    default List<Resource> getChildren(NavigationQuery parameter) {
+    default List<Resource> getChildren(NavigationQueryDTO parameter) {
         return getChildren();
     }
 

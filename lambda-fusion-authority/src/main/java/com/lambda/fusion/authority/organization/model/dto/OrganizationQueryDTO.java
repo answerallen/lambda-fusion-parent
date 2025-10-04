@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.organization.model;
+package com.lambda.fusion.authority.organization.model.dto;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class Parameters {
+public class OrganizationQueryDTO {
 
     boolean enabled;
 

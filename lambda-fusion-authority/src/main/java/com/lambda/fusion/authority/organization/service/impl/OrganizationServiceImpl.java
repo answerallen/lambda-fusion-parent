@@ -12,14 +12,17 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
-import com.lambda.fusion.authority.organization.model.MutableOrganizationVO;
-import com.lambda.fusion.authority.organization.model.OrganizationVO;
-import com.lambda.fusion.authority.organization.model.Parameters;
-import com.lambda.fusion.authority.organization.model.UserOrganization;
+import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
 import com.lambda.fusion.authority.organization.model.dto.OrganizationCreateDTO;
+import com.lambda.fusion.authority.organization.model.dto.OrganizationQueryDTO;
 import com.lambda.fusion.authority.organization.model.dto.OrganizationUpdateDTO;
+import com.lambda.fusion.authority.organization.model.dto.UserOrganizationChangeDTO;
 import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
-import com.lambda.fusion.authority.organization.model.vo.SimpleOrgVO;
+import com.lambda.fusion.authority.organization.model.entity.UserOrganizationEntity;
+import com.lambda.fusion.authority.organization.model.vo.MutableOrganizationVO;
+import com.lambda.fusion.authority.organization.model.vo.OrganizationTreeVO;
+import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
+import com.lambda.fusion.authority.organization.model.vo.UserOrganizationVO;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.role.mapper.GroupMapper;
@@ -63,19 +66,20 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final RoleMapper roleMapper;
     private final RoleService roleService;
     private final OrganizationMapper organizationMapper;
+    private final UserOrganizationMapper userOrganizationMapper;
     private final GroupMapper groupMapper;
     private final AuthorityProperties authorityProperties;
 
     @Override
-    public Parameters getQueryParameter() {
-        Parameters parameters = new Parameters();
+    public OrganizationQueryDTO getQueryParameter() {
+        OrganizationQueryDTO parameters = new OrganizationQueryDTO();
         String tenantId = OperatorUtils.getOperator().getTenantId();
         parameters.setOwner(StringUtils.isNotBlank(tenantId) ? tenantId : null);
         return parameters;
     }
 
     @Override
-    public List<OrganizationVO> treeList(Parameters parameters) {
+    public List<OrganizationVO> treeList(OrganizationQueryDTO parameters) {
         User operator = OperatorUtils.getLoginUser(User.class);
         List<OrganizationVO> organizations = getOrganizationsByCondition(operator, parameters);
         applyPermissionConstraints(organizations, operator);
@@ -89,7 +93,7 @@ public class OrganizationServiceImpl implements OrganizationService {
      * @param parameters 查询参数
      * @return 组织列表
      */
-    private List<OrganizationVO> getOrganizationsByCondition(User operator, Parameters parameters) {
+    private List<OrganizationVO> getOrganizationsByCondition(User operator, OrganizationQueryDTO parameters) {
         if (hasSearchCondition(parameters)) {
             return getOrganizationsBySearchCondition(operator, parameters);
         } else {
@@ -100,14 +104,14 @@ public class OrganizationServiceImpl implements OrganizationService {
     /**
      * 检查是否有搜索条件
      */
-    private boolean hasSearchCondition(Parameters parameters) {
+    private boolean hasSearchCondition(OrganizationQueryDTO parameters) {
         return StringUtils.isNotBlank(parameters.getAlias()) || StringUtils.isNotBlank(parameters.getName());
     }
 
     /**
      * 根据搜索条件获取组织列表
      */
-    private List<OrganizationVO> getOrganizationsBySearchCondition(User operator, Parameters parameters) {
+    private List<OrganizationVO> getOrganizationsBySearchCondition(User operator, OrganizationQueryDTO parameters) {
         List<OrganizationVO> list = getOrgByCondition(operator, parameters);
 
         if (operator.isAdmin()) {
@@ -176,7 +180,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<OrganizationVO> getSubordinateOrgIds(Parameters parameters) {
+    public List<OrganizationVO> getSubordinateOrgIds(OrganizationQueryDTO parameters) {
         LoginUser operator = OperatorUtils.getOperator();
         List<String> orgIds = getSubordinateOrgIds(operator);
         if (CollectionUtils.isNotEmpty(orgIds)) {
@@ -185,7 +189,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         return organizationMapper.getAllMutableOrgan(parameters);
     }
 
-    public List<OrganizationVO> getOrgByCondition(LoginUser operator, Parameters parameters) {
+    public List<OrganizationVO> getOrgByCondition(LoginUser operator, OrganizationQueryDTO parameters) {
         List<String> orgIds = getSubordinateOrgIds(operator);
         if (CollectionUtils.isNotEmpty(orgIds)) {
             parameters.setIds(orgIds);
@@ -194,13 +198,13 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<OrganizationVO> selectAll(Parameters parameters) {
+    public List<OrganizationVO> selectAll(OrganizationQueryDTO parameters) {
         return organizationMapper.getAllMutableOrgan(parameters);
     }
 
     @Override
-    public List<SimpleOrgVO> getSimpleOrgTree(Parameters parameters) {
-        List<SimpleOrgVO> list = organizationMapper.getAllEnabledOrgan(parameters);
+    public List<OrganizationTreeVO> getSimpleOrgTree(OrganizationQueryDTO parameters) {
+        List<OrganizationTreeVO> list = organizationMapper.getAllEnabledOrgan(parameters);
         return TreeFactory.build(list);
     }
 
@@ -264,7 +268,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         List<String> ids = Collections.singletonList(id);
         groupMapper.deleteByOrgIds(ids);
         organizationMapper.deleteById(id);
-        organizationMapper.deleteUserOrganizationByOrg(id);
+        userOrganizationMapper.deleteUserOrganizationByOrg(id);
     }
 
     /**
@@ -306,38 +310,44 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public UserOrganization queryUserOrganization(UserOrganization resource) {
+    public UserOrganizationVO queryUserOrganization(UserOrganizationChangeDTO resource) {
         Assert.notNull(resource, "organ must not be null");
         Assert.notNull(resource.getUserId(), "user id must not be null");
-        return organizationMapper.queryUserOrganization(resource.getUserId());
+        UserOrganizationEntity userOrganizationEntity =
+                userOrganizationMapper.queryUserOrganization(resource.getUserId());
+        return UserOrganizationVO.fromEntity(userOrganizationEntity);
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public UserOrganization addUserOrganization(UserOrganization resource) {
-        Assert.notNull(resource, "organ must not be null");
-        Assert.notNull(resource.getUserId(), "user id must not be null");
-        Assert.notNull(resource.getOrganizationId(), "organization id must not be null");
-        Assert.notNull(userMapper.getMutableUserById(resource.getUserId()), "lambda.authority.organ.user.notfound");
-        Assert.notNull(getOrganizationById(resource.getOrganizationId()), "机构不存在！");
-        organizationMapper.addUserOrganization(resource);
-        return resource;
+    public UserOrganizationVO addUserOrganization(UserOrganizationChangeDTO userOrganizationDTO) {
+        Assert.notNull(userOrganizationDTO, "organ must not be null");
+        Assert.notNull(userOrganizationDTO.getUserId(), "user id must not be null");
+        Assert.notNull(userOrganizationDTO.getOrganizationId(), "organization id must not be null");
+        Assert.notNull(
+                userMapper.getMutableUserById(userOrganizationDTO.getUserId()), "lambda.authority.organ.user.notfound");
+        Assert.notNull(getOrganizationById(userOrganizationDTO.getOrganizationId()), "机构不存在！");
+        UserOrganizationEntity userOrganization = userOrganizationDTO.toEntity();
+        userOrganizationMapper.insert(userOrganization);
+        return UserOrganizationVO.fromEntity(userOrganization);
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteUserOrganization(String username) {
-        organizationMapper.deleteUserOrganizationByUser(username);
+        userOrganizationMapper.deleteUserOrganizationByUser(username);
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public UserOrganization updateUserOrganization(UserOrganization resource) {
+    public UserOrganizationVO updateUserOrganization(UserOrganizationChangeDTO resource) {
         Assert.notNull(resource.getUserId(), "user id must not be null");
         Assert.notNull(resource.getOrganizationId(), "organization id must not be null");
-        Assert.notNull(getOrganizationById(resource.getOrganizationId()), "机构不存在！");
-        organizationMapper.updateUserOrganization(resource);
-        return resource;
+        OrganizationVO organization = getOrganizationById(resource.getOrganizationId());
+        Assert.notNull(organization, "机构不存在！");
+        UserOrganizationEntity userOrganization = resource.toEntity();
+        userOrganizationMapper.updateById(userOrganization);
+        return UserOrganizationVO.fromEntity(userOrganization);
     }
 
     @Override

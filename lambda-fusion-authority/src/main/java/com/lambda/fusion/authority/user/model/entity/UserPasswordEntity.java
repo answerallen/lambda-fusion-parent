@@ -12,7 +12,7 @@ import lombok.Data;
 @TableName("LA_USER_UPDATE_PWD_LOGS")
 @SuppressFBWarnings("EI_EXPOSE_REP")
 @Schema(description = "日志表实体类")
-public class UserUpdatePwdLogEntity {
+public class UserPasswordEntity {
 
     @TableId
     @Schema(description = "主键ID")

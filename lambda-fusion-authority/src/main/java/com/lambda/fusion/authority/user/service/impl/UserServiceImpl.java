@@ -21,9 +21,10 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
-import com.lambda.fusion.authority.organization.model.Org;
-import com.lambda.fusion.authority.organization.model.OrganizationVO;
-import com.lambda.fusion.authority.organization.model.UserOrganization;
+import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
+import com.lambda.fusion.authority.organization.model.entity.UserOrganizationEntity;
+import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
+import com.lambda.fusion.authority.organization.model.vo.SimpleOrganizationVO;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.vo.SimpleRoleVO;
@@ -76,7 +77,7 @@ public class UserServiceImpl implements UserService {
     private final UserInfoMapper userInfoMapper;
     private final UserFieldsMapper userFieldsMapper;
     private final UserOrganizationMapper userOrganizationMapper;
-    private final UserUpdatePwdLogMapper userUpdatePwdLogMapper;
+    private final UserPasswordMapper userUpdatePwdLogMapper;
     private final OrganizationService organizationService;
     protected final ApplicationEventPublisher applicationEventPublisher;
 
@@ -145,14 +146,14 @@ public class UserServiceImpl implements UserService {
                     !operator.isDev() && !operator.isAdmin() && !operator.isManager() && !operator.isTenantManager();
             // 判断密码是否需要更新
             if (notMatched && ObjectUtil.equals(props.getUpdatePwd(), false)) {
-                List<UserUpdatePwdLogEntity> userUpdatePwdLogEntities =
-                        userUpdatePwdLogMapper.selectList(new LambdaQueryWrapper<UserUpdatePwdLogEntity>()
-                                .select(UserUpdatePwdLogEntity::getUpdateTime)
-                                .eq(UserUpdatePwdLogEntity::getUserName, operator.getName())
-                                .isNotNull(UserUpdatePwdLogEntity::getUpdateTime)
-                                .orderByDesc(UserUpdatePwdLogEntity::getUpdateTime));
+                List<UserPasswordEntity> userUpdatePwdLogEntities =
+                        userUpdatePwdLogMapper.selectList(new LambdaQueryWrapper<UserPasswordEntity>()
+                                .select(UserPasswordEntity::getUpdateTime)
+                                .eq(UserPasswordEntity::getUserName, operator.getName())
+                                .isNotNull(UserPasswordEntity::getUpdateTime)
+                                .orderByDesc(UserPasswordEntity::getUpdateTime));
                 if (CollectionUtils.isNotEmpty(userUpdatePwdLogEntities)) {
-                    UserUpdatePwdLogEntity userUpdatePwdLogEntity = userUpdatePwdLogEntities.getFirst();
+                    UserPasswordEntity userUpdatePwdLogEntity = userUpdatePwdLogEntities.getFirst();
                     Integer passwordModifyDays =
                             properties.getPasswordStrategy().getPeriodChangeDays();
                     LocalDateTime nowTime = LocalDateTime.now();
@@ -220,7 +221,7 @@ public class UserServiceImpl implements UserService {
 
         // 补充用户信息
         for (MutableUserVO user : records) {
-            enrichSingleUserInfo(user, orgNames, personInfo, tenantId);
+            fillSingleUserInfo(user, orgNames, personInfo, tenantId);
         }
 
         return records;
@@ -229,7 +230,7 @@ public class UserServiceImpl implements UserService {
     /**
      * 补充单个用户的详细信息
      */
-    private void enrichSingleUserInfo(
+    private void fillSingleUserInfo(
             MutableUserVO user,
             Map<String, String> orgNames,
             Map<String, Map<String, String>> personInfo,
@@ -325,7 +326,7 @@ public class UserServiceImpl implements UserService {
      */
     private void supplementUserOrgInfo(Map<String, String> orgnames, MutableUserVO item) {
         if (isBindOrg(item)) {
-            Org org = item.getOrg();
+            SimpleOrganizationVO org = item.getOrg();
             org.setFullName(orgnames.getOrDefault(org.getId(), org.getAlias()));
         }
     }
@@ -337,7 +338,7 @@ public class UserServiceImpl implements UserService {
      * @return boolean
      */
     private boolean isBindOrg(@NonNull MutableUserVO user0) {
-        Org org = user0.getOrg();
+        SimpleOrganizationVO org = user0.getOrg();
         return org != null && StringUtils.isNotBlank(org.getId());
     }
 
@@ -539,7 +540,7 @@ public class UserServiceImpl implements UserService {
         }
         userCreateDTO.getProps().setUpdatePwd(true);
 
-        Org org = userCreateDTO.getOrg();
+        SimpleOrganizationVO org = userCreateDTO.getOrg();
         if (org != null && StringUtils.isNotBlank(org.getId())) {
             userOrganizationMapper.insert(
                     new UserOrganizationEntity(userEntity.getUserid(), org.getId(), operator.getTenantId()));
@@ -593,18 +594,20 @@ public class UserServiceImpl implements UserService {
      * @param operator 当前用户
      * @return void
      */
-    private void updateUserOrg(String username, Org source, Org original, LoginUser operator) {
-        Org updated = orgUpdated(source, original);
+    private void updateUserOrg(
+            String username, SimpleOrganizationVO source, SimpleOrganizationVO original, LoginUser operator) {
+        SimpleOrganizationVO updated = orgUpdated(source, original);
         if (null != updated) {
             if (StringUtils.isNotBlank(updated.getId())) {
-                UserOrganization changed = new UserOrganization(username, updated.getId(), operator.getTenantId());
+                UserOrganizationEntity changed =
+                        new UserOrganizationEntity(username, updated.getId(), operator.getTenantId());
                 if (StringUtils.isNotBlank(getOrgId(original))) {
-                    organizationMapper.updateUserOrganization(changed);
+                    userOrganizationMapper.updateById(changed);
                 } else {
-                    organizationMapper.addUserOrganization(changed);
+                    userOrganizationMapper.insert(changed);
                 }
             } else {
-                organizationMapper.deleteUserOrganizationByUser(username);
+                userOrganizationMapper.deleteUserOrganizationByUser(username);
             }
         }
     }
@@ -635,9 +638,9 @@ public class UserServiceImpl implements UserService {
      * @param target 实际值
      */
     @Nullable
-    private Org orgUpdated(Org source, Org target) {
+    private SimpleOrganizationVO orgUpdated(SimpleOrganizationVO source, SimpleOrganizationVO target) {
         if (source == null) {
-            return new Org();
+            return new SimpleOrganizationVO();
         }
         if (target == null) {
             return source;
@@ -645,7 +648,7 @@ public class UserServiceImpl implements UserService {
         String id0 = source.getId();
         String id1 = target.getId();
         if (StringUtils.isBlank(id0)) {
-            return new Org();
+            return new SimpleOrganizationVO();
         } else if (id0.equals(id1)) {
             return null;
         } else {
@@ -659,7 +662,7 @@ public class UserServiceImpl implements UserService {
      * @param org 组织对象
      * @return java.lang.String
      */
-    private String getOrgId(Org org) {
+    private String getOrgId(SimpleOrganizationVO org) {
         if (org != null && StringUtils.isNotBlank(org.getId())) {
             return org.getId();
         }
@@ -676,7 +679,7 @@ public class UserServiceImpl implements UserService {
             userMapper.deleteUser(username);
             userRoleMapper.deleteUserRoles(username);
             roleMapper.deleteResourceRoleByAuthority(username);
-            organizationMapper.deleteUserOrganizationByUser(username);
+            userOrganizationMapper.deleteUserOrganizationByUser(username);
             userFieldsMapper.deleteByUsername(username);
             // todo 删除用户数据权限
         }
@@ -696,7 +699,7 @@ public class UserServiceImpl implements UserService {
         boolean isChecked = passwordEncoder.matches(oldpassword, userEntity.getPassword());
         Assert.isTrue(isChecked, "lambda.authority.user.password.incorrect");
         String encoded = passwordEncoder.encode(newpassword);
-        UserUpdatePwdLogEntity userUpdatePwdLogEntity = new UserUpdatePwdLogEntity();
+        UserPasswordEntity userUpdatePwdLogEntity = new UserPasswordEntity();
         userUpdatePwdLogEntity.setPassWord(encoded);
         userUpdatePwdLogEntity.setUserName(username);
         userUpdatePwdLogMapper.insertLog(userUpdatePwdLogEntity);

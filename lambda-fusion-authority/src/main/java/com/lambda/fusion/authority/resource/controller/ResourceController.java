@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.resource.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
-import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.authentication.model.dto.NavigationQueryDTO;
 import com.lambda.fusion.authority.resource.model.MoveParameter;
 import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.resource.model.Resource;
@@ -39,7 +39,7 @@ public class ResourceController {
                 @Parameter(name = "level", description = "菜单层级"),
                 @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
             })
-    public List<Resource> tree(@Parameter NavigationQuery parameter) {
+    public List<Resource> tree(@Parameter NavigationQueryDTO parameter) {
         return resourceService.getChildren(parameter);
     }
 

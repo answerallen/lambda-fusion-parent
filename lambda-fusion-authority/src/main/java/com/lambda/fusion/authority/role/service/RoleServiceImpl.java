@@ -26,8 +26,8 @@ import com.lambda.fusion.authority.role.model.dto.RoleUpdateDTO;
 import com.lambda.fusion.authority.role.model.entity.GroupEntity;
 import com.lambda.fusion.authority.role.model.entity.RoleEntity;
 import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
-import com.lambda.fusion.authority.role.model.vo.GroupRoleVo;
-import com.lambda.fusion.authority.role.model.vo.GroupVo;
+import com.lambda.fusion.authority.role.model.vo.GroupRoleVO;
+import com.lambda.fusion.authority.role.model.vo.GroupVO;
 import com.lambda.fusion.authority.role.model.vo.MutableRoleVO;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.mapper.UserRoleMapper;
@@ -93,7 +93,7 @@ public class RoleServiceImpl implements RoleService {
 
     @SuppressWarnings("squid:S3776")
     @Override
-    public List<GroupRoleVo> getAllGroupRoles(User operator, String tenantId) {
+    public List<GroupRoleVO> getAllGroupRoles(User operator, String tenantId) {
         if (StringUtils.isBlank(tenantId) || StringUtils.isNotBlank(operator.getTenantId())) {
             tenantId = operator.getTenantId();
         }
@@ -131,9 +131,9 @@ public class RoleServiceImpl implements RoleService {
                 })
                 .collect(Collectors.groupingBy(MutableRoleVO::getGroupId));
 
-        List<GroupRoleVo> result = new ArrayList<>();
+        List<GroupRoleVO> result = new ArrayList<>();
         groupEntities.forEach(item -> {
-            GroupRoleVo group = BeanUtil.copyProperties(item, GroupRoleVo.class);
+            GroupRoleVO group = BeanUtil.copyProperties(item, GroupRoleVO.class);
             List<MutableRoleVO> children = map.get(group.getGroupId());
             if (CollectionUtils.isNotEmpty(children)) {
                 group.setRoles(children);
@@ -351,7 +351,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public GroupVo addGroup(GroupVo groupVo) {
+    public GroupVO addGroup(GroupVO groupVo) {
         groupVo.setGroupId(IdWorker.getIdStr());
         groupMapper.insert(BeanUtil.copyProperties(groupVo, GroupEntity.class));
         return groupVo;
@@ -365,16 +365,16 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public GroupVo updateGroup(GroupVo groupVo) {
+    public GroupVO updateGroup(GroupVO groupVo) {
         groupMapper.updateById(BeanUtil.copyProperties(groupVo, GroupEntity.class));
         return groupVo;
     }
 
     @Override
-    public GroupVo getGroupById(String id) {
+    public GroupVO getGroupById(String id) {
         GroupEntity groupEntity = groupMapper.selectById(id);
         if (groupEntity != null) {
-            GroupVo target = new GroupVo();
+            GroupVO target = new GroupVO();
             BeanUtil.copyProperties(groupEntity, target);
             return target;
         }
@@ -382,7 +382,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<GroupVo> listGroups(User operator) {
+    public List<GroupVO> listGroups(User operator) {
         String tenantId = operator.getTenantId();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(1);
         parameters.put(Constants.TENANT_ID, tenantId);
@@ -391,7 +391,7 @@ public class RoleServiceImpl implements RoleService {
         if (notcontains(groupEntities, defaultGroupEntity)) {
             groupEntities.add(defaultGroupEntity);
         }
-        return BeanUtil.copyToList(groupEntities, GroupVo.class);
+        return BeanUtil.copyToList(groupEntities, GroupVO.class);
     }
 
     private boolean notcontains(List<GroupEntity> groupEntities, GroupEntity defaultGroupEntity) {

@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.authentication.model;
+package com.lambda.fusion.authority.authentication.model.vo;
 
 import com.lambda.fusion.authority.authentication.model.mapper.SimpleUserMapper;
 import com.lambda.fusion.core.user.User;
@@ -15,7 +15,7 @@ import lombok.Data;
  */
 @Data
 @Schema(description = "简单用户信息")
-public class SimpleUser implements Serializable {
+public class SimpleUserVO implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;

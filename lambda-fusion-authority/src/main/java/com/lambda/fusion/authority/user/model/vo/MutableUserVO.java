@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.user.model.vo;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.lambda.fusion.authority.organization.model.Org;
+import com.lambda.fusion.authority.organization.model.vo.SimpleOrganizationVO;
 import com.lambda.fusion.authority.role.model.vo.SimpleRoleVO;
 import com.lambda.fusion.core.base.LambdaObject;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -65,7 +65,7 @@ public class MutableUserVO implements LambdaObject {
 
     @JsonProperty("organization")
     @Schema(description = "组织信息")
-    private Org org;
+    private SimpleOrganizationVO org;
 
     @Schema(description = "角色信息")
     @JsonProperty("authorities")

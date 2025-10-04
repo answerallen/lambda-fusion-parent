@@ -10,7 +10,7 @@ import com.lambda.fusion.authority.resource.mapper.ResourceMapper;
 import com.lambda.fusion.authority.resource.model.MutableResource;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.vo.SimpleRoleVO;
-import com.lambda.fusion.authority.tenant.model.TenantEntity;
+import com.lambda.fusion.authority.tenant.model.entity.TenantEntity;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;

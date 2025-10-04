@@ -11,8 +11,8 @@ import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
 import com.lambda.fusion.authority.role.model.dto.RoleCreateDTO;
 import com.lambda.fusion.authority.role.model.dto.RoleUpdateDTO;
 import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
-import com.lambda.fusion.authority.role.model.vo.GroupRoleVo;
-import com.lambda.fusion.authority.role.model.vo.GroupVo;
+import com.lambda.fusion.authority.role.model.vo.GroupRoleVO;
+import com.lambda.fusion.authority.role.model.vo.GroupVO;
 import com.lambda.fusion.authority.role.model.vo.MutableRoleVO;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.RoleService;
@@ -64,7 +64,7 @@ public class RoleController {
 
     @Operation(description = "分组列表", summary = "分组列表")
     @GetMapping("/group")
-    public List<GroupVo> listGroups() {
+    public List<GroupVO> listGroups() {
         User operator = OperatorUtils.getLoginUser(User.class);
         return roleService.listGroups(operator);
     }
@@ -74,7 +74,7 @@ public class RoleController {
             description = "获取所有角色分组列表",
             summary = "获取所有角色分组列表",
             parameters = {@Parameter(name = "tenant_id", description = "租户id")})
-    public List<GroupRoleVo> groupRole(String tenantId) {
+    public List<GroupRoleVO> groupRole(String tenantId) {
         User operator = OperatorUtils.getLoginUser(User.class);
         return roleService.getAllGroupRoles(operator, tenantId);
     }
@@ -213,13 +213,13 @@ public class RoleController {
 
     @Operation(description = "新增角色分组", summary = "新增角色分组")
     @PostMapping("/group")
-    public GroupVo addGroup(@Parameter GroupVo groupVo) {
+    public GroupVO addGroup(@Parameter GroupVO groupVo) {
         return roleService.addGroup(groupVo);
     }
 
     @Operation(description = "修改角色分组", summary = "修改角色分组")
     @PutMapping("/group")
-    public GroupVo updateGroup(@Parameter GroupVo groupVo) {
+    public GroupVO updateGroup(@Parameter GroupVO groupVo) {
         return roleService.updateGroup(groupVo);
     }
 

@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.user.model.entity;
+package com.lambda.fusion.authority.organization.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;

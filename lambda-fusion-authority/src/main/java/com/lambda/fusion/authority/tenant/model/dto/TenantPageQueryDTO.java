@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.tenant.model.dto;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.lambda.fusion.authority.tenant.model.TenantEntity;
+import com.lambda.fusion.authority.tenant.model.entity.TenantEntity;
 import com.lambda.fusion.core.base.page.PageQueryDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

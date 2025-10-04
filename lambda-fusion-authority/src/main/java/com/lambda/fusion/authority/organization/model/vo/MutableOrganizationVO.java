@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.organization.model;
+package com.lambda.fusion.authority.organization.model.vo;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;

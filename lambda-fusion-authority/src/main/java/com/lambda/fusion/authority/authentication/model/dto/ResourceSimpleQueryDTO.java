@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.authentication.model;
+package com.lambda.fusion.authority.authentication.model.dto;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,7 +12,7 @@ import lombok.Data;
 @Data
 @Schema(description = "简单资源查询参数")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class ResourceSimpleQuery {
+public class ResourceSimpleQueryDTO {
 
     /**
      * 资源模式

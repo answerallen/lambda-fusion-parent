@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.organization.model;
+package com.lambda.fusion.authority.organization.model.vo;
 
 import com.fasterxml.jackson.annotation.JsonRootName;
 import lombok.Getter;
@@ -7,20 +7,20 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonRootName("Organization")
-public class Org {
+public class SimpleOrganizationVO {
     String id;
 
     String alias;
 
     String fullName;
 
-    public Org() {}
+    public SimpleOrganizationVO() {}
 
-    public Org(String id) {
+    public SimpleOrganizationVO(String id) {
         this.id = id;
     }
 
-    public Org(String id, String alias) {
+    public SimpleOrganizationVO(String id, String alias) {
         this.id = id;
         this.alias = alias;
     }

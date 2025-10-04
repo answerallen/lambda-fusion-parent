@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.user.model.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
-import com.lambda.fusion.authority.organization.model.Org;
+import com.lambda.fusion.authority.organization.model.vo.SimpleOrganizationVO;
 import com.lambda.fusion.authority.role.model.vo.SimpleRoleVO;
 import com.lambda.fusion.authority.user.model.entity.UserEntity;
 import com.lambda.fusion.authority.user.model.vo.UserInfoVO;
@@ -74,7 +74,7 @@ public class UserCreateDTO extends BaseDTO<UserEntity> {
 
     @JsonProperty("organization")
     @Schema(description = "组织信息")
-    private Org org;
+    private SimpleOrganizationVO org;
 
     @Schema(description = "角色信息")
     @JsonProperty("authorities")
