@@ -22,6 +22,7 @@ import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
+import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
 import com.lambda.fusion.authority.organization.model.entity.UserOrganizationEntity;
 import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
 import com.lambda.fusion.authority.organization.model.vo.SimpleOrganizationVO;
@@ -352,14 +353,14 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(orgIds)) {
             return Collections.emptyMap();
         }
-        List<OrganizationVO> organizations = organizationMapper.getOrgIdsByIds(orgIds);
+        List<OrganizationEntity> organizations = organizationMapper.selectByIds(orgIds);
         if (CollectionUtils.isEmpty(organizations)) {
             return Collections.emptyMap();
         }
         Map<String, String> map1 = Maps.newHashMap();
         Map<String, String> names0 = Maps.newHashMap();
         Set<String> parentKeys = Sets.newHashSet();
-        for (OrganizationVO item : organizations) {
+        for (OrganizationEntity item : organizations) {
             String parentKeys1 = item.getParentKeys();
             names0.put(item.getId(), item.getAlias());
             map1.put(item.getId(), parentKeys1);
@@ -371,9 +372,9 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(parentKeys)) {
             return result;
         }
-        List<OrganizationVO> parents = organizationMapper.getOrgIdsByIds(parentKeys);
+        List<OrganizationEntity> parents = organizationMapper.selectByIds(parentKeys);
         Map<String, String> names1 =
-                parents.stream().collect(Collectors.toMap(OrganizationVO::id, OrganizationVO::getName));
+                parents.stream().collect(Collectors.toMap(OrganizationEntity::getId, OrganizationEntity::getName));
         map1.forEach((key, value) -> {
             StringBuilder builder = new StringBuilder();
             if (StringUtils.isNotBlank(value)) {

@@ -151,14 +151,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
     OrganizationVO getInfo(String id);
 
     /**
-     * 根据组织id批量获取根节点信息
-     *
-     * @param ids 组织id
-     * @return List<Organization>
-     */
-    List<OrganizationVO> getOrgIdsByIds(@Param("ids") Set<String> ids);
-
-    /**
      * 根据条件查询组织
      *
      * @param parameters 条件参数

@@ -562,10 +562,10 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (CollectionUtils.isEmpty(ids)) {
             return Collections.emptyMap();
         }
-        List<OrganizationVO> organizations = organizationMapper.getOrgIdsByIds(ids);
+        List<OrganizationEntity> organizations = organizationMapper.selectByIds(ids);
         Set<String> companyIds = new HashSet<>();
         Map<String, String> orgMap = Maps.newHashMap();
-        for (OrganizationVO organization : organizations) {
+        for (OrganizationEntity organization : organizations) {
             String companyId;
             if (StringUtils.isNotBlank(organization.getParentKeys())) {
                 companyId = organization.getParentKeys().split(JOINER)[0];
@@ -576,10 +576,10 @@ public class OrganizationServiceImpl implements OrganizationService {
             companyIds.add(companyId);
         }
 
-        List<OrganizationVO> companies = organizationMapper.getOrgIdsByIds(companyIds);
+        List<OrganizationEntity> companies = organizationMapper.selectByIds(companyIds);
         Map<String, OrganizationVO> companyMap = Maps.newHashMap();
-        for (OrganizationVO company : companies) {
-            companyMap.put(company.getId(), company);
+        for (OrganizationEntity company : companies) {
+            companyMap.put(company.getId(), OrganizationVO.fromEntity(company));
         }
         Map<String, OrganizationVO> result = Maps.newHashMap();
         for (Map.Entry<String, String> entry : orgMap.entrySet()) {

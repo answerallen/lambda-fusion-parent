@@ -267,26 +267,6 @@
         SELECT id,alias FROM LA_ORGANIZATION WHERE ID = {id}
     </select>
 
-    <select id="getOrgIdsByIds" resultMap="Organization">
-        SELECT
-        id,
-        organization,
-        alias,
-        parentId,
-        org_rank,
-        createDate,
-        remarks,
-        parentKeys,
-        org_category,
-        enabled,
-        org_owner,
-        tenantId
-        FROM LA_ORGANIZATION T WHERE id in
-        <foreach collection="ids" open="(" close=")" separator="," item="item">
-            #{item}
-        </foreach>
-    </select>
-
     <update id="updateChildrensSpid">
         UPDATE LA_ORGANIZATION SET spid = #{name} WHERE parentid = #{id}
     </update>
