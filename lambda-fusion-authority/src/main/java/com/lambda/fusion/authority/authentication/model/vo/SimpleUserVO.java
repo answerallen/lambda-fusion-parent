@@ -18,6 +18,7 @@ import lombok.Data;
  */
 @AutoConverter(
         target = User.class,
+        isReverse = true,
         uses = FusionConvertFunctions.class,
         fieldMappings = {
             @FieldMapping(target = "accountExpired", source = "expiredTime", qualifiedByName = "mapAccountExpired"),
