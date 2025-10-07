@@ -1,6 +1,9 @@
 package com.lambda.fusion.authority.authentication.model.vo;
 
-import com.lambda.fusion.authority.authentication.model.mapper.SimpleUserMapper;
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.annotation.FieldMapping;
+import com.lambda.cloud.core.utils.ConvertUtils;
+import com.lambda.fusion.core.func.FusionConvertFunctions;
 import com.lambda.fusion.core.user.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serial;
@@ -13,6 +16,13 @@ import lombok.Data;
  * 简单用户视图对象
  * 用于封装用户的基本信息
  */
+@AutoConverter(
+        target = User.class,
+        uses = FusionConvertFunctions.class,
+        fieldMappings = {
+            @FieldMapping(target = "accountExpired", source = "expiredTime", qualifiedByName = "mapAccountExpired"),
+            @FieldMapping(target = "roles", source = "authorities"),
+        })
 @Data
 @Schema(description = "简单用户信息")
 public class SimpleUserVO implements Serializable {
@@ -68,13 +78,7 @@ public class SimpleUserVO implements Serializable {
     @Schema(description = "用户权限集合")
     private Set<String> authorities;
 
-    /**
-     * 转换为User对象
-     * 使用MapStruct进行对象映射，提供类型安全和高性能的转换
-     *
-     * @return User对象
-     */
     public User toUser() {
-        return SimpleUserMapper.INSTANCE.toUser(this);
+        return ConvertUtils.convert(this);
     }
 }

@@ -9,7 +9,6 @@ import com.lambda.fusion.authority.organization.model.vo.OrganizationTreeVO;
 import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
 import java.util.List;
-import java.util.Set;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

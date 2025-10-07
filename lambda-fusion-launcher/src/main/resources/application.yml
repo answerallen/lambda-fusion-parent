@@ -1,0 +1,83 @@
+spring:
+  application:
+    name: lambda-simple-authorize
+  datasource:
+    driver-class-name: ${db1-demo.driverClassName}
+    url: ${db1-demo.url}
+    username: ${db1-demo.username}
+    password: ${db1-demo.password}
+  data:
+    redis:
+      mode: standalone
+      host: 192.168.130.20
+      port: 6379
+      password: cmai.redis
+      redisson:
+        enabled: true
+  dynamic:
+    primary: master
+    datasource:
+      master:
+        driver-class-name: ${db1-demo.driverClassName}
+        url: ${db1-demo.url}
+        username: ${db1-demo.username}
+        password: ${db1-demo.password}
+dubbo:
+  cloud:
+    subscribed-services:
+  protocol:
+    name: dubbo
+    port: -1
+    serialization: kryo
+lambda:
+  liquibase:
+    enabled: true
+    driver-class-name: ${db1-demo.driverClassName}
+    url: ${db1-demo.url}
+    username: ${db1-demo.username}
+    password: ${db1-demo.password}
+  api-docs:
+    enabled: true
+    title: client-demo-api
+  websocket:
+    enabled: true
+  security:
+    verify:
+      dev-mode: true
+    hmac:
+      enabled: true
+      clients:
+        - appid: 123
+          secret: 123456
+    sa-token:
+      ignored: /open/**,/ws/**
+      check-same-token: false
+      max-login-count: 5
+      is-concurrent: true
+    xss-protected:
+      enabled: false
+      trusted: /test/**
+    form:
+      enabled: true
+      login-processing-url: /login
+      parameters:
+        username: username
+        password: password
+      enable-verify: true
+    sms:
+      enabled: true
+      enable-verify: true
+  sms:
+    aliyun:
+      enabled: true
+      accessKeyId: LTAI5tJ6Q8z7Q6yX3vX3vX3vX3
+      accessKeySecret: 123456
+    tencent:
+      enabled: true
+################################# Nacos 配置 #################################
+NACOS_SERVER: 49.233.204.100
+NACOS_PORT: 8848
+NACOS_GROUP: test
+NACOS_NAMESPACE: public
+NACOS_USER: nacos
+NACOS_PASSWORD: guangqi.nacos

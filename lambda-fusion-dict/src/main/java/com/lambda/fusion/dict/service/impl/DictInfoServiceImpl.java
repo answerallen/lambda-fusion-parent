@@ -315,11 +315,6 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfoVO, DictInfoInp
         return gson.fromJson(extra, new MapTypeToken().getType());
     }
 
-    @Override
-    protected DictInfoInputDTO entityVO(DictInfoVO entity) {
-        return null;
-    }
-
     private Map<String, Object> convertQueryDTOToMap(DictInfoQueryDTO queryDTO) {
         if (queryDTO == null) {
             return new HashMap<>();

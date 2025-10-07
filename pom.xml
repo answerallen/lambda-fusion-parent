@@ -3,16 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.lambda.cloud</groupId>
-        <artifactId>lambda-cloud-project-parent</artifactId>
+        <artifactId>lambda-cloud-parent</artifactId>
         <version>2025.1.1-SNAPSHOT</version>
-        <relativePath/>
     </parent>
 
     <artifactId>lambda-fusion-parent</artifactId>
     <packaging>pom</packaging>
 
     <properties>
-        <skip-executable-jar>true</skip-executable-jar>
         <spotbugs.skip>true</spotbugs.skip>
     </properties>
 
@@ -25,6 +23,19 @@
         <module>lambda-fusion-log</module>
         <module>lambda-fusion-extension</module>
         <module>lambda-fusion-datasource</module>
+        <module>lambda-fusion-launcher</module>
     </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.lambda.cloud</groupId>
+                <artifactId>lambda-cloud-starter-dependencies</artifactId>
+                <version>2025.1.1-SNAPSHOT</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 </project>

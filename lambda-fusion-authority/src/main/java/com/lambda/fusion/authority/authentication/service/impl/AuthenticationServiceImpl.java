@@ -40,6 +40,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (userVO == null) {
             throw new UsernameNotFoundException("user in not found");
         }
+
         return buildLoginUser(userVO.toUser());
     }
 
@@ -52,7 +53,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (simpleUsers.size() > 1) {
             throw new AuthenticationException("mobile in not unique");
         }
-        SimpleUserVO simpleUser = simpleUsers.get(0);
+        SimpleUserVO simpleUser = simpleUsers.getFirst();
         return buildLoginUser(simpleUser.toUser());
     }
 

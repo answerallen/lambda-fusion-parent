@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.user.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.authority.organization.model.vo.SimpleOrganizationVO;
 import com.lambda.fusion.authority.role.model.vo.SimpleRoleVO;
@@ -57,6 +58,7 @@ public class UserCreateDTO extends BaseDTO<UserEntity> {
     @Schema(description = "用户创建人")
     private String owner;
 
+    @FieldMapping(target = "enabled", ignore = true)
     @Schema(description = "是否启用")
     private boolean enabled;
 

@@ -26,9 +26,9 @@
         <result column="hosts" property="hosts" javaType="String"/>
         <result column="enabled" property="enabled" javaType="Boolean" />
         <result column="TENANT_ID" property="tenantId" javaType="String"/>
-        <collection property="authorities"  ofType="java.lang.String">
-            <result column="authority" />
-        </collection>
+<!--        <collection property="authorities"  ofType="java.lang.String">-->
+<!--            <result column="authority" />-->
+<!--        </collection>-->
     </resultMap>
 
     <select id="getAuthorization" resultType="com.lambda.fusion.authority.client.model.vo.AuthResourceVO">

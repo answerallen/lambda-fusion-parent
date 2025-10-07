@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.user.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.authority.organization.model.vo.SimpleOrganizationVO;
 import com.lambda.fusion.authority.role.model.vo.SimpleRoleVO;
@@ -54,23 +55,9 @@ public class UserUpdateDTO extends BaseDTO<UserEntity> {
     @Schema(description = "租户ID")
     private String tenantId;
 
-    @Schema(description = "用户创建人")
-    private String owner;
-
+    @FieldMapping(target = "enabled", ignore = true)
     @Schema(description = "是否启用")
     private boolean enabled;
-
-    @Schema(description = "是否在线")
-    private boolean online;
-
-    @Schema(description = "是否锁定")
-    private boolean locked;
-
-    @Schema(description = "昵称拼音缩写")
-    private String nicknameAbbr;
-
-    @Schema(description = "创建人用户")
-    private String createAccount;
 
     @JsonProperty("organization")
     @Schema(description = "组织信息")
@@ -84,14 +71,6 @@ public class UserUpdateDTO extends BaseDTO<UserEntity> {
     @Valid
     @JsonProperty("props")
     private UserInfoVO props;
-
-    private boolean self;
-
-    @Schema(description = "最后离线时间")
-    private Date offlineTime;
-
-    @Schema(description = "创建人")
-    private String creator;
 
     @Schema(description = "禁止批被分配")
     private Boolean disAllocation;

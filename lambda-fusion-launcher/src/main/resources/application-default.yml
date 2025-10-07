@@ -1,0 +1,23 @@
+server:
+  port: 20005
+################################# Datasource 配置 #################################
+db1-demo:
+  url: jdbc:p6spy:mysql://rm-m5eow36sp34v0k5w5fo.mysql.rds.aliyuncs.com:3306/lambda_cloud?nullCatalogMeansCurrent=true
+  username: lambda_fusion
+  password: 001Asd11!@#
+  driverClassName: com.p6spy.engine.spy.P6SpyDriver
+################################# Mybatis-plus 配置 #################################
+mybatis-plus:
+  configuration:
+    default-enum-type-handler: org.apache.ibatis.type.EnumOrdinalTypeHandler
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  mapperPackage: com.dahong.cloud.**.mapper
+################################# Logging 配置 #################################
+logging:
+  level:
+    io:
+      lettuce: error
+    com:
+      zaxxer: error
+    root: info
+

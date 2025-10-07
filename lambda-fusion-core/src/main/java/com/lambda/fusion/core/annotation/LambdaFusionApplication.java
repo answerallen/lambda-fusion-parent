@@ -1,6 +1,7 @@
 package com.lambda.fusion.core.annotation;
 
 import java.lang.annotation.*;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.annotation.AliasFor;
@@ -10,6 +11,7 @@ import org.springframework.core.annotation.AliasFor;
 @Documented
 @SpringBootApplication
 @ComponentScan(basePackages = {"com.lambda.fusion"})
+@MapperScan(basePackages = {"com.lambda.fusion.**.mapper"})
 public @interface LambdaFusionApplication {
 
     @AliasFor(annotation = SpringBootApplication.class, attribute = "scanBasePackages")

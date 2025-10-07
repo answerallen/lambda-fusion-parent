@@ -24,7 +24,6 @@ import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
 import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
 import com.lambda.fusion.authority.organization.model.entity.UserOrganizationEntity;
-import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
 import com.lambda.fusion.authority.organization.model.vo.SimpleOrganizationVO;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;

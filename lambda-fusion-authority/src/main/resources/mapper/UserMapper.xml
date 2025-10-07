@@ -57,7 +57,7 @@
         <result column="enabled" property="enabled" javaType="Boolean" />
         <result column="tenant_id" property="tenantId" javaType="String"/>
         <result column="expired_time" property="expiredTime"/>
-        <collection property="authorities" ofType="org.springframework.security.core.authority.SimpleGrantedAuthority">
+        <collection property="authorities" ofType="java.lang.String">
             <constructor>
                 <idArg column="authority" javaType="String"/>
             </constructor>
