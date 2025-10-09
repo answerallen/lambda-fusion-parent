@@ -33,7 +33,7 @@ public final class TreeUtils {
      * @param allChildrenGetter
      * @return java.util.List<T>
      */
-    @SuppressWarnings("squid:S2175")
+
     public static <T extends Tree<T>> List<T> getAllChangedAfterMoved(
             @Nonnull T resource,
             @Nonnull T target,

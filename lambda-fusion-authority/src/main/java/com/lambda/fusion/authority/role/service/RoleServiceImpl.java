@@ -91,7 +91,6 @@ public class RoleServiceImpl implements RoleService {
         return roleMapper.getAllRoles(parameters);
     }
 
-    @SuppressWarnings("squid:S3776")
     @Override
     public List<GroupRoleVO> getAllGroupRoles(User operator, String tenantId) {
         if (StringUtils.isBlank(tenantId) || StringUtils.isNotBlank(operator.getTenantId())) {

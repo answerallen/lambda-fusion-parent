@@ -54,7 +54,6 @@ public class DictScanner extends ClassPathBeanDefinitionScanner {
         }
     }
 
-    @SuppressWarnings("squid:S3011")
     private void processEnum(String beanClassName, Class<?> aClass)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         final DictMapper annotation = AnnotationUtils.findAnnotation(aClass, DictMapper.class);

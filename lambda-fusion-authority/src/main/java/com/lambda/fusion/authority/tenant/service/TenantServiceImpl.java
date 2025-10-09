@@ -233,7 +233,6 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
     }
 
     @SneakyThrows
-    @SuppressWarnings("squid:S1874")
     private JsonNode getTenantConfigureById(String tenantId) {
         String configJson = configurationCache.getConfigCache(tenantId);
         if (StringUtils.isNotBlank(configJson) && !TENANT_CONFIG_EMPTY_MAP.equals(configJson)) {
