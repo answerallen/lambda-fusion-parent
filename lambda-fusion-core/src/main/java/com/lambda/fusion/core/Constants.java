@@ -134,16 +134,6 @@ public final class Constants {
     /** 树结构分隔符 */
     public static final String TREE_SPLIT = "-";
 
-    // ========== 事件相关常量 ==========
-    /** 消息事件无接收者错误信息 */
-    public static final String MSG_MESSAGE_EVENT_NO_RECEIVER = "fx.message.client.event.not.receiver";
-
-    // ========== 集合初始化容量常量 ==========
-    /** 默认HashSet初始容量 */
-    public static final int DEFAULT_HASH_SET_CAPACITY = 16;
-    /** 默认HashMap初始容量 */
-    public static final int DEFAULT_HASH_MAP_CAPACITY = 8;
-
     // ========== 拖拽模式相关常量 ==========
     /** 拖拽模式错误索引消息 */
     public static final String MSG_DRAG_MODE_WRONG_INDEX = "wrong index of DragMode, allowed: [0, 1, 2]";
@@ -153,46 +143,4 @@ public final class Constants {
     public static final String LOG_TREE_BUILD_TIME = "build tree cast: {}ns";
     /** 过滤数据异常日志消息模板 */
     public static final String LOG_FILTER_DATA_EXCEPTION = "过滤数据发生异常,过滤参数,{}";
-
-    // ========== Schema描述常量 ==========
-
-    // 基础Schema字段
-    /** Schema代码字段 */
-    public static final String SCHEMA_CODE = "CODE";
-    /** Schema发送人字段 */
-    public static final String SCHEMA_SENDER = "发送人";
-    /** Schema通知内容字段 */
-    public static final String SCHEMA_CONTENT = "通知内容";
-    /** Schema触发时间字段 */
-    public static final String SCHEMA_TRIGGER_TIME = "触发时间";
-    /** Schema业务唯一标识字段 */
-    public static final String SCHEMA_BUSINESS_KEY = "业务唯一标识";
-    /** Schema输入参数字段 */
-    public static final String SCHEMA_INPUTS = "输入参数";
-
-    // 通知相关Schema字段
-    /** Schema通知对象类型字段 */
-    public static final String SCHEMA_RECEIVER_TYPE = "通知对象类型 1-角色 2-用户 4-无 5-所有用户";
-    /** Schema通知对象参数字段 */
-    public static final String SCHEMA_RECEIVER_TARGET = "通知对象参数";
-
-    // 字典相关Schema字段
-    /** Schema动态字典字段 */
-    public static final String SCHEMA_DYNAMIC_DICT = "动态字典";
-    /** Schema展示参数字段 */
-    public static final String SCHEMA_DISPLAY_PARAM = "展示参数, 页面展示使用";
-    /** Schema映射参数字段 */
-    public static final String SCHEMA_MAPPING_PARAM = "映射参数, 持久化时使用";
-    /** Schema可选择状态字段 */
-    public static final String SCHEMA_SELECTABLE_STATE = "可以被选择状态。0：只能用作显示，不能用于下拉选择，1：可以显示和下拉选择";
-
-    // 树形结构Schema字段
-    /** Schema父级节点字段 */
-    public static final String SCHEMA_PARENT_NODE = "父级节点";
-    /** Schema节点ID字段 */
-    public static final String SCHEMA_NODE_ID = "节点id";
-    /** Schema级别字段 */
-    public static final String SCHEMA_LEVEL = "级别：最顶层为1，后边层数累加";
-    /** Schema隐藏级别字段 */
-    public static final String SCHEMA_LEVEL_HIDDEN = "级别：最顶层为1，后边层数累加";
 }
