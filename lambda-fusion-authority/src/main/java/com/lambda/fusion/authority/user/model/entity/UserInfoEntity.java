@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.lambda.fusion.core.base.LambdaExpanded;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -18,7 +17,7 @@ import org.hibernate.validator.constraints.Length;
 @TableName("LA_USER_INFO")
 @Schema(description = "用户扩展信息")
 @SuppressFBWarnings({"CT_CONSTRUCTOR_THROW"})
-public class UserInfoEntity implements LambdaExpanded {
+public class UserInfoEntity{
     @TableId
     @JsonIgnore
     private String userid;
@@ -40,10 +39,6 @@ public class UserInfoEntity implements LambdaExpanded {
     @TableField("GROUP_NO")
     private String groupNo;
 
-    @Schema(description = "线路编号")
-    @TableField("LINE_NO")
-    private String lineNo;
-
     @Schema(description = "岗位编号")
     @TableField("POSITION")
     private String position;
@@ -51,10 +46,6 @@ public class UserInfoEntity implements LambdaExpanded {
     @Schema(description = "职工状态")
     @TableField("STATUS")
     private String status;
-
-    @Schema(description = "路队编号")
-    @TableField("FILA_NO")
-    private String filaNo;
 
     @Schema(description = "员工工号")
     @TableField("EMP_NO")
@@ -84,13 +75,4 @@ public class UserInfoEntity implements LambdaExpanded {
     @TableField("WECHAT_NAME")
     private String wechatName;
 
-    @Override
-    public void id(String id) {
-        setUserid(id);
-    }
-
-    @Override
-    public String id() {
-        return getUserid();
-    }
 }
