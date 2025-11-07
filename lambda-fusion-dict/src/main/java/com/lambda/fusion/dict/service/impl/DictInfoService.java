@@ -16,7 +16,7 @@ import com.google.gson.reflect.TypeToken;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.core.base.service.BaseServiceImpl;
+import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.user.User;
 import com.lambda.fusion.core.utils.ParameterUtils;
@@ -31,7 +31,7 @@ import com.lambda.fusion.dict.model.entity.DictInfoGroup;
 import com.lambda.fusion.dict.model.entity.DictType;
 import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import com.lambda.fusion.dict.model.vo.DictTypeVO;
-import com.lambda.fusion.dict.service.DictInfoService;
+
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -47,8 +47,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Service
 @Transactional(rollbackFor = Exception.class)
-public class DictInfoServiceImpl extends BaseServiceImpl<DictInfoVO, DictInfoInputDTO, DictInfoMapper>
-        implements DictInfoService, IService<DictInfoVO> {
+public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInputDTO, DictInfoMapper>
+        implements com.lambda.fusion.dict.service.DictInfoService, IService<DictInfoVO> {
 
     private final Gson gson;
 

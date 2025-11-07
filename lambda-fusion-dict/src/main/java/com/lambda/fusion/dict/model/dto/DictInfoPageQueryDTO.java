@@ -1,6 +1,6 @@
 package com.lambda.fusion.dict.model.dto;
 
-import com.lambda.fusion.core.base.page.PageQueryDTO;
+import com.lambda.fusion.core.pagination.PaginationQueryRequest;
 import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -30,7 +30,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "字典信息分页查询参数")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class DictInfoPageQueryDTO extends PageQueryDTO<DictInfoVO> {
+public class DictInfoPageQueryDTO extends PaginationQueryRequest<DictInfoVO> {
 
     /**
      * 字典类型

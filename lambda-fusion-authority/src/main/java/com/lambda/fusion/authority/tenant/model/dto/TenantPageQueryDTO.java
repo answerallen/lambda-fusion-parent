@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.tenant.model.dto;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.lambda.fusion.authority.tenant.model.entity.TenantEntity;
-import com.lambda.fusion.core.base.page.PageQueryDTO;
+import com.lambda.fusion.core.pagination.PaginationQueryRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -14,7 +14,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "租户分页查询DTO")
-public class TenantPageQueryDTO extends PageQueryDTO<TenantEntity> {
+public class TenantPageQueryDTO extends PaginationQueryRequest<TenantEntity> {
 
     /**
      * 租户名称

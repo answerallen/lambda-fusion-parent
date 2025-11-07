@@ -1,9 +1,8 @@
-package com.lambda.fusion.core.base.service;
+package com.lambda.fusion.core.service;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.convert.BaseConverter;
 import com.lambda.cloud.core.convert.ConverterResolver;
@@ -22,7 +21,7 @@ import java.util.List;
  * ConverterResolver.
  */
 @SuppressWarnings("unused")
-public abstract class BaseServiceImpl<E, V, M extends BaseMapper<E>> extends ServiceImpl<M, E> {
+public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends ServiceImpl<M, E> {
 
     private BaseConverter<E, V> converter() {
         return ConverterResolver.getConverter(getEntityClass());

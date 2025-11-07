@@ -2,7 +2,7 @@ package com.lambda.fusion.dict.model.dto;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.lambda.fusion.core.base.page.PageQueryDTO;
+import com.lambda.fusion.core.pagination.PaginationQueryRequest;
 import com.lambda.fusion.dict.model.entity.DictType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
@@ -25,7 +25,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "字典类型分页查询参数")
-public class DictTypePageQueryDTO extends PageQueryDTO<DictType> {
+public class DictTypePageQueryDTO extends PaginationQueryRequest<DictType> {
 
     /**
      * 字典名称
