@@ -3,22 +3,22 @@ package com.lambda.fusion.authority.user.model.vo;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.fusion.authority.organization.model.vo.SimpleOrganizationVO;
 import com.lambda.fusion.authority.role.model.vo.SimpleRoleVO;
-import com.lambda.fusion.core.base.LambdaObject;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import lombok.Data;
+import org.hibernate.validator.constraints.Length;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import lombok.Data;
-import org.hibernate.validator.constraints.Length;
 
 /**
  * 易变的用户信息
  */
 @Data
 @Schema(description = "用户信息")
-public class MutableUserVO implements LambdaObject {
+public class MutableUserVO {
 
     @Schema(description = "用户名称")
     private String username;
@@ -96,9 +96,4 @@ public class MutableUserVO implements LambdaObject {
     @Schema(description = "用户新增字段信息")
     @JsonProperty("personal")
     private Map<String, String> personal;
-
-    @Override
-    public String id() {
-        return this.getUsername();
-    }
 }

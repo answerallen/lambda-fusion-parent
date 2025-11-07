@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.client.model.vo;
 
-import com.lambda.fusion.core.tree.Tree;
+import com.lambda.fusion.core.tree.TreeNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.Getter;
@@ -12,7 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Schema(description = "资源树节点信息")
-public class AuthResourceVO implements Tree<AuthResourceVO> {
+public class AuthResourceVO implements TreeNode<AuthResourceVO> {
 
     @Schema(description = "父节点编号")
     private String id;

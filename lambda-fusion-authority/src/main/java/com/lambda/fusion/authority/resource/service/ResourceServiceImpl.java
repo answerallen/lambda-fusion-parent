@@ -9,8 +9,8 @@ import com.lambda.fusion.authority.resource.mapper.ResourceMapper;
 import com.lambda.fusion.authority.resource.model.*;
 import com.lambda.fusion.authority.role.service.RoleManager;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.tree.ITreeDataFilter;
-import com.lambda.fusion.core.tree.TreeFactory;
+import com.lambda.fusion.core.tree.filter.TreeDataFilter;
+import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.user.User;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotNull;
@@ -32,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ResourceServiceImpl implements ResourceService {
     private final RoleManager roleManager;
     private final ResourceMapper resourceMapper;
-    protected final ITreeDataFilter treeDataFilter;
+    protected final TreeDataFilter treeDataFilter;
 
     @Override
     public List<MutableResource> getAllResources() {
@@ -65,7 +65,7 @@ public class ResourceServiceImpl implements ResourceService {
                 target -> target.stream()
                         .sorted(Comparator.comparing(Resource::getResRank).thenComparing(Resource::getOrderNo))
                         .collect(Collectors.toList()));
-        return TreeFactory.build(resourceList);
+        return TreeBuilder.build(resourceList);
     }
 
     @Override

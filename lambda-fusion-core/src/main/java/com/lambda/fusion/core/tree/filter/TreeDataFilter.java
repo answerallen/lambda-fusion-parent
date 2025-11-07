@@ -1,14 +1,14 @@
-package com.lambda.fusion.core.tree;
+package com.lambda.fusion.core.tree.filter;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
 /**
- * ITreeDataFilter
+ * TreeDataFilter
  * @author Jin
  */
-public interface ITreeDataFilter {
+public interface TreeDataFilter {
     /**
      * 对树进行数据过滤， 实例：
      * <pre>
@@ -20,7 +20,7 @@ public interface ITreeDataFilter {
      *         }
      *         final List<Organization> results = treeDataFilter.filter(list, parameters.getName(), Organization::getName, Organization::getId, Organization::getParentKeys,
      *                 (target) -> target.stream().sorted(Comparator.comparing(Organization::getLevel).thenComparing(Organization::getName)).collect(Collectors.toList()));
-     *         return TreeFactory.build(results);
+     *         return TreeBuilder.build(results);
      *     }
      *     }
      * </pre>

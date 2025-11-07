@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.role.model.vo;
 
 import com.lambda.fusion.authority.resource.model.Button;
-import com.lambda.fusion.core.tree.Tree;
+import com.lambda.fusion.core.tree.TreeNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
@@ -12,7 +12,7 @@ import lombok.Setter;
 @Setter
 @Schema(description = "资源树节点信息")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class RoleAuthorityVO implements Tree<RoleAuthorityVO> {
+public class RoleAuthorityVO implements TreeNode<RoleAuthorityVO> {
 
     @Schema(description = "父节点编号")
     private String id;

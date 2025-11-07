@@ -1,12 +1,13 @@
 package com.lambda.fusion.authority.role.model.vo;
 
-import com.lambda.fusion.core.tree.Tree;
+import com.lambda.fusion.core.tree.TreeNode;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.List;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
-public class AccessPermissionVO implements Tree<AccessPermissionVO> {
+public class AccessPermissionVO implements TreeNode<AccessPermissionVO> {
 
     @Schema(description = "权限编号")
     private String id;

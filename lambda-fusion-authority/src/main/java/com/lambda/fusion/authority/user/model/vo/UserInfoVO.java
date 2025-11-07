@@ -1,6 +1,5 @@
 package com.lambda.fusion.authority.user.model.vo;
 
-import com.lambda.fusion.core.base.LambdaExpanded;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -10,7 +9,7 @@ import lombok.Setter;
 @Setter
 @Schema(description = "用户扩展信息")
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "CT_CONSTRUCTOR_THROW"})
-public class UserInfoVO implements LambdaExpanded {
+public class UserInfoVO {
     private String userid;
 
     /**
@@ -91,14 +90,4 @@ public class UserInfoVO implements LambdaExpanded {
      * 密码修改间隔天数
      */
     private Integer passwordModifyDays;
-
-    @Override
-    public void id(String id) {
-        setUserid(id);
-    }
-
-    @Override
-    public String id() {
-        return getUserid();
-    }
 }

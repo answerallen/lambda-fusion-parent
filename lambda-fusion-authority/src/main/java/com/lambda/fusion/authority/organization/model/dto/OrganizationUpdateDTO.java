@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
-import com.lambda.fusion.core.tree.Tree;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -37,7 +36,6 @@ import org.hibernate.validator.constraints.Length;
  *
  * @author Lambda Fusion Team
  * @since 1.0.0
- * @see Tree 树形数据接口
  */
 @EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = OrganizationEntity.class)

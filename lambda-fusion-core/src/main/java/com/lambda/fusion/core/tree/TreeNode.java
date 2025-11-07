@@ -6,13 +6,12 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 
 /**
- * 树元数据标识，使用{@link TreeFactory#build(List)}
+ * 树元数据标识，使用{@link com.lambda.fusion.core.tree.builder.TreeBuilder#build(List)}
  * 即可将一个列表数据构建成一棵树形数据
  *
  * @author Jin
  */
-public interface Tree<T> {
-    String SPLIT = Constants.TREE_SPLIT;
+public interface TreeNode<T> {
 
     /**
      * 数据的唯一标识对应的属性
@@ -53,7 +52,7 @@ public interface Tree<T> {
         String pid = this.id();
         String keys = this.parentKeys();
         if (StringUtils.isNotBlank(keys)) {
-            return keys + SPLIT + pid;
+            return keys +  Constants.TREE_SPLIT + pid;
         }
         return pid;
     }

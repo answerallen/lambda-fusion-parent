@@ -18,7 +18,7 @@ import com.lambda.fusion.authority.user.optimizer.UserQueryOptimizer;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.core.tree.TreeFactory;
+import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.user.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -228,7 +228,7 @@ public class UserController {
             @Parameter(description = "用户ID", required = true) @PathVariable("username") String username,
             @RequestParam(required = false) String mode) {
         List<PermissionVO> permissions = userService.getUserPermissions(username, mode);
-        return TreeFactory.build(permissions);
+        return TreeBuilder.build(permissions);
     }
 
     @PutMapping("/permission/copy")

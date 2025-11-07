@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.lambda.fusion.core.tree.Tree;
+import com.lambda.fusion.core.tree.TreeNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -19,7 +19,7 @@ import lombok.Data;
  */
 @Data
 @TableName(value = TABLE_SYS_DICT_INFO)
-public class DictInfoVO implements Tree<DictInfoVO> {
+public class DictInfoVO implements TreeNode<DictInfoVO> {
     @TableId
     @Schema(description = "id")
     private String id;

@@ -1,13 +1,13 @@
-package com.lambda.fusion.core.tree;
+package com.lambda.fusion.core.tree.model;
 
 import com.lambda.fusion.core.Constants;
 
 /**
- * DragMode
+ * TreeDragMode
  *
  * @author Jin
  */
-public enum DragMode {
+public enum TreeDragMode {
     /**
      * 拖动节点使之成为目标节点的子节点
      */
@@ -21,8 +21,8 @@ public enum DragMode {
      */
     AFTER;
 
-    public static DragMode valueOf(int i) {
-        DragMode[] values = DragMode.values();
+    public static TreeDragMode valueOf(int i) {
+        TreeDragMode[] values = TreeDragMode.values();
         if (i >= 0 && i < values.length) {
             return values[i];
         }

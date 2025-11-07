@@ -1,4 +1,4 @@
-package com.lambda.fusion.core.tree;
+package com.lambda.fusion.core.tree.model;
 
 import com.lambda.fusion.core.Constants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -7,16 +7,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 /**
- * FullKey
+ * TreeNodeKey
  *
  * @author jin
  */
 @Data
 @AllArgsConstructor
 @SuppressFBWarnings({"EI_EXPOSE_REP"})
-public class FullKey {
+public class TreeNodeKey {
     private Object key;
-    private FullKey parentKey;
+    private TreeNodeKey parentKey;
 
     public String getKey() {
         if (Objects.isNull(parentKey) || Objects.isNull(parentKey.getKey())) {

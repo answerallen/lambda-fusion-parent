@@ -3,7 +3,6 @@ package com.lambda.fusion.authority.user.service.impl;
 import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
 import static com.lambda.fusion.core.Constants.ROLE_DEV;
-import static com.lambda.fusion.core.tree.Tree.SPLIT;
 
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
@@ -364,7 +363,7 @@ public class UserServiceImpl implements UserService {
             names0.put(item.getId(), item.getAlias());
             map1.put(item.getId(), parentKeys1);
             if (StringUtils.isNotBlank(parentKeys1)) {
-                Collections.addAll(parentKeys, parentKeys1.split(SPLIT));
+                Collections.addAll(parentKeys, parentKeys1.split(Constants.TREE_SPLIT));
             }
         }
         Map<String, String> result = Maps.newHashMap();
@@ -377,8 +376,8 @@ public class UserServiceImpl implements UserService {
         map1.forEach((key, value) -> {
             StringBuilder builder = new StringBuilder();
             if (StringUtils.isNotBlank(value)) {
-                for (String token : value.split(SPLIT)) {
-                    builder.append(names1.get(token)).append(SPLIT);
+                for (String token : value.split(Constants.TREE_SPLIT)) {
+                    builder.append(names1.get(token)).append(Constants.TREE_SPLIT);
                 }
             }
             builder.append(names0.get(key));

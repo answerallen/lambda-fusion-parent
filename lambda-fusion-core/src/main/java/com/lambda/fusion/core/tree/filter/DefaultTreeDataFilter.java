@@ -1,4 +1,4 @@
-package com.lambda.fusion.core.tree;
+package com.lambda.fusion.core.tree.filter;
 
 import com.google.common.collect.Maps;
 import com.lambda.fusion.core.Constants;
@@ -19,7 +19,7 @@ import org.springframework.util.MultiValueMap;
  */
 @Slf4j
 @Service
-public class DefaultTreeDataFilter implements ITreeDataFilter {
+public class DefaultTreeDataFilter implements TreeDataFilter {
 
     @Override
     public <T> List<T> filter(

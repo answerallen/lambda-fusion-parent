@@ -17,7 +17,7 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.base.service.BaseServiceImpl;
-import com.lambda.fusion.core.tree.TreeFactory;
+import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.user.User;
 import com.lambda.fusion.core.utils.ParameterUtils;
 import com.lambda.fusion.dict.common.enums.DictContextHolders;
@@ -98,7 +98,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfoVO, DictInfoInp
             info.setParameters(convertMap(info.getExtra()));
             info.setExtra(StringUtils.EMPTY);
         });
-        return TreeFactory.build(outcomes);
+        return TreeBuilder.build(outcomes);
     }
 
     @Override
@@ -240,7 +240,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfoVO, DictInfoInp
         }
         User operator = ((User) OperatorUtils.getOperator());
         List<DictInfoVO> outcomes = dictInfoMapper.treeList(ids, operator.getTenantId());
-        return TreeFactory.build(outcomes);
+        return TreeBuilder.build(outcomes);
     }
 
     @Override
@@ -260,7 +260,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfoVO, DictInfoInp
                 List<DictInfoVO> list = dictInfoMapper.treeList(ids, operator.getTenantId());
                 list.forEach(info -> info.setParameters(
                         StringUtils.isNotBlank(info.getExtra()) ? convertMap(info.getExtra()) : null));
-                outcomes = TreeFactory.build(list);
+                outcomes = TreeBuilder.build(list);
             }
         }
         outcomes.sort(Comparator.comparing(DictInfoVO::getSort));
@@ -273,7 +273,7 @@ public class DictInfoServiceImpl extends BaseServiceImpl<DictInfoVO, DictInfoInp
         if (Objects.isNull(dictInfoVO)) {
             return Collections.emptyList();
         }
-        return TreeFactory.build(queryParentDictInfo(dictInfoVO));
+        return TreeBuilder.build(queryParentDictInfo(dictInfoVO));
     }
 
     @Override

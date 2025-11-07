@@ -31,9 +31,10 @@ import com.lambda.fusion.authority.role.model.vo.MutableRoleVO;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
-import com.lambda.fusion.core.tree.DragMode;
-import com.lambda.fusion.core.tree.TreeFactory;
-import com.lambda.fusion.core.tree.TreeUtils;
+import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.tree.builder.TreeBuilder;
+import com.lambda.fusion.core.tree.model.TreeDragMode;
+import com.lambda.fusion.core.tree.util.TreeNodeUtils;
 import com.lambda.fusion.core.user.User;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,7 +84,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         User operator = OperatorUtils.getLoginUser(User.class);
         List<OrganizationVO> organizations = getOrganizationsByCondition(operator, parameters);
         applyPermissionConstraints(organizations, operator);
-        return TreeFactory.build(organizations);
+        return TreeBuilder.build(organizations);
     }
 
     /**
@@ -205,7 +206,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     public List<OrganizationTreeVO> getSimpleOrgTree(OrganizationQueryDTO parameters) {
         List<OrganizationTreeVO> list = organizationMapper.getAllEnabledOrgan(parameters);
-        return TreeFactory.build(list);
+        return TreeBuilder.build(list);
     }
 
     @Override
@@ -315,7 +316,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(resource.getUserId(), "user id must not be null");
         UserOrganizationEntity userOrganizationEntity =
                 userOrganizationMapper.queryUserOrganization(resource.getUserId());
-        return UserOrganizationVO.fromEntity(userOrganizationEntity);
+        return UserOrganizationVO.fromEntity(UserOrganizationVO.class,userOrganizationEntity);
     }
 
     @Override
@@ -329,7 +330,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(getOrganizationById(userOrganizationDTO.getOrganizationId()), "机构不存在！");
         UserOrganizationEntity userOrganization = userOrganizationDTO.toEntity();
         userOrganizationMapper.insert(userOrganization);
-        return UserOrganizationVO.fromEntity(userOrganization);
+        return UserOrganizationVO.fromEntity(UserOrganizationVO.class,userOrganization);
     }
 
     @Override
@@ -347,7 +348,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(organization, "机构不存在！");
         UserOrganizationEntity userOrganization = resource.toEntity();
         userOrganizationMapper.updateById(userOrganization);
-        return UserOrganizationVO.fromEntity(userOrganization);
+        return UserOrganizationVO.fromEntity(UserOrganizationVO.class,userOrganization);
     }
 
     @Override
@@ -507,10 +508,10 @@ public class OrganizationServiceImpl implements OrganizationService {
             Assert.notNull(parent, "上级组织未查询到！");
             String parentKeys = parent.buildParentKeys();
             entity.setParentKeys(parentKeys);
-            entity.setRank(TreeUtils.level(parentKeys));
+            entity.setRank(TreeNodeUtils.level(parentKeys));
         } else {
             entity.setRank(0);
-            entity.setParentId(TreeUtils.TOP);
+            entity.setParentId(Constants.TREE_TOP_LEVEL);
         }
         organizationMapper.insert(entity);
         return getOrganizationById(orgId);
@@ -579,7 +580,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         List<OrganizationEntity> companies = organizationMapper.selectByIds(companyIds);
         Map<String, OrganizationVO> companyMap = Maps.newHashMap();
         for (OrganizationEntity company : companies) {
-            companyMap.put(company.getId(), OrganizationVO.fromEntity(company));
+            companyMap.put(company.getId(), OrganizationVO.fromEntity(OrganizationVO.class,company));
         }
         Map<String, OrganizationVO> result = Maps.newHashMap();
         for (Map.Entry<String, String> entry : orgMap.entrySet()) {
@@ -593,11 +594,11 @@ public class OrganizationServiceImpl implements OrganizationService {
     public void move(MoveParameter parameter) {
         String id = parameter.getId();
         String tid = parameter.getTid();
-        DragMode mode = DragMode.valueOf(parameter.getType());
+        TreeDragMode mode = TreeDragMode.valueOf(parameter.getType());
 
         OrganizationVO source = organizationMapper.queryOrganizationById(id);
         OrganizationVO target = organizationMapper.queryOrganizationById(tid);
-        List<OrganizationVO> changed = TreeUtils.getAllChangedAfterMoved(
+        List<OrganizationVO> changed = TreeNodeUtils.getAllChangedAfterMoved(
                 source, target, mode, organizationMapper::directChildrenGetter, organizationMapper::allChildrenGetter);
         organizationMapper.batchUpdateOrgsAfterMoved(changed);
     }

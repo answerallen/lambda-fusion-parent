@@ -10,8 +10,8 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.core.tree.ITreeDataFilter;
-import com.lambda.fusion.core.tree.TreeFactory;
+import com.lambda.fusion.core.tree.filter.TreeDataFilter;
+import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.ParameterUtils;
 import com.lambda.fusion.dict.DictionaryProperties;
 import com.lambda.fusion.dict.common.enums.DictContextHolders;
@@ -47,7 +47,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
 
     private final DictInfoMapper dictInfoMapper;
 
-    private final ITreeDataFilter treeDataFilter;
+    private final TreeDataFilter treeDataFilter;
 
     private final List<IDynamicDictResolve> dynamicDictResolves;
 
@@ -109,7 +109,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
             parameters.put("parentKeys", ParameterUtils.fuzzyQuery(key));
             parameters.put("level", conditions.getLevel());
         }
-        return TreeFactory.build(dictTypeMapper.treeList(parameters));
+        return TreeBuilder.build(dictTypeMapper.treeList(parameters));
     }
 
     @Override
@@ -169,7 +169,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
                         .sorted(Comparator.comparing(DictType::getDictName))
                         .collect(Collectors.toList()));
         typeList.sort(Comparator.comparing(DictType::getLevel));
-        return TreeFactory.build(typeList);
+        return TreeBuilder.build(typeList);
     }
 
     private void getEnumDict(QueryDictTree queryDictTree, String name, List<DictType> result) {
@@ -271,7 +271,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
                     List<DictInfoVO> dictInfoVOList;
                     if (hasRank.get()) {
                         // 有级别
-                        dictInfoVOList = TreeFactory.build3(
+                        dictInfoVOList = TreeBuilder.build3(
                                 dictInfoVOS,
                                 DictInfoVO::getId,
                                 DictInfoVO::getParentId,
@@ -279,7 +279,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
                                 DictInfoVO::setChildren);
                     } else {
                         // 无级别
-                        dictInfoVOList = TreeFactory.build2(
+                        dictInfoVOList = TreeBuilder.build2(
                                 dictInfoVOS, DictInfoVO::getId, DictInfoVO::getParentId, DictInfoVO::setChildren);
                     }
                     dictType.setData(dictInfoVOList);

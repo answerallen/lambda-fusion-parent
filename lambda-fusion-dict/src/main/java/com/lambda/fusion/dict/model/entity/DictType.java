@@ -5,7 +5,7 @@ import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.lambda.cloud.core.shared.BaseDO;
-import com.lambda.fusion.core.tree.Tree;
+import com.lambda.fusion.core.tree.TreeNode;
 import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -21,7 +21,7 @@ import lombok.Getter;
 @TableName(value = TABLE_SYS_DICT_TYPE)
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class DictType extends BaseDO implements Tree<DictType> {
+public class DictType extends BaseDO implements TreeNode<DictType> {
 
     @Schema(description = "主键")
     private String id;

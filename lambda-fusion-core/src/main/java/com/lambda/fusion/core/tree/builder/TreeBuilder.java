@@ -1,4 +1,6 @@
-package com.lambda.fusion.core.tree;
+package com.lambda.fusion.core.tree.builder;
+
+import com.lambda.fusion.core.tree.TreeNode;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
@@ -18,19 +20,19 @@ import org.springframework.util.StopWatch;
  *
  */
 @Slf4j
-public final class TreeFactory {
+public final class TreeBuilder {
 
-    private TreeFactory() {}
+    private TreeBuilder() {}
 
     /**
-     * <p>一个列表数据构建成一棵树形数据，对象需实现{@link Tree}接口</p>
+     * <p>一个列表数据构建成一棵树形数据，对象需实现{@link TreeNode}接口</p>
      *
      * @param target 元数据列表
-     * @param <T>    实现Tree接口的对象
+     * @param <T>    实现TreeNode接口的对象
      * @return 树
      */
-    public static <T extends Tree<T>> List<T> build(List<T> target) {
-        return build2(target, Tree::id, Tree::pid, Tree::children);
+    public static <T extends TreeNode<T>> List<T> build(List<T> target) {
+        return build2(target, TreeNode::id, TreeNode::pid, TreeNode::children);
     }
 
     /**

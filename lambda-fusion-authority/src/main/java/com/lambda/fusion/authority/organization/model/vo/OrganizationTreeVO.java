@@ -1,15 +1,16 @@
 package com.lambda.fusion.authority.organization.model.vo;
 
-import com.lambda.fusion.core.tree.Tree;
+import com.lambda.fusion.core.tree.TreeNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.List;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 @Schema(description = "组织机构")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class OrganizationTreeVO implements Tree<OrganizationTreeVO> {
+public class OrganizationTreeVO implements TreeNode<OrganizationTreeVO> {
 
     @Schema(description = "主键ID")
     String id;

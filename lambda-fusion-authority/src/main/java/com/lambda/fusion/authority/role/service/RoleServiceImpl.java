@@ -34,7 +34,7 @@ import com.lambda.fusion.authority.user.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.user.model.entity.UserRoleEntity;
 import com.lambda.fusion.authority.utils.MybatisUtils;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.tree.TreeFactory;
+import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.user.User;
 import jakarta.annotation.Resource;
 import java.util.*;
@@ -236,7 +236,7 @@ public class RoleServiceImpl implements RoleService {
         if (CollectionUtils.isEmpty(permissions)) {
             return Collections.emptyList();
         }
-        return TreeFactory.build(permissions);
+        return TreeBuilder.build(permissions);
     }
 
     @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)

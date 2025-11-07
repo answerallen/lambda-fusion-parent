@@ -1,7 +1,10 @@
-package com.lambda.fusion.core.tree;
+package com.lambda.fusion.core.tree.util;
 
-import static com.lambda.fusion.core.tree.DragMode.BEFORE;
-import static com.lambda.fusion.core.tree.DragMode.CHILD;
+import static com.lambda.fusion.core.tree.model.TreeDragMode.BEFORE;
+import static com.lambda.fusion.core.tree.model.TreeDragMode.CHILD;
+
+import com.lambda.fusion.core.tree.TreeNode;
+import com.lambda.fusion.core.tree.model.TreeDragMode;
 
 import com.google.common.collect.Lists;
 import com.lambda.fusion.core.Constants;
@@ -10,18 +13,18 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.annotation.Nonnull;
+
+import lombok.experimental.UtilityClass;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 
 /**
- * TreeUtils
+ * TreeNodeUtils
  *
  * @author Jin
  */
-public final class TreeUtils {
-    public static final String TOP = Constants.TREE_TOP_LEVEL;
-
-    private TreeUtils() {}
+@UtilityClass
+public final class TreeNodeUtils {
 
     /**
      * 获取拖动后所有修改的对象
@@ -34,10 +37,10 @@ public final class TreeUtils {
      * @return java.util.List<T>
      */
 
-    public static <T extends Tree<T>> List<T> getAllChangedAfterMoved(
+    public static <T extends TreeNode<T>> List<T> getAllChangedAfterMoved(
             @Nonnull T resource,
             @Nonnull T target,
-            DragMode mode,
+            TreeDragMode mode,
             Function<String, List<T>> directChildrenGetter,
             Function<String, List<T>> allChildrenGetter) {
         final String id1 = resource.id();
@@ -115,7 +118,7 @@ public final class TreeUtils {
      * @param children2
      *
      */
-    private static <T extends Tree<T>> List<T> childrenHandler(
+    private static <T extends TreeNode<T>> List<T> childrenHandler(
             String searchString, String replacement, List<T> children2) {
         List<T> changed2 = Lists.newArrayList();
         if (CollectionUtils.isNotEmpty(children2)) {
@@ -129,7 +132,7 @@ public final class TreeUtils {
         return changed2;
     }
 
-    private static <T extends Tree<T>> String replace(T item, String searchString, String replacement) {
+    private static <T extends TreeNode<T>> String replace(T item, String searchString, String replacement) {
         String result;
         if (StringUtils.isNotBlank(searchString)) {
             if (StringUtils.isNotBlank(replacement)) {

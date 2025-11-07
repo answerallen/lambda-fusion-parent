@@ -12,7 +12,7 @@ import com.lambda.fusion.authority.authentication.model.vo.SimpleUserVO;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.tree.TreeFactory;
+import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.user.User;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
@@ -71,7 +71,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         Assert.notNull(operator, "parameter 'operator' cannot be empty or null");
         Assert.notNull(query, "parameter 'query' cannot be empty or null");
         List<Resource> resources = authenticationMapper.getNavigationByQuery(query);
-        return TreeFactory.build(resources);
+        return TreeBuilder.build(resources);
     }
 
     @Override
