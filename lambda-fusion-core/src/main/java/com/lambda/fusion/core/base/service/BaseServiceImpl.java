@@ -121,9 +121,7 @@ public abstract class BaseServiceImpl<E, V, M extends BaseMapper<E>> extends Ser
      * @return a page of value objects corresponding to the input entities
      */
     private IPage<V> convertPageToVO(IPage<E> entityPage) {
-        IPage<V> voPage = PageDTO.of(entityPage.getCurrent(), entityPage.getSize(), entityPage.getSize());
-        voPage.setRecords(toVO(entityPage.getRecords()));
-        return voPage;
+        return entityPage.convert(this::toVO);
     }
 
     /**
