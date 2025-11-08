@@ -62,7 +62,7 @@ public final class TreeNodeUtils {
             source1.pid(id2);
             source1.parentKeys(parentKeys);
             source1.level(level(parentKeys));
-            children.add(0, source1);
+            children.addFirst(source1);
         } else {
             if (optional1.isPresent()) {
                 children.remove(source1);

@@ -84,7 +84,7 @@ public final class TreeBuilder {
         parent.forEach(item -> result.addAll(idMap.get(item)));
         if (log.isTraceEnabled() && clock != null) {
             clock.stop();
-            log.trace(Constants.LOG_TREE_BUILD_TIME, clock.getTotalTimeNanos());
+            printLogs(clock);
         }
         return result;
     }
@@ -146,7 +146,7 @@ public final class TreeBuilder {
         List<T> result = list1.stream().map(objects::get).collect(Collectors.toList());
         if (log.isTraceEnabled() && clock != null) {
             clock.stop();
-            log.trace(Constants.LOG_TREE_BUILD_TIME, clock.getTotalTimeNanos());
+            printLogs(clock);
         }
         return result;
     }
@@ -199,8 +199,12 @@ public final class TreeBuilder {
 
         if (log.isTraceEnabled() && clock != null) {
             clock.stop();
-            log.trace(Constants.LOG_TREE_BUILD_TIME, clock.getTotalTimeNanos());
+            printLogs(clock);
         }
         return result;
+    }
+
+    private static void printLogs(StopWatch clock) {
+        log.trace(Constants.LOG_TREE_BUILD_TIME, clock.getTotalTimeNanos());
     }
 }
