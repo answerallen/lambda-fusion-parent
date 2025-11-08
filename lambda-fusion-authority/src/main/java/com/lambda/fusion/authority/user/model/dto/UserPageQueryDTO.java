@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.user.model.dto;
 
 import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
-import com.lambda.fusion.core.pagination.PaginationQueryRequest;
+import com.lambda.fusion.core.pagination.PaginationDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -14,7 +14,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "用户分页查询参数")
-public class UserPageQueryDTO extends PaginationQueryRequest<MutableUserVO> {
+public class UserPageQueryDTO extends PaginationDTO<MutableUserVO> {
 
     @Schema(description = "用户名称")
     private String username;
