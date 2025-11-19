@@ -30,6 +30,9 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
             if (type instanceof ParameterizedType) {
                 //noinspection unchecked
                 this.voClass = (Class<V>) ((ParameterizedType) type).getActualTypeArguments()[1];
+            }else if (type instanceof Class<?>) {
+                //noinspection unchecked
+                this.voClass = (Class<V>) type;
             } else {
                 throw new IllegalStateException("子类必须继承 AbstractCrudService<E, V, M extends BaseMapper<E>> 并固化泛型");
             }
