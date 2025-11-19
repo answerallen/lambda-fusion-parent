@@ -14,14 +14,11 @@ import java.lang.reflect.Type;
 import java.util.List;
 
 /**
- * BaseServiceImpl is an abstract class that extends ServiceImpl and provides common functionality for converting
- * entities to value objects (VO) and vice versa. It uses a generic type parameter E for the entity, V for the value
- * object, and M for the mapper which must extend BaseMapper.
+ * AbstractCrudService 是一个抽象类，继承了 ServiceImpl 并提供了实体与值对象（VO）之间转换的通用功能。
+ * 它使用泛型参数 E 表示实体，V 表示值对象，M 表示必须继承 BaseMapper 的映射器。
  *
- * <p>This class includes methods for converting single entities or lists of entities to their corresponding value
- * objects, as well as methods for fetching paginated or non-paginated lists of value objects based on query conditions.
- * The conversion between entities and value objects is handled by a converter, which is resolved using the
- * ConverterResolver.
+ * <p>该类包含用于将单个实体或实体列表转换为相应值对象的方法，以及基于查询条件获取分页或非分页值对象列表的方法。
+ * 实体与值对象之间的转换由转换器处理，转换器通过 ConverterResolver 进行解析。
  */
 @SuppressWarnings("unused")
 public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends ServiceImpl<M, E> {
@@ -41,31 +38,31 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
     }
 
     /**
-     * Converts a list of entities to a list of value objects (VO).
+     * 将实体列表转换为值对象（VO）列表。
      *
-     * @param entity the list of entities to be converted
-     * @return a list of value objects corresponding to the input entities
+     * @param entity 要转换的实体列表
+     * @return 与输入实体对应的值对象列表
      */
     public List<V> toVO(List<E> entity) {
         return converter().convertToList(entity);
     }
 
     /**
-     * Converts an entity to a value object (VO).
+     * 将实体转换为值对象（VO）。
      *
-     * @param entity the entity to be converted
-     * @return the value object corresponding to the input entity
+     * @param entity 要转换的实体
+     * @return 与输入实体对应的值对象
      */
     public V toVO(E entity) {
         return converter().convertTo(entity);
     }
 
     /**
-     * Retrieves a page of value objects (VO) based on the provided page and query wrapper.
+     * 根据提供的分页对象和查询包装器获取值对象（VO）分页。
      *
-     * @param page         the page object containing pagination information
-     * @param queryWrapper the wrapper used for constructing the query
-     * @return a page of value objects corresponding to the input entities
+     * @param page         包含分页信息的分页对象
+     * @param queryWrapper 用于构造查询的包装器
+     * @return 与输入实体对应的值对象分页
      */
     public IPage<V> pageForVO(IPage<E> page, Wrapper<E> queryWrapper) {
         IPage<E> entityPage = super.page(page, queryWrapper);
@@ -73,10 +70,10 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
     }
 
     /**
-     * Retrieves a page of value objects (VO) based on the provided page.
+     * 根据提供的分页对象获取值对象（VO）分页。
      *
-     * @param page the page object containing pagination information
-     * @return a page of value objects corresponding to the input entities
+     * @param page 包含分页信息的分页对象
+     * @return 与输入实体对应的值对象分页
      */
     public IPage<V> pageForVO(IPage<E> page) {
         IPage<E> entityPage = super.page(page);
@@ -84,10 +81,10 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
     }
 
     /**
-     * Retrieves a list of value objects (VO) based on the provided query wrapper.
+     * 根据提供的查询包装器获取值对象（VO）列表。
      *
-     * @param queryWrapper the wrapper used for constructing the query
-     * @return a list of value objects corresponding to the input entities
+     * @param queryWrapper 用于构造查询的包装器
+     * @return 与输入实体对应的值对象列表
      */
     public List<V> listForVO(Wrapper<E> queryWrapper) {
         List<E> entityList = super.list(queryWrapper);
@@ -95,9 +92,9 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
     }
 
     /**
-     * Retrieves a list of value objects (VO) for all entities.
+     * 获取所有实体的值对象（VO）列表。
      *
-     * @return a list of value objects corresponding to all entities
+     * @return 对应所有实体的值对象列表
      */
     public List<V> listForVO() {
         List<E> entityList = super.list();
@@ -105,10 +102,10 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
     }
 
     /**
-     * Retrieves a value object (VO) for the entity that matches the given query wrapper.
+     * 获取与给定查询包装器匹配的实体的值对象（VO）。
      *
-     * @param queryWrapper the wrapper used for constructing the query
-     * @return the value object corresponding to the found entity, or null if no matching entity is found
+     * @param queryWrapper 用于构造查询的包装器
+     * @return 与找到的实体对应的值对象，如果未找到匹配的实体则返回 null
      */
     public V getForVO(Wrapper<E> queryWrapper) {
         E entity = super.getOne(queryWrapper);
@@ -116,10 +113,10 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
     }
 
     /**
-     * Retrieves a value object (VO) for the entity with the specified ID.
+     * 根据指定 ID 获取实体的值对象（VO）。
      *
-     * @param id the ID of the entity to retrieve
-     * @return the value object corresponding to the found entity, or null if no matching entity is found
+     * @param id 要获取的实体的 ID
+     * @return 与找到的实体对应的值对象，如果未找到匹配的实体则返回 null
      */
     public V getByIdForVO(Serializable id) {
         E entity = super.getById(id);
@@ -127,20 +124,20 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
     }
 
     /**
-     * Converts a page of entities to a page of value objects (VO).
+     * 将实体分页转换为值对象（VO）分页。
      *
-     * @param entityPage the page of entities to be converted
-     * @return a page of value objects corresponding to the input entities
+     * @param entityPage 要转换的实体分页
+     * @return 与输入实体对应的值对象分页
      */
     private IPage<V> convertPageToVO(IPage<E> entityPage) {
         return entityPage.convert(this::toVO);
     }
 
     /**
-     * Converts a list of entities to a list of value objects (VO) using the internal conversion mechanism.
+     * 使用内部转换机制将实体列表转换为值对象（VO）列表。
      *
-     * @param entityList the list of entities to be converted
-     * @return a list of value objects corresponding to the input entities
+     * @param entityList 要转换的实体列表
+     * @return 与输入实体对应的值对象列表
      */
     private List<V> convertListToVO(List<E> entityList) {
         return toVO(entityList);
