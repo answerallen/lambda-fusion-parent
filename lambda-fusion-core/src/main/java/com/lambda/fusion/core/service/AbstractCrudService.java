@@ -1,5 +1,6 @@
 package com.lambda.fusion.core.service;
 
+import cn.hutool.core.util.TypeUtil;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -8,6 +9,8 @@ import com.lambda.cloud.core.convert.BaseConverter;
 import com.lambda.cloud.core.convert.ConverterResolver;
 
 import java.io.Serializable;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.List;
 
 /**
@@ -22,9 +25,19 @@ import java.util.List;
  */
 @SuppressWarnings("unused")
 public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends ServiceImpl<M, E> {
+    private Class<V> voClass;
 
     private BaseConverter<E, V> converter() {
-        return ConverterResolver.getConverter(getEntityClass());
+        if (voClass == null) {
+            Type type = TypeUtil.getTypeArgument(getClass(), 1);
+            if (type instanceof ParameterizedType) {
+                //noinspection unchecked
+                this.voClass = (Class<V>) ((ParameterizedType) type).getActualTypeArguments()[1];
+            } else {
+                throw new IllegalStateException("子类必须继承 AbstractCrudService<E, V, M extends BaseMapper<E>> 并固化泛型");
+            }
+        }
+        return ConverterResolver.getConverter(voClass);
     }
 
     /**
@@ -50,7 +63,7 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
     /**
      * Retrieves a page of value objects (VO) based on the provided page and query wrapper.
      *
-     * @param page the page object containing pagination information
+     * @param page         the page object containing pagination information
      * @param queryWrapper the wrapper used for constructing the query
      * @return a page of value objects corresponding to the input entities
      */
