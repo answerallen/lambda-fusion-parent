@@ -27,10 +27,7 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
     private BaseConverter<E, V> converter() {
         if (voClass == null) {
             Type type = TypeUtil.getTypeArgument(getClass(), 1);
-            if (type instanceof ParameterizedType) {
-                //noinspection unchecked
-                this.voClass = (Class<V>) ((ParameterizedType) type).getActualTypeArguments()[1];
-            }else if (type instanceof Class<?>) {
+            if (type instanceof Class<?>) {
                 //noinspection unchecked
                 this.voClass = (Class<V>) type;
             } else {
