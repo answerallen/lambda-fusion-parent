@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.authority.client.mapper.ClientMapper">
 
-    <resultMap type="com.lambda.fusion.authority.client.model.entity.ClientEntity" id="ClientEntity">
+    <resultMap type="com.lambda.fusion.authority.client.model.ClientEntity" id="ClientEntity">
         <result property="id" column="id"/>
         <result property="name" column="name"/>
         <result property="secret" column="secret"/>
@@ -31,7 +31,7 @@
 <!--        </collection>-->
     </resultMap>
 
-    <select id="getAuthorization" resultType="com.lambda.fusion.authority.client.model.vo.AuthResourceVO">
+    <select id="getAuthorization" resultType="com.lambda.fusion.authority.client.model.AuthResource">
         SELECT DISTINCT
             T.id,
             T.name,

@@ -4,7 +4,7 @@ import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.annotation.OperationLog;
-import com.lambda.fusion.core.user.User;
+import com.lambda.fusion.core.user.Operator;
 import com.lambda.fusion.dict.model.dto.DictInfoInputDTO;
 import com.lambda.fusion.dict.model.dto.DictInfoQueryDTO;
 import com.lambda.fusion.dict.model.dto.DictStateOperationDTO;
@@ -72,7 +72,7 @@ public class DictInfoController {
     @PostMapping
     @Operation(summary = "添加字典详细信息", description = "添加字典详细信息")
     public DictInfoVO saveDictInfo(@Valid @RequestBody DictInfoVO dictInfoVO) {
-        User operator = (User) OperatorUtils.getOperator();
+        Operator operator = (Operator) OperatorUtils.getOperator();
         if (StringUtils.isNotBlank(operator.getTenantId())) {
             dictInfoVO.setTenantId(operator.getTenantId());
         }

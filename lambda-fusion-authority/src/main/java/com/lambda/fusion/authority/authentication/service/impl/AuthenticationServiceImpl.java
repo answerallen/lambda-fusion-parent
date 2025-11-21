@@ -7,13 +7,13 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
-import com.lambda.fusion.authority.authentication.model.dto.NavigationQueryDTO;
-import com.lambda.fusion.authority.authentication.model.vo.SimpleUserVO;
+import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.authentication.model.SimpleUser;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
-import com.lambda.fusion.authority.resource.model.Resource;
+import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.user.User;
+import com.lambda.fusion.core.user.Operator;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
 import com.lambda.security.provider.ThirdPartLoginResult;
@@ -36,7 +36,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
         Assert.notNull(username, "parameter 'username' cannot be empty or null");
-        SimpleUserVO userVO = authenticationMapper.loadUserDetailByUsername(username);
+        SimpleUser userVO = authenticationMapper.loadUserDetailByUsername(username);
         if (userVO == null) {
             throw new UsernameNotFoundException("user in not found");
         }
@@ -46,20 +46,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<SimpleUserVO> simpleUsers = authenticationMapper.loadUserDetailByMobile(mobile);
+        List<SimpleUser> simpleUsers = authenticationMapper.loadUserDetailByMobile(mobile);
         if (CollUtil.isEmpty(simpleUsers)) {
             throw new UsernameNotFoundException("mobile in not found");
         }
         if (simpleUsers.size() > 1) {
             throw new AuthenticationException("mobile in not unique");
         }
-        SimpleUserVO simpleUser = simpleUsers.getFirst();
+        SimpleUser simpleUser = simpleUsers.getFirst();
         return buildLoginUser(simpleUser.toUser());
     }
 
     @Override
-    public List<Resource> getNavigation(LoginUser operator, String parentId, Integer level) {
-        NavigationQueryDTO query = new NavigationQueryDTO();
+    public List<ResourceTree> getNavigation(LoginUser operator, String parentId, Integer level) {
+        NavigationQuery query = new NavigationQuery();
         query.setParentId(parentId);
         query.setLevel(level);
         query.setMode(0);
@@ -67,15 +67,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<Resource> getNavigation(LoginUser operator, NavigationQueryDTO query) {
+    public List<ResourceTree> getNavigation(LoginUser operator, NavigationQuery query) {
         Assert.notNull(operator, "parameter 'operator' cannot be empty or null");
         Assert.notNull(query, "parameter 'query' cannot be empty or null");
-        List<Resource> resources = authenticationMapper.getNavigationByQuery(query);
-        return TreeBuilder.build(resources);
+        List<ResourceTree> resourceTrees = authenticationMapper.getNavigationByQuery(query);
+        return TreeBuilder.build(resourceTrees);
     }
 
     @Override
-    public List<com.lambda.fusion.authority.user.model.vo.SimpleUserVO> getUsersByRoleId(String roleId) {
+    public List<com.lambda.fusion.authority.user.model.SimpleUser> getUsersByRoleId(String roleId) {
         return authenticationMapper.getUsersByRoleId(roleId);
     }
 
@@ -88,17 +88,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     /**
      * 构建登录用户信息
      *
-     * @param user 用户对象
+     * @param operator 用户对象
      * @return 登录用户
      */
-    private LoginUser buildLoginUser(User user) {
-        if (CollUtil.isEmpty(user.getRoles())) {
-            user.setRoles(Sets.newHashSet(Constants.ROLE_USER));
+    private LoginUser buildLoginUser(Operator operator) {
+        if (CollUtil.isEmpty(operator.getRoles())) {
+            operator.setRoles(Sets.newHashSet(Constants.ROLE_USER));
         }
         String tenantId = TenantHolder.getTenantId();
         if (StrUtil.isNotBlank(tenantId)) {
-            user.setTenantId(tenantId);
+            operator.setTenantId(tenantId);
         }
-        return user;
+        return operator;
     }
 }

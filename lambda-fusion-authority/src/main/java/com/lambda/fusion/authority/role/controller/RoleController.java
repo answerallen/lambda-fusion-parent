@@ -7,19 +7,19 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
-import com.lambda.fusion.authority.role.model.dto.RoleCreateDTO;
-import com.lambda.fusion.authority.role.model.dto.RoleUpdateDTO;
-import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
-import com.lambda.fusion.authority.role.model.vo.GroupRoleVO;
-import com.lambda.fusion.authority.role.model.vo.GroupVO;
-import com.lambda.fusion.authority.role.model.vo.MutableRoleVO;
+import com.lambda.fusion.authority.role.model.BatchAddRoleUser;
+import com.lambda.fusion.authority.role.model.CreateRole;
+import com.lambda.fusion.authority.role.model.UpdateRole;
+import com.lambda.fusion.authority.role.model.AccessPermission;
+import com.lambda.fusion.authority.role.model.GroupRole;
+import com.lambda.fusion.authority.role.model.Group;
+import com.lambda.fusion.authority.role.model.Role;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.user.User;
+import com.lambda.fusion.core.user.Operator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -57,15 +57,15 @@ public class RoleController {
     @GetMapping
     @SaCheckLogin
     @Operation(description = "获取所有角色列表", summary = "获取所有角色列表")
-    public List<MutableRoleVO> list() {
-        User operator = OperatorUtils.getLoginUser(User.class);
+    public List<Role> list() {
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
         return roleService.getAllRoles(operator);
     }
 
     @Operation(description = "分组列表", summary = "分组列表")
     @GetMapping("/group")
-    public List<GroupVO> listGroups() {
-        User operator = OperatorUtils.getLoginUser(User.class);
+    public List<Group> listGroups() {
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
         return roleService.listGroups(operator);
     }
 
@@ -74,19 +74,19 @@ public class RoleController {
             description = "获取所有角色分组列表",
             summary = "获取所有角色分组列表",
             parameters = {@Parameter(name = "tenant_id", description = "租户id")})
-    public List<GroupRoleVO> groupRole(String tenantId) {
-        User operator = OperatorUtils.getLoginUser(User.class);
+    public List<GroupRole> groupRole(String tenantId) {
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
         return roleService.getAllGroupRoles(operator, tenantId);
     }
 
     @GetMapping({"/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(description = "分页查询所有角色列表", summary = "分页查询所有角色列表")
-    public Page<MutableRoleVO> page(
+    public Page<Role> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
             String alias,
             String groupId) {
-        User operator = OperatorUtils.getLoginUser(User.class);
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
         if (ObjectUtil.isNotNull(groupId)) {
             parameters.put("groupId", groupId);
@@ -133,34 +133,34 @@ public class RoleController {
 
     @GetMapping("/{authority}")
     @Operation(description = "查询角色信息", summary = "查询角色信息")
-    public MutableRoleVO update(@Parameter(description = "角色名称", required = true) @PathVariable String authority) {
+    public Role update(@Parameter(description = "角色名称", required = true) @PathVariable String authority) {
         Assert.notNull(authority, "角色名称不能为空！");
         return roleService.getRoleByAuthority(authority);
     }
 
     @PostMapping
     @Operation(description = "新增角色信息", summary = "新增角色信息")
-    public MutableRoleVO add(
-            @Parameter(description = "角色信息", required = true) @RequestBody RoleCreateDTO roleCreateDTO) {
-        User operator = OperatorUtils.getLoginUser(User.class);
-        return roleService.saveRole(operator, roleCreateDTO);
+    public Role add(
+            @Parameter(description = "角色信息", required = true) @RequestBody CreateRole createRole) {
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
+        return roleService.saveRole(operator, createRole);
     }
 
     @PutMapping("/{authority}")
     @Operation(description = "更新角色信息", summary = "更新角色信息")
-    public MutableRoleVO update(
+    public Role update(
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
-            @Parameter(description = "角色信息", required = true) @RequestBody RoleUpdateDTO roleUpdateDTO) {
+            @Parameter(description = "角色信息", required = true) @RequestBody UpdateRole updateRole) {
         Assert.notNull(authority, "角色名称不能为空！");
-        roleUpdateDTO.setAuthority(authority);
-        User operator = OperatorUtils.getLoginUser(User.class);
-        return roleService.updateRole(operator, roleUpdateDTO);
+        updateRole.setAuthority(authority);
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
+        return roleService.updateRole(operator, updateRole);
     }
 
     @DeleteMapping("/{authority}")
     @Operation(description = "删除角色信息", summary = "删除角色信息")
     public void delete(@Parameter(description = "角色名称", required = true) @PathVariable String authority) {
-        MutableRoleVO source = roleService.getRoleByAuthority(authority);
+        Role source = roleService.getRoleByAuthority(authority);
         if (source != null) {
             roleService.deleteRoleById(authority);
         }
@@ -168,10 +168,10 @@ public class RoleController {
 
     @GetMapping("/auth/{authority}")
     @Operation(description = "查询指定角色的权限信息", summary = "查询指定角色的权限信息")
-    public List<AccessPermissionVO> auth(
+    public List<AccessPermission> auth(
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "模式-0:后台资源,1:APP资源") Integer mode) {
-        User operator = OperatorUtils.getLoginUser(User.class);
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
         return roleService.getAccessPermissions(operator, authority, mode);
     }
 
@@ -184,7 +184,7 @@ public class RoleController {
             @Parameter(description = "授权模式.-0:仅使用,1:可管理", schema = @Schema(defaultValue = "1"))
                     @RequestParam(defaultValue = "1")
                     Integer status) {
-        User operator = OperatorUtils.getLoginUser(User.class);
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
         roleService.saveAuthorization(authority, resourceId, status, operator);
     }
 
@@ -194,7 +194,7 @@ public class RoleController {
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "资源编号", required = true) @PathVariable String resourceid,
             @Parameter(description = "授权模式.-0:角色,1:用户") Integer mode) {
-        User operator = OperatorUtils.getLoginUser(User.class);
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
         roleService.deleteAuthorization(authority, resourceid, operator);
     }
 
@@ -213,14 +213,14 @@ public class RoleController {
 
     @Operation(description = "新增角色分组", summary = "新增角色分组")
     @PostMapping("/group")
-    public GroupVO addGroup(@Parameter GroupVO groupVo) {
-        return roleService.addGroup(groupVo);
+    public Group addGroup(@Parameter Group group) {
+        return roleService.addGroup(group);
     }
 
     @Operation(description = "修改角色分组", summary = "修改角色分组")
     @PutMapping("/group")
-    public GroupVO updateGroup(@Parameter GroupVO groupVo) {
-        return roleService.updateGroup(groupVo);
+    public Group updateGroup(@Parameter Group group) {
+        return roleService.updateGroup(group);
     }
 
     @Operation(description = "删除角色分组", summary = "删除角色分组")
@@ -231,8 +231,8 @@ public class RoleController {
 
     @Operation(description = "角色批量分配用户", summary = "角色批量分配用户")
     @PostMapping("/batch/user")
-    public void batchAddRoleUser(@Valid @RequestBody BatchAddRoleUserDTO req) {
-        User user = OperatorUtils.getLoginUser(User.class);
-        roleService.batchAddRoleUser(user, req);
+    public void batchAddRoleUser(@Valid @RequestBody BatchAddRoleUser req) {
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
+        roleService.batchAddRoleUser(operator, req);
     }
 }

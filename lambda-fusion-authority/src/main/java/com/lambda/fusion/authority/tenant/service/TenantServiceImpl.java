@@ -10,14 +10,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
-import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
+import com.lambda.fusion.authority.organization.domain.Organization;
 import com.lambda.fusion.authority.role.mapper.GroupMapper;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationCache;
 import com.lambda.fusion.authority.tenant.cache.TenantHostCache;
 import com.lambda.fusion.authority.tenant.event.*;
-import com.lambda.fusion.authority.tenant.model.entity.TenantEntity;
-import com.lambda.fusion.authority.tenant.model.vo.TenantOptionVO;
+import com.lambda.fusion.authority.tenant.model.TenantEntity;
+import com.lambda.fusion.authority.tenant.model.TenantOption;
 import com.lambda.fusion.authority.tenant.persistence.TenantMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
@@ -103,7 +103,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
     }
 
     @Override
-    public List<TenantOptionVO> getTenantOptions() {
+    public List<TenantOption> getTenantOptions() {
         return tenantMapper.queryTenantList();
     }
 
@@ -117,10 +117,10 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
         if (enabled != 1) {
             enabled = (Integer) 0;
         }
-        final List<OrganizationVO> orgIds = queryOrganizationByTenantId(tenantId);
+        final List<Organization> orgIds = queryOrganizationByTenantId(tenantId);
         final List<String> tenants = getSubOrgIdsByType(orgIds, true);
         final List<String> ordinaries = getSubOrgIdsByType(orgIds, false);
-        final List<String> ids = orgIds.stream().map(OrganizationVO::getId).collect(Collectors.toList());
+        final List<String> ids = orgIds.stream().map(Organization::getId).collect(Collectors.toList());
         tenants.add(tenantId);
         if (CollectionUtils.isNotEmpty(ids)) {
             // 禁用/启用组织
@@ -172,8 +172,8 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
         // 删除租户
         tenantMapper.deleteById(tenantId);
         // 通过租户编号查询组织，删除组织
-        final List<OrganizationVO> orgIds = queryOrganizationByTenantId(tenantId);
-        final List<String> ids = orgIds.stream().map(OrganizationVO::getId).collect(Collectors.toList());
+        final List<Organization> orgIds = queryOrganizationByTenantId(tenantId);
+        final List<String> ids = orgIds.stream().map(Organization::getId).collect(Collectors.toList());
         if (CollectionUtils.isNotEmpty(ids)) {
             // 删除组织
             organizationMapper.deleteOrgByIdList(ids);
@@ -307,16 +307,16 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
         }
     }
 
-    protected List<OrganizationVO> queryOrganizationByTenantId(String tenantId) {
+    protected List<Organization> queryOrganizationByTenantId(String tenantId) {
         Assert.notNull(tenantId, "tenantId must not be null");
         return organizationMapper.queryOrganizationByTenantId(tenantId);
     }
 
-    protected List<String> getSubOrgIdsByType(List<OrganizationVO> orgIds, Boolean isTenant) {
+    protected List<String> getSubOrgIdsByType(List<Organization> orgIds, Boolean isTenant) {
         if (CollectionUtils.isNotEmpty(orgIds)) {
             return orgIds.stream()
                     .filter(org -> BooleanUtils.toBoolean(org.getTenant()) == isTenant)
-                    .map(OrganizationVO::id)
+                    .map(Organization::id)
                     .collect(Collectors.toList());
         } else {
             return new ArrayList<>();

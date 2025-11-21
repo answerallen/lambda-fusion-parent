@@ -1,14 +1,14 @@
 package com.lambda.fusion.authority.role.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.role.model.dto.BatchAddRoleUserDTO;
-import com.lambda.fusion.authority.role.model.dto.RoleCreateDTO;
-import com.lambda.fusion.authority.role.model.dto.RoleUpdateDTO;
-import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
-import com.lambda.fusion.authority.role.model.vo.GroupRoleVO;
-import com.lambda.fusion.authority.role.model.vo.GroupVO;
-import com.lambda.fusion.authority.role.model.vo.MutableRoleVO;
-import com.lambda.fusion.core.user.User;
+import com.lambda.fusion.authority.role.model.BatchAddRoleUser;
+import com.lambda.fusion.authority.role.model.CreateRole;
+import com.lambda.fusion.authority.role.model.UpdateRole;
+import com.lambda.fusion.authority.role.model.AccessPermission;
+import com.lambda.fusion.authority.role.model.GroupRole;
+import com.lambda.fusion.authority.role.model.Group;
+import com.lambda.fusion.authority.role.model.Role;
+import com.lambda.fusion.core.user.Operator;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +23,7 @@ public interface RoleService {
      * @param operator
      * @return
      */
-    List<MutableRoleVO> getAllRoles(User operator);
+    List<Role> getAllRoles(Operator operator);
 
     /**
      * 获取角色分组
@@ -32,7 +32,7 @@ public interface RoleService {
      * @param tenantId the tenantId
      * @return ig all group roles
      */
-    List<GroupRoleVO> getAllGroupRoles(User operator, String tenantId);
+    List<GroupRole> getAllGroupRoles(Operator operator, String tenantId);
 
     /***
      * 根据条件分页查询角色列表
@@ -41,7 +41,7 @@ public interface RoleService {
      * @param parameters
      * @return Page<MutableRole>
      */
-    Page<MutableRoleVO> getAllRoles(Page<MutableRoleVO> pageable, Map<String, Object> parameters);
+    Page<Role> getAllRoles(Page<Role> pageable, Map<String, Object> parameters);
 
     /**
      * 修改角色
@@ -51,7 +51,7 @@ public interface RoleService {
      * @return
      * @throws Exception
      */
-    MutableRoleVO updateRole(User operator, RoleUpdateDTO role);
+    Role updateRole(Operator operator, UpdateRole role);
 
     /**
      * 增加角色
@@ -62,7 +62,7 @@ public interface RoleService {
      * @return
      * @throws Exception
      */
-    MutableRoleVO saveRole(User operator, RoleCreateDTO role);
+    Role saveRole(Operator operator, CreateRole role);
 
     /**
      * 根据角色编号查询角色信息
@@ -70,7 +70,7 @@ public interface RoleService {
      * @param id
      * @return
      */
-    MutableRoleVO getRoleByAuthority(String id);
+    Role getRoleByAuthority(String id);
 
     /**
      * 根据id删除指定的角色
@@ -95,7 +95,7 @@ public interface RoleService {
      * @param mode 角色模式
      * @return
      */
-    List<AccessPermissionVO> getAccessPermissions(User operator, String id, Integer mode);
+    List<AccessPermission> getAccessPermissions(Operator operator, String id, Integer mode);
 
     /**
      * 保存角色权限
@@ -104,7 +104,7 @@ public interface RoleService {
      * @param status
      * @param operator
      */
-    void saveAuthorization(String authority, String resourceid, int status, User operator);
+    void saveAuthorization(String authority, String resourceid, int status, Operator operator);
 
     /**
      * 删除角色权限
@@ -113,7 +113,7 @@ public interface RoleService {
      * @param resourceid
      * @param operator
      */
-    void deleteAuthorization(String id, String resourceid, User operator);
+    void deleteAuthorization(String id, String resourceid, Operator operator);
 
     /**
      * 查询该角色名是否被使用
@@ -133,15 +133,15 @@ public interface RoleService {
     /**
      * 获取机构为多租户的所有角色
      */
-    List<MutableRoleVO> getTenantRolesByOwner(String owner);
+    List<Role> getTenantRolesByOwner(String owner);
 
     /**
      * 添加组
      *
-     * @param groupVo 分组信息
+     * @param group 分组信息
      * @return 结果
      */
-    GroupVO addGroup(GroupVO groupVo);
+    Group addGroup(Group group);
 
     /**
      * 删除分组信息
@@ -153,31 +153,31 @@ public interface RoleService {
     /**
      * 更新分组信息
      *
-     * @param groupVo 分组信息
+     * @param group 分组信息
      * @return ig
      */
-    GroupVO updateGroup(GroupVO groupVo);
+    Group updateGroup(Group group);
 
     /**
      * 根据组ID查询组信息
      *
      * @param id
      */
-    GroupVO getGroupById(String id);
+    Group getGroupById(String id);
 
     /**
      * 批量添加角色用户
      *
-     * @param user 当前操作用户
+     * @param operator 当前操作用户
      * @param req  请求
      */
-    void batchAddRoleUser(User user, BatchAddRoleUserDTO req);
+    void batchAddRoleUser(Operator operator, BatchAddRoleUser req);
 
     /**
      * 分组列表查询
      *
-     * @param user 当前用户
+     * @param operator 当前用户
      * @return 列表
      */
-    List<GroupVO> listGroups(User user);
+    List<Group> listGroups(Operator operator);
 }

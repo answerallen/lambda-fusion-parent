@@ -3,9 +3,9 @@ package com.lambda.fusion.authority.client.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.client.model.dto.ClientInputDTO;
-import com.lambda.fusion.authority.client.model.dto.ClientPageQueryDTO;
-import com.lambda.fusion.authority.client.model.entity.ClientEntity;
+import com.lambda.fusion.authority.client.model.CreateClient;
+import com.lambda.fusion.authority.client.model.ClientQuery;
+import com.lambda.fusion.authority.client.model.ClientEntity;
 import com.lambda.fusion.authority.client.service.ClientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,15 +26,15 @@ public class ClientController {
     public Page<ClientEntity> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
-            @Valid ClientPageQueryDTO clientPageQueryDTO) {
+            @Valid ClientQuery clientQuery) {
         if (number != null) {
-            clientPageQueryDTO.setPageNum(number);
+            clientQuery.setPageNum(number);
         }
         if (size != null) {
-            clientPageQueryDTO.setPageSize(size);
+            clientQuery.setPageSize(size);
         }
-        clientPageQueryDTO.setTenantId(OperatorUtils.getOperator().getTenantId());
-        return clientService.page(clientPageQueryDTO.getPage(), clientPageQueryDTO.getLambdaQueryWrapper());
+        clientQuery.setTenantId(OperatorUtils.getOperator().getTenantId());
+        return clientService.page(clientQuery.getPage(), clientQuery.getLambdaQueryWrapper());
     }
 
     @GetMapping("/{id}")
@@ -46,8 +46,8 @@ public class ClientController {
     @PostMapping
     @Operation(summary = "新增客户端信息", description = "新增客户端信息")
     public void save(
-            @Parameter(description = "客户端信息", required = true) @Valid @RequestBody ClientInputDTO clientInputDTO) {
-        ClientEntity clientEntity = clientInputDTO.toEntity();
+            @Parameter(description = "客户端信息", required = true) @Valid @RequestBody CreateClient createClient) {
+        ClientEntity clientEntity = createClient.toEntity();
         clientService.save(clientEntity);
     }
 
@@ -55,8 +55,8 @@ public class ClientController {
     @Operation(summary = "更新客户端信息", description = "更新客户端信息")
     public void update(
             @Parameter(description = "客户端编号", required = true) @PathVariable String id,
-            @Parameter(description = "客户端信息", required = true) @RequestBody @Valid ClientInputDTO clientInputDTO) {
-        ClientEntity clientEntity = clientInputDTO.toEntity();
+            @Parameter(description = "客户端信息", required = true) @RequestBody @Valid CreateClient createClient) {
+        ClientEntity clientEntity = createClient.toEntity();
         clientEntity.setId(id);
         clientService.updateById(clientEntity);
     }

@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.user.service;
 
-import com.lambda.fusion.authority.user.model.dto.RestUserInfoDTO;
-import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
-import com.lambda.fusion.authority.user.model.vo.VerifyCodeVO;
+import com.lambda.fusion.authority.user.model.RestUserInfo;
+import com.lambda.fusion.authority.user.model.User;
+import com.lambda.fusion.authority.user.model.VerifyCode;
 import org.springframework.lang.NonNull;
 
 public interface UserCenterService {
@@ -12,7 +12,7 @@ public interface UserCenterService {
      * @param username
      * @param mobile
      */
-    VerifyCodeVO sendMobileVerifyCodeStore(@NonNull String username, @NonNull String mobile);
+    VerifyCode sendMobileVerifyCodeStore(@NonNull String username, @NonNull String mobile);
 
     /**
      * 更新用户手机号
@@ -37,5 +37,5 @@ public interface UserCenterService {
      *
      * @param restUserInfoParameter 用户信息
      */
-    MutableUserVO updateInfo(RestUserInfoDTO restUserInfoParameter);
+    User updateInfo(RestUserInfo restUserInfoParameter);
 }

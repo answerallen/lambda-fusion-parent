@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.tenant.model.entity.TenantEntity;
-import com.lambda.fusion.authority.tenant.model.vo.TenantOptionVO;
+import com.lambda.fusion.authority.tenant.model.TenantEntity;
+import com.lambda.fusion.authority.tenant.model.TenantOption;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +26,7 @@ public interface TenantService extends IService<TenantEntity> {
      * 查询租户下拉列表
      * @return  List<TenantQuery>
      */
-    List<TenantOptionVO> getTenantOptions();
+    List<TenantOption> getTenantOptions();
 
     /**
      * 禁用/启用租户信息

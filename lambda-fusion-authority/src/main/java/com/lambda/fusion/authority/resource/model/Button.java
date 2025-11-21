@@ -55,13 +55,13 @@ public class Button {
         this.orderNo = orderNo;
     }
 
-    public Button(Resource resource) {
-        this.id = resource.getId();
-        this.name = resource.getResName();
-        this.key = resource.getResPath();
-        this.parentId = resource.getParentId();
-        this.rank = resource.getResRank();
-        this.orderNo = resource.getOrderNo();
-        this.hidden = BooleanUtils.toBoolean(resource.isHidden());
+    public Button(ResourceTree resourceTree) {
+        this.id = resourceTree.getId();
+        this.name = resourceTree.getResName();
+        this.key = resourceTree.getResPath();
+        this.parentId = resourceTree.getParentId();
+        this.rank = resourceTree.getResRank();
+        this.orderNo = resourceTree.getOrderNo();
+        this.hidden = BooleanUtils.toBoolean(resourceTree.isHidden());
     }
 }

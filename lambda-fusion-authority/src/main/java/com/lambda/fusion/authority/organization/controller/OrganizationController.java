@@ -5,15 +5,15 @@ import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.organization.model.dto.OrganizationCreateDTO;
-import com.lambda.fusion.authority.organization.model.dto.OrganizationQueryDTO;
-import com.lambda.fusion.authority.organization.model.dto.OrganizationUpdateDTO;
-import com.lambda.fusion.authority.organization.model.dto.UserOrganizationChangeDTO;
-import com.lambda.fusion.authority.organization.model.vo.OrganizationTreeVO;
-import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
-import com.lambda.fusion.authority.organization.model.vo.UserOrganizationVO;
+import com.lambda.fusion.authority.organization.domain.CreateOrganization;
+import com.lambda.fusion.authority.organization.domain.OrganizationQuery;
+import com.lambda.fusion.authority.organization.domain.UpdateOrganization;
+import com.lambda.fusion.authority.organization.domain.UserOrganizationChange;
+import com.lambda.fusion.authority.organization.domain.OrganizationTree;
+import com.lambda.fusion.authority.organization.domain.Organization;
+import com.lambda.fusion.authority.organization.domain.UserOrganization;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
-import com.lambda.fusion.authority.resource.model.MoveParameter;
+import com.lambda.fusion.authority.resource.model.MoveResource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -50,12 +50,12 @@ public class OrganizationController {
 
     @GetMapping("/tree")
     @Operation(summary = "以树形的方式获取组织机构列表", description = "以树形的方式获取组织机构列表")
-    public List<OrganizationVO> tree(
+    public List<Organization> tree(
             @RequestParam(required = false) @Parameter(description = "组织编码") String name,
             @RequestParam(required = false) @Parameter(description = "组织别名") String alias,
             @RequestParam(required = false) Boolean enabled) {
         LoginUser operator = OperatorUtils.getOperator();
-        OrganizationQueryDTO parameters = organizationService.getQueryParameter();
+        OrganizationQuery parameters = organizationService.getQueryParameter();
         if (BooleanUtils.isTrue(enabled)) {
             parameters.setEnabled(true);
         }
@@ -71,60 +71,60 @@ public class OrganizationController {
 
     @GetMapping("/list")
     @Operation(summary = "获取组织机构树形下拉列表", description = "查询组织机构列表树形下拉列表")
-    public List<OrganizationTreeVO> list() {
-        OrganizationQueryDTO parameters = organizationService.getQueryParameter();
+    public List<OrganizationTree> list() {
+        OrganizationQuery parameters = organizationService.getQueryParameter();
         parameters.setEnabled(true);
         return organizationService.getSimpleOrgTree(parameters);
     }
 
     @PostMapping({"", "/{id}"})
     @Operation(summary = "新增组织机构信息", description = "当id为非空时新增其子组织机构信息")
-    public OrganizationVO add(
+    public Organization add(
             @Parameter(description = "组织编号") @PathVariable(required = false) String id,
             @Parameter(description = "组织信息", required = true) @Valid @RequestBody
-                    OrganizationCreateDTO organizationCreateDTO) {
+            CreateOrganization createOrganization) {
         if (StringUtils.isNotBlank(id)) {
-            organizationCreateDTO.setParentId(id);
-            OrganizationVO organization = organizationService.queryOrganizationById(id);
+            createOrganization.setParentId(id);
+            Organization organization = organizationService.queryOrganizationById(id);
             Assert.notNull(organization, "上级机构不存在！");
         }
-        return organizationService.addOrganization(organizationCreateDTO);
+        return organizationService.addOrganization(createOrganization);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "更新组织机构信息", description = "根据编号更新指定的组织机构信息")
-    public OrganizationVO update(
+    public Organization update(
             @Parameter(description = "组织编号", required = true) @PathVariable String id,
             @Parameter(description = "组织信息", required = true) @Valid @RequestBody
-                    OrganizationUpdateDTO organizationUpdateDTO) {
-        OrganizationVO org = organizationService.queryOrganizationById(id);
+            UpdateOrganization updateOrganization) {
+        Organization org = organizationService.queryOrganizationById(id);
         Assert.notNull(org, "组织机构不存在！");
-        organizationUpdateDTO.setId(id);
-        return organizationService.updateOrganization(organizationUpdateDTO);
+        updateOrganization.setId(id);
+        return organizationService.updateOrganization(updateOrganization);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除组织机构信息", description = "根据编号删除指定的组织机构信息")
     public void delete(@Parameter(description = "组织编号", required = true) @PathVariable String id) {
-        OrganizationVO org = organizationService.queryOrganizationById(id);
+        Organization org = organizationService.queryOrganizationById(id);
         Assert.notNull(org, "组织机构不存在！");
         organizationService.deleteOrganization(id);
     }
 
     @GetMapping("/user/{username}")
     @Operation(summary = "查询用户组织信息", description = "查询用户组织信息")
-    public UserOrganizationVO queryUserOrganization(
+    public UserOrganization queryUserOrganization(
             @Parameter(description = "用户名称", required = true) @PathVariable String username) {
-        UserOrganizationChangeDTO resource = new UserOrganizationChangeDTO();
+        UserOrganizationChange resource = new UserOrganizationChange();
         resource.setUserId(username);
         return organizationService.queryUserOrganization(resource);
     }
 
     @PostMapping("/user/{username}")
     @Operation(summary = "添加用户组织信息", description = "添加用户组织信息")
-    public UserOrganizationVO addUserOrgan(
+    public UserOrganization addUserOrgan(
             @Parameter(description = "用户名称", required = true) @PathVariable String username,
-            @Parameter(description = "用户组织信息", required = true) @RequestBody UserOrganizationChangeDTO resource) {
+            @Parameter(description = "用户组织信息", required = true) @RequestBody UserOrganizationChange resource) {
         resource.setUserId(username);
         return organizationService.addUserOrganization(resource);
     }
@@ -137,9 +137,9 @@ public class OrganizationController {
 
     @PutMapping("/user/{username}")
     @Operation(summary = "更新用户组织关系", description = "更新用户组织关系")
-    public UserOrganizationVO updateUserOrganization(
+    public UserOrganization updateUserOrganization(
             @Parameter(description = "用户名称", required = true) @PathVariable String username,
-            @Parameter(description = "用户组织信息", required = true) @RequestBody UserOrganizationChangeDTO resource) {
+            @Parameter(description = "用户组织信息", required = true) @RequestBody UserOrganizationChange resource) {
         resource.setUserId(username);
         return organizationService.updateUserOrganization(resource);
     }
@@ -147,7 +147,7 @@ public class OrganizationController {
     @PatchMapping("/{id}/enabled")
     @Operation(summary = "启用组织机构")
     public void enabled(@Parameter(description = "机构Id", required = true) @PathVariable("id") String id) {
-        OrganizationVO org = organizationService.queryOrganizationById(id);
+        Organization org = organizationService.queryOrganizationById(id);
         Assert.notNull(org, "组织机构不存在！");
         organizationService.prohibitOrganization(1, id);
     }
@@ -155,7 +155,7 @@ public class OrganizationController {
     @PatchMapping("/{id}/disabled")
     @Operation(summary = "禁用组织机构")
     public void disabled(@Parameter(description = "机构Id", required = true) @PathVariable("id") String id) {
-        OrganizationVO org = organizationService.queryOrganizationById(id);
+        Organization org = organizationService.queryOrganizationById(id);
         Assert.notNull(org, "组织机构不存在！");
         organizationService.prohibitOrganization(0, id);
     }
@@ -181,7 +181,7 @@ public class OrganizationController {
             @Parameter(description = "拖动节点", required = true) @PathVariable("id") String id,
             @Parameter(description = "目标节点", required = true) @RequestParam("tid") String tid,
             @Parameter(description = "移动类型", required = true) @RequestParam("type") int type) {
-        MoveParameter parameter = new MoveParameter();
+        MoveResource parameter = new MoveResource();
         parameter.setId(id);
         parameter.setTid(tid);
         parameter.setType(type);

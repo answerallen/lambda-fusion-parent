@@ -18,7 +18,7 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.user.User;
+import com.lambda.fusion.core.user.Operator;
 import com.lambda.fusion.core.utils.ParameterUtils;
 import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
@@ -238,7 +238,7 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
         } else {
             ids.add(dictTypeEntity.getId());
         }
-        User operator = ((User) OperatorUtils.getOperator());
+        Operator operator = ((Operator) OperatorUtils.getOperator());
         List<DictInfoVO> outcomes = dictInfoMapper.treeList(ids, operator.getTenantId());
         return TreeBuilder.build(outcomes);
     }
@@ -247,7 +247,7 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
     public List<DictInfoVO> getSubTreeData(String dictType) {
         List<DictInfoVO> outcomes = new ArrayList<>();
         if (StringUtils.isNotBlank(dictType)) {
-            User operator = ((User) OperatorUtils.getOperator());
+            Operator operator = ((Operator) OperatorUtils.getOperator());
             LambdaQueryWrapper<DictType> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(DictType::getDictType, dictType);
             DictType dictTypeEntity = dictTypeMapper.selectOne(wrapper);
@@ -296,7 +296,7 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
         }
         wrapper.setLevel(dictInfoVO.getLevel());
         wrapper.setDictType(dictInfoVO.getDictType());
-        User operator = ((User) OperatorUtils.getOperator());
+        Operator operator = ((Operator) OperatorUtils.getOperator());
         wrapper.setTenantId(operator.getTenantId());
 
         List<DictInfoVO> target = dictInfoMapper.getDictInfoList(wrapper);
@@ -341,7 +341,7 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
         if (queryDTO.getSelectable() != null) {
             parameters.put(FIELD_SELECTABLE, queryDTO.getSelectable());
         }
-        User operator = (User) OperatorUtils.getOperator();
+        Operator operator = (Operator) OperatorUtils.getOperator();
         parameters.put(FIELD_TENANT_ID, operator.getTenantId());
 
         if (queryDTO.getExtraParams() != null && !queryDTO.getExtraParams().isEmpty()) {

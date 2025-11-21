@@ -6,9 +6,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
-import com.lambda.fusion.authority.user.model.dto.UserPageQueryDTO;
+import com.lambda.fusion.authority.user.model.UserQuery;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.core.user.User;
+import com.lambda.fusion.core.user.Operator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,9 +38,9 @@ public class UserQueryOptimizer {
      * @param queryDTO 查询DTO
      * @return 查询参数Map
      */
-    public Map<String, Object> getMutableUsersQueryParameters(UserPageQueryDTO queryDTO) {
+    public Map<String, Object> getMutableUsersQueryParameters(UserQuery queryDTO) {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(11);
-        User operator = OperatorUtils.getLoginUser(User.class);
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
         String tenantId = operator.getTenantId();
 
         parameters.put("username", queryDTO.getUsername());
@@ -93,7 +93,7 @@ public class UserQueryOptimizer {
             boolean subordinate,
             Map<String, Object> parameters,
             boolean dataRight,
-            User operator) {
+            Operator operator) {
         if (subordinate || StringUtils.isBlank(organizationId)) {
             if (!dataRight) {
                 if (StringUtils.isNotBlank(organizationId)) {

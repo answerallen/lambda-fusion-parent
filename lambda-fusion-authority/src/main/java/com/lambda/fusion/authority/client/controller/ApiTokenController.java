@@ -1,9 +1,9 @@
 package com.lambda.fusion.authority.client.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.client.model.dto.ApiTokenInputDTO;
-import com.lambda.fusion.authority.client.model.dto.ApiTokenPageQueryDTO;
-import com.lambda.fusion.authority.client.model.entity.ApiTokenEntity;
+import com.lambda.fusion.authority.client.model.CreateApiToken;
+import com.lambda.fusion.authority.client.model.ApiTokenQuery;
+import com.lambda.fusion.authority.client.model.ApiTokenEntity;
 import com.lambda.fusion.authority.client.service.ApiTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,19 +30,19 @@ public class ApiTokenController {
     public Page<ApiTokenEntity> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
-            @Valid ApiTokenPageQueryDTO apiTokenPageQueryDTO) {
+            @Valid ApiTokenQuery apiTokenQuery) {
         if (number != null) {
-            apiTokenPageQueryDTO.setPageNum(number);
+            apiTokenQuery.setPageNum(number);
         }
         if (size != null) {
-            apiTokenPageQueryDTO.setPageSize(size);
+            apiTokenQuery.setPageSize(size);
         }
-        return apiTokenService.page(apiTokenPageQueryDTO.getPage(), apiTokenPageQueryDTO.getLambdaQueryWrapper());
+        return apiTokenService.page(apiTokenQuery.getPage(), apiTokenQuery.getLambdaQueryWrapper());
     }
 
     @PostMapping
     @Operation(description = "新增AipToken", summary = "新增令牌")
-    public void save(@RequestBody @Valid ApiTokenInputDTO tokenInputDTO) {
+    public void save(@RequestBody @Valid CreateApiToken tokenInputDTO) {
         ApiTokenEntity apiTokenEntity = tokenInputDTO.toEntity();
         apiTokenEntity.setApiToken(RandomStringUtils.secure().nextAlphabetic(32));
         apiTokenService.save(apiTokenEntity);
@@ -56,7 +56,7 @@ public class ApiTokenController {
 
     @PutMapping("/{id}")
     @Operation(description = "修改AipToken", summary = "修改令牌")
-    public void update(@PathVariable("id") String id, @RequestBody @Valid ApiTokenInputDTO tokenInputDTO) {
+    public void update(@PathVariable("id") String id, @RequestBody @Valid CreateApiToken tokenInputDTO) {
         ApiTokenEntity apiTokenEntity = tokenInputDTO.toEntity();
         apiTokenEntity.setId(id);
         apiTokenService.updateById(apiTokenEntity);

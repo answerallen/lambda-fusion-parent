@@ -1,11 +1,11 @@
 package com.lambda.fusion.authority.resource.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
-import com.lambda.fusion.authority.authentication.model.dto.NavigationQueryDTO;
-import com.lambda.fusion.authority.resource.model.MoveParameter;
-import com.lambda.fusion.authority.resource.model.MutableResource;
+import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.resource.model.MoveResource;
 import com.lambda.fusion.authority.resource.model.Resource;
-import com.lambda.fusion.authority.resource.model.ResourceParameter;
+import com.lambda.fusion.authority.resource.model.ResourceTree;
+import com.lambda.fusion.authority.resource.model.CreateResource;
 import com.lambda.fusion.authority.resource.service.ResourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,21 +39,21 @@ public class ResourceController {
                 @Parameter(name = "level", description = "菜单层级"),
                 @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
             })
-    public List<Resource> tree(@Parameter NavigationQueryDTO parameter) {
+    public List<ResourceTree> tree(@Parameter NavigationQuery parameter) {
         return resourceService.getChildren(parameter);
     }
 
     @GetMapping("/list")
     @Operation(summary = "以平铺的方式获取资源权限列表", description = "以平铺的方式获取资源权限列表")
-    public List<MutableResource> list() {
+    public List<Resource> list() {
         return resourceService.getAllResources();
     }
 
     @PostMapping({"/{id}"})
     @Operation(summary = "新增资源信息", description = "当id为非空时新增其子资源信息")
-    public MutableResource add(
+    public Resource add(
             @PathVariable(value = "id", required = false) String id,
-            @Validated @RequestBody ResourceParameter parameter) {
+            @Validated @RequestBody CreateResource parameter) {
         if (StringUtils.isNotBlank(id)) {
             parameter.setParentId(id);
         }
@@ -68,9 +68,9 @@ public class ResourceController {
 
     @PutMapping("/{id}")
     @Operation(summary = "更新资源信息", description = "根据编号更新指定的资源信息")
-    public MutableResource update(
+    public Resource update(
             @Parameter(description = "资源编号", required = true) @PathVariable("id") String id,
-            @RequestBody MutableResource resource) {
+            @RequestBody Resource resource) {
         resource.setId(id);
         return resourceService.updateResource(resource);
     }
@@ -88,7 +88,7 @@ public class ResourceController {
             })
     public void move(
             @Parameter(description = "资源编号", required = true) @PathVariable("id") String id,
-            @RequestBody MoveParameter parameter) {
+            @RequestBody MoveResource parameter) {
         parameter.setId(id);
         resourceService.move(parameter);
     }

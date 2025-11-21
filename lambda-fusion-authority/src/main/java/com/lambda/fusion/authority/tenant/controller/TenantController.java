@@ -7,10 +7,10 @@ import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.tenant.model.dto.TenantPageQueryDTO;
-import com.lambda.fusion.authority.tenant.model.entity.TenantEntity;
-import com.lambda.fusion.authority.tenant.model.vo.TenantOptionVO;
-import com.lambda.fusion.authority.tenant.model.vo.TenantVO;
+import com.lambda.fusion.authority.tenant.model.TenantQuery;
+import com.lambda.fusion.authority.tenant.model.TenantEntity;
+import com.lambda.fusion.authority.tenant.model.TenantOption;
+import com.lambda.fusion.authority.tenant.model.Tenant;
 import com.lambda.fusion.authority.tenant.service.TenantService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,7 +41,7 @@ public class TenantController {
 
     @PostMapping("/page")
     @Operation(summary = "分页查询所有租户数据列表（V2版本）", description = "使用LambdaQueryWrapper进行分页查询，支持更灵活的排序和查询条件")
-    public Page<TenantEntity> pageV2(@RequestBody TenantPageQueryDTO queryDTO) {
+    public Page<TenantEntity> pageV2(@RequestBody TenantQuery queryDTO) {
         return tenantService.page(queryDTO.getPage(), queryDTO.getLambdaQueryWrapper());
     }
 
@@ -51,7 +51,7 @@ public class TenantController {
      * @param queryDTO 查询DTO
      * @return 查询参数Map
      */
-    private Map<String, Object> buildQueryParameters(TenantPageQueryDTO queryDTO) {
+    private Map<String, Object> buildQueryParameters(TenantQuery queryDTO) {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(10);
         if (StringUtils.isNotBlank(queryDTO.getTenantName())) {
             parameters.put("tenantName", queryDTO.getTenantName());
@@ -91,7 +91,7 @@ public class TenantController {
 
     @GetMapping("/options")
     @Operation(summary = "获取租户下拉列表", description = "查询租户下拉列表")
-    public List<TenantOptionVO> tenantOptions() {
+    public List<TenantOption> tenantOptions() {
         return tenantService.getTenantOptions();
     }
 
@@ -105,7 +105,7 @@ public class TenantController {
     @Operation(summary = "新增租户信息信息", description = "新增租户信息信息")
     public TenantEntity save(
             MultipartFile tenantLogo,
-            @Parameter(description = "租户信息信息", required = true) @RequestBody TenantVO entity) {
+            @Parameter(description = "租户信息信息", required = true) @RequestBody Tenant entity) {
         LoginUser operator = OperatorUtils.getOperator();
         TenantEntity target = new TenantEntity();
         BeanUtils.copyProperties(entity, target);
@@ -128,7 +128,7 @@ public class TenantController {
     public TenantEntity update(
             MultipartFile tenantLogo,
             @Parameter(description = "租户信息编号", required = true) @PathVariable String id,
-            @Parameter(description = "租户信息信息", required = true) @RequestBody TenantVO entity) {
+            @Parameter(description = "租户信息信息", required = true) @RequestBody Tenant entity) {
         LoginUser operator = OperatorUtils.getOperator();
         TenantEntity target = new TenantEntity();
         BeanUtils.copyProperties(entity, target);

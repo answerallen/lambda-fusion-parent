@@ -1,24 +1,24 @@
 package com.lambda.fusion.authority.resource.service;
 
-import com.lambda.fusion.authority.resource.model.MutableResource;
+import com.lambda.fusion.authority.resource.model.Resource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Set;
 import java.util.function.Predicate;
 
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-public class ChildrenFilter implements Predicate<MutableResource> {
+public class ChildrenFilter implements Predicate<Resource> {
 
-    private final MutableResource target;
+    private final Resource target;
 
     private final Set<String> children;
 
-    public ChildrenFilter(MutableResource target, Set<String> children) {
+    public ChildrenFilter(Resource target, Set<String> children) {
         this.target = target;
         this.children = children;
     }
 
     @Override
-    public boolean test(MutableResource resource) {
+    public boolean test(Resource resource) {
         int level0 = target.getResRank();
         String id = target.getId();
         int level1 = resource.getResRank();

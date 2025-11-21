@@ -1,9 +1,9 @@
 package com.lambda.fusion.authority.authentication.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.authentication.model.dto.NavigationQueryDTO;
-import com.lambda.fusion.authority.resource.model.Resource;
-import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
+import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.resource.model.ResourceTree;
+import com.lambda.fusion.authority.user.model.SimpleUser;
 import com.lambda.security.service.ThirdPartyLoginService;
 import com.lambda.security.service.UserDetailService;
 import java.util.List;
@@ -22,7 +22,7 @@ public interface AuthenticationService extends UserDetailService, ThirdPartyLogi
      * @param level 指定菜单层级
      * @return 导航菜单列表
      */
-    List<Resource> getNavigation(LoginUser user, String parentId, Integer level);
+    List<ResourceTree> getNavigation(LoginUser user, String parentId, Integer level);
 
     /**
      * 获取用户的导航菜单
@@ -31,7 +31,7 @@ public interface AuthenticationService extends UserDetailService, ThirdPartyLogi
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    default List<Resource> getNavigation(LoginUser user, NavigationQueryDTO query) {
+    default List<ResourceTree> getNavigation(LoginUser user, NavigationQuery query) {
         return getNavigation(user, query.getParentId(), query.getLevel());
     }
 
@@ -41,5 +41,5 @@ public interface AuthenticationService extends UserDetailService, ThirdPartyLogi
      * @param roleId 角色ID
      * @return 用户列表
      */
-    List<SimpleUserVO> getUsersByRoleId(String roleId);
+    List<SimpleUser> getUsersByRoleId(String roleId);
 }

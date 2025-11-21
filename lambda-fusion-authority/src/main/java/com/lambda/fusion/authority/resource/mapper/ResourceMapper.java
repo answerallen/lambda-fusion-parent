@@ -1,9 +1,9 @@
 package com.lambda.fusion.authority.resource.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
-import com.lambda.fusion.authority.authentication.model.dto.NavigationQueryDTO;
-import com.lambda.fusion.authority.resource.model.MutableResource;
+import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.model.Resource;
+import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.authority.resource.model.UserPermission;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +23,7 @@ public interface ResourceMapper {
      * @param parameters
      * @return
      */
-    List<MutableResource> getAllChildren(Map<String, Object> parameters);
+    List<Resource> getAllChildren(Map<String, Object> parameters);
 
     /**
      * 根据操作用户查询所有上级(直接上级和间接上级)的信息
@@ -31,20 +31,20 @@ public interface ResourceMapper {
      * @param parameters
      * @return
      */
-    List<MutableResource> getAllParents(Map<String, Object> parameters);
+    List<Resource> getAllParents(Map<String, Object> parameters);
 
     /**
      * 查询直接下级资源,仅包含该节点下的直接下级
      *
      * @param id
      */
-    List<Resource> getDirectChildren(@Param("id") String id);
+    List<ResourceTree> getDirectChildren(@Param("id") String id);
 
     /***
      * 查询所有下级资源(直接下级和间接下级)的资源信息
      * @param parentKeys
      */
-    List<Resource> queryAllChildren(@Param("parentKeys") String parentKeys);
+    List<ResourceTree> queryAllChildren(@Param("parentKeys") String parentKeys);
 
     /**
      * 是否包含下级资源
@@ -75,14 +75,14 @@ public interface ResourceMapper {
      *
      * @param resource
      */
-    void updateResource(MutableResource resource);
+    void updateResource(Resource resource);
 
     /***
      * 根据编号查询资源信息
      *
      * @param id
      */
-    MutableResource getResourceById(String id);
+    Resource getResourceById(String id);
 
     /***
      * 新建资源
@@ -90,7 +90,7 @@ public interface ResourceMapper {
      * @param resource
      * @return void
      */
-    void addResource(MutableResource resource);
+    void addResource(Resource resource);
 
     /***
      * 删除资源
@@ -112,21 +112,21 @@ public interface ResourceMapper {
      * 获取所有可用的资源
      * @param parameter 参数
      */
-    List<MutableResource> queryAvailableMutableResources(NavigationQueryDTO parameter);
+    List<Resource> queryAvailableMutableResources(NavigationQuery parameter);
 
     /**
      * 查询系统资源列表
      *
      * @param
      */
-    List<MutableResource> getAllResourcesByOrderNo();
+    List<Resource> getAllResourcesByOrderNo();
 
     /***
      * 批量排序
      *
      * @param changed
      */
-    void updateResourceOrdered(List<MutableResource> changed);
+    void updateResourceOrdered(List<Resource> changed);
 
     /**
      * 批量更新隐藏/显示子资源
@@ -134,18 +134,18 @@ public interface ResourceMapper {
      * @param changed 子资源
      * @param status  隐藏状态
      */
-    void updateResourceIsHidden(@Param("list") List<Resource> changed, @Param("status") boolean status);
+    void updateResourceIsHidden(@Param("list") List<ResourceTree> changed, @Param("status") boolean status);
 
     /***
      * 获取所有的资源信息
      */
-    List<MutableResource> getAllMutableResources();
+    List<Resource> getAllMutableResources();
 
     /***
      * 更新Parentkeys
      * @param resources
      */
-    void updateResourceParentkeys(List<MutableResource> resources);
+    void updateResourceParentkeys(List<Resource> resources);
 
     /**
      * 是否已经执行过
@@ -159,7 +159,7 @@ public interface ResourceMapper {
      * 批量更新Rank值
      * @param changed2
      */
-    void updateResourceRank(List<MutableResource> changed2);
+    void updateResourceRank(List<Resource> changed2);
 
     /***
      * 根据资源API权限ID查询拥有者
@@ -172,7 +172,7 @@ public interface ResourceMapper {
      * 获取所有接口
      *
      */
-    List<MutableResource> queryAvailableServices();
+    List<Resource> queryAvailableServices();
 
     /**
      * 更新移动的资源
@@ -180,7 +180,7 @@ public interface ResourceMapper {
      * @param moved
      * @return void
      */
-    void updateMovedResource(MutableResource moved);
+    void updateMovedResource(Resource moved);
 
     /**
      * 根据资源id删除所有接口关联关系

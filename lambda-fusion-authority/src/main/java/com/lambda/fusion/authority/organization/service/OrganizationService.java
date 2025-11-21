@@ -1,16 +1,16 @@
 package com.lambda.fusion.authority.organization.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.organization.model.dto.OrganizationCreateDTO;
-import com.lambda.fusion.authority.organization.model.dto.OrganizationQueryDTO;
-import com.lambda.fusion.authority.organization.model.dto.OrganizationUpdateDTO;
-import com.lambda.fusion.authority.organization.model.dto.UserOrganizationChangeDTO;
-import com.lambda.fusion.authority.organization.model.vo.MutableOrganizationVO;
-import com.lambda.fusion.authority.organization.model.vo.OrganizationTreeVO;
-import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
-import com.lambda.fusion.authority.organization.model.vo.UserOrganizationVO;
-import com.lambda.fusion.authority.resource.model.MoveParameter;
-import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
+import com.lambda.fusion.authority.organization.domain.CreateOrganization;
+import com.lambda.fusion.authority.organization.domain.OrganizationQuery;
+import com.lambda.fusion.authority.organization.domain.UpdateOrganization;
+import com.lambda.fusion.authority.organization.domain.UserOrganizationChange;
+import com.lambda.fusion.authority.organization.domain.OrganizationWithUser;
+import com.lambda.fusion.authority.organization.domain.OrganizationTree;
+import com.lambda.fusion.authority.organization.domain.Organization;
+import com.lambda.fusion.authority.organization.domain.UserOrganization;
+import com.lambda.fusion.authority.resource.model.MoveResource;
+import com.lambda.fusion.authority.user.model.User;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +23,7 @@ public interface OrganizationService {
      *
      * @return
      */
-    OrganizationQueryDTO getQueryParameter();
+    OrganizationQuery getQueryParameter();
 
     /**
      * 以树形的方式获取组织权限列表
@@ -31,7 +31,7 @@ public interface OrganizationService {
      * @param parameters 查询参数
      * @return
      */
-    List<OrganizationVO> treeList(OrganizationQueryDTO parameters);
+    List<Organization> treeList(OrganizationQuery parameters);
 
     /**
      * 获取当前用户所有子部门
@@ -39,22 +39,22 @@ public interface OrganizationService {
      * @param parameters
      * @return
      */
-    List<OrganizationVO> getSubordinateOrgIds(OrganizationQueryDTO parameters);
+    List<Organization> getSubordinateOrgIds(OrganizationQuery parameters);
 
     /**
      * 根据ID查询组织信息
      *
      * @param id
      */
-    OrganizationVO queryOrganizationById(String id);
+    Organization queryOrganizationById(String id);
 
     /**
      * 新增组织信息
      *
      * @param resource 组织机构
-     * @return {@link OrganizationVO}
+     * @return {@link Organization}
      */
-    OrganizationVO addOrganization(OrganizationCreateDTO resource);
+    Organization addOrganization(CreateOrganization resource);
 
     /***
      * 删除组织信息
@@ -66,17 +66,17 @@ public interface OrganizationService {
      * 更新组织信息
      *
      * @param resource 组织
-     * @return {@link OrganizationVO}
+     * @return {@link Organization}
      */
-    OrganizationVO updateOrganization(OrganizationUpdateDTO resource);
+    Organization updateOrganization(UpdateOrganization resource);
 
     /**
      * 获取用户组织、角色信息
      *
      * @param users 用户信息
-     * @return {@link OrganizationVO}
+     * @return {@link Organization}
      */
-    List<MutableOrganizationVO> getAllOrganMutableUsers(List<MutableUserVO> users);
+    List<OrganizationWithUser> getAllOrganMutableUsers(List<User> users);
 
     /**
      * 以平铺的方式获取组织权限列表
@@ -84,23 +84,23 @@ public interface OrganizationService {
      * @param parameters 查询参数
      * @return ig
      */
-    List<OrganizationVO> selectAll(OrganizationQueryDTO parameters);
+    List<Organization> selectAll(OrganizationQuery parameters);
 
     /**
      * 查询用户组织信息
      *
      * @param resource 用户组织
-     * @return {@link UserOrganizationChangeDTO}
+     * @return {@link UserOrganizationChange}
      */
-    UserOrganizationVO queryUserOrganization(UserOrganizationChangeDTO resource);
+    UserOrganization queryUserOrganization(UserOrganizationChange resource);
 
     /**
      * 添加用户组织信息
      *
      * @param resource 用户组织
-     * @return {@link UserOrganizationChangeDTO}
+     * @return {@link UserOrganizationChange}
      */
-    UserOrganizationVO addUserOrganization(UserOrganizationChangeDTO resource);
+    UserOrganization addUserOrganization(UserOrganizationChange resource);
 
     /**
      * 删除用户组织信息
@@ -113,9 +113,9 @@ public interface OrganizationService {
      * 更新用户组织关系
      *
      * @param resource 用户组织
-     * @return {@link UserOrganizationChangeDTO}
+     * @return {@link UserOrganizationChange}
      */
-    UserOrganizationVO updateUserOrganization(UserOrganizationChangeDTO resource);
+    UserOrganization updateUserOrganization(UserOrganizationChange resource);
 
     /**
      * 查询指定节点的所有子节点，包含自已及下级子节点
@@ -146,7 +146,7 @@ public interface OrganizationService {
      *
      * @param parameters
      */
-    List<OrganizationTreeVO> getSimpleOrgTree(OrganizationQueryDTO parameters);
+    List<OrganizationTree> getSimpleOrgTree(OrganizationQuery parameters);
 
     /**
      * 根据用户所在组织机构获取当前机构含子集id
@@ -177,7 +177,7 @@ public interface OrganizationService {
      * @param id 组织id
      * @return Organization
      */
-    OrganizationVO getRootOrganById(String id);
+    Organization getRootOrganById(String id);
 
     /**
      * 根据提供的组织列表查询该组织都属于哪些公司
@@ -185,7 +185,7 @@ public interface OrganizationService {
      * @param ids 组织id
      * @return Map<String, Organization
      */
-    Map<String, OrganizationVO> getOrgIdsByIds(Set<String> ids);
+    Map<String, Organization> getOrgIdsByIds(Set<String> ids);
 
     /**
      * 移动组织树节点
@@ -193,5 +193,5 @@ public interface OrganizationService {
      * @param parameter
      * @return void
      */
-    void move(MoveParameter parameter);
+    void move(MoveResource parameter);
 }

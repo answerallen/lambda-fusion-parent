@@ -1,57 +1,78 @@
 package com.lambda.fusion.authority.resource.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.lambda.fusion.core.tree.TreeNode;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.ArrayList;
-import java.util.List;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
- * 资源信息
+ * 单一资源信息
  */
-@Data
-@EqualsAndHashCode(callSuper = true)
-@Schema(description = "资源信息")
-@SuppressFBWarnings("EI_EXPOSE_REP")
-public class Resource extends MutableResource implements TreeNode<Resource> {
+@Getter
+@Setter
+@Schema(description = "资源元数据")
+public class Resource {
+    @Schema(description = "资源编号")
+    private String id;
 
-    @Schema(description = "子资源集合")
-    private List<Resource> children;
+    @Schema(description = "资源名称")
+    @JsonProperty("name")
+    private String resName;
 
-    @Schema(description = "按钮集合")
-    private List<Button> buttons;
+    @Schema(description = "访问路径")
+    @JsonProperty("path")
+    private String resPath;
 
-    @JsonIgnore
-    public List<Resource> getChildrenOrDefault() {
-        if (this.children == null) {
-            this.children = new ArrayList<>();
-        }
-        return this.children;
-    }
+    @Schema(description = "资源路径")
+    @JsonProperty("url")
+    private String resUrl;
 
-    @JsonIgnore
-    public List<Button> getButtonsOrDefault() {
-        if (buttons == null) {
-            this.buttons = new ArrayList<>();
-        }
-        return this.buttons;
-    }
+    @Schema(description = "上级资源")
+    private String parentId;
 
-    @Override
-    public String id() {
-        return this.getId();
-    }
+    @Schema(description = "资源级别")
+    @JsonProperty("level")
+    private int resLevel;
 
-    @Override
-    public String pid() {
-        return this.getParentId();
-    }
+    @Schema(description = "资源顺序")
+    private int orderNo;
 
-    @Override
-    public void children(List<Resource> children) {
-        this.children = children;
-    }
+    @Schema(description = "资源图标")
+    private String icon;
+
+    @Schema(description = "按钮方法函数")
+    private String method;
+
+    @Schema(description = "是否隐藏")
+    private boolean hidden = false;
+
+    @Schema(description = "资源类型.1：菜单，2：外链, 3: 按钮")
+    @JsonProperty("type")
+    private Integer resType;
+
+    @Hidden
+    private String parentKeys;
+
+    @Schema(description = "资源模式.0: 后台资源, 1: app资源")
+    @JsonProperty("mode")
+    private Integer resMode;
+
+    @Schema(description = "备注信息")
+    private String remark;
+
+    @Schema(description = "国际化key字段")
+    private String keyName;
+
+    @Schema(description = "是否缓存")
+    private boolean keepAlive;
+
+    @Schema(description = "内置扩展字段")
+    private String expand;
+
+    @Schema(description = "业务扩展字段")
+    private String businessExpand;
+
+    @Schema(description = "是否有权限")
+    private Boolean checked = true;
 }

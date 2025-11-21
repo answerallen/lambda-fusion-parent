@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.role.mapper;
 
-import com.lambda.fusion.authority.role.model.domain.AccessPermissionDO;
+import com.lambda.fusion.authority.role.model.AuthorityPermission;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -17,7 +17,7 @@ public interface AccessPermissionMapper {
      * @param parameters
      * @return boolean
      */
-    boolean noAnyChildrenPermission(AccessPermissionDO parameters);
+    boolean noAnyChildrenPermission(AuthorityPermission parameters);
 
     /**
      * 删除单一的访问权限
@@ -25,5 +25,5 @@ public interface AccessPermissionMapper {
      * @param parameters
      * @return void
      */
-    void deletePermission(AccessPermissionDO parameters);
+    void deletePermission(AuthorityPermission parameters);
 }

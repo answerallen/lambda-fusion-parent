@@ -4,11 +4,11 @@ import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.user.model.entity.UserEntity;
-import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
-import com.lambda.fusion.authority.user.model.vo.PermissionVO;
-import com.lambda.fusion.authority.user.model.vo.RoleResourcesVO;
-import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
+import com.lambda.fusion.authority.user.model.UserEntity;
+import com.lambda.fusion.authority.user.model.User;
+import com.lambda.fusion.authority.user.model.Permission;
+import com.lambda.fusion.authority.user.model.RoleResources;
+import com.lambda.fusion.authority.user.model.SimpleUser;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +47,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @return
      * @throws Exception
      */
-    MutableUserVO getMutableUserById(@Param("username") String username);
+    User getMutableUserById(@Param("username") String username);
 
     /**
      * 查询所有用户
@@ -55,7 +55,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param users
      * @return
      */
-    List<MutableUserVO> getAllMutableUsers(List<MutableUserVO> users);
+    List<User> getAllMutableUsers(List<User> users);
 
     /**
      * 查询所有用户
@@ -64,7 +64,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param parameters
      * @return
      */
-    Page<MutableUserVO> getAllMutableUsersByCondition(Page<MutableUserVO> page, Map<String, Object> parameters);
+    Page<User> getAllMutableUsersByCondition(Page<User> page, Map<String, Object> parameters);
 
     /**
      * 根据关键字模糊查询用户列表
@@ -72,7 +72,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param key
      * @return
      */
-    List<MutableUserVO> getAllMutableUsersByKey(@Param("key") String key);
+    List<User> getAllMutableUsersByKey(@Param("key") String key);
 
     /**
      * 保存用户
@@ -80,7 +80,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param user
      */
     @Deprecated
-    void insertMutableUser(MutableUserVO user);
+    void insertMutableUser(User user);
 
     /**
      * 添加用户角色
@@ -102,7 +102,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      *
      * @param user
      */
-    void updateMutableUser(MutableUserVO user);
+    void updateMutableUser(User user);
 
     /**
      * 修改指定用户的密码
@@ -150,14 +150,14 @@ public interface UserMapper extends BaseMapper<UserEntity> {
     /**
      * 查询所有用户信息
      **/
-    List<MutableUserVO> getAllUsers();
+    List<User> getAllUsers();
 
     /**
      * 获取组织机构下所有用户
      *
      * @param orgId
      **/
-    List<MutableUserVO> getAllOrgUsers(@Param("orgId") String orgId);
+    List<User> getAllOrgUsers(@Param("orgId") String orgId);
 
     /**
      * 根据组织查询用户列表
@@ -174,7 +174,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param ids
      * @param mode
      */
-    List<PermissionVO> getAllUserPermissions(List<String> ids, @Param("mode") String mode);
+    List<Permission> getAllUserPermissions(List<String> ids, @Param("mode") String mode);
 
     /**
      * 查询用户的权限
@@ -191,7 +191,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param manage      是否管理权限
      * @param permissions 权限
      */
-    List<RoleResourcesVO> getRoleResources(
+    List<RoleResources> getRoleResources(
             @Param("authority") String authority,
             @Param("manage") String manage,
             @Param("permissions") Set<String> permissions);
@@ -206,7 +206,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      */
     default void saveUserPermission(
             @Param("uid") String target,
-            @Param("roleResources") RoleResourcesVO roleResources,
+            @Param("roleResources") RoleResources roleResources,
             @Param("tenant_id") String tenantId) {}
 
     /**
@@ -221,7 +221,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
     void batchUpdateUserPermissions(
             @Param("uid") String target,
             @Param("manage") String manage,
-            @Param("permissions") List<RoleResourcesVO> permissions,
+            @Param("permissions") List<RoleResources> permissions,
             @Param("tenant_id") String tenantId);
 
     /**
@@ -231,7 +231,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param orgIds
      * @return
      */
-    List<SimpleUserVO> getAllSimpleUser(@Param("tenantId") String tenantId, List<String> orgIds);
+    List<SimpleUser> getAllSimpleUser(@Param("tenantId") String tenantId, List<String> orgIds);
 
     /**
      * 查询所有用户
@@ -239,7 +239,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param parameters
      * @return
      */
-    List<MutableUserVO> getAllMutableUsersNoPage(@Param("parameters") Map<String, Object> parameters);
+    List<User> getAllMutableUsersNoPage(@Param("parameters") Map<String, Object> parameters);
 
     /**
      * 修改用户手机号
@@ -285,7 +285,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param tenantId 租户ID
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<MutableUserVO> getAllMutableUsersByTenantId(@Param("tenantId") String tenantId);
+    List<User> getAllMutableUsersByTenantId(@Param("tenantId") String tenantId);
 
     /**
      * 检查手机号是否绑定用户

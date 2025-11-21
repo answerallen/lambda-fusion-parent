@@ -8,18 +8,18 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
-import com.lambda.fusion.authority.user.model.dto.*;
-import com.lambda.fusion.authority.user.model.vo.LoginUserInfoVO;
-import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
-import com.lambda.fusion.authority.user.model.vo.PermissionVO;
-import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
-import com.lambda.fusion.authority.user.model.vo.VerifyCodeVO;
+import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.LoginUserInfo;
+import com.lambda.fusion.authority.user.model.User;
+import com.lambda.fusion.authority.user.model.Permission;
+import com.lambda.fusion.authority.user.model.SimpleUser;
+import com.lambda.fusion.authority.user.model.VerifyCode;
 import com.lambda.fusion.authority.user.optimizer.UserQueryOptimizer;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.user.User;
+import com.lambda.fusion.core.user.Operator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -60,10 +60,10 @@ public class UserController {
 
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询所有用户列表")
-    public Page<MutableUserVO> page(
+    public Page<User> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
-            @Valid UserPageQueryDTO queryDTO) {
+            @Valid UserQuery queryDTO) {
         if (number != null) {
             queryDTO.setPageNum(number);
         }
@@ -71,7 +71,7 @@ public class UserController {
             queryDTO.setPageSize(size);
         }
         Map<String, Object> parameters = userQueryOptimizer.getMutableUsersQueryParameters(queryDTO);
-        return userService.getAllMutableUsers(queryDTO.getPage(), parameters);
+        return userService.getUsers(queryDTO.getPage(), parameters);
     }
 
     @GetMapping(value = "/{username}/check")
@@ -83,21 +83,21 @@ public class UserController {
 
     @GetMapping(value = "/{username}")
     @Operation(summary = "查询用户信息")
-    public MutableUserVO get(
+    public User get(
             @Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
-        return userService.getMutableUserByUsername(username);
+        return userService.getUserByUsername(username);
     }
 
     @GetMapping("/search")
     @Operation(summary = "根据关键字模糊查询用户列表")
-    public List<MutableUserVO> search(
+    public List<User> search(
             @Parameter(description = "关键字", required = true) @RequestParam("key") String key) {
-        return userService.getAllMutableUsersByKey(key);
+        return userService.getUsersByKey(key);
     }
 
     @GetMapping()
     @Operation(summary = "查询用户下拉列表")
-    public List<SimpleUserVO> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
+    public List<SimpleUser> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
         LoginUser operator = OperatorUtils.getOperator();
         List<String> orgIds =
                 isAll != null && isAll ? Collections.emptyList() : organizationService.getSubordinateOrgIds(operator);
@@ -106,9 +106,9 @@ public class UserController {
 
     @GetMapping("/my")
     @Operation(summary = "查询当前用户的详细信息")
-    public MutableUserVO getUserById() {
+    public User getUserById() {
         LoginUser operator = OperatorUtils.getOperator();
-        return userService.getMutableUserByUsername(operator.getName());
+        return userService.getUserByUsername(operator.getName());
     }
 
     @GetMapping("/authority/{authority}")
@@ -120,25 +120,25 @@ public class UserController {
 
     @GetMapping("/currentUser/info")
     @Operation(summary = "获取当前登陆用户详细信息")
-    public LoginUserInfoVO getCurrentUserInfo() {
-        User operator = OperatorUtils.getLoginUser(User.class);
-        LoginUserInfoVO loginUserInfo = new LoginUserInfoVO();
+    public LoginUserInfo getCurrentUserInfo() {
+        Operator operator = OperatorUtils.getLoginUser(Operator.class);
+        LoginUserInfo loginUserInfo = new LoginUserInfo();
         if (operator != null) {
-            MutableUserVO mutableUser = userService.getCurrentMutableUser(operator);
-            BeanUtils.copyProperties(Objects.requireNonNullElse(mutableUser, operator), loginUserInfo);
+            User user = userService.getCurrentUser(operator);
+            BeanUtils.copyProperties(Objects.requireNonNullElse(user, operator), loginUserInfo);
         }
         return loginUserInfo;
     }
 
     @PostMapping
     @Operation(summary = "新增用户信息")
-    public MutableUserVO add(
-            @Parameter(description = "用户信息", required = true) @Valid @RequestBody UserCreateDTO userCreateDTO) {
+    public User add(
+            @Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateUser createUser) {
         LoginUser operator = OperatorUtils.getOperator();
-        userService.addUser(userCreateDTO, operator);
-        MutableUserVO user = userService.getMutableUserByUsername(userCreateDTO.getUserid());
-        if (MapUtils.isNotEmpty(userCreateDTO.getPersonal())) {
-            userService.addUserFields(userCreateDTO.getPersonal(), userCreateDTO.getUserid());
+        userService.addUser(createUser, operator);
+        User user = userService.getUserByUsername(createUser.getUserid());
+        if (MapUtils.isNotEmpty(createUser.getPersonal())) {
+            userService.addUserFields(createUser.getPersonal(), createUser.getUserid());
         }
         if (tenantAuthorizeManager != null) {
             // 添加租户用户
@@ -148,13 +148,13 @@ public class UserController {
 
     @PutMapping(value = "/{username}")
     @Operation(summary = "更新用户信息")
-    public MutableUserVO update(
+    public User update(
             @Parameter(description = "用户名称", required = true) @PathVariable("username") String username,
-            @Parameter(description = "用户信息", required = true) @Valid @RequestBody UserUpdateDTO userUpdateDTO) {
+            @Parameter(description = "用户信息", required = true) @Valid @RequestBody UpdateUser updateUser) {
         LoginUser operator = OperatorUtils.getOperator();
-        userUpdateDTO.setUsername(username);
-        userService.updateUser(userUpdateDTO, operator);
-        return userService.getMutableUserByUsername(username);
+        updateUser.setUsername(username);
+        userService.updateUser(updateUser, operator);
+        return userService.getUserByUsername(username);
     }
 
     @DeleteMapping(value = "/{username}")
@@ -170,26 +170,26 @@ public class UserController {
     @PutMapping("/password/edit")
     @Operation(summary = "修改用户密码", description = "用于用户自己修改密码")
     public void updateUserPassword(
-            @Parameter(description = "修改密码参数", required = true) @RequestBody ResetPwdDTO resetPwdDTO) {
+            @Parameter(description = "修改密码参数", required = true) @RequestBody ResetPassword resetPassword) {
         LoginUser operator = OperatorUtils.getOperator();
-        String oldPassword = resetPwdDTO.getOldPassword();
-        String newPassword = resetPwdDTO.getNewPassword();
+        String oldPassword = resetPassword.getOldPassword();
+        String newPassword = resetPassword.getNewPassword();
         Assert.notNull(oldPassword, "原密码不能为空！");
         Assert.notNull(newPassword, "新密码不能为空！");
-        resetPwdDTO.setUsername(operator.getName());
+        resetPassword.setUsername(operator.getName());
         userService.updateUserPassword(operator.getName(), oldPassword, newPassword);
     }
 
     @PutMapping("/password/reset")
     @Operation(summary = "重置用户密码", description = "主要由用户管理员使用")
     public void resetUserPassword(
-            @Parameter(description = "重置密码参数", required = true) @RequestBody ResetPwdDTO resetPwdDTO) {
-        String username = resetPwdDTO.getUsername();
+            @Parameter(description = "重置密码参数", required = true) @RequestBody ResetPassword resetPassword) {
+        String username = resetPassword.getUsername();
         Assert.notNull(username, "username is not empty");
-        String password = userService.resetUserPassword(resetPwdDTO);
+        String password = userService.resetUserPassword(resetPassword);
         if (tenantAuthorizeManager != null) {
-            resetPwdDTO.setNewPassword(password);
-            tenantAuthorizeManager.resetPassword(resetPwdDTO);
+            resetPassword.setNewPassword(password);
+            tenantAuthorizeManager.resetPassword(resetPassword);
         }
     }
 
@@ -224,10 +224,10 @@ public class UserController {
 
     @GetMapping("/permission/{username}")
     @Operation(summary = "查询用户所有权限")
-    public List<PermissionVO> userPermissions(
+    public List<Permission> userPermissions(
             @Parameter(description = "用户ID", required = true) @PathVariable("username") String username,
             @RequestParam(required = false) String mode) {
-        List<PermissionVO> permissions = userService.getUserPermissions(username, mode);
+        List<Permission> permissions = userService.getUserPermissions(username, mode);
         return TreeBuilder.build(permissions);
     }
 
@@ -290,18 +290,18 @@ public class UserController {
                 @Parameter(name = "email", description = "邮箱", required = true),
                 @Parameter(name = "personal", description = "新增字段")
             })
-    public MutableUserVO updateInfo(MultipartFile avatar, RestUserInfoDTO restUserInfoDTO) {
+    public User updateInfo(MultipartFile avatar, RestUserInfo restUserInfo) {
         LoginUser operator = OperatorUtils.getOperator();
-        restUserInfoDTO.setUsername(operator.getName());
+        restUserInfo.setUsername(operator.getName());
         if (avatar != null) {
             log.info("file: {}", avatar);
         }
-        return userCenterService.updateInfo(restUserInfoDTO);
+        return userCenterService.updateInfo(restUserInfo);
     }
 
     @PostMapping(value = "/send/mobile/code")
     @Operation(summary = "发送手机验证码")
-    public VerifyCodeVO sendMobileVerifyCodeStore(
+    public VerifyCode sendMobileVerifyCodeStore(
             @Parameter(description = "手机号", required = true) @RequestParam("mobile") String mobile) {
         LoginUser operator = OperatorUtils.getOperator();
         return userCenterService.sendMobileVerifyCodeStore(operator.getName(), mobile);
@@ -309,21 +309,21 @@ public class UserController {
 
     @GetMapping("/tenant")
     @Operation(summary = "根据租户ID查询租户管理员")
-    public List<MutableUserVO> tenant(
+    public List<User> tenant(
             @Parameter(description = "租户ID", required = true) @RequestParam("tenantId") String tenantId) {
         return userService.getAllMutableUsersByTenantId(tenantId);
     }
 
     @PutMapping(value = "/tenant/{username}")
     @Operation(summary = "更新租户管理员用户信息")
-    public MutableUserVO updateTenantUser(
+    public User updateTenantUser(
             @Parameter(description = "用户名称", required = true) @PathVariable("username") String username,
-            @Parameter(description = "用户信息", required = true) @Valid @RequestBody MutableUserVO mutableUser) {
+            @Parameter(description = "用户信息", required = true) @Valid @RequestBody User user) {
         LoginUser operator = OperatorUtils.getOperator();
-        mutableUser.setUsername(username);
-        MutableUserVO copy = BeanUtil.toBean(mutableUser, MutableUserVO.class);
-        userService.updateTenantUser(mutableUser, operator);
-        MutableUserVO updated = userService.getMutableUserByUsername(username);
+        user.setUsername(username);
+        User copy = BeanUtil.toBean(user, User.class);
+        userService.updateTenantUser(user, operator);
+        User updated = userService.getUserByUsername(username);
 
         if (tenantAuthorizeManager != null) {
             tenantAuthorizeManager.updateUser(copy);

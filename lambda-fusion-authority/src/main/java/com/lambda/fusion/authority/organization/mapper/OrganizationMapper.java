@@ -2,12 +2,12 @@ package com.lambda.fusion.authority.organization.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.organization.model.dto.OrganizationQueryDTO;
-import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
-import com.lambda.fusion.authority.organization.model.vo.MutableOrganizationVO;
-import com.lambda.fusion.authority.organization.model.vo.OrganizationTreeVO;
-import com.lambda.fusion.authority.organization.model.vo.OrganizationVO;
-import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
+import com.lambda.fusion.authority.organization.domain.OrganizationQuery;
+import com.lambda.fusion.authority.organization.domain.OrganizationEntity;
+import com.lambda.fusion.authority.organization.domain.OrganizationWithUser;
+import com.lambda.fusion.authority.organization.domain.OrganizationTree;
+import com.lambda.fusion.authority.organization.domain.Organization;
+import com.lambda.fusion.authority.user.model.User;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -21,7 +21,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param users 用户信息
      * @return 用户信息列表
      */
-    List<MutableOrganizationVO> getAllOrganMutableUsers(List<MutableUserVO> users);
+    List<OrganizationWithUser> getAllOrganMutableUsers(List<User> users);
 
     /**
      * 查询全部组织角色
@@ -29,7 +29,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param parameters 查询参数
      * @return 组织列表
      */
-    List<OrganizationVO> getAllMutableOrgan(@Param("parameters") OrganizationQueryDTO parameters);
+    List<Organization> getAllMutableOrgan(@Param("parameters") OrganizationQuery parameters);
 
     /**
      * 查询所有可用组织
@@ -37,7 +37,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param parameters 查询参数
      * @return java.util.List<SimpleOrg>
      */
-    List<OrganizationTreeVO> getAllEnabledOrgan(@Param("parameters") OrganizationQueryDTO parameters);
+    List<OrganizationTree> getAllEnabledOrgan(@Param("parameters") OrganizationQuery parameters);
 
     /**
      * 查询组织、角色信息
@@ -45,21 +45,21 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param ids 组织、角色ID
      * @return 组织角色信息
      */
-    List<OrganizationVO> queryOrganizationList(List<OrganizationVO> ids);
+    List<Organization> queryOrganizationList(List<Organization> ids);
 
     /***
      * 根据编号查询组织详情
      * @param id 组织id
      */
     @InterceptorIgnore(tenantLine = "true")
-    OrganizationVO queryOrganizationById(String id);
+    Organization queryOrganizationById(String id);
 
     /***
      * 根据租户编号查询组织详情
      * @param id 租户id
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<OrganizationVO> queryOrganizationByTenantId(String id);
+    List<Organization> queryOrganizationByTenantId(String id);
 
     /**
      * 是否存在上级组织
@@ -86,7 +86,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @return 子组织列表
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<OrganizationVO> getSubOrgIdsById(String id);
+    List<Organization> getSubOrgIdsById(String id);
 
     /**
      * 批量禁用/启用组织机构
@@ -147,7 +147,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param id 组织id
      * @return 组织对象
      */
-    OrganizationVO getInfo(String id);
+    Organization getInfo(String id);
 
     /**
      * 根据条件查询组织
@@ -155,7 +155,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param parameters 条件参数
      * @return 组织
      */
-    List<OrganizationVO> getOrgIdsByCondition(@Param("parameters") OrganizationQueryDTO parameters);
+    List<Organization> getOrgIdsByCondition(@Param("parameters") OrganizationQuery parameters);
 
     /**
      * 根据父id更改spid
@@ -186,19 +186,19 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      *
      * @param changed
      */
-    void batchUpdateOrgsAfterMoved(List<OrganizationVO> changed);
+    void batchUpdateOrgsAfterMoved(List<Organization> changed);
 
     /**
      * 获取节点的直接下级
      *
      * @param id
      */
-    List<OrganizationVO> directChildrenGetter(String id);
+    List<Organization> directChildrenGetter(String id);
 
     /**
      * 获取节点的所有下级，包含下级的下级
      *
      * @param parentKeys
      */
-    List<OrganizationVO> allChildrenGetter(String parentKeys);
+    List<Organization> allChildrenGetter(String parentKeys);
 }

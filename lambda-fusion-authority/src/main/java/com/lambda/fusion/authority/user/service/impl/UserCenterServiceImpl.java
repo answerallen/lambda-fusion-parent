@@ -5,10 +5,10 @@ import com.lambda.cloud.sms.SmsMessageSender;
 import com.lambda.fusion.authority.user.mapper.UserFieldsMapper;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
-import com.lambda.fusion.authority.user.model.dto.RestUserInfoDTO;
-import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
-import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
-import com.lambda.fusion.authority.user.model.vo.VerifyCodeVO;
+import com.lambda.fusion.authority.user.model.RestUserInfo;
+import com.lambda.fusion.authority.user.model.UserInfoEntity;
+import com.lambda.fusion.authority.user.model.User;
+import com.lambda.fusion.authority.user.model.VerifyCode;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ public class UserCenterServiceImpl implements UserCenterService {
     private final SmsMessageSender shortMessageSender;
 
     @Override
-    public VerifyCodeVO sendMobileVerifyCodeStore(@NonNull String username, @NonNull String mobile) {
+    public VerifyCode sendMobileVerifyCodeStore(@NonNull String username, @NonNull String mobile) {
 
         return null;
     }
@@ -47,17 +47,17 @@ public class UserCenterServiceImpl implements UserCenterService {
         // 验证参数
         Assert.notNull(username, "username must not be empty");
         // 获取用户信息并验证用户是否存在
-        MutableUserVO mutableUser = userMapper.getMutableUserById(username);
-        Assert.notNull(mutableUser, "user not found");
+        User user = userMapper.getMutableUserById(username);
+        Assert.notNull(user, "user not found");
         Assert.notNull(email, "email not found");
         // 更新用户邮箱
         userMapper.updateEmail(username, email);
     }
 
     @Override
-    public MutableUserVO updateInfo(RestUserInfoDTO userInfoDTO) {
+    public User updateInfo(RestUserInfo userInfoDTO) {
         String username = userInfoDTO.getUsername();
-        MutableUserVO user = userMapper.getMutableUserById(username);
+        User user = userMapper.getMutableUserById(username);
         Assert.notNull(user, "user not found");
         userMapper.updateInfo(username, userInfoDTO.getEmail(), userInfoDTO.getNickname());
         String avatar = userInfoDTO.getAvatar();

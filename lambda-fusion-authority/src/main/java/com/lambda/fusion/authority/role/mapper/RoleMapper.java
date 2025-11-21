@@ -4,12 +4,12 @@ import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.role.model.domain.AccessPermissionDO;
-import com.lambda.fusion.authority.role.model.entity.RoleEntity;
-import com.lambda.fusion.authority.role.model.vo.AccessPermissionVO;
-import com.lambda.fusion.authority.role.model.vo.MutableRoleVO;
-import com.lambda.fusion.authority.role.model.vo.RoleAuthorityVO;
-import com.lambda.fusion.authority.role.model.vo.UserAuthorityVO;
+import com.lambda.fusion.authority.role.model.AuthorityPermission;
+import com.lambda.fusion.authority.role.model.RoleEntity;
+import com.lambda.fusion.authority.role.model.AccessPermission;
+import com.lambda.fusion.authority.role.model.Role;
+import com.lambda.fusion.authority.role.model.RoleAuthority;
+import com.lambda.fusion.authority.role.model.UserAuthority;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,7 +24,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @param parameters
      * @return
      */
-    List<MutableRoleVO> getAllRoles(Map<String, Object> parameters);
+    List<Role> getAllRoles(Map<String, Object> parameters);
 
     /**
      * 根据条件分页查询用户角色记录
@@ -34,8 +34,8 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @return
      */
     @InterceptorIgnore(tenantLine = "true")
-    Page<MutableRoleVO> getAllMutableRoles(
-            Page<MutableRoleVO> page, @Param("parameters") Map<String, Object> parameters);
+    Page<Role> getAllMutableRoles(
+            Page<Role> page, @Param("parameters") Map<String, Object> parameters);
 
     /**
      * 根据id查询角色信息
@@ -43,21 +43,21 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @param authority
      * @return
      */
-    MutableRoleVO getRoleByAuthority(String authority);
+    Role getRoleByAuthority(String authority);
 
     /**
      * 保存新角色
      *
      * @param role
      */
-    void insertRole(MutableRoleVO role);
+    void insertRole(Role role);
 
     /**
      * 更新角色信息
      *
      * @param role
      */
-    void updateRole(MutableRoleVO role);
+    void updateRole(Role role);
 
     /**
      * 根据authority删除指定的角色信息
@@ -101,10 +101,10 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
     /**
      * 单个保存资源授权
      *
-     * @param accessPermissionDO
+     * @param authorityPermission
      * @return void
      */
-    void saveAuthorization(AccessPermissionDO accessPermissionDO);
+    void saveAuthorization(AuthorityPermission authorityPermission);
 
     /**
      * 批量更新访问权限
@@ -112,7 +112,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @param parameters
      * @return void
      */
-    void batchUpdateAuthorization(AccessPermissionDO parameters);
+    void batchUpdateAuthorization(AuthorityPermission parameters);
 
     /**
      * 删除资源授权
@@ -155,7 +155,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @param pid
      * @return
      */
-    List<RoleAuthorityVO> getOrganizationAuthorization(
+    List<RoleAuthority> getOrganizationAuthorization(
             @Param("organizationid") String authority, @Param("pid") String pid);
 
     /**
@@ -200,14 +200,14 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @param owner
      * @return
      */
-    List<MutableRoleVO> getTenantRolesByOwner(@Param("owner") String owner);
+    List<Role> getTenantRolesByOwner(@Param("owner") String owner);
 
     /**
      * 查询用户权限
      *
      * @param parameters
      */
-    List<AccessPermissionVO> getAccessPermissions(@Param("parameters") Map<String, Object> parameters);
+    List<AccessPermission> getAccessPermissions(@Param("parameters") Map<String, Object> parameters);
 
     /**
      * 查询已有的访问权限
@@ -239,5 +239,5 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @return java.util.Set<java.lang.String>
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<UserAuthorityVO> getAuthoritiesByUser(String username);
+    List<UserAuthority> getAuthoritiesByUser(String username);
 }

@@ -2,14 +2,14 @@ package com.lambda.fusion.authority.user.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
-import com.lambda.fusion.authority.user.model.dto.UserCreateDTO;
-import com.lambda.fusion.authority.user.model.dto.UserUpdateDTO;
-import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
-import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
-import com.lambda.fusion.authority.user.model.vo.PermissionVO;
-import com.lambda.fusion.authority.user.model.vo.SimpleUserVO;
-import com.lambda.fusion.core.user.User;
+import com.lambda.fusion.authority.user.model.ResetPassword;
+import com.lambda.fusion.authority.user.model.CreateUser;
+import com.lambda.fusion.authority.user.model.UpdateUser;
+import com.lambda.fusion.authority.user.model.UserInfoEntity;
+import com.lambda.fusion.authority.user.model.User;
+import com.lambda.fusion.authority.user.model.Permission;
+import com.lambda.fusion.authority.user.model.SimpleUser;
+import com.lambda.fusion.core.user.Operator;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Map;
@@ -43,38 +43,38 @@ public interface UserService {
      *
      * @param
      **/
-    List<MutableUserVO> getAllUsers();
+    List<User> getAllUsers();
 
     /***
      * 根据username查询用户详情
      * @param username 用户名
      */
-    MutableUserVO getMutableUserByUsername(String username);
+    User getUserByUsername(String username);
 
     /***
      * 获取当前用户得详情
      */
-    MutableUserVO getCurrentMutableUser(User operator);
+    User getCurrentUser(Operator operator);
 
     /***
      * 查询注册用户列表
      * @param users 用户列表
      */
-    List<MutableUserVO> getAllMutableUsers(List<MutableUserVO> users);
+    List<User> getUsers(List<User> users);
 
     /***
      * 查询注册用户列表
      * @param pageable   分页信息
      * @param parameters 参数信息
      */
-    Page<MutableUserVO> getAllMutableUsers(Page<MutableUserVO> pageable, Map<String, Object> parameters);
+    Page<User> getUsers(Page<User> pageable, Map<String, Object> parameters);
 
     /***
      * 根据关键字模糊查询用户列表
      *
      * @param key 关键字
      */
-    List<MutableUserVO> getAllMutableUsersByKey(String key);
+    List<User> getUsersByKey(String key);
 
     /**
      * 保存用户
@@ -82,7 +82,7 @@ public interface UserService {
      * @param user     保存对象
      * @param operator 当前操作人
      */
-    String addUser(UserCreateDTO user, LoginUser operator);
+    String addUser(CreateUser user, LoginUser operator);
 
     /***
      * 更新用户
@@ -90,7 +90,7 @@ public interface UserService {
      * @param user      更新对象
      * @param operator  当前操作人
      */
-    void updateUser(UserUpdateDTO user, LoginUser operator);
+    void updateUser(UpdateUser user, LoginUser operator);
 
     /***
      * 根据用户名删除用户
@@ -120,7 +120,7 @@ public interface UserService {
      * @param pwdParameter
      * @return java.lang.String
      */
-    String resetUserPassword(ResetPwdDTO pwdParameter);
+    String resetUserPassword(ResetPassword pwdParameter);
 
     /**
      * 禁用/启用用户帐号
@@ -193,7 +193,7 @@ public interface UserService {
      * @param username
      * @param mode
      */
-    List<PermissionVO> getUserPermissions(String username, String mode);
+    List<Permission> getUserPermissions(String username, String mode);
 
     /**
      * 获取所有用户下拉数据
@@ -202,7 +202,7 @@ public interface UserService {
      * @param orgIds
      * @return
      */
-    List<SimpleUserVO> getAllSimpleUser(LoginUser operator, List<String> orgIds);
+    List<SimpleUser> getAllSimpleUser(LoginUser operator, List<String> orgIds);
 
     /**
      * 当前用户组织机构数据权限
@@ -243,7 +243,7 @@ public interface UserService {
      *
      * @param tenantId 租户ID
      */
-    List<MutableUserVO> getAllMutableUsersByTenantId(String tenantId);
+    List<User> getAllMutableUsersByTenantId(String tenantId);
 
     /***
      * 更新租户管理员用户
@@ -251,7 +251,7 @@ public interface UserService {
      * @param user      更新对象
      * @param operator  当前操作人
      */
-    void updateTenantUser(MutableUserVO user, LoginUser operator);
+    void updateTenantUser(User user, LoginUser operator);
 
     /**
      * 导出用户列表
@@ -259,5 +259,5 @@ public interface UserService {
      * @param pageable   分页
      * @param parameters 查询参数
      */
-    void exportMutableUsers(Page<MutableUserVO> pageable, Map<String, Object> parameters);
+    void exportMutableUsers(Page<User> pageable, Map<String, Object> parameters);
 }

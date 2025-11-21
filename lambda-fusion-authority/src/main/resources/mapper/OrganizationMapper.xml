@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.authority.organization.mapper.OrganizationMapper">
 
-    <resultMap id="MutableOrganization" type="com.lambda.fusion.authority.organization.model.vo.MutableOrganizationVO">
+    <resultMap id="MutableOrganization" type="com.lambda.fusion.authority.organization.domain.MutableOrganizationVO">
         <id column="username" property="username" javaType="String"/>
         <result column="id" property="id"/>
         <result column="alias" property="alias"/>
@@ -11,7 +11,7 @@
     </resultMap>
 
     <!-- 查询用户组织列表 -->
-    <select id="getAllOrganMutableUsers" parameterType="com.lambda.fusion.authority.user.model.vo.MutableUserVO"
+    <select id="getAllOrganMutableUsers" parameterType="com.lambda.fusion.authority.user.model.User"
             resultMap="MutableOrganization">
         SELECT
         T.USERID as username, O.id, O.alias, O.parentId
@@ -21,7 +21,7 @@
         <foreach collection="list" open="(" close=")" separator="," item="user">#{user.username}</foreach>
     </select>
 
-    <resultMap id="Organization" type="com.lambda.fusion.authority.organization.model.vo.OrganizationVO">
+    <resultMap id="Organization" type="com.lambda.fusion.authority.organization.domain.OrganizationVO">
         <id column="id" property="id"/>
         <result column="organization" property="name"/>
         <result column="alias" property="alias"/>
@@ -126,7 +126,7 @@
         ORDER BY O.org_rank, O.order_no, O.parentId, O.organization
     </select>
 
-    <select id="getAllEnabledOrgan" resultType="com.lambda.fusion.authority.organization.model.vo.OrganizationTreeVO">
+    <select id="getAllEnabledOrgan" resultType="com.lambda.fusion.authority.organization.domain.OrganizationTree">
         SELECT id, alias AS name, parentId AS pid
         FROM LA_ORGANIZATION O
         WHERE O.enabled = 1
@@ -201,7 +201,7 @@
     </select>
 
     <select id="queryUserOrganization" parameterType="java.lang.String"
-            resultType="com.lambda.fusion.authority.organization.model.dto.UserOrganizationChangeDTO">
+            resultType="com.lambda.fusion.authority.organization.domain.UserOrganizationChange">
         SELECT USERID, ORGANIZATIONID, TENANT_ID FROM LA_USER_ORGANIZATION WHERE USERID = #{userId}
     </select>
 
@@ -213,12 +213,12 @@
         DELETE FROM LA_USER_ORGANIZATION WHERE ORGANIZATIONID = #{userId}
     </delete>
 
-    <insert id="addUserOrganization" parameterType="com.lambda.fusion.authority.organization.model.dto.UserOrganizationChangeDTO">
+    <insert id="addUserOrganization" parameterType="com.lambda.fusion.authority.organization.domain.UserOrganizationChange">
         INSERT INTO LA_USER_ORGANIZATION (USERID, ORGANIZATIONID, TENANT_ID) VALUES (#{userId}, #{organizationId}, #{tenant_id, jdbcType=VARCHAR})
     </insert>
 
     <update id="updateUserOrganization"
-            parameterType="com.lambda.fusion.authority.organization.model.dto.UserOrganizationChangeDTO">
+            parameterType="com.lambda.fusion.authority.organization.domain.UserOrganizationChange">
         UPDATE LA_USER_ORGANIZATION SET ORGANIZATIONID = #{organizationId} WHERE USERID = #{userId}
     </update>
 
@@ -263,7 +263,7 @@
         SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_ORGANIZATION T WHERE T.org_owner = #{orgId} AND T.org_category = 1 AND T.enabled = 1)
     </select>
 
-    <select id="getInfo" resultType="com.lambda.fusion.authority.organization.model.vo.OrganizationVO">
+    <select id="getInfo" resultType="com.lambda.fusion.authority.organization.domain.OrganizationVO">
         SELECT id,alias FROM LA_ORGANIZATION WHERE ID = {id}
     </select>
 

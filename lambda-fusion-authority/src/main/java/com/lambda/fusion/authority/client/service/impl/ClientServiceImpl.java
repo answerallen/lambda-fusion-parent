@@ -5,7 +5,7 @@ import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.client.mapper.ClientMapper;
-import com.lambda.fusion.authority.client.model.entity.ClientEntity;
+import com.lambda.fusion.authority.client.model.ClientEntity;
 import com.lambda.fusion.authority.client.service.ClientService;
 import com.lambda.fusion.authority.resource.model.UserPermission;
 import com.lambda.security.exception.AuthenticationException;

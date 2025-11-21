@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.organization.mapper;
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.organization.model.entity.UserOrganizationEntity;
+import com.lambda.fusion.authority.organization.domain.UserOrganizationEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper

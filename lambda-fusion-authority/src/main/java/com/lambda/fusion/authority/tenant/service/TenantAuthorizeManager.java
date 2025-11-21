@@ -7,14 +7,14 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.authority.resource.mapper.ResourceMapper;
-import com.lambda.fusion.authority.resource.model.MutableResource;
+import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
-import com.lambda.fusion.authority.role.model.vo.SimpleRoleVO;
-import com.lambda.fusion.authority.tenant.model.entity.TenantEntity;
+import com.lambda.fusion.authority.role.model.SimpleRole;
+import com.lambda.fusion.authority.tenant.model.TenantEntity;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
-import com.lambda.fusion.authority.user.model.dto.ResetPwdDTO;
-import com.lambda.fusion.authority.user.model.vo.MutableUserVO;
+import com.lambda.fusion.authority.user.model.ResetPassword;
+import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.service.UserService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
@@ -77,7 +77,7 @@ public class TenantAuthorizeManager {
      * @param status    状态
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void saveAuth(String authority, List<MutableResource> resources, int status) {
+    public void saveAuth(String authority, List<Resource> resources, int status) {
         // 只处理租户管理员角色
         if (!isTenantAdmin(authority)) {
             return;
@@ -93,7 +93,7 @@ public class TenantAuthorizeManager {
      * @param authority 角色
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void deleteAuthorization(String authority, List<MutableResource> resources) {
+    public void deleteAuthorization(String authority, List<Resource> resources) {
         // 只处理租户管理员角色
         if (!isTenantAdmin(authority)) {
             return;
@@ -103,56 +103,56 @@ public class TenantAuthorizeManager {
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void addUser(MutableUserVO mutableUser) {
-        if (!isTenantAdmin(mutableUser)) {
+    public void addUser(User user) {
+        if (!isTenantAdmin(user)) {
             return;
         }
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
+        String tenantId = userMapper.getTenantIdByTenantAdmin(user.getUsername());
         // 在租户库中视作管理员，不能有租户id
-        mutableUser.setTenantId(null);
-        List<SimpleRoleVO> roles = new ArrayList<>();
-        roles.add(new SimpleRoleVO(ROLE_ADMIN));
-        mutableUser.setAuthorities(roles);
+        user.setTenantId(null);
+        List<SimpleRole> roles = new ArrayList<>();
+        roles.add(new SimpleRole(ROLE_ADMIN));
+        user.setAuthorities(roles);
         // todo 添加用户
         System.out.println(tenantId);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void updateUser(MutableUserVO mutableUser) {
+    public void updateUser(User user) {
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
+        String tenantId = userMapper.getTenantIdByTenantAdmin(user.getUsername());
         // 在租户库中视作管理员，不能有租户id
-        mutableUser.setTenantId(null);
+        user.setTenantId(null);
         // todo 添加用户
         System.out.println(tenantId);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void deleteUser(String username) {
-        MutableUserVO mutableUser = userService.getMutableUserByUsername(username);
-        if (!isTenantAdmin(mutableUser)) {
+        User user = userService.getUserByUsername(username);
+        if (!isTenantAdmin(user)) {
             return;
         }
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
+        String tenantId = userMapper.getTenantIdByTenantAdmin(user.getUsername());
         //        execute(tenantId, () -> userService.deleteUser(SystemUser.get(), username));
         System.out.println(tenantId);
     }
 
-    public void resetPassword(ResetPwdDTO resetPwdDTO) {
-        String username = resetPwdDTO.getUsername();
-        String newPassword = resetPwdDTO.getNewPassword();
+    public void resetPassword(ResetPassword resetPassword) {
+        String username = resetPassword.getUsername();
+        String newPassword = resetPassword.getNewPassword();
         if (StringUtils.isBlank(newPassword)) {
             return;
         }
-        MutableUserVO mutableUser = userService.getMutableUserByUsername(username);
-        if (!isTenantAdmin(mutableUser)) {
+        User user = userService.getUserByUsername(username);
+        if (!isTenantAdmin(user)) {
             return;
         }
 
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
+        String tenantId = userMapper.getTenantIdByTenantAdmin(user.getUsername());
         if (StringUtils.isBlank(tenantId)) {
             return;
         }
@@ -162,11 +162,11 @@ public class TenantAuthorizeManager {
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void prohibitUser(Integer type, String username) {
-        MutableUserVO mutableUser = userService.getMutableUserByUsername(username);
-        if (!isTenantAdmin(mutableUser)) {
+        User user = userService.getUserByUsername(username);
+        if (!isTenantAdmin(user)) {
             return;
         }
-        String tenantId = userMapper.getTenantIdByTenantAdmin(mutableUser.getUsername());
+        String tenantId = userMapper.getTenantIdByTenantAdmin(user.getUsername());
         System.out.println(tenantId);
     }
 
@@ -181,9 +181,9 @@ public class TenantAuthorizeManager {
         return ROLE_TENANT.equals(authority) || authority.startsWith(ROLE_TENANT + AT);
     }
 
-    private boolean isTenantAdmin(MutableUserVO mutableUser) {
+    private boolean isTenantAdmin(User user) {
         boolean isTenantAdmin = false;
-        List<SimpleRoleVO> roles = mutableUser.getAuthorities();
+        List<SimpleRole> roles = user.getAuthorities();
         if (roles != null && !roles.isEmpty()) {
             // 判断是否为租户管理员
             isTenantAdmin = roles.stream().anyMatch(role -> isTenantAdmin(role.getAuthority()));

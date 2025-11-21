@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.role.service;
 
 import com.google.common.collect.Sets;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
-import com.lambda.fusion.authority.role.model.vo.UserAuthorityVO;
+import com.lambda.fusion.authority.role.model.UserAuthority;
 import com.lambda.fusion.core.Constants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
@@ -23,7 +23,7 @@ public class RoleManagerImpl implements RoleManager {
     @Nonnull
     @Override
     public Set<String> getAuthoritiesByUser(String uid) {
-        List<UserAuthorityVO> results = roleMapper.getAuthoritiesByUser(uid);
+        List<UserAuthority> results = roleMapper.getAuthoritiesByUser(uid);
         if (CollectionUtils.isEmpty(results)) {
             return Sets.newHashSet();
         }

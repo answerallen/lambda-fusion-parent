@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.tenant.persistence;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.tenant.model.entity.TenantEntity;
-import com.lambda.fusion.authority.tenant.model.vo.TenantOptionVO;
+import com.lambda.fusion.authority.tenant.model.TenantEntity;
+import com.lambda.fusion.authority.tenant.model.TenantOption;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -30,7 +30,7 @@ public interface TenantMapper extends BaseMapper<TenantEntity> {
     /**
      * 查询租户信息列表
      */
-    List<TenantOptionVO> queryTenantList();
+    List<TenantOption> queryTenantList();
 
     /**
      * Is exist boolean.
