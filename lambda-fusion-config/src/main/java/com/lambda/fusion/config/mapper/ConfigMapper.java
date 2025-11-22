@@ -2,8 +2,8 @@ package com.lambda.fusion.config.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.config.model.QueryConfigPage;
 import com.lambda.fusion.config.model.ConfigEntity;
+import com.lambda.fusion.config.model.QueryConfigPage;
 import java.util.Collection;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
