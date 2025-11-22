@@ -1,9 +1,9 @@
-package com.lambda.fusion.core.func;
+package com.lambda.fusion.core.convert;
 
 import java.time.LocalDateTime;
 import org.mapstruct.Named;
 
-public interface FusionConvertFunctions {
+public interface ConvertFunctions {
 
     @Named("mapAccountExpired")
     static Boolean mapAccountExpired(LocalDateTime expiredTime) {

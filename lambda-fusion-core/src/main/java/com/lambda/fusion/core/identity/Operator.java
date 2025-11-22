@@ -1,4 +1,4 @@
-package com.lambda.fusion.core.user;
+package com.lambda.fusion.core.identity;
 
 import cn.hutool.core.collection.CollUtil;
 import com.fasterxml.jackson.annotation.JsonIgnore;
