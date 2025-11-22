@@ -33,7 +33,7 @@ import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.UserTempParameters;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;

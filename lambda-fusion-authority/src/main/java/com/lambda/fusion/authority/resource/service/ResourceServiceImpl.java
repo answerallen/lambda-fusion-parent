@@ -11,7 +11,7 @@ import com.lambda.fusion.authority.role.service.RoleManager;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotNull;
 import java.util.*;

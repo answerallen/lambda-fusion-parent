@@ -8,7 +8,7 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.user.model.UserQuery;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

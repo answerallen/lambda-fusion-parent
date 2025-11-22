@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.token.model;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.lambda.fusion.core.pagination.PaginationDTO;
+import com.lambda.fusion.core.pagination.Pagination;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Date;
 import lombok.Data;
@@ -17,7 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "Api Token分页查询DTO")
-public class ApiTokenQuery extends PaginationDTO<ApiTokenEntity> {
+public class ApiTokenQuery extends Pagination<ApiTokenEntity> {
 
     @Schema(description = "Api Token")
     private String apiToken;

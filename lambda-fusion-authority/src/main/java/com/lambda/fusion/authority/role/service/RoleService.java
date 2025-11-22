@@ -8,7 +8,7 @@ import com.lambda.fusion.authority.role.model.Group;
 import com.lambda.fusion.authority.role.model.GroupRole;
 import com.lambda.fusion.authority.role.model.Role;
 import com.lambda.fusion.authority.role.model.UpdateRole;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import java.util.List;
 import java.util.Map;
 

@@ -3,8 +3,8 @@ package com.lambda.fusion.authority.authentication.model;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.cloud.core.utils.ConvertUtils;
-import com.lambda.fusion.core.func.FusionConvertFunctions;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.convert.ConvertFunctions;
+import com.lambda.fusion.core.identity.Operator;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serial;
 import java.io.Serializable;
@@ -18,7 +18,7 @@ import lombok.Data;
  */
 @AutoConverter(
         target = Operator.class,
-        uses = FusionConvertFunctions.class,
+        uses = ConvertFunctions.class,
         fieldMappings = {
             @FieldMapping(target = "accountExpired", source = "expiredTime", qualifiedByName = "mapAccountExpired"),
             @FieldMapping(target = "roles", source = "authorities"),
@@ -78,7 +78,7 @@ public class SimpleUser implements Serializable {
     @Schema(description = "用户权限集合")
     private Set<String> authorities;
 
-    public Operator toUser() {
+    public Operator toOperator() {
         return ConvertUtils.convert(this);
     }
 }

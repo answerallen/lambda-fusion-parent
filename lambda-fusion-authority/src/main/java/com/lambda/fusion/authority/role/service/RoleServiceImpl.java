@@ -35,7 +35,7 @@ import com.lambda.fusion.authority.user.model.UserRoleEntity;
 import com.lambda.fusion.authority.utils.MybatisUtils;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;

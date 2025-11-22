@@ -13,7 +13,7 @@ import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
 import com.lambda.security.provider.ThirdPartLoginResult;
@@ -41,7 +41,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new UsernameNotFoundException("user in not found");
         }
 
-        return buildLoginUser(userVO.toUser());
+        return buildLoginUser(userVO.toOperator());
     }
 
     @Override
@@ -54,7 +54,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new AuthenticationException("mobile in not unique");
         }
         SimpleUser simpleUser = simpleUsers.getFirst();
-        return buildLoginUser(simpleUser.toUser());
+        return buildLoginUser(simpleUser.toOperator());
     }
 
     @Override

@@ -9,7 +9,7 @@ import com.lambda.fusion.authority.user.model.SimpleUser;
 import com.lambda.fusion.authority.user.model.UpdateUser;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.model.UserInfoEntity;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Map;

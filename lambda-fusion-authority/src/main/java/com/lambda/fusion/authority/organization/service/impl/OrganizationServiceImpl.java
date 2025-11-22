@@ -35,7 +35,7 @@ import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

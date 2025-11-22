@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.client.model;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.lambda.fusion.core.pagination.PaginationDTO;
+import com.lambda.fusion.core.pagination.Pagination;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -25,7 +25,7 @@ import org.apache.commons.lang.StringUtils;
 @Getter
 @Setter
 @Schema(description = "客户端分页查询参数")
-public class ClientQuery extends PaginationDTO<ClientEntity> {
+public class ClientQuery extends Pagination<ClientEntity> {
 
     /**
      * 客户端名称

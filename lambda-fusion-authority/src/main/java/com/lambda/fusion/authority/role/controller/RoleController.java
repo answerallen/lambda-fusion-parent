@@ -19,7 +19,7 @@ import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
