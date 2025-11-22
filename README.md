@@ -2,7 +2,7 @@
 
 ## 项目简介
 
-Lambda Fusion 是一个基于 Spring Boot 的微服务开发框架，提供了一套完整的企业级应用开发解决方案。该框架专注于权限管理、配置管理、数据字典、日志记录等核心业务功能的实现。
+Lambda Fusion 是一个基于 Lambda Cloud 的业务开发框架，提供了一套完整的企业级应用开发解决方案。该框架专注于权限管理、配置管理、数据字典、日志记录等核心业务功能的实现。
 
 ## 项目架构
 
@@ -23,7 +23,7 @@ lambda-fusion-parent/
 
 ## 核心功能
 
-### 1. 权限管理系统 (lambda-fusion-authority)
+### 1. 权限管理 (lambda-fusion-authority)
 
 提供完整的企业级权限管理解决方案：
 
@@ -42,7 +42,7 @@ lambda-fusion-parent/
 - 异步操作日志记录
 - 动态权限验证
 
-### 2. 核心框架 (lambda-fusion-core)
+### 2. Core模块 (lambda-fusion-core)
 
 框架核心功能库：
 
