@@ -2,7 +2,6 @@ package com.lambda.fusion.authority.role.service.impl;
 
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
-
 import java.util.Collections;
 import java.util.Set;
 
