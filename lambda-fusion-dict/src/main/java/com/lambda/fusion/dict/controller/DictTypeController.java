@@ -2,7 +2,7 @@ package com.lambda.fusion.dict.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.common.enums.DictHolder;
 import com.lambda.fusion.dict.model.dto.*;
@@ -87,7 +87,7 @@ public class DictTypeController {
     public Page<DictType> dictTypeList(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
-            @Valid DictTypePageQueryDTO pageQueryDTO) {
+            @Valid DictTypePageQuery pageQueryDTO) {
         if (number != null) {
             pageQueryDTO.setPageNum(number);
         }

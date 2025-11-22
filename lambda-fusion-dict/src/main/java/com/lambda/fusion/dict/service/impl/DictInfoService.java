@@ -18,7 +18,7 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import com.lambda.fusion.core.utils.ParameterUtils;
 import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;

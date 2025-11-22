@@ -4,7 +4,7 @@ import static com.lambda.fusion.dict.common.constants.DictConstants.*;
 
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.annotation.OperationLog;
-import com.lambda.fusion.core.user.Operator;
+import com.lambda.fusion.core.identity.Operator;
 import com.lambda.fusion.dict.model.dto.DictInfoInputDTO;
 import com.lambda.fusion.dict.model.dto.DictInfoQueryDTO;
 import com.lambda.fusion.dict.model.dto.DictStateOperationDTO;
