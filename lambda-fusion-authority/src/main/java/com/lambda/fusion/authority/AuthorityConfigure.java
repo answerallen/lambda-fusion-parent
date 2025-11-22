@@ -4,7 +4,7 @@ import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lambda.fusion.authority.role.service.DefaultInternalRoleServiceImpl;
+import com.lambda.fusion.authority.role.service.impl.InternalRoleServiceImpl;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.tenant.TenantProperties;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationCache;
@@ -98,7 +98,7 @@ public class AuthorityConfigure {
     @ConditionalOnMissingBean
     @Bean
     public InternalRoleService internalRoleService() {
-        return new DefaultInternalRoleServiceImpl();
+        return new InternalRoleServiceImpl();
     }
 
     @Configuration(proxyBeanMethods = false)

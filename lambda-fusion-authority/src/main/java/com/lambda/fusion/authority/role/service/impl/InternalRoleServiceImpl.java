@@ -1,10 +1,12 @@
-package com.lambda.fusion.authority.role.service;
+package com.lambda.fusion.authority.role.service.impl;
 
 import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.fusion.authority.role.service.InternalRoleService;
+
 import java.util.Collections;
 import java.util.Set;
 
-public class DefaultInternalRoleServiceImpl implements InternalRoleService {
+public class InternalRoleServiceImpl implements InternalRoleService {
     @Override
     public Set<String> queryExclude(LoginUser operator) {
         return Collections.emptySet();

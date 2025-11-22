@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.resource.service;
+package com.lambda.fusion.authority.resource.service.impl;
 
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -7,6 +7,7 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.mapper.ResourceMapper;
 import com.lambda.fusion.authority.resource.model.*;
+import com.lambda.fusion.authority.resource.service.ResourceService;
 import com.lambda.fusion.authority.role.service.RoleManager;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
@@ -63,7 +64,7 @@ public class ResourceServiceImpl implements ResourceService {
                 ResourceTree::getId,
                 ResourceTree::getParentKeys,
                 target -> target.stream()
-                        .sorted(Comparator.comparing(ResourceTree::getResRank).thenComparing(ResourceTree::getOrderNo))
+                        .sorted(Comparator.comparing(ResourceTree::getResLevel).thenComparing(ResourceTree::getOrderNo))
                         .collect(Collectors.toList()));
         return TreeBuilder.build(resourceTreeList);
     }
@@ -122,7 +123,7 @@ public class ResourceServiceImpl implements ResourceService {
             Assert.notNull(parent, "lambda.authority.resource.parent.notfound");
             Assert.isFalse(
                     !parent.getResMode().equals(resource.getResMode()), "lambda.authority.resource.model.inconsistent");
-            rank = parent.getResRank() + 1;
+            rank = parent.getResLevel() + 1;
             parentKeys = parent.getParentKeys();
             if (StringUtils.isNotBlank(parentKeys)) {
                 parentKeys += (Constants.SEPARATOR0 + parent.getId());
@@ -133,14 +134,14 @@ public class ResourceServiceImpl implements ResourceService {
         if (resource.getResType() == ResourceType.BUTTON.ordinal()) {
             rank = Integer.MAX_VALUE;
         }
-        resource.setResRank(rank);
+        resource.setResLevel(rank);
         resource.setParentKeys(parentKeys);
 
         if (StringUtils.isBlank(resource.getResPath())) {
             resource.setResPath(null);
         }
-        if (StringUtils.isBlank(resource.getIco())) {
-            resource.setIco(null);
+        if (StringUtils.isBlank(resource.getIcon())) {
+            resource.setIcon(null);
         }
         List<ResourceTree> children2 = resourceMapper.getDirectChildren(resource.getParentId());
         Objects.requireNonNull(children2);
@@ -156,7 +157,7 @@ public class ResourceServiceImpl implements ResourceService {
                 button.setParentKeys(resource.getParentKeys() + Constants.SEPARATOR0 + resource.getId());
                 button.setOrderNo(i + 1);
                 button.setResType(ResourceType.BUTTON.ordinal());
-                button.setResRank(rank + 1);
+                button.setResLevel(rank + 1);
                 resourceMapper.addResource(button);
             }
         }
@@ -173,7 +174,7 @@ public class ResourceServiceImpl implements ResourceService {
         Assert.notNull(resource, "Resource not found");
 
         List<Resource> children = queryAvailableChildren(resource);
-        children.add(0, resource);
+        children.addFirst(resource);
         Set<String> ids = children.stream().map(Resource::getId).collect(Collectors.toSet());
         resourceMapper.deleteResource(ids);
         resourceMapper.deleteRolesResource(ids);
@@ -189,7 +190,7 @@ public class ResourceServiceImpl implements ResourceService {
         Assert.notNull(resource.getId(), "Resource id can't be null");
         Resource source = getResourceById(resource.getId());
         // 更新时只更新属性，不改变上下级关系，因此parentKeys也无须变化
-        resource.setResRank(source.getResRank());
+        resource.setResLevel(source.getResLevel());
         resource.setParentKeys(source.getParentKeys());
         Assert.notNull(source, "resource not found");
         // 更新时如果没有传顺序号,则不修改顺序值
@@ -201,7 +202,7 @@ public class ResourceServiceImpl implements ResourceService {
         boolean hiddenChanged = source.isHidden() != resource.isHidden();
         if (typeChanged) {
             if (resource.getResType() == ResourceType.BUTTON.ordinal()) {
-                resource.setResRank(Integer.MAX_VALUE);
+                resource.setResLevel(Integer.MAX_VALUE);
             }
             String parentId = source.getParentId();
             Resource parent;
@@ -250,7 +251,7 @@ public class ResourceServiceImpl implements ResourceService {
         }
         Resource resource = resourceMapper.getResourceById(id);
         if (resource != null) {
-            results.add(0, resource);
+            results.addFirst(resource);
             if (StringUtils.isNotBlank(resource.getParentId())) {
                 getAllParents(resource.getParentId(), results);
             }
@@ -327,7 +328,7 @@ public class ResourceServiceImpl implements ResourceService {
             boolean peer) {
         int n = 1;
         resource.setParentId(pid1);
-        resource.setResRank(target.getResRank());
+        resource.setResLevel(target.getResLevel());
         List<ResourceTree> children = resourceMapper.getDirectChildren(pid1);
         for (Resource item : children) {
             item.setOrderNo(n);
@@ -357,7 +358,7 @@ public class ResourceServiceImpl implements ResourceService {
             boolean peer) {
         int n = 1;
         resource.setParentId(pid1);
-        resource.setResRank(target.getResRank());
+        resource.setResLevel(target.getResLevel());
         List<ResourceTree> children = resourceMapper.getDirectChildren(pid1);
         for (Resource item : children) {
             if (item.getId().equals(target.getId())) {
@@ -381,7 +382,7 @@ public class ResourceServiceImpl implements ResourceService {
             Resource resource, Resource target, List<Resource> changed, List<Resource> changed2, String parentKeys) {
         resource.setParentId(target.getId());
         resource.setOrderNo(1);
-        resource.setResRank(target.getResRank() + 1);
+        resource.setResLevel(target.getResLevel() + 1);
         List<ResourceTree> children = resourceMapper.getDirectChildren(target.getId());
         if (CollectionUtils.isNotEmpty(children)) {
             for (int i = 0; i < children.size(); i++) {
@@ -420,7 +421,7 @@ public class ResourceServiceImpl implements ResourceService {
                     result = item.getParentKeys();
                 }
                 item.setParentKeys(result);
-                item.setResRank(StringUtils.split(result, Constants.SEPARATOR0).length);
+                item.setResLevel(StringUtils.split(result, Constants.SEPARATOR0).length);
                 changed2.add(item);
             }
         }
@@ -435,6 +436,11 @@ public class ResourceServiceImpl implements ResourceService {
         } else {
             parentKeys = resource.getId();
         }
+        Map<String, Object> parameters = getParameters(operator, parentKeys);
+        return resourceMapper.getAllChildren(parameters);
+    }
+
+    private Map<String, Object> getParameters(Operator operator, Object parentKeys) {
         Map<String, Object> parameters = Maps.newHashMap();
         parameters.put("parentKeys", parentKeys);
         if (!operator.isDev()) {
@@ -442,7 +448,7 @@ public class ResourceServiceImpl implements ResourceService {
             authorities.add(operator.getUsername());
             parameters.put("authorities", authorities);
         }
-        return resourceMapper.getAllChildren(parameters);
+        return parameters;
     }
 
     @Override
@@ -450,13 +456,7 @@ public class ResourceServiceImpl implements ResourceService {
         String parentKeys = resource.getParentKeys();
         if (StringUtils.isNotBlank(parentKeys)) {
             List<String> ids = Arrays.asList(parentKeys.split(Constants.SEPARATOR0));
-            Map<String, Object> parameters = Maps.newHashMap();
-            parameters.put("parentKeys", ids);
-            if (!operator.isDev()) {
-                Set<String> authorities = roleManager.getAuthoritiesByUser(operator.getUsername());
-                authorities.add(operator.getUsername());
-                parameters.put("authorities", authorities);
-            }
+            Map<String, Object> parameters = getParameters(operator, ids);
             return resourceMapper.getAllParents(parameters);
         }
         return new ArrayList<>();
@@ -482,11 +482,6 @@ public class ResourceServiceImpl implements ResourceService {
 
     /***
      * 是否要移动的对象与目标对象是否为同级别
-     *
-     * @param pid0
-     * @param pid1
-     * @param type 0:下级，1:之前，2:之后
-     * @return boolean
      */
     private boolean isPeer(String pid0, String pid1, int type) {
         if (type == 0) {
@@ -505,9 +500,6 @@ public class ResourceServiceImpl implements ResourceService {
 
     /***
      * 生成parentKeys
-     * @param parentKeys
-     * @param id
-     * @return java.lang.String
      */
     private String generateParentKeys(String parentKeys, String id) {
         return StringUtils.isNotBlank(parentKeys) ? parentKeys + Constants.SEPARATOR0 + id : id;

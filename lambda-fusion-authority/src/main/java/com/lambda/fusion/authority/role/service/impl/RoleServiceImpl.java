@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.role.service;
+package com.lambda.fusion.authority.role.service.impl;
 
 import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 import static com.lambda.fusion.authority.AuthorityConstants.DEFAULT_GROUP_NAME;
@@ -29,6 +29,8 @@ import com.lambda.fusion.authority.role.model.GroupRole;
 import com.lambda.fusion.authority.role.model.Role;
 import com.lambda.fusion.authority.role.model.RoleEntity;
 import com.lambda.fusion.authority.role.model.UpdateRole;
+import com.lambda.fusion.authority.role.service.InternalRoleService;
+import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.user.model.UserRoleEntity;
