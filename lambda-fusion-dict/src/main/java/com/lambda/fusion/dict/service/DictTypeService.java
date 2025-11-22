@@ -1,8 +1,8 @@
 package com.lambda.fusion.dict.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.dict.model.dto.QueryDictTree;
-import com.lambda.fusion.dict.model.entity.DictType;
+import com.lambda.fusion.dict.model.DictTypeTree;
+import com.lambda.fusion.dict.model.QueryDictTree;
 import java.util.List;
 
 /**
@@ -10,23 +10,23 @@ import java.util.List;
  *
  * @author Jin
  */
-public interface DictTypeService extends IService<DictType> {
+public interface DictTypeService extends IService<DictTypeTree> {
 
     /**
      * 保存多级数据字典类型
      *
-     * @param dictType
+     * @param dictTypeTree
      * @return
      */
-    DictType saveDictType(DictType dictType);
+    DictTypeTree saveDictType(DictTypeTree dictTypeTree);
 
     /**
      * 更新多级数据字典类型
      *
-     * @param dictType
+     * @param dictTypeTree
      * @return
      */
-    void updateDictType(DictType dictType);
+    void updateDictType(DictTypeTree dictTypeTree);
 
     /**
      * 获取动态字典树形分类
@@ -34,7 +34,7 @@ public interface DictTypeService extends IService<DictType> {
      * @param queryDictTree
      * @return
      */
-    List<DictType> dynamicTreeList(QueryDictTree queryDictTree);
+    List<DictTypeTree> dynamicTreeList(QueryDictTree queryDictTree);
 
     /**
      * 删除多级字典类型
@@ -49,7 +49,7 @@ public interface DictTypeService extends IService<DictType> {
      * @param type
      * @return
      */
-    List<DictType> getDictTypeList(String type);
+    List<DictTypeTree> getDictTypeList(String type);
 
     /**
      * 查询SQL类型字典
@@ -57,5 +57,5 @@ public interface DictTypeService extends IService<DictType> {
      * @param dictType 类型ID
      * @return 结果集
      */
-    DictType dynamicDict(String dictType);
+    DictTypeTree dynamicDict(String dictType);
 }

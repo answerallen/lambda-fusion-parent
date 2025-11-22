@@ -3,11 +3,12 @@ package com.lambda.fusion.dict.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.identity.Operator;
-import com.lambda.fusion.dict.common.enums.DictContextHolders;
-import com.lambda.fusion.dict.common.enums.DictHolder;
-import com.lambda.fusion.dict.model.dto.*;
-import com.lambda.fusion.dict.model.entity.DictType;
+import com.lambda.fusion.dict.model.DictTypeTree;
+import com.lambda.fusion.dict.model.QueryDictTree;
+import com.lambda.fusion.dict.model.QueryDictTypePage;
 import com.lambda.fusion.dict.service.DictTypeService;
+import com.lambda.fusion.dict.support.enums.DictionaryHolder;
+import com.lambda.fusion.dict.support.enums.DictionaryRegistry;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,25 +35,25 @@ public class DictTypeController {
 
     @GetMapping("/")
     @Operation(summary = "获取所有字典分类", description = "可以根据字典类型查询")
-    public List<DictType> getDictTypeList(
+    public List<DictTypeTree> getDictTypeList(
             @Parameter(description = "字典类型") @RequestParam(required = false) String type) {
         return dictTypeService.getDictTypeList(type);
     }
 
     @PostMapping
     @Operation(summary = "添加字典类型", description = "添加字典类型")
-    public DictType saveDictType(
-            @Valid @Parameter(description = "字典类型数据", required = true) @RequestBody DictType dictType) {
+    public DictTypeTree saveDictType(
+            @Valid @Parameter(description = "字典类型数据", required = true) @RequestBody DictTypeTree dictTypeTree) {
         // 只有开发者才能指定字典用途，其他用户只能添加用户字典
         Operator operator = OperatorUtils.getLoginUser(Operator.class);
         if (operator.isDev()) {
-            if (dictType.getDictUsage() == null) {
-                dictType.setDictUsage(DictType.DictUsage.SYSTEM.getValue());
+            if (dictTypeTree.getDictUsage() == null) {
+                dictTypeTree.setDictUsage(DictTypeTree.DictUsage.SYSTEM.getValue());
             }
         } else {
-            dictType.setDictUsage(DictType.DictUsage.USER.getValue());
+            dictTypeTree.setDictUsage(DictTypeTree.DictUsage.USER.getValue());
         }
-        return dictTypeService.saveDictType(dictType);
+        return dictTypeService.saveDictType(dictTypeTree);
     }
 
     @PutMapping
@@ -63,17 +64,17 @@ public class DictTypeController {
                 @Parameter(name = "id", description = "id", required = true, in = ParameterIn.QUERY),
                 @Parameter(name = "dictName", description = "字典名称", required = true, in = ParameterIn.QUERY)
             })
-    public DictType updateDictType(@Valid DictType dictType) {
+    public DictTypeTree updateDictType(@Valid DictTypeTree dictTypeTree) {
         // 非开发者不能修改系统字典用途
         Operator operator = OperatorUtils.getLoginUser(Operator.class);
         if (!operator.isDev()) {
-            DictType source = dictTypeService.getById(dictType.getId());
+            DictTypeTree source = dictTypeService.getById(dictTypeTree.getId());
             if (source != null) {
-                dictType.setDictUsage(source.getDictUsage());
+                dictTypeTree.setDictUsage(source.getDictUsage());
             }
         }
-        dictTypeService.updateDictType(dictType);
-        return dictTypeService.getById(dictType.getId());
+        dictTypeService.updateDictType(dictTypeTree);
+        return dictTypeService.getById(dictTypeTree.getId());
     }
 
     @DeleteMapping("/{id}")
@@ -84,10 +85,10 @@ public class DictTypeController {
 
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "字典类型分页查询", description = "字典类型分页查询，支持多条件查询和排序")
-    public Page<DictType> dictTypeList(
+    public Page<DictTypeTree> dictTypeList(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
-            @Valid DictTypePageQuery pageQueryDTO) {
+            @Valid QueryDictTypePage pageQueryDTO) {
         if (number != null) {
             pageQueryDTO.setPageNum(number);
         }
@@ -99,19 +100,20 @@ public class DictTypeController {
 
     @GetMapping("/tree/dynamic")
     @Operation(summary = "查询树形结构的字典类型(动态字典)包含上下级节点", description = "查询树形结构的字典类型")
-    public List<DictType> dynamicTree(@Parameter QueryDictTree queryDictTree) {
+    public List<DictTypeTree> dynamicTree(@Parameter QueryDictTree queryDictTree) {
         return dictTypeService.dynamicTreeList(queryDictTree);
     }
 
     @GetMapping("/dict/dynamic")
     @Operation(summary = "动态字典查询", description = "动态字典查询")
-    public DictType dynamicDict(@Parameter(required = true, description = "字典类型ID") @RequestParam String dictTypeId) {
+    public DictTypeTree dynamicDict(
+            @Parameter(required = true, description = "字典类型ID") @RequestParam String dictTypeId) {
         return dictTypeService.dynamicDict(dictTypeId);
     }
 
     @GetMapping("/dict/enum")
     @Operation(summary = "获取所有枚举字典", description = "获取所有枚举字典")
-    public Map<String, DictHolder> getAllEnumDict() {
-        return DictContextHolders.getMapperHolders();
+    public Map<String, DictionaryHolder> getAllEnumDict() {
+        return DictionaryRegistry.getMapperHolders();
     }
 }

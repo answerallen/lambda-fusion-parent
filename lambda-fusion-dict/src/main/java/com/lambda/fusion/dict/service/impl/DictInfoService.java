@@ -1,7 +1,7 @@
 package com.lambda.fusion.dict.service.impl;
 
 import static com.lambda.fusion.core.Constants.JOINER;
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+import static com.lambda.fusion.dict.support.constants.DictConstants.*;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
@@ -16,21 +16,21 @@ import com.google.gson.reflect.TypeToken;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.core.identity.Operator;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.identity.Operator;
 import com.lambda.fusion.core.utils.ParameterUtils;
-import com.lambda.fusion.dict.common.enums.DictContextHolders;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
-import com.lambda.fusion.dict.model.dto.DictInfoInputDTO;
-import com.lambda.fusion.dict.model.dto.DictInfoQueryDTO;
-import com.lambda.fusion.dict.model.dto.DictStateOperationDTO;
-import com.lambda.fusion.dict.model.entity.DictInfoEntity;
-import com.lambda.fusion.dict.model.entity.DictInfoGroup;
-import com.lambda.fusion.dict.model.entity.DictType;
-import com.lambda.fusion.dict.model.vo.DictInfoVO;
-import com.lambda.fusion.dict.model.vo.DictTypeVO;
+import com.lambda.fusion.dict.model.DictInfoEntity;
+import com.lambda.fusion.dict.model.DictInfoGroup;
+import com.lambda.fusion.dict.model.DictTypeTree;
+import com.lambda.fusion.dict.model.DictionaryEntry;
+import com.lambda.fusion.dict.model.DictionaryType;
+import com.lambda.fusion.dict.model.InputDictInfo;
+import com.lambda.fusion.dict.model.OperationDictState;
+import com.lambda.fusion.dict.model.QueryDictInfo;
+import com.lambda.fusion.dict.support.enums.DictionaryRegistry;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -46,8 +46,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Service
 @Transactional(rollbackFor = Exception.class)
-public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInputDTO, DictInfoMapper>
-        implements com.lambda.fusion.dict.service.DictInfoService, IService<DictInfoVO> {
+public class DictInfoService extends AbstractCrudService<DictionaryEntry, InputDictInfo, DictInfoMapper>
+        implements com.lambda.fusion.dict.service.DictInfoService, IService<DictionaryEntry> {
 
     private final Gson gson;
 
@@ -56,18 +56,22 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
     private final DictTypeMapper dictTypeMapper;
 
     @Override
-    public Page<DictInfoVO> page(Page<DictInfoVO> pageable, DictInfoQueryDTO queryDTO) {
+    public Page<DictionaryEntry> page(Page<DictionaryEntry> pageable, QueryDictInfo queryDTO) {
         Map<String, Object> parameters = convertQueryDTOToMap(queryDTO);
-        LambdaQueryWrapper<DictInfoVO> lambdaQuery = Wrappers.lambdaQuery();
-        lambdaQuery.eq(DictInfoVO::getTenantId, parameters.get(FIELD_TENANT_ID));
-        lambdaQuery.eq(StrUtil.isNotEmpty(queryDTO.getDictType()), DictInfoVO::getDictType, queryDTO.getDictType());
+        LambdaQueryWrapper<DictionaryEntry> lambdaQuery = Wrappers.lambdaQuery();
+        lambdaQuery.eq(DictionaryEntry::getTenantId, parameters.get(FIELD_TENANT_ID));
+        lambdaQuery.eq(
+                StrUtil.isNotEmpty(queryDTO.getDictType()), DictionaryEntry::getDictType, queryDTO.getDictType());
         lambdaQuery.like(
-                StrUtil.isNotEmpty(queryDTO.getFieldType()), DictInfoVO::getFieldType, queryDTO.getFieldType());
+                StrUtil.isNotEmpty(queryDTO.getFieldType()), DictionaryEntry::getFieldType, queryDTO.getFieldType());
         lambdaQuery.like(
-                StrUtil.isNotEmpty(queryDTO.getFieldName()), DictInfoVO::getFieldName, queryDTO.getFieldName());
-        lambdaQuery.eq(queryDTO.getEnableState() != null, DictInfoVO::getEnableState, queryDTO.getEnableState());
-        lambdaQuery.eq(StrUtil.isNotEmpty(queryDTO.getDictInfoId()), DictInfoVO::getParentId, queryDTO.getDictInfoId());
-        lambdaQuery.orderByAsc(DictInfoVO::getDictType, DictInfoVO::getSort).orderByDesc(DictInfoVO::getId);
+                StrUtil.isNotEmpty(queryDTO.getFieldName()), DictionaryEntry::getFieldName, queryDTO.getFieldName());
+        lambdaQuery.eq(queryDTO.getEnableState() != null, DictionaryEntry::getEnableState, queryDTO.getEnableState());
+        lambdaQuery.eq(
+                StrUtil.isNotEmpty(queryDTO.getDictInfoId()), DictionaryEntry::getParentId, queryDTO.getDictInfoId());
+        lambdaQuery
+                .orderByAsc(DictionaryEntry::getDictType, DictionaryEntry::getSort)
+                .orderByDesc(DictionaryEntry::getId);
         pageable = dictInfoMapper.page(pageable, parameters);
         pageable.getRecords().forEach(info -> {
             info.setParameters(convertMap(info.getExtra()));
@@ -77,19 +81,28 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
     }
 
     @Override
-    public List<DictInfoVO> selectDictInfo(DictInfoQueryDTO queryDTO) {
+    public List<DictionaryEntry> selectDictInfo(QueryDictInfo queryDTO) {
         String tenantId = OperatorUtils.getOperator().getTenantId();
-        LambdaQueryWrapper<DictInfoVO> lambdaQuery = Wrappers.lambdaQuery();
+        LambdaQueryWrapper<DictionaryEntry> lambdaQuery = Wrappers.lambdaQuery();
         lambdaQuery
-                .eq(StrUtil.isNotEmpty(tenantId), DictInfoVO::getTenantId, tenantId)
-                .eq(StrUtil.isNotEmpty(queryDTO.getDictType()), DictInfoVO::getDictType, queryDTO.getDictType())
-                .like(StrUtil.isNotEmpty(queryDTO.getFieldType()), DictInfoVO::getFieldType, queryDTO.getFieldType())
-                .like(StrUtil.isNotEmpty(queryDTO.getFieldName()), DictInfoVO::getFieldName, queryDTO.getFieldName())
-                .eq(queryDTO.getEnableState() != null, DictInfoVO::getEnableState, queryDTO.getEnableState())
-                .eq(StrUtil.isNotEmpty(queryDTO.getDictInfoId()), DictInfoVO::getParentId, queryDTO.getDictInfoId())
-                .orderByAsc(DictInfoVO::getDictType, DictInfoVO::getSort)
-                .orderByDesc(DictInfoVO::getId);
-        List<DictInfoVO> outcomes = dictInfoMapper.selectDictInfo(lambdaQuery);
+                .eq(StrUtil.isNotEmpty(tenantId), DictionaryEntry::getTenantId, tenantId)
+                .eq(StrUtil.isNotEmpty(queryDTO.getDictType()), DictionaryEntry::getDictType, queryDTO.getDictType())
+                .like(
+                        StrUtil.isNotEmpty(queryDTO.getFieldType()),
+                        DictionaryEntry::getFieldType,
+                        queryDTO.getFieldType())
+                .like(
+                        StrUtil.isNotEmpty(queryDTO.getFieldName()),
+                        DictionaryEntry::getFieldName,
+                        queryDTO.getFieldName())
+                .eq(queryDTO.getEnableState() != null, DictionaryEntry::getEnableState, queryDTO.getEnableState())
+                .eq(
+                        StrUtil.isNotEmpty(queryDTO.getDictInfoId()),
+                        DictionaryEntry::getParentId,
+                        queryDTO.getDictInfoId())
+                .orderByAsc(DictionaryEntry::getDictType, DictionaryEntry::getSort)
+                .orderByDesc(DictionaryEntry::getId);
+        List<DictionaryEntry> outcomes = dictInfoMapper.selectDictInfo(lambdaQuery);
         if (CollectionUtils.isEmpty(outcomes)) {
             return Collections.emptyList();
         }
@@ -101,7 +114,7 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
     }
 
     @Override
-    public DictInfoVO saveDictInfo(LoginUser operator, DictInfoVO source) {
+    public DictionaryEntry saveDictInfo(LoginUser operator, DictionaryEntry source) {
         String dictType = source.getDictType();
         String fieldType = source.getFieldType();
         String fieldName = source.getFieldName();
@@ -114,7 +127,7 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
         source.setExtra(
                 CollectionUtils.isNotEmpty(source.getParameters()) ? convertJson(source.getParameters()) : null);
         if (StringUtils.isNotBlank(source.getParentId())) {
-            DictInfoVO parent = dictInfoMapper.selectById(source.getParentId());
+            DictionaryEntry parent = dictInfoMapper.selectById(source.getParentId());
             if (null != parent) {
                 source.setParentKeys(parent.buildParentKeys());
                 source.setLevel(parent.getLevel() + 1);
@@ -123,25 +136,25 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
             source.setLevel(DEFAULT_LEVEL);
         }
         dictInfoMapper.insert(source);
-        DictInfoVO dictInfoVO = dictInfoMapper.selectById(source.getId());
-        dictInfoVO.setParameters(convertMap(dictInfoVO.getExtra()));
-        return dictInfoVO;
+        DictionaryEntry dictionaryEntry = dictInfoMapper.selectById(source.getId());
+        dictionaryEntry.setParameters(convertMap(dictionaryEntry.getExtra()));
+        return dictionaryEntry;
     }
 
-    public boolean dictInfoExists(DictInfoVO dictInfoVO) {
-        LambdaQueryWrapper<DictInfoVO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(DictInfoVO::getDictType, dictInfoVO.getDictType());
-        wrapper.eq(DictInfoVO::getFieldType, dictInfoVO.getFieldType());
+    public boolean dictInfoExists(DictionaryEntry dictionaryEntry) {
+        LambdaQueryWrapper<DictionaryEntry> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DictionaryEntry::getDictType, dictionaryEntry.getDictType());
+        wrapper.eq(DictionaryEntry::getFieldType, dictionaryEntry.getFieldType());
         // 租户
-        if (StringUtils.isNotBlank(dictInfoVO.getTenantId())) {
-            wrapper.eq(DictInfoVO::getTenantId, dictInfoVO.getTenantId());
+        if (StringUtils.isNotBlank(dictionaryEntry.getTenantId())) {
+            wrapper.eq(DictionaryEntry::getTenantId, dictionaryEntry.getTenantId());
         }
-        DictInfoVO target = dictInfoMapper.selectOne(wrapper);
-        return target != null && !target.getId().equals(dictInfoVO.getId());
+        DictionaryEntry target = dictInfoMapper.selectOne(wrapper);
+        return target != null && !target.getId().equals(dictionaryEntry.getId());
     }
 
     @Override
-    public DictInfoVO updateDictInfo(String id, DictInfoEntity dictInfoEntity) {
+    public DictionaryEntry updateDictInfo(String id, DictInfoEntity dictInfoEntity) {
         Assert.notNull(id, MSG_DICT_ID_NOT_EMPTY);
         Assert.notNull(dictInfoMapper.selectById(id), MSG_DICT_UPDATE_DATA_NOT_EXISTED);
 
@@ -157,16 +170,16 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
     }
 
     @Override
-    public void updateEnableState(DictStateOperationDTO operationDTO) {
-        DictInfoVO parameter = new DictInfoVO();
+    public void updateEnableState(OperationDictState operationDTO) {
+        DictionaryEntry parameter = new DictionaryEntry();
         parameter.setId(operationDTO.getId());
         parameter.setEnableState(operationDTO.getState());
         dictInfoMapper.updateById(parameter);
     }
 
     @Override
-    public void updateSelectableState(DictStateOperationDTO operationDTO) {
-        DictInfoVO parameter = new DictInfoVO();
+    public void updateSelectableState(OperationDictState operationDTO) {
+        DictionaryEntry parameter = new DictionaryEntry();
         parameter.setId(operationDTO.getId());
         parameter.setSelectable(operationDTO.getState());
         dictInfoMapper.updateById(parameter);
@@ -185,22 +198,22 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
     }
 
     @Override
-    public Map<String, DictTypeVO> getDynamicDictInfoGroup(String dictType) {
-        final LambdaQueryWrapper<DictType> query = Wrappers.lambdaQuery(DictType.class);
+    public Map<String, DictionaryType> getDynamicDictInfoGroup(String dictType) {
+        final LambdaQueryWrapper<DictTypeTree> query = Wrappers.lambdaQuery(DictTypeTree.class);
         if (StringUtils.isNotEmpty(dictType)) {
-            query.like(DictType::getDictType, dictType);
+            query.like(DictTypeTree::getDictType, dictType);
         }
-        final List<DictType> dictTypes = dictTypeMapper.selectList(query);
-        Map<String, DictTypeVO> result = Maps.newHashMapWithExpectedSize(dictTypes.size());
+        final List<DictTypeTree> dictTypeTrees = dictTypeMapper.selectList(query);
+        Map<String, DictionaryType> result = Maps.newHashMapWithExpectedSize(dictTypeTrees.size());
 
         // Enum List
-        final List<DictType> enumList = DictContextHolders.getDictTypeList();
+        final List<DictTypeTree> enumList = DictionaryRegistry.getDictTypeList();
         if (CollectionUtils.isNotEmpty(enumList)) {
-            dictTypes.addAll(enumList);
+            dictTypeTrees.addAll(enumList);
         }
 
-        for (DictType dictTypeItem : dictTypes) {
-            final DictTypeVO vo = BeanUtil.copyProperties(dictTypeItem, DictTypeVO.class);
+        for (DictTypeTree dictTypeTreeItem : dictTypeTrees) {
+            final DictionaryType vo = BeanUtil.copyProperties(dictTypeTreeItem, DictionaryType.class);
             result.put(vo.getDictType(), vo);
         }
         String tenantId = OperatorUtils.getOperator().getTenantId();
@@ -208,7 +221,7 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
                 StringUtils.isNotBlank(dictType) ? ParameterUtils.fuzzyQuery(dictType) : dictType, tenantId);
         for (DictInfoGroup info : lists) {
             if (result.containsKey(info.getDictType())) {
-                final DictTypeVO vo = result.get(info.getDictType());
+                final DictionaryType vo = result.get(info.getDictType());
                 vo.setData(info.getDictList());
             }
         }
@@ -216,18 +229,18 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
     }
 
     @Override
-    public List<DictInfoVO> getTreeData(String dictType) {
+    public List<DictionaryEntry> getTreeData(String dictType) {
         if (StringUtils.isBlank(dictType)) {
             return Collections.emptyList();
         }
         List<String> ids = new ArrayList<>();
-        LambdaQueryWrapper<DictType> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(DictType::getDictType, dictType);
-        DictType dictTypeEntity = dictTypeMapper.selectOne(wrapper);
-        if (dictTypeEntity == null) {
+        LambdaQueryWrapper<DictTypeTree> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DictTypeTree::getDictType, dictType);
+        DictTypeTree dictTypeTreeEntity = dictTypeMapper.selectOne(wrapper);
+        if (dictTypeTreeEntity == null) {
             return Collections.emptyList();
         }
-        String currentKey = dictTypeEntity.getParentKeys();
+        String currentKey = dictTypeTreeEntity.getParentKeys();
         if (StringUtils.isNotBlank(currentKey)) {
             if (currentKey.contains(JOINER)) {
                 ids = Arrays.asList(currentKey.split(JOINER));
@@ -235,44 +248,44 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
                 ids.add(currentKey);
             }
         } else {
-            ids.add(dictTypeEntity.getId());
+            ids.add(dictTypeTreeEntity.getId());
         }
         Operator operator = ((Operator) OperatorUtils.getOperator());
-        List<DictInfoVO> outcomes = dictInfoMapper.treeList(ids, operator.getTenantId());
+        List<DictionaryEntry> outcomes = dictInfoMapper.treeList(ids, operator.getTenantId());
         return TreeBuilder.build(outcomes);
     }
 
     @Override
-    public List<DictInfoVO> getSubTreeData(String dictType) {
-        List<DictInfoVO> outcomes = new ArrayList<>();
+    public List<DictionaryEntry> getSubTreeData(String dictType) {
+        List<DictionaryEntry> outcomes = new ArrayList<>();
         if (StringUtils.isNotBlank(dictType)) {
             Operator operator = ((Operator) OperatorUtils.getOperator());
-            LambdaQueryWrapper<DictType> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(DictType::getDictType, dictType);
-            DictType dictTypeEntity = dictTypeMapper.selectOne(wrapper);
-            String currentKey = dictTypeEntity.getId();
-            LambdaQueryWrapper<DictType> conditions = new LambdaQueryWrapper<>();
-            conditions.likeRight(DictType::getParentKeys, currentKey).or().eq(DictType::getId, currentKey);
-            List<DictType> dictTypes = dictTypeMapper.selectList(conditions);
-            if (CollectionUtils.isNotEmpty(dictTypes)) {
-                List<String> ids = dictTypes.stream().map(DictType::id).collect(Collectors.toList());
-                List<DictInfoVO> list = dictInfoMapper.treeList(ids, operator.getTenantId());
+            LambdaQueryWrapper<DictTypeTree> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(DictTypeTree::getDictType, dictType);
+            DictTypeTree dictTypeTreeEntity = dictTypeMapper.selectOne(wrapper);
+            String currentKey = dictTypeTreeEntity.getId();
+            LambdaQueryWrapper<DictTypeTree> conditions = new LambdaQueryWrapper<>();
+            conditions.likeRight(DictTypeTree::getParentKeys, currentKey).or().eq(DictTypeTree::getId, currentKey);
+            List<DictTypeTree> dictTypeTrees = dictTypeMapper.selectList(conditions);
+            if (CollectionUtils.isNotEmpty(dictTypeTrees)) {
+                List<String> ids = dictTypeTrees.stream().map(DictTypeTree::id).collect(Collectors.toList());
+                List<DictionaryEntry> list = dictInfoMapper.treeList(ids, operator.getTenantId());
                 list.forEach(info -> info.setParameters(
                         StringUtils.isNotBlank(info.getExtra()) ? convertMap(info.getExtra()) : null));
                 outcomes = TreeBuilder.build(list);
             }
         }
-        outcomes.sort(Comparator.comparing(DictInfoVO::getSort));
+        outcomes.sort(Comparator.comparing(DictionaryEntry::getSort));
         return outcomes;
     }
 
     @Override
-    public List<DictInfoVO> getDictInfoByParentId(String parentId) {
-        DictInfoVO dictInfoVO = dictInfoMapper.selectById(parentId);
-        if (Objects.isNull(dictInfoVO)) {
+    public List<DictionaryEntry> getDictInfoByParentId(String parentId) {
+        DictionaryEntry dictionaryEntry = dictInfoMapper.selectById(parentId);
+        if (Objects.isNull(dictionaryEntry)) {
             return Collections.emptyList();
         }
-        return TreeBuilder.build(queryParentDictInfo(dictInfoVO));
+        return TreeBuilder.build(queryParentDictInfo(dictionaryEntry));
     }
 
     @Override
@@ -285,20 +298,20 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
         }
     }
 
-    private List<DictInfoVO> queryParentDictInfo(DictInfoVO dictInfoVO) {
-        DictInfoVO wrapper = new DictInfoVO();
-        String keys = dictInfoVO.getParentKeys();
+    private List<DictionaryEntry> queryParentDictInfo(DictionaryEntry dictionaryEntry) {
+        DictionaryEntry wrapper = new DictionaryEntry();
+        String keys = dictionaryEntry.getParentKeys();
         if (StringUtils.isNotBlank(keys)) {
             wrapper.setParentId(ParameterUtils.fuzzyQuery(keys.substring(keys.length() - PARENT_KEY_SUBSTRING_LENGTH)));
         } else {
-            wrapper.setId(dictInfoVO.getId());
+            wrapper.setId(dictionaryEntry.getId());
         }
-        wrapper.setLevel(dictInfoVO.getLevel());
-        wrapper.setDictType(dictInfoVO.getDictType());
+        wrapper.setLevel(dictionaryEntry.getLevel());
+        wrapper.setDictType(dictionaryEntry.getDictType());
         Operator operator = ((Operator) OperatorUtils.getOperator());
         wrapper.setTenantId(operator.getTenantId());
 
-        List<DictInfoVO> target = dictInfoMapper.getDictInfoList(wrapper);
+        List<DictionaryEntry> target = dictInfoMapper.getDictInfoList(wrapper);
         target.forEach(info -> {
             info.setParameters(convertMap(info.getExtra()));
             info.setExtra(StringUtils.EMPTY);
@@ -314,7 +327,7 @@ public class DictInfoService extends AbstractCrudService<DictInfoVO, DictInfoInp
         return gson.fromJson(extra, new MapTypeToken().getType());
     }
 
-    private Map<String, Object> convertQueryDTOToMap(DictInfoQueryDTO queryDTO) {
+    private Map<String, Object> convertQueryDTOToMap(QueryDictInfo queryDTO) {
         if (queryDTO == null) {
             return new HashMap<>();
         }

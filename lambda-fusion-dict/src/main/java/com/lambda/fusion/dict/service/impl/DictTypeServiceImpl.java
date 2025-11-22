@@ -1,6 +1,6 @@
 package com.lambda.fusion.dict.service.impl;
 
-import static com.lambda.fusion.dict.common.constants.DictConstants.*;
+import static com.lambda.fusion.dict.support.constants.DictConstants.*;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
@@ -14,15 +14,15 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.ParameterUtils;
 import com.lambda.fusion.dict.DictionaryProperties;
-import com.lambda.fusion.dict.common.enums.DictContextHolders;
-import com.lambda.fusion.dict.common.model.DynamicDict;
-import com.lambda.fusion.dict.common.resolve.IDynamicDictResolve;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
-import com.lambda.fusion.dict.model.dto.QueryDictTree;
-import com.lambda.fusion.dict.model.entity.DictType;
-import com.lambda.fusion.dict.model.vo.DictInfoVO;
+import com.lambda.fusion.dict.model.DictTypeTree;
+import com.lambda.fusion.dict.model.DictionaryEntry;
+import com.lambda.fusion.dict.model.QueryDictTree;
 import com.lambda.fusion.dict.service.DictTypeService;
+import com.lambda.fusion.dict.support.enums.DictionaryRegistry;
+import com.lambda.fusion.dict.support.model.DynamicDictionarySource;
+import com.lambda.fusion.dict.support.resolve.DictionarySourceResolver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,7 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(rollbackFor = Exception.class)
 @RequiredArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> implements DictTypeService {
+public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTree> implements DictTypeService {
 
     private final DictTypeMapper dictTypeMapper;
 
@@ -49,19 +49,19 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
 
     private final TreeDataFilter treeDataFilter;
 
-    private final List<IDynamicDictResolve> dynamicDictResolves;
+    private final List<DictionarySourceResolver> dynamicDictResolves;
 
     private final DictionaryProperties dictionaryProperties;
 
     @Override
-    public DictType saveDictType(DictType source) {
+    public DictTypeTree saveDictType(DictTypeTree source) {
         source.setId(IdUtil.getSnowflakeNextIdStr());
         source.setDictType(Optional.ofNullable(source.getDictType()).orElse(source.getId()));
         Assert.notNull(source, "字典类型不能为空");
         Assert.hasText(source.getDictName(), "字典名称不存在");
         Assert.isFalse(dictTypeExists(source), MSG_DICT_TYPE_NOT_EXISTED);
         if (StringUtils.isNotBlank(source.getParentId())) {
-            DictType parent = dictTypeMapper.selectById(source.getParentId());
+            DictTypeTree parent = dictTypeMapper.selectById(source.getParentId());
             if (null != parent) {
                 source.setParentKeys(parent.buildParentKeys());
                 source.setLevel(parent.getLevel() + 1);
@@ -77,27 +77,27 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
     }
 
     @Override
-    public void updateDictType(DictType source) {
+    public void updateDictType(DictTypeTree source) {
         Assert.notNull(source.getId(), MSG_DICT_ID_NOT_EMPTY);
         Assert.hasText(source.getDictName(), MSG_DICT_NAME_NOT_EMPTY);
         Assert.isFalse(dictTypeExists(source), MSG_DICT_TYPE_EXISTED);
         dictTypeMapper.updateById(source);
     }
 
-    public boolean dictTypeExists(DictType dictType) {
-        LambdaQueryWrapper<DictType> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(DictType::getDictType, dictType.getDictType())
+    public boolean dictTypeExists(DictTypeTree dictTypeTree) {
+        LambdaQueryWrapper<DictTypeTree> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(DictTypeTree::getDictType, dictTypeTree.getDictType())
                 .or()
-                .eq(DictType::getDictName, dictType.getDictName());
-        DictType target = dictTypeMapper.selectOne(wrapper);
-        return target != null && !target.getId().equals(dictType.getId());
+                .eq(DictTypeTree::getDictName, dictTypeTree.getDictName());
+        DictTypeTree target = dictTypeMapper.selectOne(wrapper);
+        return target != null && !target.getId().equals(dictTypeTree.getId());
     }
 
-    public List<DictType> staticTreeList(QueryDictTree queryDictTree) {
+    public List<DictTypeTree> staticTreeList(QueryDictTree queryDictTree) {
         String type = queryDictTree.getType();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(3);
         if (StringUtils.isNotBlank(type)) {
-            DictType conditions = dictTypeMapper.selectOne(new QueryWrapper<DictType>().eq("dict_type", type));
+            DictTypeTree conditions = dictTypeMapper.selectOne(new QueryWrapper<DictTypeTree>().eq("dict_type", type));
             Assert.notNull(conditions, MSG_DICT_TYPE_NOT_EXISTED);
             String key = conditions.getParentKeys();
             if (StringUtils.isNotBlank(key)) {
@@ -113,7 +113,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
     }
 
     @Override
-    public List<DictType> dynamicTreeList(QueryDictTree queryDictTree) {
+    public List<DictTypeTree> dynamicTreeList(QueryDictTree queryDictTree) {
         String type = queryDictTree.getType();
         String name = queryDictTree.getName();
         Integer dataType = queryDictTree.getDataType();
@@ -122,12 +122,12 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
             parameters.put("name", ParameterUtils.fuzzyQuery(name));
         }
 
-        List<DictType> result = new ArrayList<>();
+        List<DictTypeTree> result = new ArrayList<>();
         if (dataType == null || dataType.equals(DATA_TYPE_ENUM)) {
             // 枚举字典
             if (StringUtils.isNotBlank(type)) {
-                DictType conditions =
-                        dictTypeMapper.selectOne(new LambdaQueryWrapper<DictType>().eq(DictType::getDictType, type));
+                DictTypeTree conditions = dictTypeMapper.selectOne(
+                        new LambdaQueryWrapper<DictTypeTree>().eq(DictTypeTree::getDictType, type));
                 if (Objects.nonNull(conditions)) {
                     String key = conditions.getParentKeys();
                     if (StringUtils.isNotBlank(key)) {
@@ -140,10 +140,10 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
                 }
                 getEnumDict(queryDictTree, name, result);
             } else {
-                final List<DictType> enumList = DictContextHolders.getDictTypeList();
+                final List<DictTypeTree> enumList = DictionaryRegistry.getDictTypeList();
                 if (CollectionUtils.isNotEmpty(enumList)) {
                     if (StringUtils.isNotBlank(name)) {
-                        List<DictType> list = enumList.stream()
+                        List<DictTypeTree> list = enumList.stream()
                                 .filter(enumDict -> StringUtils.contains(enumDict.getDictName(), name))
                                 .toList();
                         result.addAll(list);
@@ -159,28 +159,28 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
             parameters.put("userOnly", queryDictTree.isUserOnly());
             result.addAll(dictTypeMapper.treeList(parameters));
         }
-        final List<DictType> typeList = treeDataFilter.filter(
+        final List<DictTypeTree> typeList = treeDataFilter.filter(
                 result,
                 queryDictTree.getType(),
-                DictType::getDictType,
-                DictType::getId,
-                DictType::getParentKeys,
+                DictTypeTree::getDictType,
+                DictTypeTree::getId,
+                DictTypeTree::getParentKeys,
                 target -> target.stream()
-                        .sorted(Comparator.comparing(DictType::getDictName))
+                        .sorted(Comparator.comparing(DictTypeTree::getDictName))
                         .collect(Collectors.toList()));
-        typeList.sort(Comparator.comparing(DictType::getLevel));
+        typeList.sort(Comparator.comparing(DictTypeTree::getLevel));
         return TreeBuilder.build(typeList);
     }
 
-    private void getEnumDict(QueryDictTree queryDictTree, String name, List<DictType> result) {
-        final DictType enumDictType = DictContextHolders.getDictType(queryDictTree.getType());
-        if (Objects.nonNull(enumDictType)) {
+    private void getEnumDict(QueryDictTree queryDictTree, String name, List<DictTypeTree> result) {
+        final DictTypeTree enumDictTypeTree = DictionaryRegistry.getDictType(queryDictTree.getType());
+        if (Objects.nonNull(enumDictTypeTree)) {
             if (StringUtils.isNotBlank(name)) {
-                if (StringUtils.contains(enumDictType.getDictName(), name)) {
-                    result.add(enumDictType);
+                if (StringUtils.contains(enumDictTypeTree.getDictName(), name)) {
+                    result.add(enumDictTypeTree);
                 }
             } else {
-                result.add(enumDictType);
+                result.add(enumDictTypeTree);
             }
         }
     }
@@ -188,25 +188,26 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
     @Override
     public void deleteDictType(String id) {
         if (!dictionaryProperties.isAllowedCascadeDelete()) {
-            List<DictType> types = dictTypeMapper.selectList(
-                    Wrappers.lambdaQuery(DictType.class).eq(DictType::getParentId, id));
+            List<DictTypeTree> types = dictTypeMapper.selectList(
+                    Wrappers.lambdaQuery(DictTypeTree.class).eq(DictTypeTree::getParentId, id));
             Assert.isTrue(types.isEmpty(), MSG_DICT_EXISTED_CHILD_TYPE);
         }
         Set<String> dictTypeIds = new HashSet<>(16);
         Set<String> dictTypes = new HashSet<>(16);
-        List<DictType> cascadeDictType = dictTypeMapper.selectList(
-                new LambdaQueryWrapper<DictType>().eq(StrUtil.isNotEmpty(id), DictType::getId, id));
-        if (CollectionUtils.isNotEmpty(cascadeDictType)) {
-            List<DictType> flatList = new ArrayList<>();
+        List<DictTypeTree> cascadeDictTypeTree = dictTypeMapper.selectList(
+                new LambdaQueryWrapper<DictTypeTree>().eq(StrUtil.isNotEmpty(id), DictTypeTree::getId, id));
+        if (CollectionUtils.isNotEmpty(cascadeDictTypeTree)) {
+            List<DictTypeTree> flatList = new ArrayList<>();
             // 拍平所有子节点
-            flatMap(cascadeDictType, flatList, DictType::getChildren);
+            flatMap(cascadeDictTypeTree, flatList, DictTypeTree::getChildren);
             flatList.forEach(dictType -> {
                 dictTypeIds.add(dictType.getId());
                 dictTypes.add(dictType.getDictType());
             });
         }
         if (CollectionUtils.isNotEmpty(dictTypes)) {
-            dictInfoMapper.delete(Wrappers.lambdaQuery(DictInfoVO.class).in(DictInfoVO::getDictType, dictTypes));
+            dictInfoMapper.delete(
+                    Wrappers.lambdaQuery(DictionaryEntry.class).in(DictionaryEntry::getDictType, dictTypes));
         }
         if (CollectionUtils.isNotEmpty(dictTypeIds)) {
             dictTypeMapper.deleteByIds(dictTypeIds);
@@ -235,60 +236,63 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictType> i
     }
 
     @Override
-    public List<DictType> getDictTypeList(String type) {
+    public List<DictTypeTree> getDictTypeList(String type) {
         return dictTypeMapper.getDictTypeList(StringUtils.isNotBlank(type) ? ParameterUtils.fuzzyQuery(type) : type);
     }
 
     @Override
-    public DictType dynamicDict(String dictTypeId) {
-        final DictType dictType = getById(dictTypeId);
+    public DictTypeTree dynamicDict(String dictTypeId) {
+        final DictTypeTree dictTypeTree = getById(dictTypeId);
         try {
-            for (IDynamicDictResolve dynamicDictResolve : dynamicDictResolves) {
-                if (dynamicDictResolve.isSupport(dictType.getDataType())) {
-                    final List<DynamicDict> list = dynamicDictResolve.doResolve(dictType);
-                    List<DictInfoVO> dictInfoVOS = new ArrayList<>(list.size());
+            for (DictionarySourceResolver dynamicDictResolve : dynamicDictResolves) {
+                if (dynamicDictResolve.isSupport(dictTypeTree.getDataType())) {
+                    final List<DynamicDictionarySource> list = dynamicDictResolve.doResolve(dictTypeTree);
+                    List<DictionaryEntry> dictionaryEntries = new ArrayList<>(list.size());
                     AtomicBoolean hasRank = new AtomicBoolean(false);
                     if (CollectionUtils.isNotEmpty(list)) {
                         list.forEach(v -> {
-                            final DictInfoVO dictInfoVO = new DictInfoVO();
-                            dictInfoVO.setId(
+                            final DictionaryEntry dictionaryEntry = new DictionaryEntry();
+                            dictionaryEntry.setId(
                                     StringUtils.isNotBlank(v.getId())
                                             ? v.getId()
                                             : v.getVal().toString());
-                            dictInfoVO.setDictType(dictType.getDictType());
-                            dictInfoVO.setDictName(dictType.getDictName());
-                            dictInfoVO.setFieldType(v.getVal().toString());
-                            dictInfoVO.setFieldName(v.getKey());
-                            dictInfoVO.setParentId(v.getPid());
-                            dictInfoVO.setSelectable(v.getSelectable());
+                            dictionaryEntry.setDictType(dictTypeTree.getDictType());
+                            dictionaryEntry.setDictName(dictTypeTree.getDictName());
+                            dictionaryEntry.setFieldType(v.getVal().toString());
+                            dictionaryEntry.setFieldName(v.getKey());
+                            dictionaryEntry.setParentId(v.getPid());
+                            dictionaryEntry.setSelectable(v.getSelectable());
                             if (v.getLevel() != null) {
                                 hasRank.set(true);
-                                dictInfoVO.setLevel(v.getLevel());
+                                dictionaryEntry.setLevel(v.getLevel());
                             }
-                            dictInfoVOS.add(dictInfoVO);
+                            dictionaryEntries.add(dictionaryEntry);
                         });
                     }
-                    List<DictInfoVO> dictInfoVOList;
+                    List<DictionaryEntry> dictionaryEntryList;
                     if (hasRank.get()) {
                         // 有级别
-                        dictInfoVOList = TreeBuilder.build3(
-                                dictInfoVOS,
-                                DictInfoVO::getId,
-                                DictInfoVO::getParentId,
-                                DictInfoVO::level,
-                                DictInfoVO::setChildren);
+                        dictionaryEntryList = TreeBuilder.build3(
+                                dictionaryEntries,
+                                DictionaryEntry::getId,
+                                DictionaryEntry::getParentId,
+                                DictionaryEntry::level,
+                                DictionaryEntry::setChildren);
                     } else {
                         // 无级别
-                        dictInfoVOList = TreeBuilder.build2(
-                                dictInfoVOS, DictInfoVO::getId, DictInfoVO::getParentId, DictInfoVO::setChildren);
+                        dictionaryEntryList = TreeBuilder.build2(
+                                dictionaryEntries,
+                                DictionaryEntry::getId,
+                                DictionaryEntry::getParentId,
+                                DictionaryEntry::setChildren);
                     }
-                    dictType.setData(dictInfoVOList);
+                    dictTypeTree.setData(dictionaryEntryList);
                     break;
                 }
             }
         } catch (Exception e) {
             log.error("解析动态字典异常 ", e);
         }
-        return dictType;
+        return dictTypeTree;
     }
 }

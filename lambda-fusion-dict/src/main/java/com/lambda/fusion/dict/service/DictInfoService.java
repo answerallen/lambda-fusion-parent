@@ -3,11 +3,11 @@ package com.lambda.fusion.dict.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.dict.model.dto.DictInfoQueryDTO;
-import com.lambda.fusion.dict.model.dto.DictStateOperationDTO;
-import com.lambda.fusion.dict.model.entity.DictInfoEntity;
-import com.lambda.fusion.dict.model.vo.DictInfoVO;
-import com.lambda.fusion.dict.model.vo.DictTypeVO;
+import com.lambda.fusion.dict.model.DictInfoEntity;
+import com.lambda.fusion.dict.model.DictionaryEntry;
+import com.lambda.fusion.dict.model.DictionaryType;
+import com.lambda.fusion.dict.model.OperationDictState;
+import com.lambda.fusion.dict.model.QueryDictInfo;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +16,7 @@ import java.util.Map;
  *
  * @author Jin
  */
-public interface DictInfoService extends IService<DictInfoVO> {
+public interface DictInfoService extends IService<DictionaryEntry> {
 
     /**
      * 分页查询字典信息
@@ -25,7 +25,7 @@ public interface DictInfoService extends IService<DictInfoVO> {
      * @param queryDTO 查询条件
      * @return 分页结果
      */
-    Page<DictInfoVO> page(Page<DictInfoVO> pageable, DictInfoQueryDTO queryDTO);
+    Page<DictionaryEntry> page(Page<DictionaryEntry> pageable, QueryDictInfo queryDTO);
 
     /**
      * 根据条件查询字典信息列表
@@ -33,16 +33,16 @@ public interface DictInfoService extends IService<DictInfoVO> {
      * @param queryDTO 查询条件
      * @return 字典信息列表
      */
-    List<DictInfoVO> selectDictInfo(DictInfoQueryDTO queryDTO);
+    List<DictionaryEntry> selectDictInfo(QueryDictInfo queryDTO);
 
     /**
      * 新增数据字典详细信息
      *
      * @param operator
-     * @param dictInfoVO
+     * @param dictionaryEntry
      * @return
      */
-    DictInfoVO saveDictInfo(LoginUser operator, DictInfoVO dictInfoVO);
+    DictionaryEntry saveDictInfo(LoginUser operator, DictionaryEntry dictionaryEntry);
 
     /**
      * 更新数据字典详细信息
@@ -51,21 +51,21 @@ public interface DictInfoService extends IService<DictInfoVO> {
      * @param dictInfoVO
      * @return
      */
-    DictInfoVO updateDictInfo(String id, DictInfoEntity dictInfoVO);
+    DictionaryEntry updateDictInfo(String id, DictInfoEntity dictInfoVO);
 
     /**
      * 修改字典启用状态
      *
      * @param operationDTO 状态操作参数
      */
-    void updateEnableState(DictStateOperationDTO operationDTO);
+    void updateEnableState(OperationDictState operationDTO);
 
     /**
      * 修改字典可选择状态
      *
      * @param operationDTO 状态操作参数
      */
-    void updateSelectableState(DictStateOperationDTO operationDTO);
+    void updateSelectableState(OperationDictState operationDTO);
 
     /**
      * 获取已启用的静态字典分组
@@ -81,7 +81,7 @@ public interface DictInfoService extends IService<DictInfoVO> {
      * @param dictType 字典类型，支持模糊查询
      * @return 动态字典分组数据
      */
-    Map<String, DictTypeVO> getDynamicDictInfoGroup(String dictType);
+    Map<String, DictionaryType> getDynamicDictInfoGroup(String dictType);
 
     /**
      * 根据字典类型获取树型结构数据
@@ -89,7 +89,7 @@ public interface DictInfoService extends IService<DictInfoVO> {
      * @param dictType 字典类型
      * @return 树型结构的字典数据
      */
-    List<DictInfoVO> getTreeData(String dictType);
+    List<DictionaryEntry> getTreeData(String dictType);
 
     /**
      * 根据字典类型查询包含子集的树型数据
@@ -97,7 +97,7 @@ public interface DictInfoService extends IService<DictInfoVO> {
      * @param dictType 字典类型
      * @return 包含子集的树型字典数据
      */
-    List<DictInfoVO> getSubTreeData(String dictType);
+    List<DictionaryEntry> getSubTreeData(String dictType);
 
     /**
      * 根据父级ID查询子级字典数据
@@ -105,7 +105,7 @@ public interface DictInfoService extends IService<DictInfoVO> {
      * @param parentId 父级ID
      * @return 子级字典数据列表
      */
-    List<DictInfoVO> getDictInfoByParentId(String parentId);
+    List<DictionaryEntry> getDictInfoByParentId(String parentId);
 
     /**
      * 根据ID删除字典信息
