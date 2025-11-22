@@ -1,7 +1,7 @@
 package com.lambda.fusion.config.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.config.domain.entity.ConfigOptionEntity;
+import com.lambda.fusion.config.model.ConfigOptionEntity;
 import com.lambda.fusion.config.mapper.ConfigOptionMapper;
 import com.lambda.fusion.config.service.ConfigOptionService;
 import org.springframework.stereotype.Service;

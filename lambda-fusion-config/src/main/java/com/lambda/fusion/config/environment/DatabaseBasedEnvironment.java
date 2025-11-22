@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.core;
+package com.lambda.fusion.config.environment;
 
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.StandardEnvironment;

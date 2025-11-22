@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.core;
+package com.lambda.fusion.config.datasource;
 
 import static com.lambda.fusion.config.ConfigConstants.Database.*;
 

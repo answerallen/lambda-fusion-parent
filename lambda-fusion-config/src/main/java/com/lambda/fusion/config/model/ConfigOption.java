@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.domain.vo;
+package com.lambda.fusion.config.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,7 +12,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @Schema(description = "选项信息")
-public class ConfigOptionVO {
+public class ConfigOption {
 
     @NotEmpty
     private String id;

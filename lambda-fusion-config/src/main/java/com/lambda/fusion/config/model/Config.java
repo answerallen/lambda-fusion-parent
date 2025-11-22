@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.domain.vo;
+package com.lambda.fusion.config.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -14,7 +14,7 @@ import lombok.ToString;
 @ToString
 @Schema(description = "配置信息")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class ConfigVO {
+public class Config {
 
     @Schema(description = "配置信息键")
     private String key;
@@ -33,7 +33,7 @@ public class ConfigVO {
 
     @Valid
     @Schema(description = "配置选项信息")
-    private List<ConfigOptionVO> options;
+    private List<ConfigOption> options;
 
     @Schema(description = "模块名称")
     @JsonProperty(value = "module")

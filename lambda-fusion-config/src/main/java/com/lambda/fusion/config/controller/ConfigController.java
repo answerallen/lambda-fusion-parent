@@ -4,10 +4,10 @@ import cn.dev33.satoken.annotation.SaCheckRole;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.cloud.logger.context.LogContext;
-import com.lambda.fusion.config.core.DatabaseContextRefresher;
-import com.lambda.fusion.config.domain.dto.*;
-import com.lambda.fusion.config.domain.entity.ConfigEntity;
-import com.lambda.fusion.config.domain.entity.ConfigOptionEntity;
+import com.lambda.fusion.config.refresh.DatabaseContextRefresher;
+import com.lambda.fusion.config.model.*;
+import com.lambda.fusion.config.model.ConfigEntity;
+import com.lambda.fusion.config.model.ConfigOptionEntity;
 import com.lambda.fusion.config.service.ConfigChangedService;
 import com.lambda.fusion.config.service.ConfigOptionService;
 import com.lambda.fusion.config.service.ConfigService;
@@ -91,11 +91,11 @@ public class ConfigController {
      *
      * @param number 当前页码，可选，默认1，必须为正整数
      * @param size 每页条数，可选，默认20，必须为正整数
-     * @param configPageQueryDTO 查询条件DTO，包含配置名称、应用名称等查询条件，支持参数校验
+     * @param queryConfigPageDTO 查询条件DTO，包含配置名称、应用名称等查询条件，支持参数校验
      * @return 分页结果，包含配置实体列表和分页元数据
      *
      * @throws IllegalArgumentException 当分页参数不合法时抛出
-     * @see ConfigPageQueryDTO 查询条件参数说明
+     * @see QueryConfigPage 查询条件参数说明
      * @see Page MyBatis-Plus分页对象
      * @since 1.0.0
      */
@@ -104,14 +104,14 @@ public class ConfigController {
     public Page<ConfigEntity> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
-            @Valid ConfigPageQueryDTO configPageQueryDTO) {
+            @Valid QueryConfigPage queryConfigPageDTO) {
         if (number != null) {
-            configPageQueryDTO.setPageNum(number);
+            queryConfigPageDTO.setPageNum(number);
         }
         if (size != null) {
-            configPageQueryDTO.setPageSize(size);
+            queryConfigPageDTO.setPageSize(size);
         }
-        return configService.page(configPageQueryDTO.getPage(), configPageQueryDTO.getLambdaQueryWrapper());
+        return configService.page(queryConfigPageDTO.getPage(), queryConfigPageDTO.getLambdaQueryWrapper());
     }
 
     /**
@@ -146,12 +146,12 @@ public class ConfigController {
      * @return 配置实体列表，如果没有匹配结果则返回空列表，不返回null
      *
      * @throws IllegalArgumentException 当参数格式错误时抛出
-     * @see ConfigListQueryDTO 查询条件详细说明
+     * @see QueryConfigList 查询条件详细说明
      * @since 1.0.0
      */
     @Operation(summary = "查询配置列表", description = "支持按键名、ID列表、键列表等多种条件组合查询，用于前端组件数据加载和配置筛选")
     @GetMapping
-    public List<ConfigEntity> listConfigs(@Valid ConfigListQueryDTO queryDTO) {
+    public List<ConfigEntity> listConfigs(@Valid QueryConfigList queryDTO) {
         // 兼容性处理：将逗号分隔的字符串参数转换为List格式
         if (queryDTO.getIds() == null && StringUtils.isNotBlank(queryDTO.getIdsString())) {
             queryDTO.setIds(Arrays.asList(queryDTO.getIdsString().split(",")));
@@ -200,14 +200,14 @@ public class ConfigController {
      * @param source 配置保存DTO，包含配置基本信息和选项，必须通过参数校验
      * @return 保存后的完整配置实体，包含生成的ID和创建时间
      *
-     * @see ConfigSaveDTO 保存参数详细说明
+     * @see SaveConfig 保存参数详细说明
      * @since 1.0.0
      */
     @OperationLog
     @SaCheckRole("ROLE_DEV")
     @PostMapping("/manager")
     @Operation(summary = "新增配置信息", description = "创建新的系统配置项，支持配置选项，需要开发者权限")
-    public ConfigEntity save(@RequestBody @Valid ConfigSaveDTO source) {
+    public ConfigEntity save(@RequestBody @Valid SaveConfig source) {
         // 自动设置应用名称，实现配置隔离
         source.setApplication(application);
         return configService.saveConfigWithOptions(source);
@@ -242,7 +242,7 @@ public class ConfigController {
      * @param updateDTO 配置更新DTO，支持增量更新，通过参数校验
      * @return 更新后的完整配置实体
      *
-     * @see ConfigUpdateDTO 更新参数详细说明
+     * @see UpdateConfig 更新参数详细说明
      */
     @OperationLog
     @SaCheckRole("ROLE_DEV")
@@ -250,7 +250,7 @@ public class ConfigController {
     @Operation(summary = "更新配置信息", description = "支持增量更新配置基本信息和选项，需要开发者权限")
     public ConfigEntity updateConfig(
             @Parameter(description = "配置ID，不能为空", required = true) @PathVariable String id,
-            @Parameter(description = "配置更新信息", required = true) @RequestBody @Valid ConfigUpdateDTO updateDTO) {
+            @Parameter(description = "配置更新信息", required = true) @RequestBody @Valid UpdateConfig updateDTO) {
         updateDTO.setId(id);
         return configService.updateConfigWithOptions(updateDTO);
     }
@@ -402,17 +402,17 @@ public class ConfigController {
      * <li>微服务间配置共享</li>
      * </ul>
      *
-     * @param configQueryDTO 批量查询参数，包含应用名称和ID列表
+     * @param queryConfig 批量查询参数，包含应用名称和ID列表
      * @return 配置实体列表，按键名排序
      *
      * @throws IllegalArgumentException 当参数不合法时抛出
-     * @see ConfigQueryDTO 批量查询参数说明
+     * @see QueryConfig 批量查询参数说明
      * @since 1.0.0
      */
     @Operation(summary = "批量查询配置列表", description = "根据应用名称和ID列表批量查询配置，用于系统间配置同步")
     @PostMapping("/batch")
-    public List<ConfigEntity> batchQueryConfigs(@RequestBody @Valid ConfigQueryDTO configQueryDTO) {
-        return configService.batchQueryConfigs(configQueryDTO);
+    public List<ConfigEntity> batchQueryConfigs(@RequestBody @Valid QueryConfig queryConfig) {
+        return configService.batchQueryConfigs(queryConfig);
     }
 
     /**
@@ -440,9 +440,9 @@ public class ConfigController {
     @GetMapping("/systems")
     @Operation(summary = "查询当前系统配置", description = "获取当前应用的所有配置信息，用于运维和监控")
     public List<ConfigEntity> getSystemConfig() {
-        ConfigQueryDTO configQueryDTO = new ConfigQueryDTO();
-        configQueryDTO.setApplication(application);
-        return configService.batchQueryConfigs(configQueryDTO);
+        QueryConfig queryConfig = new QueryConfig();
+        queryConfig.setApplication(application);
+        return configService.batchQueryConfigs(queryConfig);
     }
 
     /**
@@ -483,12 +483,12 @@ public class ConfigController {
      * @param batchUpdateDTO 批量更新参数，包含应用名称和配置更新项列表
      *
      * @throws IllegalArgumentException 当参数不合法时抛出
-     * @see ConfigBatchUpdateDTO 批量更新参数说明
+     * @see BatchUpdateConfig 批量更新参数说明
      * @since 1.0.0
      */
     @PutMapping("/batch")
     @Operation(summary = "批量更新系统配置", description = "批量更新配置值并触发动态刷新，用于运维人员和管理员")
-    public void batchUpdateConfigs(@RequestBody @Valid ConfigBatchUpdateDTO batchUpdateDTO) {
+    public void batchUpdateConfigs(@RequestBody @Valid BatchUpdateConfig batchUpdateDTO) {
         configService.batchUpdateConfigs(batchUpdateDTO);
         // 执行配置变更后续处理
         configChangedService.execute();

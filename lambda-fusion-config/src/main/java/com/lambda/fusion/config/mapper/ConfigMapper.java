@@ -2,8 +2,8 @@ package com.lambda.fusion.config.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.config.domain.dto.ConfigPageQueryDTO;
-import com.lambda.fusion.config.domain.entity.ConfigEntity;
+import com.lambda.fusion.config.model.QueryConfigPage;
+import com.lambda.fusion.config.model.ConfigEntity;
 import java.util.Collection;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
@@ -25,9 +25,9 @@ public interface ConfigMapper extends BaseMapper<ConfigEntity> {
      * 分页查询配置项
      *
      * @param pagination         分页信息
-     * @param configPageQueryDTO 查询参数
+     * @param queryConfigPageDTO 查询参数
      */
-    Page<ConfigEntity> selectConfigPage(Page<ConfigEntity> pagination, ConfigPageQueryDTO configPageQueryDTO);
+    Page<ConfigEntity> selectConfigPage(Page<ConfigEntity> pagination, QueryConfigPage queryConfigPageDTO);
 
     /**
      * 根据ID查询配置详情

@@ -9,9 +9,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Lists;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.logger.context.LogContext;
-import com.lambda.fusion.config.domain.dto.*;
-import com.lambda.fusion.config.domain.entity.ConfigEntity;
-import com.lambda.fusion.config.domain.entity.ConfigOptionEntity;
+import com.lambda.fusion.config.model.*;
+import com.lambda.fusion.config.model.ConfigEntity;
+import com.lambda.fusion.config.model.ConfigOptionEntity;
 import com.lambda.fusion.config.mapper.ConfigMapper;
 import com.lambda.fusion.config.mapper.ConfigOptionMapper;
 import com.lambda.fusion.config.service.ConfigService;
@@ -111,7 +111,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      */
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-    public Page<ConfigEntity> pageConfigs(Page<ConfigEntity> page, ConfigPageQueryDTO queryParams) {
+    public Page<ConfigEntity> pageConfigs(Page<ConfigEntity> page, QueryConfigPage queryParams) {
         // 预处理模糊查询参数
         if (StringUtils.isNotBlank(queryParams.getName())) {
             queryParams.setName(fuzzyQuery(queryParams.getName()));
@@ -182,7 +182,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      */
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-    public List<ConfigEntity> listConfigs(ConfigListQueryDTO queryDTO) {
+    public List<ConfigEntity> listConfigs(QueryConfigList queryDTO) {
         // 构建类型安全的查询条件
         LambdaQueryWrapper<ConfigEntity> queryWrapper = Wrappers.lambdaQuery(ConfigEntity.class);
 
@@ -240,7 +240,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      */
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-    public List<ConfigEntity> batchQueryConfigs(ConfigQueryDTO queryDTO) {
+    public List<ConfigEntity> batchQueryConfigs(QueryConfig queryDTO) {
         return configMapper.selectAllSystemConfigs(queryDTO.getApplication(), queryDTO.getIds());
     }
 
@@ -329,12 +329,12 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      *
      */
     @Override
-    public boolean batchUpdateConfigs(ConfigBatchUpdateDTO updateDTO) {
+    public boolean batchUpdateConfigs(BatchUpdateConfig updateDTO) {
         try {
             if (CollectionUtils.isNotEmpty(updateDTO.getConfigs())) {
                 List<ConfigEntity> updatedConfigs = Lists.newArrayList();
                 // 遍历更新项，构建实体对象
-                for (ConfigBatchUpdateDTO.ConfigUpdateItem item : updateDTO.getConfigs()) {
+                for (BatchUpdateConfig.ConfigUpdateItem item : updateDTO.getConfigs()) {
                     ConfigEntity entity = new ConfigEntity();
                     entity.setId(item.getId());
                     entity.setValue(item.getValue());
@@ -408,7 +408,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      * @see LogContext#setDetail(String) 操作日志记录
      */
     @Override
-    public ConfigEntity updateConfigWithOptions(ConfigUpdateDTO updateDTO) {
+    public ConfigEntity updateConfigWithOptions(UpdateConfig updateDTO) {
         // 查询并验证目标配置存在性
         ConfigEntity target = configMapper.selectConfigById(updateDTO.getId());
         Assert.notNull(target, "lambda.fusion.config.not.found");
@@ -444,7 +444,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
             }
 
             // 创建新的选项
-            for (ConfigSaveDTO.ConfigOptionDTO optionDTO : updateDTO.getOptions()) {
+            for (SaveConfig.ConfigOptionDTO optionDTO : updateDTO.getOptions()) {
                 ConfigOptionEntity optionEntity = new ConfigOptionEntity();
                 optionEntity.setApplication(target.getApplication());
                 optionEntity.setPid(target.getId());
@@ -524,7 +524,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      * @see Assert#isFalse(boolean, String) 业务断言工具
      */
     @Override
-    public ConfigEntity saveConfigWithOptions(ConfigSaveDTO saveDTO) {
+    public ConfigEntity saveConfigWithOptions(SaveConfig saveDTO) {
         String application = saveDTO.getApplication();
 
         // 检查配置键的唯一性
@@ -545,7 +545,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
 
         // 批量保存配置选项
         if (CollectionUtils.isNotEmpty(saveDTO.getOptions())) {
-            for (ConfigSaveDTO.ConfigOptionDTO optionDTO : saveDTO.getOptions()) {
+            for (SaveConfig.ConfigOptionDTO optionDTO : saveDTO.getOptions()) {
                 ConfigOptionEntity optionEntity = new ConfigOptionEntity();
                 optionEntity.setApplication(application);
                 optionEntity.setPid(target.getId());

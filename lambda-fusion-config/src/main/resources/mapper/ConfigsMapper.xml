@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.lambda.fusion.config.mapper.ConfigMapper">
-    <resultMap id="ConfigEntityMap" type="com.lambda.fusion.config.domain.entity.ConfigEntity">
+    <resultMap id="ConfigEntityMap" type="com.lambda.fusion.config.model.ConfigEntity">
         <id column="PROPERTY_ID" property="id"/>
         <result column="PROPERTY_NAME" property="name"/>
         <result column="PROPERTY_KEY" property="key"/>
@@ -10,7 +10,7 @@
         <result column="PROPERTY_TYPE" property="type"/>
         <result column="PROPERTY_DESC" property="description"/>
         <result column="APPLICATION" property="application"/>
-        <collection property="options" ofType="com.lambda.fusion.config.domain.entity.ConfigOptionEntity">
+        <collection property="options" ofType="com.lambda.fusion.config.model.ConfigOptionEntity">
             <id column="OPTION_ID" property="id"/>
             <result column="OPTION_NAME" property="name"/>
             <result column="OPTION_VALUE" property="value"/>
@@ -20,7 +20,7 @@
         </collection>
     </resultMap>
 
-    <resultMap id="ConfigVOMap" type="com.lambda.fusion.config.domain.vo.ConfigVO">
+    <resultMap id="ConfigVOMap" type="com.lambda.fusion.config.model.Config">
         <id column="PROPERTY_ID" property="id"/>
         <result column="PROPERTY_NAME" property="name"/>
         <result column="PROPERTY_KEY" property="key"/>
@@ -28,7 +28,7 @@
         <result column="PROPERTY_TYPE" property="type"/>
         <result column="PROPERTY_DESC" property="description"/>
         <result column="APPLICATION" property="application"/>
-        <collection property="options" ofType="com.lambda.fusion.config.domain.vo.ConfigOptionVO">
+        <collection property="options" ofType="com.lambda.fusion.config.model.ConfigOption">
             <id column="OPTION_ID" property="id"/>
             <result column="OPTION_NAME" property="name"/>
             <result column="OPTION_VALUE" property="value"/>

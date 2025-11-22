@@ -1,9 +1,8 @@
-package com.lambda.fusion.config.domain.dto;
+package com.lambda.fusion.config.model;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.lambda.fusion.config.domain.entity.ConfigEntity;
-import com.lambda.fusion.core.pagination.PaginationDTO;
+import com.lambda.fusion.core.pagination.Pagination;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -25,7 +24,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "配置分页查询参数")
-public class ConfigPageQueryDTO extends PaginationDTO<ConfigEntity> {
+public class QueryConfigPage extends Pagination<ConfigEntity> {
 
     @Schema(description = "配置信息键，支持模糊查询")
     private String key;

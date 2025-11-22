@@ -3,8 +3,8 @@ package com.lambda.fusion.config.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.config.domain.dto.*;
-import com.lambda.fusion.config.domain.entity.ConfigEntity;
+import com.lambda.fusion.config.model.*;
+import com.lambda.fusion.config.model.ConfigEntity;
 import java.util.List;
 
 /**
@@ -68,11 +68,11 @@ public interface ConfigService extends IService<ConfigEntity> {
      * @return 分页结果，包含配置实体列表和分页元数据
      *
      * @throws IllegalArgumentException 当分页参数不合法时抛出
-     * @see ConfigPageQueryDTO 分页查询条件参数说明
+     * @see QueryConfigPage 分页查询条件参数说明
      * @see Page MyBatis-Plus分页对象
      * @since 1.0.0
      */
-    Page<ConfigEntity> pageConfigs(Page<ConfigEntity> page, ConfigPageQueryDTO queryParams);
+    Page<ConfigEntity> pageConfigs(Page<ConfigEntity> page, QueryConfigPage queryParams);
 
     /**
      * 分页查询配置列表（使用LambdaQueryWrapper）
@@ -117,10 +117,10 @@ public interface ConfigService extends IService<ConfigEntity> {
      * @return 配置实体列表，如果没有匹配结果则返回空列表，不返回null
      *
      * @throws IllegalArgumentException 当参数格式错误时抛出
-     * @see ConfigListQueryDTO 查询条件详细说明
+     * @see QueryConfigList 查询条件详细说明
      * @since 1.0.0
      */
-    List<ConfigEntity> listConfigs(ConfigListQueryDTO queryDTO);
+    List<ConfigEntity> listConfigs(QueryConfigList queryDTO);
 
     /**
      * 根据条件批量查询配置列表
@@ -154,10 +154,10 @@ public interface ConfigService extends IService<ConfigEntity> {
      * @return 配置实体列表，按键名排序，包含完整的配置信息
      *
      * @throws IllegalArgumentException 当参数不合法时抛出
-     * @see ConfigQueryDTO 批量查询参数说明
+     * @see QueryConfig 批量查询参数说明
      * @since 1.0.0
      */
-    List<ConfigEntity> batchQueryConfigs(ConfigQueryDTO queryDTO);
+    List<ConfigEntity> batchQueryConfigs(QueryConfig queryDTO);
 
     /**
      * 批量更新配置
@@ -198,10 +198,10 @@ public interface ConfigService extends IService<ConfigEntity> {
      * @param updateDTO 批量更新参数，包含应用名称和配置更新项列表
      * @return 更新是否成功，true表示全部更新成功，false表示存在更新失败的项
      *
-     * @see ConfigBatchUpdateDTO 批量更新参数说明
+     * @see BatchUpdateConfig 批量更新参数说明
      * @since 1.0.0
      */
-    boolean batchUpdateConfigs(ConfigBatchUpdateDTO updateDTO);
+    boolean batchUpdateConfigs(BatchUpdateConfig updateDTO);
 
     /**
      * 更新配置及其选项
@@ -242,10 +242,10 @@ public interface ConfigService extends IService<ConfigEntity> {
      * @param updateDTO 配置更新参数，支持增量更新，通过参数校验
      * @return 更新后的完整配置实体，包含最新的选项信息
      *
-     * @see ConfigUpdateDTO 更新参数详细说明
+     * @see UpdateConfig 更新参数详细说明
      * @since 1.0.0
      */
-    ConfigEntity updateConfigWithOptions(ConfigUpdateDTO updateDTO);
+    ConfigEntity updateConfigWithOptions(UpdateConfig updateDTO);
 
     /**
      * 保存配置及其选项
@@ -295,8 +295,8 @@ public interface ConfigService extends IService<ConfigEntity> {
      * @param saveDTO 配置保存参数，包含配置基本信息和选项，必须通过参数校验
      * @return 保存后的完整配置实体，包含生成的ID和创建时间
      *
-     * @see ConfigSaveDTO 保存参数详细说明
+     * @see SaveConfig 保存参数详细说明
      * @since 1.0.0
      */
-    ConfigEntity saveConfigWithOptions(ConfigSaveDTO saveDTO);
+    ConfigEntity saveConfigWithOptions(SaveConfig saveDTO);
 }

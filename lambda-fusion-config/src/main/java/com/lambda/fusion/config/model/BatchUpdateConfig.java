@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.domain.dto;
+package com.lambda.fusion.config.model;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(description = "配置批量更新参数")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class ConfigBatchUpdateDTO {
+public class BatchUpdateConfig {
 
     @NotBlank(message = "应用名称不能为空")
     @Schema(description = "应用名称")

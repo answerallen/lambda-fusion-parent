@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.domain.dto;
+package com.lambda.fusion.config.model;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(description = "配置更新参数")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class ConfigUpdateDTO {
+public class UpdateConfig {
 
     @NotBlank(message = "配置ID不能为空")
     @Schema(description = "配置ID")
@@ -37,5 +37,5 @@ public class ConfigUpdateDTO {
     private Integer type;
 
     @Schema(description = "配置选项列表")
-    private List<ConfigSaveDTO.ConfigOptionDTO> options;
+    private List<SaveConfig.ConfigOptionDTO> options;
 }
