@@ -1,12 +1,11 @@
 package com.lambda.fusion.core.tree.builder;
 
-import com.lambda.fusion.core.tree.TreeNode;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.tree.TreeNode;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;

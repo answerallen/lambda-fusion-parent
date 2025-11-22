@@ -60,7 +60,7 @@ public class Button {
         this.name = resourceTree.getResName();
         this.key = resourceTree.getResPath();
         this.parentId = resourceTree.getParentId();
-        this.rank = resourceTree.getResRank();
+        this.rank = resourceTree.getResLevel();
         this.orderNo = resourceTree.getOrderNo();
         this.hidden = BooleanUtils.toBoolean(resourceTree.isHidden());
     }

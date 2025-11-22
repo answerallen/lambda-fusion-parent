@@ -1,10 +1,10 @@
-package com.lambda.fusion.authority.client.controller;
+package com.lambda.fusion.authority.token.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.client.model.CreateApiToken;
-import com.lambda.fusion.authority.client.model.ApiTokenQuery;
-import com.lambda.fusion.authority.client.model.ApiTokenEntity;
-import com.lambda.fusion.authority.client.service.ApiTokenService;
+import com.lambda.fusion.authority.token.model.ApiTokenEntity;
+import com.lambda.fusion.authority.token.model.ApiTokenQuery;
+import com.lambda.fusion.authority.token.model.CreateApiToken;
+import com.lambda.fusion.authority.token.service.ApiTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

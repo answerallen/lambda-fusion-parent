@@ -6,12 +6,12 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.domain.CreateOrganization;
-import com.lambda.fusion.authority.organization.domain.OrganizationQuery;
-import com.lambda.fusion.authority.organization.domain.UpdateOrganization;
-import com.lambda.fusion.authority.organization.domain.UserOrganizationChange;
-import com.lambda.fusion.authority.organization.domain.OrganizationTree;
 import com.lambda.fusion.authority.organization.domain.Organization;
+import com.lambda.fusion.authority.organization.domain.OrganizationQuery;
+import com.lambda.fusion.authority.organization.domain.OrganizationTree;
+import com.lambda.fusion.authority.organization.domain.UpdateOrganization;
 import com.lambda.fusion.authority.organization.domain.UserOrganization;
+import com.lambda.fusion.authority.organization.domain.UserOrganizationChange;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.resource.model.MoveResource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -82,7 +82,7 @@ public class OrganizationController {
     public Organization add(
             @Parameter(description = "组织编号") @PathVariable(required = false) String id,
             @Parameter(description = "组织信息", required = true) @Valid @RequestBody
-            CreateOrganization createOrganization) {
+                    CreateOrganization createOrganization) {
         if (StringUtils.isNotBlank(id)) {
             createOrganization.setParentId(id);
             Organization organization = organizationService.queryOrganizationById(id);
@@ -96,7 +96,7 @@ public class OrganizationController {
     public Organization update(
             @Parameter(description = "组织编号", required = true) @PathVariable String id,
             @Parameter(description = "组织信息", required = true) @Valid @RequestBody
-            UpdateOrganization updateOrganization) {
+                    UpdateOrganization updateOrganization) {
         Organization org = organizationService.queryOrganizationById(id);
         Assert.notNull(org, "组织机构不存在！");
         updateOrganization.setId(id);

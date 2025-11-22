@@ -52,7 +52,7 @@ public interface TreeNode<T> {
         String pid = this.id();
         String keys = this.parentKeys();
         if (StringUtils.isNotBlank(keys)) {
-            return keys +  Constants.TREE_SPLIT + pid;
+            return keys + Constants.TREE_SPLIT + pid;
         }
         return pid;
     }

@@ -9,8 +9,8 @@ import com.lambda.fusion.authority.resource.mapper.ResourceMapper;
 import com.lambda.fusion.authority.resource.model.*;
 import com.lambda.fusion.authority.role.service.RoleManager;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
+import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.user.Operator;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotNull;
@@ -378,11 +378,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     private void handler0(
-            Resource resource,
-            Resource target,
-            List<Resource> changed,
-            List<Resource> changed2,
-            String parentKeys) {
+            Resource resource, Resource target, List<Resource> changed, List<Resource> changed2, String parentKeys) {
         resource.setParentId(target.getId());
         resource.setOrderNo(1);
         resource.setResRank(target.getResRank() + 1);

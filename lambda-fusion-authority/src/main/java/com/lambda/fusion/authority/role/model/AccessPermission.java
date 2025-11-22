@@ -2,9 +2,8 @@ package com.lambda.fusion.authority.role.model;
 
 import com.lambda.fusion.core.tree.TreeNode;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
-
 import java.util.List;
+import lombok.Data;
 
 @Data
 public class AccessPermission implements TreeNode<AccessPermission> {

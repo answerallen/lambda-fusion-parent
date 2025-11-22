@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.client.model;
+package com.lambda.fusion.authority.token.model;
 
 import com.lambda.cloud.core.shared.BaseDTO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

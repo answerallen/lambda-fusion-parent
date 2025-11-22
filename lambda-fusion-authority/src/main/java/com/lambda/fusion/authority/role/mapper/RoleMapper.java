@@ -4,11 +4,11 @@ import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.role.model.AuthorityPermission;
-import com.lambda.fusion.authority.role.model.RoleEntity;
 import com.lambda.fusion.authority.role.model.AccessPermission;
+import com.lambda.fusion.authority.role.model.AuthorityPermission;
 import com.lambda.fusion.authority.role.model.Role;
 import com.lambda.fusion.authority.role.model.RoleAuthority;
+import com.lambda.fusion.authority.role.model.RoleEntity;
 import com.lambda.fusion.authority.role.model.UserAuthority;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +34,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @return
      */
     @InterceptorIgnore(tenantLine = "true")
-    Page<Role> getAllMutableRoles(
-            Page<Role> page, @Param("parameters") Map<String, Object> parameters);
+    Page<Role> getAllMutableRoles(Page<Role> page, @Param("parameters") Map<String, Object> parameters);
 
     /**
      * 根据id查询角色信息

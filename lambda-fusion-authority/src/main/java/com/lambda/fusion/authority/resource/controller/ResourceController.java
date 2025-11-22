@@ -2,10 +2,10 @@ package com.lambda.fusion.authority.resource.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.resource.model.CreateResource;
 import com.lambda.fusion.authority.resource.model.MoveResource;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
-import com.lambda.fusion.authority.resource.model.CreateResource;
 import com.lambda.fusion.authority.resource.service.ResourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -52,8 +52,7 @@ public class ResourceController {
     @PostMapping({"/{id}"})
     @Operation(summary = "新增资源信息", description = "当id为非空时新增其子资源信息")
     public Resource add(
-            @PathVariable(value = "id", required = false) String id,
-            @Validated @RequestBody CreateResource parameter) {
+            @PathVariable(value = "id", required = false) String id, @Validated @RequestBody CreateResource parameter) {
         if (StringUtils.isNotBlank(id)) {
             parameter.setParentId(id);
         }

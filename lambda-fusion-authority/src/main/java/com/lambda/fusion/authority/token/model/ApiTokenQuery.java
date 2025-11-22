@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.client.model;
+package com.lambda.fusion.authority.token.model;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.fusion.core.pagination.PaginationDTO;

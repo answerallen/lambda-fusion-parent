@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.client.model;
+package com.lambda.fusion.authority.token.model;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;

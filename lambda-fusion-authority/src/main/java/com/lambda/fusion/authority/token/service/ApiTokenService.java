@@ -1,7 +1,7 @@
-package com.lambda.fusion.authority.client.service;
+package com.lambda.fusion.authority.token.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.authority.client.model.ApiTokenEntity;
+import com.lambda.fusion.authority.token.model.ApiTokenEntity;
 
 /**
  * <p>

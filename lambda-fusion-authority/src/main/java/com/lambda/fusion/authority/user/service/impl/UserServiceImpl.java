@@ -19,11 +19,11 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.AuthorityProperties;
+import com.lambda.fusion.authority.organization.domain.OrganizationEntity;
+import com.lambda.fusion.authority.organization.domain.OrganizationSummary;
+import com.lambda.fusion.authority.organization.domain.UserOrganizationEntity;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
-import com.lambda.fusion.authority.organization.domain.OrganizationEntity;
-import com.lambda.fusion.authority.organization.domain.UserOrganizationEntity;
-import com.lambda.fusion.authority.organization.domain.OrganizationSummary;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
@@ -226,10 +226,7 @@ public class UserServiceImpl implements UserService {
      * 补充单个用户的详细信息
      */
     private void fillSingleUserInfo(
-            User user,
-            Map<String, String> orgNames,
-            Map<String, Map<String, String>> personInfo,
-            String tenantId) {
+            User user, Map<String, String> orgNames, Map<String, Map<String, String>> personInfo, String tenantId) {
         supplementUserOrgInfo(orgNames, user);
         supplementUserPersonInfo(personInfo, user);
         supplementUserLockState(user);

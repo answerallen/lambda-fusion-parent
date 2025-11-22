@@ -17,7 +17,7 @@ import org.hibernate.validator.constraints.Length;
 @TableName("LA_USER_INFO")
 @Schema(description = "用户扩展信息")
 @SuppressFBWarnings({"CT_CONSTRUCTOR_THROW"})
-public class UserInfoEntity{
+public class UserInfoEntity {
     @TableId
     @JsonIgnore
     private String userid;
@@ -74,5 +74,4 @@ public class UserInfoEntity{
     @Schema(description = "企业微信名称")
     @TableField("WECHAT_NAME")
     private String wechatName;
-
 }

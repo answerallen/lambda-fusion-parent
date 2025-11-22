@@ -31,7 +31,6 @@ import com.lambda.fusion.dict.model.entity.DictInfoGroup;
 import com.lambda.fusion.dict.model.entity.DictType;
 import com.lambda.fusion.dict.model.vo.DictInfoVO;
 import com.lambda.fusion.dict.model.vo.DictTypeVO;
-
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;

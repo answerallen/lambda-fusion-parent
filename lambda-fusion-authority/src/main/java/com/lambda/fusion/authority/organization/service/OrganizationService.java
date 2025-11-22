@@ -2,13 +2,13 @@ package com.lambda.fusion.authority.organization.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.organization.domain.CreateOrganization;
-import com.lambda.fusion.authority.organization.domain.OrganizationQuery;
-import com.lambda.fusion.authority.organization.domain.UpdateOrganization;
-import com.lambda.fusion.authority.organization.domain.UserOrganizationChange;
-import com.lambda.fusion.authority.organization.domain.OrganizationWithUser;
-import com.lambda.fusion.authority.organization.domain.OrganizationTree;
 import com.lambda.fusion.authority.organization.domain.Organization;
+import com.lambda.fusion.authority.organization.domain.OrganizationQuery;
+import com.lambda.fusion.authority.organization.domain.OrganizationTree;
+import com.lambda.fusion.authority.organization.domain.OrganizationWithUser;
+import com.lambda.fusion.authority.organization.domain.UpdateOrganization;
 import com.lambda.fusion.authority.organization.domain.UserOrganization;
+import com.lambda.fusion.authority.organization.domain.UserOrganizationChange;
 import com.lambda.fusion.authority.resource.model.MoveResource;
 import com.lambda.fusion.authority.user.model.User;
 import java.util.List;

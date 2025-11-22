@@ -7,10 +7,10 @@ import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.tenant.model.TenantQuery;
+import com.lambda.fusion.authority.tenant.model.Tenant;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
 import com.lambda.fusion.authority.tenant.model.TenantOption;
-import com.lambda.fusion.authority.tenant.model.Tenant;
+import com.lambda.fusion.authority.tenant.model.TenantQuery;
 import com.lambda.fusion.authority.tenant.service.TenantService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
@@ -104,8 +104,7 @@ public class TenantController {
     @PostMapping
     @Operation(summary = "新增租户信息信息", description = "新增租户信息信息")
     public TenantEntity save(
-            MultipartFile tenantLogo,
-            @Parameter(description = "租户信息信息", required = true) @RequestBody Tenant entity) {
+            MultipartFile tenantLogo, @Parameter(description = "租户信息信息", required = true) @RequestBody Tenant entity) {
         LoginUser operator = OperatorUtils.getOperator();
         TenantEntity target = new TenantEntity();
         BeanUtils.copyProperties(entity, target);

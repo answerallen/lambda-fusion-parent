@@ -7,13 +7,13 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.authority.role.model.AccessPermission;
 import com.lambda.fusion.authority.role.model.BatchAddRoleUser;
 import com.lambda.fusion.authority.role.model.CreateRole;
-import com.lambda.fusion.authority.role.model.UpdateRole;
-import com.lambda.fusion.authority.role.model.AccessPermission;
-import com.lambda.fusion.authority.role.model.GroupRole;
 import com.lambda.fusion.authority.role.model.Group;
+import com.lambda.fusion.authority.role.model.GroupRole;
 import com.lambda.fusion.authority.role.model.Role;
+import com.lambda.fusion.authority.role.model.UpdateRole;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
@@ -140,8 +140,7 @@ public class RoleController {
 
     @PostMapping
     @Operation(description = "新增角色信息", summary = "新增角色信息")
-    public Role add(
-            @Parameter(description = "角色信息", required = true) @RequestBody CreateRole createRole) {
+    public Role add(@Parameter(description = "角色信息", required = true) @RequestBody CreateRole createRole) {
         Operator operator = OperatorUtils.getLoginUser(Operator.class);
         return roleService.saveRole(operator, createRole);
     }

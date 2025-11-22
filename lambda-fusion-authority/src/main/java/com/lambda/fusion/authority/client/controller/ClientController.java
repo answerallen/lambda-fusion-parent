@@ -3,9 +3,9 @@ package com.lambda.fusion.authority.client.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.client.model.CreateClient;
-import com.lambda.fusion.authority.client.model.ClientQuery;
 import com.lambda.fusion.authority.client.model.ClientEntity;
+import com.lambda.fusion.authority.client.model.ClientQuery;
+import com.lambda.fusion.authority.client.model.CreateClient;
 import com.lambda.fusion.authority.client.service.ClientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -45,8 +45,7 @@ public class ClientController {
 
     @PostMapping
     @Operation(summary = "新增客户端信息", description = "新增客户端信息")
-    public void save(
-            @Parameter(description = "客户端信息", required = true) @Valid @RequestBody CreateClient createClient) {
+    public void save(@Parameter(description = "客户端信息", required = true) @Valid @RequestBody CreateClient createClient) {
         ClientEntity clientEntity = createClient.toEntity();
         clientService.save(clientEntity);
     }

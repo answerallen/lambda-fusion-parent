@@ -3,17 +3,15 @@ package com.lambda.fusion.core.tree.util;
 import static com.lambda.fusion.core.tree.model.TreeDragMode.BEFORE;
 import static com.lambda.fusion.core.tree.model.TreeDragMode.CHILD;
 
-import com.lambda.fusion.core.tree.TreeNode;
-import com.lambda.fusion.core.tree.model.TreeDragMode;
-
 import com.google.common.collect.Lists;
 import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.tree.TreeNode;
+import com.lambda.fusion.core.tree.model.TreeDragMode;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.annotation.Nonnull;
-
 import lombok.experimental.UtilityClass;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -36,7 +34,6 @@ public final class TreeNodeUtils {
      * @param allChildrenGetter
      * @return java.util.List<T>
      */
-
     public static <T extends TreeNode<T>> List<T> getAllChangedAfterMoved(
             @Nonnull T resource,
             @Nonnull T target,

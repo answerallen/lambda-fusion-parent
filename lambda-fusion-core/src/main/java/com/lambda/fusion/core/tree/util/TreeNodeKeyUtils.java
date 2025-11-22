@@ -1,15 +1,13 @@
 package com.lambda.fusion.core.tree.util;
 
-import com.lambda.fusion.core.tree.model.TreeNodeKey;
-
 import com.google.common.collect.Maps;
-import lombok.experimental.UtilityClass;
-
+import com.lambda.fusion.core.tree.model.TreeNodeKey;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import lombok.experimental.UtilityClass;
 
 /**
  * 数据构建完整父key路径, 一般用于构建树形数据之前

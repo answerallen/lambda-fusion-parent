@@ -10,9 +10,9 @@ import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.LoginUserInfo;
-import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.model.Permission;
 import com.lambda.fusion.authority.user.model.SimpleUser;
+import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.model.VerifyCode;
 import com.lambda.fusion.authority.user.optimizer.UserQueryOptimizer;
 import com.lambda.fusion.authority.user.service.UserCenterService;
@@ -83,15 +83,13 @@ public class UserController {
 
     @GetMapping(value = "/{username}")
     @Operation(summary = "查询用户信息")
-    public User get(
-            @Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
+    public User get(@Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
         return userService.getUserByUsername(username);
     }
 
     @GetMapping("/search")
     @Operation(summary = "根据关键字模糊查询用户列表")
-    public List<User> search(
-            @Parameter(description = "关键字", required = true) @RequestParam("key") String key) {
+    public List<User> search(@Parameter(description = "关键字", required = true) @RequestParam("key") String key) {
         return userService.getUsersByKey(key);
     }
 
@@ -132,8 +130,7 @@ public class UserController {
 
     @PostMapping
     @Operation(summary = "新增用户信息")
-    public User add(
-            @Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateUser createUser) {
+    public User add(@Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateUser createUser) {
         LoginUser operator = OperatorUtils.getOperator();
         userService.addUser(createUser, operator);
         User user = userService.getUserByUsername(createUser.getUserid());

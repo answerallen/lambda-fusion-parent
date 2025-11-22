@@ -11,18 +11,18 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.AuthorityProperties;
+import com.lambda.fusion.authority.organization.domain.CreateOrganization;
+import com.lambda.fusion.authority.organization.domain.Organization;
+import com.lambda.fusion.authority.organization.domain.OrganizationEntity;
+import com.lambda.fusion.authority.organization.domain.OrganizationQuery;
+import com.lambda.fusion.authority.organization.domain.OrganizationTree;
+import com.lambda.fusion.authority.organization.domain.OrganizationWithUser;
+import com.lambda.fusion.authority.organization.domain.UpdateOrganization;
+import com.lambda.fusion.authority.organization.domain.UserOrganization;
+import com.lambda.fusion.authority.organization.domain.UserOrganizationChange;
+import com.lambda.fusion.authority.organization.domain.UserOrganizationEntity;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
-import com.lambda.fusion.authority.organization.domain.CreateOrganization;
-import com.lambda.fusion.authority.organization.domain.OrganizationQuery;
-import com.lambda.fusion.authority.organization.domain.UpdateOrganization;
-import com.lambda.fusion.authority.organization.domain.UserOrganizationChange;
-import com.lambda.fusion.authority.organization.domain.OrganizationEntity;
-import com.lambda.fusion.authority.organization.domain.UserOrganizationEntity;
-import com.lambda.fusion.authority.organization.domain.OrganizationWithUser;
-import com.lambda.fusion.authority.organization.domain.OrganizationTree;
-import com.lambda.fusion.authority.organization.domain.Organization;
-import com.lambda.fusion.authority.organization.domain.UserOrganization;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.resource.model.MoveResource;
 import com.lambda.fusion.authority.role.mapper.GroupMapper;
@@ -35,7 +35,7 @@ import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
-
+import com.lambda.fusion.core.user.Operator;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,8 +47,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-
-import com.lambda.fusion.core.user.Operator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -318,7 +316,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(resource.getUserId(), "user id must not be null");
         UserOrganizationEntity userOrganizationEntity =
                 userOrganizationMapper.queryUserOrganization(resource.getUserId());
-        return UserOrganization.fromEntity(UserOrganization.class,userOrganizationEntity);
+        return UserOrganization.fromEntity(UserOrganization.class, userOrganizationEntity);
     }
 
     @Override
@@ -332,7 +330,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(getOrganizationById(userOrganizationDTO.getOrganizationId()), "机构不存在！");
         UserOrganizationEntity userOrganization = userOrganizationDTO.toEntity();
         userOrganizationMapper.insert(userOrganization);
-        return UserOrganization.fromEntity(UserOrganization.class,userOrganization);
+        return UserOrganization.fromEntity(UserOrganization.class, userOrganization);
     }
 
     @Override
@@ -350,7 +348,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(organization, "机构不存在！");
         UserOrganizationEntity userOrganization = resource.toEntity();
         userOrganizationMapper.updateById(userOrganization);
-        return UserOrganization.fromEntity(UserOrganization.class,userOrganization);
+        return UserOrganization.fromEntity(UserOrganization.class, userOrganization);
     }
 
     @Override
@@ -582,7 +580,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         List<OrganizationEntity> companies = organizationMapper.selectByIds(companyIds);
         Map<String, Organization> companyMap = Maps.newHashMap();
         for (OrganizationEntity company : companies) {
-            companyMap.put(company.getId(), Organization.fromEntity(Organization.class,company));
+            companyMap.put(company.getId(), Organization.fromEntity(Organization.class, company));
         }
         Map<String, Organization> result = Maps.newHashMap();
         for (Map.Entry<String, String> entry : orgMap.entrySet()) {

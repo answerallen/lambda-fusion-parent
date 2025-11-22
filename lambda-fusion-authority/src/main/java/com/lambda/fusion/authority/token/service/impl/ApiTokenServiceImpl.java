@@ -1,9 +1,9 @@
-package com.lambda.fusion.authority.client.service.impl;
+package com.lambda.fusion.authority.token.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.authority.client.mapper.ApiTokenMapper;
-import com.lambda.fusion.authority.client.model.ApiTokenEntity;
-import com.lambda.fusion.authority.client.service.ApiTokenService;
+import com.lambda.fusion.authority.token.mapper.ApiTokenMapper;
+import com.lambda.fusion.authority.token.model.ApiTokenEntity;
+import com.lambda.fusion.authority.token.service.ApiTokenService;
 import org.springframework.stereotype.Service;
 
 /**
