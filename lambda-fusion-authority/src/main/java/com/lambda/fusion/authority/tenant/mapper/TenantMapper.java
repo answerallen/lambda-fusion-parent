@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.tenant.persistence;
+package com.lambda.fusion.authority.tenant.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;

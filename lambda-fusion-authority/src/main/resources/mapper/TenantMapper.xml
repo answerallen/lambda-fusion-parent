@@ -5,7 +5,7 @@
 
 	<!-- 可根据自己的需求，是否要使用 -->
     <resultMap type="com.lambda.fusion.authority.tenant.model.TenantEntity" id="TenantEntity">
-        <result property="tenant_id" column="TENANT_ID"/>
+        <result property="tenantId" column="TENANT_ID"/>
         <result property="tenantCode" column="TENANT_CODE"/>
         <result property="tenantName" column="TENANT_NAME"/>
         <result property="tenantAddress" column="TENANT_ADDRESS"/>

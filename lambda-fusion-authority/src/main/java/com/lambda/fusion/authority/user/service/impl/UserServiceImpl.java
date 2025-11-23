@@ -27,7 +27,7 @@ import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
-import com.lambda.fusion.authority.tenant.persistence.TenantMapper;
+import com.lambda.fusion.authority.tenant.mapper.TenantMapper;
 import com.lambda.fusion.authority.user.mapper.*;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.UserTempParameters;

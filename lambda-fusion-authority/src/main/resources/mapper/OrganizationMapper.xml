@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.authority.organization.mapper.OrganizationMapper">
 
-    <resultMap id="MutableOrganization" type="com.lambda.fusion.authority.organization.domain.MutableOrganizationVO">
+    <resultMap id="MutableOrganization" type="com.lambda.fusion.authority.organization.domain.OrganizationWithUser">
         <id column="username" property="username" javaType="String"/>
         <result column="id" property="id"/>
         <result column="alias" property="alias"/>
@@ -21,12 +21,12 @@
         <foreach collection="list" open="(" close=")" separator="," item="user">#{user.username}</foreach>
     </select>
 
-    <resultMap id="Organization" type="com.lambda.fusion.authority.organization.domain.OrganizationVO">
+    <resultMap id="Organization" type="com.lambda.fusion.authority.organization.domain.Organization">
         <id column="id" property="id"/>
         <result column="organization" property="name"/>
         <result column="alias" property="alias"/>
         <result column="org_owner" property="owner"/>
-        <result column="tenant_id" property="tenant_id"/>
+        <result column="tenant_id" property="tenantId"/>
         <result column="parentId" property="parentId"/>
         <result column="org_rank" property="level"/>
         <result column="createDate" property="createDate"/>
@@ -263,7 +263,7 @@
         SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_ORGANIZATION T WHERE T.org_owner = #{orgId} AND T.org_category = 1 AND T.enabled = 1)
     </select>
 
-    <select id="getInfo" resultType="com.lambda.fusion.authority.organization.domain.OrganizationVO">
+    <select id="getInfo" resultType="com.lambda.fusion.authority.organization.domain.OrganizationSummary">
         SELECT id,alias FROM LA_ORGANIZATION WHERE ID = {id}
     </select>
 
