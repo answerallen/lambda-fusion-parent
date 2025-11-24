@@ -5,7 +5,7 @@ import com.lambda.fusion.authority.resource.model.CreateResource;
 import com.lambda.fusion.authority.resource.model.MoveResource;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import java.util.List;
 import org.springframework.lang.NonNull;
 
@@ -94,17 +94,17 @@ public interface ResourceService {
 
     /***
      * 获取用户拥有的所有下级(直接下级和间接下级)权限,主要用于授权
-     * @param operator  当前用户
+     * @param userPrincipal  当前用户
      * @param resource    当前节点
      */
-    List<Resource> getAllChildrenByOperator(@NonNull Operator operator, @NonNull Resource resource);
+    List<Resource> getAllChildrenByOperator(@NonNull UserPrincipal userPrincipal, @NonNull Resource resource);
 
     /***
      * 获取用户拥有的所有上级(直接上级和间接下级)权限,主要用于授权
-     * @param operator
+     * @param userPrincipal
      * @param resource
      */
-    List<Resource> getAllParentsByOperator(@NonNull Operator operator, @NonNull Resource resource);
+    List<Resource> getAllParentsByOperator(@NonNull UserPrincipal userPrincipal, @NonNull Resource resource);
 
     /***
      * 移动资源

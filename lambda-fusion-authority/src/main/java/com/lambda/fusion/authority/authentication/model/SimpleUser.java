@@ -4,7 +4,7 @@ import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.core.convert.ConvertFunctions;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serial;
 import java.io.Serializable;
@@ -17,7 +17,7 @@ import lombok.Data;
  * 用于封装用户的基本信息
  */
 @AutoConverter(
-        target = Operator.class,
+        target = UserPrincipal.class,
         uses = ConvertFunctions.class,
         fieldMappings = {
             @FieldMapping(target = "accountExpired", source = "expiredTime", qualifiedByName = "mapAccountExpired"),
@@ -78,7 +78,7 @@ public class SimpleUser implements Serializable {
     @Schema(description = "用户权限集合")
     private Set<String> authorities;
 
-    public Operator toOperator() {
+    public UserPrincipal toOperator() {
         return ConvertUtils.convert(this);
     }
 }

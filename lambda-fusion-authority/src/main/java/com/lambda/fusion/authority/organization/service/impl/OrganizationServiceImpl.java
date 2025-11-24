@@ -32,7 +32,7 @@ import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
@@ -81,22 +81,22 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<Organization> treeList(OrganizationQuery parameters) {
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        List<Organization> organizations = getOrganizationsByCondition(operator, parameters);
-        applyPermissionConstraints(organizations, operator);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        List<Organization> organizations = getOrganizationsByCondition(userPrincipal, parameters);
+        applyPermissionConstraints(organizations, userPrincipal);
         return TreeBuilder.build(organizations);
     }
 
     /**
      * 根据条件获取组织列表
      *
-     * @param operator 操作用户
+     * @param userPrincipal 操作用户
      * @param parameters 查询参数
      * @return 组织列表
      */
-    private List<Organization> getOrganizationsByCondition(Operator operator, OrganizationQuery parameters) {
+    private List<Organization> getOrganizationsByCondition(UserPrincipal userPrincipal, OrganizationQuery parameters) {
         if (hasSearchCondition(parameters)) {
-            return getOrganizationsBySearchCondition(operator, parameters);
+            return getOrganizationsBySearchCondition(userPrincipal, parameters);
         } else {
             return getSubordinateOrgIds(parameters);
         }
@@ -112,11 +112,11 @@ public class OrganizationServiceImpl implements OrganizationService {
     /**
      * 根据搜索条件获取组织列表
      */
-    private List<Organization> getOrganizationsBySearchCondition(Operator operator, OrganizationQuery parameters) {
-        List<Organization> list = getOrgByCondition(operator, parameters);
+    private List<Organization> getOrganizationsBySearchCondition(UserPrincipal userPrincipal, OrganizationQuery parameters) {
+        List<Organization> list = getOrgByCondition(userPrincipal, parameters);
 
-        if (operator.isAdmin()) {
-            Set<String> additionalOrgIds = collectAdditionalOrgIds(operator.getOrgId(), list);
+        if (userPrincipal.isAdmin()) {
+            Set<String> additionalOrgIds = collectAdditionalOrgIds(userPrincipal.getOrgId(), list);
             if (CollectionUtils.isNotEmpty(additionalOrgIds)) {
                 parameters.setIds(new ArrayList<>(additionalOrgIds));
                 list.addAll(organizationMapper.getAllMutableOrgan(parameters));
@@ -162,13 +162,13 @@ public class OrganizationServiceImpl implements OrganizationService {
     /**
      * 应用权限约束
      */
-    private void applyPermissionConstraints(List<Organization> organizations, Operator operator) {
-        String operatorOrgId = operator.getOrgId();
-        String operatorTenantId = operator.getTenantId();
+    private void applyPermissionConstraints(List<Organization> organizations, UserPrincipal userPrincipal) {
+        String operatorOrgId = userPrincipal.getOrgId();
+        String operatorTenantId = userPrincipal.getTenantId();
 
         for (Organization org : organizations) {
             // 设置操作权限
-            if (!operator.isAdmin() && org.getId().equals(operatorOrgId)) {
+            if (!userPrincipal.isAdmin() && org.getId().equals(operatorOrgId)) {
                 org.setNoPermission(true);
             }
 

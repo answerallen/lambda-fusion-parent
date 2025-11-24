@@ -33,7 +33,7 @@ import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.UserTempParameters;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -133,18 +133,18 @@ public class UserServiceImpl implements UserService {
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @Override
-    public User getCurrentUser(Operator operator) {
-        User user = this.getUserByUsername(operator.getName());
+    public User getCurrentUser(UserPrincipal userPrincipal) {
+        User user = this.getUserByUsername(userPrincipal.getName());
         UserInfo props = user.getProps();
         if (props != null && properties.getPasswordStrategy().getEnablePeriodChange()) {
             boolean notMatched =
-                    !operator.isDev() && !operator.isAdmin() && !operator.isManager() && !operator.isTenantManager();
+                    !userPrincipal.isDev() && !userPrincipal.isAdmin() && !userPrincipal.isManager() && !userPrincipal.isTenantManager();
             // 判断密码是否需要更新
             if (notMatched && ObjectUtil.equals(props.getUpdatePwd(), false)) {
                 List<UserPasswordEntity> userUpdatePwdLogEntities =
                         userUpdatePwdLogMapper.selectList(new LambdaQueryWrapper<UserPasswordEntity>()
                                 .select(UserPasswordEntity::getUpdateTime)
-                                .eq(UserPasswordEntity::getUserName, operator.getName())
+                                .eq(UserPasswordEntity::getUserName, userPrincipal.getName())
                                 .isNotNull(UserPasswordEntity::getUpdateTime)
                                 .orderByDesc(UserPasswordEntity::getUpdateTime));
                 if (CollectionUtils.isNotEmpty(userUpdatePwdLogEntities)) {

@@ -12,7 +12,7 @@ import com.lambda.fusion.authority.authentication.model.SimpleUser;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
@@ -64,8 +64,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         query.setParentId(parentId);
         query.setLevel(level);
         query.setMode(0);
-        if (operator instanceof Operator && CollUtil.isNotEmpty(((Operator) operator).getRoles())) {
-            query.setIds(new ArrayList<>(((Operator) operator).getRoles()));
+        if (operator instanceof UserPrincipal && CollUtil.isNotEmpty(((UserPrincipal) operator).getRoles())) {
+            query.setIds(new ArrayList<>(((UserPrincipal) operator).getRoles()));
         }
         return getNavigation(operator, query);
     }
@@ -92,17 +92,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     /**
      * 构建登录用户信息
      *
-     * @param operator 用户对象
+     * @param userPrincipal 用户对象
      * @return 登录用户
      */
-    private LoginUser buildLoginUser(Operator operator) {
-        if (CollUtil.isEmpty(operator.getRoles())) {
-            operator.setRoles(Sets.newHashSet(Constants.ROLE_USER));
+    private LoginUser buildLoginUser(UserPrincipal userPrincipal) {
+        if (CollUtil.isEmpty(userPrincipal.getRoles())) {
+            userPrincipal.setRoles(Sets.newHashSet(Constants.ROLE_USER));
         }
         String tenantId = TenantHolder.getTenantId();
         if (StrUtil.isNotBlank(tenantId)) {
-            operator.setTenantId(tenantId);
+            userPrincipal.setTenantId(tenantId);
         }
-        return operator;
+        return userPrincipal;
     }
 }

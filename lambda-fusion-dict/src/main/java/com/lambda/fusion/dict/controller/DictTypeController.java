@@ -2,7 +2,7 @@ package com.lambda.fusion.dict.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.model.QueryDictTree;
 import com.lambda.fusion.dict.model.QueryDictTypePage;
@@ -45,8 +45,8 @@ public class DictTypeController {
     public DictTypeTree saveDictType(
             @Valid @Parameter(description = "字典类型数据", required = true) @RequestBody DictTypeTree dictTypeTree) {
         // 只有开发者才能指定字典用途，其他用户只能添加用户字典
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        if (operator.isDev()) {
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        if (userPrincipal.isDev()) {
             if (dictTypeTree.getDictUsage() == null) {
                 dictTypeTree.setDictUsage(DictTypeTree.DictUsage.SYSTEM.getValue());
             }
@@ -66,8 +66,8 @@ public class DictTypeController {
             })
     public DictTypeTree updateDictType(@Valid DictTypeTree dictTypeTree) {
         // 非开发者不能修改系统字典用途
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        if (!operator.isDev()) {
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        if (!userPrincipal.isDev()) {
             DictTypeTree source = dictTypeService.getById(dictTypeTree.getId());
             if (source != null) {
                 dictTypeTree.setDictUsage(source.getDictUsage());

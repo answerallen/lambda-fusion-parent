@@ -10,7 +10,7 @@ import com.lambda.fusion.authority.resource.model.*;
 import com.lambda.fusion.authority.resource.service.ResourceService;
 import com.lambda.fusion.authority.role.service.RoleManager;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -429,34 +429,34 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<Resource> getAllChildrenByOperator(@NonNull Operator operator, @NonNull Resource resource) {
+    public List<Resource> getAllChildrenByOperator(@NonNull UserPrincipal userPrincipal, @NonNull Resource resource) {
         String parentKeys = resource.getParentKeys();
         if (StringUtils.isNotBlank(parentKeys)) {
             parentKeys = resource.getParentKeys() + Constants.SEPARATOR0 + resource.getId();
         } else {
             parentKeys = resource.getId();
         }
-        Map<String, Object> parameters = getParameters(operator, parentKeys);
+        Map<String, Object> parameters = getParameters(userPrincipal, parentKeys);
         return resourceMapper.getAllChildren(parameters);
     }
 
-    private Map<String, Object> getParameters(Operator operator, Object parentKeys) {
+    private Map<String, Object> getParameters(UserPrincipal userPrincipal, Object parentKeys) {
         Map<String, Object> parameters = Maps.newHashMap();
         parameters.put("parentKeys", parentKeys);
-        if (!operator.isDev()) {
-            Set<String> authorities = roleManager.getAuthoritiesByUser(operator.getUsername());
-            authorities.add(operator.getUsername());
+        if (!userPrincipal.isDev()) {
+            Set<String> authorities = roleManager.getAuthoritiesByUser(userPrincipal.getUsername());
+            authorities.add(userPrincipal.getUsername());
             parameters.put("authorities", authorities);
         }
         return parameters;
     }
 
     @Override
-    public List<Resource> getAllParentsByOperator(@NonNull Operator operator, @NonNull Resource resource) {
+    public List<Resource> getAllParentsByOperator(@NonNull UserPrincipal userPrincipal, @NonNull Resource resource) {
         String parentKeys = resource.getParentKeys();
         if (StringUtils.isNotBlank(parentKeys)) {
             List<String> ids = Arrays.asList(parentKeys.split(Constants.SEPARATOR0));
-            Map<String, Object> parameters = getParameters(operator, ids);
+            Map<String, Object> parameters = getParameters(userPrincipal, ids);
             return resourceMapper.getAllParents(parameters);
         }
         return new ArrayList<>();

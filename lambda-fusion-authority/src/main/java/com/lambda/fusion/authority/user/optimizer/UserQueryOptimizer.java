@@ -8,7 +8,7 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.user.model.UserQuery;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,13 +40,13 @@ public class UserQueryOptimizer {
      */
     public Map<String, Object> getMutableUsersQueryParameters(UserQuery queryDTO) {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(11);
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        String tenantId = operator.getTenantId();
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        String tenantId = userPrincipal.getTenantId();
 
         parameters.put("username", queryDTO.getUsername());
-        parameters.put("dev", operator.isDev());
-        parameters.put("admin", operator.isAdmin());
-        parameters.put("uid", operator.getName());
+        parameters.put("dev", userPrincipal.isDev());
+        parameters.put("admin", userPrincipal.isAdmin());
+        parameters.put("uid", userPrincipal.getName());
 
         if (StringUtils.isNotBlank(queryDTO.getEmail())) {
             parameters.put("email", fuzzyQuery(queryDTO.getEmail()));
@@ -57,7 +57,7 @@ public class UserQueryOptimizer {
         if (StringUtils.isNotBlank(queryDTO.getMobile())) {
             parameters.put("mobile", fuzzyQuery(queryDTO.getMobile()));
         }
-        if (StringUtils.isNotBlank(operator.getTenantId())) {
+        if (StringUtils.isNotBlank(userPrincipal.getTenantId())) {
             parameters.put("tenant_id", tenantId);
         }
         if (StringUtils.isNotBlank(queryDTO.getAuthority())) {
@@ -75,7 +75,7 @@ public class UserQueryOptimizer {
                 queryDTO.getSubordinate() != null ? queryDTO.getSubordinate() : true,
                 parameters,
                 queryDTO.getDataRight() != null ? queryDTO.getDataRight() : true,
-                operator);
+                userPrincipal);
 
         return parameters;
     }
@@ -93,7 +93,7 @@ public class UserQueryOptimizer {
             boolean subordinate,
             Map<String, Object> parameters,
             boolean dataRight,
-            Operator operator) {
+            UserPrincipal userPrincipal) {
         if (subordinate || StringUtils.isBlank(organizationId)) {
             if (!dataRight) {
                 if (StringUtils.isNotBlank(organizationId)) {
@@ -101,7 +101,7 @@ public class UserQueryOptimizer {
                     parameters.put("orgIds", Sets.newHashSet(subOrgIds));
                 }
             } else {
-                parameters.put("orgIds", userService.getSubOrgIds(organizationId, operator));
+                parameters.put("orgIds", userService.getSubOrgIds(organizationId, userPrincipal));
             }
         } else {
             List<String> list = new ArrayList<>();

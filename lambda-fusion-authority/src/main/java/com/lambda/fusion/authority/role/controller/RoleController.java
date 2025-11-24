@@ -19,7 +19,7 @@ import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -58,15 +58,15 @@ public class RoleController {
     @SaCheckLogin
     @Operation(description = "获取所有角色列表", summary = "获取所有角色列表")
     public List<Role> list() {
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        return roleService.getAllRoles(operator);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        return roleService.getAllRoles(userPrincipal);
     }
 
     @Operation(description = "分组列表", summary = "分组列表")
     @GetMapping("/group")
     public List<Group> listGroups() {
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        return roleService.listGroups(operator);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        return roleService.listGroups(userPrincipal);
     }
 
     @GetMapping("/group/role")
@@ -75,8 +75,8 @@ public class RoleController {
             summary = "获取所有角色分组列表",
             parameters = {@Parameter(name = "tenant_id", description = "租户id")})
     public List<GroupRole> groupRole(String tenantId) {
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        return roleService.getAllGroupRoles(operator, tenantId);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        return roleService.getAllGroupRoles(userPrincipal, tenantId);
     }
 
     @GetMapping({"/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
@@ -86,7 +86,7 @@ public class RoleController {
             @PathVariable(required = false) Integer size,
             String alias,
             String groupId) {
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
         if (ObjectUtil.isNotNull(groupId)) {
             parameters.put("groupId", groupId);
@@ -100,13 +100,13 @@ public class RoleController {
         excludes.add(Constants.ROLE_DEV);
         excludes.add(Constants.ROLE_SYSTEM);
         excludes.add(Constants.ROLE_TENANT);
-        if (!operator.isDev()) {
+        if (!userPrincipal.isDev()) {
             excludes.add(Constants.ROLE_ADMIN);
         }
-        Set<String> queryExclude = internalRoleService.queryExclude(operator);
+        Set<String> queryExclude = internalRoleService.queryExclude(userPrincipal);
         excludes.addAll(queryExclude);
         parameters.put("excludes", excludes);
-        String tenantId = operator.getTenantId();
+        String tenantId = userPrincipal.getTenantId();
         if (StringUtils.isNotBlank(tenantId)) {
             parameters.put("tenant_id", tenantId);
         }
@@ -141,8 +141,8 @@ public class RoleController {
     @PostMapping
     @Operation(description = "新增角色信息", summary = "新增角色信息")
     public Role add(@Parameter(description = "角色信息", required = true) @RequestBody CreateRole createRole) {
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        return roleService.saveRole(operator, createRole);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        return roleService.saveRole(userPrincipal, createRole);
     }
 
     @PutMapping("/{authority}")
@@ -152,8 +152,8 @@ public class RoleController {
             @Parameter(description = "角色信息", required = true) @RequestBody UpdateRole updateRole) {
         Assert.notNull(authority, "角色名称不能为空！");
         updateRole.setAuthority(authority);
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        return roleService.updateRole(operator, updateRole);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        return roleService.updateRole(userPrincipal, updateRole);
     }
 
     @DeleteMapping("/{authority}")
@@ -170,8 +170,8 @@ public class RoleController {
     public List<AccessPermission> auth(
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "模式-0:后台资源,1:APP资源") Integer mode) {
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        return roleService.getAccessPermissions(operator, authority, mode);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        return roleService.getAccessPermissions(userPrincipal, authority, mode);
     }
 
     @PutMapping("/auth/{authority}/{resourceId}")
@@ -183,8 +183,8 @@ public class RoleController {
             @Parameter(description = "授权模式.-0:仅使用,1:可管理", schema = @Schema(defaultValue = "1"))
                     @RequestParam(defaultValue = "1")
                     Integer status) {
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        roleService.saveAuthorization(authority, resourceId, status, operator);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        roleService.saveAuthorization(authority, resourceId, status, userPrincipal);
     }
 
     @DeleteMapping("/auth/{authority}/{resourceid}")
@@ -193,8 +193,8 @@ public class RoleController {
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "资源编号", required = true) @PathVariable String resourceid,
             @Parameter(description = "授权模式.-0:角色,1:用户") Integer mode) {
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        roleService.deleteAuthorization(authority, resourceid, operator);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        roleService.deleteAuthorization(authority, resourceid, userPrincipal);
     }
 
     @PatchMapping("/{authority}/disabled")
@@ -231,7 +231,7 @@ public class RoleController {
     @Operation(description = "角色批量分配用户", summary = "角色批量分配用户")
     @PostMapping("/batch/user")
     public void batchAddRoleUser(@Valid @RequestBody BatchAddRoleUser req) {
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
-        roleService.batchAddRoleUser(operator, req);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        roleService.batchAddRoleUser(userPrincipal, req);
     }
 }

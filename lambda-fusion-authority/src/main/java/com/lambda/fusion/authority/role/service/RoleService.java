@@ -8,7 +8,7 @@ import com.lambda.fusion.authority.role.model.Group;
 import com.lambda.fusion.authority.role.model.GroupRole;
 import com.lambda.fusion.authority.role.model.Role;
 import com.lambda.fusion.authority.role.model.UpdateRole;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import java.util.List;
 import java.util.Map;
 
@@ -20,19 +20,19 @@ public interface RoleService {
     /**
      * 获取用户的所有角色信息
      *
-     * @param operator
+     * @param userPrincipal
      * @return
      */
-    List<Role> getAllRoles(Operator operator);
+    List<Role> getAllRoles(UserPrincipal userPrincipal);
 
     /**
      * 获取角色分组
      *
-     * @param operator 用户
+     * @param userPrincipal 用户
      * @param tenantId the tenantId
      * @return ig all group roles
      */
-    List<GroupRole> getAllGroupRoles(Operator operator, String tenantId);
+    List<GroupRole> getAllGroupRoles(UserPrincipal userPrincipal, String tenantId);
 
     /***
      * 根据条件分页查询角色列表
@@ -46,23 +46,23 @@ public interface RoleService {
     /**
      * 修改角色
      *
-     * @param operator
+     * @param userPrincipal
      * @param role
      * @return
      * @throws Exception
      */
-    Role updateRole(Operator operator, UpdateRole role);
+    Role updateRole(UserPrincipal userPrincipal, UpdateRole role);
 
     /**
      * 增加角色
      * 默认新增角色是启用状态
      *
-     * @param operator
+     * @param userPrincipal
      * @param role
      * @return
      * @throws Exception
      */
-    Role saveRole(Operator operator, CreateRole role);
+    Role saveRole(UserPrincipal userPrincipal, CreateRole role);
 
     /**
      * 根据角色编号查询角色信息
@@ -90,30 +90,30 @@ public interface RoleService {
 
     /**
      * 查询角色权限
-     * @param operator 当前用户
+     * @param userPrincipal 当前用户
      * @param id 角色id
      * @param mode 角色模式
      * @return
      */
-    List<AccessPermission> getAccessPermissions(Operator operator, String id, Integer mode);
+    List<AccessPermission> getAccessPermissions(UserPrincipal userPrincipal, String id, Integer mode);
 
     /**
      * 保存角色权限
      *  @param authority
      * @param resourceid
      * @param status
-     * @param operator
+     * @param userPrincipal
      */
-    void saveAuthorization(String authority, String resourceid, int status, Operator operator);
+    void saveAuthorization(String authority, String resourceid, int status, UserPrincipal userPrincipal);
 
     /**
      * 删除角色权限
      *
      * @param id
      * @param resourceid
-     * @param operator
+     * @param userPrincipal
      */
-    void deleteAuthorization(String id, String resourceid, Operator operator);
+    void deleteAuthorization(String id, String resourceid, UserPrincipal userPrincipal);
 
     /**
      * 查询该角色名是否被使用
@@ -168,16 +168,16 @@ public interface RoleService {
     /**
      * 批量添加角色用户
      *
-     * @param operator 当前操作用户
+     * @param userPrincipal 当前操作用户
      * @param req  请求
      */
-    void batchAddRoleUser(Operator operator, BatchAddRoleUser req);
+    void batchAddRoleUser(UserPrincipal userPrincipal, BatchAddRoleUser req);
 
     /**
      * 分组列表查询
      *
-     * @param operator 当前用户
+     * @param userPrincipal 当前用户
      * @return 列表
      */
-    List<Group> listGroups(Operator operator);
+    List<Group> listGroups(UserPrincipal userPrincipal);
 }

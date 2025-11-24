@@ -9,7 +9,7 @@ import com.lambda.fusion.authority.user.model.SimpleUser;
 import com.lambda.fusion.authority.user.model.UpdateUser;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.model.UserInfoEntity;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +54,7 @@ public interface UserService {
     /***
      * 获取当前用户得详情
      */
-    User getCurrentUser(Operator operator);
+    User getCurrentUser(UserPrincipal userPrincipal);
 
     /***
      * 查询注册用户列表

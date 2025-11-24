@@ -125,6 +125,8 @@ public final class Constants {
     public static final String ROLE_TENANT = ROLE_PREFIX + "TENANT";
     /** 管理者角色 */
     public static final String ROLE_MANAGER = ROLE_PREFIX + "MANAGER";
+    /** 租户管理员角色 */
+    public static final String ROLE_TENANT_MANAGER = ROLE_PREFIX + "TENANT_MANAGER";
     /** 系统角色 */
     public static final String ROLE_SYSTEM = ROLE_PREFIX + "SYSTEM";
 

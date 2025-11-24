@@ -18,7 +18,7 @@ import com.lambda.fusion.authority.user.optimizer.UserQueryOptimizer;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.core.identity.Operator;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -119,11 +119,11 @@ public class UserController {
     @GetMapping("/currentUser/info")
     @Operation(summary = "获取当前登陆用户详细信息")
     public LoginUserInfo getCurrentUserInfo() {
-        Operator operator = OperatorUtils.getLoginUser(Operator.class);
+        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
         LoginUserInfo loginUserInfo = new LoginUserInfo();
-        if (operator != null) {
-            User user = userService.getCurrentUser(operator);
-            BeanUtils.copyProperties(Objects.requireNonNullElse(user, operator), loginUserInfo);
+        if (userPrincipal != null) {
+            User user = userService.getCurrentUser(userPrincipal);
+            BeanUtils.copyProperties(Objects.requireNonNullElse(user, userPrincipal), loginUserInfo);
         }
         return loginUserInfo;
     }
