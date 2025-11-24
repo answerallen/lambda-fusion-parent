@@ -15,7 +15,8 @@ import java.util.List;
  * AbstractCrudService 是一个抽象类，继承了 ServiceImpl 并提供了实体与值对象（VO）之间转换的通用功能。
  * 它使用泛型参数 E 表示实体，V 表示值对象，M 表示必须继承 BaseMapper 的映射器。
  *
- * <p>该类包含用于将单个实体或实体列表转换为相应值对象的方法，以及基于查询条件获取分页或非分页值对象列表的方法。
+ * <p>
+ * 该类包含用于将单个实体或实体列表转换为相应值对象的方法，以及基于查询条件获取分页或非分页值对象列表的方法。
  * 实体与值对象之间的转换由转换器处理，转换器通过 ConverterResolver 进行解析。
  */
 @SuppressWarnings("unused")
@@ -26,7 +27,7 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
         if (voClass == null) {
             Type type = TypeUtil.getTypeArgument(getClass(), 1);
             if (type instanceof Class<?>) {
-                //noinspection unchecked
+                // noinspection unchecked
                 this.voClass = (Class<V>) type;
             } else {
                 throw new IllegalStateException("子类必须继承 AbstractCrudService<E, V, M extends BaseMapper<E>> 并固化泛型");
@@ -49,9 +50,12 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
      * 将实体转换为值对象（VO）。
      *
      * @param entity 要转换的实体
-     * @return 与输入实体对应的值对象
+     * @return 与输入实体对应的值对象，如果实体为null则返回null
      */
     public V toVO(E entity) {
+        if (entity == null) {
+            return null;
+        }
         return converter().convertTo(entity);
     }
 

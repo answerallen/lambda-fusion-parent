@@ -21,10 +21,13 @@ import org.springframework.util.StopWatch;
 @Slf4j
 public final class TreeBuilder {
 
-    private TreeBuilder() {}
+    private TreeBuilder() {
+    }
 
     /**
-     * <p>一个列表数据构建成一棵树形数据，对象需实现{@link TreeNode}接口</p>
+     * <p>
+     * 一个列表数据构建成一棵树形数据，对象需实现{@link TreeNode}接口
+     * </p>
      *
      * @param target 元数据列表
      * @param <T>    实现TreeNode接口的对象
@@ -200,7 +203,7 @@ public final class TreeBuilder {
             clock.stop();
             printLogs(clock);
         }
-        return result;
+        return result != null ? result : Collections.emptyList();
     }
 
     private static void printLogs(StopWatch clock) {

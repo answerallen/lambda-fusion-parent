@@ -16,7 +16,8 @@ import lombok.Setter;
 /**
  * 分页查询基类
  *
- * <p>提供统一的分页查询功能，支持分页参数校验、排序、默认值处理等特性。
+ * <p>
+ * 提供统一的分页查询功能，支持分页参数校验、排序、默认值处理等特性。
  * 遵循阿里巴巴Java开发规范和Spring Boot最佳实践。
  *
  * <h3>功能特性：</h3>
@@ -29,6 +30,7 @@ import lombok.Setter;
  * </ul>
  *
  * <h3>使用示例：</h3>
+ * 
  * <pre>{@code
  * public class UserPageQueryDTO extends PageQueryDTO<UserEntity> {
  *     private String name;
@@ -70,25 +72,30 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
 
     /**
      * 排序字段
-     * <p>支持多字段排序，字段名使用数据库列名或实体属性名</p>
+     * <p>
+     * 支持多字段排序，字段名使用数据库列名或实体属性名
+     * </p>
      */
     @Schema(description = "排序字段，支持多字段排序", example = "createTime,updateTime")
     private String orderBy;
 
     /**
      * 排序方向
-     * <p>支持ASC（升序）和DESC（降序），默认为ASC</p>
-     * <p>当有多个排序字段时，可以用逗号分隔指定每个字段的排序方向</p>
+     * <p>
+     * 支持ASC（升序）和DESC（降序），默认为ASC
+     * </p>
+     * <p>
+     * 当有多个排序字段时，可以用逗号分隔指定每个字段的排序方向
+     * </p>
      */
-    @Schema(
-            description = "排序方向，ASC升序/DESC降序",
-            example = "ASC",
-            allowableValues = {"ASC", "DESC"})
+    @Schema(description = "排序方向，ASC升序/DESC降序", example = "ASC", allowableValues = { "ASC", "DESC" })
     private String orderDirection = ORDER_ASC;
 
     /**
      * 是否查询总数
-     * <p>默认为true，设置为false可以提高查询性能，适用于不需要总数的场景</p>
+     * <p>
+     * 默认为true，设置为false可以提高查询性能，适用于不需要总数的场景
+     * </p>
      */
     @Schema(description = "是否查询总数", example = "true", defaultValue = "true")
     private Boolean searchCount = true;
@@ -96,7 +103,8 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
     /**
      * 获取MyBatis Plus分页对象
      *
-     * <p>根据当前分页参数和排序条件创建Page对象，自动处理排序逻辑。
+     * <p>
+     * 根据当前分页参数和排序条件创建Page对象，自动处理排序逻辑。
      *
      * @return MyBatis Plus分页对象
      */
@@ -123,7 +131,8 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
     /**
      * 构建排序项列表
      *
-     * <p>解析排序字段和排序方向，构建MyBatis Plus的OrderItem列表。
+     * <p>
+     * 解析排序字段和排序方向，构建MyBatis Plus的OrderItem列表。
      * 支持多字段排序，格式如："field1,field2" 配合 "ASC,DESC"。
      *
      * @return 排序项列表
@@ -139,20 +148,20 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
         String[] fields = this.orderBy.split(",");
         String[] directions = Optional.ofNullable(this.orderDirection)
                 .map(dir -> dir.split(","))
-                .orElse(new String[] {ORDER_ASC});
+                .orElse(new String[] { ORDER_ASC });
 
         for (int i = 0; i < fields.length; i++) {
             String field = fields[i].trim();
             if (StringUtils.isNotBlank(field)) {
                 // 安全校验排序字段
-                if (isValidFieldName(field)) {
+                if (isInvalidFieldName(field)) {
                     throw new IllegalArgumentException("Invalid sort field: " + field
                             + ". Field name must contain only letters, numbers and underscores.");
                 }
 
                 // 获取对应的排序方向，如果方向数组长度不够，使用最后一个方向
-                String direction =
-                        i < directions.length ? directions[i].trim() : directions[directions.length - 1].trim();
+                String direction = i < directions.length ? directions[i].trim()
+                        : directions[directions.length - 1].trim();
 
                 // 验证排序方向
                 boolean isAsc = !ORDER_DESC.equalsIgnoreCase(direction);
@@ -172,7 +181,8 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
     /**
      * 驼峰命名转下划线命名
      *
-     * <p>将Java属性名（驼峰命名）转换为数据库列名（下划线命名）。
+     * <p>
+     * 将Java属性名（驼峰命名）转换为数据库列名（下划线命名）。
      * 例如：createTime -> create_time
      *
      * @param camelCase 驼峰命名字符串
@@ -209,17 +219,18 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * 校验排序字段的安全性
      *
      * @param field 字段名
-     * @return 是否安全
+     * @return 是否无效（true表示字段名无效）
      */
-    private boolean isValidFieldName(String field) {
-        return !StringUtils.isNotBlank(field)
+    private boolean isInvalidFieldName(String field) {
+        return StringUtils.isBlank(field)
                 || !FIELD_NAME_PATTERN.matcher(field).matches();
     }
 
     /**
      * 设置排序条件
      *
-     * <p>便捷方法，用于设置单个字段的排序条件。
+     * <p>
+     * 便捷方法，用于设置单个字段的排序条件。
      *
      * @param field 排序字段
      * @param isAsc 是否升序
@@ -228,7 +239,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      */
     @SuppressWarnings("unchecked")
     public <Q extends Pagination<T>> Q orderBy(String field, boolean isAsc) {
-        if (StringUtils.isNotBlank(field) && isValidFieldName(field)) {
+        if (StringUtils.isNotBlank(field) && isInvalidFieldName(field)) {
             throw new IllegalArgumentException("Invalid sort field: " + field
                     + ". Field name must contain only letters, numbers and underscores.");
         }
@@ -260,7 +271,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
     /**
      * 设置多字段排序
      *
-     * @param fields 排序字段数组
+     * @param fields     排序字段数组
      * @param directions 排序方向数组
      * @return 当前对象，支持链式调用
      * @throws IllegalArgumentException 当字段名不安全时抛出
@@ -270,7 +281,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
         if (fields != null && fields.length > 0) {
             // 校验所有字段名的安全性
             for (String field : fields) {
-                if (StringUtils.isNotBlank(field) && isValidFieldName(field.trim())) {
+                if (StringUtils.isNotBlank(field) && isInvalidFieldName(field.trim())) {
                     throw new IllegalArgumentException("Invalid sort field: " + field
                             + ". Field name must contain only letters, numbers and underscores.");
                 }
@@ -286,7 +297,8 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
     /**
      * 禁用总数查询
      *
-     * <p>在不需要总数的场景下使用，可以提高查询性能。
+     * <p>
+     * 在不需要总数的场景下使用，可以提高查询性能。
      *
      * @return 当前对象，支持链式调用
      */
@@ -368,7 +380,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
             return (Q) this;
         }
 
-        if (isValidFieldName(field)) {
+        if (isInvalidFieldName(field)) {
             throw new IllegalArgumentException("Invalid sort field: " + field
                     + ". Field name must contain only letters, numbers and underscores.");
         }
