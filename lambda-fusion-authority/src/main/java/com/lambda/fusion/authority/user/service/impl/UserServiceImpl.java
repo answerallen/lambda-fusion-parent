@@ -137,8 +137,10 @@ public class UserServiceImpl implements UserService {
         User user = this.getUserByUsername(userPrincipal.getName());
         UserInfo props = user.getProps();
         if (props != null && properties.getPasswordStrategy().getEnablePeriodChange()) {
-            boolean notMatched =
-                    !userPrincipal.isDev() && !userPrincipal.isAdmin() && !userPrincipal.isManager() && !userPrincipal.isTenantManager();
+            boolean notMatched = !userPrincipal.isDev()
+                    && !userPrincipal.isAdmin()
+                    && !userPrincipal.isManager()
+                    && !userPrincipal.isTenantManager();
             // 判断密码是否需要更新
             if (notMatched && ObjectUtil.equals(props.getUpdatePwd(), false)) {
                 List<UserPasswordEntity> userUpdatePwdLogEntities =

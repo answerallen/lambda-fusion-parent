@@ -30,7 +30,7 @@ import lombok.Setter;
  * </ul>
  *
  * <h3>使用示例：</h3>
- * 
+ *
  * <pre>{@code
  * public class UserPageQueryDTO extends PageQueryDTO<UserEntity> {
  *     private String name;
@@ -88,7 +88,10 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * 当有多个排序字段时，可以用逗号分隔指定每个字段的排序方向
      * </p>
      */
-    @Schema(description = "排序方向，ASC升序/DESC降序", example = "ASC", allowableValues = { "ASC", "DESC" })
+    @Schema(
+            description = "排序方向，ASC升序/DESC降序",
+            example = "ASC",
+            allowableValues = {"ASC", "DESC"})
     private String orderDirection = ORDER_ASC;
 
     /**
@@ -148,7 +151,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
         String[] fields = this.orderBy.split(",");
         String[] directions = Optional.ofNullable(this.orderDirection)
                 .map(dir -> dir.split(","))
-                .orElse(new String[] { ORDER_ASC });
+                .orElse(new String[] {ORDER_ASC});
 
         for (int i = 0; i < fields.length; i++) {
             String field = fields[i].trim();
@@ -160,8 +163,8 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
                 }
 
                 // 获取对应的排序方向，如果方向数组长度不够，使用最后一个方向
-                String direction = i < directions.length ? directions[i].trim()
-                        : directions[directions.length - 1].trim();
+                String direction =
+                        i < directions.length ? directions[i].trim() : directions[directions.length - 1].trim();
 
                 // 验证排序方向
                 boolean isAsc = !ORDER_DESC.equalsIgnoreCase(direction);
@@ -222,8 +225,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @return 是否无效（true表示字段名无效）
      */
     private boolean isInvalidFieldName(String field) {
-        return StringUtils.isBlank(field)
-                || !FIELD_NAME_PATTERN.matcher(field).matches();
+        return StringUtils.isBlank(field) || !FIELD_NAME_PATTERN.matcher(field).matches();
     }
 
     /**

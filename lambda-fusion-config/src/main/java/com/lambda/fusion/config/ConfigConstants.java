@@ -1,15 +1,14 @@
 package com.lambda.fusion.config;
 
+import lombok.experimental.UtilityClass;
+
 /**
  * 配置核心模块常量定义
  * 集中管理所有硬编码常量，提高代码可维护性
  *
  */
+@UtilityClass
 public final class ConfigConstants {
-
-    private ConfigConstants() {
-        // 工具类，禁止实例化
-    }
 
     /**
      * 数据库相关常量

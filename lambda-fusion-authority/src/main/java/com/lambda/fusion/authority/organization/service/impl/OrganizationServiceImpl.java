@@ -112,7 +112,8 @@ public class OrganizationServiceImpl implements OrganizationService {
     /**
      * 根据搜索条件获取组织列表
      */
-    private List<Organization> getOrganizationsBySearchCondition(UserPrincipal userPrincipal, OrganizationQuery parameters) {
+    private List<Organization> getOrganizationsBySearchCondition(
+            UserPrincipal userPrincipal, OrganizationQuery parameters) {
         List<Organization> list = getOrgByCondition(userPrincipal, parameters);
 
         if (userPrincipal.isAdmin()) {
