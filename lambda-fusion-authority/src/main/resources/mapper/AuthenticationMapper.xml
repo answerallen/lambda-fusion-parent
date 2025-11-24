@@ -101,7 +101,7 @@
             T1.parentId,
             T1.business_expand
         FROM LA_RESOURCES T1
-        inner join la_role_resources T2 on T1.id = T2.RESOURCEID and T2.AUTHORITY  = 'ROLE_ADMIN'
+        inner join la_role_resources T2 on T1.id = T2.RESOURCEID
         <where>
             <if test="mode != null">
                 T1.res_mode = #{mode}

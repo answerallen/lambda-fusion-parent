@@ -17,6 +17,7 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
 import com.lambda.security.provider.ThirdPartLoginResult;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +64,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         query.setParentId(parentId);
         query.setLevel(level);
         query.setMode(0);
+        if (operator instanceof Operator && CollUtil.isNotEmpty(((Operator) operator).getRoles())) {
+            query.setIds(new ArrayList<>(((Operator) operator).getRoles()));
+        }
         return getNavigation(operator, query);
     }
 

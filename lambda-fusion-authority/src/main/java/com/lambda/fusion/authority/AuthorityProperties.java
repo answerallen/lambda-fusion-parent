@@ -80,14 +80,7 @@ public class AuthorityProperties {
     @Setter
     public static class DevRole {
         private final String[] defaultWhiteArray = new String[] {
-            "/public/**",
-            "**/dictionaries/**",
-            "/dictionaries/**",
-            "/authority/**",
-            "/monitor/**",
-            "/error/**",
-            "/error",
-            "/v3/**",
+            "/public/**", "**/dictionaries/**", "/dictionaries/**", "/monitor/**", "/error/**", "/error", "/v3/**",
         };
         private List<String> whiteList;
 

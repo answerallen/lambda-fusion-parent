@@ -4,6 +4,7 @@ import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.impl.InternalRoleServiceImpl;
 import com.lambda.fusion.authority.tenant.TenantProperties;
@@ -14,6 +15,7 @@ import com.lambda.fusion.authority.tenant.cache.TenantHostCache;
 import java.time.Duration;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -45,7 +47,7 @@ public class AuthorityConfigure {
         // 核心线程数
         executor.setCorePoolSize(5);
         // 任务队列的大小
-        executor.setQueueCapacity(10);
+        executor.setQueueCapacity(1000);
         // 线程前缀名
         executor.setThreadNamePrefix(OPERATION_LOG_EXECUTOR + "-");
         // 线程存活时间
@@ -57,7 +59,7 @@ public class AuthorityConfigure {
          * DiscardPolicy()：直接丢弃。
          * DiscardOldestPolicy()：丢弃队列中最老的任务。
          */
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardOldestPolicy());
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         return executor;
     }
 
@@ -66,6 +68,7 @@ public class AuthorityConfigure {
     public static class AuthorizeRedisCacheManagerConfigure {
 
         @Bean(CACHE_MANAGER)
+        @SuppressWarnings("all")
         public CacheManager authorityCacheManager(RedisConnectionFactory redisConnectionFactory) {
             log.debug("CacheManager: Redis");
             RedisCacheConfiguration redisCacheConfiguration = RedisCacheConfiguration.defaultCacheConfig();
@@ -87,11 +90,11 @@ public class AuthorityConfigure {
     public CacheManager authorityCacheManager() {
         log.debug("CacheManager: Caffeine");
         CaffeineCacheManager cacheManager = new CaffeineCacheManager("LAClients", "LAResourceOwners");
-        //        cacheManager.setCaffeine(Caffeine.newBuilder()
-        //                .initialCapacity(200)
-        //                .maximumSize(500)
-        //                .expireAfterWrite(30, TimeUnit.MINUTES)
-        //                .recordStats());
+        cacheManager.setCaffeine(Caffeine.newBuilder()
+                .initialCapacity(200)
+                .maximumSize(500)
+                .expireAfterWrite(30, TimeUnit.MINUTES)
+                .recordStats());
         return cacheManager;
     }
 
@@ -103,6 +106,7 @@ public class AuthorityConfigure {
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "org.springframework.data.redis.connection.RedisConnectionFactory")
+    @SuppressWarnings("all")
     public static class TenantConfigurationRedisCacheConfiguration {
 
         @Bean
