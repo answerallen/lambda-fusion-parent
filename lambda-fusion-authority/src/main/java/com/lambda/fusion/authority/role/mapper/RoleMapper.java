@@ -106,6 +106,13 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
     void saveAuthorization(AuthorityPermission authorityPermission);
 
     /**
+     * 批量保存资源授权
+     *
+     * @param list
+     */
+    void batchSaveAuthorization(@Param("list") List<AuthorityPermission> list);
+
+    /**
      * 批量更新访问权限
      *
      * @param parameters
@@ -123,6 +130,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
 
     /***
      * 批量删除资源授权
+     *
      * @param authority
      * @param ids
      * @param tenantId
@@ -133,6 +141,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
 
     /***
      * 根据当前节点查询所有已经拥有的直接子节点编号
+     *
      * @param authority
      * @param pid
      * @return java.util.List<java.lang.String>

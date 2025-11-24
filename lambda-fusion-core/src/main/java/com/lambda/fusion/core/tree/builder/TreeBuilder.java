@@ -9,7 +9,6 @@ import com.lambda.fusion.core.tree.TreeNode;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;

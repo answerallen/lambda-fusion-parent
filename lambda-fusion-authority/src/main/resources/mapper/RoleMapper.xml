@@ -49,16 +49,10 @@
         INSERT INTO LA_ROLES (authority,alias,icon,remarks,createDate,tenantId,owner,roletype, datatype, enabled, group_id)
         VALUES(
         #{authority},
-        #{alias},
-        #{icon,jdbcType=VARCHAR},
-        #{remarks,jdbcType=VARCHAR},
-        #{createDate},
-        #{tenantId,jdbcType=VARCHAR},
-        #{owner,jdbcType=VARCHAR},
-        #{roleType,jdbcType=INTEGER},#{dataType,jdbcType=INTEGER},1, #{groupId})
+        #{alias}, #{icon,jdbcType=VARCHAR}, #{remarks,jdbcType=VARCHAR},
+        #{createDate}, #{tenantId,jdbcType=VARCHAR}, #{owner,jdbcType=VARCHAR}, #{roleType,jdbcType=INTEGER},#{dataType,jdbcType=INTEGER},1, #{groupId})
     </insert>
-    <select id="getRoleByAuthority" parameterType="string"
-            resultType="com.lambda.fusion.authority.role.model.Role">
+    <select id="getRoleByAuthority" parameterType="string" resultType="com.lambda.fusion.authority.role.model.Role">
         SELECT authority, alias, roleType, datatype, enabled, icon, remarks, createDate, CASE WHEN group_id IS NULL THEN 'default' ELSE group_id END group_id FROM LA_ROLES WHERE authority = #{authority}
     </select>
     <delete id="deleteUserRoleByAuthority" parameterType="string">
@@ -98,6 +92,13 @@
         INSERT INTO LA_ROLE_RESOURCES (resourceid, authority, tenantId, la_manage) VALUES (#{id},#{authority}, #{tenantId, jdbcType=VARCHAR}, #{status, jdbcType=INTEGER})
     </insert>
 
+    <insert id="batchSaveAuthorization">
+        INSERT INTO LA_ROLE_RESOURCES (resourceid, authority, tenantId, la_manage) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.authority}, #{item.tenantId, jdbcType=VARCHAR}, #{item.status, jdbcType=INTEGER})
+        </foreach>
+    </insert>
+
     <update id="batchUpdateAuthorization">
         UPDATE LA_ROLE_RESOURCES SET la_manage = #{status, jdbcType=INTEGER} WHERE authority = #{authority} AND resourceid IN
         <foreach collection="ids" item="item" separator="," open="(" close=")">#{item}</foreach>
@@ -127,8 +128,7 @@
 
 
     <!-- 查询组织权限 -->
-    <select id="getOrganizationAuthorization" parameterType="HashMap"
-            resultType="com.lambda.fusion.authority.role.model.RoleAuthority">
+    <select id="getOrganizationAuthorization" parameterType="HashMap" resultType="com.lambda.fusion.authority.role.model.RoleAuthority">
         SELECT T.id, T.name, T.parentId,
         MAX(CASE WHEN T4.RESOURCEID IS NOT NULL THEN 1 ELSE 0 END) AS checked,
         COUNT(T2.ID) AS counts,
@@ -218,7 +218,7 @@
     </select>
     <delete id="deleteRoleAuthorizeByTenantId">
         DELETE FROM LA_ROLE_RESOURCES WHERE authority IN (SELECT AUTHORITY FROM LA_ROLES WHERE TENANT_ID IN
-            <foreach collection="tenantIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+        <foreach collection="tenantIds" open="(" close=")" separator="," item="item">#{item}</foreach>
         )
     </delete>
     <delete id="deleteRoleByTenantId">

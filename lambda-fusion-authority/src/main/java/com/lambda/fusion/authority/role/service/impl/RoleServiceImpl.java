@@ -34,7 +34,6 @@ import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.user.model.UserRoleEntity;
-import com.lambda.fusion.authority.utils.MybatisUtils;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
@@ -251,7 +250,7 @@ public class RoleServiceImpl implements RoleService {
         }
         String tenantId = userPrincipal.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
-            //        todo    tenantId = RoleUtil.getTenantId(authority);
+            // todo tenantId = RoleUtil.getTenantId(authority);
         }
         Resource resource = resourceService.getResourceById(resourceid);
         if (null != resource) {
@@ -273,14 +272,16 @@ public class RoleServiceImpl implements RoleService {
             }
             Set<String> differently = Sets.difference(ids, authorized);
             if (!CollectionUtils.isEmpty(differently)) {
-                MybatisUtils.batchInsert(differently, RoleMapper.class, (id, mapper) -> {
+                List<AuthorityPermission> list = new ArrayList<>(differently.size());
+                for (String id : differently) {
                     AuthorityPermission parameters = new AuthorityPermission();
                     parameters.setAuthority(authority);
                     parameters.setTenantId(tenantId);
                     parameters.setStatus(status);
                     parameters.setId(id);
-                    mapper.saveAuthorization(parameters);
-                });
+                    list.add(parameters);
+                }
+                roleMapper.batchSaveAuthorization(list);
             }
 
             // 处理租户主库
@@ -301,7 +302,7 @@ public class RoleServiceImpl implements RoleService {
         }
         String tenantId = userPrincipal.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
-            // todo  tenantId = RoleUtil.getTenantId(authority);
+            // todo tenantId = RoleUtil.getTenantId(authority);
         }
         Resource resource = resourceService.getResourceById(resourceid);
         if (null != resource) {
@@ -416,19 +417,33 @@ public class RoleServiceImpl implements RoleService {
                 new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getAuthority, req.getRoleId()));
         final Set<String> dbUsernames =
                 dbResult.stream().map(UserRoleEntity::getUserid).collect(Collectors.toSet());
-        if (usernames.size() >= dbUsernames.size()) {
-            usernames.removeAll(dbUsernames);
-            if (CollectionUtils.isNotEmpty(usernames)) {
-                final String tenantId = userPrincipal.getTenantId();
-                final List<UserRoleEntity> saveList = new ArrayList<>(usernames.size());
-                usernames.forEach(username -> saveList.add(new UserRoleEntity(username, authority, tenantId)));
-                userRoleMapper.insert(saveList);
+        if (CollectionUtils.isEmpty(usernames)) {
+            // 如果传入为空，则删除所有
+            if (CollectionUtils.isNotEmpty(dbUsernames)) {
+                userRoleMapper.batchDelete(authority, new ArrayList<>(dbUsernames));
             }
-        } else {
-            if (CollectionUtils.isNotEmpty(usernames)) {
-                dbUsernames.removeIf(usernames::contains);
-            }
-            userRoleMapper.batchDelete(authority, new ArrayList<>(dbUsernames));
+            return;
+        }
+
+        // 1. 计算需要添加的用户 (usernames - dbUsernames)
+        List<String> toAdd = new ArrayList<>(usernames);
+        toAdd.removeAll(dbUsernames);
+
+        // 2. 计算需要删除的用户 (dbUsernames - usernames)
+        List<String> toDelete = new ArrayList<>(dbUsernames);
+        toDelete.removeAll(usernames);
+
+        // 3. 执行添加
+        if (CollectionUtils.isNotEmpty(toAdd)) {
+            final String tenantId = userPrincipal.getTenantId();
+            final List<UserRoleEntity> saveList = new ArrayList<>(toAdd.size());
+            toAdd.forEach(username -> saveList.add(new UserRoleEntity(username, authority, tenantId)));
+            userRoleMapper.insert(saveList);
+        }
+
+        // 4. 执行删除
+        if (CollectionUtils.isNotEmpty(toDelete)) {
+            userRoleMapper.batchDelete(authority, toDelete);
         }
     }
 }
