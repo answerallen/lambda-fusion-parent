@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.convert.BaseConverter;
 import com.lambda.cloud.core.convert.ConverterResolver;
+
 import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -131,7 +132,7 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
      * @param entityPage 要转换的实体分页
      * @return 与输入实体对应的值对象分页
      */
-    private IPage<V> convertPageToVO(IPage<E> entityPage) {
+    public IPage<V> convertPageToVO(IPage<E> entityPage) {
         return entityPage.convert(this::toVO);
     }
 
@@ -141,7 +142,7 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
      * @param entityList 要转换的实体列表
      * @return 与输入实体对应的值对象列表
      */
-    private List<V> convertListToVO(List<E> entityList) {
+    public List<V> convertListToVO(List<E> entityList) {
         return toVO(entityList);
     }
 }
