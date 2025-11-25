@@ -107,11 +107,13 @@ public interface UserMapper extends BaseMapper<UserEntity> {
     /**
      * 修改指定用户的密码
      *
-     * @param user
+     * @param username username
+     * @param newPassword newPassword
+     *
      */
     default void updatePassword(String username, String newPassword) {
         update(new LambdaUpdateWrapper<UserEntity>()
-                .eq(UserEntity::getUserid, username)
+                .eq(UserEntity::getUsername, username)
                 .set(UserEntity::getPassword, newPassword));
     }
 
@@ -249,7 +251,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      */
     default void updateMobile(String username, String mobile) {
         update(new LambdaUpdateWrapper<UserEntity>()
-                .eq(UserEntity::getUserid, username)
+                .eq(UserEntity::getUsername, username)
                 .set(UserEntity::getMobile, mobile));
     }
 
@@ -261,7 +263,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      */
     default void updateEmail(String username, String email) {
         update(new LambdaUpdateWrapper<UserEntity>()
-                .eq(UserEntity::getUserid, username)
+                .eq(UserEntity::getUsername, username)
                 .set(UserEntity::getEmail, email));
     }
 
@@ -274,7 +276,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      */
     default void updateInfo(String username, String email, String nickname) {
         update(new LambdaUpdateWrapper<UserEntity>()
-                .eq(UserEntity::getUserid, username)
+                .eq(UserEntity::getUsername, username)
                 .set(UserEntity::getEmail, email)
                 .set(UserEntity::getNickname, nickname));
     }

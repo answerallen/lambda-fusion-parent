@@ -12,9 +12,6 @@ import java.util.Map;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 
-/**
- * 易变的用户信息
- */
 @Data
 @Schema(description = "用户信息")
 public class User {
@@ -38,14 +35,8 @@ public class User {
     @Schema(description = "创建时间")
     private Date createDate;
 
-    @Schema(description = "工号")
-    private String jobno;
-
     @Schema(description = "租户ID")
     private String tenantId;
-
-    @Schema(description = "用户创建人")
-    private String owner;
 
     @Schema(description = "是否启用")
     private boolean enabled;
@@ -56,15 +47,12 @@ public class User {
     @Schema(description = "是否锁定")
     private boolean locked;
 
-    @Schema(description = "昵称拼音缩写")
-    private String nicknameAbbr;
-
     @Schema(description = "创建人用户")
     private String createAccount;
 
     @JsonProperty("organization")
     @Schema(description = "组织信息")
-    private OrganizationSummary org;
+    private OrganizationSummary organizationSummary;
 
     @Schema(description = "角色信息")
     @JsonProperty("authorities")

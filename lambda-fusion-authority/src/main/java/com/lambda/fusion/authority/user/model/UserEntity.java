@@ -10,8 +10,8 @@ import lombok.Data;
 @TableName("la_users")
 public class UserEntity {
 
-    @TableId(value = "userid")
-    private String userid;
+    @TableId(value = "USERNAME")
+    private String username;
 
     @TableField("PASSWORD")
     private String password;
@@ -25,26 +25,17 @@ public class UserEntity {
     @TableField("EMAIL")
     private String email;
 
-    @TableField("CREATE_DATE")
-    private Date createDate;
-
     @TableField("ENABLED")
     private Integer enabled;
 
     @TableField("TENANT_ID")
     private String tenantId;
 
-    @TableField("OWNER")
-    private String owner;
-
-    @TableField("JOBNO")
-    private String jobno;
-
-    @TableField("NICKNAME_ABBR")
-    private String nicknameAbbr;
-
     @TableField("CREATOR")
     private String creator;
+
+    @TableField("CREATE_DATE")
+    private Date createDate;
 
     @TableField("EXPIRED_TIME")
     private Date expiredTime;

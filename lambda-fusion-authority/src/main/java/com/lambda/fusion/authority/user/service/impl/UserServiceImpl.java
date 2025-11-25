@@ -8,7 +8,6 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.extra.pinyin.PinyinUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -142,7 +141,7 @@ public class UserServiceImpl implements UserService {
                     && !userPrincipal.isManager()
                     && !userPrincipal.isTenantManager();
             // 判断密码是否需要更新
-            if (notMatched && ObjectUtil.equals(props.getUpdatePwd(), false)) {
+            if (notMatched && ObjectUtil.equals(props.getPasswordResetRequired(), false)) {
                 List<UserPasswordEntity> userUpdatePwdLogEntities =
                         userUpdatePwdLogMapper.selectList(new LambdaQueryWrapper<UserPasswordEntity>()
                                 .select(UserPasswordEntity::getUpdateTime)
@@ -157,7 +156,7 @@ public class UserServiceImpl implements UserService {
                     LocalDateTime lastUpdateTime = DateUtil.toLocalDateTime(userUpdatePwdLogEntity.getUpdateTime());
                     long days = ChronoUnit.DAYS.between(lastUpdateTime, nowTime);
                     if (days >= passwordModifyDays) {
-                        props.setUpdatePwd(true);
+                        props.setPasswordResetRequired(true);
                         props.setPasswordModifyDays((int) days);
                         user.setProps(props);
                     }
@@ -247,8 +246,6 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 整理用户临时参数
-     *
-     * @param users
      */
     private UserTempParameters getUserTempParameters(List<User> users) {
         Set<String> uids = Sets.newHashSet();
@@ -256,7 +253,7 @@ public class UserServiceImpl implements UserService {
         for (User item : users) {
             uids.add(item.getUsername());
             if (isBindOrg(item)) {
-                orgIds.add(item.getOrg().getId());
+                orgIds.add(item.getOrganizationSummary().getId());
             }
         }
         UserTempParameters parameters = new UserTempParameters();
@@ -267,10 +264,6 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 补充完善用户权限信息
-     *
-     * @param item
-     * @param tenantId
-     * @return void
      */
     private void supplementUserPermissionInfo(User item, String tenantId) {
         // todo       if (RoleUtil.isTenant(item)) {
@@ -281,8 +274,6 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 补充完善用户锁定信息
-     *
-     * @param item
      */
     private void supplementUserLockState(User item) {
         // 锁定状态
@@ -290,10 +281,6 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 补充用户在线信息
-     *
-     * @param onlines
-     * @param item
-     * @param uid     当前登陆用户编号
      */
     private void supplementUserOnlineInfo(Set<String> onlines, User item, String uid) {
         String username = item.getUsername();
@@ -314,33 +301,24 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 补充完善用户组织信息
-     *
-     * @param orgnames
-     * @param item
      */
     private void supplementUserOrgInfo(Map<String, String> orgnames, User item) {
         if (isBindOrg(item)) {
-            OrganizationSummary org = item.getOrg();
+            OrganizationSummary org = item.getOrganizationSummary();
             org.setFullName(orgnames.getOrDefault(org.getId(), org.getAlias()));
         }
     }
 
     /**
      * 是否绑定了组织机构
-     *
-     * @param user0
-     * @return boolean
      */
     private boolean isBindOrg(@NonNull User user0) {
-        OrganizationSummary org = user0.getOrg();
+        OrganizationSummary org = user0.getOrganizationSummary();
         return org != null && StringUtils.isNotBlank(org.getId());
     }
 
     /**
      * 获取组织全名
-     *
-     * @param orgIds
-     * @return
      */
     private Map<String, String> getOrgFullNamesByOrgIds(Set<String> orgIds) {
         if (CollectionUtils.isEmpty(orgIds)) {
@@ -440,7 +418,7 @@ public class UserServiceImpl implements UserService {
      * @param item 当前用户
      */
     private void extractedPermission(String tenantId, User item) {
-        if (StringUtils.isNotBlank(item.getTenantId()) && !Objects.equals(tenantId, item.getOwner())) {
+        if (StringUtils.isNotBlank(item.getTenantId()) && !Objects.equals(tenantId, item.getTenantId())) {
             item.setNoPermission(true);
         }
     }
@@ -511,7 +489,7 @@ public class UserServiceImpl implements UserService {
         UserEntity userEntity = createUser.toEntity();
         Assert.notNull(userEntity, "user is not null");
 
-        boolean hasExists = userMapper.hasExists(userEntity.getUserid());
+        boolean hasExists = userMapper.hasExists(userEntity.getUsername());
         Assert.isTrue(hasExists, "该用户名已被使用");
 
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
@@ -520,9 +498,7 @@ public class UserServiceImpl implements UserService {
         userEntity.setPassword(passwordEncoder.encode(encodePassword.getEncrypted()));
 
         userEntity.setCreateDate(new Date());
-        userEntity.setNicknameAbbr(PinyinUtil.getPinyin(userEntity.getNickname()));
         userEntity.setTenantId(operator.getTenantId());
-        userEntity.setOwner(operator.getTenantId());
         userEntity.setCreator(operator.getName());
         userMapper.insert(userEntity);
 
@@ -532,12 +508,12 @@ public class UserServiceImpl implements UserService {
         if (Objects.isNull(createUser.getProps())) {
             createUser.setProps(new UserInfo());
         }
-        createUser.getProps().setUpdatePwd(true);
+        createUser.getProps().setPasswordResetRequired(true);
 
         OrganizationSummary org = createUser.getOrg();
         if (org != null && StringUtils.isNotBlank(org.getId())) {
             userOrganizationMapper.insert(
-                    new UserOrganizationEntity(userEntity.getUserid(), org.getId(), operator.getTenantId()));
+                    new UserOrganizationEntity(userEntity.getUsername(), org.getId(), operator.getTenantId()));
         }
         return encodePassword.getOrigin();
     }
@@ -555,7 +531,7 @@ public class UserServiceImpl implements UserService {
                         UserRoleEntity userRoleEntity = new UserRoleEntity();
                         userRoleEntity.setAuthority(authority);
                         userRoleEntity.setTenantId(operator.getTenantId());
-                        userRoleEntity.setUserid(userEntity.getUserid());
+                        userRoleEntity.setUserid(userEntity.getUsername());
                         return userRoleEntity;
                     })
                     .collect(Collectors.toList());
@@ -567,14 +543,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public void updateUser(UpdateUser updateUser, LoginUser operator) {
         UserEntity userEntity = updateUser.toEntity();
-        userEntity.setNicknameAbbr(PinyinUtil.getPinyin(userEntity.getNickname()));
         int updated = userMapper.updateById(userEntity);
         Assert.isTrue(updated == 0, "用户更新失败！");
-        userRoleMapper.deleteUserRoles(userEntity.getUserid());
+        userRoleMapper.deleteUserRoles(userEntity.getUsername());
         addUserRoles(operator, updateUser.getAuthorities(), userEntity);
         if (MapUtils.isNotEmpty(updateUser.getPersonal())) {
-            List<UserFieldsEntity> fields = this.convertPersonBean(updateUser.getPersonal(), userEntity.getUserid());
-            this.userFieldsMapper.deleteByUsername(userEntity.getUserid());
+            List<UserFieldsEntity> fields = this.convertPersonBean(updateUser.getPersonal(), userEntity.getUsername());
+            this.userFieldsMapper.deleteByUsername(userEntity.getUsername());
             this.userFieldsMapper.insert(fields);
         }
     }
@@ -586,7 +561,6 @@ public class UserServiceImpl implements UserService {
      * @param source   前端传递的组织机构
      * @param original 原组织机构
      * @param operator 当前用户
-     * @return void
      */
     private void updateUserOrg(
             String username, OrganizationSummary source, OrganizationSummary original, LoginUser operator) {
@@ -846,7 +820,6 @@ public class UserServiceImpl implements UserService {
         User target = userMapper.getMutableUserById(username);
         Assert.notNull(target, "user not found");
         BeanUtils.copyProperties(source, target);
-        target.setNicknameAbbr(PinyinUtil.getPinyin(target.getNickname()));
         userMapper.updateMutableUser(target);
         userMapper.deleteUserRoles(username);
         //        addUserRoles(target, operator.getTenantId());

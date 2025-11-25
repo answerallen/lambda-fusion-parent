@@ -32,11 +32,6 @@ public class UserInfo {
     private String groupNo;
 
     /**
-     * 线路编号
-     */
-    private String lineNo;
-
-    /**
      * 岗位编号
      */
     private String position;
@@ -74,7 +69,7 @@ public class UserInfo {
     /**
      * 是否需要修改密码
      */
-    private Boolean updatePwd;
+    private Boolean passwordResetRequired;
 
     /**
      * 扩展参数

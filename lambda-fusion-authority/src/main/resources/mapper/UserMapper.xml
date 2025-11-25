@@ -9,11 +9,9 @@
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="mobile" property="mobile"/>
         <result column="email" property="email"/>
-        <result column="createDate" property="createDate"/>
+        <result column="create_date" property="createDate"/>
         <result column="tenant_id" property="tenant_id"/>
-        <result column="owner" property="owner" />
         <result column="enabled" property="enabled" />
-        <result column="jobno" property="jobno"/>
         <result column="ON_LINE" property="online"/>
         <result column="OFFLINE_TIME" property="offlineTime"/>
         <result column="CREATOR" property="creator"/>
@@ -30,14 +28,13 @@
             <result column="remark" property="remark"/>
             <result column="identity_id" property="identityId"/>
             <result column="group_no" property="groupNo"/>
-            <result column="line_no" property="lineNo"/>
             <result column="position" property="position"/>
             <result column="status" property="status"/>
             <result column="fila_no" property="filaNo"/>
             <result column="emp_no" property="empNo"/>
             <result column="dd_no" property="ddNo"/>
             <result column="wechat_no" property="wechatNo"/>
-            <result column="isupdatepwd" property="updatePwd"/>
+            <result column="password_reset_required" property="passwordResetRequired"/>
             <result column="extend_param" property="extendParam"/>
         </association>
         <collection property="authorities" ofType="com.lambda.fusion.authority.role.model.SimpleRole">
