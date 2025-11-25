@@ -16,10 +16,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 认证控制器
- * 负责用户认证相关的HTTP接口
+ * 导航菜单
+ * 导航菜单接口
  */
-@Tag(name = "用户认证", description = "用户认证相关接口")
+@Tag(name = "导航菜单", description = "获取当前用户导航菜单接口")
 @SaCheckLogin
 @RestController
 @RequestMapping("/")
