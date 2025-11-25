@@ -26,13 +26,16 @@ public class OrganizationEntity {
     @TableField("ORG_NAME")
     private String name; // 组织名称
 
+    @TableField("ALIAS")
     private String alias; // 别名
 
     @TableField("PARENT_ID")
     private String parentId; // 父ID，NULL 代表顶级
 
+    @TableField("CREATE_DATE")
     private Date createDate; // 创建日期，默认为当前时间
 
+    @TableField("REMARKS")
     private String remarks; // 备注
 
     @TableField("PARENT_KEYS")

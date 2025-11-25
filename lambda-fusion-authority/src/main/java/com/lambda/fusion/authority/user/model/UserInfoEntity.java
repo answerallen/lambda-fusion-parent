@@ -18,15 +18,15 @@ import org.hibernate.validator.constraints.Length;
 @Schema(description = "用户扩展信息")
 @SuppressFBWarnings({"CT_CONSTRUCTOR_THROW"})
 public class UserInfoEntity {
-    @TableId
+    @TableId("USERNAME")
     @JsonIgnore
     private String userid;
 
-    @TableField
+    @TableField("AVATAR")
     @Schema(description = "用户头像")
     private String avatar;
 
-    @TableField
+    @TableField("REMARK")
     @Schema(description = "用户备注")
     @Length(max = 255)
     private String remark;
@@ -36,7 +36,7 @@ public class UserInfoEntity {
     private String identityId;
 
     @Schema(description = "公司编号")
-    @TableField("GROUP_NO")
+    @TableField(exist = false)
     private String groupNo;
 
     @Schema(description = "岗位编号")
@@ -64,7 +64,7 @@ public class UserInfoEntity {
     private String wechatNo;
 
     @Schema(description = "是否需要修改密码")
-    @TableField("ISUPDATEPWD")
+    @TableField("password_reset_required")
     private Boolean updatePwd;
 
     @Schema(description = "扩展参数")
@@ -74,4 +74,7 @@ public class UserInfoEntity {
     @Schema(description = "企业微信名称")
     @TableField("WECHAT_NAME")
     private String wechatName;
+
+    @TableField("TENANTID")
+    private String tenantId;
 }

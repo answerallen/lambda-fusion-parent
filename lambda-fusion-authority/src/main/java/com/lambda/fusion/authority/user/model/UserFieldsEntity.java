@@ -25,4 +25,7 @@ public class UserFieldsEntity {
     @TableField("FIELD_VALUE")
     @Schema(description = "字段值")
     private String fieldValue;
+
+    @TableField("TENANTID")
+    private String tenantId;
 }

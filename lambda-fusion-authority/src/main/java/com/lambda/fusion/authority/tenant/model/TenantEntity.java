@@ -25,7 +25,6 @@ public class TenantEntity {
     /**
      * 租户ID
      */
-    @TableId
     @Schema(description = "租户ID")
     @TableField("TENANT_ID")
     private String tenantId;
@@ -33,6 +32,7 @@ public class TenantEntity {
      * 租户编码
      */
     @Schema(description = "租户编码")
+    @TableId(value = "TENANT_CODE")
     @TableField("TENANT_CODE")
     private String tenantCode;
     /**

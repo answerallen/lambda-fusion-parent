@@ -416,7 +416,7 @@ public class RoleServiceImpl implements RoleService {
         final List<UserRoleEntity> dbResult = userRoleMapper.selectList(
                 new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getAuthority, req.getRoleId()));
         final Set<String> dbUsernames =
-                dbResult.stream().map(UserRoleEntity::getUserid).collect(Collectors.toSet());
+                dbResult.stream().map(UserRoleEntity::getUsername).collect(Collectors.toSet());
         if (CollectionUtils.isEmpty(usernames)) {
             // 如果传入为空，则删除所有
             if (CollectionUtils.isNotEmpty(dbUsernames)) {

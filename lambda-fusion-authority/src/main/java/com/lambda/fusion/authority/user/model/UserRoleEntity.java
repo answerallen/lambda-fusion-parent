@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.user.model;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,16 +11,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @TableName("la_user_roles")
 public class UserRoleEntity {
-    /**
-     * 用户ID
-     */
-    private String userid;
-    /**
-     * 角色
-     */
+    @TableField("USERNAME")
+    private String username;
+
+    @TableField("AUTHORITY")
     private String authority;
-    /**
-     * 租户
-     */
+
+    @TableField("TENANT_ID")
     private String tenantId;
 }

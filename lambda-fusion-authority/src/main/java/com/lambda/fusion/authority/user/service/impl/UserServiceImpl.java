@@ -145,7 +145,7 @@ public class UserServiceImpl implements UserService {
                 List<UserPasswordEntity> userUpdatePwdLogEntities =
                         userUpdatePwdLogMapper.selectList(new LambdaQueryWrapper<UserPasswordEntity>()
                                 .select(UserPasswordEntity::getUpdateTime)
-                                .eq(UserPasswordEntity::getUserName, userPrincipal.getName())
+                                .eq(UserPasswordEntity::getUsername, userPrincipal.getName())
                                 .isNotNull(UserPasswordEntity::getUpdateTime)
                                 .orderByDesc(UserPasswordEntity::getUpdateTime));
                 if (CollectionUtils.isNotEmpty(userUpdatePwdLogEntities)) {
@@ -531,7 +531,7 @@ public class UserServiceImpl implements UserService {
                         UserRoleEntity userRoleEntity = new UserRoleEntity();
                         userRoleEntity.setAuthority(authority);
                         userRoleEntity.setTenantId(operator.getTenantId());
-                        userRoleEntity.setUserid(userEntity.getUsername());
+                        userRoleEntity.setUsername(userEntity.getUsername());
                         return userRoleEntity;
                     })
                     .collect(Collectors.toList());
@@ -668,8 +668,8 @@ public class UserServiceImpl implements UserService {
         Assert.isTrue(isChecked, "lambda.authority.user.password.incorrect");
         String encoded = passwordEncoder.encode(newpassword);
         UserPasswordEntity userUpdatePwdLogEntity = new UserPasswordEntity();
-        userUpdatePwdLogEntity.setPassWord(encoded);
-        userUpdatePwdLogEntity.setUserName(username);
+        userUpdatePwdLogEntity.setPassword(encoded);
+        userUpdatePwdLogEntity.setUsername(username);
         userUpdatePwdLogMapper.insertLog(userUpdatePwdLogEntity);
         userMapper.updatePassword(username, encoded);
         userInfoMapper.updateStatus(username, false);

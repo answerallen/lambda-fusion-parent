@@ -18,10 +18,10 @@ public interface UserRoleMapper extends BaseMapper<UserRoleEntity> {
     default void batchDelete(String authority, List<String> ids) {
         delete(new LambdaQueryWrapper<UserRoleEntity>()
                 .eq(UserRoleEntity::getAuthority, authority)
-                .in(UserRoleEntity::getUserid, ids));
+                .in(UserRoleEntity::getUsername, ids));
     }
 
     default void deleteUserRoles(String userid) {
-        delete(new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getUserid, userid));
+        delete(new LambdaQueryWrapper<UserRoleEntity>().eq(UserRoleEntity::getUsername, userid));
     }
 }

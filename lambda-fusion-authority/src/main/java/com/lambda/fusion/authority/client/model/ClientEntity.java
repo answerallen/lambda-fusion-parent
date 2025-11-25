@@ -25,44 +25,44 @@ public class ClientEntity extends BaseDO {
      * 客户端名称
      */
     @Schema(description = "客户端名称")
-    @TableField("name")
+    @TableField("NAME")
     private String name;
     /**
      * 客户端证书
      */
     @Schema(description = "客户端密钥")
-    @TableField("secret")
+    @TableField("SECRET")
     private String secret;
     /**
      * 绑定IP地址
      */
     @Schema(description = "绑定IP地址")
-    @TableField("hosts")
+    @TableField("HOSTS")
     private String hosts;
 
     /**
      * 过期时间
      */
     @Schema(description = "过期时间")
-    @TableField("expired")
+    @TableField("EXPIRED")
     private Date expired;
     /**
      * 是否可用
      */
     @Schema(description = "是否可用")
-    @TableField("enabled")
+    @TableField("ENABLED")
     private Boolean enabled;
     /**
      * 备注
      */
     @Schema(description = "备注")
-    @TableField("remarks")
+    @TableField("REMARKS")
     private String remarks;
 
     /**
      * 租户ID
      */
     @Schema(description = "租户ID")
-    @TableField("tenant_id")
+    @TableField("TENANTID")
     private String tenantId;
 }

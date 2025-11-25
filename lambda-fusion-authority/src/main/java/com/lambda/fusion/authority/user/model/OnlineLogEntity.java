@@ -12,7 +12,7 @@ import lombok.Data;
 @SuppressFBWarnings("EI_EXPOSE_REP")
 public class OnlineLogEntity {
 
-    @TableId("USERNAME")
+    @TableField("USERNAME")
     private String username;
 
     @TableField("IP")
@@ -22,7 +22,7 @@ public class OnlineLogEntity {
     private int type;
 
     @TableField("ON_LINE")
-    private boolean online;
+    private Integer online;
 
     @TableField("ONLINE_TIME")
     private Date onlineTime;

@@ -9,7 +9,7 @@ import java.util.Date;
 import lombok.Data;
 
 @Data
-@TableName("LA_USER_UPDATE_PWD_LOGS")
+@TableName("LA_USER_PASSWORD_LOGS")
 @SuppressFBWarnings("EI_EXPOSE_REP")
 @Schema(description = "日志表实体类")
 public class UserPasswordEntity {
@@ -19,14 +19,14 @@ public class UserPasswordEntity {
     private String id;
 
     @Schema(description = "用户ID")
-    @TableField("USER_ID")
-    private String userName;
+    @TableField("USERNAME")
+    private String username;
 
     @Schema(description = "用户密码")
     @TableField("PASSWORD")
-    private String passWord;
+    private String password;
 
     @Schema(description = "修改密码日期")
-    @TableField("UPDATETIME")
+    @TableField("UPDATE_TIME")
     private Date updateTime;
 }
