@@ -83,7 +83,7 @@
         </collection>
     </resultMap>
 
-    <select id="getAllMutableUsersByCondition" resultType="com.lambda.fusion.authority.user.model.User">
+    <select id="getAllUsersByCondition" resultType="com.lambda.fusion.authority.user.model.User">
         SELECT T.username, T.nickname, T.mobile, T.email, T.enabled, T.jobno FROM LA_USERS T
         <where>
             <choose>
@@ -143,7 +143,7 @@
         ORDER BY T.CREATEDATE DESC, T.USERNAME
     </select>
     <!-- 查询用户列表 -->
-    <select id="getAllMutableUsers" resultMap="MutableUser">
+    <select id="getAllUsers" resultMap="MutableUser">
         SELECT
         T.username, T.nickname, T.mobile, T.email, T.createDate, T.enabled, T.jobno, T.OWNER,
         R.AUTHORITY,
@@ -161,7 +161,7 @@
     </select>
 
     <!-- 查询用户列表 -->
-    <select id="getAllMutableUsersByKey" parameterType="String" resultMap="MutableUser">
+    <select id="getAllUsersByKey" parameterType="String" resultMap="MutableUser">
         SELECT T.username, T.nickname, T.mobile, T.email, T.createDate, T.enabled, T.jobno,
         R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
         FROM LA_USERS T
@@ -198,7 +198,7 @@
     </select>
 
     <!-- 根据Id查询用户信息 -->
-    <select id="getMutableUserById" resultMap="MutableUser">
+    <select id="getUserByUsername" resultMap="MutableUser">
 		SELECT T.username, T.nickname, T.mobile, T.email, T.createDate, T.enabled, T.tenantId, T.jobno,
             R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
 		FROM LA_USERS T
@@ -214,14 +214,14 @@
         SELECT T.username, T.password FROM LA_USERS T WHERE T.username = #{username}
     </select>
     <!-- 保存用户 -->
-    <insert id="insertMutableUser" parameterType="com.lambda.fusion.authority.user.model.User">
+    <insert id="insertUser" parameterType="com.lambda.fusion.authority.user.model.User">
         INSERT INTO LA_USERS (username, password, nickname, mobile, email, createdate, enabled, tenantId, owner, jobno, creator, EXPIRED_TIME)
         VALUES(#{username}, #{password}, #{nickname}, #{mobile,jdbcType=VARCHAR}, #{email, jdbcType=VARCHAR},
         #{createDate, jdbcType=TIMESTAMP}, 1, #{tenantId, jdbcType=VARCHAR}, #{owner, jdbcType=VARCHAR}, #{jobno, jdbcType=VARCHAR}
                   , #{creator, jdbcType=VARCHAR}, #{expiredTime, jdbcType=TIMESTAMP})
     </insert>
     <!-- 更新用户 -->
-    <update id="updateMutableUser" parameterType="com.lambda.fusion.authority.user.model.User">
+    <update id="updateUser" parameterType="com.lambda.fusion.authority.user.model.User">
         UPDATE LA_USERS SET
             nickname = #{nickname},
             mobile = #{mobile, jdbcType=VARCHAR},
@@ -242,10 +242,6 @@
         <foreach collection="authorities" item="role" separator=",">
             (#{username},#{role.authority})
         </foreach>
-    </insert>
-    <!-- 保存用户角色 -->
-    <insert id="addUserRole" parameterType="HashMap">
-        INSERT INTO LA_USER_ROLES (userid, authority, tenantId) VALUES (#{username},#{authority}, #{tenantId, jdbcType=VARCHAR})
     </insert>
     <!-- 删除用户 -->
     <delete id="deleteUser" parameterType="HashMap">
@@ -391,7 +387,7 @@
     </select>
 
 
-    <select id="getAllMutableUsersNoPage" resultMap="MutableUser">
+    <select id="getAllUsersNoPage" resultMap="MutableUser">
         SELECT DISTINCT(T.username), T.nickname, T.mobile, T.email, T.enabled, T.jobno,T.createDate,
         mi.userid,
         mi.avatar,

@@ -327,7 +327,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(userOrganizationDTO.getUserId(), "user id must not be null");
         Assert.notNull(userOrganizationDTO.getOrganizationId(), "organization id must not be null");
         Assert.notNull(
-                userMapper.getMutableUserById(userOrganizationDTO.getUserId()), "lambda.authority.organ.user.notfound");
+                userMapper.getUserByUsername(userOrganizationDTO.getUserId()), "lambda.authority.organ.user.notfound");
         Assert.notNull(getOrganizationById(userOrganizationDTO.getOrganizationId()), "机构不存在！");
         UserOrganizationEntity userOrganization = userOrganizationDTO.toEntity();
         userOrganizationMapper.insert(userOrganization);

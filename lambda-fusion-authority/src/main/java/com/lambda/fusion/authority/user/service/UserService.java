@@ -243,7 +243,7 @@ public interface UserService {
      *
      * @param tenantId 租户ID
      */
-    List<User> getAllMutableUsersByTenantId(String tenantId);
+    List<User> getUsersByTenantId(String tenantId);
 
     /***
      * 更新租户管理员用户

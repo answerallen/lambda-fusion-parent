@@ -4,11 +4,8 @@ import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.user.model.Permission;
-import com.lambda.fusion.authority.user.model.RoleResources;
-import com.lambda.fusion.authority.user.model.SimpleUser;
-import com.lambda.fusion.authority.user.model.User;
-import com.lambda.fusion.authority.user.model.UserEntity;
+import com.lambda.fusion.authority.user.model.*;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +44,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @return
      * @throws Exception
      */
-    User getMutableUserById(@Param("username") String username);
+    User getUserByUsername(@Param("username") String username);
 
     /**
      * 查询所有用户
@@ -55,7 +52,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param users
      * @return
      */
-    List<User> getAllMutableUsers(List<User> users);
+    List<User> getAllUsers(List<User> users);
 
     /**
      * 查询所有用户
@@ -64,7 +61,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param parameters
      * @return
      */
-    Page<User> getAllMutableUsersByCondition(Page<User> page, Map<String, Object> parameters);
+    Page<User> getAllUsersByCondition(Page<User> page, Map<String, Object> parameters);
 
     /**
      * 根据关键字模糊查询用户列表
@@ -72,37 +69,15 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param key
      * @return
      */
-    List<User> getAllMutableUsersByKey(@Param("key") String key);
+    List<User> getAllUsersByKey(@Param("key") String key);
 
-    /**
-     * 保存用户
-     *
-     * @param user
-     */
-    @Deprecated
-    void insertMutableUser(User user);
-
-    /**
-     * 添加用户角色
-     *
-     * @param username
-     * @param authority
-     * @param tenantId
-     *
-     * @date 2019-03-22
-     */
-    @Deprecated
-    void addUserRole(
-            @Param("username") String username,
-            @Param("authority") String authority,
-            @Param("tenant_id") String tenantId);
 
     /**
      * 更新用户
      *
      * @param user
      */
-    void updateMutableUser(User user);
+    void updateUser(User user);
 
     /**
      * 修改指定用户的密码
@@ -229,19 +204,14 @@ public interface UserMapper extends BaseMapper<UserEntity> {
     /**
      * 获取用户下拉列表数据
      *
-     * @param tenantId
-     * @param orgIds
-     * @return
      */
     List<SimpleUser> getAllSimpleUser(@Param("tenantId") String tenantId, List<String> orgIds);
 
     /**
      * 查询所有用户
      *
-     * @param parameters
-     * @return
      */
-    List<User> getAllMutableUsersNoPage(@Param("parameters") Map<String, Object> parameters);
+    List<User> getAllUsersNoPage(@Param("parameters") Map<String, Object> parameters);
 
     /**
      * 修改用户手机号
@@ -304,4 +274,6 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @return
      */
     String getTenantIdByTenantAdmin(@Param("username") String username);
+
+
 }

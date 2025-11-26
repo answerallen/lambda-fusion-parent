@@ -47,7 +47,7 @@ public class UserCenterServiceImpl implements UserCenterService {
         // 验证参数
         Assert.notNull(username, "username must not be empty");
         // 获取用户信息并验证用户是否存在
-        User user = userMapper.getMutableUserById(username);
+        User user = userMapper.getUserByUsername(username);
         Assert.notNull(user, "user not found");
         Assert.notNull(email, "email not found");
         // 更新用户邮箱
@@ -57,7 +57,7 @@ public class UserCenterServiceImpl implements UserCenterService {
     @Override
     public User updateInfo(RestUserInfo userInfoDTO) {
         String username = userInfoDTO.getUsername();
-        User user = userMapper.getMutableUserById(username);
+        User user = userMapper.getUserByUsername(username);
         Assert.notNull(user, "user not found");
         userMapper.updateInfo(username, userInfoDTO.getEmail(), userInfoDTO.getNickname());
         String avatar = userInfoDTO.getAvatar();

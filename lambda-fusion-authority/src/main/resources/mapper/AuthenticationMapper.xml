@@ -23,7 +23,7 @@
                 T.password,
                 T.enabled,
                 R.authority,
-                UO.organizationid AS orgId,
+                UO.ORGANIZATION_ID AS orgId,
                 T.tenantId AS tenantId,
                 T.EXPIRED_TIME
             FROM
@@ -43,7 +43,7 @@
                 T.password,
                 T.enabled,
                 R.authority,
-                UO.organizationid AS orgid,
+                UO.ORGANIZATION_ID AS orgid,
                 T.tenantId,
                 T.EXPIRED_TIME
             FROM

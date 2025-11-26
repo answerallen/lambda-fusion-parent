@@ -308,7 +308,7 @@ public class UserController {
     @Operation(summary = "根据租户ID查询租户管理员")
     public List<User> tenant(
             @Parameter(description = "租户ID", required = true) @RequestParam("tenantId") String tenantId) {
-        return userService.getAllMutableUsersByTenantId(tenantId);
+        return userService.getUsersByTenantId(tenantId);
     }
 
     @PutMapping(value = "/tenant/{username}")

@@ -1,7 +1,6 @@
 package com.lambda.fusion.authority.user.model;
 
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Date;

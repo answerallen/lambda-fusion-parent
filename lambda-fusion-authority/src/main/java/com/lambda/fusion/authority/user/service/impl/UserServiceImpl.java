@@ -114,7 +114,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public User getUserByUsername(String username) {
         Assert.notNull(username, "username is not empty");
-        User user = userMapper.getMutableUserById(username);
+        User user = userMapper.getUserByUsername(username);
         if (user != null) {
             //            user.setOnline(laAuthorizeHelper.isOnline(username));
             //            user.setLocked(laAuthorizeHelper.getLockedState(username));
@@ -172,7 +172,7 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(users)) {
             return users;
         }
-        return userMapper.getAllMutableUsers(users);
+        return userMapper.getAllUsers(users);
     }
 
     @Override
@@ -184,7 +184,7 @@ public class UserServiceImpl implements UserService {
         preprocessQueryParameters(parameters);
 
         // 执行分页查询
-        pagination = userMapper.getAllMutableUsersByCondition(pagination, parameters);
+        pagination = userMapper.getAllUsersByCondition(pagination, parameters);
         List<User> users = pagination.getRecords();
 
         if (CollectionUtils.isNotEmpty(users)) {
@@ -208,7 +208,7 @@ public class UserServiceImpl implements UserService {
      * 丰富用户详细信息
      */
     private List<User> enrichUserDetails(List<User> users, String tenantId) {
-        List<User> records = userMapper.getAllMutableUsers(users);
+        List<User> records = userMapper.getAllUsers(users);
         UserTempParameters tempParams = getUserTempParameters(records);
 
         // 批量获取关联数据
@@ -435,11 +435,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void batchSavePermissions(LoginUser operator, String target, Set<String> permissions) {
-        String tenantId = operator.getTenantId();
-        // TODO 批量保存权限
-        for (String permission : permissions) {
-            userMapper.addUserRole(target, permission, tenantId);
-        }
+        List<UserRoleEntity> userRoleEntities = permissions.stream().map(permission->{
+            UserRoleEntity userRoleEntity = new UserRoleEntity();
+            userRoleEntity.setUsername(target);
+            userRoleEntity.setTenantId(operator.getTenantId());
+            userRoleEntity.setAuthority(permission);
+            return userRoleEntity;
+        }).collect(Collectors.toList());
+        userRoleMapper.insert(userRoleEntities);
     }
 
     @Override
@@ -466,7 +469,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<Permission> getUserPermissions(String username, String mode) {
         Assert.notNull(username, "username not empty");
-        User user = userMapper.getMutableUserById(username);
+        User user = userMapper.getUserByUsername(username);
         Assert.notNull(user, "user not found");
         List<String> ids = Lists.newArrayList(username);
         List<SimpleRole> authorities = user.getAuthorities();
@@ -657,7 +660,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<User> getUsersByKey(String key) {
         Assert.notNull(key, "key not empty");
-        return userMapper.getAllMutableUsersByKey(key);
+        return userMapper.getAllUsersByKey(key);
     }
 
     @Override
@@ -695,7 +698,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void prohibitUser(LoginUser operator, Integer type, String username) {
         Assert.notNull(username, "username not null");
-        User user = userMapper.getMutableUserById(username);
+        User user = userMapper.getUserByUsername(username);
         Assert.notNull(user, "user not found");
         Assert.isTrue(!operator.getName().equals(username), "lambda.authority.no.operation.authority");
         userMapper.prohibitUser(type, username);
@@ -807,22 +810,20 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> getAllMutableUsersByTenantId(String tenantId) {
+    public List<User> getUsersByTenantId(String tenantId) {
         Assert.notNull(tenantId, "租户id不能为空");
         return userMapper.getAllMutableUsersByTenantId(tenantId);
     }
 
     @Override
     public void updateTenantUser(User source, LoginUser operator) {
-        Assert.notNull(source, "user must not be null");
-        Assert.notNull(source.getUsername(), "username must not be null");
         String username = source.getUsername();
-        User target = userMapper.getMutableUserById(username);
+        User target = userMapper.getUserByUsername(username);
         Assert.notNull(target, "user not found");
         BeanUtils.copyProperties(source, target);
-        userMapper.updateMutableUser(target);
-        userMapper.deleteUserRoles(username);
-        //        addUserRoles(target, operator.getTenantId());
+        userMapper.updateUser(target);
+        userRoleMapper.deleteUserRoles(username);
+//           todo     addUserRoles(target, operator.getTenantId());
     }
 
     @Override
