@@ -63,6 +63,6 @@ public class ClientEntity extends BaseDO {
      * 租户ID
      */
     @Schema(description = "租户ID")
-    @TableField("TENANTID")
+    @TableField("TENANT_ID")
     private String tenantId;
 }

@@ -51,8 +51,8 @@ public class ClientQuery extends Pagination<ClientEntity> {
     @Override
     public LambdaQueryWrapper<ClientEntity> getLambdaQueryWrapper() {
         LambdaQueryWrapper<ClientEntity> lambdaQueryWrapper = super.getLambdaQueryWrapper();
-        lambdaQueryWrapper.like(StringUtils.isNotBlank(name), ClientEntity::getName, "%" + name + "%");
-        lambdaQueryWrapper.like(StringUtils.isNotBlank(hosts), ClientEntity::getHosts, "%" + hosts + "%");
+        lambdaQueryWrapper.like(StringUtils.isNotBlank(name), ClientEntity::getName, name);
+        lambdaQueryWrapper.like(StringUtils.isNotBlank(hosts), ClientEntity::getHosts, hosts);
         lambdaQueryWrapper.eq(StringUtils.isNotBlank(tenantId), ClientEntity::getTenantId, tenantId);
         return lambdaQueryWrapper;
     }

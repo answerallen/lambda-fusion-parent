@@ -268,7 +268,7 @@
     </select>
 
     <update id="updateChildrensSpid">
-        UPDATE LA_ORGANIZATION SET SPID = #{name} WHERE PARENT_ID = #{id}
+        UPDATE LA_ORGANIZATION SET PARENT_ID = PARENT_ID WHERE PARENT_ID = #{id}
     </update>
 
     <delete id="deleteOrgByIdList">

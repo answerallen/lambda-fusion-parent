@@ -55,8 +55,12 @@ public class ClientController {
     public void update(
             @Parameter(description = "客户端编号", required = true) @PathVariable String id,
             @Parameter(description = "客户端信息", required = true) @RequestBody @Valid CreateClient createClient) {
+        ClientEntity original = clientService.getById(id);
+        Assert.notNull(original, "客户端不存在");
         ClientEntity clientEntity = createClient.toEntity();
         clientEntity.setId(id);
+        clientEntity.setSecret(original.getSecret());
+        clientEntity.setTenantId(original.getTenantId());
         clientService.updateById(clientEntity);
     }
 
