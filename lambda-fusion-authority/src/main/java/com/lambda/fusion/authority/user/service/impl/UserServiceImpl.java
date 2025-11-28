@@ -435,13 +435,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void batchSavePermissions(LoginUser operator, String target, Set<String> permissions) {
-        List<UserRoleEntity> userRoleEntities = permissions.stream().map(permission->{
-            UserRoleEntity userRoleEntity = new UserRoleEntity();
-            userRoleEntity.setUsername(target);
-            userRoleEntity.setTenantId(operator.getTenantId());
-            userRoleEntity.setAuthority(permission);
-            return userRoleEntity;
-        }).collect(Collectors.toList());
+        List<UserRoleEntity> userRoleEntities = permissions.stream()
+                .map(permission -> {
+                    UserRoleEntity userRoleEntity = new UserRoleEntity();
+                    userRoleEntity.setUsername(target);
+                    userRoleEntity.setTenantId(operator.getTenantId());
+                    userRoleEntity.setAuthority(permission);
+                    return userRoleEntity;
+                })
+                .collect(Collectors.toList());
         userRoleMapper.insert(userRoleEntities);
     }
 
@@ -823,7 +825,7 @@ public class UserServiceImpl implements UserService {
         BeanUtils.copyProperties(source, target);
         userMapper.updateUser(target);
         userRoleMapper.deleteUserRoles(username);
-//           todo     addUserRoles(target, operator.getTenantId());
+        //           todo     addUserRoles(target, operator.getTenantId());
     }
 
     @Override

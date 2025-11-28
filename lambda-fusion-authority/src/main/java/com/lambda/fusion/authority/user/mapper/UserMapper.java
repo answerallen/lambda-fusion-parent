@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.user.model.*;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,7 +69,6 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @return
      */
     List<User> getAllUsersByKey(@Param("key") String key);
-
 
     /**
      * 更新用户
@@ -274,6 +272,4 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @return
      */
     String getTenantIdByTenantAdmin(@Param("username") String username);
-
-
 }
