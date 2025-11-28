@@ -8,7 +8,7 @@
         WHERE T.DEV = 0
         <if test="authorities != null and authorities.size > 0">
             AND T.id IN (
-            SELECT DISTINCT T2.RESOURCEID FROM LA_ROLE_RESOURCES T2 WHERE T2.AUTHORITY IN
+            SELECT DISTINCT T2.RESOURCE_ID FROM LA_ROLE_RESOURCES T2 WHERE T2.AUTHORITY IN
             <foreach collection="authorities" item="item" separator="," open="(" close=")">#{item}</foreach>
             )
         </if>
@@ -23,7 +23,7 @@
         WHERE T.DEV = 0
         <if test="authorities != null and authorities.size > 0">
             AND T.id IN (
-            SELECT DISTINCT T2.RESOURCEID FROM LA_ROLE_RESOURCES T2 WHERE T2.AUTHORITY IN
+            SELECT DISTINCT T2.RESOURCE_ID FROM LA_ROLE_RESOURCES T2 WHERE T2.AUTHORITY IN
             <foreach collection="authorities" item="item" separator="," open="(" close=")">#{item}</foreach>
             )
         </if>
@@ -94,7 +94,7 @@
     </delete>
     <!-- 删除资源相关角色列表 -->
     <delete id="deleteRolesResource">
-        DELETE FROM LA_ROLE_RESOURCES WHERE RESOURCEID IN
+        DELETE FROM LA_ROLE_RESOURCES WHERE RESOURCE_ID IN
         <foreach collection="collection" open="(" close=")" separator="," item="id">#{id}</foreach>
     </delete>
     <!-- 是否包含下级资源 -->
@@ -236,13 +236,13 @@
         SELECT DISTINCT MRR.USERID
         FROM LA_API_RESOURCES MAR
         LEFT JOIN (
-        SELECT USERID, RESOURCEID
+        SELECT USERNAME AS USERID, RESOURCE_ID
         FROM LA_ROLE_RESOURCES MRR, LA_USER_ROLES MUR
         WHERE MUR.AUTHORITY LIKE CONCAT( MRR.AUTHORITY, '%' ) OR MRR.AUTHORITY LIKE CONCAT( MUR.AUTHORITY, '%' )
         UNION ALL
-        SELECT MRR.AUTHORITY USERID, MRR.RESOURCEID FROM LA_ROLE_RESOURCES MRR
+        SELECT MRR.AUTHORITY USERID, MRR.RESOURCE_ID FROM LA_ROLE_RESOURCES MRR
         INNER JOIN LA_USERS MU ON MU.USERNAME = MRR.AUTHORITY
-        ) MRR ON MAR.RESOURCEID = MRR.RESOURCEID
+        ) MRR ON MAR.RESOURCEID = MRR.RESOURCE_ID
         WHERE MRR.USERID IS NOT NULL AND MAR.PERMISSIONID = #{permissionId}
     </select>
     <select id="queryAvailableServices"
@@ -312,10 +312,10 @@
         SELECT MRR.USERID AS username,MAR.PERMISSIONID AS permissionId
         FROM LA_API_RESOURCES MAR
         LEFT JOIN (
-            SELECT USERID, RESOURCEID
+            SELECT USERNAME AS USERID, RESOURCE_ID
             FROM LA_ROLE_RESOURCES MRR, LA_USER_ROLES MUR
             WHERE MUR.AUTHORITY LIKE CONCAT( MRR.AUTHORITY, '%' ) OR MRR.AUTHORITY LIKE CONCAT( MUR.AUTHORITY, '%' )
-        ) MRR ON MAR.RESOURCEID = MRR.RESOURCEID
+        ) MRR ON MAR.RESOURCEID = MRR.RESOURCE_ID
         WHERE MRR.USERID IS NOT NULL AND MAR.PERMISSIONID IN
         <foreach collection="list" item="item" separator="," open="(" close=")">
             #{item}
@@ -326,21 +326,21 @@
         SELECT DISTINCT MAR.PERMISSIONID AS permissionId, TMP.USERID AS username
         FROM LA_API_RESOURCES MAR
         LEFT JOIN (
-        SELECT USERID, RESOURCEID
+        SELECT USERNAME AS USERID, RESOURCE_ID
         FROM LA_USER_ROLES MUR
         JOIN LA_ROLE_RESOURCES MRR ON MUR.AUTHORITY = MRR.AUTHORITY
-        WHERE USERID = #{username}
+        WHERE USERNAME = #{username}
         <if test="tenantId != null">
             AND MUR.TENANT_ID = #{tenantId}
         </if>
         UNION
         <if test="tenantId != null and isTenantManager">
-            SELECT coalesce(#{username},"USERID") USERID, RESOURCEID
+            SELECT coalesce(#{username},"USERID") USERID, RESOURCE_ID
             FROM LA_ROLE_RESOURCES
             WHERE AUTHORITY = CONCAT('ROLE_TENANT@', #{tenantId})
             UNION
         </if>
-        SELECT AUTHORITY USERID, RESOURCEID
+        SELECT AUTHORITY USERID, RESOURCE_ID
         FROM LA_ROLE_RESOURCES MRR
         WHERE AUTHORITY = #{username}
         <if test="tenantId != null">
@@ -351,7 +351,7 @@
         FROM la_client_resources
         WHERE CLIENTID = #{username}
         ) TMP
-        ON MAR.RESOURCEID = TMP.RESOURCEID
+        ON MAR.RESOURCEID = TMP.RESOURCE_ID
         WHERE TMP.USERID IS NOT NULL
     </select>
 

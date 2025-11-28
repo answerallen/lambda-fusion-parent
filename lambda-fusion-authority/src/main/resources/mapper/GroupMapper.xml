@@ -9,7 +9,7 @@
         <where>
             <choose>
                 <when test="tenantId != null and tenantId != ''">
-                    AND T.TENANT_ID = #{tenant_id}
+                    AND T.TENANT_ID = #{tenantId}
                 </when>
                 <otherwise>
                     AND T.TENANT_ID IS NULL

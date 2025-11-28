@@ -24,13 +24,13 @@
                 T.enabled,
                 R.authority,
                 UO.ORGANIZATION_ID AS orgId,
-                T.tenantId AS tenantId,
+                T.TENANT_ID AS tenantId,
                 T.EXPIRED_TIME
             FROM
                 LA_USERS T
-                LEFT JOIN LA_USER_ROLES UR ON UR.userid = T.username
+                LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
                 LEFT JOIN LA_ROLES R ON R.authority = UR.authority AND R.enabled = 1
-                LEFT JOIN LA_USER_ORGANIZATION UO ON UO.userid = T.username
+                LEFT JOIN LA_USER_ORGANIZATION UO ON UO.USERNAME = T.username
             WHERE T.username = #{username}
         ]]>
     </select>
@@ -44,13 +44,13 @@
                 T.enabled,
                 R.authority,
                 UO.ORGANIZATION_ID AS orgid,
-                T.tenantId,
+                T.TENANT_ID AS tenantId,
                 T.EXPIRED_TIME
             FROM
                 LA_USERS T
-                LEFT JOIN LA_USER_ROLES UR ON UR.userid = T.username
+                LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
                 LEFT JOIN LA_ROLES R ON R.authority = UR.authority AND R.enabled = 1
-                LEFT JOIN LA_USER_ORGANIZATION UO ON UO.userid = T.username
+                LEFT JOIN LA_USER_ORGANIZATION UO ON UO.USERNAME = T.username
             WHERE T.mobile = #{mobile}
         ]]>
     </select>
@@ -78,7 +78,7 @@
         AND T1.res_mode = #{query.mode}
         <if test="query.ids != null and query.ids.size > 0">
             AND T1.ID IN (
-            SELECT DISTINCT T.RESOURCEID FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY IN
+            SELECT DISTINCT T.RESOURCE_ID FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY IN
             <foreach collection="query.ids" open="(" close=")" separator="," item="item">#{item}</foreach>
             )
         </if>
@@ -101,7 +101,7 @@
             T1.parentId,
             T1.business_expand
         FROM LA_RESOURCES T1
-        inner join la_role_resources T2 on T1.id = T2.RESOURCEID
+        inner join la_role_resources T2 on T1.id = T2.RESOURCE_ID
         <where>
             <if test="mode != null">
                 T1.res_mode = #{mode}
@@ -119,7 +119,7 @@
         U.nickname
         FROM
         LA_USER_ROLES UR
-        INNER JOIN LA_USERS U ON U.USERNAME = UR.USERID
+        INNER JOIN LA_USERS U ON U.USERNAME = UR.USERNAME
         AND UR.AUTHORITY = #{roleId}
     </select>
 
