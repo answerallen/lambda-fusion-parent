@@ -75,6 +75,6 @@ public class UserInfoEntity {
     @TableField("WECHAT_NAME")
     private String wechatName;
 
-    @TableField("TENANTID")
+    @TableField("TENANT_ID")
     private String tenantId;
 }
