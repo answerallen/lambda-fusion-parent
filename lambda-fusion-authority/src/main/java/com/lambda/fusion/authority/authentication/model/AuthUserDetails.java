@@ -21,11 +21,12 @@ import lombok.Data;
         uses = ConvertFunctions.class,
         fieldMappings = {
             @FieldMapping(target = "accountExpired", source = "expiredTime", qualifiedByName = "mapAccountExpired"),
+            @FieldMapping(target = "accountLocked", source = "enabled", qualifiedByName = "mapAccountLocked"),
             @FieldMapping(target = "roles", source = "authorities"),
         })
 @Data
 @Schema(description = "简单用户信息")
-public class AuthUserDetail implements Serializable {
+public class AuthUserDetails implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;

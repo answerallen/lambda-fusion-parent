@@ -10,6 +10,11 @@ public interface ConvertFunctions {
         if (expiredTime == null) {
             return false;
         }
-        return expiredTime.isAfter(LocalDateTime.now());
+        return !expiredTime.isAfter(LocalDateTime.now());
+    }
+
+    @Named("mapAccountLocked")
+    static Boolean mapAccountLocked(boolean enabled) {
+        return !enabled;
     }
 }

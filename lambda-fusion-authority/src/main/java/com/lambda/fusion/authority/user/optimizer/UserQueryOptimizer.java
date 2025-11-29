@@ -77,7 +77,7 @@ public class UserQueryOptimizer {
         if (StringUtils.isNotBlank(userQuery.getPersonal())) {
             @SuppressWarnings("unchecked")
             Map<String, Object> tempMap = (Map<String, Object>) JSONUtil.parse(userQuery.getPersonal());
-            List<UserFieldsEntity> fields = convertPersonBean(tempMap, null);
+            List<UserFieldsEntity> fields = convertPersonBean(tempMap, userPrincipal.getUsername());
             params.setPersonal(fields);
         }
 
@@ -87,8 +87,8 @@ public class UserQueryOptimizer {
 
         Set<String> orgIds = getOrganizationIds(
                 userQuery.getOrganizationId(),
-                userQuery.getSubordinate() != null ? userQuery.getSubordinate() : true,
-                userQuery.getDataRight() != null ? userQuery.getDataRight() : true,
+                userQuery.getIncludeSubordinates(),
+                userQuery.getEnableDataPermission(),
                 userPrincipal);
         params.setOrgIds(orgIds);
 

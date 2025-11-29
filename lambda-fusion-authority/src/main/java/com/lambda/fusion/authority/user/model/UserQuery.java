@@ -34,7 +34,7 @@ public class UserQuery extends Pagination<User> {
     private String organizationId;
 
     @Schema(description = "是否查询下级组织的人员", defaultValue = "true")
-    private Boolean subordinate = true;
+    private Boolean includeSubordinates = true;
 
     @Schema(description = "是否是分配人员接口调用", defaultValue = "false")
     private Boolean allocation = false;
@@ -52,5 +52,5 @@ public class UserQuery extends Pagination<User> {
     private String exportColumns;
 
     @Schema(description = "是否开启数据权限", defaultValue = "true")
-    private Boolean dataRight = true;
+    private Boolean enableDataPermission = true;
 }

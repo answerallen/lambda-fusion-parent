@@ -7,7 +7,7 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
-import com.lambda.fusion.authority.authentication.model.AuthUserDetail;
+import com.lambda.fusion.authority.authentication.model.AuthUserDetails;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.authentication.service.AuthService;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
@@ -20,6 +20,8 @@ import com.lambda.security.exception.UsernameNotFoundException;
 import com.lambda.security.provider.ThirdPartLoginResult;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,37 +40,35 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
         Assert.notNull(username, "parameter 'username' cannot be empty or null");
-        AuthUserDetail authUserDetail = authenticationMapper.selectUserDetailByUsername(username);
-        if (authUserDetail == null) {
+        AuthUserDetails authUserDetails = authenticationMapper.selectUserDetailByUsername(username);
+        if (authUserDetails == null) {
             throw new UsernameNotFoundException("user in not found");
         }
-        UserPrincipal userPrincipal = authUserDetail.toUserPrincipal();
-        return buildLoginUser(userPrincipal);
+        UserPrincipal userPrincipal = authUserDetails.toUserPrincipal();
+        return prepareLoginUser(userPrincipal);
     }
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<AuthUserDetail> authUserDetails = authenticationMapper.selectUserDetailsByMobile(mobile);
-        if (CollUtil.isEmpty(authUserDetails)) {
-            throw new UsernameNotFoundException("mobile in not found");
-        }
-        if (authUserDetails.size() > 1) {
-            throw new AuthenticationException("mobile in not unique");
-        }
-        AuthUserDetail authUserDetail = authUserDetails.getFirst();
-        return buildLoginUser(authUserDetail.toUserPrincipal());
+        List<AuthUserDetails> details = authenticationMapper.selectUserDetailsByMobile(mobile);
+        AuthUserDetails user = Optional.ofNullable(details)
+                .filter(CollUtil::isNotEmpty)
+                .filter(d -> d.size() == 1)
+                .map(List::getFirst)
+                .orElseThrow(() -> new UsernameNotFoundException("Mobile not found"));
+        return prepareLoginUser(user.toUserPrincipal());
     }
 
     @Override
-    public List<ResourceTree> getNavigation(LoginUser operator, String parentId, Integer level) {
+    public List<ResourceTree> getNavigation(LoginUser loginUser, String parentId, Integer level) {
         NavigationQuery query = new NavigationQuery();
         query.setParentId(parentId);
         query.setLevel(level);
         query.setMode(0);
-        if (operator instanceof UserPrincipal && CollUtil.isNotEmpty(((UserPrincipal) operator).getRoles())) {
-            query.setIds(new ArrayList<>(((UserPrincipal) operator).getRoles()));
+        if (loginUser instanceof UserPrincipal && CollUtil.isNotEmpty(((UserPrincipal) loginUser).getRoles())) {
+            query.setIds(new ArrayList<>(((UserPrincipal) loginUser).getRoles()));
         }
-        return getNavigation(operator, query);
+        return getNavigation(loginUser, query);
     }
 
     @Override
@@ -86,7 +86,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginUser loadByThirdLoginResult(ThirdPartLoginResult thirdLoginResult, String loginType) {
-        // TODO: 实现第三方登录逻辑
         return null;
     }
 
@@ -96,7 +95,7 @@ public class AuthServiceImpl implements AuthService {
      * @param userPrincipal 用户对象
      * @return 登录用户
      */
-    private LoginUser buildLoginUser(UserPrincipal userPrincipal) {
+    private LoginUser prepareLoginUser(UserPrincipal userPrincipal) {
         if (CollUtil.isEmpty(userPrincipal.getRoles())) {
             userPrincipal.setRoles(Sets.newHashSet(Constants.ROLE_USER));
         }
