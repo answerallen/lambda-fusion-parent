@@ -96,25 +96,25 @@ public class UserServiceImpl implements UserService {
         if (!authority.equals(AuthorityConstants.ROLE_MANAGER)) {
             orgid = null;
         }
-        return userMapper.getUserNamesByAuthority(orgid, authority);
+        return userMapper.selectUsernamesByAuthority(orgid, authority);
     }
 
     @Override
     public List<String> getUserNamesByOrgId(String orgid, Integer type) {
-        return userMapper.getUsernameByOrgId(orgid, type);
+        return userMapper.selectUsernameByOrgId(orgid, type);
     }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<User> getAllUsers() {
-        return userMapper.getAllUsers();
+        return userMapper.selectAllUsers();
     }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public User getUserByUsername(String username) {
         Assert.notNull(username, "username is not empty");
-        User user = userMapper.getUserByUsername(username);
+        User user = userMapper.selectUserByUsername(username);
         if (user != null) {
             //            user.setOnline(laAuthorizeHelper.isOnline(username));
             //            user.setLocked(laAuthorizeHelper.getLockedState(username));
@@ -172,7 +172,7 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(users)) {
             return users;
         }
-        return userMapper.getAllUsers(users);
+        return userMapper.selectUsers(users);
     }
 
     @Override
@@ -184,7 +184,7 @@ public class UserServiceImpl implements UserService {
         preprocessQueryParameters(parameters);
 
         // 执行分页查询
-        pagination = userMapper.getAllUsersByCondition(pagination, parameters);
+        pagination = userMapper.selectUserPageByCondition(pagination, parameters);
         List<User> users = pagination.getRecords();
 
         if (CollectionUtils.isNotEmpty(users)) {
@@ -208,7 +208,7 @@ public class UserServiceImpl implements UserService {
      * 丰富用户详细信息
      */
     private List<User> enrichUserDetails(List<User> users, String tenantId) {
-        List<User> records = userMapper.getAllUsers(users);
+        List<User> records = userMapper.selectUsers(users);
         UserTempParameters tempParams = getUserTempParameters(records);
 
         // 批量获取关联数据
@@ -425,12 +425,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<String> getUidsByOrg(String orgid, String roleid) {
-        return userMapper.getUidsByOrg(orgid, roleid);
+        return userMapper.selectUsernamesByOrg(orgid, roleid);
     }
 
     @Override
     public Set<String> getPermissions(LoginUser operator, String source) {
-        return userMapper.getUserPermissions(source);
+        return userMapper.selectUserPermissions(source);
     }
 
     @Override
@@ -452,7 +452,7 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(permissions)) {
             return;
         }
-        List<RoleResources> insertResources = userMapper.getRoleResources(source, null, permissions);
+        List<RoleResources> insertResources = userMapper.selectRoleResources(source, null, permissions);
         String tenantId = operator.getTenantId();
         // TODO 批量保存权限性能优化
         for (RoleResources roleResources : insertResources) {
@@ -462,7 +462,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void batchUpdatePermissions(LoginUser operator, String source, String target, Set<String> permissions) {
-        List<RoleResources> updateResources = userMapper.getRoleResources(source, MANAGED, permissions);
+        List<RoleResources> updateResources = userMapper.selectRoleResources(source, MANAGED, permissions);
         if (CollectionUtils.isNotEmpty(updateResources)) {
             userMapper.batchUpdateUserPermissions(target, MANAGED, updateResources, operator.getTenantId());
         }
@@ -471,7 +471,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<Permission> getUserPermissions(String username, String mode) {
         Assert.notNull(username, "username not empty");
-        User user = userMapper.getUserByUsername(username);
+        User user = userMapper.selectUserByUsername(username);
         Assert.notNull(user, "user not found");
         List<String> ids = Lists.newArrayList(username);
         List<SimpleRole> authorities = user.getAuthorities();
@@ -485,7 +485,7 @@ public class UserServiceImpl implements UserService {
                 ids = Collections.emptyList();
             }
         }
-        return userMapper.getAllUserPermissions(ids, mode);
+        return userMapper.selectUserPermissionsByIdsAndMode(ids, mode);
     }
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
@@ -662,7 +662,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<User> getUsersByKey(String key) {
         Assert.notNull(key, "key not empty");
-        return userMapper.getAllUsersByKey(key);
+        return userMapper.selectUsersByKey(key);
     }
 
     @Override
@@ -700,7 +700,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void prohibitUser(LoginUser operator, Integer type, String username) {
         Assert.notNull(username, "username not null");
-        User user = userMapper.getUserByUsername(username);
+        User user = userMapper.selectUserByUsername(username);
         Assert.notNull(user, "user not found");
         Assert.isTrue(!operator.getName().equals(username), "lambda.authority.no.operation.authority");
         userMapper.prohibitUser(type, username);
@@ -755,8 +755,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<SimpleUser> getAllSimpleUser(LoginUser operator, List<String> orgIds) {
-        return userMapper.getAllSimpleUser(operator.getTenantId(), orgIds);
+    public List<UserProfile> getAllSimpleUser(LoginUser operator, List<String> orgIds) {
+        return userMapper.selectUserProfiles(operator.getTenantId(), orgIds);
     }
 
     @Override
@@ -814,13 +814,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> getUsersByTenantId(String tenantId) {
         Assert.notNull(tenantId, "租户id不能为空");
-        return userMapper.getAllMutableUsersByTenantId(tenantId);
+        return userMapper.selectUsersByTenantId(tenantId);
     }
 
     @Override
     public void updateTenantUser(User source, LoginUser operator) {
         String username = source.getUsername();
-        User target = userMapper.getUserByUsername(username);
+        User target = userMapper.selectUserByUsername(username);
         Assert.notNull(target, "user not found");
         BeanUtils.copyProperties(source, target);
         userMapper.updateUser(target);

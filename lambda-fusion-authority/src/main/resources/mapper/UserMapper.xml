@@ -1,22 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<!--suppress MybatisXMapperXmlInspection -->
 <mapper namespace="com.lambda.fusion.authority.user.mapper.UserMapper">
 
-    <resultMap id="MutableUser" type="com.lambda.fusion.authority.user.model.User">
+    <resultMap id="UserResultMap" type="com.lambda.fusion.authority.user.model.User">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="mobile" property="mobile"/>
         <result column="email" property="email"/>
         <result column="create_date" property="createDate"/>
-        <result column="tenant_id" property="tenant_id"/>
+        <result column="tenant_id" property="tenantId"/>
         <result column="enabled" property="enabled" />
         <result column="ON_LINE" property="online"/>
         <result column="OFFLINE_TIME" property="offlineTime"/>
         <result column="CREATOR" property="creator"/>
         <result column="EXPIRED_TIME" property="expiredTime"/>
-        <association property="org" javaType="com.lambda.fusion.authority.organization.domain.OrganizationSummary">
+        <association property="organizationSummary" javaType="com.lambda.fusion.authority.organization.domain.OrganizationSummary">
             <constructor>
                 <idArg column="orgId" javaType="String"/>
                 <arg column="orgAlias" javaType="String"/>
@@ -44,7 +43,7 @@
     </resultMap>
 
 
-    <resultMap id="SimpleUser" type="com.lambda.fusion.authority.authentication.model.SimpleUser">
+    <resultMap id="AuthenticationUserDetailResultMap" type="com.lambda.fusion.authority.authentication.model.AuthenticationUserDetail">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="password" property="password" javaType="String"/>
@@ -65,11 +64,9 @@
         <result column="mobile" property="mobile"/>
         <result column="email" property="email"/>
         <result column="createDate" property="createDate"/>
-        <result column="tenant_id" property="tenant_id"/>
-        <result column="owner" property="owner" />
+        <result column="tenant_id" property="tenantId"/>
         <result column="enabled" property="enabled" />
-        <result column="jobno" property="jobno"/>
-        <association property="org" javaType="com.lambda.fusion.authority.organization.domain.OrganizationSummary">
+        <association property="organizationSummary" javaType="com.lambda.fusion.authority.organization.domain.OrganizationSummary">
             <constructor>
                 <idArg column="orgId" javaType="String"/>
             </constructor>
@@ -81,7 +78,7 @@
         </collection>
     </resultMap>
 
-    <select id="getAllUsersByCondition" resultType="com.lambda.fusion.authority.user.model.User">
+    <select id="selectUserPageByCondition" resultType="com.lambda.fusion.authority.user.model.User">
         SELECT T.username, T.nickname, T.mobile, T.email, T.enabled FROM LA_USERS T
         <where>
             <choose>
@@ -141,7 +138,7 @@
         ORDER BY T.CREATE_DATE DESC, T.USERNAME
     </select>
     <!-- 查询用户列表 -->
-    <select id="getAllUsers" resultMap="MutableUser">
+    <select id="selectUsers" resultMap="UserResultMap">
         SELECT
         T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled,
         R.AUTHORITY,
@@ -159,7 +156,7 @@
     </select>
 
     <!-- 查询用户列表 -->
-    <select id="getAllUsersByKey" parameterType="String" resultMap="MutableUser">
+    <select id="selectUsersByKey" parameterType="String" resultMap="UserResultMap">
         SELECT T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled,
         R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
         FROM LA_USERS T
@@ -179,7 +176,7 @@
     </select>
 
     <!-- 根据角色查询用户名结合 -->
-    <select id="getUserNamesByAuthority" resultType="java.lang.String">
+    <select id="selectUsernamesByAuthority" resultType="java.lang.String">
         SELECT
         T5.USERNAME
         FROM (SELECT T.AUTHORITY, T.ALIAS FROM LA_ROLES T  ) T1
@@ -196,7 +193,7 @@
     </select>
 
     <!-- 根据Id查询用户信息 -->
-    <select id="getUserByUsername" resultMap="MutableUser">
+    <select id="selectUserByUsername" resultMap="UserResultMap">
 		SELECT T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled, T.TENANT_ID,
             R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
 		FROM LA_USERS T
@@ -258,7 +255,7 @@
         UPDATE LA_USERS SET enabled = #{enabled} WHERE username = #{username}
     </update>
 
-    <select id="getAllUsers" resultMap="MutableUser">
+    <select id="selectAllUsers" resultMap="UserResultMap">
         SELECT DISTINCT
         T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled,
         R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
@@ -269,7 +266,7 @@
         LEFT JOIN LA_ORGANIZATION O ON O.id = UO.ORGANIZATION_ID
     </select>
 
-    <select id="getAllOrgUsers" parameterType="string" resultMap="MutableUser">
+    <select id="selectOrgUsers" parameterType="string" resultMap="UserResultMap">
         SELECT
         T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled,
         R.authority, R.alias, O.id As orgId, O.alias As orgAlias
@@ -280,7 +277,7 @@
         LEFT JOIN LA_ORGANIZATION O ON O.id = UO.ORGANIZATION_ID
         WHERE  UO.ORGANIZATION_ID = #{orgId}
     </select>
-    <select id="getUidsByOrg" resultType="java.lang.String">
+    <select id="selectUsernamesByOrg" resultType="java.lang.String">
         SELECT T.username FROM LA_USERS T
         INNER JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
         INNER JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
@@ -294,7 +291,7 @@
         <result column="res_name" property="name"/>
         <result column="parentid" property="pid"/>
     </resultMap>
-    <select id="getAllUserPermissions" resultMap="Permission">
+    <select id="selectUserPermissionsByIdsAndMode" resultMap="Permission">
         SELECT
             T1.id,
             T1.res_name,
@@ -312,12 +309,12 @@
         </if>
         ORDER BY T1.res_rank, T1.parentid, T1.orderno
     </select>
-    <select id="getUserPermissions" resultType="java.lang.String">
+    <select id="selectUserPermissions" resultType="java.lang.String">
         SELECT DISTINCT T.RESOURCEID FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY = #{username}
     </select>
 
 
-    <select id="getRoleResources" resultType="com.lambda.fusion.authority.user.model.RoleResources">
+    <select id="selectRoleResources" resultType="com.lambda.fusion.authority.user.model.RoleResources">
         SELECT T.RESOURCEID,T.LA_MANAGE FROM LA_ROLE_RESOURCES T
         <where>
             <if test="authority != null and authority !='' ">
@@ -349,7 +346,7 @@
         </foreach>
     </update>
 
-    <select id="getAllSimpleUser" resultType="com.lambda.fusion.authority.user.model.SimpleUser">
+    <select id="selectUserProfiles" resultType="com.lambda.fusion.authority.user.model.UserProfile">
         SELECT DISTINCT
             T1.USERNAME,
             T1.NICKNAME
@@ -368,7 +365,7 @@
         </where>
     </select>
 
-    <select id="getUsernameByOrgId" resultType="java.lang.String">
+    <select id="selectUsernameByOrgId" resultType="java.lang.String">
         SELECT USERNAME FROM LA_USERS T1 INNER JOIN LA_USER_ORGANIZATION T2 ON T1.USERNAME = T2.USERNAME
         <where>
             <if test="type != null and type = 1">
@@ -381,7 +378,7 @@
     </select>
 
 
-    <select id="getAllUsersNoPage" resultMap="MutableUser">
+    <select id="selectUsersNoPage" resultMap="UserResultMap">
         SELECT DISTINCT(T.username), T.nickname, T.mobile, T.email, T.enabled, T.CREATE_DATE AS create_date,
         mi.USERNAME AS userid,
         mi.avatar,
@@ -466,7 +463,7 @@
     </select>
 
     <!-- 根据租户ID，查询租户管理员用户列表 -->
-    <select id="getAllMutableUsersByTenantId" parameterType="String" resultMap="TenantUser">
+    <select id="selectUsersByTenantId" parameterType="String" resultMap="TenantUser">
         SELECT T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS createDate, T.enabled, T.TENANT_ID,
         UR.AUTHORITY AS authority, UO.ORGANIZATION_ID AS orgId
         FROM LA_USERS T
@@ -486,27 +483,8 @@
         SELECT COUNT(1) FROM DUAL WHERE EXISTS(SELECT 1 FROM LA_USERS T WHERE T.MOBILE = #{mobile})
     </select>
 
-    <!--获取所有启用用户信息-->
-    <select id="loadAllEnabledUsers" parameterType="String" resultMap="SimpleUser">
-        <![CDATA[
-        SELECT
-            T.username,
-            T.nickname,
-            T.password,
-            T.enabled,
-            R.authority,
-            UO.ORGANIZATION_ID AS org_id,
-            T.TENANT_ID AS tenant_id
-        FROM
-            LA_USERS T
-                LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
-                LEFT JOIN LA_ROLES R ON R.authority = UR.authority AND R.enabled = 1
-                LEFT JOIN LA_USER_ORGANIZATION UO ON UO.USERNAME = T.username
-        WHERE T.ENABLED = 1
-        ]]>
-    </select>
 
-    <select id="getTenantIdByTenantAdmin" resultType="java.lang.String">
+    <select id="selectTenantIdByUsername" resultType="java.lang.String">
         SELECT T.TENANT_ID FROM LA_USER_ORGANIZATION UO
        INNER JOIN LA_USER_ROLES UR ON UR.USERNAME = UO.USERNAME
        INNER JOIN LA_TENANT T ON UO.ORGANIZATION_ID = T.TENANT_ID

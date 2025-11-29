@@ -9,10 +9,10 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.model.*;
-import com.lambda.fusion.authority.user.model.LoginUserInfo;
+import com.lambda.fusion.authority.user.model.AuthenticatedUser;
 import com.lambda.fusion.authority.user.model.Permission;
-import com.lambda.fusion.authority.user.model.SimpleUser;
 import com.lambda.fusion.authority.user.model.User;
+import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.authority.user.model.VerifyCode;
 import com.lambda.fusion.authority.user.optimizer.UserQueryOptimizer;
 import com.lambda.fusion.authority.user.service.UserCenterService;
@@ -70,7 +70,7 @@ public class UserController {
         if (size != null) {
             queryDTO.setPageSize(size);
         }
-        Map<String, Object> parameters = userQueryOptimizer.getMutableUsersQueryParameters(queryDTO);
+        Map<String, Object> parameters = userQueryOptimizer.getUsersQueryParameters(queryDTO);
         return userService.getUsers(queryDTO.getPage(), parameters);
     }
 
@@ -95,7 +95,7 @@ public class UserController {
 
     @GetMapping()
     @Operation(summary = "查询用户下拉列表")
-    public List<SimpleUser> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
+    public List<UserProfile> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
         LoginUser operator = OperatorUtils.getOperator();
         List<String> orgIds =
                 isAll != null && isAll ? Collections.emptyList() : organizationService.getSubordinateOrgIds(operator);
@@ -118,14 +118,14 @@ public class UserController {
 
     @GetMapping("/currentUser/info")
     @Operation(summary = "获取当前登陆用户详细信息")
-    public LoginUserInfo getCurrentUserInfo() {
+    public AuthenticatedUser getCurrentUserInfo() {
         UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
-        LoginUserInfo loginUserInfo = new LoginUserInfo();
+        AuthenticatedUser authenticatedUser = new AuthenticatedUser();
         if (userPrincipal != null) {
             User user = userService.getCurrentUser(userPrincipal);
-            BeanUtils.copyProperties(Objects.requireNonNullElse(user, userPrincipal), loginUserInfo);
+            BeanUtils.copyProperties(Objects.requireNonNullElse(user, userPrincipal), authenticatedUser);
         }
-        return loginUserInfo;
+        return authenticatedUser;
     }
 
     @PostMapping

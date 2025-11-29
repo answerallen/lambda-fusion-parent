@@ -108,7 +108,7 @@ public class TenantAuthorizeManager {
             return;
         }
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.getTenantIdByTenantAdmin(user.getUsername());
+        String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
         // 在租户库中视作管理员，不能有租户id
         user.setTenantId(null);
         List<SimpleRole> roles = new ArrayList<>();
@@ -121,7 +121,7 @@ public class TenantAuthorizeManager {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void updateUser(User user) {
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.getTenantIdByTenantAdmin(user.getUsername());
+        String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
         // 在租户库中视作管理员，不能有租户id
         user.setTenantId(null);
         // todo 添加用户
@@ -135,7 +135,7 @@ public class TenantAuthorizeManager {
             return;
         }
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.getTenantIdByTenantAdmin(user.getUsername());
+        String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
         //        execute(tenantId, () -> userService.deleteUser(SystemUser.get(), username));
         System.out.println(tenantId);
     }
@@ -152,7 +152,7 @@ public class TenantAuthorizeManager {
         }
 
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.getTenantIdByTenantAdmin(user.getUsername());
+        String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
         if (StringUtils.isBlank(tenantId)) {
             return;
         }
@@ -166,7 +166,7 @@ public class TenantAuthorizeManager {
         if (!isTenantAdmin(user)) {
             return;
         }
-        String tenantId = userMapper.getTenantIdByTenantAdmin(user.getUsername());
+        String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
         System.out.println(tenantId);
     }
 

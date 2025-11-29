@@ -7,10 +7,11 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
+import com.lambda.fusion.authority.authentication.model.AuthenticationUserDetail;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
-import com.lambda.fusion.authority.authentication.model.SimpleUser;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
+import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
@@ -37,25 +38,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
         Assert.notNull(username, "parameter 'username' cannot be empty or null");
-        SimpleUser userVO = authenticationMapper.loadUserDetailByUsername(username);
+        AuthenticationUserDetail userVO = authenticationMapper.selectUserDetailByUsername(username);
         if (userVO == null) {
             throw new UsernameNotFoundException("user in not found");
         }
-
         return buildLoginUser(userVO.toOperator());
     }
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<SimpleUser> simpleUsers = authenticationMapper.loadUserDetailByMobile(mobile);
-        if (CollUtil.isEmpty(simpleUsers)) {
+        List<AuthenticationUserDetail> authenticationUserDetails =
+                authenticationMapper.selectUserDetailsByMobile(mobile);
+        if (CollUtil.isEmpty(authenticationUserDetails)) {
             throw new UsernameNotFoundException("mobile in not found");
         }
-        if (simpleUsers.size() > 1) {
+        if (authenticationUserDetails.size() > 1) {
             throw new AuthenticationException("mobile in not unique");
         }
-        SimpleUser simpleUser = simpleUsers.getFirst();
-        return buildLoginUser(simpleUser.toOperator());
+        AuthenticationUserDetail authenticationUserDetail = authenticationUserDetails.getFirst();
+        return buildLoginUser(authenticationUserDetail.toOperator());
     }
 
     @Override
@@ -74,13 +75,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public List<ResourceTree> getNavigation(LoginUser operator, NavigationQuery query) {
         Assert.notNull(operator, "parameter 'operator' cannot be empty or null");
         Assert.notNull(query, "parameter 'query' cannot be empty or null");
-        List<ResourceTree> resourceTrees = authenticationMapper.getNavigationByQuery(query);
+        List<ResourceTree> resourceTrees = authenticationMapper.selectNavigation(query);
         return TreeBuilder.build(resourceTrees);
     }
 
     @Override
-    public List<com.lambda.fusion.authority.user.model.SimpleUser> getUsersByRoleId(String roleId) {
-        return authenticationMapper.getUsersByRoleId(roleId);
+    public List<UserProfile> getUsersByRoleId(String roleId) {
+        return authenticationMapper.selectUserProfileByRoleId(roleId);
     }
 
     @Override

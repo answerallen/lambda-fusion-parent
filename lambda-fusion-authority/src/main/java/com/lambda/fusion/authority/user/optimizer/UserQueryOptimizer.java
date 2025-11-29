@@ -22,8 +22,6 @@ import org.springframework.stereotype.Component;
  *
  * <p>提供用户相关的批量查询优化方法，减少N+1查询问题，提升性能。
  *
- * @author Lambda Fusion Team
- * @since 1.0.0
  */
 @Slf4j
 @Component
@@ -38,7 +36,7 @@ public class UserQueryOptimizer {
      * @param queryDTO 查询DTO
      * @return 查询参数Map
      */
-    public Map<String, Object> getMutableUsersQueryParameters(UserQuery queryDTO) {
+    public Map<String, Object> getUsersQueryParameters(UserQuery queryDTO) {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(11);
         UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
         String tenantId = userPrincipal.getTenantId();

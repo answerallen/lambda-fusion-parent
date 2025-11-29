@@ -5,10 +5,10 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.user.model.CreateUser;
 import com.lambda.fusion.authority.user.model.Permission;
 import com.lambda.fusion.authority.user.model.ResetPassword;
-import com.lambda.fusion.authority.user.model.SimpleUser;
 import com.lambda.fusion.authority.user.model.UpdateUser;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.model.UserInfoEntity;
+import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -202,7 +202,7 @@ public interface UserService {
      * @param orgIds
      * @return
      */
-    List<SimpleUser> getAllSimpleUser(LoginUser operator, List<String> orgIds);
+    List<UserProfile> getAllSimpleUser(LoginUser operator, List<String> orgIds);
 
     /**
      * 当前用户组织机构数据权限

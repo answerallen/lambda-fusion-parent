@@ -25,7 +25,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param authority
      * @return
      */
-    List<String> getUserNamesByAuthority(@Param("orgId") String orgId, @Param("authority") String authority);
+    List<String> selectUsernamesByAuthority(@Param("orgId") String orgId, @Param("authority") String authority);
 
     /**
      * 根据组织机构ID查询用户集合
@@ -34,7 +34,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param type  机构类型
      * @return 用户集合
      */
-    List<String> getUsernameByOrgId(@Param("orgId") String orgId, @Param("type") Integer type);
+    List<String> selectUsernameByOrgId(@Param("orgId") String orgId, @Param("type") Integer type);
 
     /**
      * 根据用户名称查询用户信息
@@ -43,7 +43,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @return
      * @throws Exception
      */
-    User getUserByUsername(@Param("username") String username);
+    User selectUserByUsername(@Param("username") String username);
 
     /**
      * 查询所有用户
@@ -51,7 +51,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param users
      * @return
      */
-    List<User> getAllUsers(List<User> users);
+    List<User> selectUsers(List<User> users);
 
     /**
      * 查询所有用户
@@ -60,7 +60,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param parameters
      * @return
      */
-    Page<User> getAllUsersByCondition(Page<User> page, Map<String, Object> parameters);
+    Page<User> selectUserPageByCondition(Page<User> page, Map<String, Object> parameters);
 
     /**
      * 根据关键字模糊查询用户列表
@@ -68,7 +68,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param key
      * @return
      */
-    List<User> getAllUsersByKey(@Param("key") String key);
+    List<User> selectUsersByKey(@Param("key") String key);
 
     /**
      * 更新用户
@@ -125,14 +125,14 @@ public interface UserMapper extends BaseMapper<UserEntity> {
     /**
      * 查询所有用户信息
      **/
-    List<User> getAllUsers();
+    List<User> selectAllUsers();
 
     /**
      * 获取组织机构下所有用户
      *
      * @param orgId
      **/
-    List<User> getAllOrgUsers(@Param("orgId") String orgId);
+    List<User> selectOrgUsers(@Param("orgId") String orgId);
 
     /**
      * 根据组织查询用户列表
@@ -141,7 +141,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param roleId
      * @return
      */
-    List<String> getUidsByOrg(@Param("orgId") String orgId, @Param("roleId") String roleId);
+    List<String> selectUsernamesByOrg(@Param("orgId") String orgId, @Param("roleId") String roleId);
 
     /**
      * 根据用户ID和角色查询所有权限
@@ -149,7 +149,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param ids
      * @param mode
      */
-    List<Permission> getAllUserPermissions(List<String> ids, @Param("mode") String mode);
+    List<Permission> selectUserPermissionsByIdsAndMode(List<String> ids, @Param("mode") String mode);
 
     /**
      * 查询用户的权限
@@ -157,7 +157,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param source
      * @return java.util.List<java.lang.String>
      */
-    Set<String> getUserPermissions(String source);
+    Set<String> selectUserPermissions(String source);
 
     /**
      * 获取权限数据
@@ -166,7 +166,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param manage      是否管理权限
      * @param permissions 权限
      */
-    List<RoleResources> getRoleResources(
+    List<RoleResources> selectRoleResources(
             @Param("authority") String authority,
             @Param("manage") String manage,
             @Param("permissions") Set<String> permissions);
@@ -203,13 +203,13 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * 获取用户下拉列表数据
      *
      */
-    List<SimpleUser> getAllSimpleUser(@Param("tenantId") String tenantId, List<String> orgIds);
+    List<UserProfile> selectUserProfiles(@Param("tenantId") String tenantId, List<String> orgIds);
 
     /**
      * 查询所有用户
      *
      */
-    List<User> getAllUsersNoPage(@Param("parameters") Map<String, Object> parameters);
+    List<User> selectUsersNoPage(@Param("parameters") Map<String, Object> parameters);
 
     /**
      * 修改用户手机号
@@ -255,7 +255,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param tenantId 租户ID
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<User> getAllMutableUsersByTenantId(@Param("tenantId") String tenantId);
+    List<User> selectUsersByTenantId(@Param("tenantId") String tenantId);
 
     /**
      * 检查手机号是否绑定用户
@@ -271,5 +271,5 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param username
      * @return
      */
-    String getTenantIdByTenantAdmin(@Param("username") String username);
+    String selectTenantIdByUsername(@Param("username") String username);
 }
