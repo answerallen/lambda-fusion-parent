@@ -70,7 +70,7 @@ public class UserController {
         if (size != null) {
             userQuery.setPageSize(size);
         }
-        Map<String, Object> parameters = userQueryOptimizer.getUsersQueryParameters(userQuery);
+        UserSearchParams parameters = userQueryOptimizer.getUsersQueryParameters(userQuery);
         return userService.getUsers(userQuery.getPage(), parameters);
     }
 

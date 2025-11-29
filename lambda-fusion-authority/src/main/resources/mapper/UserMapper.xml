@@ -100,8 +100,8 @@
             <if test="parameters.authority != null and parameters.authority != ''">
                 AND T.username IN (SELECT USERNAME FROM LA_USER_ROLES WHERE authority = #{parameters.authority})
             </if>
-            <if test="parameters.username != null and parameters.username.size > 0">
-                AND T.username IN <foreach collection="parameters.username" open="(" close=")" separator="," item="item">#{item}</foreach>
+            <if test="parameters.usernames != null and parameters.usernames.size > 0">
+                AND T.username IN <foreach collection="parameters.usernames" open="(" close=")" separator="," item="item">#{item}</foreach>
             </if>
             <if test="parameters.nickname != null and parameters.nickname != ''">
                 AND T.nickname LIKE #{parameters.nickname}
@@ -221,9 +221,9 @@
             mobile = #{mobile, jdbcType=VARCHAR},
             email = #{email, jdbcType=VARCHAR},
             EXPIRED_TIME = #{expiredTime, jdbcType=TIMESTAMP}
-            <if test="tenantId != null and tenantId != ''">
+        <if test="tenantId != null and tenantId != ''">
                 ,TENANT_ID = #{tenantId, jdbcType=VARCHAR}
-            </if>
+        </if>
         WHERE username = #{username}
     </update>
 
@@ -409,7 +409,7 @@
             INNER JOIN
             (
             SELECT USERNAME,
-            <foreach collection="parameters.personal" item="item"  separator=" ">
+            <foreach collection="parameters.personal" item="item" separator=" ">
                 MAX(CASE FIELD_NAME WHEN  #{item.fieldName} then field_value ELSE '' END) AS  ${item.fieldName},
             </foreach>
             count(*) NUMS
@@ -417,7 +417,7 @@
             GROUP BY USERNAME
             )  A ON T.USERNAME = A.USERNAME
             AND
-            <foreach collection="parameters.personal" item="item"  separator="AND">
+            <foreach collection="parameters.personal" item="item" separator="AND">
                 A.${item.fieldName} = #{item.fieldValue}
             </foreach>
         </if>
@@ -431,8 +431,8 @@
                         T.TENANT_ID is null
                     </otherwise>
                 </choose>
-                <if test="parameters.username != null and parameters.username.size > 0">
-                    AND T.username IN <foreach collection="parameters.username" open="(" close=")" separator="," item="item">#{item}</foreach>
+                <if test="parameters.usernames != null and parameters.usernames.size > 0">
+                    AND T.username IN <foreach collection="parameters.usernames" open="(" close=")" separator="," item="item">#{item}</foreach>
                 </if>
                 <choose>
                     <when test="!parameters.dev">

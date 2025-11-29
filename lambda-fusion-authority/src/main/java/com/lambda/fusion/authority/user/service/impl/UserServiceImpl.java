@@ -8,7 +8,6 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Lists;
@@ -26,9 +25,9 @@ import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
-import com.lambda.fusion.authority.tenant.mapper.TenantMapper;
 import com.lambda.fusion.authority.user.mapper.*;
 import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.UserSearchParams;
 import com.lambda.fusion.authority.user.model.UserTempParameters;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
@@ -64,7 +63,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
-    private final TenantMapper tenantMapper;
+
     private final UserRoleMapper userRoleMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuthorityProperties properties;
@@ -74,11 +73,6 @@ public class UserServiceImpl implements UserService {
     private final UserPasswordMapper userUpdatePwdLogMapper;
     private final OrganizationService organizationService;
     protected final ApplicationEventPublisher applicationEventPublisher;
-
-    /**
-     * 用户新增字段key
-     */
-    private static final String USER_PERSONAL = "personal";
 
     private OrganizationMapper organizationMapper;
 
@@ -116,10 +110,10 @@ public class UserServiceImpl implements UserService {
         Assert.notNull(username, "username is not empty");
         User user = userMapper.selectUserByUsername(username);
         if (user != null) {
-            //            user.setOnline(laAuthorizeHelper.isOnline(username));
-            //            user.setLocked(laAuthorizeHelper.getLockedState(username));
-            //                        UserInfoVO props = decorator.getTargetPropsById(username);
-            //                        user.setProps(props);
+            // user.setOnline(laAuthorizeHelper.isOnline(username));
+            // user.setLocked(laAuthorizeHelper.getLockedState(username));
+            // UserInfoVO props = decorator.getTargetPropsById(username);
+            // user.setProps(props);
             List<UserFieldsEntity> fields = userFieldsMapper.getListByUsername(username);
             Map<String, Map<String, String>> allPersonUserMap;
             if (CollectionUtils.isNotEmpty(fields)) {
@@ -177,11 +171,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public Page<User> getUsers(Page<User> pagination, Map<String, Object> parameters) {
-        String tenantId = MapUtils.getString(parameters, "tenant_id");
-
-        // 预处理查询参数
-        preprocessQueryParameters(parameters);
+    public Page<User> getUsers(Page<User> pagination, UserSearchParams parameters) {
+        String tenantId = parameters.getTenantId();
 
         // 执行分页查询
         pagination = userMapper.selectUserPageByCondition(pagination, parameters);
@@ -194,14 +185,6 @@ public class UserServiceImpl implements UserService {
         }
 
         return pagination;
-    }
-
-    /**
-     * 预处理查询参数
-     */
-    private void preprocessQueryParameters(Map<String, Object> parameters) {
-        setUsernames(parameters);
-        setUserFields(parameters);
     }
 
     /**
@@ -266,9 +249,9 @@ public class UserServiceImpl implements UserService {
      * 补充完善用户权限信息
      */
     private void supplementUserPermissionInfo(User item, String tenantId) {
-        // todo       if (RoleUtil.isTenant(item)) {
-        //            item.setDisAllocation(true);
-        //        }
+        // todo if (RoleUtil.isTenant(item)) {
+        // item.setDisAllocation(true);
+        // }
         extractedPermission(tenantId, item);
     }
 
@@ -277,20 +260,6 @@ public class UserServiceImpl implements UserService {
      */
     private void supplementUserLockState(User item) {
         // 锁定状态
-    }
-
-    /**
-     * 补充用户在线信息
-     */
-    private void supplementUserOnlineInfo(Set<String> onlines, User item, String uid) {
-        String username = item.getUsername();
-        item.setOnline(onlines.contains(username));
-        boolean self = username.equals(uid);
-        item.setSelf(self);
-        if (self) {
-            // 执行操作的用户必定为在线状态
-            item.setOnline(true);
-        }
     }
 
     private void supplementUserPersonInfo(Map<String, Map<String, String>> allPersonUserMap, User item) {
@@ -400,22 +369,11 @@ public class UserServiceImpl implements UserService {
         return userFieldDOS;
     }
 
-    private void setUsernames(Map<String, Object> parameters) {
-        final String usernames = "username";
-        String ids = MapUtils.getString(parameters, usernames);
-        if (StringUtils.isNotBlank(ids)) {
-            String[] split = ids.split(Constants.DELIMITER);
-            List<String> strings = Arrays.asList(split);
-            parameters.put(usernames, strings);
-        } else {
-            parameters.put(usernames, null);
-        }
-    }
-
     /***
      * 验证是否有权限操作
+     *
      * @param tenantId 租户id
-     * @param item 当前用户
+     * @param item     当前用户
      */
     private void extractedPermission(String tenantId, User item) {
         if (StringUtils.isNotBlank(item.getTenantId()) && !Objects.equals(tenantId, item.getTenantId())) {
@@ -560,48 +518,6 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 修改用户组织关系
-     *
-     * @param username 要修改的用户编号
-     * @param source   前端传递的组织机构
-     * @param original 原组织机构
-     * @param operator 当前用户
-     */
-    private void updateUserOrg(
-            String username, OrganizationSummary source, OrganizationSummary original, LoginUser operator) {
-        OrganizationSummary updated = orgUpdated(source, original);
-        if (null != updated) {
-            if (StringUtils.isNotBlank(updated.getId())) {
-                UserOrganizationEntity changed =
-                        new UserOrganizationEntity(username, updated.getId(), operator.getTenantId());
-                if (StringUtils.isNotBlank(getOrgId(original))) {
-                    userOrganizationMapper.updateById(changed);
-                } else {
-                    userOrganizationMapper.insert(changed);
-                }
-            } else {
-                userOrganizationMapper.deleteUserOrganizationByUser(username);
-            }
-        }
-    }
-
-    /**
-     * 判断扩展属性是否变化
-     *
-     * @param source 原始用户信息
-     * @param actual 当前用户信息
-     * @return 是否需要更新扩展属性
-     */
-    private boolean checkPropsUpdated(UserInfo source, UserInfo actual) {
-        if (source == null || actual == null) {
-            return false;
-        }
-
-        // 比较关键属性是否发生变化
-        return !Objects.equals(source.getAvatar(), actual.getAvatar());
-    }
-
-    /**
      * <ol>
      * <li>当结果值不为空时，用户的组织要变更</li>
      * <li>当结果值为空时，用户的组织无需变更</li>
@@ -627,19 +543,6 @@ public class UserServiceImpl implements UserService {
         } else {
             return source;
         }
-    }
-
-    /**
-     * 获取orgId
-     *
-     * @param org 组织对象
-     * @return java.lang.String
-     */
-    private String getOrgId(OrganizationSummary org) {
-        if (org != null && StringUtils.isNotBlank(org.getId())) {
-            return org.getId();
-        }
-        return null;
     }
 
     @Override
@@ -762,7 +665,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public Set<String> getSubOrgIds(String orgid, LoginUser operator) {
         Set<String> orgIds = new HashSet<>();
-        //      todo  boolean admin = OperatorUtils.isAdmin(operator);
+        // todo boolean admin = OperatorUtils.isAdmin(operator);
         boolean admin = true;
         if (StringUtils.isNotBlank(orgid)) {
             orgIds.add(orgid);
@@ -786,16 +689,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<String> getSuperiors(String uid, Integer rank) {
         return List.of();
-    }
-
-    // 设置用户字段 todo 待完善
-    private void setUserFields(Map<String, Object> parameters) {
-        if (parameters.get(USER_PERSONAL) != null) {
-            String personal = parameters.get(USER_PERSONAL).toString();
-            Map<String, String> tempMap = (Map<String, String>) JSONUtil.parse(personal);
-            List<UserFieldsEntity> fields = this.convertPersonBean(tempMap, null);
-            parameters.put(USER_PERSONAL, fields);
-        }
     }
 
     /**
@@ -825,9 +718,9 @@ public class UserServiceImpl implements UserService {
         BeanUtils.copyProperties(source, target);
         userMapper.updateUser(target);
         userRoleMapper.deleteUserRoles(username);
-        //           todo     addUserRoles(target, operator.getTenantId());
+        // todo addUserRoles(target, operator.getTenantId());
     }
 
     @Override
-    public void exportMutableUsers(Page<User> pageable, Map<String, Object> parameters) {}
+    public void exportMutableUsers(Page<User> pageable, UserSearchParams parameters) {}
 }

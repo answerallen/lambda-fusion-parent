@@ -9,6 +9,7 @@ import com.lambda.fusion.authority.user.model.UpdateUser;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.model.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.UserProfile;
+import com.lambda.fusion.authority.user.model.UserSearchParams;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -47,6 +48,7 @@ public interface UserService {
 
     /***
      * 根据username查询用户详情
+     *
      * @param username 用户名
      */
     User getUserByUsername(String username);
@@ -58,16 +60,24 @@ public interface UserService {
 
     /***
      * 查询注册用户列表
+     *
      * @param users 用户列表
      */
     List<User> getUsers(List<User> users);
 
     /***
      * 查询注册用户列表
+     *
      * @param pageable   分页信息
      * @param parameters 参数信息
      */
-    Page<User> getUsers(Page<User> pageable, Map<String, Object> parameters);
+    /***
+     * 查询注册用户列表
+     *
+     * @param pageable   分页信息
+     * @param parameters 参数信息
+     */
+    Page<User> getUsers(Page<User> pageable, UserSearchParams parameters);
 
     /***
      * 根据关键字模糊查询用户列表
@@ -87,13 +97,14 @@ public interface UserService {
     /***
      * 更新用户
      *
-     * @param user      更新对象
-     * @param operator  当前操作人
+     * @param user     更新对象
+     * @param operator 当前操作人
      */
     void updateUser(UpdateUser user, LoginUser operator);
 
     /***
      * 根据用户名删除用户
+     *
      * @param operator
      * @param username 用户名
      */
@@ -101,6 +112,7 @@ public interface UserService {
 
     /***
      * 检查用户名是否已经存在
+     *
      * @param username 用户名
      * @return boolean
      */
@@ -108,9 +120,10 @@ public interface UserService {
 
     /***
      * 修改用户密码
-     * @param username      用户名
-     * @param oldpassword   原密码
-     * @param newpassword   新密码
+     *
+     * @param username    用户名
+     * @param oldpassword 原密码
+     * @param newpassword 新密码
      */
     void updateUserPassword(String username, String oldpassword, String newpassword);
 
@@ -248,8 +261,8 @@ public interface UserService {
     /***
      * 更新租户管理员用户
      *
-     * @param user      更新对象
-     * @param operator  当前操作人
+     * @param user     更新对象
+     * @param operator 当前操作人
      */
     void updateTenantUser(User user, LoginUser operator);
 
@@ -259,5 +272,5 @@ public interface UserService {
      * @param pageable   分页
      * @param parameters 查询参数
      */
-    void exportMutableUsers(Page<User> pageable, Map<String, Object> parameters);
+    void exportMutableUsers(Page<User> pageable, UserSearchParams parameters);
 }

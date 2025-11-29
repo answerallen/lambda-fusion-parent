@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.UserSearchParams;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -60,7 +60,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param parameters
      * @return
      */
-    Page<User> selectUserPageByCondition(Page<User> page, Map<String, Object> parameters);
+    Page<User> selectUserPageByCondition(Page<User> page, @Param("parameters") UserSearchParams parameters);
 
     /**
      * 根据关键字模糊查询用户列表
@@ -80,7 +80,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
     /**
      * 修改指定用户的密码
      *
-     * @param username username
+     * @param username    username
      * @param newPassword newPassword
      *
      */
@@ -208,14 +208,15 @@ public interface UserMapper extends BaseMapper<UserEntity> {
     /**
      * 查询所有用户
      *
+     * @param parameters
      */
-    List<User> selectUsersNoPage(@Param("parameters") Map<String, Object> parameters);
+    List<User> selectUsersNoPage(@Param("parameters") UserSearchParams parameters);
 
     /**
      * 修改用户手机号
      *
      * @param username 用户修改信息
-     * @param mobile 用户修改信息
+     * @param mobile   用户修改信息
      */
     default void updateMobile(String username, String mobile) {
         update(new LambdaUpdateWrapper<UserEntity>()
@@ -227,7 +228,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * 修改用户邮箱
      *
      * @param username 用户修改信息
-     * @param email 用户修改信息
+     * @param email    用户修改信息
      */
     default void updateEmail(String username, String email) {
         update(new LambdaUpdateWrapper<UserEntity>()
@@ -239,7 +240,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * 修改用户昵称
      *
      * @param username 用户修改信息
-     * @param email 用户修改信息
+     * @param email    用户修改信息
      * @param nickname 用户修改信息
      */
     default void updateInfo(String username, String email, String nickname) {
@@ -268,6 +269,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
 
     /**
      * 获取租户管理员的租户ID
+     *
      * @param username
      * @return
      */
