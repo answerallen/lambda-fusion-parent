@@ -63,15 +63,15 @@ public class UserController {
     public Page<User> page(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
-            @Valid UserQuery queryDTO) {
+            @Valid UserQuery userQuery) {
         if (number != null) {
-            queryDTO.setPageNum(number);
+            userQuery.setPageNum(number);
         }
         if (size != null) {
-            queryDTO.setPageSize(size);
+            userQuery.setPageSize(size);
         }
-        Map<String, Object> parameters = userQueryOptimizer.getUsersQueryParameters(queryDTO);
-        return userService.getUsers(queryDTO.getPage(), parameters);
+        Map<String, Object> parameters = userQueryOptimizer.getUsersQueryParameters(userQuery);
+        return userService.getUsers(userQuery.getPage(), parameters);
     }
 
     @GetMapping(value = "/{username}/check")
