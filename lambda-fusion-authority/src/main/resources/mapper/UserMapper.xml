@@ -43,7 +43,7 @@
     </resultMap>
 
 
-    <resultMap id="AuthenticationUserDetailResultMap" type="com.lambda.fusion.authority.authentication.model.AuthenticationUserDetail">
+    <resultMap id="AuthenticationUserDetailResultMap" type="com.lambda.fusion.authority.authentication.model.AuthUserDetail">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="password" property="password" javaType="String"/>
@@ -78,7 +78,7 @@
         </collection>
     </resultMap>
 
-    <select id="selectUserPageByCondition" resultType="com.lambda.fusion.authority.user.model.User">
+    <select id="selectUserPage" resultType="com.lambda.fusion.authority.user.model.User">
         SELECT T.username, T.nickname, T.mobile, T.email, T.enabled FROM LA_USERS T
         <where>
             <choose>

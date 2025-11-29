@@ -7,9 +7,9 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
-import com.lambda.fusion.authority.authentication.model.AuthenticationUserDetail;
+import com.lambda.fusion.authority.authentication.model.AuthUserDetail;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
-import com.lambda.fusion.authority.authentication.service.AuthenticationService;
+import com.lambda.fusion.authority.authentication.service.AuthService;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.core.Constants;
@@ -31,32 +31,32 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthenticationServiceImpl implements AuthenticationService {
+public class AuthServiceImpl implements AuthService {
 
     private final AuthenticationMapper authenticationMapper;
 
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
         Assert.notNull(username, "parameter 'username' cannot be empty or null");
-        AuthenticationUserDetail userVO = authenticationMapper.selectUserDetailByUsername(username);
-        if (userVO == null) {
+        AuthUserDetail authUserDetail = authenticationMapper.selectUserDetailByUsername(username);
+        if (authUserDetail == null) {
             throw new UsernameNotFoundException("user in not found");
         }
-        return buildLoginUser(userVO.toOperator());
+        UserPrincipal userPrincipal = authUserDetail.toUserPrincipal();
+        return buildLoginUser(userPrincipal);
     }
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<AuthenticationUserDetail> authenticationUserDetails =
-                authenticationMapper.selectUserDetailsByMobile(mobile);
-        if (CollUtil.isEmpty(authenticationUserDetails)) {
+        List<AuthUserDetail> authUserDetails = authenticationMapper.selectUserDetailsByMobile(mobile);
+        if (CollUtil.isEmpty(authUserDetails)) {
             throw new UsernameNotFoundException("mobile in not found");
         }
-        if (authenticationUserDetails.size() > 1) {
+        if (authUserDetails.size() > 1) {
             throw new AuthenticationException("mobile in not unique");
         }
-        AuthenticationUserDetail authenticationUserDetail = authenticationUserDetails.getFirst();
-        return buildLoginUser(authenticationUserDetail.toOperator());
+        AuthUserDetail authUserDetail = authUserDetails.getFirst();
+        return buildLoginUser(authUserDetail.toUserPrincipal());
     }
 
     @Override

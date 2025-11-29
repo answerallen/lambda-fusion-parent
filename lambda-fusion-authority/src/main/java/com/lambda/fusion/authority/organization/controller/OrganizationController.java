@@ -163,7 +163,7 @@ public class OrganizationController {
     @Operation(summary = "导入excel批量增加组织")
     @PostMapping({"/import"})
     public void importExcel(@RequestParam("file") MultipartFile file) {
-        organizationService.addOrganizationByimport(file);
+        organizationService.addOrganizationByImport(file);
     }
 
     @PatchMapping("/{id}")

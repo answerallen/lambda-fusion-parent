@@ -39,7 +39,7 @@ public interface OrganizationService {
      * @param parameters
      * @return
      */
-    List<Organization> getSubordinateOrgIds(OrganizationQuery parameters);
+    List<Organization> getSubOrganizationIds(OrganizationQuery parameters);
 
     /**
      * 根据ID查询组织信息
@@ -153,7 +153,7 @@ public interface OrganizationService {
      *
      * @return
      */
-    List<String> getSubordinateOrgIds(LoginUser operator);
+    List<String> getSubOrganizationIds(LoginUser operator);
 
     /**
      * 根据指定组织编号查询下级组织列表
@@ -161,7 +161,7 @@ public interface OrganizationService {
      * @param orgId
      * @return
      */
-    List<String> getSubordinateOrgIds(String orgId);
+    List<String> getSubOrganizationIds(String orgId);
 
     /**
      * 通过excel来增加组织
@@ -169,7 +169,7 @@ public interface OrganizationService {
      * @param file     excel文件
      * @return 导入失败的数据
      */
-    void addOrganizationByimport(MultipartFile file);
+    void addOrganizationByImport(MultipartFile file);
 
     /**
      * 根据组织id获取根节点信息
@@ -177,7 +177,7 @@ public interface OrganizationService {
      * @param id 组织id
      * @return Organization
      */
-    Organization getRootOrganById(String id);
+    Organization getRootOrganizationById(String id);
 
     /**
      * 根据提供的组织列表查询该组织都属于哪些公司
@@ -185,7 +185,7 @@ public interface OrganizationService {
      * @param ids 组织id
      * @return Map<String, Organization
      */
-    Map<String, Organization> getOrgIdsByIds(Set<String> ids);
+    Map<String, Organization> getOrganizationByIds(Set<String> ids);
 
     /**
      * 移动组织树节点

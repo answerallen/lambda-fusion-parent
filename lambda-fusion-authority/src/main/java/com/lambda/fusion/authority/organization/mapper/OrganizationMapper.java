@@ -21,7 +21,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param users 用户信息
      * @return 用户信息列表
      */
-    List<OrganizationWithUser> getAllOrganMutableUsers(List<User> users);
+    List<OrganizationWithUser> getOrganizationUsers(List<User> users);
 
     /**
      * 查询全部组织角色
@@ -29,15 +29,15 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param parameters 查询参数
      * @return 组织列表
      */
-    List<Organization> getAllMutableOrgan(@Param("parameters") OrganizationQuery parameters);
+    List<Organization> getOrganizations(@Param("parameters") OrganizationQuery parameters);
 
     /**
      * 查询所有可用组织
      *
      * @param parameters 查询参数
-     * @return java.util.List<SimpleOrg>
+     * @return java.util.List<OrganizationTree>
      */
-    List<OrganizationTree> getAllEnabledOrgan(@Param("parameters") OrganizationQuery parameters);
+    List<OrganizationTree> getEnabledOrganization(@Param("parameters") OrganizationQuery parameters);
 
     /**
      * 查询组织、角色信息
@@ -86,7 +86,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @return 子组织列表
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<Organization> getSubOrgIdsById(String id);
+    List<Organization> getSubOrganizationsById(String id);
 
     /**
      * 批量禁用/启用组织机构
@@ -95,7 +95,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param ids     组织id列表
      **/
     @InterceptorIgnore(tenantLine = "true")
-    void prohibitOrganizationByIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
+    void updateEnabledOrganizationByIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
     /**
      * "租户"类型机构 禁用/启用组织机构下用户
@@ -104,7 +104,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param ids     组织id列表
      **/
     @InterceptorIgnore(tenantLine = "true")
-    void prohibitOrgUsersByTenantOrgan(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
+    void updateEnabledOrganizationUsersByTenantIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
     /**
      * "普通"类型机构 禁用/启用组织机构下用户
@@ -113,7 +113,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param ids     组织id列表
      */
     @InterceptorIgnore(tenantLine = "true")
-    void prohibitOrgUsersByOrdinaryOrgan(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
+    void updateEnabledOrganizationUsersByOrgIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
     /**
      * 批量禁用/启用非组织机构下所有角色
@@ -122,7 +122,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param ids     组织id列表
      **/
     @InterceptorIgnore(tenantLine = "true")
-    void prohibitRoleByOrganizationByIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
+    void updateEnabledRoleByOrganizationByIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
     /**
      * 当前机构下是否存在用户
@@ -139,15 +139,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @return {@link boolean}
      **/
     @InterceptorIgnore(tenantLine = "true")
-    boolean existTenantOrg(@Param("orgId") String orgId);
-
-    /**
-     * 根据ID获取信息
-     *
-     * @param id 组织id
-     * @return 组织对象
-     */
-    Organization getInfo(String id);
+    boolean existTenantOrganization(@Param("orgId") String orgId);
 
     /**
      * 根据条件查询组织
@@ -156,14 +148,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @return 组织
      */
     List<Organization> getOrgIdsByCondition(@Param("parameters") OrganizationQuery parameters);
-
-    /**
-     * 根据父id更改spid
-     *
-     * @param id   父组织id
-     * @param name 父组织编码
-     */
-    void updateChildrensSpid(String id, String name);
 
     /**
      * 根据组织ID删除组织
@@ -184,21 +168,18 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
     /**
      * 批量更新移动后需要变更的节点
      *
-     * @param changed
      */
-    void batchUpdateOrgsAfterMoved(List<Organization> changed);
+    void updateAffectedNodesAfterMove(List<Organization> changed);
 
     /**
      * 获取节点的直接下级
      *
-     * @param id
      */
-    List<Organization> directChildrenGetter(String id);
+    List<Organization> findDirectChildren(String id);
 
     /**
      * 获取节点的所有下级，包含下级的下级
      *
-     * @param parentKeys
      */
-    List<Organization> allChildrenGetter(String parentKeys);
+    List<Organization> findDescendants(String parentKeys);
 }

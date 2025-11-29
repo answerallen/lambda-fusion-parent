@@ -11,7 +11,7 @@
     </resultMap>
 
     <!-- 查询用户组织列表 -->
-    <select id="getAllOrganMutableUsers" parameterType="com.lambda.fusion.authority.user.model.User"
+    <select id="getOrganizationUsers" parameterType="com.lambda.fusion.authority.user.model.User"
             resultMap="MutableOrganization">
         SELECT
         T.USERNAME as username, O.ID, O.ALIAS, O.PARENT_ID AS parentId
@@ -38,7 +38,7 @@
         <result column="order_no" property="orderNo"/>
     </resultMap>
     <!-- 查询用户组织列表 -->
-    <select id="getAllMutableOrgan" resultMap="Organization">
+    <select id="getOrganizations" resultMap="Organization">
         SELECT
             ID,
             ORG_NAME AS organization,
@@ -126,7 +126,7 @@
         ORDER BY O.ORG_RANK, O.ORDER_NO, O.PARENT_ID, O.ORG_NAME
     </select>
 
-    <select id="getAllEnabledOrgan" resultType="com.lambda.fusion.authority.organization.domain.OrganizationTree">
+    <select id="getEnabledOrganization" resultType="com.lambda.fusion.authority.organization.domain.OrganizationTree">
         SELECT ID, ALIAS AS name, PARENT_ID AS pid
         FROM LA_ORGANIZATION O
         WHERE O.ENABLED = 1
@@ -226,26 +226,26 @@
         SELECT ID FROM LA_ORGANIZATION T WHERE T.PARENT_KEYS LIKE CONCAT(#{id},'%') ORDER BY PARENT_KEYS
     </select>
 
-    <select id="getSubOrgIdsById" resultMap="Organization">
+    <select id="getSubOrganizationsById" resultMap="Organization">
         SELECT ID, ORG_CATEGORY FROM LA_ORGANIZATION T WHERE T.PARENT_KEYS LIKE CONCAT(#{id},'-%') OR T.PARENT_KEYS = #{id} ORDER BY PARENT_KEYS
     </select>
 
-    <update id="prohibitOrganizationByIds">
+    <update id="updateEnabledOrganizationByIds">
         UPDATE LA_ORGANIZATION SET ENABLED = #{enabled} WHERE ID IN
         <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
     </update>
 
-    <update id="prohibitRoleByOrganizationByIds">
+    <update id="updateEnabledRoleByOrganizationByIds">
         UPDATE LA_ROLES T SET T.ENABLED = #{enabled} WHERE T.OWNER IN
         <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
     </update>
 
-    <update id="prohibitOrgUsersByTenantOrgan">
-        UPDATE LA_USERS T SET T.ENABLED = #{enabled} WHERE T.OWNER IN
+    <update id="updateEnabledOrganizationUsersByTenantIds">
+        UPDATE LA_USERS T SET T.ENABLED = #{enabled} WHERE T.TENANT_ID IN
         <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
     </update>
 
-    <update id="prohibitOrgUsersByOrdinaryOrgan">
+    <update id="updateEnabledOrganizationUsersByOrgIds">
         UPDATE LA_USERS T SET T.enabled = #{enabled} WHERE T.username IN (
             SELECT T2.USERNAME FROM LA_USER_ORGANIZATION T2
             INNER JOIN LA_ORGANIZATION T3 ON T2.ORGANIZATION_ID = T3.ID
@@ -259,17 +259,9 @@
         (SELECT 1 FROM LA_USER_ORGANIZATION T WHERE T.ORGANIZATION_ID IN <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>)
     </select>
 
-    <select id="existTenantOrg" parameterType="string" resultType="java.lang.Boolean">
+    <select id="existTenantOrganization" parameterType="string" resultType="java.lang.Boolean">
         SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_ORGANIZATION T WHERE T.ORG_OWNER = #{orgId} AND T.ORG_CATEGORY = 1 AND T.ENABLED = 1)
     </select>
-
-    <select id="getInfo" resultType="com.lambda.fusion.authority.organization.domain.OrganizationSummary">
-        SELECT ID, ALIAS FROM LA_ORGANIZATION WHERE ID = #{id}
-    </select>
-
-    <update id="updateChildrensSpid">
-        UPDATE LA_ORGANIZATION SET PARENT_ID = PARENT_ID WHERE PARENT_ID = #{id}
-    </update>
 
     <delete id="deleteOrgByIdList">
         DELETE FROM LA_USER_ORGANIZATION WHERE ORGANIZATION_ID IN
@@ -282,7 +274,7 @@
     </delete>
 
 
-    <select id="directChildrenGetter" resultMap="Organization">
+    <select id="findDirectChildren" resultMap="Organization">
         SELECT
             ID AS id,
             ALIAS AS alias,
@@ -299,7 +291,7 @@
         </where>
         ORDER BY ORDER_NO
     </select>
-    <select id="allChildrenGetter" resultMap="Organization">
+    <select id="findDescendants" resultMap="Organization">
         SELECT
             ID AS id,
             ALIAS AS alias,
@@ -311,7 +303,7 @@
         WHERE (T.PARENT_KEYS = #{parentKeys} OR T.PARENT_KEYS LIKE CONCAT(#{parentKeys},'-%'))
         ORDER BY T.ORG_RANK, T.ORDER_NO
     </select>
-    <update id="batchUpdateOrgsAfterMoved">
+    <update id="updateAffectedNodesAfterMove">
         UPDATE LA_ORGANIZATION T SET
         T.ORG_RANK = CASE
         <foreach collection="list" item="item">

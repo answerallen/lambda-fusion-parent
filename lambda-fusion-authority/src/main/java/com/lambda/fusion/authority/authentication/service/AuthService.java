@@ -12,7 +12,7 @@ import java.util.List;
  * 认证服务接口
  * 负责用户认证、授权和导航菜单相关的业务逻辑
  */
-public interface AuthenticationService extends UserDetailService, ThirdPartyLoginService {
+public interface AuthService extends UserDetailService, ThirdPartyLoginService {
 
     /**
      * 获取用户的导航菜单

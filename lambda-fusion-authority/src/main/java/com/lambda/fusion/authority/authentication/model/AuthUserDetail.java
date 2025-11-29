@@ -25,7 +25,7 @@ import lombok.Data;
         })
 @Data
 @Schema(description = "简单用户信息")
-public class AuthenticationUserDetail implements Serializable {
+public class AuthUserDetail implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -78,7 +78,7 @@ public class AuthenticationUserDetail implements Serializable {
     @Schema(description = "用户权限集合")
     private Set<String> authorities;
 
-    public UserPrincipal toOperator() {
+    public UserPrincipal toUserPrincipal() {
         return ConvertUtils.convert(this);
     }
 }

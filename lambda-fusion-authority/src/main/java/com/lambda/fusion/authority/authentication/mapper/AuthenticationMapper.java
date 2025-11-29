@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.authentication.mapper;
 
-import com.lambda.fusion.authority.authentication.model.AuthenticationUserDetail;
+import com.lambda.fusion.authority.authentication.model.AuthUserDetail;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
-import com.lambda.fusion.authority.authentication.model.ResourceSimpleQuery;
+import com.lambda.fusion.authority.authentication.model.ResourceQuery;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import java.util.List;
@@ -22,7 +22,7 @@ public interface AuthenticationMapper {
      * @param username 用户名
      * @return 用户详细信息
      */
-    AuthenticationUserDetail selectUserDetailByUsername(@Param("username") String username);
+    AuthUserDetail selectUserDetailByUsername(@Param("username") String username);
 
     /**
      * 根据手机号加载用户详细信息
@@ -30,7 +30,7 @@ public interface AuthenticationMapper {
      * @param mobile 手机号
      * @return 用户详细信息列表
      */
-    List<AuthenticationUserDetail> selectUserDetailsByMobile(@Param("mobile") String mobile);
+    List<AuthUserDetail> selectUserDetailsByMobile(@Param("mobile") String mobile);
 
     /**
      * 根据查询条件获取导航菜单
@@ -46,7 +46,7 @@ public interface AuthenticationMapper {
      * @param query 资源查询参数
      * @return 简单资源列表
      */
-    List<ResourceTree> selectResources(ResourceSimpleQuery query);
+    List<ResourceTree> selectResources(ResourceQuery query);
 
     /**
      * 根据角色ID获取用户列表

@@ -98,7 +98,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (hasSearchCondition(parameters)) {
             return getOrganizationsBySearchCondition(userPrincipal, parameters);
         } else {
-            return getSubordinateOrgIds(parameters);
+            return getSubOrganizationIds(parameters);
         }
     }
 
@@ -120,7 +120,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             Set<String> additionalOrgIds = collectAdditionalOrgIds(userPrincipal.getOrgId(), list);
             if (CollectionUtils.isNotEmpty(additionalOrgIds)) {
                 parameters.setIds(new ArrayList<>(additionalOrgIds));
-                list.addAll(organizationMapper.getAllMutableOrgan(parameters));
+                list.addAll(organizationMapper.getOrganizations(parameters));
             }
         }
 
@@ -182,17 +182,17 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<Organization> getSubordinateOrgIds(OrganizationQuery parameters) {
+    public List<Organization> getSubOrganizationIds(OrganizationQuery parameters) {
         LoginUser operator = OperatorUtils.getOperator();
-        List<String> orgIds = getSubordinateOrgIds(operator);
+        List<String> orgIds = getSubOrganizationIds(operator);
         if (CollectionUtils.isNotEmpty(orgIds)) {
             parameters.setIds(orgIds);
         }
-        return organizationMapper.getAllMutableOrgan(parameters);
+        return organizationMapper.getOrganizations(parameters);
     }
 
     public List<Organization> getOrgByCondition(LoginUser operator, OrganizationQuery parameters) {
-        List<String> orgIds = getSubordinateOrgIds(operator);
+        List<String> orgIds = getSubOrganizationIds(operator);
         if (CollectionUtils.isNotEmpty(orgIds)) {
             parameters.setIds(orgIds);
         }
@@ -201,12 +201,12 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<Organization> selectAll(OrganizationQuery parameters) {
-        return organizationMapper.getAllMutableOrgan(parameters);
+        return organizationMapper.getOrganizations(parameters);
     }
 
     @Override
     public List<OrganizationTree> getSimpleOrgTree(OrganizationQuery parameters) {
-        List<OrganizationTree> list = organizationMapper.getAllEnabledOrgan(parameters);
+        List<OrganizationTree> list = organizationMapper.getEnabledOrganization(parameters);
         return TreeBuilder.build(list);
     }
 
@@ -308,7 +308,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<OrganizationWithUser> getAllOrganMutableUsers(List<User> users) {
-        return organizationMapper.getAllOrganMutableUsers(users);
+        return organizationMapper.getOrganizationUsers(users);
     }
 
     @Override
@@ -384,8 +384,8 @@ public class OrganizationServiceImpl implements OrganizationService {
         } else {
             ordinaries.add(id);
         }
-        organizationMapper.prohibitOrganizationByIds(enabled, ids);
-        prohibitOrgUsersByTenantOrgan(enabled, tenants);
+        organizationMapper.updateEnabledOrganizationByIds(enabled, ids);
+        prohibitOrganizationUsersByTenant(enabled, tenants);
         prohibitOrgUsersByOrdinaryOrgan(enabled, ordinaries);
     }
 
@@ -410,7 +410,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (StringUtils.isNotBlank(keys)) {
             id = keys + JOINER + id;
         }
-        return organizationMapper.getSubOrgIdsById(id);
+        return organizationMapper.getSubOrganizationsById(id);
     }
 
     protected List<String> getSubOrgIdsByType(List<Organization> orgIds, Boolean isTenant) {
@@ -468,7 +468,7 @@ public class OrganizationServiceImpl implements OrganizationService {
      */
     protected void prohibitOrgUsersByOrdinaryOrgan(Integer enabled, List<String> ids) {
         if (CollectionUtils.isNotEmpty(ids)) {
-            organizationMapper.prohibitOrgUsersByOrdinaryOrgan(enabled, ids);
+            organizationMapper.updateEnabledOrganizationUsersByOrgIds(enabled, ids);
         }
     }
 
@@ -478,10 +478,10 @@ public class OrganizationServiceImpl implements OrganizationService {
      * @param enabled 禁用/启用
      * @param ids     组织id
      */
-    protected void prohibitOrgUsersByTenantOrgan(Integer enabled, List<String> ids) {
+    protected void prohibitOrganizationUsersByTenant(Integer enabled, List<String> ids) {
         if (CollectionUtils.isNotEmpty(ids)) {
-            organizationMapper.prohibitRoleByOrganizationByIds(enabled, ids);
-            organizationMapper.prohibitOrgUsersByTenantOrgan(enabled, ids);
+            organizationMapper.updateEnabledRoleByOrganizationByIds(enabled, ids);
+            organizationMapper.updateEnabledOrganizationUsersByTenantIds(enabled, ids);
         }
     }
 
@@ -520,7 +520,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<String> getSubordinateOrgIds(LoginUser operator) {
+    public List<String> getSubOrganizationIds(LoginUser operator) {
         List<String> orgIds = new ArrayList<>();
         //     TODO   if (!OperatorUtils.containsAnyManager(operator)) {
         String orgId = operator.getOrgId();
@@ -535,7 +535,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<String> getSubordinateOrgIds(@Nonnull String orgId) {
+    public List<String> getSubOrganizationIds(@Nonnull String orgId) {
         List<String> list = Lists.newArrayList(orgId);
         List<String> children = getChildrenById(orgId);
         if (CollectionUtils.isNotEmpty(children)) {
@@ -545,23 +545,23 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public void addOrganizationByimport(MultipartFile file) {
+    public void addOrganizationByImport(MultipartFile file) {
         // todo 导入
     }
 
     @Override
-    public Organization getRootOrganById(String id) {
+    public Organization getRootOrganizationById(String id) {
         Organization root = new Organization();
         List<String> parentKeys = getParentsById(id);
         if (CollectionUtils.isNotEmpty(parentKeys)) {
-            String rootKey = parentKeys.get(0);
+            String rootKey = parentKeys.getFirst();
             root = queryOrganizationById(rootKey);
         }
         return root;
     }
 
     @Override
-    public Map<String, Organization> getOrgIdsByIds(Set<String> ids) {
+    public Map<String, Organization> getOrganizationByIds(Set<String> ids) {
         if (CollectionUtils.isEmpty(ids)) {
             return Collections.emptyMap();
         }
@@ -601,7 +601,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Organization source = organizationMapper.queryOrganizationById(id);
         Organization target = organizationMapper.queryOrganizationById(tid);
         List<Organization> changed = TreeNodeUtils.getAllChangedAfterMoved(
-                source, target, mode, organizationMapper::directChildrenGetter, organizationMapper::allChildrenGetter);
-        organizationMapper.batchUpdateOrgsAfterMoved(changed);
+                source, target, mode, organizationMapper::findDirectChildren, organizationMapper::findDescendants);
+        organizationMapper.updateAffectedNodesAfterMove(changed);
     }
 }

@@ -4,7 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
-import com.lambda.fusion.authority.authentication.service.AuthenticationService;
+import com.lambda.fusion.authority.authentication.service.AuthService;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class NavigationController {
 
-    private final AuthenticationService authenticationService;
+    private final AuthService authService;
 
     /**
      * 获取当前登录用户的导航菜单列表
@@ -45,6 +45,6 @@ public class NavigationController {
             })
     public List<ResourceTree> getNavigation(@Parameter NavigationQuery query) {
         LoginUser operator = OperatorUtils.getOperator();
-        return authenticationService.getNavigation(operator, query);
+        return authService.getNavigation(operator, query);
     }
 }

@@ -60,7 +60,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param parameters
      * @return
      */
-    Page<User> selectUserPageByCondition(Page<User> page, @Param("parameters") UserSearchParams parameters);
+    Page<User> selectUserPage(Page<User> page, @Param("parameters") UserSearchParams parameters);
 
     /**
      * 根据关键字模糊查询用户列表

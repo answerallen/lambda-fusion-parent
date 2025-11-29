@@ -39,17 +39,17 @@ public class UserQueryOptimizer {
     /**
      * 构建查询参数
      *
-     * @param queryDTO 查询DTO
+     * @param userQuery 查询DTO
      * @return 查询参数Bean
      */
-    public UserSearchParams getUsersQueryParameters(UserQuery queryDTO) {
+    public UserSearchParams getUsersQueryParameters(UserQuery userQuery) {
         UserSearchParams params = new UserSearchParams();
         UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
         String tenantId = userPrincipal.getTenantId();
 
         // 处理 username (支持逗号分隔)
-        if (StringUtils.isNotBlank(queryDTO.getUsername())) {
-            String[] split = queryDTO.getUsername().split(Constants.DELIMITER);
+        if (StringUtils.isNotBlank(userQuery.getUsername())) {
+            String[] split = userQuery.getUsername().split(Constants.DELIMITER);
             params.setUsernames(Arrays.asList(split));
         }
 
@@ -57,38 +57,38 @@ public class UserQueryOptimizer {
         params.setAdmin(userPrincipal.isAdmin());
         params.setUid(userPrincipal.getName());
 
-        if (StringUtils.isNotBlank(queryDTO.getEmail())) {
-            params.setEmail(fuzzyQuery(queryDTO.getEmail()));
+        if (StringUtils.isNotBlank(userQuery.getEmail())) {
+            params.setEmail(fuzzyQuery(userQuery.getEmail()));
         }
-        if (StringUtils.isNotBlank(queryDTO.getNickname())) {
-            params.setNickname(fuzzyQuery(queryDTO.getNickname()));
+        if (StringUtils.isNotBlank(userQuery.getNickname())) {
+            params.setNickname(fuzzyQuery(userQuery.getNickname()));
         }
-        if (StringUtils.isNotBlank(queryDTO.getMobile())) {
-            params.setMobile(fuzzyQuery(queryDTO.getMobile()));
+        if (StringUtils.isNotBlank(userQuery.getMobile())) {
+            params.setMobile(fuzzyQuery(userQuery.getMobile()));
         }
         if (StringUtils.isNotBlank(userPrincipal.getTenantId())) {
             params.setTenantId(tenantId);
         }
-        if (StringUtils.isNotBlank(queryDTO.getAuthority())) {
-            params.setAuthority(queryDTO.getAuthority());
+        if (StringUtils.isNotBlank(userQuery.getAuthority())) {
+            params.setAuthority(userQuery.getAuthority());
         }
 
         // 处理 personal (JSON 字符串转 List<UserFieldsEntity>)
-        if (StringUtils.isNotBlank(queryDTO.getPersonal())) {
+        if (StringUtils.isNotBlank(userQuery.getPersonal())) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> tempMap = (Map<String, Object>) JSONUtil.parse(queryDTO.getPersonal());
+            Map<String, Object> tempMap = (Map<String, Object>) JSONUtil.parse(userQuery.getPersonal());
             List<UserFieldsEntity> fields = convertPersonBean(tempMap, null);
             params.setPersonal(fields);
         }
 
-        if (queryDTO.getIsOnline() != null) {
-            params.setIsOnline(queryDTO.getIsOnline());
+        if (userQuery.getIsOnline() != null) {
+            params.setIsOnline(userQuery.getIsOnline());
         }
 
         Set<String> orgIds = getOrganizationIds(
-                queryDTO.getOrganizationId(),
-                queryDTO.getSubordinate() != null ? queryDTO.getSubordinate() : true,
-                queryDTO.getDataRight() != null ? queryDTO.getDataRight() : true,
+                userQuery.getOrganizationId(),
+                userQuery.getSubordinate() != null ? userQuery.getSubordinate() : true,
+                userQuery.getDataRight() != null ? userQuery.getDataRight() : true,
                 userPrincipal);
         params.setOrgIds(orgIds);
 

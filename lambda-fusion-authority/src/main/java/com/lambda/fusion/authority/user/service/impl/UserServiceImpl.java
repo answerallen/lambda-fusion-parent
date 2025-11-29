@@ -175,7 +175,7 @@ public class UserServiceImpl implements UserService {
         String tenantId = parameters.getTenantId();
 
         // 执行分页查询
-        pagination = userMapper.selectUserPageByCondition(pagination, parameters);
+        pagination = userMapper.selectUserPage(pagination, parameters);
         List<User> users = pagination.getRecords();
 
         if (CollectionUtils.isNotEmpty(users)) {
@@ -658,7 +658,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserProfile> getAllSimpleUser(LoginUser operator, List<String> orgIds) {
+    public List<UserProfile> getUserProfiles(LoginUser operator, List<String> orgIds) {
         return userMapper.selectUserProfiles(operator.getTenantId(), orgIds);
     }
 
@@ -671,7 +671,7 @@ public class UserServiceImpl implements UserService {
             orgIds.add(orgid);
             orgIds.addAll(organizationService.getChildrenById(orgid));
         } else {
-            orgIds.addAll(admin ? Collections.emptyList() : organizationService.getSubordinateOrgIds(operator));
+            orgIds.addAll(admin ? Collections.emptyList() : organizationService.getSubOrganizationIds(operator));
         }
         return orgIds;
     }

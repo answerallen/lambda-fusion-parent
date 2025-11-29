@@ -124,7 +124,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
         tenants.add(tenantId);
         if (CollectionUtils.isNotEmpty(ids)) {
             // 禁用/启用组织
-            organizationMapper.prohibitOrganizationByIds(enabled, ids);
+            organizationMapper.updateEnabledOrganizationByIds(enabled, ids);
         }
         // 禁用/启用用户角色
         prohibitOrgUsersByTenantOrgan(enabled, tenants);
@@ -290,8 +290,8 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
      */
     protected void prohibitOrgUsersByTenantOrgan(Integer enabled, List<String> ids) {
         if (CollectionUtils.isNotEmpty(ids)) {
-            organizationMapper.prohibitRoleByOrganizationByIds(enabled, ids);
-            organizationMapper.prohibitOrgUsersByTenantOrgan(enabled, ids);
+            organizationMapper.updateEnabledRoleByOrganizationByIds(enabled, ids);
+            organizationMapper.updateEnabledOrganizationUsersByTenantIds(enabled, ids);
         }
     }
 
@@ -303,7 +303,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
      */
     protected void prohibitOrgUsersByOrdinaryOrgan(Integer enabled, List<String> ids) {
         if (CollectionUtils.isNotEmpty(ids)) {
-            organizationMapper.prohibitOrgUsersByOrdinaryOrgan(enabled, ids);
+            organizationMapper.updateEnabledOrganizationUsersByOrgIds(enabled, ids);
         }
     }
 

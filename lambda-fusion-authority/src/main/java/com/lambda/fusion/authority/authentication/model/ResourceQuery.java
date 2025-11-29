@@ -12,7 +12,7 @@ import lombok.Data;
 @Data
 @Schema(description = "简单资源查询参数")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class ResourceSimpleQuery {
+public class ResourceQuery {
 
     /**
      * 资源模式

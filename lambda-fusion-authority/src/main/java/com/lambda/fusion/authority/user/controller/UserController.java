@@ -1,6 +1,7 @@
 package com.lambda.fusion.authority.user.controller;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
@@ -70,21 +71,20 @@ public class UserController {
         if (size != null) {
             userQuery.setPageSize(size);
         }
-        UserSearchParams parameters = userQueryOptimizer.getUsersQueryParameters(userQuery);
-        return userService.getUsers(userQuery.getPage(), parameters);
+        return userService.getUsers(userQuery.getPage(), userQueryOptimizer.getUsersQueryParameters(userQuery));
     }
 
     @GetMapping(value = "/{username}/check")
     @Operation(summary = "检查用户名是否存在")
     public Boolean checkName(
             @Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
-        return userService.checkUserName(username.trim());
+        return userService.checkUserName(StrUtil.trim(username));
     }
 
     @GetMapping(value = "/{username}")
     @Operation(summary = "查询用户信息")
     public User get(@Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
-        return userService.getUserByUsername(username);
+        return userService.getUserByUsername(StrUtil.trim(username));
     }
 
     @GetMapping("/search")
@@ -98,8 +98,8 @@ public class UserController {
     public List<UserProfile> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
         LoginUser operator = OperatorUtils.getOperator();
         List<String> orgIds =
-                isAll != null && isAll ? Collections.emptyList() : organizationService.getSubordinateOrgIds(operator);
-        return userService.getAllSimpleUser(operator, orgIds);
+                isAll != null && isAll ? Collections.emptyList() : organizationService.getSubOrganizationIds(operator);
+        return userService.getUserProfiles(operator, orgIds);
     }
 
     @GetMapping("/my")

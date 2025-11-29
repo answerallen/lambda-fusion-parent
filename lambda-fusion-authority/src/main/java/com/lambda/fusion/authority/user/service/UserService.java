@@ -215,7 +215,7 @@ public interface UserService {
      * @param orgIds
      * @return
      */
-    List<UserProfile> getAllSimpleUser(LoginUser operator, List<String> orgIds);
+    List<UserProfile> getUserProfiles(LoginUser operator, List<String> orgIds);
 
     /**
      * 当前用户组织机构数据权限
