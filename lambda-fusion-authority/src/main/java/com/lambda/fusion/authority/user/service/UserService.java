@@ -224,7 +224,7 @@ public interface UserService {
      * @param operator operator
      * @return 返回组织机构集合
      */
-    Set<String> getSubOrgIds(String orgid, LoginUser operator);
+    Set<String> getSubOrganizationIds(String orgid, LoginUser operator);
 
     /**
      * 根据用户名称列表查询用户的扩展属性

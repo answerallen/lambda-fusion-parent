@@ -663,14 +663,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Set<String> getSubOrgIds(String orgId, LoginUser operator) {
+    public Set<String> getSubOrganizationIds(String orgId, LoginUser operator) {
         Set<String> orgIds = new HashSet<>();
 
         if (StringUtils.isNotBlank(orgId)) {
             orgIds.add(orgId);
             orgIds.addAll(organizationService.getChildrenById(orgId));
         } else {
-            orgIds.addAll(operator. ? Collections.emptyList() : organizationService.getSubOrganizationIds(operator));
+
+            orgIds.addAll(
+                    ((UserPrincipal) operator).isAdmin()
+                            ? Collections.emptyList()
+                            : organizationService.getSubOrganizationIds(operator));
         }
         return orgIds;
     }

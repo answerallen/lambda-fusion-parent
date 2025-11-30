@@ -108,7 +108,7 @@ public class UserQueryOptimizer {
                     orgIds.addAll(subOrgIds);
                 }
             } else {
-                orgIds.addAll(userService.getSubOrgIds(organizationId, userPrincipal));
+                orgIds.addAll(userService.getSubOrganizationIds(organizationId, userPrincipal));
             }
         } else {
             orgIds.add(organizationId);
