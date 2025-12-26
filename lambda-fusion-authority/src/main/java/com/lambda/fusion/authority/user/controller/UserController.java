@@ -8,7 +8,7 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
-import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
+import com.lambda.fusion.authority.tenant.manager.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.model.AuthenticatedUser;
 import com.lambda.fusion.authority.user.model.Permission;

@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.tenant.service;
+package com.lambda.fusion.authority.tenant.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -19,6 +19,8 @@ import com.lambda.fusion.authority.tenant.event.*;
 import com.lambda.fusion.authority.tenant.mapper.TenantMapper;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
 import com.lambda.fusion.authority.tenant.model.TenantOption;
+import com.lambda.fusion.authority.tenant.manager.TenantAuthorizeManager;
+import com.lambda.fusion.authority.tenant.service.TenantService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import java.util.*;

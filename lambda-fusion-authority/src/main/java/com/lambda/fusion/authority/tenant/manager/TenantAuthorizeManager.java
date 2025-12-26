@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.tenant.service;
+package com.lambda.fusion.authority.tenant.manager;
 
 import static com.lambda.fusion.core.Constants.*;
 
@@ -11,6 +11,7 @@ import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
+import com.lambda.fusion.authority.tenant.service.TenantService;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.ResetPassword;

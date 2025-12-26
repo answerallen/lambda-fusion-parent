@@ -31,7 +31,7 @@ import com.lambda.fusion.authority.role.model.RoleEntity;
 import com.lambda.fusion.authority.role.model.UpdateRole;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.RoleService;
-import com.lambda.fusion.authority.tenant.service.TenantAuthorizeManager;
+import com.lambda.fusion.authority.tenant.manager.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.user.model.UserRoleEntity;
 import com.lambda.fusion.core.Constants;
