@@ -1,0 +1,26 @@
+### 获取图形验证码
+GET http://127.0.0.1:20005/jcaptcha
+Content-Type: application/json
+
+### 获取短信验证码
+POST http://127.0.0.1:20005/sms-code
+Content-Type: application/json
+
+{
+  "mobile":"18888880000",
+  "__token": "36abbdb8-c6b4-43e4-84f3-347c1650167b",
+  "verifyCode": "49"
+}
+
+### 短信验证码登录
+POST http://127.0.0.1:20005/sms-login
+Content-Type: application/json
+
+{
+  "mobile": "18888880000",
+  "code": "5312",
+  "loginMode": "1",
+  "loginType": "admin"
+}
+
+
