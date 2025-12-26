@@ -15,6 +15,7 @@
     </properties>
 
     <modules>
+        <module>lambda-fusion-ai</module>
         <module>lambda-fusion-bom</module>
         <module>lambda-fusion-core</module>
         <module>lambda-fusion-config</module>
