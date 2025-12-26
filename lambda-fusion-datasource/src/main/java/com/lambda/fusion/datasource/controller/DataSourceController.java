@@ -1,7 +1,9 @@
 package com.lambda.fusion.datasource.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
+import com.lambda.fusion.datasource.model.QueryDataSource;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +22,12 @@ public class DataSourceController {
 
     public DataSourceController(DataSourceManageService dataSourceManageService) {
         this.dataSourceManageService = dataSourceManageService;
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "分页查询数据源", description = "分页查询数据源列表")
+    public Page<DataSourceEntity> page(@Valid QueryDataSource query) {
+        return dataSourceManageService.page(query);
     }
 
     @GetMapping("/list")

@@ -18,6 +18,7 @@ public class UpsertDataSource extends BaseDTO<DataSourceEntity> {
     @Schema(description = "数据源名称")
     private String datasourceName;
 
+    @NotBlank
     @Schema(description = "驱动类名")
     private String driverClassName;
 

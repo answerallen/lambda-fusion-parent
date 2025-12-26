@@ -1,15 +1,20 @@
 package com.lambda.fusion.datasource.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
+import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
+import com.lambda.fusion.datasource.model.QueryDataSource;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import java.util.List;
+
+import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, DataSourceEntity>
         implements DataSourceManageService {
 
-    private static final int ENABLED = 1;
-    private static final int DISABLED = 0;
 
     private final DynamicDataSourceService dynamicDataSourceService;
 
@@ -31,6 +34,12 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
     public List<DataSourceEntity> listAll() {
         return list(Wrappers.lambdaQuery(DataSourceEntity.class).orderByAsc(DataSourceEntity::getId));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
+    public Page<DataSourceEntity> page(QueryDataSource queryDTO) {
+        return page(queryDTO.getPage(), queryDTO.getLambdaQueryWrapper());
     }
 
     @Override
@@ -59,6 +68,9 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
 
         DataSourceEntity entity = input.toEntity();
         entity.setId(id);
+        if (entity.getPassword() == null || entity.getPassword().isEmpty()) {
+            entity.setPassword(existing.getPassword());
+        }
         Assert.isTrue(updateById(entity), "update failed");
         syncDynamicDataSource(entity);
     }
@@ -80,7 +92,8 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        return dynamicDataSourceService.test(toProperty(entity));
+        DataSourceProperty dataSourceProperty = DataSourcePropertyUtils.getDataSourceProperty(entity);
+        return dynamicDataSourceService.test(dataSourceProperty);
     }
 
     @Override
@@ -89,11 +102,11 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        if (Integer.valueOf(ENABLED).equals(entity.getEnabled())) {
+        if (Constants.ENABLED.equals(entity.getEnabled())) {
             syncDynamicDataSource(entity);
             return;
         }
-        entity.setEnabled(ENABLED);
+        entity.setEnabled(Constants.ENABLED);
         Assert.isTrue(updateById(entity), "update failed");
         syncDynamicDataSource(entity);
     }
@@ -104,7 +117,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        entity.setEnabled(DISABLED);
+        entity.setEnabled(Constants.DISABLED);
         Assert.isTrue(updateById(entity), "update failed");
         dynamicDataSourceService.removeDataSource(id);
     }
@@ -113,24 +126,17 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         if (entity == null) {
             return;
         }
-        if (!Integer.valueOf(ENABLED).equals(entity.getEnabled())) {
+        if (!Constants.ENABLED.equals(entity.getEnabled())) {
             dynamicDataSourceService.removeDataSource(entity.getId());
             return;
         }
-        DataSourceProperty property = toProperty(entity);
+        DataSourceProperty property = DataSourcePropertyUtils.getDataSourceProperty(entity);
         boolean updated = dynamicDataSourceService.updateDataSource(entity.getId(), property);
         if (!updated) {
-            dynamicDataSourceService.addDataSource(property);
+            boolean added = dynamicDataSourceService.addDataSource(property);
+            if (!added) {
+                throw new RuntimeException("Sync dynamic datasource failed for id: " + entity.getId());
+            }
         }
-    }
-
-    private DataSourceProperty toProperty(DataSourceEntity entity) {
-        DataSourceProperty property = new DataSourceProperty();
-        property.setId(entity.getId());
-        property.setUrl(entity.getJdbcUrl());
-        property.setUsername(entity.getUsername());
-        property.setPassword(entity.getPassword());
-        property.setDriverClassName(entity.getDriverClassName());
-        return property;
     }
 }
