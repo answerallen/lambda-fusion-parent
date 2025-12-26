@@ -3,6 +3,7 @@ package com.lambda.fusion.config.datasource;
 import static com.lambda.fusion.config.ConfigConstants.Database.*;
 
 import com.google.common.collect.Maps;
+import com.lambda.fusion.config.ConfigConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serial;
 import java.sql.Connection;
@@ -19,6 +20,7 @@ public class DatabaseBasedProperties extends Properties {
     private static final long serialVersionUID = 1L;
 
     private static final String SQL = SELECT_CONFIGS_SQL;
+    private static final String CHECK_CONFIGS_CHANGED_SQL = ConfigConstants.Database.CHECK_CONFIGS_CHANGED_SQL;
 
     @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
     public DatabaseBasedProperties(Connection connection, String application) throws SQLException {
@@ -39,15 +41,27 @@ public class DatabaseBasedProperties extends Properties {
                     } else {
                         privated.put(name, value);
                     }
-                    publiced.putAll(privated);
-                    publiced.forEach(this::setProperty);
                 }
+                publiced.putAll(privated);
+                publiced.forEach(this::setProperty);
             }
         }
     }
 
     public DatabaseBasedProperties() {
         super();
+    }
+
+    public static String getCheckSum(Connection connection, String application) throws SQLException {
+        try (PreparedStatement preparedStatement = connection.prepareStatement(CHECK_CONFIGS_CHANGED_SQL)) {
+            preparedStatement.setString(1, application);
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString(1);
+                }
+            }
+        }
+        return "";
     }
 
     public String[] getPropertyNames() {

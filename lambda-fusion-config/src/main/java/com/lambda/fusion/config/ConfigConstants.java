@@ -26,6 +26,14 @@ public final class ConfigConstants {
          */
         public static final String SELECT_CONFIGS_SQL =
                 "SELECT property_key, property_value, application FROM la_configs WHERE application = ? OR application = 'public'";
+
+        /**
+         * 检查配置变更的SQL语句（轻量级）
+         * 计算配置的校验和，避免全量查询
+         */
+        public static final String CHECK_CONFIGS_CHANGED_SQL =
+                "SELECT MD5(GROUP_CONCAT(CONCAT(property_key, property_value, application) ORDER BY property_key, application)) " +
+                        "FROM la_configs WHERE application = ? OR application = 'public'";
     }
 
     /**

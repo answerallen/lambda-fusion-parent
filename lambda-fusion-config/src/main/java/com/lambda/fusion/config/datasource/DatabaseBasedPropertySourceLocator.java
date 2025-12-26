@@ -163,22 +163,28 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
     }
 
     private boolean updatePropertySourceIfChanged(MutablePropertySources propertySources, boolean dataSourceChanged) {
+        // 使用轻量级检查
+        if (!dataSourceChanged && !isConfigChanged(dataSource)) {
+            return false;
+        }
+
         DataBaseBasedPropertySource propertySource = getPropertySource(dataSource);
         if (propertySource == null) {
             log.warn(FAILED_TO_CREATE_PROPERTY_SOURCE_FOR_CHANGE);
             return false;
         }
-
+        
+        // 这里的 hashcode 已经在 isConfigChanged 中更新了，或者在 getPropertySource 中重新计算
+        // 为了安全起见，这里再次计算全量 hashcode，但实际上 isConfigChanged 已经拦截了大部分无效查询
         int newHashcode = propertySource.getSource().toString().hashCode();
-        if (dataSourceChanged || hashcode != newHashcode) {
+        // if (dataSourceChanged || hashcode != newHashcode) { // hashcode 在 isConfigChanged 已更新
             BootstrapPropertySource<DatabaseBasedProperties> replaced = new BootstrapPropertySource<>(propertySource);
             propertySources.replace(replaced.getName(), replaced);
-            hashcode = newHashcode;
+            hashcode = newHashcode; // 确保同步
             log.debug(PROPERTY_SOURCE_UPDATED);
             return true;
-        }
-
-        return false;
+        // }
+        // return false;
     }
 
     public boolean isDataSourceChanged(DataSourceProperty property, @Nonnull HikariDataSource dataSource) {
@@ -188,6 +194,23 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
 
         return !(Objects.equals(property.getUrl(), dataSource.getJdbcUrl())
                 && Objects.equals(property.getUsername(), dataSource.getUsername()));
+    }
+
+    private boolean isConfigChanged(HikariDataSource dataSource) {
+        if (dataSource == null) {
+            return false;
+        }
+        try (Connection connection = dataSource.getConnection()) {
+            String checkSum = DatabaseBasedProperties.getCheckSum(connection, application);
+            int newHashcode = checkSum.hashCode();
+            if (hashcode != newHashcode) {
+                hashcode = newHashcode;
+                return true;
+            }
+        } catch (SQLException e) {
+            log.warn("Failed to check config changes", e);
+        }
+        return false;
     }
 
     public HikariConfig createHikariConfig(DataSourceProperty property) {
