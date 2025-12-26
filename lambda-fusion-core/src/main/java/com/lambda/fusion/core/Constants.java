@@ -15,6 +15,10 @@ import org.apache.commons.lang.StringUtils;
 public final class Constants {
 
     // ========== 系统基础常量 ==========
+    /** 启用 **/
+    public static final Integer ENABLED = 1;
+    /** 停用 **/
+    public static final Integer DISABLED = 0;
     /** 系统标识 */
     public static final String SYSTEM = "system";
     /** 租户ID字段名 */
