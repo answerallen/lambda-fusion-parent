@@ -13,10 +13,10 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @LambdaFusionApplication
-public class FusionAdminApplication implements ApplicationRunner {
+public class FusionApplication implements ApplicationRunner {
 
     public static void main(String[] args) {
-        SpringApplication.run(FusionAdminApplication.class, args);
+        SpringApplication.run(FusionApplication.class, args);
     }
 
     @Override

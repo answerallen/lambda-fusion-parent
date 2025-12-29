@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <title>SSE 连接测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        #log { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; }
+        .info { color: #007acc; }
+        .error { color: #d32f2f; }
+        .msg { color: #388e3c; }
+        button { margin-right: 10px; padding: 6px 12px; }
+        #sseUrl { margin-left: 6px; }
+    </style>
+</head>
+<body>
+
+<h2>SSE 连接测试页</h2>
+<div>
+    <label>SSE端点：
+        <input id="sseUrl" type="text" style="width:300px" value="http://localhost:20005/sse/subscribe/111">
+    </label>
+    <button id="btnConn">连接</button>
+    <button id="btnClose">断开</button>
+    <button id="btnClear">清空日志</button>
+</div>
+<p>状态：<span id="status" class="info">未连接</span></p>
+
+<h3>消息日志</h3>
+<pre id="log"></pre>
+
+<script>
+    const statusEl   = document.getElementById('status');
+    const logEl      = document.getElementById('log');
+    const btnConn    = document.getElementById('btnConn');
+    const btnClose   = document.getElementById('btnClose');
+    const btnClear   = document.getElementById('btnClear');
+    const urlInput   = document.getElementById('sseUrl');
+
+    let es = null;
+
+    function appendLog(cls, text) {
+        const line = `[${new Date().toLocaleTimeString()}] ${text}\n`;
+        logEl.insertAdjacentHTML('beforeend', `<span class="${cls}">${line}</span>`);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setStatus(text, cls) {
+        statusEl.textContent = text;
+        statusEl.className = cls;
+    }
+
+    btnConn.onclick = () => {
+        if (es && es.readyState !== EventSource.CLOSED) {
+            appendLog('info', '已连接，请勿重复连接');
+            return;
+        }
+        const url = urlInput.value.trim();
+        if (!url) { appendLog('error', '请先填写SSE地址'); return; }
+
+        appendLog('info', `正在连接 ${url} ...`);
+        es = new EventSource(url);
+
+        es.onopen = () => {
+            setStatus('已连接', 'info');
+            appendLog('info', '连接成功');
+        };
+
+        es.onmessage = (e) => {
+            appendLog('msg', `data: ${e.data}`);
+        };
+
+        es.onerror = (e) => {
+            setStatus('连接出错/断开', 'error');
+            appendLog('error', '连接出错或已关闭');
+            es.close();
+            es = null;
+        };
+    };
+
+    btnClose.onclick = () => {
+        if (es) {
+            es.close();
+            es = null;
+            setStatus('已断开', 'info');
+            appendLog('info', '手动断开连接');
+        }
+    };
+
+    btnClear.onclick = () => logEl.innerHTML = '';
+</script>
+</body>
+</html>
