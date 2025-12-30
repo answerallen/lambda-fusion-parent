@@ -7,27 +7,32 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.datasource.model.RemoteDataSource;
+import com.lambda.fusion.datasource.event.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
-import java.util.List;
-
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Objects;
 
 @Service
 public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, DataSourceEntity>
         implements DataSourceManageService {
 
-
     private final DynamicDataSourceService dynamicDataSourceService;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public DataSourceManageServiceImpl(DynamicDataSourceService dynamicDataSourceService) {
+    public DataSourceManageServiceImpl(DynamicDataSourceService dynamicDataSourceService, ApplicationEventPublisher eventPublisher) {
         this.dynamicDataSourceService = dynamicDataSourceService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -55,6 +60,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         DataSourceEntity entity = input.toEntity();
         Assert.isTrue(save(entity), "save failed");
         syncDynamicDataSource(entity);
+        publishChange(entity);
     }
 
     @Override
@@ -73,6 +79,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         }
         Assert.isTrue(updateById(entity), "update failed");
         syncDynamicDataSource(entity);
+        publishChange(entity);
     }
 
     @Override
@@ -82,6 +89,10 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         DataSourceEntity existing = getById(id);
         if (existing != null) {
             dynamicDataSourceService.removeDataSource(id);
+            // 构建用于删除的 DTO（只需要 ID）
+            RemoteDataSource dto = new RemoteDataSource();
+            dto.setId(id);
+            eventPublisher.publishEvent(DataSourceChangeEvent.remove(this, dto));
         }
         removeById(id);
     }
@@ -109,6 +120,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         entity.setEnabled(Constants.ENABLED);
         Assert.isTrue(updateById(entity), "update failed");
         syncDynamicDataSource(entity);
+        publishChange(entity);
     }
 
     @Override
@@ -120,6 +132,8 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         entity.setEnabled(Constants.DISABLED);
         Assert.isTrue(updateById(entity), "update failed");
         dynamicDataSourceService.removeDataSource(id);
+        // 如果已禁用，客户端不应使用它。
+        publishChange(entity);
     }
 
     private void syncDynamicDataSource(DataSourceEntity entity) {
@@ -138,5 +152,21 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
                 throw new RuntimeException("Sync dynamic datasource failed for id: " + entity.getId());
             }
         }
+    }
+
+    private void publishChange(DataSourceEntity entity) {
+        RemoteDataSource dto = new RemoteDataSource();
+        dto.setId(entity.getId());
+        dto.setDatasourceName(entity.getDatasourceName());
+        dto.setDriverClassName(entity.getDriverClassName());
+        dto.setJdbcUrl(entity.getJdbcUrl());
+        dto.setUsername(entity.getUsername());
+        dto.setPassword(entity.getPassword());
+        dto.setEnabled(entity.getEnabled());
+        dto.setTenantId(null); // 全局共享
+        // 由于没有 updateTime，使用哈希码作为版本号
+        dto.setVersion(Objects.hash(entity.getId(), entity.getJdbcUrl(), entity.getUsername(), entity.getPassword(), entity.getEnabled()));
+        
+        eventPublisher.publishEvent(DataSourceChangeEvent.update(this, dto));
     }
 }
