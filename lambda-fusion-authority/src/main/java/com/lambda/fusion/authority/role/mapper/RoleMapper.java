@@ -164,35 +164,35 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @return
      */
     List<RoleAuthority> getOrganizationAuthorization(
-            @Param("organizationid") String authority, @Param("pid") String pid);
+            @Param("organizationId") String authority, @Param("pid") String pid);
 
     /**
      * 判断是否已经授权
      *
      * @param authority
-     * @param resourceid
+     * @param resourceId
      * @return
      */
     boolean hasOrganizationAuthorized(
-            @Param("organizationid") String authority, @Param("resourceid") String resourceid);
+            @Param("organizationId") String authority, @Param("resourceId") String resourceId);
 
     /**
      * 保存组织资源授权
      *
      * @param authority
-     * @param resourceid
+     * @param resourceId
      */
     void saveOrganizationAuthorization(
-            @Param("organizationid") String authority, @Param("resourceid") String resourceid);
+            @Param("organizationId") String authority, @Param("resourceId") String resourceId);
 
     /**
      * 删除组织资源授权
      *
      * @param authority
-     * @param resourceid
+     * @param resourceId
      */
     void deleteOrganizationAuthorization(
-            @Param("organizationid") String authority, @Param("resourceid") String resourceid);
+            @Param("organizationId") String authority, @Param("resourceId") String resourceId);
 
     /**
      * 启用禁用角色

@@ -187,14 +187,14 @@ public class RoleController {
         roleService.saveAuthorization(authority, resourceId, status, userPrincipal);
     }
 
-    @DeleteMapping("/auth/{authority}/{resourceid}")
+    @DeleteMapping("/auth/{authority}/{resourceId}")
     @Operation(description = "删除指定角色的特定权限", summary = "删除指定角色的特定权限")
     public void deleteAuth(
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
-            @Parameter(description = "资源编号", required = true) @PathVariable String resourceid,
+            @Parameter(description = "资源编号", required = true) @PathVariable String resourceId,
             @Parameter(description = "授权模式.-0:角色,1:用户") Integer mode) {
         UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
-        roleService.deleteAuthorization(authority, resourceid, userPrincipal);
+        roleService.deleteAuthorization(authority, resourceId, userPrincipal);
     }
 
     @PatchMapping("/{authority}/disabled")

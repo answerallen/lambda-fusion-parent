@@ -1,8 +1,8 @@
-package com.lambda.fusion.authority.tenant.service;
+package com.lambda.fusion.datasource.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.authority.tenant.model.TenantDataSourceEntity;
-import com.lambda.fusion.authority.tenant.model.UpsertTenantDataSource;
+import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
+import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
 
 import java.util.List;
 

@@ -100,20 +100,20 @@ public interface RoleService {
     /**
      * 保存角色权限
      *  @param authority
-     * @param resourceid
+     * @param resourceId
      * @param status
      * @param userPrincipal
      */
-    void saveAuthorization(String authority, String resourceid, int status, UserPrincipal userPrincipal);
+    void saveAuthorization(String authority, String resourceId, int status, UserPrincipal userPrincipal);
 
     /**
      * 删除角色权限
      *
      * @param id
-     * @param resourceid
+     * @param resourceId
      * @param userPrincipal
      */
-    void deleteAuthorization(String id, String resourceid, UserPrincipal userPrincipal);
+    void deleteAuthorization(String id, String resourceId, UserPrincipal userPrincipal);
 
     /**
      * 查询该角色名是否被使用

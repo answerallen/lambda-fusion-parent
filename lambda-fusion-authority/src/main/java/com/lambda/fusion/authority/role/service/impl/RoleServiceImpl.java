@@ -242,9 +242,9 @@ public class RoleServiceImpl implements RoleService {
     @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void saveAuthorization(String authority, String resourceid, int status, UserPrincipal userPrincipal) {
+    public void saveAuthorization(String authority, String resourceId, int status, UserPrincipal userPrincipal) {
         Assert.notNull(authority, "role name 不能为空");
-        Assert.notNull(resourceid, "资源id不能为空！");
+        Assert.notNull(resourceId, "资源id不能为空！");
         if (!userPrincipal.isDev()) {
             StpUtil.checkPermission(authority);
         }
@@ -252,7 +252,7 @@ public class RoleServiceImpl implements RoleService {
         if (StringUtils.isBlank(tenantId)) {
             // todo tenantId = RoleUtil.getTenantId(authority);
         }
-        Resource resource = resourceService.getResourceById(resourceid);
+        Resource resource = resourceService.getResourceById(resourceId);
         if (null != resource) {
             List<Resource> resources = resourceService.getAllParentsByOperator(userPrincipal, resource);
             List<Resource> children = resourceService.getAllChildrenByOperator(userPrincipal, resource);
@@ -294,9 +294,9 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
-    public void deleteAuthorization(String authority, String resourceid, UserPrincipal userPrincipal) {
+    public void deleteAuthorization(String authority, String resourceId, UserPrincipal userPrincipal) {
         Assert.notNull(authority, "role name 不能为空");
-        Assert.notNull(resourceid, "资源id不能为空！");
+        Assert.notNull(resourceId, "资源id不能为空！");
         if (!userPrincipal.isDev()) {
             StpUtil.checkPermission(authority);
         }
@@ -304,7 +304,7 @@ public class RoleServiceImpl implements RoleService {
         if (StringUtils.isBlank(tenantId)) {
             // todo tenantId = RoleUtil.getTenantId(authority);
         }
-        Resource resource = resourceService.getResourceById(resourceid);
+        Resource resource = resourceService.getResourceById(resourceId);
         if (null != resource) {
             List<Resource> resources = resourceService.getAllChildrenByOperator(userPrincipal, resource);
             resources.add(resource);

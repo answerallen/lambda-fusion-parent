@@ -1,17 +1,17 @@
-package com.lambda.fusion.authority.tenant.controller;
+package com.lambda.fusion.datasource.controller;
 
 import com.lambda.cloud.logger.annotation.OperationLog;
-import com.lambda.fusion.authority.tenant.model.TenantDataSourceEntity;
-import com.lambda.fusion.authority.tenant.model.UpsertTenantDataSource;
-import com.lambda.fusion.authority.tenant.service.TenantDataSourceManageService;
+import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
+import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
+import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "数据源管理")
 @RestController

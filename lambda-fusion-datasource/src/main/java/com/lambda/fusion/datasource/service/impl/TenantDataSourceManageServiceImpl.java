@@ -1,12 +1,12 @@
-package com.lambda.fusion.authority.tenant.service.impl;
+package com.lambda.fusion.datasource.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.authority.tenant.mapper.TenantDataSourceMapper;
-import com.lambda.fusion.authority.tenant.model.TenantDataSourceEntity;
-import com.lambda.fusion.authority.tenant.model.UpsertTenantDataSource;
-import com.lambda.fusion.authority.tenant.service.TenantDataSourceManageService;
+import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
+import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
+import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
+import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
