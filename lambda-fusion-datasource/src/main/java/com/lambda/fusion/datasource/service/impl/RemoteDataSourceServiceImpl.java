@@ -97,10 +97,8 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         
         if (entity.getUpdateTime() != null) {
             dto.setVersion(entity.getUpdateTime().getTime());
-        } else if (entity.getCreateTime() != null) {
-            dto.setVersion(entity.getCreateTime().getTime());
         } else {
-            dto.setVersion(Objects.hash(entity.getId(), entity.getDbName(), entity.getConfiguration(), entity.getEnabled()));
+            dto.setVersion(entity.getCreateTime().getTime());
         }
 
         try {
@@ -115,7 +113,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 if (node.has("driverClassName")) dto.setDriverClassName(node.get("driverClassName").asText());
             }
         } catch (Exception e) {
-            log.error("Failed to parse configuration for tenant datasource {}", entity.getId(), e);
+            throw new RuntimeException("Failed to parse configuration for tenant datasource " + entity.getId(), e);
         }
 
         return dto;

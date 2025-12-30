@@ -7,6 +7,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 /**
  * 数据源变更事件监听器
  * 负责在事务提交后广播变更通知
@@ -19,17 +22,25 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class DataSourceEventListener {
 
     private final DataSourceCallbackManager callbackManager;
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleDataSourceChange(DataSourceChangeEvent event) {
-        log.info("Received data source change event. ID: {}, Type: {}",
-                event.getDataSource().getId(),
-                event.isRemove() ? "REMOVE" : "UPDATE");
+        executorService.submit(() -> {
+            try {
+                log.info("Received data source change event. ID: {}, Type: {}",
+                        event.getDataSource().getId(),
+                        event.isRemove() ? "REMOVE" : "UPDATE");
 
-        if (event.isRemove()) {
-            callbackManager.broadcastRemove(event.getDataSource().getId());
-        } else {
-            callbackManager.broadcastSync(event.getDataSource());
-        }
+                if (event.isRemove()) {
+                    // 使用重载方法支持租户过滤
+                    callbackManager.broadcastRemove(event.getDataSource());
+                } else {
+                    callbackManager.broadcastSync(event.getDataSource());
+                }
+            } catch (Exception e) {
+                log.error("Failed to handle data source change event", e);
+            }
+        });
     }
 }

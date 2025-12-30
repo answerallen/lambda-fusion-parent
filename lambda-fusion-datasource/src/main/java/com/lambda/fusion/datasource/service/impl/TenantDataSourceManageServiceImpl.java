@@ -5,6 +5,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.Assert;
+import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
+import com.lambda.cloud.datasource.property.DataSourceProperty;
+import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.event.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
@@ -19,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -26,10 +30,12 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         implements TenantDataSourceManageService {
 
     private final ApplicationEventPublisher eventPublisher;
+    private final DynamicDataSourceService dynamicDataSourceService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public TenantDataSourceManageServiceImpl(ApplicationEventPublisher eventPublisher) {
+    public TenantDataSourceManageServiceImpl(ApplicationEventPublisher eventPublisher, DynamicDataSourceService dynamicDataSourceService) {
         this.eventPublisher = eventPublisher;
+        this.dynamicDataSourceService = dynamicDataSourceService;
     }
 
     @Override
@@ -104,7 +110,6 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
             remoteDataSource.setVersion(System.currentTimeMillis());
         }
 
-        // 解析配置
         try {
             if (StringUtils.hasText(entity.getConfiguration())) {
                 JsonNode node = objectMapper.readTree(entity.getConfiguration());
@@ -116,7 +121,7 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
                 if (node.has("driverClassName")) remoteDataSource.setDriverClassName(node.get("driverClassName").asText());
             }
         } catch (Exception e) {
-            log.error("Failed to parse configuration for tenant datasource {}", entity.getId(), e);
+            throw new RuntimeException("Failed to parse configuration for tenant datasource " + entity.getId(), e);
         }
 
         return remoteDataSource;

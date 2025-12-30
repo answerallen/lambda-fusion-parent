@@ -2,6 +2,8 @@ package com.lambda.fusion.datasource.manager;
 
 import com.lambda.fusion.datasource.api.DataSourceChangeCallback;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -18,17 +20,25 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class DataSourceCallbackManager {
 
-    private final Map<String, DataSourceChangeCallback> subscribers = new ConcurrentHashMap<>();
+    @Data
+    @AllArgsConstructor
+    private static class SubscriberInfo {
+        private String tenantId;
+        private DataSourceChangeCallback callback;
+    }
+
+    private final Map<String, SubscriberInfo> subscribers = new ConcurrentHashMap<>();
 
     /**
      * 注册订阅
      *
      * @param clientId 客户端ID
+     * @param tenantId 租户ID
      * @param callback 回调接口
      */
-    public void addSubscriber(String clientId, DataSourceChangeCallback callback) {
-        subscribers.put(clientId, callback);
-        log.info("Client subscribed: {}", clientId);
+    public void addSubscriber(String clientId, String tenantId, DataSourceChangeCallback callback) {
+        subscribers.put(clientId, new SubscriberInfo(tenantId, callback));
+        log.info("Client subscribed: {} (Tenant: {})", clientId, tenantId);
     }
 
     /**
@@ -47,12 +57,13 @@ public class DataSourceCallbackManager {
      * @param dto 数据源DTO
      */
     public void broadcastSync(RemoteDataSource dto) {
-        subscribers.forEach((clientId, callback) -> {
-            try {
-                callback.syncToLocal(dto);
-            } catch (Exception e) {
-                log.warn("Failed to notify client {}: {}", clientId, e.getMessage());
-                // 可以在这里做一些容错处理，比如移除失效的客户端
+        subscribers.forEach((clientId, info) -> {
+            if (shouldNotify(info, dto)) {
+                try {
+                    info.getCallback().syncToLocal(dto);
+                } catch (Exception e) {
+                    log.warn("Failed to notify client {}: {}", clientId, e.getMessage());
+                }
             }
         });
     }
@@ -63,12 +74,40 @@ public class DataSourceCallbackManager {
      * @param dataSourceId 数据源ID
      */
     public void broadcastRemove(String dataSourceId) {
-        subscribers.forEach((clientId, callback) -> {
+        // 移除操作无法判断租户，只能全广播
+        // 本地移除通常只是移除内存中的池
+        
+        subscribers.forEach((clientId, info) -> {
             try {
-                callback.removeLocal(dataSourceId);
+                info.getCallback().removeLocal(dataSourceId);
             } catch (Exception e) {
                 log.warn("Failed to notify client {}: {}", clientId, e.getMessage());
             }
         });
+    }
+    
+    public void broadcastRemove(RemoteDataSource dto) {
+        subscribers.forEach((clientId, info) -> {
+            if (shouldNotify(info, dto)) {
+                try {
+                    info.getCallback().removeLocal(dto.getId());
+                } catch (Exception e) {
+                    log.warn("Failed to notify client {}: {}", clientId, e.getMessage());
+                }
+            }
+        });
+    }
+
+    private boolean shouldNotify(SubscriberInfo info, RemoteDataSource dto) {
+        // 全局数据源 -> 通知所有
+        if (dto.getTenantId() == null) {
+            return true;
+        }
+        // 订阅者是全局/管理员 -> 通知
+        if (info.getTenantId() == null || "default".equals(info.getTenantId())) {
+            return true;
+        }
+        // 租户匹配
+        return info.getTenantId().equals(dto.getTenantId());
     }
 }
