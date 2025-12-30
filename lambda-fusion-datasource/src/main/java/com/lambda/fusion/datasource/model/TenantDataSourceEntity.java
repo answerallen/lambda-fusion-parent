@@ -11,7 +11,7 @@ import java.util.Date;
 
 @Setter
 @Getter
-@TableName("la_dy_datasource")
+@TableName("la_tenant_datasource")
 @Schema(description = "动态数据源")
 public class TenantDataSourceEntity {
 
