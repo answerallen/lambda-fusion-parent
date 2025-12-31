@@ -87,7 +87,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         dto.setEnabled(entity.getEnabled());
         dto.setTenantId(null);
         // 使用哈希码作为版本号以保持一致性
-        dto.setVersion(LocalDateTime.now().getSecond());
+        dto.setVersion(Objects.hash(entity.getId(), entity.getJdbcUrl(), entity.getUsername(), entity.getPassword(), entity.getEnabled()));
         return dto;
     }
 
