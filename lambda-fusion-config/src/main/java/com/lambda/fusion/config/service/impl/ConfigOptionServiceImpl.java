@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 系统配置选项服务实现类
-*/
+ */
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class ConfigOptionServiceImpl extends ServiceImpl<ConfigOptionMapper, ConfigOptionEntity>

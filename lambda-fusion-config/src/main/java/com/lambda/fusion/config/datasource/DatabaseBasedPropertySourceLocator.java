@@ -173,16 +173,16 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             log.warn(FAILED_TO_CREATE_PROPERTY_SOURCE_FOR_CHANGE);
             return false;
         }
-        
+
         // 这里的 hashcode 已经在 isConfigChanged 中更新了，或者在 getPropertySource 中重新计算
         // 为了安全起见，这里再次计算全量 hashcode，但实际上 isConfigChanged 已经拦截了大部分无效查询
         int newHashcode = propertySource.getSource().toString().hashCode();
         // if (dataSourceChanged || hashcode != newHashcode) { // hashcode 在 isConfigChanged 已更新
-            BootstrapPropertySource<DatabaseBasedProperties> replaced = new BootstrapPropertySource<>(propertySource);
-            propertySources.replace(replaced.getName(), replaced);
-            hashcode = newHashcode; // 确保同步
-            log.debug(PROPERTY_SOURCE_UPDATED);
-            return true;
+        BootstrapPropertySource<DatabaseBasedProperties> replaced = new BootstrapPropertySource<>(propertySource);
+        propertySources.replace(replaced.getName(), replaced);
+        hashcode = newHashcode; // 确保同步
+        log.debug(PROPERTY_SOURCE_UPDATED);
+        return true;
         // }
         // return false;
     }

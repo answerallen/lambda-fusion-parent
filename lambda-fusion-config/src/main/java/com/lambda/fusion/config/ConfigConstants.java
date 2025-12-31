@@ -32,8 +32,8 @@ public final class ConfigConstants {
          * 计算配置的校验和，避免全量查询
          */
         public static final String CHECK_CONFIGS_CHANGED_SQL =
-                "SELECT MD5(GROUP_CONCAT(CONCAT(property_key, property_value, application) ORDER BY property_key, application)) " +
-                        "FROM la_configs WHERE application = ? OR application = 'public'";
+                "SELECT MD5(GROUP_CONCAT(CONCAT(property_key, property_value, application) ORDER BY property_key, application)) "
+                        + "FROM la_configs WHERE application = ? OR application = 'public'";
     }
 
     /**
