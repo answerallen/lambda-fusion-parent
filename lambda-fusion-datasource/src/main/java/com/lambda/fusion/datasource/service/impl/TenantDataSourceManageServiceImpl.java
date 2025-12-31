@@ -1,5 +1,7 @@
 package com.lambda.fusion.datasource.service.impl;
 
+import static com.lambda.fusion.datasource.service.impl.RemoteDataSourceServiceImpl.getRemoteDataSource;
+
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,13 +14,12 @@ import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
 import java.util.List;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import static com.lambda.fusion.datasource.service.impl.RemoteDataSourceServiceImpl.getRemoteDataSource;
 
 @Slf4j
 @Service
@@ -100,11 +101,13 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         remoteDataSource.setEnabled(entity.getEnabled());
         remoteDataSource.setTenantId(entity.getTenantId());
 
-        if (entity.getUpdateTime() != null) {
-            remoteDataSource.setVersion(entity.getUpdateTime().getTime());
-        } else {
-            remoteDataSource.setVersion(System.currentTimeMillis());
-        }
+        // 使用哈希码作为版本号以保持一致性
+        remoteDataSource.setVersion(Objects.hash(
+                entity.getId(),
+                entity.getDbName(),
+                entity.getConfiguration(),
+                entity.getEnabled(),
+                entity.getTenantId()));
 
         return getRemoteDataSource(entity, remoteDataSource, objectMapper);
     }

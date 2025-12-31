@@ -166,7 +166,13 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         dto.setTenantId(null); // 全局共享
         // 由于没有 updateTime，使用哈希码作为版本号
         dto.setVersion(Objects.hash(
-                entity.getId(), entity.getJdbcUrl(), entity.getUsername(), entity.getPassword(), entity.getEnabled()));
+                entity.getId(),
+                entity.getDatasourceName(),
+                entity.getDriverClassName(),
+                entity.getJdbcUrl(),
+                entity.getUsername(),
+                entity.getPassword(),
+                entity.getEnabled()));
 
         eventPublisher.publishEvent(DataSourceChangeEvent.update(this, dto));
     }
