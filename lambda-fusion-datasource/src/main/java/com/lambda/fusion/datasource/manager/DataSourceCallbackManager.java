@@ -2,6 +2,7 @@ package com.lambda.fusion.datasource.manager;
 
 import com.lambda.fusion.datasource.api.DataSourceChangeCallback;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
+import com.lambda.fusion.datasource.model.SubscriberInfo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -20,12 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class DataSourceCallbackManager {
 
-    @Data
-    @AllArgsConstructor
-    private static class SubscriberInfo {
-        private String tenantId;
-        private DataSourceChangeCallback callback;
-    }
+
 
     private final Map<String, SubscriberInfo> subscribers = new ConcurrentHashMap<>();
 
@@ -62,7 +58,7 @@ public class DataSourceCallbackManager {
                 try {
                     info.getCallback().syncToLocal(dto);
                 } catch (Exception e) {
-                    log.warn("Failed to notify client {}: {}", clientId, e.getMessage());
+                    log.warn("Sync Failed to notify client {}: {}", clientId, e.getMessage());
                 }
             }
         });
@@ -71,36 +67,23 @@ public class DataSourceCallbackManager {
     /**
      * 广播变更 - 移除本地
      *
-     * @param dataSourceId 数据源ID
+     * @param dto 数据源
      */
-    public void broadcastRemove(String dataSourceId) {
-        // 移除操作无法判断租户，只能全广播
-        // 本地移除通常只是移除内存中的池
-        
-        subscribers.forEach((clientId, info) -> {
-            try {
-                info.getCallback().removeLocal(dataSourceId);
-            } catch (Exception e) {
-                log.warn("Failed to notify client {}: {}", clientId, e.getMessage());
-            }
-        });
-    }
-    
     public void broadcastRemove(RemoteDataSource dto) {
         subscribers.forEach((clientId, info) -> {
             if (shouldNotify(info, dto)) {
                 try {
                     info.getCallback().removeLocal(dto.getId());
                 } catch (Exception e) {
-                    log.warn("Failed to notify client {}: {}", clientId, e.getMessage());
+                    log.warn("Remove Failed to notify client {}: {}", clientId, e.getMessage());
                 }
             }
         });
     }
 
-    private boolean shouldNotify(SubscriberInfo info, RemoteDataSource dto) {
+    private boolean shouldNotify(SubscriberInfo info, RemoteDataSource remoteDataSource) {
         // 全局数据源 -> 通知所有
-        if (dto.getTenantId() == null) {
+        if (remoteDataSource.getTenantId() == null) {
             return true;
         }
         // 订阅者是全局/管理员 -> 通知
@@ -108,6 +91,6 @@ public class DataSourceCallbackManager {
             return true;
         }
         // 租户匹配
-        return info.getTenantId().equals(dto.getTenantId());
+        return info.getTenantId().equals(remoteDataSource.getTenantId());
     }
 }

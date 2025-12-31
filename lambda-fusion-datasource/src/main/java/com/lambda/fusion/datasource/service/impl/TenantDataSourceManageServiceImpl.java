@@ -110,20 +110,6 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
             remoteDataSource.setVersion(System.currentTimeMillis());
         }
 
-        try {
-            if (StringUtils.hasText(entity.getConfiguration())) {
-                JsonNode node = objectMapper.readTree(entity.getConfiguration());
-                if (node.has("jdbcUrl")) remoteDataSource.setJdbcUrl(node.get("jdbcUrl").asText());
-                else if (node.has("url")) remoteDataSource.setJdbcUrl(node.get("url").asText());
-                
-                if (node.has("username")) remoteDataSource.setUsername(node.get("username").asText());
-                if (node.has("password")) remoteDataSource.setPassword(node.get("password").asText());
-                if (node.has("driverClassName")) remoteDataSource.setDriverClassName(node.get("driverClassName").asText());
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to parse configuration for tenant datasource " + entity.getId(), e);
-        }
-
-        return remoteDataSource;
+        return getRemoteDataSource(entity, remoteDataSource, objectMapper);
     }
 }
