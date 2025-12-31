@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
-import com.lambda.fusion.datasource.api.DataSourceChangeCallback;
+import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent.ChangeType;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
@@ -103,10 +103,12 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     public boolean add(RemoteDataSource dto) {
         try {
             if (StringUtils.hasText(dto.getTenantId())) {
+                checkPermission(dto.getTenantId());
                 UpsertTenantDataSource input = toUpsertTenant(dto);
                 tenantService.save(input);
                 broadcastEvent(ChangeType.ADD, dto.getId(), dto.getTenantId(), dto);
             } else {
+                checkPermission(null);
                 UpsertDataSource input = toUpsert(dto);
                 globalService.save(input);
                 broadcastEvent(ChangeType.ADD, dto.getId(), null, dto);
@@ -122,12 +124,14 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     public boolean update(String id, RemoteDataSource dto) {
         try {
             if (StringUtils.hasText(dto.getTenantId())) {
+                checkPermission(dto.getTenantId());
                 UpsertTenantDataSource input = toUpsertTenant(dto);
                 input.setId(id);
                 tenantService.update(id, input);
                 dto.setId(id);
                 broadcastEvent(ChangeType.UPDATE, id, dto.getTenantId(), dto);
             } else {
+                checkPermission(null);
                 UpsertDataSource input = toUpsert(dto);
                 input.setId(id);
                 globalService.update(id, input);
@@ -144,17 +148,17 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     @Override
     public boolean delete(String id) {
         try {
-            // Check global first
             DataSourceEntity global = globalService.get(id);
             if (global != null) {
+                checkPermission(null);
                 globalService.delete(id);
                 broadcastEvent(ChangeType.DELETE, id, null, toDTO(global));
                 return true;
             }
-            
-            // Check tenant
+
             TenantDataSourceEntity tenant = tenantService.get(id);
             if (tenant != null) {
+                checkPermission(tenant.getTenantId());
                 tenantService.delete(id);
                 broadcastEvent(ChangeType.DELETE, id, tenant.getTenantId(), toDTO(tenant));
                 return true;
@@ -176,6 +180,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         try {
             DataSourceEntity global = globalService.get(id);
             if (global != null) {
+                checkPermission(null);
                 globalService.enable(id);
                 global.setEnabled(1); 
                 broadcastEvent(ChangeType.ENABLE, id, null, toDTO(global));
@@ -183,6 +188,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
             }
              TenantDataSourceEntity tenant = tenantService.get(id);
              if (tenant != null) {
+                 checkPermission(tenant.getTenantId());
                  UpsertTenantDataSource input = new UpsertTenantDataSource();
                  input.setId(id);
                  input.setEnabled(1);
@@ -208,12 +214,14 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         try {
             DataSourceEntity global = globalService.get(id);
             if (global != null) {
+                checkPermission(null);
                 globalService.disable(id);
                 broadcastEvent(ChangeType.DISABLE, id, null, toDTO(global));
                 return true;
             }
              TenantDataSourceEntity tenant = tenantService.get(id);
              if (tenant != null) {
+                 checkPermission(tenant.getTenantId());
                  UpsertTenantDataSource input = new UpsertTenantDataSource();
                  input.setId(id);
                  input.setEnabled(0);
@@ -233,8 +241,26 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         }
     }
 
+    private void checkPermission(String targetTenantId) {
+        String currentTenantId = DubboContextHolder.getCurrentTenantId();
+        if (!StringUtils.hasText(currentTenantId) || "default".equals(currentTenantId)) {
+            // 管理员或无租户上下文，允许一切
+            return;
+        }
+        
+        if (targetTenantId == null) {
+            // 普通租户试图操作全局数据源
+            throw new SecurityException("Current tenant cannot operate on global datasource");
+        }
+        
+        if (!currentTenantId.equals(targetTenantId)) {
+            // 租户不匹配
+            throw new SecurityException("Current tenant cannot operate on other tenant's datasource");
+        }
+    }
+
     @Override
-    public void subscribe(String clientId, DataSourceChangeCallback callback) {
+    public void subscribe(String clientId, DataSourceChangeListener callback) {
         String currentTenantId = DubboContextHolder.getCurrentTenantId();
         callbackManager.addSubscriber(clientId, currentTenantId, callback);
     }

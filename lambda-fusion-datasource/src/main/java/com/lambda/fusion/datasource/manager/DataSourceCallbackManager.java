@@ -1,6 +1,6 @@
 package com.lambda.fusion.datasource.manager;
 
-import com.lambda.fusion.datasource.api.DataSourceChangeCallback;
+import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.model.SubscriberInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * 数据源变更回调管理器
@@ -28,15 +27,33 @@ public class DataSourceCallbackManager {
 
     /**
      * 异步通知线程池
+     * 使用有界队列防止OOM，使用CallerRunsPolicy进行背压
      */
-    private final ExecutorService notifyExecutor = Executors.newFixedThreadPool(
-        Runtime.getRuntime().availableProcessors(),
-        r -> {
-            Thread t = new Thread(r, "datasource-callback-notify");
-            t.setDaemon(true);
-            return t;
-        }
+    private final ExecutorService notifyExecutor = new java.util.concurrent.ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors(),
+            Runtime.getRuntime().availableProcessors() * 2,
+            60L, java.util.concurrent.TimeUnit.SECONDS,
+            new java.util.concurrent.LinkedBlockingQueue<>(1000),
+            r -> {
+                Thread t = new Thread(r, "datasource-callback-notify");
+                t.setDaemon(true);
+                return t;
+            },
+            new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy()
     );
+
+    @jakarta.annotation.PreDestroy
+    public void shutdown() {
+        notifyExecutor.shutdown();
+        try {
+            if (!notifyExecutor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                notifyExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            notifyExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
 
     /**
      * 注册订阅
@@ -45,7 +62,7 @@ public class DataSourceCallbackManager {
      * @param tenantId 租户ID
      * @param callback 回调接口
      */
-    public void addSubscriber(String clientId, String tenantId, DataSourceChangeCallback callback) {
+    public void addSubscriber(String clientId, String tenantId, DataSourceChangeListener callback) {
         subscribers.put(clientId, new SubscriberInfo(tenantId, callback));
         log.info("Client subscribed: {} (Tenant: {})", clientId, tenantId);
     }

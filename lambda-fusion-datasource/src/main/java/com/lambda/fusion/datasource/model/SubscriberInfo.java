@@ -1,6 +1,6 @@
 package com.lambda.fusion.datasource.model;
 
-import com.lambda.fusion.datasource.api.DataSourceChangeCallback;
+import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -8,5 +8,5 @@ import lombok.Data;
 @AllArgsConstructor
 public class SubscriberInfo {
     private String tenantId;
-    private DataSourceChangeCallback callback;
+    private DataSourceChangeListener callback;
 }

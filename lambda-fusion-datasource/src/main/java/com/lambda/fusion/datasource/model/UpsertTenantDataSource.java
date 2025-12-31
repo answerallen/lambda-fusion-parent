@@ -10,7 +10,6 @@ import lombok.Setter;
 
 @Setter
 @Getter
-// @AutoConverter(target = TenantDataSourceEntity.class)
 @Schema(description = "新增/更新动态数据源")
 public class UpsertTenantDataSource extends BaseDTO<TenantDataSourceEntity> {
 

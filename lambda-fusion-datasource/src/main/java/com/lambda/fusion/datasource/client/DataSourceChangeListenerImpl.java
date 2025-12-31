@@ -2,7 +2,7 @@ package com.lambda.fusion.datasource.client;
 
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.datasource.api.DataSourceChangeCallback;
+import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DataSourceChangeCallbackImpl implements DataSourceChangeCallback {
+public class DataSourceChangeListenerImpl implements DataSourceChangeListener {
 
     private final DynamicDataSourceService dynamicDataSourceService;
 
@@ -43,7 +43,8 @@ public class DataSourceChangeCallbackImpl implements DataSourceChangeCallback {
                     log.warn("Unknown change type: {}", event.getChangeType());
             }
         } catch (Exception e) {
-            log.error("Failed to handle datasource change event: {}", event, e);
+            log.error("Failed to handle datasource change event. Type: {}, ID: {}", 
+                    event.getChangeType(), event.getDataSourceId(), e);
         }
     }
 

@@ -65,7 +65,7 @@ public interface RemoteDataSourceService {
      * @param clientId 客户端唯一标识（建议使用 应用名+IP+端口）
      * @param callback 回调接口实现
      */
-    void subscribe(String clientId, DataSourceChangeCallback callback);
+    void subscribe(String clientId, DataSourceChangeListener callback);
 
     /**
      * 取消订阅数据源变更通知

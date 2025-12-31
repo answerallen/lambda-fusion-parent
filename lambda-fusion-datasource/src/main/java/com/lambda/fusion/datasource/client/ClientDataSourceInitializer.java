@@ -29,7 +29,7 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
     private RemoteDataSourceService remoteDataSourceService;
 
     private final DynamicDataSourceService dynamicDataSourceService;
-    private final DataSourceChangeCallbackImpl callback;
+    private final DataSourceChangeListenerImpl callback;
     
     @Override
     public void run(ApplicationArguments args) {
@@ -77,7 +77,7 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
         try {
             return InetAddress.getLocalHost().getHostAddress() + ":" + UUID.randomUUID().toString().substring(0, 8);
         } catch (Exception e) {
-            return "unknown:" + UUID.randomUUID().toString();
+            return "unknown:" + UUID.randomUUID();
         }
     }
 }

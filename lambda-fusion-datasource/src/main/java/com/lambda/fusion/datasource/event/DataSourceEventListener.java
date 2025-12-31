@@ -1,5 +1,6 @@
 package com.lambda.fusion.datasource.event;
 
+import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.manager.DataSourceCallbackManager;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.*;
@@ -40,7 +41,7 @@ public class DataSourceEventListener {
             new ThreadPoolExecutor.CallerRunsPolicy());
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleDataSourceChange(DataSourceChangeEvent event) {
+    public void handleDataSourceChange(LocalDataSourceChangeEvent event) {
         executorService.submit(() -> {
             try {
                 log.info(
@@ -48,12 +49,23 @@ public class DataSourceEventListener {
                         event.getDataSource().getId(),
                         event.isRemove() ? "REMOVE" : "UPDATE");
 
+                DataSourceChangeEvent apiEvent =
+                        new DataSourceChangeEvent();
+                
                 if (event.isRemove()) {
-                    // 使用重载方法支持租户过滤
-                    callbackManager.broadcastRemove(event.getDataSource());
+                    apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.DELETE);
                 } else {
-                    callbackManager.broadcastSync(event.getDataSource());
+                    // 默认为 UPDATE，如果是新增场景在 Service 层应复用此事件或区分
+                    // 此处为了兼容，假设非移除即为更新/新增，具体由 Client 端幂等处理
+                    apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.UPDATE);
                 }
+                
+                apiEvent.setDataSourceId(event.getDataSource().getId());
+                apiEvent.setTenantId(event.getDataSource().getTenantId());
+                apiEvent.setDataSource(event.getDataSource());
+                apiEvent.setTimestamp(System.currentTimeMillis());
+
+                callbackManager.broadcast(apiEvent);
             } catch (Exception e) {
                 log.error("Failed to handle data source change event", e);
             }

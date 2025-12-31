@@ -7,7 +7,7 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.datasource.event.DataSourceChangeEvent;
+import com.lambda.fusion.datasource.event.LocalDataSourceChangeEvent;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
@@ -89,10 +89,11 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         DataSourceEntity existing = getById(id);
         if (existing != null) {
             dynamicDataSourceService.removeDataSource(id);
-            // 构建用于删除的 DTO（只需要 ID）
+            // 构建用于删除的 DTO（包含 Name 以便客户端移除）
             RemoteDataSource dto = new RemoteDataSource();
             dto.setId(id);
-            eventPublisher.publishEvent(DataSourceChangeEvent.remove(this, dto));
+            dto.setDatasourceName(existing.getDatasourceName());
+            eventPublisher.publishEvent(LocalDataSourceChangeEvent.remove(this, dto));
         }
         removeById(id);
     }
@@ -174,6 +175,6 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
                 entity.getPassword(),
                 entity.getEnabled()));
 
-        eventPublisher.publishEvent(DataSourceChangeEvent.update(this, dto));
+        eventPublisher.publishEvent(LocalDataSourceChangeEvent.update(this, dto));
     }
 }

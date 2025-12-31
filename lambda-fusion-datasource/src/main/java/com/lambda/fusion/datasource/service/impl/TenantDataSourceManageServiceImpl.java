@@ -8,7 +8,7 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.datasource.event.DataSourceChangeEvent;
+import com.lambda.fusion.datasource.event.LocalDataSourceChangeEvent;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
@@ -85,14 +85,14 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
             RemoteDataSource remoteDataSource = new RemoteDataSource();
             remoteDataSource.setId(id);
             remoteDataSource.setTenantId(existing.getTenantId());
-            eventPublisher.publishEvent(DataSourceChangeEvent.remove(this, remoteDataSource));
+            eventPublisher.publishEvent(LocalDataSourceChangeEvent.remove(this, remoteDataSource));
         }
         removeById(id);
     }
 
     private void publishChange(TenantDataSourceEntity entity) {
         RemoteDataSource remoteDataSource = toDTO(entity);
-        eventPublisher.publishEvent(DataSourceChangeEvent.update(this, remoteDataSource));
+        eventPublisher.publishEvent(LocalDataSourceChangeEvent.update(this, remoteDataSource));
     }
 
     private void syncDynamicDataSource(TenantDataSourceEntity entity) {
@@ -127,6 +127,22 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         remoteDataSource.setDatasourceName(entity.getDbName());
         remoteDataSource.setEnabled(entity.getEnabled());
         remoteDataSource.setTenantId(entity.getTenantId());
+        remoteDataSource.setDbType(entity.getDbType());
+
+        // 解析配置信息
+        try {
+            if (entity.getConfiguration() != null && !entity.getConfiguration().isEmpty()) {
+                com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(entity.getConfiguration());
+                if (node.has("jdbcUrl")) remoteDataSource.setJdbcUrl(node.get("jdbcUrl").asText());
+                else if (node.has("url")) remoteDataSource.setJdbcUrl(node.get("url").asText());
+
+                if (node.has("username")) remoteDataSource.setUsername(node.get("username").asText());
+                if (node.has("password")) remoteDataSource.setPassword(node.get("password").asText());
+                if (node.has("driverClassName")) remoteDataSource.setDriverClassName(node.get("driverClassName").asText());
+            }
+        } catch (Exception e) {
+            log.error("Failed to parse tenant configuration for datasource: {}", entity.getDbName(), e);
+        }
 
         // 使用哈希码作为版本号以保持一致性
         remoteDataSource.setVersion(Objects.hash(
