@@ -14,5 +14,4 @@ public class DataSourcePropertyUtils {
         property.setDriverClassName(entity.getDriverClassName());
         return property;
     }
-
 }

@@ -4,10 +4,9 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.Date;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.Date;
 
 @Setter
 @Getter
@@ -58,5 +57,4 @@ public class TenantDataSourceEntity {
     @TableField("MAPPING_OF")
     @Schema(description = "映射数据源id")
     private String mappingOf;
-
 }

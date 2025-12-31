@@ -1,14 +1,14 @@
 package com.lambda.fusion.datasource.event;
 
 import com.lambda.fusion.datasource.manager.DataSourceCallbackManager;
+import jakarta.annotation.PreDestroy;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * 数据源变更事件监听器
@@ -22,13 +22,29 @@ import java.util.concurrent.Executors;
 public class DataSourceEventListener {
 
     private final DataSourceCallbackManager callbackManager;
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
+
+    private final ExecutorService executorService = new ThreadPoolExecutor(
+            2,
+            10,
+            60L,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(100),
+            new ThreadFactory() {
+                private final AtomicInteger count = new AtomicInteger(1);
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "ds-event-" + count.getAndIncrement());
+                }
+            },
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleDataSourceChange(DataSourceChangeEvent event) {
         executorService.submit(() -> {
             try {
-                log.info("Received data source change event. ID: {}, Type: {}",
+                log.info(
+                        "Received data source change event. ID: {}, Type: {}",
                         event.getDataSource().getId(),
                         event.isRemove() ? "REMOVE" : "UPDATE");
 
@@ -42,5 +58,18 @@ public class DataSourceEventListener {
                 log.error("Failed to handle data source change event", e);
             }
         });
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 }

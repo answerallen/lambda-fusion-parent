@@ -27,4 +27,3 @@ public interface DataSourceManageService extends IService<DataSourceEntity> {
 
     void disable(String id);
 }
-

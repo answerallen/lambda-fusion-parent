@@ -2,27 +2,23 @@ package com.lambda.fusion.datasource.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
-import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.event.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
+import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
-import java.util.List;
-import java.util.Objects;
+import static com.lambda.fusion.datasource.service.impl.RemoteDataSourceServiceImpl.getRemoteDataSource;
 
 @Slf4j
 @Service
@@ -33,7 +29,8 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
     private final DynamicDataSourceService dynamicDataSourceService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public TenantDataSourceManageServiceImpl(ApplicationEventPublisher eventPublisher, DynamicDataSourceService dynamicDataSourceService) {
+    public TenantDataSourceManageServiceImpl(
+            ApplicationEventPublisher eventPublisher, DynamicDataSourceService dynamicDataSourceService) {
         this.eventPublisher = eventPublisher;
         this.dynamicDataSourceService = dynamicDataSourceService;
     }
@@ -97,13 +94,12 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
     }
 
     private RemoteDataSource toDTO(TenantDataSourceEntity entity) {
-        RemoteDataSource remoteDataSource
-                = new RemoteDataSource();
+        RemoteDataSource remoteDataSource = new RemoteDataSource();
         remoteDataSource.setId(entity.getId());
         remoteDataSource.setDatasourceName(entity.getDbName());
         remoteDataSource.setEnabled(entity.getEnabled());
         remoteDataSource.setTenantId(entity.getTenantId());
-        
+
         if (entity.getUpdateTime() != null) {
             remoteDataSource.setVersion(entity.getUpdateTime().getTime());
         } else {

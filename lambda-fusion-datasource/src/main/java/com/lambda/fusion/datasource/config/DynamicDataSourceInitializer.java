@@ -7,9 +7,8 @@ import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
-import java.util.List;
-
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -37,9 +36,8 @@ public class DynamicDataSourceInitializer implements ApplicationRunner {
                     new Page<>(current, size),
                     Wrappers.lambdaQuery(DataSourceEntity.class)
                             .eq(DataSourceEntity::getEnabled, Constants.ENABLED)
-                            .orderByAsc(DataSourceEntity::getId)
-            );
-            
+                            .orderByAsc(DataSourceEntity::getId));
+
             List<DataSourceEntity> records = page.getRecords();
             if (records == null || records.isEmpty()) {
                 break;
@@ -50,7 +48,8 @@ public class DynamicDataSourceInitializer implements ApplicationRunner {
                     DataSourceProperty dataSourceProperty = DataSourcePropertyUtils.getDataSourceProperty(entity);
                     boolean added = dynamicDataSourceService.addDataSource(dataSourceProperty);
                     if (!added) {
-                        log.warn("Dynamic datasource init failed (addDataSource returned false). id={}", entity.getId());
+                        log.warn(
+                                "Dynamic datasource init failed (addDataSource returned false). id={}", entity.getId());
                         errorCount++;
                     } else {
                         successCount++;
@@ -68,5 +67,4 @@ public class DynamicDataSourceInitializer implements ApplicationRunner {
         }
         log.info("Dynamic datasource initialization finished. Success: {}, Error: {}", successCount, errorCount);
     }
-
 }

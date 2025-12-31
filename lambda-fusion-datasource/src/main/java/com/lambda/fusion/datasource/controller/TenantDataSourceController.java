@@ -8,10 +8,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name = "数据源管理")
 @RestController
@@ -20,7 +19,6 @@ import java.util.List;
 public class TenantDataSourceController {
 
     private final TenantDataSourceManageService tenantDataSourceManageService;
-
 
     @GetMapping("/list")
     @Operation(summary = "查询数据源列表", description = "查询数据源列表")

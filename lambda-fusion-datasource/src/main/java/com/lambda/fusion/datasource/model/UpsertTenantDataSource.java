@@ -4,14 +4,13 @@ import com.lambda.cloud.core.shared.BaseDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Date;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Date;
-
 @Setter
 @Getter
-//@AutoConverter(target = TenantDataSourceEntity.class)
+// @AutoConverter(target = TenantDataSourceEntity.class)
 @Schema(description = "新增/更新动态数据源")
 public class UpsertTenantDataSource extends BaseDTO<TenantDataSourceEntity> {
 
@@ -51,5 +50,4 @@ public class UpsertTenantDataSource extends BaseDTO<TenantDataSourceEntity> {
 
     @Schema(description = "映射数据源id")
     private String mappingOf;
-
 }

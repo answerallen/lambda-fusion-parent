@@ -43,5 +43,4 @@ public class DataSourceEntity {
     @TableField("enabled")
     @Schema(description = "是否启用 0禁用 1启用")
     private Integer enabled;
-
 }

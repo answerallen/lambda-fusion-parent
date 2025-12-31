@@ -3,7 +3,6 @@ package com.lambda.fusion.datasource.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
-
 import java.util.List;
 
 public interface TenantDataSourceManageService extends IService<TenantDataSourceEntity> {
@@ -18,4 +17,3 @@ public interface TenantDataSourceManageService extends IService<TenantDataSource
 
     void delete(String id);
 }
-

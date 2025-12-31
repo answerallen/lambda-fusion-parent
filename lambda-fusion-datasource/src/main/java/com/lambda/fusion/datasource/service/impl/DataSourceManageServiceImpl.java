@@ -7,21 +7,20 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.event.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
+import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
+import java.util.List;
+import java.util.Objects;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Objects;
 
 @Service
 public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, DataSourceEntity>
@@ -30,7 +29,8 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     private final DynamicDataSourceService dynamicDataSourceService;
     private final ApplicationEventPublisher eventPublisher;
 
-    public DataSourceManageServiceImpl(DynamicDataSourceService dynamicDataSourceService, ApplicationEventPublisher eventPublisher) {
+    public DataSourceManageServiceImpl(
+            DynamicDataSourceService dynamicDataSourceService, ApplicationEventPublisher eventPublisher) {
         this.dynamicDataSourceService = dynamicDataSourceService;
         this.eventPublisher = eventPublisher;
     }
@@ -165,8 +165,9 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         dto.setEnabled(entity.getEnabled());
         dto.setTenantId(null); // 全局共享
         // 由于没有 updateTime，使用哈希码作为版本号
-        dto.setVersion(Objects.hash(entity.getId(), entity.getJdbcUrl(), entity.getUsername(), entity.getPassword(), entity.getEnabled()));
-        
+        dto.setVersion(Objects.hash(
+                entity.getId(), entity.getJdbcUrl(), entity.getUsername(), entity.getPassword(), entity.getEnabled()));
+
         eventPublisher.publishEvent(DataSourceChangeEvent.update(this, dto));
     }
 }

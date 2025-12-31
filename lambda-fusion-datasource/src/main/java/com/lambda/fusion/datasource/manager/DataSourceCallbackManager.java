@@ -3,13 +3,10 @@ package com.lambda.fusion.datasource.manager;
 import com.lambda.fusion.datasource.api.DataSourceChangeCallback;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.SubscriberInfo;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * 数据源回调管理器
@@ -20,8 +17,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Component
 public class DataSourceCallbackManager {
-
-
 
     private final Map<String, SubscriberInfo> subscribers = new ConcurrentHashMap<>();
 
