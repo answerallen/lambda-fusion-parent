@@ -4,7 +4,7 @@ import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.api.callback.DataSourceChangeCallback;
 import com.lambda.fusion.datasource.api.callback.DataSourceChangeEvent;
-import com.lambda.fusion.datasource.api.dto.RemoteDataSourceDTO;
+import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +47,7 @@ public class DataSourceChangeCallbackImpl implements DataSourceChangeCallback {
         }
     }
 
-    private void handleAddOrUpdate(RemoteDataSourceDTO dto) {
+    private void handleAddOrUpdate(RemoteDataSource dto) {
         if (dto == null) {
             log.warn("Received ADD/UPDATE/ENABLE event with null DTO");
             return;
@@ -61,7 +61,7 @@ public class DataSourceChangeCallbackImpl implements DataSourceChangeCallback {
         }
     }
 
-    private void handleDeleteOrDisable(RemoteDataSourceDTO dto) {
+    private void handleDeleteOrDisable(RemoteDataSource dto) {
         if (dto != null) {
             log.info("Removing/Disabling datasource: {}", dto.getDatasourceName());
             try {

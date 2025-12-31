@@ -1,6 +1,8 @@
 package com.lambda.fusion.datasource.api.callback;
 
-import com.lambda.fusion.datasource.api.dto.RemoteDataSourceDTO;
+import com.lambda.fusion.datasource.model.RemoteDataSource;
+
+import java.io.Serial;
 import java.io.Serializable;
 import lombok.Data;
 
@@ -10,6 +12,7 @@ import lombok.Data;
 @Data
 public class DataSourceChangeEvent implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**
@@ -30,7 +33,7 @@ public class DataSourceChangeEvent implements Serializable {
     /**
      * 变更后的数据源信息（DELETE时为null）
      */
-    private RemoteDataSourceDTO dataSource;
+    private RemoteDataSource dataSource;
 
     /**
      * 变更时间戳

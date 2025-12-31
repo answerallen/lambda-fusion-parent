@@ -1,7 +1,7 @@
 package com.lambda.fusion.datasource.api;
 
 import com.lambda.fusion.datasource.api.callback.DataSourceChangeCallback;
-import com.lambda.fusion.datasource.api.dto.RemoteDataSourceDTO;
+import com.lambda.fusion.datasource.model.RemoteDataSource;
 import java.util.List;
 
 /**
@@ -15,27 +15,27 @@ public interface RemoteDataSourceService {
     /**
      * 查询所有数据源
      */
-    List<RemoteDataSourceDTO> listAll();
+    List<RemoteDataSource> listAll();
 
     /**
      * 查询所有启用的数据源
      */
-    List<RemoteDataSourceDTO> listEnabled();
+    List<RemoteDataSource> listEnabled();
 
     /**
      * 根据ID查询数据源
      */
-    RemoteDataSourceDTO get(String id);
+    RemoteDataSource get(String id);
 
     /**
      * 新增数据源
      */
-    boolean add(RemoteDataSourceDTO dto);
+    boolean add(RemoteDataSource dto);
 
     /**
      * 更新数据源
      */
-    boolean update(String id, RemoteDataSourceDTO dto);
+    boolean update(String id, RemoteDataSource dto);
 
     /**
      * 删除数据源

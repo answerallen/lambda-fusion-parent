@@ -3,14 +3,11 @@ package com.lambda.fusion.datasource.service.impl;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lambda.cloud.core.convert.BaseConverter;
-import com.lambda.cloud.core.convert.ConverterResolver;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.api.callback.DataSourceChangeCallback;
 import com.lambda.fusion.datasource.api.callback.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.api.callback.DataSourceChangeEvent.ChangeType;
-import com.lambda.fusion.datasource.api.dto.RemoteDataSourceDTO;
 import com.lambda.fusion.datasource.manager.DataSourceCallbackManager;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
@@ -19,9 +16,7 @@ import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,16 +37,16 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     private final ObjectMapper objectMapper;
 
     @Override
-    public List<RemoteDataSourceDTO> listAll() {
+    public List<RemoteDataSource> listAll() {
         // 1. 全局数据源
-        List<RemoteDataSourceDTO> globals = globalService.listAll().stream()
+        List<RemoteDataSource> globals = globalService.listAll().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
         
         // 2. 当前租户数据源 (如果有上下文)
         String currentTenantId = DubboContextHolder.getCurrentTenantId();
         if (StringUtils.hasText(currentTenantId) && !"default".equals(currentTenantId)) {
-             List<RemoteDataSourceDTO> tenants = tenantService
+             List<RemoteDataSource> tenants = tenantService
                     .list(Wrappers.<TenantDataSourceEntity>lambdaQuery()
                             .eq(TenantDataSourceEntity::getTenantId, currentTenantId))
                     .stream()
@@ -63,9 +58,9 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     @Override
-    public List<RemoteDataSourceDTO> listEnabled() {
+    public List<RemoteDataSource> listEnabled() {
          // 1. 全局已启用数据源
-        List<RemoteDataSourceDTO> globals = globalService.listAll().stream()
+        List<RemoteDataSource> globals = globalService.listAll().stream()
                 .filter(e -> e.getEnabled() != null && e.getEnabled() == 1)
                 .map(this::toDTO)
                 .collect(Collectors.toList());
@@ -73,7 +68,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         // 2. 当前租户已启用数据源
         String currentTenantId = DubboContextHolder.getCurrentTenantId();
         if (StringUtils.hasText(currentTenantId) && !"default".equals(currentTenantId)) {
-            List<RemoteDataSourceDTO> tenants = tenantService
+            List<RemoteDataSource> tenants = tenantService
                     .list(Wrappers.<TenantDataSourceEntity>lambdaQuery()
                             .eq(TenantDataSourceEntity::getTenantId, currentTenantId)
                             .eq(TenantDataSourceEntity::getEnabled, 1))
@@ -86,7 +81,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     @Override
-    public RemoteDataSourceDTO get(String id) {
+    public RemoteDataSource get(String id) {
         // 先查全局
         DataSourceEntity global = globalService.get(id);
         if (global != null) {
@@ -105,7 +100,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     @Override
-    public boolean add(RemoteDataSourceDTO dto) {
+    public boolean add(RemoteDataSource dto) {
         try {
             if (StringUtils.hasText(dto.getTenantId())) {
                 UpsertTenantDataSource input = toUpsertTenant(dto);
@@ -124,19 +119,17 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     @Override
-    public boolean update(String id, RemoteDataSourceDTO dto) {
+    public boolean update(String id, RemoteDataSource dto) {
         try {
-            // Determine if global or tenant based on DTO or lookup
-            // Assuming tenantId in DTO is authoritative for update
             if (StringUtils.hasText(dto.getTenantId())) {
                 UpsertTenantDataSource input = toUpsertTenant(dto);
-                input.setId(id); // Ensure ID is set for update
+                input.setId(id);
                 tenantService.update(id, input);
                 dto.setId(id);
                 broadcastEvent(ChangeType.UPDATE, id, dto.getTenantId(), dto);
             } else {
                 UpsertDataSource input = toUpsert(dto);
-                input.setId(id); // Ensure ID is set for update
+                input.setId(id);
                 globalService.update(id, input);
                 dto.setId(id);
                 broadcastEvent(ChangeType.UPDATE, id, null, dto);
@@ -175,7 +168,6 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
 
     @Override
     public boolean test(String id) {
-        // Global only for now as Tenant service doesn't have test
         return globalService.test(id);
     }
 
@@ -185,12 +177,10 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
             DataSourceEntity global = globalService.get(id);
             if (global != null) {
                 globalService.enable(id);
-                global.setEnabled(1); // Update object for broadcast
+                global.setEnabled(1); 
                 broadcastEvent(ChangeType.ENABLE, id, null, toDTO(global));
                 return true;
             }
-            // Tenant enable/disable not explicitly in service interface, assuming update is needed or ignoring
-            // If needed, we would fetch, set enabled, and update.
              TenantDataSourceEntity tenant = tenantService.get(id);
              if (tenant != null) {
                  UpsertTenantDataSource input = new UpsertTenantDataSource();
@@ -255,7 +245,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     private void broadcastEvent(ChangeType type, String dataSourceId,
-                                String tenantId, RemoteDataSourceDTO dto) {
+                                String tenantId, RemoteDataSource dto) {
         DataSourceChangeEvent event = new DataSourceChangeEvent();
         event.setChangeType(type);
         event.setDataSourceId(dataSourceId);
@@ -266,8 +256,8 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         callbackManager.broadcast(event);
     }
 
-    private RemoteDataSourceDTO toDTO(DataSourceEntity entity) {
-        RemoteDataSourceDTO dto = new RemoteDataSourceDTO();
+    private RemoteDataSource toDTO(DataSourceEntity entity) {
+        RemoteDataSource dto = new RemoteDataSource();
         dto.setId(entity.getId());
         dto.setDatasourceName(entity.getDatasourceName());
         dto.setDriverClassName(entity.getDriverClassName());
@@ -275,17 +265,18 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         dto.setUsername(entity.getUsername());
         dto.setPassword(entity.getPassword());
         dto.setEnabled(entity.getEnabled());
+        dto.setVersion(System.currentTimeMillis()); // Set version
         return dto;
     }
     
-    private RemoteDataSourceDTO toDTO(TenantDataSourceEntity entity) {
-        // Reuse logic from previous implementation but adapted for DTO
-         RemoteDataSourceDTO dto = new RemoteDataSourceDTO();
+    private RemoteDataSource toDTO(TenantDataSourceEntity entity) {
+         RemoteDataSource dto = new RemoteDataSource();
          dto.setId(entity.getId());
          dto.setDatasourceName(entity.getDbName());
          dto.setEnabled(entity.getEnabled());
          dto.setTenantId(entity.getTenantId());
          dto.setDbType(entity.getDbType());
+         dto.setVersion(System.currentTimeMillis()); // Set version
          
          try {
             if (StringUtils.hasText(entity.getConfiguration())) {
@@ -303,9 +294,9 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         return dto;
     }
 
-    private UpsertDataSource toUpsert(RemoteDataSourceDTO dto) {
+    private UpsertDataSource toUpsert(RemoteDataSource dto) {
         UpsertDataSource input = new UpsertDataSource();
-        input.setId(dto.getId()); // Set ID
+        input.setId(dto.getId());
         input.setDatasourceName(dto.getDatasourceName());
         input.setDriverClassName(dto.getDriverClassName());
         input.setJdbcUrl(dto.getJdbcUrl());
@@ -315,25 +306,20 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         return input;
     }
     
-    private UpsertTenantDataSource toUpsertTenant(RemoteDataSourceDTO dto) {
+    private UpsertTenantDataSource toUpsertTenant(RemoteDataSource dto) {
         UpsertTenantDataSource input = new UpsertTenantDataSource();
-        input.setId(dto.getId()); // Set ID
+        input.setId(dto.getId());
         input.setDbName(dto.getDatasourceName());
         input.setTenantId(dto.getTenantId());
         input.setEnabled(dto.getEnabled());
         
-        // Handle dbType
         if (StringUtils.hasText(dto.getDbType())) {
             input.setDbType(dto.getDbType());
         } else {
-            // Try to infer or set default
-            input.setDbType("mysql"); // Default to mysql if unknown, or handle appropriately
+            input.setDbType("mysql");
         }
         
-        // Configuration needs to be built from fields
-        // Simple JSON construction
         try {
-            // Creating a simple object to serialize
             var config = new Object() {
                 public String jdbcUrl = dto.getJdbcUrl();
                 public String username = dto.getUsername();

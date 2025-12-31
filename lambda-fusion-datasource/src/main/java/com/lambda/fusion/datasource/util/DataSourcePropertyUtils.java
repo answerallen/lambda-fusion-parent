@@ -1,14 +1,15 @@
 package com.lambda.fusion.datasource.util;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.datasource.api.dto.RemoteDataSourceDTO;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
+import com.lambda.fusion.datasource.model.RemoteDataSource;
 
 public class DataSourcePropertyUtils {
 
     public static DataSourceProperty getDataSourceProperty(DataSourceEntity entity) {
         DataSourceProperty property = new DataSourceProperty();
-        property.setId(entity.getId()); // ID for internal reference
+        property.setPoolName(entity.getDatasourceName());
+        property.setId(entity.getId());
         property.setUrl(entity.getJdbcUrl());
         property.setUsername(entity.getUsername());
         property.setPassword(entity.getPassword());
@@ -16,8 +17,9 @@ public class DataSourcePropertyUtils {
         return property;
     }
 
-    public static DataSourceProperty getDataSourceProperty(RemoteDataSourceDTO dto) {
+    public static DataSourceProperty getDataSourceProperty(RemoteDataSource dto) {
         DataSourceProperty property = new DataSourceProperty();
+        property.setPoolName(dto.getDatasourceName());
         property.setId(dto.getId());
         property.setUrl(dto.getJdbcUrl());
         property.setUsername(dto.getUsername());

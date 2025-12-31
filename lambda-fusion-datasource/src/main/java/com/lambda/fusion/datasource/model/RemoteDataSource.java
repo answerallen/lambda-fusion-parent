@@ -22,5 +22,6 @@ public class RemoteDataSource implements Serializable {
     private String password;
     private Integer enabled;
     private String tenantId; // 标识归属租户，null表示全局共享
+    private String dbType;   // 数据库类型
     private long version; // 数据版本号(时间戳)，用于同步校验
 }

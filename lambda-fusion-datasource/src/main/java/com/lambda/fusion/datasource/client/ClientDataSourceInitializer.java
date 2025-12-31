@@ -3,7 +3,7 @@ package com.lambda.fusion.datasource.client;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
-import com.lambda.fusion.datasource.api.dto.RemoteDataSourceDTO;
+import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import java.net.InetAddress;
 import java.util.List;
@@ -37,10 +37,10 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
         
         try {
             // 1. 获取初始列表
-            List<RemoteDataSourceDTO> dataSources = remoteDataSourceService.listEnabled();
+            List<RemoteDataSource> dataSources = remoteDataSourceService.listEnabled();
             if (dataSources != null) {
                 log.info("Fetched {} remote datasources.", dataSources.size());
-                for (RemoteDataSourceDTO dto : dataSources) {
+                for (RemoteDataSource dto : dataSources) {
                     try {
                         DataSourceProperty property = DataSourcePropertyUtils.getDataSourceProperty(dto);
                         dynamicDataSourceService.addDataSource(property);
