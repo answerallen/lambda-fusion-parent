@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
+import com.lambda.cloud.datasource.property.DataSourceProperty;
+import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.datasource.event.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
@@ -54,6 +56,7 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         Assert.notNull(input, "input is null");
         TenantDataSourceEntity entity = input.toEntity();
         Assert.isTrue(save(entity), "save failed");
+        syncDynamicDataSource(entity);
         publishChange(entity);
     }
 
@@ -68,6 +71,7 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         TenantDataSourceEntity entity = input.toEntity();
         entity.setId(id);
         Assert.isTrue(updateById(entity), "update failed");
+        syncDynamicDataSource(entity);
         publishChange(entity);
     }
 
@@ -77,6 +81,7 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         Assert.hasText(id, "id is blank");
         TenantDataSourceEntity existing = getById(id);
         if (existing != null) {
+            dynamicDataSourceService.removeDataSource(id);
             RemoteDataSource dto = new RemoteDataSource();
             dto.setId(id);
             dto.setTenantId(existing.getTenantId());
@@ -86,11 +91,33 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
     }
 
     private void publishChange(TenantDataSourceEntity entity) {
-        try {
-            RemoteDataSource dto = toDTO(entity);
-            eventPublisher.publishEvent(DataSourceChangeEvent.update(this, dto));
-        } catch (Exception e) {
-            log.error("Failed to publish change event for tenant datasource {}", entity.getId(), e);
+        RemoteDataSource dto = toDTO(entity);
+        eventPublisher.publishEvent(DataSourceChangeEvent.update(this, dto));
+    }
+
+    private void syncDynamicDataSource(TenantDataSourceEntity entity) {
+        if (entity == null) {
+            return;
+        }
+        if (!Constants.ENABLED.equals(entity.getEnabled())) {
+            dynamicDataSourceService.removeDataSource(entity.getId());
+            return;
+        }
+
+        RemoteDataSource dto = toDTO(entity);
+        DataSourceProperty property = new DataSourceProperty();
+        property.setId(dto.getId());
+        property.setUrl(dto.getJdbcUrl());
+        property.setUsername(dto.getUsername());
+        property.setPassword(dto.getPassword());
+        property.setDriverClassName(dto.getDriverClassName());
+
+        boolean updated = dynamicDataSourceService.updateDataSource(entity.getId(), property);
+        if (!updated) {
+            boolean added = dynamicDataSourceService.addDataSource(property);
+            if (!added) {
+                throw new RuntimeException("Sync dynamic datasource failed for id: " + entity.getId());
+            }
         }
     }
 
