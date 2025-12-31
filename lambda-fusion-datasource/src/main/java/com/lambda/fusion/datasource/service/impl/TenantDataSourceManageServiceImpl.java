@@ -1,6 +1,5 @@
 package com.lambda.fusion.datasource.service.impl;
 
-import static com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl.getRemoteDataSource;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -15,13 +14,14 @@ import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
-import java.util.List;
-import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -136,6 +136,6 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
                 entity.getEnabled(),
                 entity.getTenantId()));
 
-        return getRemoteDataSource(entity, remoteDataSource, objectMapper);
+        return remoteDataSource;
     }
 }
