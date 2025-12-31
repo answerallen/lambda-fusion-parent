@@ -1,24 +1,42 @@
 package com.lambda.fusion.datasource.manager;
 
-import com.lambda.fusion.datasource.api.DataSourceChangeCallback;
-import com.lambda.fusion.datasource.model.RemoteDataSource;
+import com.lambda.fusion.datasource.api.callback.DataSourceChangeCallback;
+import com.lambda.fusion.datasource.api.callback.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.model.SubscriberInfo;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 /**
- * 数据源回调管理器
- * 管理客户端订阅并广播变更
- *
- * @author Jin
+ * 数据源变更回调管理器
+ * <p>
+ * 管理所有订阅的Client回调，在数据源变更时广播通知。
+ * </p>
  */
 @Slf4j
 @Component
 public class DataSourceCallbackManager {
 
+    /**
+     * 已注册的回调映射 (clientId -> SubscriberInfo)
+     */
     private final Map<String, SubscriberInfo> subscribers = new ConcurrentHashMap<>();
+
+    /**
+     * 异步通知线程池
+     */
+    private final ExecutorService notifyExecutor = Executors.newFixedThreadPool(
+        Runtime.getRuntime().availableProcessors(),
+        r -> {
+            Thread t = new Thread(r, "datasource-callback-notify");
+            t.setDaemon(true);
+            return t;
+        }
+    );
 
     /**
      * 注册订阅
@@ -43,49 +61,48 @@ public class DataSourceCallbackManager {
     }
 
     /**
-     * 广播变更 - 同步到本地
-     *
-     * @param dto 数据源DTO
+     * 广播变更事件到所有订阅者
      */
-    public void broadcastSync(RemoteDataSource dto) {
+    public void broadcast(DataSourceChangeEvent event) {
+        if (subscribers.isEmpty()) {
+            log.debug("No subscribers to notify for event: {}", event.getChangeType());
+            return;
+        }
+
+        log.info("Broadcasting datasource change event: type={}, dataSourceId={}, subscribers={}",
+            event.getChangeType(), event.getDataSourceId(), subscribers.size());
+
         subscribers.forEach((clientId, info) -> {
-            if (shouldNotify(info, dto)) {
-                try {
-                    info.getCallback().syncToLocal(dto);
-                } catch (Exception e) {
-                    log.warn("Sync Failed to notify client {}: {}", clientId, e.getMessage());
-                }
+            if (shouldNotify(info, event)) {
+                notifyExecutor.submit(() -> {
+                    try {
+                        info.getCallback().onDataSourceChanged(event);
+                        log.debug("Notified client: {}", clientId);
+                    } catch (Exception e) {
+                        log.warn("Failed to notify client: {}, error: {}", clientId, e.getMessage());
+                        // 通知失败时移除该客户端（可选策略，暂不移除以防网络抖动）
+                    }
+                });
             }
         });
     }
 
-    /**
-     * 广播变更 - 移除本地
-     *
-     * @param dto 数据源
-     */
-    public void broadcastRemove(RemoteDataSource dto) {
-        subscribers.forEach((clientId, info) -> {
-            if (shouldNotify(info, dto)) {
-                try {
-                    info.getCallback().removeLocal(dto.getId());
-                } catch (Exception e) {
-                    log.warn("Remove Failed to notify client {}: {}", clientId, e.getMessage());
-                }
-            }
-        });
-    }
-
-    private boolean shouldNotify(SubscriberInfo info, RemoteDataSource remoteDataSource) {
-        // 全局数据源 -> 通知所有
-        if (remoteDataSource.getTenantId() == null) {
+    private boolean shouldNotify(SubscriberInfo info, DataSourceChangeEvent event) {
+        // 事件中的租户ID
+        String eventTenantId = event.getTenantId();
+        
+        // 1. 如果事件是全局数据源变更 (tenantId == null)，通知所有有权限的订阅者
+        if (eventTenantId == null) {
+            // 这里假设所有租户都能看到全局数据源，或者根据具体业务规则判断
             return true;
         }
-        // 订阅者是全局/管理员 -> 通知
+
+        // 2. 如果订阅者是全局/管理员 (info.tenantId == null or "default")，通知
         if (info.getTenantId() == null || "default".equals(info.getTenantId())) {
             return true;
         }
-        // 租户匹配
-        return info.getTenantId().equals(remoteDataSource.getTenantId());
+
+        // 3. 租户匹配
+        return info.getTenantId().equals(eventTenantId);
     }
 }

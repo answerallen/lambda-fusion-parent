@@ -1,4 +1,4 @@
-package com.lambda.fusion.datasource.config;
+package com.lambda.fusion.datasource.server;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -13,19 +13,24 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+/**
+ * 服务端模式初始化器 - 从本地数据库加载数据源
+ */
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "lambda.fusion.datasource.mode", havingValue = "server", matchIfMissing = true)
 @RequiredArgsConstructor
-public class DynamicDataSourceInitializer implements ApplicationRunner {
+public class ServerDataSourceInitializer implements ApplicationRunner {
 
     private final DataSourceMapper dataSourceMapper;
     private final DynamicDataSourceService dynamicDataSourceService;
 
     @Override
     public void run(ApplicationArguments args) {
-        log.info("Starting dynamic datasource initialization...");
+        log.info("Starting dynamic datasource initialization (Server Mode)...");
         long current = 1;
         long size = 50;
         long successCount = 0;
