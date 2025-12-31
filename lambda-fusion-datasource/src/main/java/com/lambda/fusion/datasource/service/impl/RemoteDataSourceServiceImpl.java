@@ -3,6 +3,8 @@ package com.lambda.fusion.datasource.service.impl;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lambda.cloud.core.convert.BaseConverter;
+import com.lambda.cloud.core.convert.ConverterResolver;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.fusion.datasource.api.DataSourceChangeCallback;
 import com.lambda.fusion.datasource.manager.DataSourceCallbackManager;
@@ -30,7 +32,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     private final DataSourceManageService globalService;
     private final TenantDataSourceManageService tenantService;
     private final DataSourceCallbackManager callbackManager;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @Override
     public List<RemoteDataSource> listActiveDataSources() {
@@ -76,17 +78,11 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     public RemoteDataSource toRemoteDataSource(DataSourceEntity entity) {
-        RemoteDataSource dto = new RemoteDataSource();
-        dto.setId(entity.getId());
-        dto.setDatasourceName(entity.getDatasourceName());
-        dto.setDriverClassName(entity.getDriverClassName());
-        dto.setJdbcUrl(entity.getJdbcUrl());
-        dto.setUsername(entity.getUsername());
-        dto.setPassword(entity.getPassword());
-        dto.setEnabled(entity.getEnabled());
-        dto.setTenantId(null);
+        BaseConverter<DataSourceEntity, RemoteDataSource> converter =
+                ConverterResolver.getConverter(RemoteDataSource.class);
+        RemoteDataSource remoteDataSource = converter.convertTo(entity);
         // 使用哈希码作为版本号以保持一致性
-        dto.setVersion(Objects.hash(
+        remoteDataSource.setVersion(Objects.hash(
                 entity.getId(),
                 entity.getDatasourceName(),
                 entity.getDriverClassName(),
@@ -94,22 +90,25 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 entity.getUsername(),
                 entity.getPassword(),
                 entity.getEnabled()));
-        return dto;
+        return remoteDataSource;
     }
 
     private RemoteDataSource toRemoteDataSource(TenantDataSourceEntity entity) {
-        RemoteDataSource dto = new RemoteDataSource();
-        dto.setId(entity.getId());
-        dto.setDatasourceName(entity.getDbName());
-        dto.setEnabled(entity.getEnabled());
-        dto.setTenantId(entity.getTenantId());
-
-        if (entity.getUpdateTime() != null) {
-            dto.setVersion(entity.getUpdateTime().getTime());
-        } else {
-            dto.setVersion(entity.getCreateTime().getTime());
-        }
-        return getRemoteDataSource(entity, dto, objectMapper);
+        BaseConverter<TenantDataSourceEntity, RemoteDataSource> converter =
+                ConverterResolver.getConverter(RemoteDataSource.class);
+        RemoteDataSource remoteDataSource = converter.convertTo(entity);
+        remoteDataSource.setDatasourceName(entity.getDbName());
+        remoteDataSource.setEnabled(entity.getEnabled());
+        remoteDataSource.setTenantId(entity.getTenantId());
+        remoteDataSource.setVersion(Objects.hash(
+                remoteDataSource.getId(),
+                remoteDataSource.getDatasourceName(),
+                remoteDataSource.getDriverClassName(),
+                remoteDataSource.getJdbcUrl(),
+                remoteDataSource.getUsername(),
+                remoteDataSource.getPassword(),
+                remoteDataSource.getEnabled()));
+        return getRemoteDataSource(entity, remoteDataSource, objectMapper);
     }
 
     public static RemoteDataSource getRemoteDataSource(

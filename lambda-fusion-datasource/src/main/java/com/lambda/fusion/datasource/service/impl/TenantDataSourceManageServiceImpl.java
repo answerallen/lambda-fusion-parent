@@ -82,17 +82,17 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         TenantDataSourceEntity existing = getById(id);
         if (existing != null) {
             dynamicDataSourceService.removeDataSource(id);
-            RemoteDataSource dto = new RemoteDataSource();
-            dto.setId(id);
-            dto.setTenantId(existing.getTenantId());
-            eventPublisher.publishEvent(DataSourceChangeEvent.remove(this, dto));
+            RemoteDataSource remoteDataSource = new RemoteDataSource();
+            remoteDataSource.setId(id);
+            remoteDataSource.setTenantId(existing.getTenantId());
+            eventPublisher.publishEvent(DataSourceChangeEvent.remove(this, remoteDataSource));
         }
         removeById(id);
     }
 
     private void publishChange(TenantDataSourceEntity entity) {
-        RemoteDataSource dto = toDTO(entity);
-        eventPublisher.publishEvent(DataSourceChangeEvent.update(this, dto));
+        RemoteDataSource remoteDataSource = toDTO(entity);
+        eventPublisher.publishEvent(DataSourceChangeEvent.update(this, remoteDataSource));
     }
 
     private void syncDynamicDataSource(TenantDataSourceEntity entity) {

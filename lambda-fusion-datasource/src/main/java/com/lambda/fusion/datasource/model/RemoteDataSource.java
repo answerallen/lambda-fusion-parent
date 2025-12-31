@@ -2,12 +2,14 @@ package com.lambda.fusion.datasource.model;
 
 import java.io.Serial;
 import java.io.Serializable;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 远程数据源传输对象
  */
-@Data
+@Getter
+@Setter
 public class RemoteDataSource implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
@@ -17,7 +19,7 @@ public class RemoteDataSource implements Serializable {
     private String driverClassName;
     private String jdbcUrl;
     private String username;
-    private String password; // 建议传输层加密
+    private String password;
     private Integer enabled;
     private String tenantId; // 标识归属租户，null表示全局共享
     private long version; // 数据版本号(时间戳)，用于同步校验

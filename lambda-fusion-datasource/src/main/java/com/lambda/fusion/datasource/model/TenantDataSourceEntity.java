@@ -3,6 +3,8 @@ package com.lambda.fusion.datasource.model;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.annotation.FieldMapping;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Date;
 import lombok.Getter;
@@ -10,6 +12,7 @@ import lombok.Setter;
 
 @Setter
 @Getter
+@AutoConverter(target = RemoteDataSource.class)
 @TableName("la_tenant_datasource")
 @Schema(description = "动态数据源")
 public class TenantDataSourceEntity {
@@ -20,6 +23,7 @@ public class TenantDataSourceEntity {
 
     @TableField("DB_NAME")
     @Schema(description = "数据源名称")
+    @FieldMapping(target = "datasourceName", source = "dbName")
     private String dbName;
 
     @TableField("DB_DESC")
