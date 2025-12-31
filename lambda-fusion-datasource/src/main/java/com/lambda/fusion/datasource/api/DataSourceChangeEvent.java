@@ -1,4 +1,4 @@
-package com.lambda.fusion.datasource.api.callback;
+package com.lambda.fusion.datasource.api;
 
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 

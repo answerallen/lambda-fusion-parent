@@ -1,25 +1,17 @@
 package com.lambda.fusion.datasource.api;
 
-import com.lambda.fusion.datasource.model.RemoteDataSource;
-
 /**
  * 数据源变更回调接口
- *
- * @author Jin
+ * <p>
+ * Client端实现此接口，Server端在数据源变更时调用。
+ * </p>
  */
 public interface DataSourceChangeCallback {
 
     /**
-     * 同步数据源到本地
+     * 数据源变更通知
      *
-     * @param dataSourceDTO 数据源DTO
+     * @param event 变更事件
      */
-    void syncToLocal(RemoteDataSource dataSourceDTO);
-
-    /**
-     * 移除本地数据源
-     *
-     * @param dataSourceId 数据源ID
-     */
-    void removeLocal(String dataSourceId);
+    void onDataSourceChanged(DataSourceChangeEvent event);
 }

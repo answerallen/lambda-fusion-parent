@@ -1,7 +1,7 @@
 package com.lambda.fusion.datasource.manager;
 
-import com.lambda.fusion.datasource.api.callback.DataSourceChangeCallback;
-import com.lambda.fusion.datasource.api.callback.DataSourceChangeEvent;
+import com.lambda.fusion.datasource.api.DataSourceChangeCallback;
+import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.model.SubscriberInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

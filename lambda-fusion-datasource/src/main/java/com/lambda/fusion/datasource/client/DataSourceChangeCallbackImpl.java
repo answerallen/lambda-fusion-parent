@@ -2,8 +2,8 @@ package com.lambda.fusion.datasource.client;
 
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.datasource.api.callback.DataSourceChangeCallback;
-import com.lambda.fusion.datasource.api.callback.DataSourceChangeEvent;
+import com.lambda.fusion.datasource.api.DataSourceChangeCallback;
+import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import lombok.RequiredArgsConstructor;

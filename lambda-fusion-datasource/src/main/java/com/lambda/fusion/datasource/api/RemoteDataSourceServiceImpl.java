@@ -1,13 +1,10 @@
-package com.lambda.fusion.datasource.service.impl;
+package com.lambda.fusion.datasource.api;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
-import com.lambda.fusion.datasource.api.RemoteDataSourceService;
-import com.lambda.fusion.datasource.api.callback.DataSourceChangeCallback;
-import com.lambda.fusion.datasource.api.callback.DataSourceChangeEvent;
-import com.lambda.fusion.datasource.api.callback.DataSourceChangeEvent.ChangeType;
+import com.lambda.fusion.datasource.api.DataSourceChangeEvent.ChangeType;
 import com.lambda.fusion.datasource.manager.DataSourceCallbackManager;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
@@ -51,7 +48,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                             .eq(TenantDataSourceEntity::getTenantId, currentTenantId))
                     .stream()
                     .map(this::toDTO)
-                    .collect(Collectors.toList());
+                    .toList();
              globals.addAll(tenants);
         }
         return globals;
@@ -74,7 +71,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                             .eq(TenantDataSourceEntity::getEnabled, 1))
                     .stream()
                     .map(this::toDTO)
-                    .collect(Collectors.toList());
+                    .toList();
             globals.addAll(tenants);
         }
         return globals;

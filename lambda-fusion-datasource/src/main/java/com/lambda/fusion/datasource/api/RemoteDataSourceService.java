@@ -1,6 +1,5 @@
 package com.lambda.fusion.datasource.api;
 
-import com.lambda.fusion.datasource.api.callback.DataSourceChangeCallback;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import java.util.List;
 

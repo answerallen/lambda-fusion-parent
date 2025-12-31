@@ -1,6 +1,6 @@
 package com.lambda.fusion.datasource.service.impl;
 
-import static com.lambda.fusion.datasource.service.impl.RemoteDataSourceServiceImpl.getRemoteDataSource;
+import static com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl.getRemoteDataSource;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
