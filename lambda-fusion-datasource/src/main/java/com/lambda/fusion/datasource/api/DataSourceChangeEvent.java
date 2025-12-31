@@ -1,7 +1,6 @@
 package com.lambda.fusion.datasource.api;
 
 import com.lambda.fusion.datasource.model.RemoteDataSource;
-
 import java.io.Serial;
 import java.io.Serializable;
 import lombok.Data;

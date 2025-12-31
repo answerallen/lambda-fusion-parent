@@ -1,14 +1,14 @@
 package com.lambda.fusion.datasource.manager;
 
-import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
+import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.model.SubscriberInfo;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
+import jakarta.annotation.PreDestroy;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * 数据源变更回调管理器
@@ -32,17 +32,17 @@ public class DataSourceCallbackManager {
     private final ExecutorService notifyExecutor = new java.util.concurrent.ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),
             Runtime.getRuntime().availableProcessors() * 2,
-            60L, java.util.concurrent.TimeUnit.SECONDS,
+            60L,
+            java.util.concurrent.TimeUnit.SECONDS,
             new java.util.concurrent.LinkedBlockingQueue<>(1000),
             r -> {
                 Thread t = new Thread(r, "datasource-callback-notify");
                 t.setDaemon(true);
                 return t;
             },
-            new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy()
-    );
+            new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
 
-    @jakarta.annotation.PreDestroy
+    @PreDestroy
     public void shutdown() {
         notifyExecutor.shutdown();
         try {
@@ -86,8 +86,11 @@ public class DataSourceCallbackManager {
             return;
         }
 
-        log.info("Broadcasting datasource change event: type={}, dataSourceId={}, subscribers={}",
-            event.getChangeType(), event.getDataSourceId(), subscribers.size());
+        log.info(
+                "Broadcasting datasource change event: type={}, dataSourceId={}, subscribers={}",
+                event.getChangeType(),
+                event.getDataSourceId(),
+                subscribers.size());
 
         subscribers.forEach((clientId, info) -> {
             if (shouldNotify(info, event)) {
@@ -107,7 +110,7 @@ public class DataSourceCallbackManager {
     private boolean shouldNotify(SubscriberInfo info, DataSourceChangeEvent event) {
         // 事件中的租户ID
         String eventTenantId = event.getTenantId();
-        
+
         // 1. 如果事件是全局数据源变更 (tenantId == null)，通知所有有权限的订阅者
         if (eventTenantId == null) {
             // 这里假设所有租户都能看到全局数据源，或者根据具体业务规则判断

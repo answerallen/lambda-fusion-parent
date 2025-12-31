@@ -2,8 +2,8 @@ package com.lambda.fusion.datasource.client;
 
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
+import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import lombok.RequiredArgsConstructor;
@@ -25,8 +25,10 @@ public class DataSourceChangeListenerImpl implements DataSourceChangeListener {
 
     @Override
     public void onDataSourceChanged(DataSourceChangeEvent event) {
-        log.info("Received datasource change event: type={}, dataSourceId={}",
-            event.getChangeType(), event.getDataSourceId());
+        log.info(
+                "Received datasource change event: type={}, dataSourceId={}",
+                event.getChangeType(),
+                event.getDataSourceId());
 
         try {
             switch (event.getChangeType()) {
@@ -43,8 +45,11 @@ public class DataSourceChangeListenerImpl implements DataSourceChangeListener {
                     log.warn("Unknown change type: {}", event.getChangeType());
             }
         } catch (Exception e) {
-            log.error("Failed to handle datasource change event. Type: {}, ID: {}", 
-                    event.getChangeType(), event.getDataSourceId(), e);
+            log.error(
+                    "Failed to handle datasource change event. Type: {}, ID: {}",
+                    event.getChangeType(),
+                    event.getDataSourceId(),
+                    e);
         }
     }
 
@@ -68,7 +73,7 @@ public class DataSourceChangeListenerImpl implements DataSourceChangeListener {
             try {
                 dynamicDataSourceService.removeDataSource(dto.getDatasourceName());
             } catch (Exception e) {
-                 log.error("Failed to remove datasource: {}", dto.getDatasourceName(), e);
+                log.error("Failed to remove datasource: {}", dto.getDatasourceName(), e);
             }
         } else {
             log.warn("Received DELETE/DISABLE event without DTO info, cannot identify pool name to remove.");

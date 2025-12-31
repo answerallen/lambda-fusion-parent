@@ -20,7 +20,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DataSourceEventListener {
+public class DataSourceListener {
 
     private final DataSourceCallbackManager callbackManager;
 
@@ -41,7 +41,7 @@ public class DataSourceEventListener {
             new ThreadPoolExecutor.CallerRunsPolicy());
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleDataSourceChange(LocalDataSourceChangeEvent event) {
+    public void handleDataSourceChange(DataSourceEvent event) {
         executorService.submit(() -> {
             try {
                 log.info(
@@ -49,9 +49,8 @@ public class DataSourceEventListener {
                         event.getDataSource().getId(),
                         event.isRemove() ? "REMOVE" : "UPDATE");
 
-                DataSourceChangeEvent apiEvent =
-                        new DataSourceChangeEvent();
-                
+                DataSourceChangeEvent apiEvent = new DataSourceChangeEvent();
+
                 if (event.isRemove()) {
                     apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.DELETE);
                 } else {
@@ -59,7 +58,7 @@ public class DataSourceEventListener {
                     // 此处为了兼容，假设非移除即为更新/新增，具体由 Client 端幂等处理
                     apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.UPDATE);
                 }
-                
+
                 apiEvent.setDataSourceId(event.getDataSource().getId());
                 apiEvent.setTenantId(event.getDataSource().getTenantId());
                 apiEvent.setDataSource(event.getDataSource());

@@ -30,11 +30,11 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
 
     private final DynamicDataSourceService dynamicDataSourceService;
     private final DataSourceChangeListenerImpl callback;
-    
+
     @Override
     public void run(ApplicationArguments args) {
         log.info("Starting dynamic datasource initialization (Client Mode)...");
-        
+
         try {
             // 1. 获取初始列表
             List<RemoteDataSource> dataSources = remoteDataSourceService.listEnabled();
@@ -52,12 +52,12 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
             } else {
                 log.info("No remote datasources fetched.");
             }
-            
+
             // 2. 订阅变更
             String clientId = generateClientId();
             remoteDataSourceService.subscribe(clientId, callback);
             log.info("Subscribed to remote datasource changes. ClientId: {}", clientId);
-            
+
             // 添加关闭钩子取消订阅
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
@@ -67,15 +67,16 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
                     log.warn("Failed to unsubscribe", e);
                 }
             }));
-            
+
         } catch (Exception e) {
             log.error("Failed to initialize remote datasources", e);
         }
     }
-    
+
     private String generateClientId() {
         try {
-            return InetAddress.getLocalHost().getHostAddress() + ":" + UUID.randomUUID().toString().substring(0, 8);
+            return InetAddress.getLocalHost().getHostAddress() + ":"
+                    + UUID.randomUUID().toString().substring(0, 8);
         } catch (Exception e) {
             return "unknown:" + UUID.randomUUID();
         }

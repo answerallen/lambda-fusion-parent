@@ -7,7 +7,7 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.datasource.event.LocalDataSourceChangeEvent;
+import com.lambda.fusion.datasource.event.DataSourceEvent;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
@@ -93,7 +93,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
             RemoteDataSource dto = new RemoteDataSource();
             dto.setId(id);
             dto.setDatasourceName(existing.getDatasourceName());
-            eventPublisher.publishEvent(LocalDataSourceChangeEvent.remove(this, dto));
+            eventPublisher.publishEvent(DataSourceEvent.remove(this, dto));
         }
         removeById(id);
     }
@@ -175,6 +175,6 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
                 entity.getPassword(),
                 entity.getEnabled()));
 
-        eventPublisher.publishEvent(LocalDataSourceChangeEvent.update(this, dto));
+        eventPublisher.publishEvent(DataSourceEvent.update(this, dto));
     }
 }

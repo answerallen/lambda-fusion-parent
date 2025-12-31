@@ -1,6 +1,5 @@
 package com.lambda.fusion.datasource.service.impl;
 
-
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,20 +7,20 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.core.Constants;
-import com.lambda.fusion.datasource.event.LocalDataSourceChangeEvent;
+import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
+import com.lambda.fusion.datasource.event.DataSourceEvent;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
+import java.util.List;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 @Service
@@ -85,14 +84,14 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
             RemoteDataSource remoteDataSource = new RemoteDataSource();
             remoteDataSource.setId(id);
             remoteDataSource.setTenantId(existing.getTenantId());
-            eventPublisher.publishEvent(LocalDataSourceChangeEvent.remove(this, remoteDataSource));
+            eventPublisher.publishEvent(DataSourceEvent.remove(this, remoteDataSource));
         }
         removeById(id);
     }
 
     private void publishChange(TenantDataSourceEntity entity) {
         RemoteDataSource remoteDataSource = toDTO(entity);
-        eventPublisher.publishEvent(LocalDataSourceChangeEvent.update(this, remoteDataSource));
+        eventPublisher.publishEvent(DataSourceEvent.update(this, remoteDataSource));
     }
 
     private void syncDynamicDataSource(TenantDataSourceEntity entity) {
@@ -133,12 +132,7 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         try {
             if (entity.getConfiguration() != null && !entity.getConfiguration().isEmpty()) {
                 com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(entity.getConfiguration());
-                if (node.has("jdbcUrl")) remoteDataSource.setJdbcUrl(node.get("jdbcUrl").asText());
-                else if (node.has("url")) remoteDataSource.setJdbcUrl(node.get("url").asText());
-
-                if (node.has("username")) remoteDataSource.setUsername(node.get("username").asText());
-                if (node.has("password")) remoteDataSource.setPassword(node.get("password").asText());
-                if (node.has("driverClassName")) remoteDataSource.setDriverClassName(node.get("driverClassName").asText());
+                RemoteDataSourceServiceImpl.validAndSet(remoteDataSource, node);
             }
         } catch (Exception e) {
             log.error("Failed to parse tenant configuration for datasource: {}", entity.getDbName(), e);
