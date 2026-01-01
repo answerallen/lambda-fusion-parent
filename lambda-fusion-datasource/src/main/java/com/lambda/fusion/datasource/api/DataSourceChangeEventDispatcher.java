@@ -1,14 +1,11 @@
-package com.lambda.fusion.datasource.manager;
+package com.lambda.fusion.datasource.api;
 
-import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
-import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.model.SubscriberInfo;
 import jakarta.annotation.PreDestroy;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.*;
+
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * 数据源变更回调管理器
@@ -17,8 +14,7 @@ import org.springframework.stereotype.Component;
  * </p>
  */
 @Slf4j
-@Component
-public class DataSourceCallbackManager {
+public class DataSourceChangeEventDispatcher {
 
     /**
      * 已注册的回调映射 (clientId -> SubscriberInfo)
@@ -29,24 +25,24 @@ public class DataSourceCallbackManager {
      * 异步通知线程池
      * 使用有界队列防止OOM，使用CallerRunsPolicy进行背压
      */
-    private final ExecutorService notifyExecutor = new java.util.concurrent.ThreadPoolExecutor(
+    private final ExecutorService notifyExecutor = new ThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),
             Runtime.getRuntime().availableProcessors() * 2,
             60L,
-            java.util.concurrent.TimeUnit.SECONDS,
-            new java.util.concurrent.LinkedBlockingQueue<>(1000),
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(1000),
             r -> {
                 Thread t = new Thread(r, "datasource-callback-notify");
                 t.setDaemon(true);
                 return t;
             },
-            new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
     @PreDestroy
     public void shutdown() {
         notifyExecutor.shutdown();
         try {
-            if (!notifyExecutor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)) {
+            if (!notifyExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
                 notifyExecutor.shutdownNow();
             }
         } catch (InterruptedException e) {
@@ -96,7 +92,7 @@ public class DataSourceCallbackManager {
             if (shouldNotify(info, event)) {
                 notifyExecutor.submit(() -> {
                     try {
-                        info.getCallback().onDataSourceChanged(event);
+                        info.getChangeListener().onDataSourceChanged(event);
                         log.debug("Notified client: {}", clientId);
                     } catch (Exception e) {
                         log.warn("Failed to notify client: {}, error: {}", clientId, e.getMessage());

@@ -5,19 +5,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
-import com.lambda.fusion.datasource.manager.DataSourceCallbackManager;
 import com.lambda.fusion.datasource.model.*;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * 远程数据源服务Server端实现
+ *
+ * @author Jin
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -25,7 +27,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
 
     private final DataSourceManageService dataSourceManageService;
     private final TenantDataSourceManageService tenantDataSourceManageService;
-    private final DataSourceCallbackManager callbackManager;
+    private final DataSourceChangeEventDispatcher callbackManager;
     private final ObjectMapper objectMapper;
 
     @Override

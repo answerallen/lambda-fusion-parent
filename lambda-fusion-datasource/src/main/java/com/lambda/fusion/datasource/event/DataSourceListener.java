@@ -1,7 +1,7 @@
 package com.lambda.fusion.datasource.event;
 
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
-import com.lambda.fusion.datasource.manager.DataSourceCallbackManager;
+import com.lambda.fusion.datasource.api.DataSourceChangeEventDispatcher;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -22,7 +22,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class DataSourceListener {
 
-    private final DataSourceCallbackManager callbackManager;
+    private final DataSourceChangeEventDispatcher callbackManager;
 
     private final ExecutorService executorService = new ThreadPoolExecutor(
             2,

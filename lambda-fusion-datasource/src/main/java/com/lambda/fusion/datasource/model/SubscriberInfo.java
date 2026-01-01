@@ -8,5 +8,5 @@ import lombok.Data;
 @AllArgsConstructor
 public class SubscriberInfo {
     private String tenantId;
-    private DataSourceChangeListener callback;
+    private DataSourceChangeListener changeListener;
 }

@@ -6,7 +6,7 @@ import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
 import com.lambda.fusion.datasource.client.ClientDataSourceInitializer;
 import com.lambda.fusion.datasource.client.DataSourceChangeListenerImpl;
-import com.lambda.fusion.datasource.manager.DataSourceCallbackManager;
+import com.lambda.fusion.datasource.api.DataSourceChangeEventDispatcher;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
@@ -31,6 +31,11 @@ import org.springframework.context.annotation.Configuration;
 public class DatasourceConfigure {
 
     @Bean
+    public DataSourceChangeEventDispatcher dataSourceCallbackManager() {
+        return new DataSourceChangeEventDispatcher();
+    }
+
+    @Bean
     @ConditionalOnProperty(
             name = DatasourceConstant.MODE_PROPERTY,
             havingValue = DatasourceConstant.MODE_SERVER,
@@ -38,8 +43,8 @@ public class DatasourceConfigure {
     public RemoteDataSourceService remoteDataSourceService(
             DataSourceManageService dataSourceManageService,
             TenantDataSourceManageService tenantDataSourceManageService,
-            DataSourceCallbackManager callbackManager,
-            @Autowired(required = false) ObjectMapper objectMapper) {
+            DataSourceChangeEventDispatcher callbackManager,
+            ObjectMapper objectMapper) {
         return new RemoteDataSourceServiceImpl(
                 dataSourceManageService, tenantDataSourceManageService, callbackManager, objectMapper);
     }
