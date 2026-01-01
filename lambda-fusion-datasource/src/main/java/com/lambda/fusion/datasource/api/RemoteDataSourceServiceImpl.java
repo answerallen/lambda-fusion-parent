@@ -14,14 +14,12 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.util.StringUtils;
 
 /**
  * 远程数据源服务Server端实现
  */
 @Slf4j
-@DubboService(version = "1.0.0", group = "datasource")
 @RequiredArgsConstructor
 public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
 
