@@ -5,6 +5,7 @@ import com.lambda.fusion.datasource.client.ClientDataSourceInitializer;
 import com.lambda.fusion.datasource.client.DataSourceChangeListenerImpl;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +24,7 @@ public class DatasourceConfigure {
     @Bean
     @ConditionalOnProperty(name = DatasourceConstant.MODE_PROPERTY, havingValue = DatasourceConstant.MODE_SERVER, matchIfMissing = true)
     public ServerDataSourceInitializer serverDataSourceInitializer(DataSourceMapper dataSourceMapper,
-                                                                 DynamicDataSourceService dynamicDataSourceService) {
+                                                                   @Autowired(required = false) DynamicDataSourceService dynamicDataSourceService) {
         return new ServerDataSourceInitializer(dataSourceMapper, dynamicDataSourceService);
     }
 
@@ -36,7 +37,7 @@ public class DatasourceConfigure {
     @Bean
     @ConditionalOnProperty(name = DatasourceConstant.MODE_PROPERTY, havingValue = DatasourceConstant.MODE_CLIENT)
     public ClientDataSourceInitializer clientDataSourceInitializer(DynamicDataSourceService dynamicDataSourceService,
-                                                                 DataSourceChangeListenerImpl dataSourceChangeListener) {
+                                                                   DataSourceChangeListenerImpl dataSourceChangeListener) {
         return new ClientDataSourceInitializer(dynamicDataSourceService, dataSourceChangeListener);
     }
 }
