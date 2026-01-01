@@ -8,7 +8,6 @@ import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * 数据源变更回调实现
@@ -17,7 +16,6 @@ import org.springframework.stereotype.Component;
  * </p>
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class DataSourceChangeListenerImpl implements DataSourceChangeListener {
 

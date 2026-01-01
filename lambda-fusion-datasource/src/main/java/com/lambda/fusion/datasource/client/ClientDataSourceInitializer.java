@@ -13,15 +13,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
 
 /**
  * 客户端模式初始化器 - 从远程Dubbo服务加载数据源并订阅
  */
 @Slf4j
-@Component
-@ConditionalOnProperty(name = "lambda.fusion.datasource.mode", havingValue = "client")
 @RequiredArgsConstructor
 public class ClientDataSourceInitializer implements ApplicationRunner {
 

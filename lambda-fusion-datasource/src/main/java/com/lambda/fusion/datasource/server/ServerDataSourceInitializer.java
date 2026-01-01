@@ -13,15 +13,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
 
 /**
  * 服务端模式初始化器 - 从本地数据库加载数据源
  */
 @Slf4j
-@Component
-@ConditionalOnProperty(name = "lambda.fusion.datasource.mode", havingValue = "server", matchIfMissing = true)
 @RequiredArgsConstructor
 public class ServerDataSourceInitializer implements ApplicationRunner {
 
