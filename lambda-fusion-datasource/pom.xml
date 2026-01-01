@@ -39,6 +39,10 @@
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-dubbo</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-cloud-starter-cache</artifactId>
+        </dependency>
     </dependencies>
 
 </project>
