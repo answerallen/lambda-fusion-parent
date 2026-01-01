@@ -1,5 +1,7 @@
-package com.lambda.fusion.datasource.api;
+package com.lambda.fusion.datasource.dispatcher;
 
+import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
+import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.model.SubscriberInfo;
 import jakarta.annotation.PreDestroy;
 import java.util.Map;
@@ -14,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
  * </p>
  */
 @Slf4j
-public class DataSourceChangeEventDispatcher {
+public class DataSourceChangeDispatcher {
 
     /**
      * 已注册的回调映射 (clientId -> SubscriberInfo)
@@ -56,10 +58,10 @@ public class DataSourceChangeEventDispatcher {
      *
      * @param clientId 客户端ID
      * @param tenantId 租户ID
-     * @param callback 回调接口
+     * @param changeListener 回调接口
      */
-    public void addSubscriber(String clientId, String tenantId, DataSourceChangeListener callback) {
-        subscribers.put(clientId, new SubscriberInfo(tenantId, callback));
+    public void addSubscriber(String clientId, String tenantId, DataSourceChangeListener changeListener) {
+        subscribers.put(clientId, new SubscriberInfo(tenantId, changeListener));
         log.info("Client subscribed: {} (Tenant: {})", clientId, tenantId);
     }
 

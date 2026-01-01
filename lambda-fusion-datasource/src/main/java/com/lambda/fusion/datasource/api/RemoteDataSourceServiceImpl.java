@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
+import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.model.*;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
@@ -27,7 +28,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
 
     private final DataSourceManageService dataSourceManageService;
     private final TenantDataSourceManageService tenantDataSourceManageService;
-    private final DataSourceChangeEventDispatcher callbackManager;
+    private final DataSourceChangeDispatcher callbackManager;
     private final ObjectMapper objectMapper;
 
     @Override

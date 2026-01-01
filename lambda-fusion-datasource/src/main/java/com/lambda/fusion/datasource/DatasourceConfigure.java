@@ -6,7 +6,7 @@ import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
 import com.lambda.fusion.datasource.client.ClientDataSourceInitializer;
 import com.lambda.fusion.datasource.client.DataSourceChangeListenerImpl;
-import com.lambda.fusion.datasource.api.DataSourceChangeEventDispatcher;
+import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
@@ -31,8 +31,8 @@ import org.springframework.context.annotation.Configuration;
 public class DatasourceConfigure {
 
     @Bean
-    public DataSourceChangeEventDispatcher dataSourceCallbackManager() {
-        return new DataSourceChangeEventDispatcher();
+    public DataSourceChangeDispatcher dataSourceCallbackManager() {
+        return new DataSourceChangeDispatcher();
     }
 
     @Bean
@@ -43,7 +43,7 @@ public class DatasourceConfigure {
     public RemoteDataSourceService remoteDataSourceService(
             DataSourceManageService dataSourceManageService,
             TenantDataSourceManageService tenantDataSourceManageService,
-            DataSourceChangeEventDispatcher callbackManager,
+            DataSourceChangeDispatcher callbackManager,
             ObjectMapper objectMapper) {
         return new RemoteDataSourceServiceImpl(
                 dataSourceManageService, tenantDataSourceManageService, callbackManager, objectMapper);

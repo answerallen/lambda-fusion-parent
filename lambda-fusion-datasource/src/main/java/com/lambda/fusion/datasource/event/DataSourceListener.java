@@ -1,12 +1,13 @@
 package com.lambda.fusion.datasource.event;
 
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
-import com.lambda.fusion.datasource.api.DataSourceChangeEventDispatcher;
+import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -22,7 +23,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @RequiredArgsConstructor
 public class DataSourceListener {
 
-    private final DataSourceChangeEventDispatcher callbackManager;
+    private final DataSourceChangeDispatcher dataSourceChangeDispatcher;
 
     private final ExecutorService executorService = new ThreadPoolExecutor(
             2,
@@ -34,8 +35,8 @@ public class DataSourceListener {
                 private final AtomicInteger count = new AtomicInteger(1);
 
                 @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "ds-event-" + count.getAndIncrement());
+                public Thread newThread(@NonNull Runnable runnable) {
+                    return new Thread(runnable, "ds-event-" + count.getAndIncrement());
                 }
             },
             new ThreadPoolExecutor.CallerRunsPolicy());
@@ -64,7 +65,7 @@ public class DataSourceListener {
                 apiEvent.setDataSource(event.getDataSource());
                 apiEvent.setTimestamp(System.currentTimeMillis());
 
-                callbackManager.broadcast(apiEvent);
+                dataSourceChangeDispatcher.broadcast(apiEvent);
             } catch (Exception e) {
                 log.error("Failed to handle data source change event", e);
             }
