@@ -55,7 +55,9 @@ public class DatasourceConfigure {
             havingValue = DatasourceConstant.MODE_SERVER,
             matchIfMissing = true)
     public ServiceBean<RemoteDataSourceService> remoteDataSourceServiceBean(
-            RemoteDataSourceService remoteDataSourceService, DatasourceProperties datasourceProperties, ApplicationContext applicationContext) {
+            RemoteDataSourceService remoteDataSourceService,
+            DatasourceProperties datasourceProperties,
+            ApplicationContext applicationContext) {
         ServiceBean<RemoteDataSourceService> serviceBean = new ServiceBean<>(applicationContext);
         serviceBean.setInterface(RemoteDataSourceService.class);
         serviceBean.setRef(remoteDataSourceService);
@@ -65,9 +67,13 @@ public class DatasourceConfigure {
     }
 
     @Bean
-    @ConditionalOnProperty(name = DatasourceConstant.MODE_PROPERTY, havingValue = DatasourceConstant.MODE_SERVER, matchIfMissing = true)
-    public ServerDataSourceInitializer serverDataSourceInitializer(DataSourceMapper dataSourceMapper,
-                                                                   @Autowired(required = false) DynamicDataSourceService dynamicDataSourceService) {
+    @ConditionalOnProperty(
+            name = DatasourceConstant.MODE_PROPERTY,
+            havingValue = DatasourceConstant.MODE_SERVER,
+            matchIfMissing = true)
+    public ServerDataSourceInitializer serverDataSourceInitializer(
+            DataSourceMapper dataSourceMapper,
+            @Autowired(required = false) DynamicDataSourceService dynamicDataSourceService) {
         return new ServerDataSourceInitializer(dataSourceMapper, dynamicDataSourceService);
     }
 
@@ -79,8 +85,8 @@ public class DatasourceConfigure {
 
     @Bean
     @ConditionalOnProperty(name = DatasourceConstant.MODE_PROPERTY, havingValue = DatasourceConstant.MODE_CLIENT)
-    public ClientDataSourceInitializer clientDataSourceInitializer(DynamicDataSourceService dynamicDataSourceService,
-                                                                   DataSourceChangeListenerImpl dataSourceChangeListener) {
+    public ClientDataSourceInitializer clientDataSourceInitializer(
+            DynamicDataSourceService dynamicDataSourceService, DataSourceChangeListenerImpl dataSourceChangeListener) {
         return new ClientDataSourceInitializer(dynamicDataSourceService, dataSourceChangeListener);
     }
 }

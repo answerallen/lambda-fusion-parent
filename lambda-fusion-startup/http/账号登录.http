@@ -17,15 +17,14 @@ Content-Type: application/json
 
 
 ### 获取令牌 （配置文件可关闭验证码）
-POST http://127.0.0.1:20005/login
+POST http://127.0.0.1:20005/auth/login
 Content-Type: application/json
 
 {
   "__token": "df731d06-95f0-4f24-ba57-af729e414ecb",
   "verifyCode": "0",
   "loginMode": "0",
-  "loginType": "user",
-  "username": "admin",
+  "username": "13303820660",
   "password": "123456"
 }
 
