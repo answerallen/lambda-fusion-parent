@@ -21,8 +21,8 @@ POST http://127.0.0.1:20005/auth/login
 Content-Type: application/json
 
 {
-  "__token": "df731d06-95f0-4f24-ba57-af729e414ecb",
-  "verifyCode": "0",
+  "__token": "769a5424-a577-45aa-9206-b8f27f91588f",
+  "verifyCode": "49",
   "loginMode": "0",
   "username": "13303820660",
   "password": "123456"

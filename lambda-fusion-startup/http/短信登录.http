@@ -18,8 +18,7 @@ Content-Type: application/json
 
 {
   "mobile": "18888880000",
-  "code": "5312",
-  "loginMode": "1",
+  @Order(-1)  "code": "5312",  "loginMode": "1",
   "loginType": "admin"
 }
 
