@@ -21,15 +21,13 @@ public class DatabaseBasedProperties extends Properties {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private static final String SQL = SELECT_CONFIGS_SQL;
-    private static final String CHECK_CONFIGS_CHANGED_SQL = ConfigConstants.Database.CHECK_CONFIGS_CHANGED_SQL;
-
     @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
     public DatabaseBasedProperties(Connection connection, String application, ConfigProperties configProperties)
             throws SQLException {
+        ConfigProperties.Database database = configProperties.getDatabase();
         Map<String, String> privated = Maps.newHashMap();
         Map<String, String> publiced = Maps.newHashMap();
-        try (PreparedStatement preparedStatement = connection.prepareStatement(SQL)) {
+        try (PreparedStatement preparedStatement = connection.prepareStatement(database.getSelectConfigsSql())) {
             preparedStatement.setString(1, application);
             try (ResultSet rs = preparedStatement.executeQuery()) {
                 while (rs.next()) {
@@ -55,8 +53,9 @@ public class DatabaseBasedProperties extends Properties {
         super();
     }
 
-    public static String getCheckSum(Connection connection, String application) throws SQLException {
-        try (PreparedStatement preparedStatement = connection.prepareStatement(CHECK_CONFIGS_CHANGED_SQL)) {
+    public static String getCheckSum(Connection connection, String application, ConfigProperties configProperties) throws SQLException {
+        ConfigProperties.Database database = configProperties.getDatabase();
+        try (PreparedStatement preparedStatement = connection.prepareStatement(database.getCheckConfigsChangedSql())) {
             preparedStatement.setString(1, application);
             try (ResultSet rs = preparedStatement.executeQuery()) {
                 if (rs.next()) {

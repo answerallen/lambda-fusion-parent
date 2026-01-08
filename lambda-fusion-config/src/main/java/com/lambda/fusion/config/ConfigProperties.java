@@ -51,6 +51,9 @@ public class ConfigProperties implements InitializingBean {
     @Schema(description = "安全相关配置")
     private Security security = new Security();
 
+    @Schema(description = "数据库相关配置")
+    private Database database = new Database();
+
     @JsonSerialize(using = Customize.Serialize.class)
     private Customize customize;
 
@@ -138,6 +141,16 @@ public class ConfigProperties implements InitializingBean {
                     && StringUtils.isNotBlank(this.privateKey)
                     && StringUtils.isNotBlank(this.publicKey);
         }
+    }
+
+    @Getter
+    @Setter
+    public static class Database {
+        // 查询配置的SQL语句
+        private String selectConfigsSql = "SELECT property_key, property_value, application FROM la_configs WHERE application = ? OR application = 'public'";
+
+        // 检查配置变更的SQL语句
+        private String checkConfigsChangedSql = "SELECT MD5(GROUP_CONCAT(CONCAT(property_key, property_value, application) ORDER BY property_key, application)) FROM la_configs WHERE application = ? OR application = 'public'";
     }
 
     @Slf4j

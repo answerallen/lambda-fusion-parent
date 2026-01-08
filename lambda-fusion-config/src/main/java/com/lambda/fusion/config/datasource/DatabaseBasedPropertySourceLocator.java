@@ -211,7 +211,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             return false;
         }
         try (Connection connection = dataSource.getConnection()) {
-            String checkSum = DatabaseBasedProperties.getCheckSum(connection, application);
+            String checkSum = DatabaseBasedProperties.getCheckSum(connection, application, configProperties);
             int newHashcode = checkSum.hashCode();
             if (hashcode != newHashcode) {
                 hashcode = newHashcode;
