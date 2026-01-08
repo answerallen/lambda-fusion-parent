@@ -56,7 +56,7 @@ public class ConfigConfigure {
     }
 
     @Bean
-    public DatabaseBasedPropertySourceLocator databaseBasedPropertySourceLocator() {
-        return new DatabaseBasedPropertySourceLocator();
+    public DatabaseBasedPropertySourceLocator databaseBasedPropertySourceLocator(ConfigProperties configProperties) {
+        return new DatabaseBasedPropertySourceLocator(configProperties);
     }
 }

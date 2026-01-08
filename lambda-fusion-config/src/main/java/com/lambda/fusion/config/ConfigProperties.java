@@ -34,7 +34,7 @@ public class ConfigProperties implements InitializingBean {
     private String title = "快速开发平台";
 
     @Schema(description = "系统版权")
-    private String copyright = "版权 &copy; Lambda Cloud";
+    private String copyright = "版权 &copy; Lambda Fusion";
 
     @Schema(description = "登出相关配置")
     private Logout logout = new Logout();

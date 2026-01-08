@@ -4,6 +4,8 @@ import static com.lambda.fusion.config.ConfigConstants.Database.*;
 
 import com.google.common.collect.Maps;
 import com.lambda.fusion.config.ConfigConstants;
+import com.lambda.fusion.config.ConfigProperties;
+import com.lambda.fusion.config.utils.EncryptUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serial;
 import java.sql.Connection;
@@ -23,7 +25,8 @@ public class DatabaseBasedProperties extends Properties {
     private static final String CHECK_CONFIGS_CHANGED_SQL = ConfigConstants.Database.CHECK_CONFIGS_CHANGED_SQL;
 
     @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
-    public DatabaseBasedProperties(Connection connection, String application) throws SQLException {
+    public DatabaseBasedProperties(Connection connection, String application, ConfigProperties configProperties)
+            throws SQLException {
         Map<String, String> privated = Maps.newHashMap();
         Map<String, String> publiced = Maps.newHashMap();
         try (PreparedStatement preparedStatement = connection.prepareStatement(SQL)) {
@@ -43,7 +46,7 @@ public class DatabaseBasedProperties extends Properties {
                     }
                 }
                 publiced.putAll(privated);
-                publiced.forEach(this::setProperty);
+                publiced.forEach((key, value) -> super.setProperty(key, EncryptUtils.decrypt(value, configProperties)));
             }
         }
     }

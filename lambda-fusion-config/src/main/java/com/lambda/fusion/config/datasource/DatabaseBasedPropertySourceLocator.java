@@ -6,6 +6,7 @@ import static com.lambda.fusion.config.ConfigConstants.LogMessages.*;
 import static com.lambda.fusion.config.ConfigConstants.PropertySource.*;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
+import com.lambda.fusion.config.ConfigProperties;
 import com.lambda.fusion.config.ConfigLoadException;
 import com.lambda.fusion.config.utils.DataSourcePropertyUtils;
 import com.zaxxer.hikari.HikariConfig;
@@ -19,6 +20,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.Nonnull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.bootstrap.config.BootstrapPropertySource;
 import org.springframework.cloud.bootstrap.config.PropertySourceLocator;
 import org.springframework.core.annotation.Order;
@@ -35,6 +37,13 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
     private volatile int hashcode;
 
     private volatile String application;
+
+    private final ConfigProperties configProperties;
+
+    @Autowired
+    public DatabaseBasedPropertySourceLocator(ConfigProperties configProperties) {
+        this.configProperties = configProperties;
+    }
 
     @Override
     public PropertySource<?> locate(Environment environment) {
@@ -101,7 +110,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
     private PropertySource<?> createPropertySource(HikariDataSource currentDataSource, String url) {
         try (Connection connection = currentDataSource.getConnection()) {
             DataBaseBasedPropertySource propertySource =
-                    new DataBaseBasedPropertySource(DATABASE_PROPERTY_SOURCE_NAME, connection, application);
+                    new DataBaseBasedPropertySource(DATABASE_PROPERTY_SOURCE_NAME, connection, application, configProperties);
             this.setHashcode(propertySource.getSource().toString().hashCode());
             log.debug(DATASOURCE_INITIALIZED, url);
             return propertySource;
@@ -237,7 +246,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         }
 
         try (Connection connection = dataSource.getConnection()) {
-            return new DataBaseBasedPropertySource(DATABASE_PROPERTY_SOURCE_NAME, connection, application);
+            return new DataBaseBasedPropertySource(DATABASE_PROPERTY_SOURCE_NAME, connection, application,configProperties);
         } catch (SQLException e) {
             log.warn(FAILED_TO_GET_CONNECTION_FOR_PROPERTY_SOURCE, e);
             return null;
