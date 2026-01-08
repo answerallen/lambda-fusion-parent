@@ -149,8 +149,8 @@ public class ConfigProperties implements InitializingBean {
         // 查询配置的SQL语句
         private String selectConfigsSql = "SELECT property_key, property_value, application FROM la_configs WHERE application = ? OR application = 'public'";
 
-        // 检查配置变更的SQL语句
-        private String checkConfigsChangedSql = "SELECT MD5(GROUP_CONCAT(CONCAT(property_key, property_value, application) ORDER BY property_key, application)) FROM la_configs WHERE application = ? OR application = 'public'";
+        //检查配置变更的SQL语句
+        private String checkConfigsChangedSql = "SELECT MAX(update_time) FROM la_configs WHERE application = ? OR application = 'public'";
     }
 
     @Slf4j
