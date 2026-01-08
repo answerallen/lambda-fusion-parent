@@ -6,6 +6,7 @@ import static com.lambda.fusion.config.ConfigConstants.LogMessages.*;
 import static com.lambda.fusion.config.ConfigConstants.PropertySource.*;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
+import com.lambda.fusion.config.ConfigLoadException;
 import com.lambda.fusion.config.utils.DataSourcePropertyUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -45,14 +46,19 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         DataSourceProperty property = getDataSourceProperty(environment);
         if (property == null) {
             log.warn(DATASOURCE_CONFIG_NOT_FOUND);
-            return null;
+            throw new ConfigLoadException(DATASOURCE_CONFIG_NOT_FOUND);
         }
 
         String url = property.getUrl();
         HikariDataSource currentDataSource = initializeDataSourceIfNeeded(property);
         application = environment.getProperty(SPRING_APPLICATION_NAME, "");
 
-        return createPropertySource(currentDataSource, url);
+        try {
+            return createPropertySource(currentDataSource, url);
+        } catch (ConfigLoadException e) {
+            log.error("Failed to load property source during locate phase.", e);
+            throw e;
+        }
     }
 
     private boolean ignoreRefreshProcessing(Environment environment) {
@@ -64,8 +70,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         try {
             return DataSourcePropertyUtils.getProperty(environment);
         } catch (Exception e) {
-            log.warn(FAILED_TO_GET_DATASOURCE_PROPERTY, e);
-            return null;
+            throw new ConfigLoadException(FAILED_TO_GET_DATASOURCE_PROPERTY, e);
         }
     }
 
@@ -101,14 +106,11 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             log.debug(DATASOURCE_INITIALIZED, url);
             return propertySource;
         } catch (HikariPool.PoolInitializationException e) {
-            log.warn("Failed to initialize connection pool from [{}], using default properties", url, e);
-            return createDefaultPropertySource();
+            throw new ConfigLoadException("Failed to initialize connection pool from [" + url + "]", e);
         } catch (SQLException e) {
-            log.warn("Failed to get database connection from [{}], using default properties", url, e);
-            return createDefaultPropertySource();
+            throw new ConfigLoadException("Failed to get database connection from [" + url + "]", e);
         } catch (Exception e) {
-            log.error("Unexpected error while creating property source from [{}], using default properties", url, e);
-            return createDefaultPropertySource();
+            throw new ConfigLoadException("Unexpected error while creating property source from [" + url + "]", e);
         }
     }
 
@@ -146,8 +148,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         try {
             return DataSourcePropertyUtils.getProperty(environment);
         } catch (Exception e) {
-            log.warn(FAILED_TO_GET_DATASOURCE_PROPERTY_FOR_CHANGE, e);
-            return null;
+            throw new ConfigLoadException(FAILED_TO_GET_DATASOURCE_PROPERTY_FOR_CHANGE, e);
         }
     }
 
