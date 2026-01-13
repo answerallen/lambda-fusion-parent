@@ -48,17 +48,17 @@ public class ServerConfigController {
     public Object getServerConfig(@RequestParam(required = false) String sessionKey) {
         ConfigProperties.Security security = config.getSecurity();
         if (security.isConfigEncryptEnabled()) {
-            Assert.hasText(sessionKey, CONFIG_ENCRYPT_NO_KEY);
+            Assert.hasText(sessionKey, "sessionKey is not empty!");
             try {
-                // 私钥解密会话密钥得到AES密钥
+                // 私钥解密会话密钥得到 AES 密钥
                 RSA rsa = new RSA(security.getPrivateKey(), security.getPublicKey());
                 String aesKey = rsa.decryptStr(sessionKey, KeyType.PrivateKey);
-                // 使用AES密钥加密数据
+                // 使用 AES 密钥加密数据
                 AES aes = new AES(Mode.ECB.name(), AES_PADDING, CharSequenceUtil.bytes(aesKey));
                 return aes.encryptBase64(objectMapper.writeValueAsBytes(config));
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
-                throw new IllegalArgumentException(CONFIG_ENCRYPT_SECURITY_KEY_ERROR);
+                throw new IllegalArgumentException("AES encrypted error!");
             }
         }
         return config;

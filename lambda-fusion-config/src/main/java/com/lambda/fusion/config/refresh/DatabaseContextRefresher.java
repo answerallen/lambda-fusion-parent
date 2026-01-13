@@ -1,6 +1,5 @@
 package com.lambda.fusion.config.refresh;
 
-import static com.lambda.fusion.config.ConfigConstants.ErrorMessages.*;
 import static com.lambda.fusion.config.ConfigConstants.Refresh.*;
 
 import com.lambda.fusion.config.datasource.DatabaseBasedPropertySourceLocator;
@@ -110,7 +109,7 @@ public class DatabaseContextRefresher
                 contextRefresher.refresh();
                 log.debug("Context refresh completed successfully");
             } catch (Exception e) {
-                log.error(FAILED_TO_REFRESH_CONTEXT, e);
+                log.error("Failed to refresh context", e);
             } finally {
                 refreshLock.unlock();
                 log.debug("Successfully released refresh lock");

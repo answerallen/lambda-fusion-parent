@@ -1,7 +1,6 @@
 package com.lambda.fusion.config.datasource;
 
 import static com.lambda.fusion.config.ConfigConstants.DataSource.*;
-import static com.lambda.fusion.config.ConfigConstants.ErrorMessages.*;
 import static com.lambda.fusion.config.ConfigConstants.PropertySource.*;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
@@ -53,8 +52,8 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
 
         DataSourceProperty property = getDataSourceProperty(environment);
         if (property == null) {
-            log.warn(DATASOURCE_CONFIG_NOT_FOUND);
-            throw new ConfigLoadException(DATASOURCE_CONFIG_NOT_FOUND);
+            log.warn("Could not find dataSource configuration, ignored.");
+            throw new ConfigLoadException("Could not find dataSource configuration, ignored.");
         }
 
         String url = property.getUrl();
@@ -78,7 +77,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         try {
             return DataSourcePropertyUtils.getProperty(environment);
         } catch (Exception e) {
-            throw new ConfigLoadException(FAILED_TO_GET_DATASOURCE_PROPERTY, e);
+            throw new ConfigLoadException("Failed to get DataSourceProperty from environment", e);
         }
     }
 
@@ -156,7 +155,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         try {
             return DataSourcePropertyUtils.getProperty(environment);
         } catch (Exception e) {
-            throw new ConfigLoadException(FAILED_TO_GET_DATASOURCE_PROPERTY_FOR_CHANGE, e);
+            throw new ConfigLoadException("Failed to get DataSourceProperty for change detection", e);
         }
     }
 

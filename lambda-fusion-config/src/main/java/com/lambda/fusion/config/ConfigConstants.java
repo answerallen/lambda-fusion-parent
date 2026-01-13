@@ -127,35 +127,6 @@ public final class ConfigConstants {
     }
 
     /**
-     * 错误消息常量
-     */
-    public static final class ErrorMessages {
-        private ErrorMessages() {}
-
-        /**
-         * 数据源配置未找到警告消息
-         */
-        public static final String DATASOURCE_CONFIG_NOT_FOUND = "Could not find dataSource configuration, ignored. ";
-
-        /**
-         * 获取数据源属性失败警告消息
-         */
-        public static final String FAILED_TO_GET_DATASOURCE_PROPERTY =
-                "Failed to get DataSourceProperty from environment";
-
-        /**
-         * 变更检测获取数据源属性失败警告消息
-         */
-        public static final String FAILED_TO_GET_DATASOURCE_PROPERTY_FOR_CHANGE =
-                "Failed to get DataSourceProperty for change detection";
-
-        /**
-         * 上下文刷新失败错误消息
-         */
-        public static final String FAILED_TO_REFRESH_CONTEXT = "Failed to refresh context";
-    }
-
-    /**
      * 加密相关常量
      */
     public static final class Encryption {
@@ -165,16 +136,6 @@ public final class ConfigConstants {
          * AES加密填充方式
          */
         public static final String AES_PADDING = "PKCS7Padding";
-
-        /**
-         * 配置加密无密钥错误消息
-         */
-        public static final String CONFIG_ENCRYPT_NO_KEY = "lambda.fusion.config.encrypt.nokey";
-
-        /**
-         * 配置加密安全密钥错误消息
-         */
-        public static final String CONFIG_ENCRYPT_SECURITY_KEY_ERROR = "lambda.fusion.config.encrypt.secrity.key.error";
     }
 
     /**
