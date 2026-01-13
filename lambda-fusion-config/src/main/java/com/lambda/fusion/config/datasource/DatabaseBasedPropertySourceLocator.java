@@ -2,7 +2,6 @@ package com.lambda.fusion.config.datasource;
 
 import static com.lambda.fusion.config.ConfigConstants.DataSource.*;
 import static com.lambda.fusion.config.ConfigConstants.ErrorMessages.*;
-import static com.lambda.fusion.config.ConfigConstants.LogMessages.*;
 import static com.lambda.fusion.config.ConfigConstants.PropertySource.*;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
@@ -48,7 +47,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
     @Override
     public PropertySource<?> locate(Environment environment) {
         if (ignoreRefreshProcessing(environment)) {
-            log.debug(IGNORING_REFRESH_PROCESSING, environment.getClass().getSimpleName());
+            log.debug("Ignoring refresh processing for environment: {}", environment.getClass().getSimpleName());
             return null;
         }
 
@@ -112,7 +111,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             DataBaseBasedPropertySource propertySource =
                     new DataBaseBasedPropertySource(DATABASE_PROPERTY_SOURCE_NAME, connection, application, configProperties);
             this.setHashcode(propertySource.getSource().toString().hashCode());
-            log.debug(DATASOURCE_INITIALIZED, url);
+            log.debug("DataBaseBasedPropertySource has been initialized. {}", url);
             return propertySource;
         } catch (HikariPool.PoolInitializationException e) {
             throw new ConfigLoadException("Failed to initialize connection pool from [" + url + "]", e);
@@ -131,7 +130,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         dataSourceLock.readLock().lock();
         try {
             if (dataSource == null) {
-                log.debug(DATASOURCE_NULL_NO_CHANGES);
+                log.debug("DataSource is null, no changes detected");
                 return false;
             }
 
@@ -166,7 +165,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         try {
             closeDataSourceSafely(dataSource);
             dataSource = new HikariDataSource(createHikariConfig(property));
-            log.debug(DATASOURCE_REBUILT, dataSource.getJdbcUrl());
+            log.debug("DataBaseBasedPropertySource has been rebuilt. {}", dataSource.getJdbcUrl());
         } finally {
             dataSourceLock.writeLock().unlock();
         }
@@ -180,7 +179,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
 
         DataBaseBasedPropertySource propertySource = getPropertySource(dataSource);
         if (propertySource == null) {
-            log.warn(FAILED_TO_CREATE_PROPERTY_SOURCE_FOR_CHANGE);
+            log.warn("Failed to create property source for change detection");
             return false;
         }
 
@@ -191,7 +190,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         BootstrapPropertySource<DatabaseBasedProperties> replaced = new BootstrapPropertySource<>(propertySource);
         propertySources.replace(replaced.getName(), replaced);
         hashcode = newHashcode; // 确保同步
-        log.debug(PROPERTY_SOURCE_UPDATED);
+        log.debug("PropertySource has been updated due to changes");
         return true;
         // }
         // return false;
@@ -241,14 +240,14 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
 
     public DataBaseBasedPropertySource getPropertySource(HikariDataSource dataSource) {
         if (dataSource == null) {
-            log.warn(DATASOURCE_NULL_CANNOT_CREATE_PROPERTY_SOURCE);
+            log.warn("DataSource is null, cannot create property source");
             return null;
         }
 
         try (Connection connection = dataSource.getConnection()) {
             return new DataBaseBasedPropertySource(DATABASE_PROPERTY_SOURCE_NAME, connection, application,configProperties);
         } catch (SQLException e) {
-            log.warn(FAILED_TO_GET_CONNECTION_FOR_PROPERTY_SOURCE, e);
+            log.warn("Failed to get connection for property source creation", e);
             return null;
         }
     }
@@ -257,9 +256,9 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         if (dataSource != null && !dataSource.isClosed()) {
             try {
                 dataSource.close();
-                log.debug(DATASOURCE_CLOSED_SUCCESSFULLY);
+                log.debug("DataSource closed successfully");
             } catch (Exception e) {
-                log.warn(ERROR_CLOSING_DATASOURCE, e);
+                log.warn("Error occurred while closing DataSource", e);
             }
         }
     }
@@ -270,7 +269,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         try {
             closeDataSourceSafely(dataSource);
             dataSource = null;
-            log.info(LOCATOR_DESTROYED_SUCCESSFULLY);
+            log.info("DatabaseBasedPropertySourceLocator destroyed successfully");
         } finally {
             dataSourceLock.writeLock().unlock();
         }

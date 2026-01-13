@@ -186,7 +186,7 @@ public final class ConfigConstants {
         /**
          * 服务器验证码启用配置键
          */
-        public static final String SERVER_CAPTCHA_ENABLED = "spring.security.form.verify.enabled";
+        public static final String SERVER_CAPTCHA_ENABLED = "lambda.security.form.verify.enabled";
 
         /**
          * 授权密码自定义策略配置键
@@ -212,120 +212,5 @@ public final class ConfigConstants {
          * RSA加密私钥配置键
          */
         public static final String RSA_ENCRYPT_PRIVATE_KEY = "rsa.private-key";
-    }
-
-    /**
-     * 日志消息常量
-     */
-    public static final class LogMessages {
-        private LogMessages() {}
-
-        /**
-         * 忽略刷新处理日志消息
-         */
-        public static final String IGNORING_REFRESH_PROCESSING = "Ignoring refresh processing for environment: {}";
-
-        /**
-         * 数据库配置变更日志消息
-         */
-        public static final String DATABASE_CONFIG_CHANGED =
-                "Database config data has been changed! Ready to refresh context..";
-
-        /**
-         * 获取刷新锁成功日志消息
-         */
-        public static final String REFRESH_LOCK_ACQUIRED = "Successfully acquired refresh lock";
-
-        /**
-         * 释放刷新锁成功日志消息
-         */
-        public static final String REFRESH_LOCK_RELEASED = "Successfully released refresh lock";
-
-        /**
-         * 上下文刷新完成日志消息
-         */
-        public static final String CONTEXT_REFRESH_COMPLETED = "Context refresh completed successfully";
-
-        /**
-         * 刷新进行中跳过日志消息
-         */
-        public static final String REFRESH_IN_PROGRESS_SKIP = "Refresh already in progress, skipping this attempt";
-
-        /**
-         * 数据源为空无变更检测日志消息
-         */
-        public static final String DATASOURCE_NULL_NO_CHANGES = "DataSource is null, no changes detected";
-
-        /**
-         * 启动日志消息
-         */
-        public static final String REFRESHER_STARTING_UP = "DatabaseContextRefresher is starting up...";
-
-        /**
-         * 调度完成日志消息
-         */
-        public static final String REFRESHER_SCHEDULED =
-                "DatabaseContextRefresher scheduled with {}s initial delay and {}s interval";
-
-        /**
-         * 环境变更事件接收日志消息
-         */
-        public static final String ENVIRONMENT_CHANGE_EVENT_RECEIVED =
-                "Environment change event received, context is refreshing!";
-
-        /**
-         * 刷新作用域刷新事件接收日志消息
-         */
-        public static final String REFRESH_SCOPE_EVENT_RECEIVED =
-                "Refresh scope refreshed event received, context refresh finished!";
-
-        /**
-         * 数据源为空无法创建属性源警告消息
-         */
-        public static final String DATASOURCE_NULL_CANNOT_CREATE_PROPERTY_SOURCE =
-                "DataSource is null, cannot create property source";
-
-        /**
-         * 获取连接创建属性源失败警告消息
-         */
-        public static final String FAILED_TO_GET_CONNECTION_FOR_PROPERTY_SOURCE =
-                "Failed to get connection for property source creation";
-
-        /**
-         * 创建属性源变更检测失败警告消息
-         */
-        public static final String FAILED_TO_CREATE_PROPERTY_SOURCE_FOR_CHANGE =
-                "Failed to create property source for change detection";
-
-        /**
-         * 属性源已更新日志消息
-         */
-        public static final String PROPERTY_SOURCE_UPDATED = "PropertySource has been updated due to changes";
-
-        /**
-         * 数据源关闭成功日志消息
-         */
-        public static final String DATASOURCE_CLOSED_SUCCESSFULLY = "DataSource closed successfully";
-
-        /**
-         * 关闭数据源时发生错误警告消息
-         */
-        public static final String ERROR_CLOSING_DATASOURCE = "Error occurred while closing DataSource";
-
-        /**
-         * 数据库属性源定位器销毁成功日志消息
-         */
-        public static final String LOCATOR_DESTROYED_SUCCESSFULLY =
-                "DatabaseBasedPropertySourceLocator destroyed successfully";
-
-        /**
-         * 数据库属性源已重建日志消息
-         */
-        public static final String DATASOURCE_REBUILT = "DataBaseBasedPropertySource has been rebuilt. {}";
-
-        /**
-         * 数据库属性源已初始化日志消息
-         */
-        public static final String DATASOURCE_INITIALIZED = "DataBaseBasedPropertySource has been initialized. {}";
     }
 }

@@ -16,6 +16,9 @@ import lombok.ToString;
 @SuppressFBWarnings("EI_EXPOSE_REP")
 public class Config {
 
+    @Schema(description = "配置ID")
+    private String id;
+
     @Schema(description = "配置信息键")
     private String key;
 

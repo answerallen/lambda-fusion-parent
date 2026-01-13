@@ -1,7 +1,6 @@
 package com.lambda.fusion.config.refresh;
 
 import static com.lambda.fusion.config.ConfigConstants.ErrorMessages.*;
-import static com.lambda.fusion.config.ConfigConstants.LogMessages.*;
 import static com.lambda.fusion.config.ConfigConstants.Refresh.*;
 
 import com.lambda.fusion.config.datasource.DatabaseBasedPropertySourceLocator;
@@ -95,7 +94,7 @@ public class DatabaseContextRefresher
      */
     public void apply() {
         if (databaseBasedPropertySourceLocator.changed(environment)) {
-            log.debug(DATABASE_CONFIG_CHANGED);
+            log.debug("Database config data has been changed! Ready to refresh context..");
             doRefresh();
         }
     }
@@ -105,28 +104,28 @@ public class DatabaseContextRefresher
      */
     public void doRefresh() {
         if (refreshLock.tryLock()) {
-            log.debug(REFRESH_LOCK_ACQUIRED);
+            log.debug("Successfully acquired refresh lock");
             try {
                 final ContextRefresher contextRefresher = beanFactory.getBean(ContextRefresher.class);
                 contextRefresher.refresh();
-                log.debug(CONTEXT_REFRESH_COMPLETED);
+                log.debug("Context refresh completed successfully");
             } catch (Exception e) {
                 log.error(FAILED_TO_REFRESH_CONTEXT, e);
             } finally {
                 refreshLock.unlock();
-                log.debug(REFRESH_LOCK_RELEASED);
+                log.debug("Successfully released refresh lock");
             }
         } else {
-            log.debug(REFRESH_IN_PROGRESS_SKIP);
+            log.debug("Refresh already in progress, skipping this attempt");
         }
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        log.info(REFRESHER_STARTING_UP);
+        log.info("DatabaseContextRefresher is starting up...");
         EXECUTOR_SERVICE.scheduleWithFixedDelay(
                 this::apply, INITIAL_DELAY_SECONDS, REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        log.info(REFRESHER_SCHEDULED, INITIAL_DELAY_SECONDS, REFRESH_INTERVAL_SECONDS);
+        log.info("DatabaseContextRefresher scheduled with {}s initial delay and {}s interval", INITIAL_DELAY_SECONDS, REFRESH_INTERVAL_SECONDS);
     }
 
     @Override
@@ -155,9 +154,9 @@ public class DatabaseContextRefresher
     @Override
     public void onApplicationEvent(@Nonnull ApplicationEvent event) {
         if (event instanceof EnvironmentChangeEvent) {
-            log.debug(ENVIRONMENT_CHANGE_EVENT_RECEIVED);
+            log.debug("Environment change event received, context is refreshing!");
         } else if (event instanceof RefreshScopeRefreshedEvent) {
-            log.debug(REFRESH_SCOPE_EVENT_RECEIVED);
+            log.debug("Refresh scope refreshed event received, context refresh finished!");
         }
     }
 }
