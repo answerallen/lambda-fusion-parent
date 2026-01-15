@@ -130,7 +130,7 @@ public class UserController {
     @PutMapping(value = "/{username}")
     @Operation(summary = "更新用户信息")
     public User update(
-            @Parameter(description = "用户名称", required = true) @PathVariable("username") String username,
+            @PathVariable @Parameter(description = "用户名称", required = true) String username,
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody UpdateUser updateUser) {
         LoginUser operator = OperatorUtils.getOperator();
         updateUser.setUsername(username);
@@ -140,7 +140,7 @@ public class UserController {
 
     @DeleteMapping(value = "/{username}")
     @Operation(summary = "删除用户信息")
-    public void delete(@Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
+    public void delete(@PathVariable @Parameter(description = "用户名", required = true) String username) {
         LoginUser operator = OperatorUtils.getOperator();
         if (tenantAuthorizeManager != null) {
             tenantAuthorizeManager.deleteUser(username);
@@ -176,7 +176,7 @@ public class UserController {
 
     @PatchMapping("/{username}/disabled")
     @Operation(summary = "禁用用户")
-    public void disabled(@Parameter(description = "用户名称", required = true) @PathVariable("username") String username) {
+    public void disabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         LoginUser operator = OperatorUtils.getOperator();
         userService.prohibitUser(operator, 0, username);
 
@@ -187,7 +187,7 @@ public class UserController {
 
     @PatchMapping("/{username}/enabled")
     @Operation(summary = "启用用户")
-    public void enabled(@Parameter(description = "用户名称", required = true) @PathVariable("username") String username) {
+    public void enabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         LoginUser operator = OperatorUtils.getOperator();
         userService.prohibitUser(operator, 1, username);
 
@@ -198,7 +198,7 @@ public class UserController {
 
     @PatchMapping("/{username}/unlock")
     @Operation(summary = "解锁用户")
-    public void unlock(@Parameter(description = "用户名称", required = true) @PathVariable("username") String username) {
+    public void unlock(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         LoginUser operator = OperatorUtils.getOperator();
         userService.unlockUser(username, operator);
     }
@@ -206,7 +206,7 @@ public class UserController {
     @GetMapping("/permission/{username}")
     @Operation(summary = "查询用户所有权限")
     public List<Permission> userPermissions(
-            @Parameter(description = "用户ID", required = true) @PathVariable("username") String username,
+            @PathVariable @Parameter(description = "用户ID", required = true) String username,
             @RequestParam(required = false) String mode) {
         List<Permission> permissions = userService.getUserPermissions(username, mode);
         return TreeBuilder.build(permissions);
@@ -237,9 +237,8 @@ public class UserController {
     @PatchMapping(value = "/unbind/{username}/{type}")
     @Operation(summary = "解除第三方绑定")
     public void unbind(
-            @Parameter(description = "用户编号", required = true) @PathVariable("username") String username,
-            @Parameter(description = "第三方绑定类型(1、钉钉；2、微信)", required = true, schema = @Schema(defaultValue = "1"))
-            @PathVariable("type")
+            @PathVariable @Parameter(description = "用户编号", required = true) String username,
+            @PathVariable @Parameter(description = "第三方绑定类型(1、钉钉；2、微信)", required = true, schema = @Schema(defaultValue = "1"))
             String type) {
         LoginUser operator = OperatorUtils.getOperator();
         userInfoService.unbindUserInfo(operator, type, username);
@@ -298,7 +297,7 @@ public class UserController {
     @PutMapping(value = "/tenant/{username}")
     @Operation(summary = "更新租户管理员用户信息")
     public User updateTenantUser(
-            @Parameter(description = "用户名称", required = true) @PathVariable("username") String username,
+            @PathVariable @Parameter(description = "用户名称", required = true) String username,
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody User user) {
         LoginUser operator = OperatorUtils.getOperator();
         user.setUsername(username);

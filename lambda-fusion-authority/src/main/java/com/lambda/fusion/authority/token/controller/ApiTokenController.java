@@ -56,7 +56,7 @@ public class ApiTokenController {
 
     @PutMapping("/{id}")
     @Operation(description = "修改AipToken", summary = "修改令牌")
-    public void update(@PathVariable("id") String id, @RequestBody @Valid CreateApiToken tokenInputDTO) {
+    public void update(@PathVariable String id, @RequestBody @Valid CreateApiToken tokenInputDTO) {
         ApiTokenEntity apiTokenEntity = tokenInputDTO.toEntity();
         apiTokenEntity.setId(id);
         apiTokenService.updateById(apiTokenEntity);

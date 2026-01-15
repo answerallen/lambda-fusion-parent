@@ -200,13 +200,13 @@ public class RoleController {
     @PatchMapping("/{authority}/disabled")
     @Operation(description = "禁用角色", summary = "禁用角色")
     public void disabled(
-            @Parameter(description = "角色名称", required = true) @PathVariable("authority") String authority) {
+            @PathVariable @Parameter(description = "角色名称", required = true) String authority) {
         roleService.prohibitRole(0, authority);
     }
 
     @PatchMapping("/{authority}/enabled")
     @Operation(description = "启用角色", summary = "启用角色")
-    public void enabled(@Parameter(description = "角色名称", required = true) @PathVariable("authority") String authority) {
+    public void enabled(@PathVariable @Parameter(description = "角色名称", required = true) String authority) {
         roleService.prohibitRole(1, authority);
     }
 

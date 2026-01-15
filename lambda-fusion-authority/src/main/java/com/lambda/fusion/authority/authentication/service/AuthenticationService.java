@@ -1,6 +1,7 @@
 package com.lambda.fusion.authority.authentication.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.authentication.model.AuthenticatedUser;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
@@ -37,6 +38,17 @@ public interface AuthenticationService extends UserDetailService, ThirdPartyLogi
         return getNavigation(user, query.getParentId(), query.getLevel());
     }
 
+
+    /**
+     * 获取用户的导航菜单
+     * @param query 导航查询参数
+     * @return 导航菜单列表
+     */
+    default List<ResourceTree> getNavigation(NavigationQuery query) {
+        LoginUser user = OperatorUtils.getOperator();
+        return getNavigation(user, query.getParentId(), query.getLevel());
+    }
+
     /**
      * 根据角色ID获取用户列表
      *
@@ -51,4 +63,11 @@ public interface AuthenticationService extends UserDetailService, ThirdPartyLogi
      * @return 返回包含用户详细信息的AuthenticatedUser对象，包括用户ID、真实姓名、角色列表、头像、描述、token以及主页路径等信息。
      */
     AuthenticatedUser getUserInfo();
+
+    /**
+     * 获取当前用户的权限码集合
+     *
+     * @return 权限码列表
+     */
+    List<String> getAuthorities();
 }

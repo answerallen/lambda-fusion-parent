@@ -25,9 +25,7 @@ import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
 import com.lambda.security.provider.ThirdPartLoginResult;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,7 +79,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public List<ResourceTree> getNavigation(LoginUser operator, NavigationQuery query) {
-        Assert.notNull(operator, "parameter 'operator' cannot be empty or null");
         Assert.notNull(query, "parameter 'query' cannot be empty or null");
         List<ResourceTree> resourceTrees = authenticationMapper.selectNavigation(query);
         return TreeBuilder.build(resourceTrees);
@@ -127,6 +124,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public LoginUser loadByThirdLoginResult(ThirdPartLoginResult thirdLoginResult, String loginType) {
         return null;
+    }
+
+    @Override
+    public List<String> getAuthorities() {
+        LoginUser operator = OperatorUtils.getOperator();
+        return authenticationMapper.selectAuthoritiesByUsername(operator.getName());
     }
 
     /**

@@ -55,4 +55,12 @@ public interface AuthenticationMapper {
      * @return 用户列表
      */
     List<UserProfile> selectUserProfileByRoleId(@Param("roleId") String roleId);
+
+    /**
+     * 根据用户名获取用户的所有权限码（包括按钮权限等）
+     *
+     * @param username 用户名
+     * @return 权限码列表
+     */
+    List<String> selectAuthoritiesByUsername(@Param("username") String username);
 }

@@ -49,10 +49,10 @@ public class ResourceController {
         return resourceService.getAllResources();
     }
 
-    @PostMapping({"/{id}"})
+    @PostMapping({"/{id}","/"})
     @Operation(summary = "新增资源信息", description = "当id为非空时新增其子资源信息")
     public Resource add(
-            @PathVariable(value = "id", required = false) String id, @Validated @RequestBody CreateResource parameter) {
+            @PathVariable(required = false) String id, @Validated @RequestBody CreateResource parameter) {
         if (StringUtils.isNotBlank(id)) {
             parameter.setParentId(id);
         }
@@ -61,14 +61,14 @@ public class ResourceController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除资源信息", description = "根据编号删除指定的资源信息")
-    public void delete(@Parameter(description = "资源编号", required = true) @PathVariable("id") String id) {
+    public void delete(@PathVariable @Parameter(description = "资源编号", required = true) String id) {
         resourceService.deleteResource(id);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "更新资源信息", description = "根据编号更新指定的资源信息")
     public Resource update(
-            @Parameter(description = "资源编号", required = true) @PathVariable("id") String id,
+            @PathVariable @Parameter(description = "资源编号", required = true) String id,
             @RequestBody Resource resource) {
         resource.setId(id);
         return resourceService.updateResource(resource);
@@ -86,7 +86,7 @@ public class ResourceController {
                         schema = @Schema(allowableValues = {"0", "1", "2"}))
             })
     public void move(
-            @Parameter(description = "资源编号", required = true) @PathVariable("id") String id,
+            @PathVariable @Parameter(description = "资源编号", required = true) String id,
             @RequestBody MoveResource parameter) {
         parameter.setId(id);
         resourceService.move(parameter);

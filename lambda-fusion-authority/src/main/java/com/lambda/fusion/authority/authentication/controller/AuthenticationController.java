@@ -1,8 +1,6 @@
 package com.lambda.fusion.authority.authentication.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
-import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.authentication.model.AuthenticatedUser;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
@@ -36,8 +34,7 @@ public class AuthenticationController {
                     @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
             })
     public List<ResourceTree> getNavigation(@Parameter NavigationQuery query) {
-        LoginUser operator = OperatorUtils.getOperator();
-        return authenticationService.getNavigation(operator, query);
+        return authenticationService.getNavigation(query);
     }
 
     @GetMapping("/userinfo")
@@ -46,5 +43,10 @@ public class AuthenticationController {
         return authenticationService.getUserInfo();
     }
 
+    @GetMapping("/authorities")
+    @Operation(summary = "获取当前用户的权限码集合", description = "返回当前登录用户拥有的所有权限标识符列表")
+    public List<String> getAccessCodes() {
+        return authenticationService.getAuthorities();
+    }
 
 }

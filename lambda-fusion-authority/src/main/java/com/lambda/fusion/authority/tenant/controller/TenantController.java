@@ -154,7 +154,7 @@ public class TenantController {
 
     @PatchMapping("/{id}/enabled")
     @Operation(summary = "启用租户")
-    public void enabled(@Parameter(description = "租户编号", required = true) @PathVariable("id") String id) {
+    public void enabled(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         LoginUser operator = OperatorUtils.getOperator();
         Assert.notNull(id, "租户编号不能为空");
         TenantEntity tenant = tenantService.getById(id);
@@ -164,7 +164,7 @@ public class TenantController {
 
     @PatchMapping("/{id}/disabled")
     @Operation(summary = "禁用租户")
-    public void disabled(@Parameter(description = "租户编号", required = true) @PathVariable("id") String id) {
+    public void disabled(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         LoginUser operator = OperatorUtils.getOperator();
         Assert.notNull(id, "租户编号不能为空");
         TenantEntity tenant = tenantService.getById(id);
@@ -174,7 +174,7 @@ public class TenantController {
 
     @PatchMapping("/{id}/stop")
     @Operation(summary = "停用租户")
-    public void stop(@Parameter(description = "租户编号", required = true) @PathVariable("id") String id) {
+    public void stop(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         LoginUser operator = OperatorUtils.getOperator();
         Assert.notNull(id, "租户编号不能为空");
         TenantEntity tenant = tenantService.getById(id);
@@ -184,7 +184,7 @@ public class TenantController {
 
     @PatchMapping("/{id}/examine")
     @Operation(summary = "审核租户")
-    public void examine(@Parameter(description = "租户编号", required = true) @PathVariable("id") String id) {
+    public void examine(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         LoginUser operator = OperatorUtils.getOperator();
         Assert.notNull(id, "租户编号不能为空");
         TenantEntity tenant = tenantService.getById(id);
@@ -195,7 +195,7 @@ public class TenantController {
     @PatchMapping("/{id}/config")
     @Operation(summary = "修改租户配置")
     public void updateConfig(
-            @Parameter(description = "租户编号", required = true) @PathVariable("id") String id,
+            @PathVariable @Parameter(description = "租户编号", required = true) String id,
             @Parameter(description = "配置json字符串", required = true) @RequestBody Map<String, Object> configMap) {
         LoginUser operator = OperatorUtils.getOperator();
         Assert.notNull(id, "租户编号不能为空");
@@ -207,14 +207,14 @@ public class TenantController {
 
     @GetMapping("/{id}/config")
     @Operation(summary = "获取租户配置")
-    public JsonNode getConfig(@PathVariable("id") String id) {
+    public JsonNode getConfig(@PathVariable String id) {
         LoginUser operator = OperatorUtils.getOperator();
         return tenantService.getTenantConfigureById(operator, id);
     }
 
     @Operation(summary = "初始化租户的主库，需要先设置租户主库映射")
     @PostMapping("/{tenantId}/database/init")
-    public void initTenantMainDataBase(@PathVariable("tenantId") String tenantId) {
+    public void initTenantMainDataBase(@PathVariable String tenantId) {
         LoginUser operator = OperatorUtils.getOperator();
         tenantService.initTenantMainDataBase(tenantId, operator);
     }
