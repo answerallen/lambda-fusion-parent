@@ -1,4 +1,4 @@
-package com.lambda.fusion.startup;
+package com.application.startup;
 
 import com.lambda.fusion.core.annotation.LambdaFusionApplication;
 import org.springframework.boot.SpringApplication;
