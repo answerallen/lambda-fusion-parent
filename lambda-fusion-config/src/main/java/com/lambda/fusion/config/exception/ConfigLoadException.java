@@ -1,4 +1,4 @@
-package com.lambda.fusion.config;
+package com.lambda.fusion.config.exception;
 
 public class ConfigLoadException extends RuntimeException {
     public ConfigLoadException(String message) {

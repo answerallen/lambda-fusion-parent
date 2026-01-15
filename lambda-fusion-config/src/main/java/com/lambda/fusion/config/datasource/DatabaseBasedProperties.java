@@ -3,7 +3,6 @@ package com.lambda.fusion.config.datasource;
 import static com.lambda.fusion.config.ConfigConstants.Database.*;
 
 import com.google.common.collect.Maps;
-import com.lambda.fusion.config.ConfigConstants;
 import com.lambda.fusion.config.ConfigProperties;
 import com.lambda.fusion.config.utils.EncryptUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -53,7 +52,8 @@ public class DatabaseBasedProperties extends Properties {
         super();
     }
 
-    public static String getCheckSum(Connection connection, String application, ConfigProperties configProperties) throws SQLException {
+    public static String getCheckSum(Connection connection, String application, ConfigProperties configProperties)
+            throws SQLException {
         ConfigProperties.Database database = configProperties.getDatabase();
         try (PreparedStatement preparedStatement = connection.prepareStatement(database.getCheckConfigsChangedSql())) {
             preparedStatement.setString(1, application);

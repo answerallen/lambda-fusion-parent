@@ -147,10 +147,12 @@ public class ConfigProperties implements InitializingBean {
     @Setter
     public static class Database {
         // 查询配置的SQL语句
-        private String selectConfigsSql = "SELECT property_key, property_value, application FROM la_configs WHERE application = ? OR application = 'public'";
+        private String selectConfigsSql =
+                "SELECT property_key, property_value, application FROM la_configs WHERE application = ? OR application = 'public'";
 
-        //检查配置变更的SQL语句
-        private String checkConfigsChangedSql = "SELECT MAX(update_time) FROM la_configs WHERE application = ? OR application = 'public'";
+        // 检查配置变更的SQL语句
+        private String checkConfigsChangedSql =
+                "SELECT MAX(update_time) FROM la_configs WHERE application = ? OR application = 'public'";
     }
 
     @Slf4j

@@ -8,7 +8,9 @@ import org.springframework.core.env.EnumerablePropertySource;
 
 public class DataBaseBasedPropertySource extends EnumerablePropertySource<DatabaseBasedProperties> {
 
-    public DataBaseBasedPropertySource(String name, Connection connection, String application, ConfigProperties configProperties) throws SQLException {
+    public DataBaseBasedPropertySource(
+            String name, Connection connection, String application, ConfigProperties configProperties)
+            throws SQLException {
         super(name, new DatabaseBasedProperties(connection, application, configProperties));
     }
 

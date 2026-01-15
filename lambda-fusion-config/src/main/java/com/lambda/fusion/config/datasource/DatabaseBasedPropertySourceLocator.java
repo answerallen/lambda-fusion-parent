@@ -5,7 +5,7 @@ import static com.lambda.fusion.config.ConfigConstants.PropertySource.*;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.config.ConfigProperties;
-import com.lambda.fusion.config.ConfigLoadException;
+import com.lambda.fusion.config.exception.ConfigLoadException;
 import com.lambda.fusion.config.utils.DataSourcePropertyUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -46,7 +46,9 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
     @Override
     public PropertySource<?> locate(Environment environment) {
         if (ignoreRefreshProcessing(environment)) {
-            log.debug("Ignoring refresh processing for environment: {}", environment.getClass().getSimpleName());
+            log.debug(
+                    "Ignoring refresh processing for environment: {}",
+                    environment.getClass().getSimpleName());
             return null;
         }
 
@@ -107,8 +109,8 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
 
     private PropertySource<?> createPropertySource(HikariDataSource currentDataSource, String url) {
         try (Connection connection = currentDataSource.getConnection()) {
-            DataBaseBasedPropertySource propertySource =
-                    new DataBaseBasedPropertySource(DATABASE_PROPERTY_SOURCE_NAME, connection, application, configProperties);
+            DataBaseBasedPropertySource propertySource = new DataBaseBasedPropertySource(
+                    DATABASE_PROPERTY_SOURCE_NAME, connection, application, configProperties);
             this.setHashcode(propertySource.getSource().toString().hashCode());
             log.debug("DataBaseBasedPropertySource has been initialized. {}", url);
             return propertySource;
@@ -244,7 +246,8 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         }
 
         try (Connection connection = dataSource.getConnection()) {
-            return new DataBaseBasedPropertySource(DATABASE_PROPERTY_SOURCE_NAME, connection, application,configProperties);
+            return new DataBaseBasedPropertySource(
+                    DATABASE_PROPERTY_SOURCE_NAME, connection, application, configProperties);
         } catch (SQLException e) {
             log.warn("Failed to get connection for property source creation", e);
             return null;

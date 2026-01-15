@@ -124,7 +124,10 @@ public class DatabaseContextRefresher
         log.info("DatabaseContextRefresher is starting up...");
         EXECUTOR_SERVICE.scheduleWithFixedDelay(
                 this::apply, INITIAL_DELAY_SECONDS, REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        log.info("DatabaseContextRefresher scheduled with {}s initial delay and {}s interval", INITIAL_DELAY_SECONDS, REFRESH_INTERVAL_SECONDS);
+        log.info(
+                "DatabaseContextRefresher scheduled with {}s initial delay and {}s interval",
+                INITIAL_DELAY_SECONDS,
+                REFRESH_INTERVAL_SECONDS);
     }
 
     @Override
