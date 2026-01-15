@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.authentication.mapper;
 
-import com.lambda.fusion.authority.authentication.model.AuthUserDetails;
+import com.lambda.fusion.authority.authentication.model.UserDetails;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.authentication.model.ResourceQuery;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
@@ -22,7 +22,7 @@ public interface AuthenticationMapper {
      * @param username 用户名
      * @return 用户详细信息
      */
-    AuthUserDetails selectUserDetailByUsername(@Param("username") String username);
+    UserDetails selectUserDetailByUsername(@Param("username") String username);
 
     /**
      * 根据手机号加载用户详细信息
@@ -30,7 +30,7 @@ public interface AuthenticationMapper {
      * @param mobile 手机号
      * @return 用户详细信息列表
      */
-    List<AuthUserDetails> selectUserDetailsByMobile(@Param("mobile") String mobile);
+    List<UserDetails> selectUserDetailsByMobile(@Param("mobile") String mobile);
 
     /**
      * 根据查询条件获取导航菜单

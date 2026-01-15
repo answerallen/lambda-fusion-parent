@@ -10,31 +10,27 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.tenant.manager.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.model.*;
-import com.lambda.fusion.authority.user.model.AuthenticatedUser;
-import com.lambda.fusion.authority.user.model.Permission;
-import com.lambda.fusion.authority.user.model.User;
-import com.lambda.fusion.authority.user.model.UserProfile;
-import com.lambda.fusion.authority.user.model.VerifyCode;
 import com.lambda.fusion.authority.user.optimizer.UserQueryOptimizer;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 /**
  * 用户信息Api
@@ -102,7 +98,7 @@ public class UserController {
         return userService.getUserProfiles(operator, orgIds);
     }
 
-    @GetMapping("/my")
+    @GetMapping("/me")
     @Operation(summary = "查询当前用户的详细信息")
     public User getUserById() {
         LoginUser operator = OperatorUtils.getOperator();
@@ -114,18 +110,6 @@ public class UserController {
     public List<String> getNamesByAuthority(@PathVariable String authority) {
         LoginUser operator = OperatorUtils.getOperator();
         return userService.getUserNamesByAuthority(operator.getOrgId(), authority);
-    }
-
-    @GetMapping("/currentUser/info")
-    @Operation(summary = "获取当前登陆用户详细信息")
-    public AuthenticatedUser getCurrentUserInfo() {
-        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
-        AuthenticatedUser authenticatedUser = new AuthenticatedUser();
-        if (userPrincipal != null) {
-            User user = userService.getCurrentUser(userPrincipal);
-            BeanUtils.copyProperties(Objects.requireNonNullElse(user, userPrincipal), authenticatedUser);
-        }
-        return authenticatedUser;
     }
 
     @PostMapping
@@ -255,8 +239,8 @@ public class UserController {
     public void unbind(
             @Parameter(description = "用户编号", required = true) @PathVariable("username") String username,
             @Parameter(description = "第三方绑定类型(1、钉钉；2、微信)", required = true, schema = @Schema(defaultValue = "1"))
-                    @PathVariable("type")
-                    String type) {
+            @PathVariable("type")
+            String type) {
         LoginUser operator = OperatorUtils.getOperator();
         userInfoService.unbindUserInfo(operator, type, username);
     }
@@ -283,9 +267,9 @@ public class UserController {
     @Operation(
             summary = "更新个人信息",
             parameters = {
-                @Parameter(name = "nickname", description = "昵称", required = true),
-                @Parameter(name = "email", description = "邮箱", required = true),
-                @Parameter(name = "personal", description = "新增字段")
+                    @Parameter(name = "nickname", description = "昵称", required = true),
+                    @Parameter(name = "email", description = "邮箱", required = true),
+                    @Parameter(name = "personal", description = "新增字段")
             })
     public User updateInfo(MultipartFile avatar, RestUserInfo restUserInfo) {
         LoginUser operator = OperatorUtils.getOperator();

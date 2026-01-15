@@ -71,12 +71,6 @@ public interface UserService {
      * @param pageable   分页信息
      * @param parameters 参数信息
      */
-    /***
-     * 查询注册用户列表
-     *
-     * @param pageable   分页信息
-     * @param parameters 参数信息
-     */
     Page<User> getUsers(Page<User> pageable, UserSearchParams parameters);
 
     /***

@@ -43,7 +43,7 @@
     </resultMap>
 
 
-    <resultMap id="AuthenticationUserDetailResultMap" type="com.lambda.fusion.authority.authentication.model.AuthUserDetails">
+    <resultMap id="AuthenticationUserDetailResultMap" type="com.lambda.fusion.authority.authentication.model.UserDetails">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="password" property="password" javaType="String"/>

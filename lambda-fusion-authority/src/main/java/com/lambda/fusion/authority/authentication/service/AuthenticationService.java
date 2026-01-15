@@ -1,25 +1,27 @@
 package com.lambda.fusion.authority.authentication.service;
 
 import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.fusion.authority.authentication.model.AuthenticatedUser;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.security.service.ThirdPartyLoginService;
 import com.lambda.security.service.UserDetailService;
+
 import java.util.List;
 
 /**
  * 认证服务接口
  * 负责用户认证、授权和导航菜单相关的业务逻辑
  */
-public interface AuthService extends UserDetailService, ThirdPartyLoginService {
+public interface AuthenticationService extends UserDetailService, ThirdPartyLoginService {
 
     /**
      * 获取用户的导航菜单
      *
-     * @param user 登录用户
+     * @param user     登录用户
      * @param parentId 父级菜单ID，只返回此菜单下的数据
-     * @param level 指定菜单层级
+     * @param level    指定菜单层级
      * @return 导航菜单列表
      */
     List<ResourceTree> getNavigation(LoginUser user, String parentId, Integer level);
@@ -27,7 +29,7 @@ public interface AuthService extends UserDetailService, ThirdPartyLoginService {
     /**
      * 获取用户的导航菜单
      *
-     * @param user 登录用户
+     * @param user  登录用户
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
@@ -42,4 +44,11 @@ public interface AuthService extends UserDetailService, ThirdPartyLoginService {
      * @return 用户列表
      */
     List<UserProfile> getUsersByRoleId(String roleId);
+
+    /**
+     * 获取当前登录用户的信息。
+     *
+     * @return 返回包含用户详细信息的AuthenticatedUser对象，包括用户ID、真实姓名、角色列表、头像、描述、token以及主页路径等信息。
+     */
+    AuthenticatedUser getUserInfo();
 }

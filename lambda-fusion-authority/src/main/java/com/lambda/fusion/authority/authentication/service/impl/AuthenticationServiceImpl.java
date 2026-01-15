@@ -1,16 +1,22 @@
 package com.lambda.fusion.authority.authentication.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
+import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
-import com.lambda.fusion.authority.authentication.model.AuthUserDetails;
+import com.lambda.fusion.authority.authentication.model.AuthenticatedUser;
+import com.lambda.fusion.authority.authentication.model.UserDetails;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
-import com.lambda.fusion.authority.authentication.service.AuthService;
+import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
+import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
+import com.lambda.fusion.authority.user.model.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.identity.UserPrincipal;
@@ -32,14 +38,15 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthServiceImpl implements AuthService {
+public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final AuthenticationMapper authenticationMapper;
+    private final UserInfoMapper userInfoMapper;
 
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
         Assert.notNull(username, "parameter 'username' cannot be empty or null");
-        AuthUserDetails authUserDetails = authenticationMapper.selectUserDetailByUsername(username);
+        UserDetails authUserDetails = authenticationMapper.selectUserDetailByUsername(username);
         if (authUserDetails == null) {
             throw new UsernameNotFoundException("user in not found");
         }
@@ -49,8 +56,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<AuthUserDetails> details = authenticationMapper.selectUserDetailsByMobile(mobile);
-        AuthUserDetails user = Optional.ofNullable(details)
+        List<UserDetails> details = authenticationMapper.selectUserDetailsByMobile(mobile);
+        UserDetails user = Optional.ofNullable(details)
                 .filter(CollUtil::isNotEmpty)
                 .filter(d -> d.size() == 1)
                 .map(List::getFirst)
@@ -81,6 +88,38 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public List<UserProfile> getUsersByRoleId(String roleId) {
         return authenticationMapper.selectUserProfileByRoleId(roleId);
+    }
+
+    @Override
+    public AuthenticatedUser getUserInfo() {
+        LoginUser operator = OperatorUtils.getOperator();
+        UserDetails userDetails = authenticationMapper.selectUserDetailByUsername(operator.getName());
+        if (userDetails == null) {
+            throw new UsernameNotFoundException("user not found");
+        }
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        BeanUtil.copyProperties(userDetails, user);
+
+        user.setUserId(userDetails.getUsername());
+        user.setRealName(userDetails.getNickname());
+
+        if (CollUtil.isNotEmpty(userDetails.getAuthorities())) {
+            user.setRoles(new ArrayList<>(userDetails.getAuthorities()));
+        } else {
+            user.setRoles(new ArrayList<>());
+        }
+
+        UserInfoEntity userInfoEntity = userInfoMapper.selectById(operator.getName());
+        if (userInfoEntity != null) {
+            user.setAvatar(userInfoEntity.getAvatar());
+            user.setDesc(userInfoEntity.getRemark());
+        }
+
+        user.setToken(StpUtil.getTokenValue());
+        user.setHomePath("/dashboard/analysis");
+
+        return user;
     }
 
     @Override
