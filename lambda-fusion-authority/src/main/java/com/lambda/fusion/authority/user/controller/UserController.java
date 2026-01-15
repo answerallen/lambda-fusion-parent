@@ -20,6 +20,9 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -27,10 +30,6 @@ import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
 
 /**
  * 用户信息Api
@@ -238,8 +237,12 @@ public class UserController {
     @Operation(summary = "解除第三方绑定")
     public void unbind(
             @PathVariable @Parameter(description = "用户编号", required = true) String username,
-            @PathVariable @Parameter(description = "第三方绑定类型(1、钉钉；2、微信)", required = true, schema = @Schema(defaultValue = "1"))
-            String type) {
+            @PathVariable
+                    @Parameter(
+                            description = "第三方绑定类型(1、钉钉；2、微信)",
+                            required = true,
+                            schema = @Schema(defaultValue = "1"))
+                    String type) {
         LoginUser operator = OperatorUtils.getOperator();
         userInfoService.unbindUserInfo(operator, type, username);
     }
@@ -266,9 +269,9 @@ public class UserController {
     @Operation(
             summary = "更新个人信息",
             parameters = {
-                    @Parameter(name = "nickname", description = "昵称", required = true),
-                    @Parameter(name = "email", description = "邮箱", required = true),
-                    @Parameter(name = "personal", description = "新增字段")
+                @Parameter(name = "nickname", description = "昵称", required = true),
+                @Parameter(name = "email", description = "邮箱", required = true),
+                @Parameter(name = "personal", description = "新增字段")
             })
     public User updateInfo(MultipartFile avatar, RestUserInfo restUserInfo) {
         LoginUser operator = OperatorUtils.getOperator();
@@ -281,10 +284,10 @@ public class UserController {
 
     @PostMapping(value = "/send/mobile/code")
     @Operation(summary = "发送手机验证码")
-    public VerifyCode sendMobileVerifyCodeStore(
+    public VerifyCode sendMobileVerifyCode(
             @Parameter(description = "手机号", required = true) @RequestParam("mobile") String mobile) {
         LoginUser operator = OperatorUtils.getOperator();
-        return userCenterService.sendMobileVerifyCodeStore(operator.getName(), mobile);
+        return userCenterService.sendMobileVerifyCode(operator.getName(), mobile);
     }
 
     @GetMapping("/tenant")

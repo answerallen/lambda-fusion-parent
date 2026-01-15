@@ -49,10 +49,9 @@ public class ResourceController {
         return resourceService.getAllResources();
     }
 
-    @PostMapping({"/{id}","/"})
+    @PostMapping({"/{id}", "/"})
     @Operation(summary = "新增资源信息", description = "当id为非空时新增其子资源信息")
-    public Resource add(
-            @PathVariable(required = false) String id, @Validated @RequestBody CreateResource parameter) {
+    public Resource add(@PathVariable(required = false) String id, @Validated @RequestBody CreateResource parameter) {
         if (StringUtils.isNotBlank(id)) {
             parameter.setParentId(id);
         }
@@ -68,8 +67,7 @@ public class ResourceController {
     @PutMapping("/{id}")
     @Operation(summary = "更新资源信息", description = "根据编号更新指定的资源信息")
     public Resource update(
-            @PathVariable @Parameter(description = "资源编号", required = true) String id,
-            @RequestBody Resource resource) {
+            @PathVariable @Parameter(description = "资源编号", required = true) String id, @RequestBody Resource resource) {
         resource.setId(id);
         return resourceService.updateResource(resource);
     }

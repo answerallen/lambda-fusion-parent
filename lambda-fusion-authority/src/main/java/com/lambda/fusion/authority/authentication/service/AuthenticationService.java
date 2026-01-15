@@ -8,7 +8,6 @@ import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.security.service.ThirdPartyLoginService;
 import com.lambda.security.service.UserDetailService;
-
 import java.util.List;
 
 /**
@@ -37,7 +36,6 @@ public interface AuthenticationService extends UserDetailService, ThirdPartyLogi
     default List<ResourceTree> getNavigation(LoginUser user, NavigationQuery query) {
         return getNavigation(user, query.getParentId(), query.getLevel());
     }
-
 
     /**
      * 获取用户的导航菜单

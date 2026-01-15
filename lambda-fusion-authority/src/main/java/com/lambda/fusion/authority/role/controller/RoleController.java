@@ -199,8 +199,7 @@ public class RoleController {
 
     @PatchMapping("/{authority}/disabled")
     @Operation(description = "禁用角色", summary = "禁用角色")
-    public void disabled(
-            @PathVariable @Parameter(description = "角色名称", required = true) String authority) {
+    public void disabled(@PathVariable @Parameter(description = "角色名称", required = true) String authority) {
         roleService.prohibitRole(0, authority);
     }
 

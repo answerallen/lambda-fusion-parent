@@ -114,25 +114,40 @@
     </select>
 
     <select id="selectUserProfileByRoleId" resultType="com.lambda.fusion.authority.user.model.UserProfile">
-        SELECT
-        U.username,
-        U.nickname
-        FROM
-        LA_USER_ROLES UR
-        INNER JOIN LA_USERS U ON U.USERNAME = UR.USERNAME
-        AND UR.AUTHORITY = #{roleId}
+        SELECT U.username,
+               U.nickname
+        FROM LA_USER_ROLES UR
+                 INNER JOIN LA_USERS U ON U.USERNAME = UR.USERNAME
+            AND UR.AUTHORITY = #{roleId}
     </select>
 
     <select id="selectAuthoritiesByUsername" resultType="java.lang.String">
-        SELECT DISTINCT R.ID
-        FROM LA_RESOURCES R
-                 LEFT JOIN LA_ROLE_RESOURCES RR ON R.ID = RR.RESOURCE_ID
-                 LEFT JOIN LA_USER_ROLES UR ON RR.AUTHORITY = UR.AUTHORITY AND UR.USERNAME = #{username}
-                 LEFT JOIN LA_ORGANIZATION_ROLES ORG_R ON RR.AUTHORITY = ORG_R.AUTHORITY
-                 LEFT JOIN LA_USER_ORGANIZATION UO_ROLE ON ORG_R.ORGANIZATION_ID = UO_ROLE.ORGANIZATION_ID AND UO_ROLE.USERNAME = #{username}
-                 LEFT JOIN LA_ORGANIZATION_RESOURCES ORG_RES ON R.ID = ORG_RES.RESOURCE_ID
-                 LEFT JOIN LA_USER_ORGANIZATION UO_RES ON ORG_RES.ORGANIZATION_ID = UO_RES.ORGANIZATION_ID AND UO_RES.USERNAME = #{username}
-        WHERE R.RES_TYPE = 3
-          AND (UR.USERNAME IS NOT NULL OR UO_ROLE.USERNAME IS NOT NULL OR UO_RES.USERNAME IS NOT NULL)
+   SELECT R.ID
+    FROM LA_RESOURCES R
+    WHERE R.RES_TYPE = 3
+      AND (
+        EXISTS (
+          SELECT 1
+          FROM LA_ROLE_RESOURCES RR
+          WHERE RR.RESOURCE_ID = R.ID
+            AND RR.AUTHORITY IN (
+              SELECT AUTHORITY FROM LA_USER_ROLES WHERE USERNAME = #{username}
+              UNION
+              SELECT ORG_R.AUTHORITY
+              FROM LA_ORGANIZATION_ROLES ORG_R
+              INNER JOIN LA_USER_ORGANIZATION UO
+                ON ORG_R.ORGANIZATION_ID = UO.ORGANIZATION_ID
+              WHERE UO.USERNAME = #{username}
+            )
+        )
+        OR EXISTS (
+          SELECT 1
+          FROM LA_ORGANIZATION_RESOURCES ORG_RES
+          INNER JOIN LA_USER_ORGANIZATION UO
+            ON ORG_RES.ORGANIZATION_ID = UO.ORGANIZATION_ID
+          WHERE ORG_RES.RESOURCE_ID = R.ID
+            AND UO.USERNAME = #{username}
+        )
+      )
     </select>
 </mapper>

@@ -29,7 +29,7 @@ public class UserCenterServiceImpl implements UserCenterService {
     private final SmsMessageSender shortMessageSender;
 
     @Override
-    public VerifyCode sendMobileVerifyCodeStore(@NonNull String username, @NonNull String mobile) {
+    public VerifyCode sendMobileVerifyCode(@NonNull String username, @NonNull String mobile) {
 
         return null;
     }

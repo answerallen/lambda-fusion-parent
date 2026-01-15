@@ -1,9 +1,8 @@
 package com.lambda.fusion.authority.authentication.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
-
 import java.util.List;
+import lombok.Data;
 
 @Data
 @Schema(description = "登陆用户信息")

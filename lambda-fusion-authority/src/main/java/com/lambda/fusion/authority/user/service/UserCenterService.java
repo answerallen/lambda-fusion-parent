@@ -12,7 +12,7 @@ public interface UserCenterService {
      * @param username
      * @param mobile
      */
-    VerifyCode sendMobileVerifyCodeStore(@NonNull String username, @NonNull String mobile);
+    VerifyCode sendMobileVerifyCode(@NonNull String username, @NonNull String mobile);
 
     /**
      * 更新用户手机号
