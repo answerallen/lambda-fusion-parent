@@ -60,7 +60,7 @@
         T1.id,
         T1.res_name,
         T1.res_path,
-        T1.ico,
+        T1.ico as icon,
         T1.res_rank,
         T1.orderNo,
         T1.parentId,
