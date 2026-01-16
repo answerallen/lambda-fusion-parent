@@ -142,10 +142,10 @@
         SELECT
         T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled,
         R.AUTHORITY,
-        R.alias, R.tenantId, O.id As orgId, O.alias As orgAlias, OL.ON_LINE, OL.OFFLINE_TIME,
+        R.alias, R.tenant_id, O.id As orgId, O.alias As orgAlias, OL.ON_LINE, OL.OFFLINE_TIME,
         TC.NICKNAME CREATOR, T.EXPIRED_TIME
         FROM LA_USERS T
-        LEFT JOIN (SELECT T1.USERNAME,T1.authority, T2.alias, T2.tenantId FROM LA_USER_ROLES T1
+        LEFT JOIN (SELECT T1.USERNAME,T1.authority, T2.alias, T2.tenant_id FROM LA_USER_ROLES T1
         INNER JOIN LA_ROLES T2 ON t2.AUTHORITY = T1.authority AND T2.enabled = 1) R ON R.USERNAME = T.username
         LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
         LEFT JOIN LA_ORGANIZATION O ON O.id = UO.ORGANIZATION_ID
@@ -212,7 +212,7 @@
     <insert id="insertUser" parameterType="com.lambda.fusion.authority.user.model.User">
         INSERT INTO LA_USERS (USERNAME, PASSWORD, NICKNAME, MOBILE, EMAIL, CREATE_DATE, ENABLED, TENANT_ID, CREATOR, EXPIRED_TIME)
         VALUES(#{username}, #{password}, #{nickname}, #{mobile,jdbcType=VARCHAR}, #{email, jdbcType=VARCHAR},
-        #{createDate, jdbcType=TIMESTAMP}, 1, #{tenantId, jdbcType=VARCHAR}, #{creator, jdbcType=VARCHAR}, #{expiredTime, jdbcType=TIMESTAMP})
+        #{createDate, jdbcType=TIMESTAMP}, 1, #{tenant_Id, jdbcType=VARCHAR}, #{creator, jdbcType=VARCHAR}, #{expiredTime, jdbcType=TIMESTAMP})
     </insert>
     <!-- 更新用户 -->
     <update id="updateUser" parameterType="com.lambda.fusion.authority.user.model.User">
@@ -222,7 +222,7 @@
             email = #{email, jdbcType=VARCHAR},
             EXPIRED_TIME = #{expiredTime, jdbcType=TIMESTAMP}
         <if test="tenantId != null and tenantId != ''">
-                ,TENANT_ID = #{tenantId, jdbcType=VARCHAR}
+                ,TENANT_ID = #{tenant_id, jdbcType=VARCHAR}
         </if>
         WHERE username = #{username}
     </update>
@@ -335,7 +335,7 @@
 
     <insert id="saveUserPermission">
         INSERT INTO LA_ROLE_RESOURCES (resourceid, authority, tenantId, la_manage)
-        VALUES (#{roleResources.resourceId}, #{uid}, #{tenantId, jdbcType=VARCHAR},#{roleResources.laManage})
+        VALUES (#{roleResources.resourceId}, #{uid}, #{tenant_id, jdbcType=VARCHAR},#{roleResources.laManage})
     </insert>
 
     <!-- 批量更新用户权限 -->
@@ -354,7 +354,7 @@
         LEFT JOIN LA_USER_ORGANIZATION T2 ON T1.USERNAME = T2.USERNAME
         <where>
             <if test="tenantId != null and tenantId !='' ">
-                T1.TENANT_ID = #{tenantId}
+                T1.TENANT_ID = #{tenant_id}
             </if>
             <if test="orgIds != null and orgIds.size > 0">
                 AND T2.ORGANIZATION_ID IN
@@ -471,7 +471,7 @@
         INNER JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
         <where>
             <if test="tenantId != null and tenantId != ''">
-                AND UO.ORGANIZATION_ID = #{tenantId}
+                AND UO.ORGANIZATION_ID = #{tenant_id}
             </if>
             AND UR.AUTHORITY = 'ROLE_TENANT'
         </where>

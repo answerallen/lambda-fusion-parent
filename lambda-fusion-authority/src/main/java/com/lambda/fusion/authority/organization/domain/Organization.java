@@ -52,7 +52,6 @@ public class Organization extends BaseVO<OrganizationEntity> implements TreeNode
     private String id;
 
     @Schema(description = "组织名")
-    @JsonProperty("organization")
     @NotBlank
     @Length(max = 40)
     private String name;
@@ -107,6 +106,7 @@ public class Organization extends BaseVO<OrganizationEntity> implements TreeNode
     private String spid;
 
     @Schema(description = "组织排序号")
+    @JsonProperty("sort")
     private int orderNo;
 
     @Override

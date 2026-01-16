@@ -54,7 +54,7 @@ public class UserController {
         this.tenantAuthorizeManager = tenantAuthorizeManager;
     }
 
-    @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
+    @GetMapping({"", "/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询所有用户列表")
     public Page<User> page(
             @PathVariable(required = false) Integer number,
@@ -66,19 +66,20 @@ public class UserController {
         if (size != null) {
             userQuery.setPageSize(size);
         }
-        return userService.getUsers(userQuery.getPage(), userQueryOptimizer.getUsersQueryParameters(userQuery));
+        UserSearchParams usersQueryParameters = userQueryOptimizer.getUsersQueryParameters(userQuery);
+        return userService.getUsers(userQuery.getPage(), usersQueryParameters);
     }
 
     @GetMapping(value = "/{username}/check")
     @Operation(summary = "检查用户名是否存在")
     public Boolean checkName(
-            @Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
+            @PathVariable @Parameter(description = "用户名", required = true) String username) {
         return userService.checkUserName(StrUtil.trim(username));
     }
 
     @GetMapping(value = "/{username}")
     @Operation(summary = "查询用户信息")
-    public User get(@Parameter(description = "用户名", required = true) @PathVariable("username") String username) {
+    public User get(@PathVariable @Parameter(description = "用户名", required = true) String username) {
         return userService.getUserByUsername(StrUtil.trim(username));
     }
 
@@ -88,7 +89,7 @@ public class UserController {
         return userService.getUsersByKey(key);
     }
 
-    @GetMapping()
+    @GetMapping("/allUser")
     @Operation(summary = "查询用户下拉列表")
     public List<UserProfile> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
         LoginUser operator = OperatorUtils.getOperator();

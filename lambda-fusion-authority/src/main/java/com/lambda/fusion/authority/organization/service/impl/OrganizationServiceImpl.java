@@ -1,8 +1,5 @@
 package com.lambda.fusion.authority.organization.service.impl;
 
-import static com.lambda.fusion.core.Constants.FUZZY;
-import static com.lambda.fusion.core.Constants.JOINER;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Lists;
@@ -11,16 +8,7 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.AuthorityProperties;
-import com.lambda.fusion.authority.organization.domain.CreateOrganization;
-import com.lambda.fusion.authority.organization.domain.Organization;
-import com.lambda.fusion.authority.organization.domain.OrganizationEntity;
-import com.lambda.fusion.authority.organization.domain.OrganizationQuery;
-import com.lambda.fusion.authority.organization.domain.OrganizationTree;
-import com.lambda.fusion.authority.organization.domain.OrganizationWithUser;
-import com.lambda.fusion.authority.organization.domain.UpdateOrganization;
-import com.lambda.fusion.authority.organization.domain.UserOrganization;
-import com.lambda.fusion.authority.organization.domain.UserOrganizationChange;
-import com.lambda.fusion.authority.organization.domain.UserOrganizationEntity;
+import com.lambda.fusion.authority.organization.domain.*;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
@@ -36,17 +24,6 @@ import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -56,6 +33,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.annotation.Nonnull;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.core.Constants.FUZZY;
+import static com.lambda.fusion.core.Constants.JOINER;
 
 @Slf4j
 @Service
@@ -91,7 +75,7 @@ public class OrganizationServiceImpl implements OrganizationService {
      * 根据条件获取组织列表
      *
      * @param userPrincipal 操作用户
-     * @param parameters 查询参数
+     * @param parameters    查询参数
      * @return 组织列表
      */
     private List<Organization> getOrganizationsByCondition(UserPrincipal userPrincipal, OrganizationQuery parameters) {
@@ -522,15 +506,18 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     public List<String> getSubOrganizationIds(LoginUser operator) {
         List<String> orgIds = new ArrayList<>();
-        //     TODO   if (!OperatorUtils.containsAnyManager(operator)) {
-        String orgId = operator.getOrgId();
-        if (StringUtils.isNotBlank(orgId)) {
-            orgIds.add(orgId);
-            orgIds.addAll(getChildrenById(orgId));
-        } else {
-            orgIds.add("undefined");
+        if(operator instanceof UserPrincipal userPrincipal) {
+            //todo 根据用户类型增加组织机构权限
+            if (userPrincipal.isManager()) {
+                String orgId = operator.getOrgId();
+                if (StringUtils.isNotBlank(orgId)) {
+                    orgIds.add(orgId);
+                    orgIds.addAll(getChildrenById(orgId));
+                } else {
+                    orgIds.add("undefined");
+                }
+            }
         }
-        //        }
         return orgIds;
     }
 
