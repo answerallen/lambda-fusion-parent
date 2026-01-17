@@ -44,12 +44,6 @@ public class UpdateUser extends BaseDTO<UserEntity> {
     @Schema(description = "电子邮箱")
     private String email;
 
-    @Schema(description = "创建时间")
-    private Date createDate;
-
-    @Schema(description = "工号")
-    private String jobno;
-
     @Schema(description = "租户ID")
     private String tenantId;
 
@@ -69,12 +63,6 @@ public class UpdateUser extends BaseDTO<UserEntity> {
     @Valid
     @JsonProperty("props")
     private UserInfo props;
-
-    @Schema(description = "禁止批被分配")
-    private Boolean disAllocation;
-
-    @Schema(description = "是否可以被操作")
-    private Boolean noPermission;
 
     @Schema(description = "过期时间")
     private Date expiredTime;
