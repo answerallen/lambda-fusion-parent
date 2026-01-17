@@ -70,7 +70,7 @@ public class UserCenterServiceImpl implements UserCenterService {
                 userInfoMapper.updateAvatar(username, avatar);
             } else {
                 userInfo = new UserInfoEntity();
-                userInfo.setUserid(username);
+                userInfo.setUsername(username);
                 userInfo.setAvatar(avatar);
                 userInfoMapper.insert(userInfo);
             }

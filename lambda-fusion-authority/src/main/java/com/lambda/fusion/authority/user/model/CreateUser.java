@@ -47,9 +47,6 @@ public class CreateUser extends BaseDTO<UserEntity> {
     @Schema(description = "租户ID")
     private String tenantId;
 
-    @Schema(description = "用户创建人")
-    private String owner;
-
     @FieldMapping(target = "enabled", ignore = true)
     @Schema(description = "是否启用")
     private boolean enabled;

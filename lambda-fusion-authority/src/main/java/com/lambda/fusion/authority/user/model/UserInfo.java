@@ -1,16 +1,17 @@
 package com.lambda.fusion.authority.user.model;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.shared.BaseDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
+@AutoConverter(target = UserInfoEntity.class)
 @Getter
 @Setter
 @Schema(description = "用户扩展信息")
-@SuppressFBWarnings({"UUF_UNUSED_FIELD", "CT_CONSTRUCTOR_THROW"})
-public class UserInfo {
-    private String userid;
+public class UserInfo extends BaseDTO<UserInfoEntity> {
+    private String username;
 
     /**
      * 用户头像
@@ -42,11 +43,6 @@ public class UserInfo {
     private String status;
 
     /**
-     * 路队编号
-     */
-    private String filaNo;
-
-    /**
      * 员工工号
      */
     private String empNo;
@@ -67,11 +63,6 @@ public class UserInfo {
     private String wechatNo;
 
     /**
-     * 是否需要修改密码
-     */
-    private Boolean passwordResetRequired;
-
-    /**
      * 扩展参数
      */
     private String extendParam;
@@ -80,6 +71,11 @@ public class UserInfo {
      * 企业微信名称
      */
     private String wechatName;
+
+    /**
+     * 是否需要修改密码
+     */
+    private Boolean passwordResetRequired = true;
 
     /**
      * 密码修改间隔天数

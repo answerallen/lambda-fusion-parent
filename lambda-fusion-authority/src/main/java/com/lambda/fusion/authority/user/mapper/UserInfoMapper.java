@@ -28,7 +28,7 @@ public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
     @InterceptorIgnore(tenantLine = "1")
     default Integer updateStatus(String userName, Boolean updatePwd) {
         return update(new LambdaUpdateWrapper<UserInfoEntity>()
-                .eq(UserInfoEntity::getUserid, userName)
+                .eq(UserInfoEntity::getUsername, userName)
                 .set(UserInfoEntity::getUpdatePwd, updatePwd));
     }
 
@@ -40,7 +40,7 @@ public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
      */
     default void updateAvatar(String userName, String avatar) {
         update(new LambdaUpdateWrapper<UserInfoEntity>()
-                .eq(UserInfoEntity::getUserid, userName)
+                .eq(UserInfoEntity::getUsername, userName)
                 .set(UserInfoEntity::getAvatar, avatar));
     }
 }

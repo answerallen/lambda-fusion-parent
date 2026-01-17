@@ -1,5 +1,8 @@
 package com.lambda.fusion.authority.organization.service.impl;
 
+import static com.lambda.fusion.core.Constants.FUZZY;
+import static com.lambda.fusion.core.Constants.JOINER;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Lists;
@@ -24,6 +27,9 @@ import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
+import java.util.*;
+import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -33,13 +39,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import javax.annotation.Nonnull;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.core.Constants.FUZZY;
-import static com.lambda.fusion.core.Constants.JOINER;
 
 @Slf4j
 @Service
@@ -506,8 +505,8 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     public List<String> getSubOrganizationIds(LoginUser operator) {
         List<String> orgIds = new ArrayList<>();
-        if(operator instanceof UserPrincipal userPrincipal) {
-            //todo 根据用户类型增加组织机构权限
+        if (operator instanceof UserPrincipal userPrincipal) {
+            // todo 根据用户类型增加组织机构权限
             if (userPrincipal.isManager()) {
                 String orgId = operator.getOrgId();
                 if (StringUtils.isNotBlank(orgId)) {

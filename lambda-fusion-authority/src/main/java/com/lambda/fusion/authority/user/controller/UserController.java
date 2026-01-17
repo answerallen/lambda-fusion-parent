@@ -54,7 +54,7 @@ public class UserController {
         this.tenantAuthorizeManager = tenantAuthorizeManager;
     }
 
-    @GetMapping({"","/page", "/page/{number:\\d+}/size/{size:\\d+}"})
+    @GetMapping({"", "/page", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询所有用户列表")
     public Page<User> page(
             @PathVariable(required = false) Integer number,
@@ -72,8 +72,7 @@ public class UserController {
 
     @GetMapping(value = "/{username}/check")
     @Operation(summary = "检查用户名是否存在")
-    public Boolean checkName(
-            @PathVariable @Parameter(description = "用户名", required = true) String username) {
+    public Boolean checkName(@PathVariable @Parameter(description = "用户名", required = true) String username) {
         return userService.checkUserName(StrUtil.trim(username));
     }
 
@@ -117,14 +116,14 @@ public class UserController {
     public User add(@Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateUser createUser) {
         LoginUser operator = OperatorUtils.getOperator();
         userService.addUser(createUser, operator);
-        User user = userService.getUserByUsername(createUser.getUsername());
+
         if (MapUtils.isNotEmpty(createUser.getPersonal())) {
             userService.addUserFields(createUser.getPersonal(), createUser.getUsername());
         }
         if (tenantAuthorizeManager != null) {
             // 添加租户用户
         }
-        return user;
+        return userService.getUserByUsername(createUser.getUsername());
     }
 
     @PutMapping(value = "/{username}")

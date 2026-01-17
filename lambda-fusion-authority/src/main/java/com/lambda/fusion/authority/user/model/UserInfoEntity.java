@@ -4,23 +4,23 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import com.lambda.cloud.core.annotation.AutoConverter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.validator.constraints.Length;
 
+@AutoConverter(target = UserInfo.class)
 @Getter
 @Setter
 @ToString
 @TableName("LA_USER_INFO")
 @Schema(description = "用户扩展信息")
-@SuppressFBWarnings({"CT_CONSTRUCTOR_THROW"})
 public class UserInfoEntity {
     @TableId("USERNAME")
     @JsonIgnore
-    private String userid;
+    private String username;
 
     @TableField("AVATAR")
     @Schema(description = "用户头像")

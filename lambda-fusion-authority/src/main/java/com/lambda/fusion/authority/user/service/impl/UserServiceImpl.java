@@ -1,5 +1,9 @@
 package com.lambda.fusion.authority.user.service.impl;
 
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
+import static com.lambda.fusion.core.Constants.ROLE_DEV;
+
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjectUtil;
@@ -11,6 +15,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.organization.domain.OrganizationEntity;
@@ -27,6 +32,10 @@ import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -38,22 +47,12 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
-import static com.lambda.fusion.core.Constants.ROLE_DEV;
 
 @Slf4j
 @Service
@@ -106,10 +105,13 @@ public class UserServiceImpl implements UserService {
         Assert.notNull(username, "username is not empty");
         User user = userMapper.selectUserByUsername(username);
         if (user != null) {
-            // user.setOnline(laAuthorizeHelper.isOnline(username));
-            // user.setLocked(laAuthorizeHelper.getLockedState(username));
-            // UserInfoVO props = decorator.getTargetPropsById(username);
-            // user.setProps(props);
+            user.setOnline(true);
+            user.setLocked(false);
+            UserInfoEntity userInfoEntity = userInfoMapper.getProps(username);
+            if (userInfoEntity != null) {
+                UserInfo userInfo = ConvertUtils.convert(userInfoEntity);
+                user.setProps(userInfo);
+            }
             List<UserFieldsEntity> fields = userFieldsMapper.getListByUsername(username);
             Map<String, Map<String, String>> allPersonUserMap;
             if (CollectionUtils.isNotEmpty(fields)) {
@@ -467,7 +469,10 @@ public class UserServiceImpl implements UserService {
         if (Objects.isNull(createUser.getProps())) {
             createUser.setProps(new UserInfo());
         }
-        createUser.getProps().setPasswordResetRequired(true);
+
+        UserInfoEntity userInfoEntity = createUser.getProps().toEntity();
+        userInfoEntity.setUsername(userEntity.getUsername());
+        userInfoMapper.insert(userInfoEntity);
 
         OrganizationSummary org = createUser.getOrg();
         if (org != null && StringUtils.isNotBlank(org.getId())) {
@@ -586,7 +591,7 @@ public class UserServiceImpl implements UserService {
         Password password = obtainPassword(strategy, resetPassword.getNewPassword());
         userMapper.updatePassword(resetPassword.getUsername(), passwordEncoder.encode(password.getEncrypted()));
         UserInfoEntity userInfoEntity = new UserInfoEntity();
-        userInfoEntity.setUserid(resetPassword.getUsername());
+        userInfoEntity.setUsername(resetPassword.getUsername());
         userInfoEntity.setUpdatePwd(true);
         int count = userInfoMapper.updateStatus(resetPassword.getUsername(), true);
         if (0 == count) {
@@ -606,8 +611,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void unlockUser(String username, LoginUser operator) {
-    }
+    public void unlockUser(String username, LoginUser operator) {}
 
     public static String md5f2(String password) {
         return DigestUtils.md5Hex(DigestUtils.md5Hex(password));
@@ -681,7 +685,7 @@ public class UserServiceImpl implements UserService {
         List<UserInfoEntity> userInfoEntity = userInfoMapper.selectByIds(names);
         Map<String, UserInfoEntity> userInfoMap = Maps.newHashMap();
         if (CollectionUtils.isNotEmpty(userInfoEntity)) {
-            userInfoEntity.forEach(item -> userInfoMap.put(item.getUserid(), item));
+            userInfoEntity.forEach(item -> userInfoMap.put(item.getUsername(), item));
         }
         return userInfoMap;
     }
@@ -722,6 +726,5 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportMutableUsers(Page<User> pageable, UserSearchParams parameters) {
-    }
+    public void exportMutableUsers(Page<User> pageable, UserSearchParams parameters) {}
 }
