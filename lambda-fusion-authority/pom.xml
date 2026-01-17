@@ -46,15 +46,14 @@
         <dependency>
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-nacos</artifactId>
-            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
+            <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-cloud-starter-sse</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
+            <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-cloud-starter-cache</artifactId>
         </dependency>
     </dependencies>
 </project>

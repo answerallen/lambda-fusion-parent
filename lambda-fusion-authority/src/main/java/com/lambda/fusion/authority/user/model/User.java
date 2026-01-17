@@ -1,16 +1,19 @@
 package com.lambda.fusion.authority.user.model;
 
+import cn.hutool.core.collection.CollUtil;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.fusion.authority.organization.domain.OrganizationSummary;
 import com.lambda.fusion.authority.role.model.SimpleRole;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import lombok.Data;
+import org.hibernate.validator.constraints.Length;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import lombok.Data;
-import org.hibernate.validator.constraints.Length;
+import java.util.stream.Collectors;
 
 @Data
 @Schema(description = "用户信息")
@@ -54,9 +57,23 @@ public class User {
     @Schema(description = "组织信息")
     private OrganizationSummary organizationSummary;
 
+    public String getOrgName() {
+        if (organizationSummary == null) {
+            return "-";
+        }
+        return organizationSummary.getAlias();
+    }
+
     @Schema(description = "角色信息")
     @JsonProperty("authorities")
     private List<SimpleRole> authorities;
+
+    public String getRoleName() {
+        if (CollUtil.isEmpty(authorities)) {
+            return "-";
+        }
+        return authorities.stream().map(SimpleRole::getAlias).collect(Collectors.joining("|"));
+    }
 
     @Schema(description = "扩展属性")
     @Valid

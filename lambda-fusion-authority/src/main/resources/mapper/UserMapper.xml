@@ -22,7 +22,7 @@
             </constructor>
         </association>
         <association property="props" javaType="com.lambda.fusion.authority.user.model.UserInfo">
-            <id column="userid" property="userid"/>
+            <id column="username" property="username"/>
             <result column="avatar" property="avatar"/>
             <result column="remark" property="remark"/>
             <result column="identity_id" property="identityId"/>

@@ -16,6 +16,7 @@ import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.ConvertUtils;
+import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.organization.domain.OrganizationEntity;
@@ -70,6 +71,7 @@ public class UserServiceImpl implements UserService {
     private final UserPasswordMapper userUpdatePwdLogMapper;
     private final OrganizationService organizationService;
     private final OrganizationMapper organizationMapper;
+    private final SseEmitterManager sseEmitterManager;
 
     /***
      * @param username 用户账号
@@ -105,7 +107,7 @@ public class UserServiceImpl implements UserService {
         Assert.notNull(username, "username is not empty");
         User user = userMapper.selectUserByUsername(username);
         if (user != null) {
-            user.setOnline(true);
+            user.setOnline(sseEmitterManager.getActiveClients().contains(username));
             user.setLocked(false);
             UserInfoEntity userInfoEntity = userInfoMapper.getProps(username);
             if (userInfoEntity != null) {
@@ -213,7 +215,8 @@ public class UserServiceImpl implements UserService {
         supplementUserPersonInfo(personInfo, user);
         supplementUserLockState(user);
         supplementUserPermissionInfo(user, tenantId);
-
+        boolean online = sseEmitterManager.getActiveClients().contains(user.getUsername());
+        user.setOnline(online);
         // 角色排序
         if (CollectionUtils.isNotEmpty(user.getAuthorities())) {
             user.getAuthorities().sort(Comparator.comparing(SimpleRole::getAuthority));

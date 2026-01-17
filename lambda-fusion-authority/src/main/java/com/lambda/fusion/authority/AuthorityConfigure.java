@@ -1,10 +1,6 @@
 package com.lambda.fusion.authority;
 
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.impl.InternalRoleServiceImpl;
 import com.lambda.fusion.authority.tenant.TenantProperties;
@@ -12,16 +8,11 @@ import com.lambda.fusion.authority.tenant.cache.TenantConfigurationCache;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationLocalCache;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationRedisCache;
 import com.lambda.fusion.authority.tenant.cache.TenantHostCache;
-import java.time.Duration;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.CacheManager;
-import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -33,6 +24,13 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import java.time.Duration;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
+
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
 
 @Slf4j
 @Configuration(proxyBeanMethods = false)
@@ -85,18 +83,6 @@ public class AuthorityConfigure {
         }
     }
 
-    @Bean(CACHE_MANAGER)
-    @ConditionalOnMissingBean(name = CACHE_MANAGER)
-    public CacheManager authorityCacheManager() {
-        log.debug("CacheManager: Caffeine");
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("LAClients", "LAResourceOwners");
-        cacheManager.setCaffeine(Caffeine.newBuilder()
-                .initialCapacity(200)
-                .maximumSize(500)
-                .expireAfterWrite(30, TimeUnit.MINUTES)
-                .recordStats());
-        return cacheManager;
-    }
 
     @ConditionalOnMissingBean
     @Bean
