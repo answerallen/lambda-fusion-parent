@@ -117,9 +117,9 @@ public class UserController {
     public User add(@Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateUser createUser) {
         LoginUser operator = OperatorUtils.getOperator();
         userService.addUser(createUser, operator);
-        User user = userService.getUserByUsername(createUser.getUserid());
+        User user = userService.getUserByUsername(createUser.getUsername());
         if (MapUtils.isNotEmpty(createUser.getPersonal())) {
-            userService.addUserFields(createUser.getPersonal(), createUser.getUserid());
+            userService.addUserFields(createUser.getPersonal(), createUser.getUsername());
         }
         if (tenantAuthorizeManager != null) {
             // 添加租户用户
