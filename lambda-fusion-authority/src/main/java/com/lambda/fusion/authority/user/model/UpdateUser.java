@@ -17,9 +17,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.hibernate.validator.constraints.Length;
 
-/**
- * 易变的用户信息
- */
+
 @EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = UserEntity.class)
 @Data
