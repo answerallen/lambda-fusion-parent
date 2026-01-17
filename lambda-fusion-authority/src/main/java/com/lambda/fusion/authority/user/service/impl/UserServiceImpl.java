@@ -1,9 +1,5 @@
 package com.lambda.fusion.authority.user.service.impl;
 
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
-import static com.lambda.fusion.core.Constants.ROLE_DEV;
-
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjectUtil;
@@ -27,16 +23,10 @@ import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
 import com.lambda.fusion.authority.user.mapper.*;
 import com.lambda.fusion.authority.user.model.*;
-import com.lambda.fusion.authority.user.model.UserSearchParams;
-import com.lambda.fusion.authority.user.model.UserTempParameters;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +46,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
+import static com.lambda.fusion.core.Constants.ROLE_DEV;
+
 @Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -63,7 +62,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
-
     private final UserRoleMapper userRoleMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuthorityProperties properties;
@@ -72,9 +70,7 @@ public class UserServiceImpl implements UserService {
     private final UserOrganizationMapper userOrganizationMapper;
     private final UserPasswordMapper userUpdatePwdLogMapper;
     private final OrganizationService organizationService;
-    protected final ApplicationEventPublisher applicationEventPublisher;
-
-    private OrganizationMapper organizationMapper;
+    private final OrganizationMapper organizationMapper;
 
     /***
      * @param username 用户账号
@@ -610,7 +606,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void unlockUser(String username, LoginUser operator) {}
+    public void unlockUser(String username, LoginUser operator) {
+    }
 
     public static String md5f2(String password) {
         return DigestUtils.md5Hex(DigestUtils.md5Hex(password));
@@ -725,5 +722,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportMutableUsers(Page<User> pageable, UserSearchParams parameters) {}
+    public void exportMutableUsers(Page<User> pageable, UserSearchParams parameters) {
+    }
 }

@@ -54,7 +54,7 @@ public class UserController {
         this.tenantAuthorizeManager = tenantAuthorizeManager;
     }
 
-    @GetMapping({"", "/{number:\\d+}/size/{size:\\d+}"})
+    @GetMapping({"","/page", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询所有用户列表")
     public Page<User> page(
             @PathVariable(required = false) Integer number,

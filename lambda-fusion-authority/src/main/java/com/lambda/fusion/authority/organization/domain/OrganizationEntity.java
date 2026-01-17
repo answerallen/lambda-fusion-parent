@@ -18,7 +18,7 @@ public class OrganizationEntity {
     private Integer category; // 组织类别
 
     @TableField("ORG_RANK")
-    private Integer rank; // 组织级别
+    private Integer level; // 组织级别
 
     @TableField("ORG_TYPE")
     private Integer type; // 组织类型

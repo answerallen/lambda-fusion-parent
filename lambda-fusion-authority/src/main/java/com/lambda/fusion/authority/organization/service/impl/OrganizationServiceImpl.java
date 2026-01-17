@@ -494,9 +494,9 @@ public class OrganizationServiceImpl implements OrganizationService {
             Assert.notNull(parent, "上级组织未查询到！");
             String parentKeys = parent.buildParentKeys();
             entity.setParentKeys(parentKeys);
-            entity.setRank(TreeNodeUtils.level(parentKeys));
+            entity.setLevel(TreeNodeUtils.level(parentKeys));
         } else {
-            entity.setRank(0);
+            entity.setLevel(0);
             entity.setParentId(Constants.TREE_TOP_LEVEL);
         }
         organizationMapper.insert(entity);
