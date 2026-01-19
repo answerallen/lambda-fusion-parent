@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@TableName("LA_GROUPS")
+@TableName("la_role_groups")
 public class GroupEntity {
     @TableId
     private String groupId;

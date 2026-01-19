@@ -5,7 +5,7 @@
 
     <select id="getAllGroup" resultType="com.lambda.fusion.authority.role.model.GroupEntity">
         SELECT T.GROUP_ID,T.GROUP_NAME,T.TENANT_ID
-        FROM LA_GROUPS T
+        FROM la_role_groups T
         <where>
             <choose>
                 <when test="tenantId != null and tenantId != ''">
@@ -20,7 +20,7 @@
     </select>
 
     <delete id="deleteGroupByTenantId">
-        DELETE FROM LA_GROUPS WHERE TENANT_ID IN
+        DELETE FROM la_role_groups WHERE TENANT_ID IN
         <foreach collection="tenantIds" open="(" close=")" separator="," item="item">#{item}</foreach>
     </delete>
 </mapper>

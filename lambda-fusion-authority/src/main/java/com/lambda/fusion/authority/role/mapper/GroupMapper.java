@@ -26,7 +26,7 @@ public interface GroupMapper extends BaseMapper<GroupEntity> {
      * 根据组织机构删除角色分组
      * @param orgIds
      */
-    @Delete("<script>" + "DELETE FROM LA_GROUPS WHERE GROUP_ID IN "
+    @Delete("<script>" + "DELETE FROM la_role_groups WHERE GROUP_ID IN "
             + "<foreach collection='orgIds' open='(' item='id' separator=',' close=')'> #{id}</foreach>"
             + "</script>")
     @InterceptorIgnore(tenantLine = "true")
