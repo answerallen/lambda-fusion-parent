@@ -7,13 +7,12 @@ import com.lambda.fusion.authority.role.model.SimpleRole;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import lombok.Data;
-import org.hibernate.validator.constraints.Length;
-
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.Data;
+import org.hibernate.validator.constraints.Length;
 
 @Data
 @Schema(description = "用户信息")

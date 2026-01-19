@@ -1,5 +1,8 @@
 package com.lambda.fusion.authority;
 
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.impl.InternalRoleServiceImpl;
@@ -8,6 +11,9 @@ import com.lambda.fusion.authority.tenant.cache.TenantConfigurationCache;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationLocalCache;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationRedisCache;
 import com.lambda.fusion.authority.tenant.cache.TenantHostCache;
+import java.time.Duration;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -24,13 +30,6 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-
-import java.time.Duration;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadPoolExecutor;
-
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
 
 @Slf4j
 @Configuration(proxyBeanMethods = false)
@@ -82,7 +81,6 @@ public class AuthorityConfigure {
                     .build();
         }
     }
-
 
     @ConditionalOnMissingBean
     @Bean

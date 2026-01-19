@@ -66,8 +66,7 @@ public class ClientController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除客户端信息", description = "根据编号删除客户端信息")
-    public void
-    delete(@Parameter(description = "编号", required = true) @PathVariable String id) {
+    public void delete(@Parameter(description = "编号", required = true) @PathVariable String id) {
         ClientEntity client = clientService.getById(id);
         Assert.notNull(client, "客户端不存在");
         clientService.removeById(id);
