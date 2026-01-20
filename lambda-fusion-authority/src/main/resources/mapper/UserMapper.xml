@@ -282,7 +282,7 @@
         INNER JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
         INNER JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
         WHERE UO.ORGANIZATION_ID = #{orgId}
-        <if test="roleid != null and roleid != ''">
+        <if test="roleId != null and roleId != ''">
             AND UR.AUTHORITY = #{roleId}
         </if>
     </select>
@@ -295,27 +295,27 @@
         SELECT
             T1.id,
             T1.res_name,
-            T1.parentid
+            T1.parent_id
             FROM LA_RESOURCES T1
         WHERE T1.res_type != 0
         <if test="ids != null and ids.size > 0">
             AND T1.ID IN (
-            SELECT DISTINCT T.RESOURCEID FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY IN
+            SELECT DISTINCT  T.RESOURCE_ID  FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY IN
             <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
             )
         </if>
         <if test="mode != null and mode != ''">
             AND T1.res_mode = #{mode}
         </if>
-        ORDER BY T1.res_rank, T1.parentid, T1.orderno
+        ORDER BY T1.res_rank, T1.parent_id, T1.orderno
     </select>
     <select id="selectUserPermissions" resultType="java.lang.String">
-        SELECT DISTINCT T.RESOURCEID FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY = #{username}
+        SELECT DISTINCT  T.RESOURCE_ID  FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY = #{username}
     </select>
 
 
     <select id="selectRoleResources" resultType="com.lambda.fusion.authority.user.model.RoleResources">
-        SELECT T.RESOURCEID,T.LA_MANAGE FROM LA_ROLE_RESOURCES T
+        SELECT T.RESOURCE_ID,T.LA_MANAGE FROM LA_ROLE_RESOURCES T
         <where>
             <if test="authority != null and authority !='' ">
                 T.AUTHORITY = #{authority}
@@ -324,13 +324,13 @@
                 AND T.LA_MANAGE = #{manage}
             </if>
             <if test="permissions != null and permissions.size > 0">
-                AND T.RESOURCEID IN
+                AND  T.RESOURCE_ID  IN
                 <foreach collection="permissions" open="(" close=")" separator="," item="item">
                     #{item}
                 </foreach>
             </if>
         </where>
-        group by T.RESOURCEID,T.LA_MANAGE
+        group by  T.RESOURCE_ID ,T.LA_MANAGE
     </select>
 
     <insert id="saveUserPermission">
@@ -386,7 +386,6 @@
         mi.identity_id ,
         mi.position ,
         mi.status,
-        
         mi.emp_no,
         mi.dd_no,
         mi.wechat_no,
@@ -400,7 +399,7 @@
         FROM LA_USERS T
         LEFT JOIN LA_USER_INFO mi ON T.username = mi.USERNAME
         LEFT JOIN (SELECT  ur.AUTHORITY,mr.ALIAS,ur.USERNAME	FROM la_user_roles ur LEFT JOIN la_roles mr  ON ur.AUTHORITY = mr.AUTHORITY) R ON T.USERNAME = R.USERNAME
-        LEFT JOIN (SELECT mo.id orgId, mo.organization, uo.USERNAME, mo.alias FROM LA_USER_ORGANIZATION uo LEFT JOIN la_organization mo ON uo.ORGANIZATION_ID = mo.id WHERE mo.id is not null)  O ON T.USERNAME = O.USERNAME
+        LEFT JOIN (SELECT mo.ID orgId, uo.USERNAME, mo.alias FROM LA_USER_ORGANIZATION uo LEFT JOIN la_organization mo ON uo.ORGANIZATION_ID = mo.id WHERE mo.id is not null)  O ON T.USERNAME = O.USERNAME
         LEFT JOIN (SELECT NICKNAME, USERNAME FROM LA_USERS) TC ON  T.CREATOR = TC.USERNAME
         <if test="parameters != null and parameters.authority != null and parameters.authority != ''">
             LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.USERNAME

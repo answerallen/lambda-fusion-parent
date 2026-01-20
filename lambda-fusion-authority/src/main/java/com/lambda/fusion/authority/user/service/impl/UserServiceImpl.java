@@ -298,13 +298,13 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(organizations)) {
             return Collections.emptyMap();
         }
-        Map<String, String> map1 = Maps.newHashMap();
+        Map<String, String> newed = Maps.newHashMap();
         Map<String, String> names0 = Maps.newHashMap();
         Set<String> parentKeys = Sets.newHashSet();
         for (OrganizationEntity item : organizations) {
             String parentKeys1 = item.getParentKeys();
             names0.put(item.getId(), item.getAlias());
-            map1.put(item.getId(), parentKeys1);
+            newed.put(item.getId(), parentKeys1);
             if (StringUtils.isNotBlank(parentKeys1)) {
                 Collections.addAll(parentKeys, parentKeys1.split(Constants.TREE_SPLIT));
             }
@@ -314,13 +314,13 @@ public class UserServiceImpl implements UserService {
             return result;
         }
         List<OrganizationEntity> parents = organizationMapper.selectByIds(parentKeys);
-        Map<String, String> names1 =
+        Map<String, String> collected =
                 parents.stream().collect(Collectors.toMap(OrganizationEntity::getId, OrganizationEntity::getName));
-        map1.forEach((key, value) -> {
+        newed.forEach((key, value) -> {
             StringBuilder builder = new StringBuilder();
             if (StringUtils.isNotBlank(value)) {
                 for (String token : value.split(Constants.TREE_SPLIT)) {
-                    builder.append(names1.get(token)).append(Constants.TREE_SPLIT);
+                    builder.append(collected.get(token)).append(Constants.TREE_SPLIT);
                 }
             }
             builder.append(names0.get(key));
@@ -383,8 +383,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<String> getUidsByOrg(String orgid, String roleid) {
-        return userMapper.selectUsernamesByOrg(orgid, roleid);
+    public List<String> getUidsByOrg(String forge, String role) {
+        return userMapper.selectUsernamesByOrg(forge, role);
     }
 
     @Override
