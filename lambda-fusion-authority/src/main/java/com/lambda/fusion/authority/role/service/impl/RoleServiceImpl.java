@@ -37,6 +37,8 @@ import com.lambda.fusion.authority.user.model.UserRoleEntity;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
+
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -176,13 +178,13 @@ public class RoleServiceImpl implements RoleService {
         String authority = UUID.fastUUID().toString();
         Assert.isTrue(roleMapper.hasExists(authority), "角色" + authority + "已存在");
         createRole.setAuthority(authority);
-        createRole.setCreateDate(new Date());
         createRole.setAuthority(authority);
-        createRole.setOwner(tenantId);
         createRole.setTenantId(tenantId);
         String groupId = Optional.ofNullable(createRole.getGroupId()).orElse(DEFAULT);
         createRole.setGroupId(groupId);
         RoleEntity roleEntity = createRole.toEntity();
+        roleEntity.setCreateBy(userPrincipal.getName());
+        roleEntity.setCreateDate(LocalDateTime.now());
         roleMapper.insert(roleEntity);
         return getRoleByAuthority(authority);
     }

@@ -20,17 +20,11 @@ public class RoleEntity {
     @TableField("ICON")
     private String icon;
 
-    @TableField("CREATE_DATE")
-    private LocalDateTime createDate;
-
     @TableField("REMARKS")
     private String remarks;
 
     @TableField("TENANT_ID")
     private String tenantId;
-
-    @TableField("OWNER")
-    private String owner;
 
     @TableField("HIDDEN")
     private Integer hidden;
@@ -46,4 +40,10 @@ public class RoleEntity {
 
     @TableField("GROUP_ID")
     private String groupId;
+
+    @TableField("CREATE_BY")
+    private String createBy;
+
+    @TableField("CREATE_DATE")
+    private LocalDateTime createDate;
 }

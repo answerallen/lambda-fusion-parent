@@ -24,14 +24,8 @@ public class CreateRole extends BaseDTO<RoleEntity> {
     @Schema(description = "图标")
     private String icon;
 
-    @Schema(description = "创建时间")
-    private Date createDate;
-
     @Schema(description = "备注")
     private String remarks;
-
-    @Schema(description = "内置的")
-    private String owner;
 
     @Schema(description = "租户")
     private String tenantId;
