@@ -32,7 +32,7 @@ public class NavigationQuery {
      * 1: App资源（移动端）
      */
     @Schema(description = "资源模式(0:系统资源,1:App资源)")
-    private Integer mode;
+    private Integer mode = 0;
 
     /**
      * 模型类型

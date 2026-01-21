@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.authority.resource.mapper.ResourceMapper">
     <select id="getAllChildren" resultType="com.lambda.fusion.authority.resource.model.Resource">
-        SELECT T.ID, T.RES_NAME, T.ORDERNO, T.PARENTID, T.RES_PATH, T.RES_RANK, T.ICO, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
+        SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
         FROM LA_RESOURCES T
         WHERE T.DEV = 0
         <if test="authorities != null and authorities.size > 0">
@@ -13,12 +13,12 @@
             )
         </if>
         <if test="parentKeys != null">
-            AND T.PARENTKEYS LIKE CONCAT(#{parentKeys}, '%')
+            AND T.PARENT_KEYS LIKE CONCAT(#{parentKeys}, '%')
         </if>
-        ORDER BY T.RES_RANK, T.ORDERNO
+        ORDER BY T.RES_LEVEL, T.ORDER_NO
     </select>
     <select id="getAllParents" resultType="com.lambda.fusion.authority.resource.model.Resource">
-        SELECT T.ID, T.RES_NAME, T.ORDERNO, T.PARENTID, T.RES_PATH, T.RES_RANK, T.ICO, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
+        SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
         FROM LA_RESOURCES T
         WHERE T.DEV = 0
         <if test="authorities != null and authorities.size > 0">
@@ -31,35 +31,35 @@
             AND T.id IN
             <foreach collection="parentKeys" item="item" separator="," open="(" close=")">#{item}</foreach>
         </if>
-        ORDER BY T.RES_RANK, T.ORDERNO
+        ORDER BY T.RES_LEVEL, T.ORDER_NO
     </select>
     <!-- 递归查询所有资源 -->
     <select id="getDirectChildren" resultType="com.lambda.fusion.authority.resource.model.ResourceTree">
-        SELECT T.ID, T.RES_NAME, T.ORDERNO, T.PARENTID, T.RES_PATH, T.RES_RANK, T.ICO, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
+        SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
         FROM LA_RESOURCES T
         <where>
             <if test="id != null">
-                AND T.PARENTID = #{id}
+                AND T.PARENT_ID = #{id}
             </if>
             <if test="id == null">
-                AND T.PARENTID IS NULL
+                AND T.PARENT_ID IS NULL
             </if>
         </where>
-        ORDER BY T.ORDERNO
+        ORDER BY T.ORDER_NO
     </select>
     <!-- 根据ID查询下级所有资源 -->
     <select id="queryAllChildren" resultType="com.lambda.fusion.authority.resource.model.ResourceTree">
-        SELECT T.ID, T.RES_NAME, T.ORDERNO, T.PARENTID, T.RES_PATH, T.RES_RANK, T.ICO, T.METHOD, T.RES_TYPE, T.HIDDEN, T.PARENTKEYS, T.RES_MODE
+        SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.PARENT_KEYS, T.RES_MODE
         FROM LA_RESOURCES T
-        WHERE T.PARENTKEYS LIKE CONCAT(#{parentKeys}, '%')
-        ORDER BY T.RES_RANK, T.ORDERNO
+        WHERE T.PARENT_KEYS LIKE CONCAT(#{parentKeys}, '%')
+        ORDER BY T.RES_LEVEL, T.ORDER_NO
     </select>
 
     <!-- 根据编号查询资源信息 -->
     <select id="getResourceById" parameterType="string"
             resultType="com.lambda.fusion.authority.resource.model.Resource">
-        SELECT T.ID, T.RES_NAME, T.RES_PATH, T.RES_URL, T.PARENTID, T.RES_RANK, T.ORDERNO, T.METHOD,
-            T.ICO, T.RES_TYPE, T.HIDDEN, T.PARENTKEYS, T.RES_MODE,
+        SELECT T.ID, T.RES_NAME, T.RES_PATH, T.RES_URL, T.PARENT_ID, T.RES_LEVEL, T.ORDER_NO, T.METHOD,
+            T.ICON, T.RES_TYPE, T.HIDDEN, T.PARENT_KEYS, T.RES_MODE,
             T.KEY_NAME AS keyName,
             T.KEEP_ALIVE AS keepAlive,
             T.EXPAND AS expand,
@@ -70,20 +70,20 @@
     <!--suppress MybatisXMapperXmlInspection -->
     <insert id="addResource" parameterType="com.lambda.fusion.authority.resource.model.Resource">
         INSERT INTO LA_RESOURCES
-        (ID, RES_NAME, RES_RANK, RES_PATH, PARENTID, ORDERNO, METHOD, ICO, RES_TYPE, HIDDEN, PARENTKEYS, RES_MODE, REMARK, KEY_NAME, KEEP_ALIVE, EXPAND, BUSINESS_EXPAND, RES_URL)
+        (ID, RES_NAME, RES_LEVEL, RES_PATH, PARENTID, ORDER_NO, METHOD, ICO, RES_TYPE, HIDDEN, PARENTKEYS, RES_MODE, REMARK, KEY_NAME, KEEP_ALIVE, EXPAND, BUSINESS_EXPAND, RES_URL)
         VALUES
-        (#{id}, #{resName}, #{resRank}, #{resPath,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{orderNo,jdbcType=INTEGER},
-        #{method,jdbcType=VARCHAR}, #{ico,jdbcType=VARCHAR}, #{resType ,jdbcType=INTEGER}, #{hidden,jdbcType=INTEGER},
+        (#{id}, #{resName}, #{resLevel}, #{resPath,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{orderNo,jdbcType=INTEGER},
+        #{method,jdbcType=VARCHAR}, #{icon,jdbcType=VARCHAR}, #{resType ,jdbcType=INTEGER}, #{hidden,jdbcType=INTEGER},
         #{parentKeys, jdbcType=VARCHAR}, #{resMode}, #{remark, jdbcType=VARCHAR}, #{keyName,jdbcType=VARCHAR}, #{keepAlive,jdbcType=INTEGER}, #{expand,jdbcType=VARCHAR}
         , #{businessExpand,jdbcType=VARCHAR}, #{resUrl,jdbcType=VARCHAR})
     </insert>
     <!--suppress MybatisXMapperXmlInspection -->
     <insert id="addResource" parameterType="com.lambda.fusion.authority.resource.model.Resource" databaseId="mysql">
         INSERT INTO LA_RESOURCES
-        (ID, RES_NAME, RES_RANK, RES_PATH, PARENTID, ORDERNO, METHOD, ICO, RES_TYPE, HIDDEN, PARENTKEYS, RES_MODE, REMARK, KEY_NAME, KEEP_ALIVE, EXPAND, BUSINESS_EXPAND, RES_URL)
+        (ID, RES_NAME, RES_LEVEL, RES_PATH, PARENTID, ORDER_NO, METHOD, ICO, RES_TYPE, HIDDEN, PARENTKEYS, RES_MODE, REMARK, KEY_NAME, KEEP_ALIVE, EXPAND, BUSINESS_EXPAND, RES_URL)
         VALUES
-        (#{id}, #{resName}, #{resRank}, #{resPath,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{orderNo,jdbcType=INTEGER},
-        #{method,jdbcType=VARCHAR}, #{ico,jdbcType=VARCHAR}, #{resType ,jdbcType=INTEGER}, #{hidden,jdbcType=INTEGER},
+        (#{id}, #{resName}, #{resLevel}, #{resPath,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{orderNo,jdbcType=INTEGER},
+        #{method,jdbcType=VARCHAR}, #{icon,jdbcType=VARCHAR}, #{resType ,jdbcType=INTEGER}, #{hidden,jdbcType=INTEGER},
         #{parentKeys, jdbcType=VARCHAR}, #{resMode}, #{remark, jdbcType=VARCHAR}, #{keyName,jdbcType=VARCHAR}, #{keepAlive,jdbcType=INTEGER}, #{expand,jdbcType=VARCHAR}
         , #{businessExpand,jdbcType=VARCHAR}, #{resUrl,jdbcType=VARCHAR})
     </insert>
@@ -99,18 +99,18 @@
     </delete>
     <!-- 是否包含下级资源 -->
     <select id="hasChildren" parameterType="string" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.PARENTID = #{id})
+        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.PARENT_ID = #{id})
     </select>
 
     <!-- 是否包含下级按钮 -->
     <select id="hasButton" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.PARENTID = #{pid} AND T.ID != #{id}
+        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.PARENT_ID = #{pid} AND T.ID != #{id}
         AND T.RES_TYPE = 3)
     </select>
 
     <!-- 是否包含下级非按钮资源 -->
     <select id="hasNotButton" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.PARENTID = #{pid} AND T.ID != #{id}
+        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.PARENT_ID = #{pid} AND T.ID != #{id}
         AND T.RES_TYPE != 3)
     </select>
     <!-- 更新资源 -->
@@ -119,15 +119,15 @@
         <if test="resName != null and resName != ''">
             T.RES_NAME = #{resName},
         </if>
-        T.ORDERNO = #{orderNo},
-        T.PARENTID = #{parentId, jdbcType=VARCHAR},
+        T.ORDER_NO = #{orderNo},
+        T.PARENT_ID = #{parentId, jdbcType=VARCHAR},
         T.RES_PATH = #{resPath,jdbcType=VARCHAR},
         T.METHOD = #{method,jdbcType=VARCHAR},
-        T.ICO = #{ico,jdbcType=VARCHAR},
+        T.ICON = #{icon,jdbcType=VARCHAR},
         T.RES_TYPE = #{resType,jdbcType=INTEGER},
-        T.RES_RANK = #{resRank,jdbcType=INTEGER},
+        T.RES_LEVEL = #{resLevel,jdbcType=INTEGER},
         T.HIDDEN = #{hidden,jdbcType=INTEGER},
-        T.PARENTKEYS = #{parentKeys, jdbcType=VARCHAR},
+        T.PARENT_KEYS = #{parentKeys, jdbcType=VARCHAR},
         T.RES_MODE = #{resMode,jdbcType=INTEGER},
         T.REMARK = #{remark, jdbcType=VARCHAR},
         T.KEY_NAME = #{keyName,jdbcType=VARCHAR},
@@ -143,17 +143,17 @@
         SELECT
         T.ID,
         T.RES_NAME,
-        T.PARENTID,
-        T.RES_RANK,
+        T.PARENT_ID,
+        T.RES_LEVEL,
         T.RES_TYPE,
         T.RES_PATH,
         T.REMARK,
-        T.ICO,
-        T.ORDERNO,
+        T.ICON,
+        T.ORDER_NO,
         T.METHOD,
         T.HIDDEN,
         T.RES_MODE,
-        T.PARENTKEYS,
+        T.PARENT_KEYS,
         T.RES_URL,
         T.KEY_NAME,
         T.KEEP_ALIVE,
@@ -161,16 +161,16 @@
         T.BUSINESS_EXPAND
         FROM LA_RESOURCES T
         WHERE T.RES_TYPE &gt; 0 and T.RES_MODE = #{mode}
-        ORDER BY T.RES_RANK, T.ORDERNO
+        ORDER BY T.RES_LEVEL, T.ORDER_NO
     </select>
     <!-- 查询可用的所有资源 -->
     <select id="getAllResourcesByOrderNo"
             resultType="com.lambda.fusion.authority.resource.model.Resource">
-        SELECT ID, RES_NAME, RES_PATH, PARENTID, ICO, METHOD, RES_RANK, REMARK, ORDERNO, RES_TYPE, RES_MODE, HIDDEN, PARENTKEYS FROM LA_RESOURCES ORDER BY ORDERNO
+        SELECT ID, RES_NAME, RES_PATH, PARENTID, ICO, METHOD, RES_LEVEL, REMARK, ORDER_NO, RES_TYPE, RES_MODE, HIDDEN, PARENTKEYS FROM LA_RESOURCES ORDER BY ORDER_NO
     </select>
     <!-- 批量排序 -->
     <update id="updateResourceOrdered">
-        UPDATE LA_RESOURCES SET ORDERNO = CASE
+        UPDATE LA_RESOURCES SET ORDER_NO = CASE
         <foreach collection="list" item="item">
             WHEN ID = #{item.id} THEN #{item.orderNo}
         </foreach>
@@ -190,9 +190,9 @@
     </update>
 
     <update id="updateResourceRank">
-        UPDATE LA_RESOURCES T SET T.RES_RANK = CASE
+        UPDATE LA_RESOURCES T SET T.RES_LEVEL = CASE
         <foreach collection="list" item="item">
-            WHEN id = #{item.id} THEN #{item.resRank}
+            WHEN id = #{item.id} THEN #{item.resLevel}
         </foreach>
         END
         WHERE id IN
@@ -206,9 +206,9 @@
     <select id="getAllMutableResources"
             resultType="com.lambda.fusion.authority.resource.model.Resource">
         SELECT
-            T.ID, T.RES_NAME, T.RES_PATH, T.PARENTID, T.ICO, T.METHOD, T.RES_RANK, T.ORDERNO, T.RES_TYPE, T.HIDDEN, T.PARENTKEYS, T.RES_MODE
+            T.ID, T.RES_NAME, T.RES_PATH, T.PARENT_ID, T.ICON, T.METHOD, T.RES_LEVEL, T.ORDER_NO, T.RES_TYPE, T.HIDDEN, T.PARENT_KEYS, T.RES_MODE
         FROM LA_RESOURCES T
-        ORDER BY T.RES_RANK, T.ORDERNO
+        ORDER BY T.RES_LEVEL, T.ORDER_NO
     </select>
     <update id="updateResourceParentkeys">
         UPDATE LA_RESOURCES SET PARENTKEYS = CASE
@@ -222,10 +222,10 @@
     </update>
     <update id="updateMovedResource">
         UPDATE LA_RESOURCES T SET
-            T.ORDERNO = #{orderNo},
-            T.PARENTID = #{parentId, jdbcType=VARCHAR},
-            T.RES_RANK = #{resRank,jdbcType=INTEGER},
-            T.PARENTKEYS = #{parentKeys, jdbcType=VARCHAR}
+            T.ORDER_NO = #{orderNo},
+            T.PARENT_ID = #{parentId, jdbcType=VARCHAR},
+            T.RES_LEVEL = #{resLevel,jdbcType=INTEGER},
+            T.PARENT_KEYS = #{parentKeys, jdbcType=VARCHAR}
         WHERE T.id = #{id}
     </update>
 
@@ -249,20 +249,20 @@
             resultType="com.lambda.fusion.authority.resource.model.Resource">
         SELECT
         T.RES_NAME,
-        T.PARENTID,
-        T.RES_RANK,
+        T.PARENT_ID,
+        T.RES_LEVEL,
         T.RES_TYPE,
         T.RES_PATH,
         T.RES_MODE,
         T.REMARK,
-        T.ICO,
-        T.ORDERNO,
+        T.ICON,
+        T.ORDER_NO,
         T.METHOD,
         T.HIDDEN,
-        T.PARENTKEYS
+        T.PARENT_KEYS
         FROM LA_RESOURCES T
         WHERE T.RES_TYPE = 0 AND T.RES_MODE = 0
-        ORDER BY T.RES_RANK, T.ORDERNO
+        ORDER BY T.RES_LEVEL, T.ORDER_NO
     </select>
 
 

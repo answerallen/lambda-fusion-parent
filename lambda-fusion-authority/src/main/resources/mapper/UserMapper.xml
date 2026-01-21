@@ -307,7 +307,7 @@
         <if test="mode != null and mode != ''">
             AND T1.res_mode = #{mode}
         </if>
-        ORDER BY T1.res_rank, T1.parent_id, T1.orderno
+        ORDER BY T1.RES_LEVEL, T1.parent_id, T1.orderno
     </select>
     <select id="selectUserPermissions" resultType="java.lang.String">
         SELECT DISTINCT  T.RESOURCE_ID  FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY = #{username}
@@ -369,7 +369,7 @@
         SELECT USERNAME FROM LA_USERS T1 INNER JOIN LA_USER_ORGANIZATION T2 ON T1.USERNAME = T2.USERNAME
         <where>
             <if test="type != null and type = 1">
-                T2.ORGANIZATION_ID IN (SELECT T.ID FROM LA_ORGANIZATION T WHERE T.PARENTKEYS LIKE CONCAT(CONCAT('%', #{orgId}), '%') OR T.ID = #{orgId})
+                T2.ORGANIZATION_ID IN (SELECT T.ID FROM LA_ORGANIZATION T WHERE T.PARENT_KEYS LIKE CONCAT(CONCAT('%', #{orgId}), '%') OR T.ID = #{orgId})
             </if>
             <if test="type != null and type = 2">
                and T2.ORGANIZATION_ID = #{orgId}

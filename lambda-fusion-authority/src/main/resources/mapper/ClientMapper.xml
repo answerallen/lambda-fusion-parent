@@ -35,13 +35,13 @@
         SELECT DISTINCT
             T.id,
             T.name,
-            T.parentId,T.RANK,
+            T.PARENT_ID,T.RANK,
             (CASE WHEN T3.RESOURCEID IS NOT NULL THEN 1 ELSE 0 END ) AS checked,
-            T.ORDERNO
+            T.ORDER_NO
         FROM LA_RESOURCES T
         LEFT JOIN LA_CLIENT_RESOURCES T3 ON T3.RESOURCEID = T.ID AND T3.CLIENTID = #{parameters.clientid}
         WHERE T.DEV = 0 AND T.TYPE = 0 And T.HIDDEN = 0
-        ORDER BY T.RANK, T.PARENTID, T.ORDERNO
+        ORDER BY T.RANK, T.PARENT_ID, T.ORDER_NO
     </select>
     <delete id="batchDeleteAuthResources">
         DELETE FROM LA_CLIENT_RESOURCES WHERE clientid = #{clientid}

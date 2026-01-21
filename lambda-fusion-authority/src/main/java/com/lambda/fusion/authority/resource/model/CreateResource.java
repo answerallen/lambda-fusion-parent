@@ -39,7 +39,7 @@ public class CreateResource {
     private String resUrl;
 
     @Schema(description = "资源图标")
-    private String ico;
+    private String icon;
 
     @Schema(description = "按钮方法函数")
     private String method;
@@ -102,7 +102,7 @@ public class CreateResource {
         private String resPath;
 
         @Schema(description = "资源图标")
-        private String ico;
+        private String icon;
 
         @Schema(description = "按钮方法函数")
         private String method;

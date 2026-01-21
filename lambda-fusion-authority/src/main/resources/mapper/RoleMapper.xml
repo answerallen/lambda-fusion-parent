@@ -116,10 +116,10 @@
         INNER JOIN LA_ROLE_RESOURCES TR ON T.ID = TR.RESOURCE_ID AND TR.AUTHORITY = #{authority}
         <where>
             <if test="pid == null">
-                T.PARENTID IS NULL
+                T.PARENT_ID IS NULL
             </if>
             <if test="pid != null">
-                T.PARENTID = #{pid}
+                T.PARENT_ID = #{pid}
             </if>
         </where>
     </select>
@@ -132,7 +132,7 @@
 
     <!-- 查询组织权限 -->
     <select id="getOrganizationAuthorization" parameterType="HashMap" resultType="com.lambda.fusion.authority.role.model.RoleAuthority">
-        SELECT T.id, T.name, T.parentId,
+        SELECT T.id, T.name, T.PARENT_ID,
         MAX(CASE WHEN T4.RESOURCE_ID IS NOT NULL THEN 1 ELSE 0 END) AS checked,
         COUNT(T2.ID) AS counts,
         SUM(CASE WHEN T3.RESOURCE_ID IS NULL THEN 0 ELSE 1 END) AS existed
@@ -143,14 +143,14 @@
         LEFT JOIN LA_ORGANIZATION_RESOURCES T4 ON T4.RESOURCE_ID = T.ID AND T4.ORGANIZATION_ID = #{organizationid}
         <where>
             <if test="pid == null">
-                T.PARENTID IS NULL
+                T.PARENT_ID IS NULL
             </if>
             <if test="pid != null">
-                T.PARENTID = #{pid}
+                T.PARENT_ID = #{pid}
             </if>
         </where>
-        GROUP BY T.ID, T.NAME, T.PARENTID, T.ORDERNO
-        ORDER BY T.ORDERNO
+        GROUP BY T.ID, T.NAME, T.PARENT_ID, T.ORDER_NO
+        ORDER BY T.ORDER_NO
     </select>
     <!-- 查询是否已经为组织授权 -->
     <select id="hasOrganizationAuthorized" parameterType="Map" resultType="boolean">
@@ -185,11 +185,11 @@
         SELECT DISTINCT
             T.id,
             T.res_name,
-            T.parentId,
-            T.res_rank,
+            T.PARENT_ID,
+            T.RES_LEVEL,
             T.res_type,
             (CASE WHEN T3.RESOURCE_ID IS NOT NULL THEN 1 ELSE 0 END ) AS checked,
-            T.orderno
+            T.ORDER_NO
         FROM LA_RESOURCES T
         <if test="parameters.authorities != null">
             INNER JOIN LA_ROLE_RESOURCES T2 ON T2.RESOURCE_ID = T.ID
@@ -202,7 +202,7 @@
                 #{item}
             </foreach>
         </if>
-        ORDER BY T.res_rank, T.parentid, T.orderno
+        ORDER BY T.RES_LEVEL, T.PARENT_ID, T.ORDER_NO
     </select>
     <select id="hasAuthorizedWithIntersection" resultType="string">
         SELECT RESOURCE_ID FROM LA_ROLE_RESOURCES WHERE AUTHORITY = #{authority} AND RESOURCE_ID IN

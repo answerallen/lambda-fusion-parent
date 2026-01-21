@@ -60,8 +60,8 @@
         T1.id,
         T1.res_name,
         T1.res_path,
-        T1.ico as icon,
-        T1.res_rank,
+        T1.icon as icon,
+        T1.RES_LEVEL,
         T1.orderNo,
         T1.parentId,
         T1.res_type,
@@ -83,7 +83,7 @@
             )
         </if>
         <if test="query.level != null">
-            AND T1.res_rank = #{query.level}
+            AND T1.RES_LEVEL = #{query.level}
         </if>
         <if test="query.parentId != null and query.parentId != ''">
             AND T1.parentKeys LIKE CONCAT(#{query.parentId}, '%')
@@ -91,7 +91,7 @@
         <if test="query.name != null and query.name != ''">
             AND T1.res_name LIKE CONCAT('%', #{query.name}, '%')
         </if>
-        ORDER BY T1.res_rank, T1.parentId, T1.orderNo
+        ORDER BY T1.RES_LEVEL, T1.parentId, T1.orderNo
     </select>
     
     <select id="selectResources" resultType="com.lambda.fusion.authority.resource.model.ResourceTree">
@@ -110,7 +110,7 @@
                 AND T1.res_type IN <foreach collection="types" open="(" close=")" separator="," item="item">#{item}</foreach>
             </if>
         </where>
-        ORDER BY T1.res_rank, T1.parentId, T1.orderNo
+        ORDER BY T1.RES_LEVEL, T1.parentId, T1.orderNo
     </select>
 
     <select id="selectUserProfileByRoleId" resultType="com.lambda.fusion.authority.user.model.UserProfile">
