@@ -127,10 +127,10 @@
             <if test="parameters.isOnline != null">
                 <choose>
                     <when test="parameters.isOnline">
-                        AND T.USERNAME IN (SELECT USERNAME FROM LA_ONLINE_LOG WHERE ON_LINE = 1)
+                        AND T.USERNAME IN (SELECT USERNAME FROM la_user_online_logs WHERE ON_LINE = 1)
                     </when>
                     <otherwise>
-                        AND T.USERNAME NOT IN (SELECT USERNAME FROM LA_ONLINE_LOG WHERE ON_LINE = 1)
+                        AND T.USERNAME NOT IN (SELECT USERNAME FROM la_user_online_logs WHERE ON_LINE = 1)
                     </otherwise>
                 </choose>
             </if>
@@ -149,7 +149,7 @@
         INNER JOIN LA_ROLES T2 ON t2.AUTHORITY = T1.authority AND T2.enabled = 1) R ON R.USERNAME = T.username
         LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
         LEFT JOIN LA_ORGANIZATION O ON O.id = UO.ORGANIZATION_ID
-        LEFT JOIN LA_ONLINE_LOG OL ON  T.USERNAME = OL.USERNAME
+        LEFT JOIN la_user_online_logs OL ON  T.USERNAME = OL.USERNAME
         LEFT JOIN LA_USERS TC ON  T.CREATOR = TC.USERNAME
         WHERE T.username IN <foreach collection="list" open="(" close=")" separator="," item="user">#{user.username}</foreach>
         ORDER BY T.CREATE_DATE DESC, T.USERNAME

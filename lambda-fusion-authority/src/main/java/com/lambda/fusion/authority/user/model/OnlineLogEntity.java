@@ -7,7 +7,7 @@ import java.util.Date;
 import lombok.Data;
 
 @Data
-@TableName("la_online_log")
+@TableName("la_user_online_logs")
 @SuppressFBWarnings("EI_EXPOSE_REP")
 public class OnlineLogEntity {
 
