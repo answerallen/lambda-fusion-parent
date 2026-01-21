@@ -42,7 +42,7 @@ public class DictTypeTree extends BaseDO implements TreeNode<DictTypeTree> {
     @Schema(description = "级别：最顶层为1，后边层数累加", hidden = true)
     private Integer level = DEFAULT_LEVEL;
 
-    @TableField("parentKeys")
+    @TableField("parent_keys")
     @Schema(description = "树的父节点", hidden = true)
     private String parentKeys;
 

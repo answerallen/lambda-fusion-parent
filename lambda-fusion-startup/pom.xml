@@ -23,12 +23,22 @@
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-fusion-dict</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-swagger</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud  </groupId>
             <artifactId>lambda-cloud-starter-datasource</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lambda.cloud  </groupId>
+            <artifactId>lambda-cloud-starter-liquibase</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
     </dependencies>

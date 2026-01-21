@@ -13,10 +13,10 @@ public final class DictConstants {
     // ==================== 数据库表名常量 ====================
 
     /** 字典类型表名 */
-    public static final String TABLE_SYS_DICT_TYPE = "sys_dict_type";
+    public static final String TABLE_SYS_DICT_TYPE = "la_dict_type";
 
     /** 字典信息表名 */
-    public static final String TABLE_SYS_DICT_INFO = "sys_dict_info";
+    public static final String TABLE_SYS_DICT_INFO = "la_dict_info";
 
     // ==================== 字典数据类型常量 ====================
 

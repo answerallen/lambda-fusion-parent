@@ -34,7 +34,7 @@
             </dependency>
             <dependency>
                 <groupId>com.lambda.cloud</groupId>
-                <artifactId>lambda-fusion-log</artifactId>
+                <artifactId>lambda-fusion-message</artifactId>
                 <version>${project.parent.version}</version>
             </dependency>
             <dependency>

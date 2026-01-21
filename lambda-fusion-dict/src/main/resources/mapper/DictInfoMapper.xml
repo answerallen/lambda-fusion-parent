@@ -42,7 +42,7 @@
         REMARKS,
         TENANT_ID,
         SELECT_ABLE,
-        SORT FROM SYS_DICT_INFO
+        SORT FROM la_dict_info
         WHERE ENABLE_STATE = 1
         AND (
         TENANT_ID IS NULL
@@ -70,12 +70,12 @@
         DI.UPDATE_PEOPLE ,
         DI.ENABLE_STATE ,
         DT.DICT_NAME,
-        DI.PARENTID,
-        DI.PARENTKEYS ,
+        DI.PARENT_ID,
+        DI.PARENT_KEYS ,
         DI.EXTRA,
         DI.SELECT_ABLE
-        FROM SYS_DICT_INFO DI
-        INNER JOIN SYS_DICT_TYPE DT ON DT.DICT_TYPE = DI.DICT_TYPE
+        FROM la_dict_info DI
+        INNER JOIN la_dict_type DT ON DT.DICT_TYPE = DI.DICT_TYPE
 
     </select>
 
@@ -95,8 +95,8 @@
         DT.DICT_NAME,
         DI.EXTRA,
         DI.SELECT_ABLE
-        FROM SYS_DICT_INFO DI
-        INNER JOIN SYS_DICT_TYPE DT ON DT.DICT_TYPE = DI.DICT_TYPE
+        FROM la_dict_info DI
+        INNER JOIN la_dict_type DT ON DT.DICT_TYPE = DI.DICT_TYPE
         WHERE DI.DICT_TYPE = #{dictInfo.dictType}
         AND (
             DI.TENANT_ID IS NULL
@@ -108,7 +108,7 @@
             AND DI.ID = #{dictInfo.id}
         </if>
         <if test="dictInfo.parentId != null and dictInfo.parentId != ''">
-            OR DI.PARENTKEYS LIKE #{dictInfo.parentId}
+            OR DI.PARENT_KEYS LIKE #{dictInfo.parentId}
         </if>
         <if test="dictInfo.rank != null and dictInfo.rank != ''">
             <![CDATA[ AND DI.RANK2 <= #{dictInfo.rank} ]]>
@@ -127,12 +127,12 @@
         DI.UPDATE_TIME ,
         DI.UPDATE_PEOPLE ,
         DI.ENABLE_STATE ,
-        DI.PARENTID ,
-        DI.PARENTKEYS ,
+        DI.PARENT_ID ,
+        DI.PARENT_KEYS ,
         DI.EXTRA,
         DI.SELECT_ABLE
-        FROM SYS_DICT_INFO DI
-        INNER JOIN SYS_DICT_TYPE DT ON DT.DICT_TYPE = DI.DICT_TYPE
+        FROM la_dict_info DI
+        INNER JOIN la_dict_type DT ON DT.DICT_TYPE = DI.DICT_TYPE
         WHERE DI.ENABLE_STATE = 1
         AND (
             DI.TENANT_ID IS NULL
@@ -148,8 +148,8 @@
 
     <select id="selectDictInfo" resultType="com.lambda.fusion.dict.model.DictionaryEntry">
         SELECT DI.*
-        FROM SYS_DICT_INFO DI
-        INNER JOIN SYS_DICT_TYPE DT ON DT.DICT_TYPE = DI.DICT_TYPE
+        FROM la_dict_info DI
+        INNER JOIN la_dict_type DT ON DT.DICT_TYPE = DI.DICT_TYPE
         ${ew.customSqlSegment}
     </select>
 </mapper>

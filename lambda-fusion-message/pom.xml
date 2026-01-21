@@ -7,7 +7,7 @@
         <version>2025.1.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>lambda-fusion-log</artifactId>
+    <artifactId>lambda-fusion-message</artifactId>
     <packaging>jar</packaging>
 
     <name>lambda-fusion-log</name>

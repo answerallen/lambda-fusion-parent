@@ -7,19 +7,22 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.lambda.cloud.core.shared.BaseDO;
 import com.lambda.fusion.core.tree.TreeNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 字典信息(值)
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
 @TableName(value = TABLE_SYS_DICT_INFO)
-public class DictionaryEntry implements TreeNode<DictionaryEntry> {
+public class DictionaryEntry extends BaseDO implements TreeNode<DictionaryEntry> {
     @TableId
     @Schema(description = "id")
     private String id;

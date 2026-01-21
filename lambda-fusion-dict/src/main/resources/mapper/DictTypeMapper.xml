@@ -7,15 +7,15 @@
         <result property="id" column="ID"/>
         <result property="dictType" column="DICT_TYPE"/>
         <result property="dictName" column="DICT_NAME"/>
-        <result property="parentId" column="PARENTID"/>
+        <result property="parentId" column="PARENT_ID"/>
         <result property="level" column="RANK2"/>
-        <result property="parentKeys" column="PARENTKEYS"/>
+        <result property="parentKeys" column="PARENT_KEYS"/>
         <result property="dataType" column="DATA_TYPE"/>
         <result property="dataTypeValue" column="DATA_TYPE_VALUE"/>
     </resultMap>
 
     <select id="getDictTypeList" parameterType="string" resultType="com.lambda.fusion.dict.model.DictTypeTree">
-        SELECT ID, DICT_TYPE, DICT_NAME, DATA_TYPE, DICT_USAGE, DATA_TYPE_VALUE  FROM SYS_DICT_TYPE
+        SELECT ID, DICT_TYPE, DICT_NAME, DATA_TYPE, DICT_USAGE, DATA_TYPE_VALUE  FROM la_dict_type
         <where>
             <if test="type != null and type != ''">
                 DICT_TYPE LIKE #{type}
@@ -26,13 +26,13 @@
 
 
     <select id="selectParentByType" parameterType="string" resultType="com.lambda.fusion.dict.model.DictTypeTree">
-        SELECT * FROM SYS_DICT_TYPE T WHERE T.ID =
-        (SELECT (CASE WHEN T2.PARENTID IS NULL THEN T2.ID ELSE T2.PARENTID END) ID  FROM SYS_DICT_TYPE T2 WHERE T2.DICT_TYPE = #{type})
+        SELECT * FROM la_dict_type T WHERE T.ID =
+        (SELECT (CASE WHEN T2.PARENT_ID IS NULL THEN T2.ID ELSE T2.PARENT_ID END) ID  FROM la_dict_type T2 WHERE T2.DICT_TYPE = #{type})
     </select>
 
     <!--suppress MybatisXMapperXmlInspection -->
     <select id="treeList" resultType="com.lambda.fusion.dict.model.DictTypeTree" databaseId="mysql">
-        SELECT T.* FROM SYS_DICT_TYPE T
+        SELECT T.* FROM la_dict_type T
         <where>
             <if test="parameters.userOnly != null and parameters.userOnly == true">
                 AND T.DICT_USAGE = 1
@@ -47,15 +47,15 @@
                 AND T.DICT_NAME LIKE #{parameters.name}
             </if>
             <if test="parameters.parentKeys != null and parameters.parentKeys != ''">
-                OR T.PARENTKEYS LIKE #{parameters.parentKeys}
+                OR T.PARENT_KEYS LIKE #{parameters.parentKeys}
             </if>
         </where>
-        ORDER BY T.RANK2, CONVERT(T.DICT_NAME USING gbk)
+        ORDER BY T.SORT, CONVERT(T.DICT_NAME USING gbk)
     </select>
 
     <!--suppress MybatisXMapperXmlInspection -->
     <select id="treeList" resultType="com.lambda.fusion.dict.model.DictTypeTree" databaseId="oracle">
-            SELECT T.* FROM SYS_DICT_TYPE T
+            SELECT T.* FROM la_dict_type T
             <where>
                 <if test="parameters.userOnly != null and parameters.userOnly == true">
                     AND T.DICT_USAGE = 1
@@ -70,7 +70,7 @@
                     AND T.DICT_NAME LIKE #{parameters.name}
                 </if>
                 <if test="parameters.parentKeys != null and parameters.parentKeys != ''">
-                    OR T.PARENTKEYS LIKE #{parameters.parentKeys}
+                    OR T.PARENT_KEYS LIKE #{parameters.parentKeys}
                 </if>
             </where>
             ORDER BY RANK2, NLSSORT(T.DICT_NAME ,'NLS_SORT = SCHINESE_PINYIN_M')
@@ -78,7 +78,7 @@
 
     <!--suppress MybatisXMapperXmlInspection -->
     <select id="treeList" resultType="com.lambda.fusion.dict.model.DictTypeTree" databaseId="postgresql">
-            SELECT T.* FROM SYS_DICT_TYPE T
+            SELECT T.* FROM la_dict_type T
             <where>
                 <if test="parameters.userOnly != null and parameters.userOnly == true">
                     AND T.DICT_USAGE = 1
@@ -93,7 +93,7 @@
                     AND T.DICT_NAME LIKE #{parameters.name}
                 </if>
                 <if test="parameters.parentKeys != null and parameters.parentKeys != ''">
-                    OR T.PARENTKEYS LIKE #{parameters.parentKeys}
+                    OR T.PARENT_KEYS LIKE #{parameters.parentKeys}
                 </if>
             </where>
             ORDER BY RANK2, NLSSORT(T.DICT_NAME ,'NLS_SORT = SCHINESE_PINYIN_M')
@@ -108,8 +108,8 @@
     </resultMap>
 
     <select id="getCascadeDictType" resultMap="cascadeDictType">
-        SELECT ID, DICT_TYPE, DICT_USAGE, DICT_NAME, PARENTID, RANK2, PARENTKEYS, DATA_TYPE, DATA_TYPE_VALUE
-        FROM SYS_DICT_type
+        SELECT ID, DICT_TYPE, DICT_USAGE, DICT_NAME, PARENT_ID, RANK2, PARENT_KEYS, DATA_TYPE, DATA_TYPE_VALUE
+        FROM la_dict_type
         <where>
             <if test="id!='' and id!=null">
                 ID = #{id}
@@ -118,9 +118,9 @@
     </select>
 
     <select id="getChildrenDictType" resultMap="cascadeDictType">
-        select ID, DICT_TYPE, DICT_USAGE, DICT_NAME, PARENTID, RANK2, PARENTKEYS, DATA_TYPE, DATA_TYPE_VALUE
-        from SYS_DICT_type
-        WHERE PARENTID = #{id}
+        select ID, DICT_TYPE, DICT_USAGE, DICT_NAME, PARENT_ID, RANK2, PARENT_KEYS, DATA_TYPE, DATA_TYPE_VALUE
+        from la_dict_type
+        WHERE PARENT_ID = #{id}
     </select>
 
 </mapper>

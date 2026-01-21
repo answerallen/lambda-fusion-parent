@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.utils.Assert;
+import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.ParameterUtils;
@@ -24,6 +25,8 @@ import com.lambda.fusion.dict.support.enums.DictionaryRegistry;
 import com.lambda.fusion.dict.support.model.DynamicDictionarySource;
 import com.lambda.fusion.dict.support.resolve.DictionarySourceResolver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -72,6 +75,8 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
         if (StringUtils.isBlank(source.getDictType())) {
             source.setDictType(source.getId());
         }
+        source.setCreateUser(OperatorUtils.getOperator().getName());
+        source.setCreateTime(LocalDateTime.now());
         dictTypeMapper.insert(source);
         return dictTypeMapper.selectById(source.getId());
     }
