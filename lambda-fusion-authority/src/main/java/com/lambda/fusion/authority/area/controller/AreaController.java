@@ -54,8 +54,7 @@ public class AreaController {
 
     @GetMapping("/{parentCode}/children")
     @Operation(summary = "获取下级区域")
-    public List<Area> children(
-            @PathVariable @Parameter(description = "父区域编码", required = true) String parentCode) {
+    public List<Area> children(@PathVariable @Parameter(description = "父区域编码", required = true) String parentCode) {
         return areaService.getChildren(parentCode);
     }
 
