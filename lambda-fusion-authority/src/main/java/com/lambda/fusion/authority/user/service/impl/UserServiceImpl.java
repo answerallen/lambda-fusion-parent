@@ -454,7 +454,7 @@ public class UserServiceImpl implements UserService {
         Assert.notNull(userEntity, "user is not null");
 
         boolean hasExists = userMapper.hasExists(userEntity.getUsername());
-        Assert.isTrue(hasExists, "该用户名已被使用");
+        Assert.isFalse(hasExists, "该用户名已被使用");
 
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
         String originPassword = userEntity.getPassword();

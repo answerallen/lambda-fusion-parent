@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.lambda.fusion.authority.area.mapper.AreaMapper">
+
+    <resultMap id="AreaResult" type="com.lambda.fusion.authority.area.model.Area">
+        <id column="id" property="id"/>
+        <result column="parent_code" property="parentCode"/>
+        <result column="area_code" property="areaCode"/>
+        <result column="area_name" property="areaName"/>
+        <result column="level" property="level"/>
+        <result column="depth" property="depth"/>
+        <result column="type" property="type"/>
+    </resultMap>
+
+    <resultMap id="AreaTreeResult" type="com.lambda.fusion.authority.area.model.AreaTree">
+        <id column="id" property="dbId"/>
+        <result column="area_code" property="areaCode"/>
+        <result column="area_name" property="name"/>
+        <result column="parent_code" property="parentCode"/>
+        <result column="level" property="level"/>
+        <result column="type" property="type"/>
+    </resultMap>
+
+    <!-- 条件查询区域列表 -->
+    <select id="selectAreas" resultMap="AreaResult">
+        SELECT ID, PARENT_CODE, AREA_CODE, AREA_NAME, LEVEL, DEPTH, TYPE
+        FROM la_area
+        <where>
+            <if test="parameters.parentCode != null and parameters.parentCode != ''">
+                AND PARENT_CODE = #{parameters.parentCode}
+            </if>
+            <if test="parameters.level != null">
+                AND LEVEL = #{parameters.level}
+            </if>
+            <if test="parameters.depth != null">
+                AND DEPTH = #{parameters.depth}
+            </if>
+            <if test="parameters.type != null and parameters.type != ''">
+                AND TYPE = #{parameters.type}
+            </if>
+            <if test="parameters.keyword != null and parameters.keyword != ''">
+                AND AREA_NAME LIKE CONCAT('%', #{parameters.keyword}, '%')
+            </if>
+        </where>
+        ORDER BY LEVEL, DEPTH, AREA_CODE
+    </select>
+
+    <!-- 获取区域树形结构 -->
+    <select id="selectAreaTree" resultMap="AreaTreeResult">
+        SELECT ID, AREA_CODE, AREA_NAME, PARENT_CODE, LEVEL, TYPE
+        FROM la_area
+        <where>
+            <choose>
+                <when test="parentCode != null and parentCode != ''">
+                    PARENT_CODE = #{parentCode}
+                </when>
+                <otherwise>
+                    PARENT_CODE IS NULL = PARENT_CODE = '0'
+                </otherwise>
+            </choose>
+        </where>
+        ORDER BY LEVEL, AREA_CODE
+    </select>
+
+    <!-- 根据区域编码查询 -->
+    <select id="selectByAreaCode" resultMap="AreaResult">
+        SELECT ID, PARENT_CODE, AREA_CODE, AREA_NAME, LEVEL, DEPTH, TYPE
+        FROM la_area
+        WHERE AREA_CODE = #{areaCode}
+    </select>
+
+    <!-- 查询下级区域 -->
+    <select id="selectChildren" resultMap="AreaResult">
+        SELECT ID, PARENT_CODE, AREA_CODE, AREA_NAME, LEVEL, DEPTH, TYPE
+        FROM la_area
+        WHERE PARENT_CODE = #{parentCode}
+        ORDER BY AREA_CODE
+    </select>
+
+    <!-- 检查区域编码是否存在 -->
+    <select id="hasExists" resultType="boolean">
+        SELECT COUNT(1) > 0 FROM la_area WHERE AREA_CODE = #{areaCode}
+    </select>
+
+    <!-- 检查是否存在子区域 -->
+    <select id="hasChildren" resultType="boolean">
+        SELECT COUNT(1) > 0 FROM la_area WHERE PARENT_CODE = #{parentCode}
+    </select>
+
+    <!-- 新增区域 -->
+    <insert id="insertArea" parameterType="com.lambda.fusion.authority.area.model.Area" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO la_area (PARENT_CODE, AREA_CODE, AREA_NAME, LEVEL, DEPTH, TYPE)
+        VALUES (#{parentCode}, #{areaCode}, #{areaName}, #{level}, #{depth}, #{type})
+    </insert>
+
+    <!-- 更新区域 -->
+    <update id="updateArea" parameterType="com.lambda.fusion.authority.area.model.Area">
+        UPDATE la_area
+        SET PARENT_CODE = #{parentCode},
+            AREA_NAME = #{areaName},
+            LEVEL = #{level},
+            DEPTH = #{depth},
+            TYPE = #{type}
+        WHERE AREA_CODE = #{areaCode}
+    </update>
+
+    <!-- 根据区域编码删除 -->
+    <delete id="deleteByAreaCode">
+        DELETE FROM la_area WHERE AREA_CODE = #{areaCode}
+    </delete>
+
+</mapper>
