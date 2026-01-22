@@ -3,7 +3,9 @@ package com.lambda.fusion.authority;
 import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
 
+import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.impl.InternalRoleServiceImpl;
 import com.lambda.fusion.authority.tenant.TenantProperties;
@@ -12,9 +14,13 @@ import com.lambda.fusion.authority.tenant.cache.TenantConfigurationLocalCache;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationRedisCache;
 import com.lambda.fusion.authority.tenant.cache.TenantHostCache;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
+
+import com.lambda.fusion.core.utils.LoginUserUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -35,6 +41,23 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({AuthorityProperties.class, TenantProperties.class})
 public class AuthorityConfigure {
+
+    @Bean
+    public EntityMetaFiller entityMetaFiller(){
+        return new EntityMetaFiller() {
+            @Override
+            public void insertFill(MetaObjectHandler handler, MetaObject metaObject) {
+                handler.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
+                handler.strictInsertFill(metaObject, "createUser", String.class, LoginUserUtils.getLoginUser().getUsername());
+            }
+
+            @Override
+            public void updateFill(MetaObjectHandler handler, MetaObject metaObject) {
+                handler.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+                handler.strictUpdateFill(metaObject, "updateUser", String.class, LoginUserUtils.getLoginUser().getUsername());
+            }
+        };
+    }
 
     @Bean
     public Executor operationLogExecutor() {

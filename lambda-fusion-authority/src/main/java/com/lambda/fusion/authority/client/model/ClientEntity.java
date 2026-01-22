@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.client.model;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -18,7 +19,7 @@ public class ClientEntity extends BaseDO {
     /**
      * 主键
      */
-    @TableId
+    @TableId(value = "id", type= IdType.ASSIGN_ID)
     @Schema(description = "主键")
     private String id;
     /**

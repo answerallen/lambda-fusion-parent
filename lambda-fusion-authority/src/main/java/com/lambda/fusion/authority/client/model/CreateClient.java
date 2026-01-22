@@ -1,6 +1,7 @@
 package com.lambda.fusion.authority.client.model;
 
 import cn.hutool.core.util.IdUtil;
+import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,6 +12,7 @@ import lombok.EqualsAndHashCode;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.validator.constraints.Length;
 
+@AutoConverter(target =ClientEntity.class )
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Schema(description = "客户端信息")
