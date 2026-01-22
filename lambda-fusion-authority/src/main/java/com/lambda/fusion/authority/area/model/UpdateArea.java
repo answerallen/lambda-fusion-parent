@@ -1,13 +1,18 @@
 package com.lambda.fusion.authority.area.model;
 
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.shared.BaseDTO;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 更新区域请求参数
  */
+@EqualsAndHashCode(callSuper = true)
+@AutoConverter(target = AreaEntity.class)
 @Data
-public class UpdateArea {
+public class UpdateArea  extends BaseDTO<AreaEntity> {
 
     /**
      * 主键ID

@@ -16,7 +16,7 @@ public class AreaEntity {
     /**
      * 主键ID
      */
-    @TableId(value = "ID", type = IdType.AUTO)
+    @TableId(value = "ID", type = IdType.ASSIGN_ID)
     private Long id;
 
     /**

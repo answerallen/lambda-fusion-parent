@@ -64,20 +64,6 @@ public interface AreaMapper extends BaseMapper<AreaEntity> {
     boolean hasChildren(@Param("parentCode") String parentCode);
 
     /**
-     * 新增区域
-     *
-     * @param area 区域信息
-     */
-    void insertArea(Area area);
-
-    /**
-     * 更新区域
-     *
-     * @param area 区域信息
-     */
-    void updateArea(Area area);
-
-    /**
      * 根据区域编码删除
      *
      * @param areaCode 区域编码

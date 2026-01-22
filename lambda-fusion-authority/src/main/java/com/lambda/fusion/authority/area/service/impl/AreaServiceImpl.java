@@ -50,9 +50,7 @@ public class AreaServiceImpl implements AreaService {
     public Area addArea(CreateArea createArea) {
         // 检查区域编码是否已存在
         Assert.isTrue(!areaMapper.hasExists(createArea.getAreaCode()), "区域编码已存在");
-
-        Area area = BeanUtil.toBean(createArea, Area.class);
-        areaMapper.insertArea(area);
+        areaMapper.insert(createArea.toEntity());
         return areaMapper.selectByAreaCode(createArea.getAreaCode());
     }
 
@@ -62,9 +60,7 @@ public class AreaServiceImpl implements AreaService {
         // 检查区域是否存在
         Area existing = areaMapper.selectByAreaCode(updateArea.getAreaCode());
         Assert.notNull(existing, "区域不存在");
-
-        Area area = BeanUtil.toBean(updateArea, Area.class);
-        areaMapper.updateArea(area);
+        areaMapper.updateById(updateArea.toEntity());
         return areaMapper.selectByAreaCode(updateArea.getAreaCode());
     }
 

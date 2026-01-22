@@ -88,23 +88,6 @@
         SELECT COUNT(1) > 0 FROM la_area WHERE PARENT_CODE = #{parentCode}
     </select>
 
-    <!-- 新增区域 -->
-    <insert id="insertArea" parameterType="com.lambda.fusion.authority.area.model.Area" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO la_area (PARENT_CODE, AREA_CODE, AREA_NAME, LEVEL, DEPTH, TYPE)
-        VALUES (#{parentCode}, #{areaCode}, #{areaName}, #{level}, #{depth}, #{type})
-    </insert>
-
-    <!-- 更新区域 -->
-    <update id="updateArea" parameterType="com.lambda.fusion.authority.area.model.Area">
-        UPDATE la_area
-        SET PARENT_CODE = #{parentCode},
-            AREA_NAME = #{areaName},
-            LEVEL = #{level},
-            DEPTH = #{depth},
-            TYPE = #{type}
-        WHERE AREA_CODE = #{areaCode}
-    </update>
-
     <!-- 根据区域编码删除 -->
     <delete id="deleteByAreaCode">
         DELETE FROM la_area WHERE AREA_CODE = #{areaCode}
