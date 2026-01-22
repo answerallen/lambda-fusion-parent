@@ -56,7 +56,7 @@
                     PARENT_CODE = #{parentCode}
                 </when>
                 <otherwise>
-                    PARENT_CODE IS NULL = PARENT_CODE = '0'
+                    PARENT_CODE IS NULL
                 </otherwise>
             </choose>
         </where>
