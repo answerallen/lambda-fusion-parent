@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.dict.mapper.DictInfoMapper">
 
-    <resultMap type="com.lambda.fusion.dict.model.DictionaryEntry" id="MultiDictInfo">
+    <resultMap type="com.lambda.fusion.dict.model.DictInfo" id="MultiDictInfo">
         <result property="id" column="ID"/>
         <result property="dictType" column="DICT_TYPE"/>
         <result property="dictName" column="DICT_NAME"/>
@@ -23,7 +23,7 @@
     <resultMap id="dictInfoGroupMap" type="com.lambda.fusion.dict.model.DictInfoGroup">
         <result property="dictType" column="dictType"/>
         <!-- 描述集合属性 -->
-        <collection property="dictList" ofType="com.lambda.fusion.dict.model.DictionaryEntry" >
+        <collection property="dictList" ofType="com.lambda.fusion.dict.model.DictInfo" >
             <result property="dictType" column="dictType"/>
             <result property="fieldType" column="fieldType"/>
             <result property="fieldName" column="fieldName"/>
@@ -56,7 +56,7 @@
         GROUP BY DICT_TYPE,FIELD_TYPE,FIELD_NAME,parentId,TENANT_ID,REMARKS,SELECT_ABLE,SORT ORDER BY SORT ASC
     </select>
 
-    <select id="page" parameterType="HashMap" resultType="com.lambda.fusion.dict.model.DictionaryEntry">
+    <select id="page" parameterType="HashMap" resultType="com.lambda.fusion.dict.model.DictInfo">
         SELECT DI.ID,
         DI.DICT_TYPE ,
         DI.FIELD_TYPE ,
@@ -79,7 +79,7 @@
 
     </select>
 
-    <select id="getDictInfoList" resultType="com.lambda.fusion.dict.model.DictionaryEntry">
+    <select id="getDictInfoList" resultType="com.lambda.fusion.dict.model.DictInfo">
         SELECT DI.ID,
         DI.DICT_TYPE ,
         DI.FIELD_TYPE ,
@@ -114,7 +114,7 @@
             <![CDATA[ AND DI.RANK2 <= #{dictInfo.rank} ]]>
         </if>
     </select>
-    <select id="treeList" resultType="com.lambda.fusion.dict.model.DictionaryEntry">
+    <select id="treeList" resultType="com.lambda.fusion.dict.model.DictInfo">
         SELECT DI.ID,
         DI.DICT_TYPE ,
         DI.FIELD_TYPE ,
@@ -146,7 +146,7 @@
         </if>
     </select>
 
-    <select id="selectDictInfo" resultType="com.lambda.fusion.dict.model.DictionaryEntry">
+    <select id="selectDictInfo" resultType="com.lambda.fusion.dict.model.DictInfo">
         SELECT DI.*
         FROM la_dict_info DI
         INNER JOIN la_dict_type DT ON DT.DICT_TYPE = DI.DICT_TYPE

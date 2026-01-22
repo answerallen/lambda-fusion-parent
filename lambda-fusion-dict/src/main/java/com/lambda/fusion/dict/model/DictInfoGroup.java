@@ -23,5 +23,5 @@ public class DictInfoGroup {
     /**
      *字典信息
      */
-    private List<DictionaryEntry> dictList;
+    private List<DictInfo> dictList;
 }

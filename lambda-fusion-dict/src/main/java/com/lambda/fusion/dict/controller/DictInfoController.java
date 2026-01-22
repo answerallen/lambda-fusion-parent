@@ -2,14 +2,11 @@ package com.lambda.fusion.dict.controller;
 
 import static com.lambda.fusion.dict.support.constants.DictConstants.*;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.identity.UserPrincipal;
-import com.lambda.fusion.dict.model.DictionaryEntry;
-import com.lambda.fusion.dict.model.DictionaryType;
-import com.lambda.fusion.dict.model.InputDictInfo;
-import com.lambda.fusion.dict.model.OperationDictState;
-import com.lambda.fusion.dict.model.QueryDictInfo;
+import com.lambda.fusion.dict.model.*;
 import com.lambda.fusion.dict.service.DictInfoService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,45 +32,58 @@ import org.springframework.web.bind.annotation.*;
 public class DictInfoController {
     private final DictInfoService dictInfoService;
 
+    @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
+    @Operation(summary = "字典类型分页查询", description = "字典类型分页查询，支持多条件查询和排序")
+    public Page<DictInfo> dictTypeList(
+            @PathVariable(required = false) Integer number,
+            @PathVariable(required = false) Integer size,
+            @Valid QueryDictInfoPage pageQueryDTO) {
+        if (number != null) {
+            pageQueryDTO.setPageNum(number);
+        }
+        if (size != null) {
+            pageQueryDTO.setPageSize(size);
+        }
+        return dictInfoService.page(pageQueryDTO.getPage(), pageQueryDTO.toDictInfoQueryDTO());
+    }
+
     @GetMapping("/dynamic")
     @Operation(summary = "获取所有启用的动态字典", description = "获取所有启用的字典")
-    public Map<String, DictionaryType> getAllDynamicDictInfo(
+    public Map<String, DictType> getAllDynamicDictInfo(
             @Parameter(description = "字典类型") @RequestParam(required = false) String type) {
         return dictInfoService.getDynamicDictInfoGroup(type);
     }
 
     @GetMapping("/dict/tree/data/{type}")
     @Operation(summary = "查询树形结构的数据项", description = "根据字典类型查询树形结构数据项")
-    public List<DictionaryEntry> treeData(
-            @Parameter(description = "字典类型") @PathVariable(required = false) String type) {
+    public List<DictInfo> treeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
         return dictInfoService.getTreeData(type);
     }
 
     @GetMapping("/dict/tree/subData/{type}")
     @Operation(summary = "根据数据类型查询包含子集数据类型的数据项", description = "根据数据类型查询包含子集数据类型的数据项")
-    public List<DictionaryEntry> subTreeData(
-            @Parameter(description = "字典类型") @PathVariable(required = false) String type) {
+    public List<DictInfo> subTreeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
         return dictInfoService.getSubTreeData(type);
     }
 
     @OperationLog
     @GetMapping("/tree/data/{parentid}")
     @Operation(summary = "根据数据项父节点查询数据项树", description = "根据数据项父节点查询数据项树")
-    public List<DictionaryEntry> queryDictInfoByParentId(
+    public List<DictInfo> queryDictInfoByParentId(
             @Parameter(description = "数据项父ID", required = true) @PathVariable String parentid) {
         return dictInfoService.getDictInfoByParentId(parentid);
     }
 
     @GetMapping("/data/select")
     @Operation(summary = "数据项条件查询", description = "分页查询所有数据列表")
-    public List<DictionaryEntry> selectDictInfo(QueryDictInfo queryDictInfo) {
+    public List<DictInfo> selectDictInfo(QueryDictInfo queryDictInfo) {
         return dictInfoService.selectDictInfo(queryDictInfo);
     }
 
     @OperationLog
     @PostMapping
     @Operation(summary = "添加字典详细信息", description = "添加字典详细信息")
-    public DictionaryEntry saveDictInfo(@Valid @RequestBody DictionaryEntry dictionaryEntry) {
+    public DictInfo saveDictInfo(@Valid @RequestBody DictInfo dictionaryEntry) {
         UserPrincipal userPrincipal = (UserPrincipal) OperatorUtils.getOperator();
         if (StringUtils.isNotBlank(userPrincipal.getTenantId())) {
             dictionaryEntry.setTenantId(userPrincipal.getTenantId());

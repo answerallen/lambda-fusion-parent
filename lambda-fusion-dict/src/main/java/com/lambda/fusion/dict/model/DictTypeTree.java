@@ -74,7 +74,7 @@ public class DictTypeTree extends BaseDO implements TreeNode<DictTypeTree> {
 
     @TableField(exist = false)
     @Schema(description = "子节点数据", hidden = true)
-    private List<DictionaryEntry> data;
+    private List<DictInfo> data;
 
     @Override
     public void children(List<DictTypeTree> children) {

@@ -12,7 +12,7 @@ import lombok.Data;
 @SuppressFBWarnings({"EI_EXPOSE_REP"})
 @Data
 @Schema(description = "数据字典简略信息")
-public class DictionaryType {
+public class DictType {
 
     @Schema(description = "id", hidden = true)
     private String id;
@@ -31,5 +31,5 @@ public class DictionaryType {
     private String dataTypeValue;
 
     @Schema(description = "子节点数据", hidden = true)
-    private List<DictionaryEntry> data;
+    private List<DictInfo> data;
 }

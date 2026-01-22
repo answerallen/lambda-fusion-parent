@@ -29,7 +29,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "字典信息分页查询参数")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class QueryDictInfoPage extends Pagination<DictionaryEntry> {
+public class QueryDictInfoPage extends Pagination<DictInfo> {
 
     /**
      * 字典类型

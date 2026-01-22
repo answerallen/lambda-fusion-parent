@@ -17,8 +17,8 @@ import com.lambda.fusion.core.utils.ParameterUtils;
 import com.lambda.fusion.dict.DictionaryProperties;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
+import com.lambda.fusion.dict.model.DictInfo;
 import com.lambda.fusion.dict.model.DictTypeTree;
-import com.lambda.fusion.dict.model.DictionaryEntry;
 import com.lambda.fusion.dict.model.QueryDictTree;
 import com.lambda.fusion.dict.service.DictTypeService;
 import com.lambda.fusion.dict.support.enums.DictionaryRegistry;
@@ -210,8 +210,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
             });
         }
         if (CollectionUtils.isNotEmpty(dictTypes)) {
-            dictInfoMapper.delete(
-                    Wrappers.lambdaQuery(DictionaryEntry.class).in(DictionaryEntry::getDictType, dictTypes));
+            dictInfoMapper.delete(Wrappers.lambdaQuery(DictInfo.class).in(DictInfo::getDictType, dictTypes));
         }
         if (CollectionUtils.isNotEmpty(dictTypeIds)) {
             dictTypeMapper.deleteByIds(dictTypeIds);
@@ -251,11 +250,11 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
             for (DictionarySourceResolver dynamicDictResolve : dynamicDictResolves) {
                 if (dynamicDictResolve.isSupport(dictTypeTree.getDataType())) {
                     final List<DynamicDictionarySource> list = dynamicDictResolve.doResolve(dictTypeTree);
-                    List<DictionaryEntry> dictionaryEntries = new ArrayList<>(list.size());
+                    List<DictInfo> dictionaryEntries = new ArrayList<>(list.size());
                     AtomicBoolean hasRank = new AtomicBoolean(false);
                     if (CollectionUtils.isNotEmpty(list)) {
                         list.forEach(v -> {
-                            final DictionaryEntry dictionaryEntry = new DictionaryEntry();
+                            final DictInfo dictionaryEntry = new DictInfo();
                             dictionaryEntry.setId(
                                     StringUtils.isNotBlank(v.getId())
                                             ? v.getId()
@@ -273,22 +272,19 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
                             dictionaryEntries.add(dictionaryEntry);
                         });
                     }
-                    List<DictionaryEntry> dictionaryEntryList;
+                    List<DictInfo> dictionaryEntryList;
                     if (hasRank.get()) {
                         // 有级别
                         dictionaryEntryList = TreeBuilder.build3(
                                 dictionaryEntries,
-                                DictionaryEntry::getId,
-                                DictionaryEntry::getParentId,
-                                DictionaryEntry::level,
-                                DictionaryEntry::setChildren);
+                                DictInfo::getId,
+                                DictInfo::getParentId,
+                                DictInfo::level,
+                                DictInfo::setChildren);
                     } else {
                         // 无级别
                         dictionaryEntryList = TreeBuilder.build2(
-                                dictionaryEntries,
-                                DictionaryEntry::getId,
-                                DictionaryEntry::getParentId,
-                                DictionaryEntry::setChildren);
+                                dictionaryEntries, DictInfo::getId, DictInfo::getParentId, DictInfo::setChildren);
                     }
                     dictTypeTree.setData(dictionaryEntryList);
                     break;

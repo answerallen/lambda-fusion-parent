@@ -22,7 +22,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @TableName(value = TABLE_SYS_DICT_INFO)
-public class DictionaryEntry extends BaseDO implements TreeNode<DictionaryEntry> {
+public class DictInfo extends BaseDO implements TreeNode<DictInfo> {
     @TableId
     @Schema(description = "id")
     private String id;
@@ -87,7 +87,7 @@ public class DictionaryEntry extends BaseDO implements TreeNode<DictionaryEntry>
 
     @TableField(exist = false)
     @Schema(description = "子节点", hidden = true)
-    private List<DictionaryEntry> children;
+    private List<DictInfo> children;
 
     @Override
     public String id() {
@@ -100,7 +100,7 @@ public class DictionaryEntry extends BaseDO implements TreeNode<DictionaryEntry>
     }
 
     @Override
-    public void children(List<DictionaryEntry> children) {
+    public void children(List<DictInfo> children) {
         this.children = children;
     }
 }

@@ -1,7 +1,7 @@
 package com.lambda.fusion.dict.support.enums;
 
+import com.lambda.fusion.dict.model.DictInfo;
 import com.lambda.fusion.dict.model.DictTypeTree;
-import com.lambda.fusion.dict.model.DictionaryEntry;
 import com.lambda.fusion.dict.support.model.DictValueType;
 import com.lambda.fusion.dict.support.model.DynamicDictionarySource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -57,9 +57,9 @@ public class DictionaryRegistry {
         dictTypeTree.setLevel(1);
 
         final List<DynamicDictionarySource> dictHolderList = dictionaryHolder.getList();
-        List<DictionaryEntry> dictionaryEntries = new ArrayList<>(dictHolderList.size());
+        List<DictInfo> dictionaryEntries = new ArrayList<>(dictHolderList.size());
         for (DynamicDictionarySource dynamicDictionarySource : dictHolderList) {
-            final DictionaryEntry dictionaryEntry = new DictionaryEntry();
+            final DictInfo dictionaryEntry = new DictInfo();
             dictionaryEntry.setId(dynamicDictionarySource.getKey());
             dictionaryEntry.setDictType(dictTypeTree.getDictType());
             dictionaryEntry.setDictName(dictTypeTree.getDictName());

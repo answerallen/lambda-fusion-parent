@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
 import lombok.*;
 
-@AutoConverter(target = DictionaryEntry.class)
+@AutoConverter(target = DictInfo.class)
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Builder
@@ -15,7 +15,7 @@ import lombok.*;
 @AllArgsConstructor
 @Schema(description = "字典信息查询参数")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class QueryDictInfo extends BaseDTO<DictionaryEntry> {
+public class QueryDictInfo extends BaseDTO<DictInfo> {
 
     @Schema(description = "字典类型")
     private String dictType;
