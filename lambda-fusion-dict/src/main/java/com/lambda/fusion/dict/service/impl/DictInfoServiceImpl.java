@@ -1,8 +1,5 @@
 package com.lambda.fusion.dict.service.impl;
 
-import static com.lambda.fusion.core.Constants.JOINER;
-import static com.lambda.fusion.dict.support.constants.DictConstants.*;
-
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -10,9 +7,10 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
@@ -22,22 +20,19 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.ParameterUtils;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
-import com.lambda.fusion.dict.model.DictInfo;
-import com.lambda.fusion.dict.model.DictInfoEntity;
-import com.lambda.fusion.dict.model.DictInfoGroup;
-import com.lambda.fusion.dict.model.DictType;
-import com.lambda.fusion.dict.model.DictTypeTree;
-import com.lambda.fusion.dict.model.InputDictInfo;
-import com.lambda.fusion.dict.model.OperationDictState;
-import com.lambda.fusion.dict.model.QueryDictInfo;
+import com.lambda.fusion.dict.model.*;
 import com.lambda.fusion.dict.service.DictInfoService;
 import com.lambda.fusion.dict.support.enums.DictionaryRegistry;
-import java.util.*;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.core.Constants.JOINER;
+import static com.lambda.fusion.dict.support.constants.DictConstants.*;
 
 /**
  * 多级数据字典详细信息
@@ -50,7 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDictInfo, DictInfoMapper>
         implements DictInfoService, IService<DictInfo> {
 
-    private final Gson gson;
+    private final ObjectMapper objectMapper;
 
     private final DictInfoMapper dictInfoMapper;
 
@@ -122,37 +117,36 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
             source.setLevel(DEFAULT_LEVEL);
         }
         dictInfoMapper.insert(source);
-        DictInfo dictionaryEntry = dictInfoMapper.selectById(source.getId());
-        dictionaryEntry.setParameters(convertMap(dictionaryEntry.getExtra()));
-        return dictionaryEntry;
+        DictInfo dictInfo = dictInfoMapper.selectById(source.getId());
+        dictInfo.setParameters(convertMap(dictInfo.getExtra()));
+        return dictInfo;
     }
 
-    public boolean dictInfoExists(DictInfo dictionaryEntry) {
+    public boolean dictInfoExists(DictInfo dictInfo) {
         LambdaQueryWrapper<DictInfo> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(DictInfo::getDictType, dictionaryEntry.getDictType());
-        wrapper.eq(DictInfo::getFieldType, dictionaryEntry.getFieldType());
+        wrapper.eq(DictInfo::getDictType, dictInfo.getDictType());
+        wrapper.eq(DictInfo::getFieldType, dictInfo.getFieldType());
         // 租户
-        if (StringUtils.isNotBlank(dictionaryEntry.getTenantId())) {
-            wrapper.eq(DictInfo::getTenantId, dictionaryEntry.getTenantId());
+        if (StringUtils.isNotBlank(dictInfo.getTenantId())) {
+            wrapper.eq(DictInfo::getTenantId, dictInfo.getTenantId());
         }
         DictInfo target = dictInfoMapper.selectOne(wrapper);
-        return target != null && !target.getId().equals(dictionaryEntry.getId());
+        return target != null && !target.getId().equals(dictInfo.getId());
     }
 
     @Override
-    public DictInfo updateDictInfo(String id, DictInfoEntity dictInfoEntity) {
+    public void updateDictInfo(String id, DictInfo dictInfo) {
         Assert.notNull(id, MSG_DICT_ID_NOT_EMPTY);
         Assert.notNull(dictInfoMapper.selectById(id), MSG_DICT_UPDATE_DATA_NOT_EXISTED);
-
-        //        dictInfoVO.setExtra(
-        //                CollectionUtils.isNotEmpty(dictInfoVO.getParameters())
-        //                        ? convertJson(dictInfoVO.getParameters())
-        //                        : null);
-        //        if (dictInfoExists(dictInfoVO)) {
-        //            dictInfoVO.setFieldType(null);
-        //        }
-        //        dictInfoMapper.updateById(dictInfoEntity);
-        return dictInfoMapper.selectById(id);
+        dictInfo.setExtra(
+                CollectionUtils.isNotEmpty(dictInfo.getParameters())
+                        ? convertJson(dictInfo.getParameters())
+                        : null);
+        if (dictInfoExists(dictInfo)) {
+            dictInfo.setFieldType(null);
+        }
+        dictInfoMapper.updateById(dictInfo);
+        dictInfoMapper.selectById(id);
     }
 
     @Override
@@ -306,11 +300,24 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
     }
 
     private String convertJson(Map<String, Object> map) {
-        return gson.toJson(map);
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage(), e);
+            return "";
+        }
     }
 
     private Map<String, Object> convertMap(String extra) {
-        return gson.fromJson(extra, new MapTypeToken().getType());
+        if (StringUtils.isNotBlank(extra)) {
+            try {
+                return objectMapper.readValue(extra, new TypeReference<>() {
+                });
+            } catch (JsonProcessingException e) {
+                log.error(e.getMessage(), e);
+            }
+        }
+        return null;
     }
 
     private Map<String, Object> convertQueryDTOToMap(QueryDictInfo queryDTO) {
@@ -348,5 +355,4 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         return parameters;
     }
 
-    private static class MapTypeToken extends TypeToken<Map<String, Object>> {}
 }

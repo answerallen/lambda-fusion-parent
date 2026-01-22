@@ -17,11 +17,11 @@ import lombok.Setter;
 /**
  * @author Jin
  */
-@AutoConverter(target = DictInfoEntity.class)
+@AutoConverter(target = DictInfo.class)
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Schema(description = "更新数据字典对象")
-public class InputDictInfo extends BaseDTO<DictInfoEntity> {
+public class InputDictInfo extends BaseDTO<DictInfo> {
 
     @NotBlank
     String id;

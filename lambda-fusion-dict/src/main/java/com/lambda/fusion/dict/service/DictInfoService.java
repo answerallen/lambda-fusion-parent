@@ -4,10 +4,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.dict.model.DictInfo;
-import com.lambda.fusion.dict.model.DictInfoEntity;
 import com.lambda.fusion.dict.model.DictType;
 import com.lambda.fusion.dict.model.OperationDictState;
 import com.lambda.fusion.dict.model.QueryDictInfo;
+
 import java.util.List;
 import java.util.Map;
 
@@ -39,19 +39,18 @@ public interface DictInfoService extends IService<DictInfo> {
      * 新增数据字典详细信息
      *
      * @param operator
-     * @param dictionaryEntry
+     * @param dictInfo
      * @return
      */
-    DictInfo saveDictInfo(LoginUser operator, DictInfo dictionaryEntry);
+    DictInfo saveDictInfo(LoginUser operator, DictInfo dictInfo);
 
     /**
      * 更新数据字典详细信息
      *
      * @param id
-     * @param dictInfoVO
-     * @return
+     * @param dictInfo
      */
-    DictInfo updateDictInfo(String id, DictInfoEntity dictInfoVO);
+    void updateDictInfo(String id, DictInfo dictInfo);
 
     /**
      * 修改字典启用状态

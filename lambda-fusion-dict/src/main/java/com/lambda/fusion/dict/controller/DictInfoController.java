@@ -83,12 +83,12 @@ public class DictInfoController {
     @OperationLog
     @PostMapping
     @Operation(summary = "添加字典详细信息", description = "添加字典详细信息")
-    public DictInfo saveDictInfo(@Valid @RequestBody DictInfo dictionaryEntry) {
+    public DictInfo saveDictInfo(@Valid @RequestBody DictInfo dictInfo) {
         UserPrincipal userPrincipal = (UserPrincipal) OperatorUtils.getOperator();
         if (StringUtils.isNotBlank(userPrincipal.getTenantId())) {
-            dictionaryEntry.setTenantId(userPrincipal.getTenantId());
+            dictInfo.setTenantId(userPrincipal.getTenantId());
         }
-        return dictInfoService.saveDictInfo(userPrincipal, dictionaryEntry);
+        return dictInfoService.saveDictInfo(userPrincipal, dictInfo);
     }
 
     @OperationLog
