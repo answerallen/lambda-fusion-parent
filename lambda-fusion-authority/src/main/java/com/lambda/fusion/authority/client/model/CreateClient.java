@@ -12,7 +12,7 @@ import lombok.EqualsAndHashCode;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.validator.constraints.Length;
 
-@AutoConverter(target =ClientEntity.class )
+@AutoConverter(target = ClientEntity.class)
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Schema(description = "客户端信息")

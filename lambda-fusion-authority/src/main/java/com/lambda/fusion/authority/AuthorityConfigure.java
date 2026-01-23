@@ -13,12 +13,11 @@ import com.lambda.fusion.authority.tenant.cache.TenantConfigurationCache;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationLocalCache;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationRedisCache;
 import com.lambda.fusion.authority.tenant.cache.TenantHostCache;
+import com.lambda.fusion.core.utils.LoginUserUtils;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
-
-import com.lambda.fusion.core.utils.LoginUserUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -43,18 +42,26 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 public class AuthorityConfigure {
 
     @Bean
-    public EntityMetaFiller entityMetaFiller(){
+    public EntityMetaFiller entityMetaFiller() {
         return new EntityMetaFiller() {
             @Override
             public void insertFill(MetaObjectHandler handler, MetaObject metaObject) {
                 handler.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
-                handler.strictInsertFill(metaObject, "createUser", String.class, LoginUserUtils.getLoginUser().getUsername());
+                handler.strictInsertFill(
+                        metaObject,
+                        "createUser",
+                        String.class,
+                        LoginUserUtils.getLoginUser().getUsername());
             }
 
             @Override
             public void updateFill(MetaObjectHandler handler, MetaObject metaObject) {
                 handler.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
-                handler.strictUpdateFill(metaObject, "updateUser", String.class, LoginUserUtils.getLoginUser().getUsername());
+                handler.strictUpdateFill(
+                        metaObject,
+                        "updateUser",
+                        String.class,
+                        LoginUserUtils.getLoginUser().getUsername());
             }
         };
     }

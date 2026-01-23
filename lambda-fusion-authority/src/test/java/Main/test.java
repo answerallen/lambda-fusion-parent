@@ -10,14 +10,13 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class test {
@@ -26,29 +25,32 @@ public class test {
     public static class Region {
         @JsonProperty("code")
         private String areaCode;
+
         @JsonProperty("name")
         private String areaName;
+
         @JsonProperty("parent_code")
         private String parentCode;
+
         private Integer level;
         private Integer depth;
         private String type;
-
     }
 
     public static void main(String[] args) throws Exception {
         SimpleDataSource simpleDataSource = new SimpleDataSource(
-                "jdbc:mysql://rm-m5eow36sp34v0k5w5fo.mysql.rds.aliyuncs.com:3306/lambda_cloud?useSSL=false&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true&useUnicode=true&characterEncoding=UTF-8&allowPublicKeyRetrieval=true"
-                , "lambda_fusion",
-                "001Asd11!@#"
-        );
+                "jdbc:mysql://rm-m5eow36sp34v0k5w5fo.mysql.rds.aliyuncs.com:3306/lambda_cloud?useSSL=false&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true&useUnicode=true&characterEncoding=UTF-8&allowPublicKeyRetrieval=true",
+                "lambda_fusion",
+                "001Asd11!@#");
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         JsonFactory factory = mapper.getFactory();
 
-        try (InputStream is = Files.newInputStream(new File("F:\\developer\\git\\lambda-fusion-parent\\docs\\regions_20251224_142640.json").toPath());
-             JsonParser parser = factory.createParser(is)) {
+        try (InputStream is = Files.newInputStream(
+                        new File("F:\\developer\\git\\lambda-fusion-parent\\docs\\regions_20251224_142640.json")
+                                .toPath());
+                JsonParser parser = factory.createParser(is)) {
 
             if (parser.nextToken() != JsonToken.START_ARRAY) {
                 throw new IllegalStateException("JSON 不是数组");
@@ -131,7 +133,6 @@ public class test {
 
             long cost = System.currentTimeMillis() - startTime;
             log.info("行政区数据导入完成，总条数={}，耗时={} ms", totalCount, cost);
-
         }
     }
 }

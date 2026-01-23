@@ -19,7 +19,7 @@ public class ClientEntity extends BaseDO {
     /**
      * 主键
      */
-    @TableId(value = "id", type= IdType.ASSIGN_ID)
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     @Schema(description = "主键")
     private String id;
     /**

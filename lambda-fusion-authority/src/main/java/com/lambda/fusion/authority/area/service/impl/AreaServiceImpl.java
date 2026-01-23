@@ -5,11 +5,10 @@ import com.lambda.fusion.authority.area.mapper.AreaMapper;
 import com.lambda.fusion.authority.area.model.*;
 import com.lambda.fusion.authority.area.service.AreaService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 /**
  * 行政区划服务实现

@@ -12,7 +12,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = AreaEntity.class)
 @Data
-public class UpdateArea  extends BaseDTO<AreaEntity> {
+public class UpdateArea extends BaseDTO<AreaEntity> {
 
     /**
      * 主键ID
