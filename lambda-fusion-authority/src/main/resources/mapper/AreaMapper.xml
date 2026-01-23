@@ -27,9 +27,14 @@
         SELECT ID, PARENT_CODE, AREA_CODE, AREA_NAME, LEVEL, DEPTH, TYPE
         FROM la_area
         <where>
-            <if test="parameters.parentCode != null and parameters.parentCode != ''">
-                AND PARENT_CODE = #{parameters.parentCode}
-            </if>
+            <choose>
+                <when test="parameters.parentCode  != null and parameters.parentCode  != ''">
+                    PARENT_CODE = #{parameters.parentCode }
+                </when>
+                <otherwise>
+                    PARENT_CODE IS NULL
+                </otherwise>
+            </choose>
             <if test="parameters.level != null">
                 AND LEVEL = #{parameters.level}
             </if>

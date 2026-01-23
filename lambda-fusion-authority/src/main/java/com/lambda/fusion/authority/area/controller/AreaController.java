@@ -39,7 +39,7 @@ public class AreaController {
         return areaService.getAreas(query);
     }
 
-    @GetMapping("/tree")
+    @GetMapping("tree")
     @Operation(summary = "获取区域树形结构")
     public List<AreaTree> tree(
             @Parameter(description = "父区域编码，不传则获取顶级") @RequestParam(required = false) String parentCode) {
