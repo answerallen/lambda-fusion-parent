@@ -122,11 +122,8 @@ public class ConfigOptionController {
      * @param source 配置选项更新信息，请求体参数，包含需要更新的字段，必须通过参数校验
      * @return 更新后的完整配置选项实体，包含最新的字段值
      *
-     * @throws EntityNotFoundException 当配置选项不存在时抛出
-     * @throws AccessDeniedException 当用户权限不足时抛出
-     * @throws ValidationException 当输入参数校验失败时抛出
      * @see ConfigOption 配置选项视图对象，定义可更新字段
-     * @see BeanUtil#copyProperties(Object, Object) HuTool对象属性复制工具
+     * @see BeanUtil#copyProperties(Object, Object, boolean) (Object, Object) HuTool对象属性复制工具
      * @since 1.0.0
      */
     @OperationLog

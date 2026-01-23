@@ -83,12 +83,14 @@ public class ConfigProperties implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() {
-        this.password.setMode(environment.getProperty(AUTHORIZE_PASSWORD_STRATEGY_MODE, "FIXED"));
-        this.password.setDefaultValue(environment.getProperty(AUTHORIZE_PASSWORD_CUSTOMIZE, "123456"));
-        this.axios.setHiddenMethodEnabled(environment.getProperty(HTTP_METHOD_HIDDEN_ENABLED, boolean.class, false));
-        this.security.setFormVerifyEnabled(environment.getProperty(SERVER_CAPTCHA_ENABLED, boolean.class, false));
-        this.security.setPublicKey(environment.getProperty(RSA_ENCRYPT_PUBLIC_KEY));
-        this.security.setPrivateKey(environment.getProperty(RSA_ENCRYPT_PRIVATE_KEY));
+        //        this.password.setMode(environment.getProperty(AUTHORIZE_PASSWORD_STRATEGY_MODE, "FIXED"));
+        //        this.password.setDefaultValue(environment.getProperty(AUTHORIZE_PASSWORD_CUSTOMIZE, "123456"));
+        //        this.axios.setHiddenMethodEnabled(environment.getProperty(HTTP_METHOD_HIDDEN_ENABLED, boolean.class,
+        // false));
+        //        this.security.setFormVerifyEnabled(environment.getProperty(SERVER_CAPTCHA_ENABLED, boolean.class,
+        // false));
+        //        this.security.setPublicKey(environment.getProperty(RSA_ENCRYPT_PUBLIC_KEY));
+        //        this.security.setPrivateKey(environment.getProperty(RSA_ENCRYPT_PRIVATE_KEY));
     }
 
     @Getter
