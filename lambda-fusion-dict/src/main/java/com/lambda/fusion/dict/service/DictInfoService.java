@@ -7,7 +7,6 @@ import com.lambda.fusion.dict.model.DictInfo;
 import com.lambda.fusion.dict.model.DictType;
 import com.lambda.fusion.dict.model.OperationDictState;
 import com.lambda.fusion.dict.model.QueryDictInfo;
-
 import java.util.List;
 import java.util.Map;
 

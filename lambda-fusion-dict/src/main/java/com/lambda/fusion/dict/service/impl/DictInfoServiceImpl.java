@@ -1,5 +1,8 @@
 package com.lambda.fusion.dict.service.impl;
 
+import static com.lambda.fusion.core.Constants.JOINER;
+import static com.lambda.fusion.dict.support.constants.DictConstants.*;
+
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -23,16 +26,12 @@ import com.lambda.fusion.dict.mapper.DictTypeMapper;
 import com.lambda.fusion.dict.model.*;
 import com.lambda.fusion.dict.service.DictInfoService;
 import com.lambda.fusion.dict.support.enums.DictionaryRegistry;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.core.Constants.JOINER;
-import static com.lambda.fusion.dict.support.constants.DictConstants.*;
 
 /**
  * 多级数据字典详细信息
@@ -139,9 +138,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         Assert.notNull(id, MSG_DICT_ID_NOT_EMPTY);
         Assert.notNull(dictInfoMapper.selectById(id), MSG_DICT_UPDATE_DATA_NOT_EXISTED);
         dictInfo.setExtra(
-                CollectionUtils.isNotEmpty(dictInfo.getParameters())
-                        ? convertJson(dictInfo.getParameters())
-                        : null);
+                CollectionUtils.isNotEmpty(dictInfo.getParameters()) ? convertJson(dictInfo.getParameters()) : null);
         if (dictInfoExists(dictInfo)) {
             dictInfo.setFieldType(null);
         }
@@ -311,8 +308,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
     private Map<String, Object> convertMap(String extra) {
         if (StringUtils.isNotBlank(extra)) {
             try {
-                return objectMapper.readValue(extra, new TypeReference<>() {
-                });
+                return objectMapper.readValue(extra, new TypeReference<>() {});
             } catch (JsonProcessingException e) {
                 log.error(e.getMessage(), e);
             }
@@ -354,5 +350,4 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         }
         return parameters;
     }
-
 }

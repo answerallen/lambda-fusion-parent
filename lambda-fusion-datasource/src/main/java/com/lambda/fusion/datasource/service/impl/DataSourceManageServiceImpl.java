@@ -1,5 +1,6 @@
 package com.lambda.fusion.datasource.service.impl;
 
+import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -58,6 +59,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     public void save(UpsertDataSource input) {
         Assert.notNull(input, "input is null");
         DataSourceEntity entity = input.toEntity();
+        entity.setId(IdUtil.getSnowflakeNextIdStr());
         Assert.isTrue(save(entity), "save failed");
         syncDynamicDataSource(entity);
         publishChange(entity);
@@ -150,7 +152,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         if (!updated) {
             boolean added = dynamicDataSourceService.addDataSource(property);
             if (!added) {
-                throw new RuntimeException("Sync dynamic datasource failed for id: " + entity.getId());
+                throw new IllegalArgumentException("Sync dynamic datasource failed for id: " + entity.getId());
             }
         }
     }

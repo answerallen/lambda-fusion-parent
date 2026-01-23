@@ -8,5 +8,4 @@ public class LoginUserUtils {
     public static UserPrincipal getLoginUser() {
         return OperatorUtils.getLoginUser(UserPrincipal.class);
     }
-
 }
