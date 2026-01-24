@@ -1,7 +1,5 @@
 package com.lambda.fusion.config;
 
-import static com.lambda.fusion.config.ConfigConstants.SystemConfig.*;
-
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -9,7 +7,6 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.io.IOException;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -20,6 +17,8 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.util.ProxyUtils;
 import org.springframework.core.env.Environment;
+
+import java.io.IOException;
 
 @Slf4j
 @Setter

@@ -1,6 +1,6 @@
 package com.lambda.fusion.config.service.impl;
 
-import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
+import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
