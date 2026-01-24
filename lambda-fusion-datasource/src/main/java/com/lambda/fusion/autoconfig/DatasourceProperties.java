@@ -1,5 +1,6 @@
-package com.lambda.fusion.datasource;
+package com.lambda.fusion.autoconfig;
 
+import com.lambda.fusion.datasource.DatasourceConstant;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
