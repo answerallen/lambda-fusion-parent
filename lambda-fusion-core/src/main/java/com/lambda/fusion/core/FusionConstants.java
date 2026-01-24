@@ -21,6 +21,8 @@ public final class FusionConstants {
     public static final Integer DISABLED = 0;
     /** 系统标识 */
     public static final String SYSTEM = "system";
+    /** 设备终端 */
+    public static final String DEVICE_PC_WEB = "pc-web";
     /** 租户ID 字段名 */
     public static final String TENANT_ID = "tenant_id";
     /** 租户域名 Redis Key */

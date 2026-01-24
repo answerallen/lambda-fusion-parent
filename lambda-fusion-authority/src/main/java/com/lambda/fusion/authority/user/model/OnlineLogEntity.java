@@ -1,6 +1,7 @@
 package com.lambda.fusion.authority.user.model;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
@@ -11,14 +12,14 @@ import lombok.Data;
 @SuppressFBWarnings("EI_EXPOSE_REP")
 public class OnlineLogEntity {
 
-    @TableField("USERNAME")
+    @TableId("USERNAME")
     private String username;
 
     @TableField("IP")
     private String ip;
 
-    @TableField("TYPE")
-    private int type;
+    @TableId("DEVICE_TYPE")
+    private String deviceType;
 
     @TableField("IS_ONLINE")
     private Integer isOnline;

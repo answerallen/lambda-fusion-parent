@@ -12,14 +12,14 @@ public class UserSeeEventListener implements SseEventListener {
     @Override
     public void onDisconnect(String clientId) {
         if (clientId != null) {
-            userOnlineLogService.online(clientId);
+            userOnlineLogService.online(clientId, null);
         }
     }
 
     @Override
     public void onConnect(String clientId) {
         if (clientId != null) {
-            userOnlineLogService.offline(clientId);
+            userOnlineLogService.offline(clientId, null);
         }
     }
 }

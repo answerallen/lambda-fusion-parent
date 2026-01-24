@@ -115,13 +115,13 @@
             <if test="parameters.orgIds != null and parameters.orgIds.size > 0">
                 AND T.username IN (SELECT USERNAME FROM LA_USER_ORGANIZATION WHERE ORGANIZATION_ID IN <foreach collection="parameters.orgIds" open="(" close=")" separator="," item="item">#{item}</foreach>)
             </if>
-            <if test="parameters.personal != null and parameters.personal.size > 0">
+            <if test="parameters.userFields != null and parameters.userFields.size > 0">
                 AND T.username IN (SELECT username FROM LA_USER_FIELDS WHERE
-                <foreach collection="parameters.personal" item="item" separator="OR" open="(" close=")">
+                <foreach collection="parameters.userFields" item="item" separator="OR" open="(" close=")">
                     field_name = #{item.fieldName} AND field_value = #{item.fieldValue}
                 </foreach>
-                <if test="parameters.personal.size > 1">
-                    GROUP BY username HAVING COUNT(1) = #{parameters.personal.size}
+                <if test="parameters.userFields.size > 1">
+                    GROUP BY username HAVING COUNT(1) = #{parameters.userFields.size}
                 </if>)
             </if>
             <if test="parameters.isOnline != null">
@@ -142,7 +142,7 @@
         SELECT
         T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled,
         R.AUTHORITY,
-        R.alias, R.tenant_id, O.id As orgId, O.alias As orgAlias, OL.ON_LINE, OL.OFFLINE_TIME,
+        R.alias, R.tenant_id, O.id As orgId, O.alias As orgAlias, OL.IS_ONLINE, OL.OFFLINE_TIME,
         TC.NICKNAME CREATOR, T.EXPIRED_TIME
         FROM LA_USERS T
         LEFT JOIN (SELECT T1.USERNAME,T1.authority, T2.alias, T2.tenant_id FROM LA_USER_ROLES T1
@@ -404,11 +404,11 @@
         <if test="parameters != null and parameters.authority != null and parameters.authority != ''">
             LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.USERNAME
         </if>
-        <if test="parameters.personal != null and parameters.personal.size >0">
+        <if test="parameters.userFields != null and parameters.userFields.size >0">
             INNER JOIN
             (
             SELECT USERNAME,
-            <foreach collection="parameters.personal" item="item" separator=" ">
+            <foreach collection="parameters.userFields" item="item" separator=" ">
                 MAX(CASE FIELD_NAME WHEN  #{item.fieldName} then field_value ELSE '' END) AS  ${item.fieldName},
             </foreach>
             count(*) NUMS
@@ -416,7 +416,7 @@
             GROUP BY USERNAME
             )  A ON T.USERNAME = A.USERNAME
             AND
-            <foreach collection="parameters.personal" item="item" separator="AND">
+            <foreach collection="parameters.userFields" item="item" separator="AND">
                 A.${item.fieldName} = #{item.fieldValue}
             </foreach>
         </if>

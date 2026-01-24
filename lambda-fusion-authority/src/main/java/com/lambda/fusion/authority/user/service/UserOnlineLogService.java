@@ -5,9 +5,9 @@ import com.lambda.fusion.authority.user.model.OnlineLogEntity;
 
 public interface UserOnlineLogService extends IService<OnlineLogEntity> {
 
-    Boolean isOnline(String username);
+    Boolean isOnline(String username,String deviceType);
 
-    void online(String username);
+    void online(String username,String deviceType);
 
-    void offline(String username);
+    void offline(String username,String deviceType);
 }
