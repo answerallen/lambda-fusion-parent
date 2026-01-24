@@ -206,6 +206,6 @@ public final class TreeBuilder {
     }
 
     private static void printLogs(StopWatch clock) {
-        log.trace(Constants.LOG_TREE_BUILD_TIME, clock.getTotalTimeNanos());
+        log.trace("build tree cast: {}ns", clock.getTotalTimeNanos());
     }
 }

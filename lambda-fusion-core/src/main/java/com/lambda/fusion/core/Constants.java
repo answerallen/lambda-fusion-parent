@@ -21,16 +21,16 @@ public final class Constants {
     public static final Integer DISABLED = 0;
     /** 系统标识 */
     public static final String SYSTEM = "system";
-    /** 租户ID字段名 */
+    /** 租户ID 字段名 */
     public static final String TENANT_ID = "tenant_id";
-    /** 租户域名Redis Key */
+    /** 租户域名 Redis Key */
     public static final String TENANT_HOST_REDIS_KEY = "tenant_host";
     /** 默认启用状态值 */
     public static final Integer DEFAULT_ENABLE_STATUS_VALUE = 1;
     /** 默认禁用状态值 */
     public static final Integer DEFAULT_DISABLE_STATUS_VALUE = 0;
     /** 日期时间格式 */
-    public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     // ========== 字符串分隔符常量 ==========
     /** 分隔符0 */
@@ -139,14 +139,4 @@ public final class Constants {
     public static final String TREE_TOP_LEVEL = "";
     /** 树结构分隔符 */
     public static final String TREE_SPLIT = "-";
-
-    // ========== 拖拽模式相关常量 ==========
-    /** 拖拽模式错误索引消息 */
-    public static final String MSG_DRAG_MODE_WRONG_INDEX = "wrong index of DragMode, allowed: [0, 1, 2]";
-
-    // ========== 日志消息模板常量 ==========
-    /** 树构建时间日志消息模板 */
-    public static final String LOG_TREE_BUILD_TIME = "build tree cast: {}ns";
-    /** 过滤数据异常日志消息模板 */
-    public static final String LOG_FILTER_DATA_EXCEPTION = "过滤数据发生异常,过滤参数,{}";
 }

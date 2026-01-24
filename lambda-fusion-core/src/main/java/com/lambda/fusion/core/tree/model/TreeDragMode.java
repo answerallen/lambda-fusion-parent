@@ -26,6 +26,6 @@ public enum TreeDragMode {
         if (i >= 0 && i < values.length) {
             return values[i];
         }
-        throw new IllegalArgumentException(Constants.MSG_DRAG_MODE_WRONG_INDEX);
+        throw new IllegalArgumentException("wrong index of DragMode, allowed: [0, 1, 2]");
     }
 }

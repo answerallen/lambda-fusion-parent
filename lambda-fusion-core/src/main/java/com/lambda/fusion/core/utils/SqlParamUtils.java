@@ -7,7 +7,7 @@ import lombok.experimental.UtilityClass;
  * @author Jin
  */
 @UtilityClass
-public final class ParameterUtils {
+public final class SqlParamUtils {
 
     /***
      * 封装模糊查询，自动转义特殊字符
@@ -23,4 +23,5 @@ public final class ParameterUtils {
         String escaped = parameter.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
         return Constants.FUZZY + escaped + Constants.FUZZY;
     }
+
 }
