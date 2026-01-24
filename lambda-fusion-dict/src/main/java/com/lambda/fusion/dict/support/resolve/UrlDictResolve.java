@@ -4,8 +4,8 @@ import static com.lambda.cloud.mvc.WebHttpUtils.X_AUTHORIZED_BEARER;
 import static com.lambda.fusion.dict.support.constants.DictConstants.*;
 
 import cn.hutool.core.text.CharSequenceUtil;
+import com.lambda.fusion.autoconfig.DictionaryProperties;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.dict.DictionaryProperties;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.support.model.DictValueType;
 import com.lambda.fusion.dict.support.model.DynamicDictionarySource;
