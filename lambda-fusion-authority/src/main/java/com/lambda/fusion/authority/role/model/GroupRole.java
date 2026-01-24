@@ -1,15 +1,20 @@
 package com.lambda.fusion.authority.role.model;
 
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.shared.BaseVO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.List;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
+@AutoConverter(target = GroupEntity.class,isReverse = true)
 @Schema(description = "角色分组信息")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class GroupRole {
+public class GroupRole extends BaseVO<GroupEntity> {
     @Schema(description = "分组ID")
     private String groupId;
 
