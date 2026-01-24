@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.authentication.mapper;
 
+import com.lambda.fusion.authority.authentication.model.LoginUserDetails;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.authentication.model.ResourceQuery;
-import com.lambda.fusion.authority.authentication.model.LoginUserDetails;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import java.util.List;

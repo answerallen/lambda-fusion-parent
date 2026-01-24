@@ -14,7 +14,6 @@ public class UserSeeEventListener implements SseEventListener {
         if (clientId != null) {
             userOnlineLogService.online(clientId);
         }
-
     }
 
     @Override

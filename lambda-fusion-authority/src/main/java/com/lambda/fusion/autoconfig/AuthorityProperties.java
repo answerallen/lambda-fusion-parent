@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority;
+package com.lambda.fusion.autoconfig;
 
 import cn.hutool.core.collection.CollUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

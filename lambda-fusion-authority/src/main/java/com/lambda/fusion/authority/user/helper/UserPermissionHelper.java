@@ -18,14 +18,12 @@ public class UserPermissionHelper {
         return loginUser.getUsername().equals(user.getUsername());
     }
 
-
     public boolean isTenant(User user) {
         return user.getAuthorities().stream()
                 .map(SimpleRole::getAuthority)
                 .filter(StringUtils::isNotBlank)
                 .anyMatch(role -> role.contains(FusionConstants.ROLE_TENANT));
     }
-
 
     public boolean isTenantManager(User user) {
         return user.getAuthorities().stream()
@@ -34,14 +32,12 @@ public class UserPermissionHelper {
                 .anyMatch(role -> role.contains(FusionConstants.ROLE_TENANT_MANAGER));
     }
 
-
     public boolean isAdmin(User user) {
         return user.getAuthorities().stream()
                 .map(SimpleRole::getAuthority)
                 .filter(StringUtils::isNotBlank)
                 .anyMatch(role -> role.contains(FusionConstants.ROLE_ADMIN));
     }
-
 
     public boolean isDev(User user) {
         return user.getAuthorities().stream()

@@ -413,7 +413,8 @@ public class ResourceServiceImpl implements ResourceService {
                     if (StringUtils.isNotBlank(replacement)) {
                         result = StringUtils.replace(item.getParentKeys(), searchString, replacement);
                     } else {
-                        result = StringUtils.removeStart(item.getParentKeys(), searchString + FusionConstants.SEPARATOR0);
+                        result = StringUtils.removeStart(
+                                item.getParentKeys(), searchString + FusionConstants.SEPARATOR0);
                     }
                 } else if (StringUtils.isNotBlank(replacement)) {
                     result = replacement + FusionConstants.SEPARATOR0 + item.getParentKeys();

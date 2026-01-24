@@ -7,9 +7,8 @@ import com.lambda.fusion.authority.user.mapper.UserOnlineLogMapper;
 import com.lambda.fusion.authority.user.model.OnlineLogEntity;
 import com.lambda.fusion.authority.user.service.UserOnlineLogService;
 import com.lambda.fusion.core.FusionConstants;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
+import org.springframework.stereotype.Service;
 
 @Service
 public class UserOnlineLogServiceImpl extends ServiceImpl<UserOnlineLogMapper, OnlineLogEntity>

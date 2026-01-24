@@ -23,5 +23,4 @@ public class UserOnlineLogListener extends SaTokenListenerForSimple {
             userOnlineLogService.offline(loginId.toString());
         }
     }
-
 }
