@@ -14,6 +14,7 @@ import com.lambda.fusion.authority.user.helper.UserQueryHelper;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
+import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -66,8 +67,8 @@ public class UserController {
         if (size != null) {
             userQuery.setPageSize(size);
         }
-        UserQueryContext usersQueryParameters = userQueryHelper.buildUserQueryContext(userQuery);
-        return userService.getUsers(userQuery.getPage(), usersQueryParameters);
+        UserQueryContext userQueryContext = userQueryHelper.buildUserQueryContext(userQuery);
+        return userService.getUsers(userQuery.getPage(), userQueryContext);
     }
 
     @GetMapping(value = "/{username}/check")
@@ -78,7 +79,7 @@ public class UserController {
 
     @GetMapping(value = "/{username}")
     @Operation(summary = "查询用户信息")
-    public User get(@PathVariable @Parameter(description = "用户名", required = true) String username) {
+    public User getUser(@PathVariable @Parameter(description = "用户名", required = true) String username) {
         return userService.getUserByUsername(StrUtil.trim(username));
     }
 
@@ -97,9 +98,9 @@ public class UserController {
         return userService.getUserProfiles(operator, orgIds);
     }
 
-    @GetMapping("/me")
+    @GetMapping("/current")
     @Operation(summary = "查询当前用户的详细信息")
-    public User getUserById() {
+    public User getCurrent() {
         LoginUser operator = OperatorUtils.getOperator();
         return userService.getUserByUsername(operator.getName());
     }
@@ -177,10 +178,10 @@ public class UserController {
     @Operation(summary = "禁用用户")
     public void disabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         LoginUser operator = OperatorUtils.getOperator();
-        userService.prohibitUser(operator, 0, username);
+        userService.deactivateUser(operator, Constants.DISABLED, username);
 
         if (tenantAuthorizeManager != null) {
-            tenantAuthorizeManager.prohibitUser(0, username);
+            tenantAuthorizeManager.prohibitUser(Constants.DISABLED, username);
         }
     }
 
@@ -188,10 +189,10 @@ public class UserController {
     @Operation(summary = "启用用户")
     public void enabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         LoginUser operator = OperatorUtils.getOperator();
-        userService.prohibitUser(operator, 1, username);
+        userService.deactivateUser(operator, Constants.ENABLED, username);
 
         if (tenantAuthorizeManager != null) {
-            tenantAuthorizeManager.prohibitUser(1, username);
+            tenantAuthorizeManager.prohibitUser(Constants.ENABLED, username);
         }
     }
 
@@ -202,7 +203,7 @@ public class UserController {
         userService.unlockUser(username, operator);
     }
 
-    @GetMapping("/permission/{username}")
+    @GetMapping("/{username}/permission")
     @Operation(summary = "查询用户所有权限")
     public List<Permission> userPermissions(
             @PathVariable @Parameter(description = "用户ID", required = true) String username,
@@ -304,14 +305,12 @@ public class UserController {
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody User user) {
         LoginUser operator = OperatorUtils.getOperator();
         user.setUsername(username);
-        User copy = BeanUtil.toBean(user, User.class);
         userService.updateTenantUser(user, operator);
         User updated = userService.getUserByUsername(username);
-
         if (tenantAuthorizeManager != null) {
+            User copy = BeanUtil.toBean(user, User.class);
             tenantAuthorizeManager.updateUser(copy);
         }
-
         return updated;
     }
 }

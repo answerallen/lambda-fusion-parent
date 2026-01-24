@@ -127,10 +127,10 @@
             <if test="parameters.isOnline != null">
                 <choose>
                     <when test="parameters.isOnline">
-                        AND T.USERNAME IN (SELECT USERNAME FROM la_user_online_logs WHERE ON_LINE = 1)
+                        AND T.USERNAME IN (SELECT USERNAME FROM la_user_online_logs WHERE IS_ONLINE = 1)
                     </when>
                     <otherwise>
-                        AND T.USERNAME NOT IN (SELECT USERNAME FROM la_user_online_logs WHERE ON_LINE = 1)
+                        AND T.USERNAME NOT IN (SELECT USERNAME FROM la_user_online_logs WHERE IS_ONLINE = 1)
                     </otherwise>
                 </choose>
             </if>
@@ -251,7 +251,7 @@
         UPDATE LA_USERS SET password = #{password} where username = #{username}
     </update>
     <!-- 禁用用户 -->
-    <update id="prohibitUser" parameterType="HashMap">
+    <update id="deactivateUser" parameterType="HashMap">
         UPDATE LA_USERS SET enabled = #{enabled} WHERE username = #{username}
     </update>
 

@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.user.service.impl;
 
+import cn.dev33.satoken.stp.StpLogic;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjectUtil;
@@ -12,6 +13,7 @@ import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.ConvertUtils;
+import com.lambda.cloud.core.utils.StpLogicUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.AuthorityProperties;
@@ -24,7 +26,6 @@ import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
 import com.lambda.fusion.authority.user.helper.UserPermissionHelper;
-import com.lambda.fusion.authority.user.helper.UserQueryHelper;
 import com.lambda.fusion.authority.user.mapper.*;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.service.UserOnlineLogService;
@@ -177,11 +178,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public Page<User> getUsers(Page<User> pagination, UserQueryContext parameters) {
-        String tenantId = parameters.getTenantId();
+    public Page<User> getUsers(Page<User> pagination, UserQueryContext userQueryContext) {
+        String tenantId = userQueryContext.getTenantId();
 
         // 执行分页查询
-        pagination = userMapper.selectUserPage(pagination, parameters);
+        pagination = userMapper.selectUserPage(pagination, userQueryContext);
         List<User> users = pagination.getRecords();
 
         if (CollectionUtils.isNotEmpty(users)) {
@@ -456,7 +457,7 @@ public class UserServiceImpl implements UserService {
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
-    public String addUser(CreateUser createUser, LoginUser operator) {
+    public void addUser(CreateUser createUser, LoginUser operator) {
         UserEntity userEntity = createUser.toEntity();
         Assert.notNull(userEntity, "user is not null");
 
@@ -474,7 +475,7 @@ public class UserServiceImpl implements UserService {
         userMapper.insert(userEntity);
 
         List<SimpleRole> roles = createUser.getAuthorities();
-        addUserRoles(operator, roles, userEntity);
+        assignRolesToUser(operator.getTenantId(),userEntity.getUsername(), roles);
 
         if (Objects.isNull(createUser.getProps())) {
             createUser.setProps(new UserInfo());
@@ -484,15 +485,14 @@ public class UserServiceImpl implements UserService {
         userInfoEntity.setUsername(userEntity.getUsername());
         userInfoMapper.insert(userInfoEntity);
 
-        OrganizationSummary org = createUser.getOrg();
-        if (org != null && StringUtils.isNotBlank(org.getId())) {
+        OrganizationSummary organizationSummary = createUser.getOrg();
+        if (organizationSummary != null && StringUtils.isNotBlank(organizationSummary.getId())) {
             userOrganizationMapper.insert(
-                    new UserOrganizationEntity(userEntity.getUsername(), org.getId(), operator.getTenantId()));
+                    new UserOrganizationEntity(userEntity.getUsername(), organizationSummary.getId(), operator.getTenantId()));
         }
-        return encodePassword.getOrigin();
     }
 
-    private void addUserRoles(LoginUser operator, List<SimpleRole> roles, UserEntity userEntity) {
+    private void assignRolesToUser(String tenantId, String username, List<SimpleRole> roles) {
         if (CollectionUtils.isNotEmpty(roles)) {
             List<UserRoleEntity> userRoleEntities = roles.stream()
                     .map(SimpleRole::getAuthority)
@@ -504,8 +504,8 @@ public class UserServiceImpl implements UserService {
                         }
                         UserRoleEntity userRoleEntity = new UserRoleEntity();
                         userRoleEntity.setAuthority(authority);
-                        userRoleEntity.setTenantId(operator.getTenantId());
-                        userRoleEntity.setUsername(userEntity.getUsername());
+                        userRoleEntity.setTenantId(tenantId);
+                        userRoleEntity.setUsername(username);
                         return userRoleEntity;
                     })
                     .collect(Collectors.toList());
@@ -520,7 +520,7 @@ public class UserServiceImpl implements UserService {
         int updated = userMapper.updateById(userEntity);
         Assert.isTrue(updated == 0, "用户更新失败！");
         userRoleMapper.deleteUserRoles(userEntity.getUsername());
-        addUserRoles(operator, updateUser.getAuthorities(), userEntity);
+        this.assignRolesToUser(operator.getTenantId(),userEntity.getUsername(), updateUser.getAuthorities());
         if (MapUtils.isNotEmpty(updateUser.getPersonal())) {
             List<UserFieldsEntity> fields = this.convertPersonBean(updateUser.getPersonal(), userEntity.getUsername());
             this.userFieldsMapper.deleteByUsername(userEntity.getUsername());
@@ -560,7 +560,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteUser(LoginUser operator, String username) {
         Assert.notNull(username, "username not empty");
-        Assert.isTrue(!username.equals(operator.getName()), "lambda.authority.no.operation.authority");
+        Assert.isTrue(!username.equals(operator.getName()), "操作失败：用户名 " + username + " 不能等于当前登录用户 " + operator.getName());
         boolean exists = userMapper.hasExists(username);
         if (exists) {
             userMapper.deleteUser(username);
@@ -580,19 +580,20 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateUserPassword(String username, String oldpassword, String newpassword) {
+    public void updateUserPassword(String username, String oldPassword, String newPassword) {
         UserEntity userEntity = userMapper.selectById(username);
         Assert.notNull(userEntity, "user not found");
-        boolean isChecked = passwordEncoder.matches(oldpassword, userEntity.getPassword());
-        Assert.isTrue(isChecked, "lambda.authority.user.password.incorrect");
-        String encoded = passwordEncoder.encode(newpassword);
+        boolean isChecked = passwordEncoder.matches(oldPassword, userEntity.getPassword());
+        Assert.isTrue(isChecked,  "用户 " + userEntity.getUsername() + " 的旧密码校验失败，无法修改密码");
+        String encoded = passwordEncoder.encode(newPassword);
         UserPasswordEntity userUpdatePwdLogEntity = new UserPasswordEntity();
         userUpdatePwdLogEntity.setPassword(encoded);
         userUpdatePwdLogEntity.setUsername(username);
         userUpdatePwdLogMapper.insertLog(userUpdatePwdLogEntity);
         userMapper.updatePassword(username, encoded);
         userInfoMapper.updateStatus(username, false);
-        // todo 初始化令牌
+        StpLogic activeStpLogic = StpLogicUtils.getActiveStpLogic();
+        activeStpLogic.logout(username);
     }
 
     @Override
@@ -607,21 +608,23 @@ public class UserServiceImpl implements UserService {
         if (0 == count) {
             userInfoMapper.insert(userInfoEntity);
         }
-        // todo 初始化令牌
+        StpLogic activeStpLogic = StpLogicUtils.getActiveStpLogic();
+        activeStpLogic.logout(resetPassword.getUsername());
         return password.getOrigin();
     }
 
     @Override
-    public void prohibitUser(LoginUser operator, Integer type, String username) {
+    public void deactivateUser(LoginUser operator, Integer type, String username) {
         Assert.notNull(username, "username not null");
         User user = userMapper.selectUserByUsername(username);
         Assert.notNull(user, "user not found");
-        Assert.isTrue(!operator.getName().equals(username), "lambda.authority.no.operation.authority");
-        userMapper.prohibitUser(type, username);
+        Assert.isTrue(!operator.getName().equals(username), "操作失败：用户名 " + username + " 不能等于当前登录用户 " + operator.getName());
+        userMapper.deactivateUser(type, username);
     }
 
     @Override
     public void unlockUser(String username, LoginUser operator) {
+
     }
 
     public static String md5f2(String password) {
@@ -733,7 +736,7 @@ public class UserServiceImpl implements UserService {
         BeanUtils.copyProperties(source, target);
         userMapper.updateUser(target);
         userRoleMapper.deleteUserRoles(username);
-        // todo addUserRoles(target, operator.getTenantId());
+        this.assignRolesToUser(target.getTenantId(), operator.getTenantId(),source.getAuthorities());
     }
 
     @Override

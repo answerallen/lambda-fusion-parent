@@ -24,20 +24,20 @@ public interface UserService {
     /**
      * 根据角色查询用户名集合
      *
-     * @param orgid     组织编号
+     * @param orgId     组织编号
      * @param authority 角色
      * @return 用户集合
      */
-    List<String> getUserNamesByAuthority(String orgid, @NotBlank String authority);
+    List<String> getUserNamesByAuthority(String orgId, @NotBlank String authority);
 
     /**
      * 根据组织机构id查询用户名集合
      *
-     * @param orgid 组织机构id
+     * @param orgId 组织机构id
      * @param type  机构类型
      * @return
      */
-    List<String> getUserNamesByOrgId(@NotBlank String orgid, Integer type);
+    List<String> getUserNamesByOrgId(@NotBlank String orgId, Integer type);
 
     /**
      * 查询所有用户信息
@@ -86,7 +86,7 @@ public interface UserService {
      * @param user     保存对象
      * @param operator 当前操作人
      */
-    String addUser(CreateUser user, LoginUser operator);
+    void addUser(CreateUser user, LoginUser operator);
 
     /***
      * 更新用户
@@ -136,7 +136,7 @@ public interface UserService {
      * @param type
      * @param username
      */
-    void prohibitUser(LoginUser operator, Integer type, String username);
+    void deactivateUser(LoginUser operator, Integer type, String username);
 
     /**
      * 解锁用户

@@ -120,7 +120,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param type
      * @param username
      */
-    void prohibitUser(@Param("enabled") Integer type, @Param("username") String username);
+    void deactivateUser(@Param("enabled") Integer type, @Param("username") String username);
 
     /**
      * 查询所有用户信息
