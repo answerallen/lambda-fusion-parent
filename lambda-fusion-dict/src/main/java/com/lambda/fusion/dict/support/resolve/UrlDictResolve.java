@@ -4,7 +4,7 @@ import static com.lambda.cloud.mvc.WebHttpUtils.X_AUTHORIZED_BEARER;
 import static com.lambda.fusion.dict.support.constants.DictConstants.*;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.dict.DictionaryProperties;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.support.model.DictValueType;
@@ -84,7 +84,7 @@ public class UrlDictResolve implements DictionarySourceResolver {
             url = httpRemoteHostPrefix + url;
         } else {
             String protocol = (httpFlag ? HTTP_PROTOCOL : HTTPS_PROTOCOL) + "://";
-            url = protocol + host + Constants.COLON + port + contextPath + url;
+            url = protocol + host + FusionConstants.COLON + port + contextPath + url;
         }
         return url;
     }
@@ -107,9 +107,9 @@ public class UrlDictResolve implements DictionarySourceResolver {
             extends ParameterizedTypeReference<List<DynamicDictionarySource>> {}
 
     public static String getAccessToken(HttpServletRequest request) {
-        String payload = request.getHeader(Constants.AUTHORIZATION);
-        if (StringUtils.isNotBlank(payload) && payload.startsWith(Constants.BEARER)) {
-            return payload.replace(Constants.BEARER, StringUtils.EMPTY);
+        String payload = request.getHeader(FusionConstants.AUTHORIZATION);
+        if (StringUtils.isNotBlank(payload) && payload.startsWith(FusionConstants.BEARER)) {
+            return payload.replace(FusionConstants.BEARER, StringUtils.EMPTY);
         }
         Cookie cookie = WebUtils.getCookie(request, X_AUTHORIZED_BEARER);
         if (cookie != null && StringUtils.isNotBlank(cookie.getValue())) {

@@ -1,6 +1,6 @@
 package com.lambda.fusion.dict.service.impl;
 
-import static com.lambda.fusion.core.Constants.JOINER;
+import static com.lambda.fusion.core.FusionConstants.JOINER;
 import static com.lambda.fusion.dict.support.constants.DictConstants.*;
 
 import cn.hutool.core.bean.BeanUtil;
