@@ -1,9 +1,9 @@
-package com.application.startup;
+package com.lambda.fusion.startup;
 
-import com.lambda.fusion.core.annotation.LambdaFusionApplication;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@LambdaFusionApplication
+@SpringBootApplication
 public class FusionApplication {
 
     public static void main(String[] args) {
