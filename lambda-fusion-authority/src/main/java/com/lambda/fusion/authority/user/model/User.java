@@ -90,7 +90,7 @@ public class User {
 
     @Schema(description = "用户新增字段信息")
     @JsonProperty("personal")
-    private Map<String, String> personal;
+    private Map<String, Object> personal;
 
     @Schema(description = "扩展属性")
     @Valid

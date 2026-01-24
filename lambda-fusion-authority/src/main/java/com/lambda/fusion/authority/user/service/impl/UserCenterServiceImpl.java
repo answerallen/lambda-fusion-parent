@@ -3,20 +3,21 @@ package com.lambda.fusion.authority.user.service.impl;
 import cn.hutool.json.JSONUtil;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.sms.SmsMessageSender;
-import com.lambda.fusion.authority.user.helper.UserQueryHelper;
+import com.lambda.fusion.authority.user.helper.UserInfoHelper;
 import com.lambda.fusion.authority.user.mapper.UserFieldsMapper;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
 
 @Transactional(rollbackFor = Exception.class)
 @Service
@@ -27,7 +28,6 @@ public class UserCenterServiceImpl implements UserCenterService {
     private final UserMapper userMapper;
     private final UserInfoMapper userInfoMapper;
     private final UserFieldsMapper userFieldsMapper;
-    private final UserQueryHelper userQueryHelper;
     private final SmsMessageSender shortMessageSender;
 
     @Override
@@ -78,7 +78,7 @@ public class UserCenterServiceImpl implements UserCenterService {
         if (StringUtils.isNotEmpty(userInfoDTO.getPersonal())) {
             if (StringUtils.isNotBlank(userInfoDTO.getPersonal())) {
                 Map<String, Object> tempMap = JSONUtil.parseObj(userInfoDTO.getPersonal());
-                List<UserFieldsEntity> fields = userQueryHelper.buildUserFieldsFromMap(tempMap, username);
+                List<UserFieldsEntity> fields = UserInfoHelper.buildUserFieldsFromMap(tempMap, username);
                 userFieldsMapper.insert(fields);
             }
         }

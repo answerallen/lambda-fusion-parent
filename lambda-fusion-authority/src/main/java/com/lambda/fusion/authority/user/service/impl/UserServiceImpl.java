@@ -1,9 +1,5 @@
 package com.lambda.fusion.authority.user.service.impl;
 
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
-import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
-
 import cn.dev33.satoken.stp.StpLogic;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
@@ -28,6 +24,7 @@ import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
+import com.lambda.fusion.authority.user.helper.UserInfoHelper;
 import com.lambda.fusion.authority.user.helper.UserPermissionHelper;
 import com.lambda.fusion.authority.user.mapper.*;
 import com.lambda.fusion.authority.user.model.*;
@@ -37,10 +34,6 @@ import com.lambda.fusion.autoconfig.AuthorityProperties;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +51,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
 
 @Slf4j
 @Service
@@ -77,8 +77,6 @@ public class UserServiceImpl implements UserService {
     private final OrganizationMapper organizationMapper;
     private final SseEmitterManager sseEmitterManager;
     private final UserOnlineLogService userOnlineLogService;
-    private final UserPermissionHelper userPermissionHelper;
-
     /***
      * @param username 用户账号
      * @return {@link boolean}
@@ -97,8 +95,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<String> getUserNamesByOrgId(String orgid, Integer type) {
-        return userMapper.selectUsernameByOrgId(orgid, type);
+    public List<String> getUserNamesByOrgId(String orgId, Integer type) {
+        return userMapper.selectUsernameByOrgId(orgId, type);
     }
 
     @Override
@@ -121,9 +119,9 @@ public class UserServiceImpl implements UserService {
                 user.setProps(userInfo);
             }
             List<UserFieldsEntity> fields = userFieldsMapper.getListByUsername(username);
-            Map<String, Map<String, String>> allPersonUserMap;
+            Map<String, Map<String, Object>> allPersonUserMap;
             if (CollectionUtils.isNotEmpty(fields)) {
-                allPersonUserMap = this.convertPersonMap(fields);
+                allPersonUserMap = UserInfoHelper.buildUserFieldsMap(fields);
                 user.setPersonal(allPersonUserMap.get(username));
             }
         }
@@ -202,7 +200,7 @@ public class UserServiceImpl implements UserService {
 
         // 批量获取关联数据
         Map<String, String> orgNames = buildOrgFullNameMap(userBatchInfo.getOrgIds());
-        Map<String, Map<String, String>> personInfo = buildUserPersonFieldMap(userBatchInfo.getUsernames());
+        Map<String, Map<String, Object>> personInfo = buildUserPersonFieldMap(userBatchInfo.getUsernames());
 
         // 补充用户信息
         for (User user : records) {
@@ -216,7 +214,7 @@ public class UserServiceImpl implements UserService {
      * 补充单个用户的详细信息
      */
     private void assembleUserInfo(
-            User user, Map<String, String> orgNames, Map<String, Map<String, String>> personInfo, String tenantId) {
+            User user, Map<String, String> orgNames, Map<String, Map<String, Object>> personInfo, String tenantId) {
         assembleUserOrgInfo(orgNames, user);
         assembleUserPersonInfo(personInfo, user);
         assembleUserLockState(user);
@@ -237,12 +235,12 @@ public class UserServiceImpl implements UserService {
         if (sseEmitterManager.getActiveClients().contains(username)) {
             return true;
         }
-        return Boolean.TRUE.equals(userOnlineLogService.isOnline(username,null));
+        return Boolean.TRUE.equals(userOnlineLogService.isOnline(username, null));
     }
 
-    private Map<String, Map<String, String>> buildUserPersonFieldMap(Set<String> uids) {
-        List<UserFieldsEntity> fields = userFieldsMapper.getPersonUser(uids);
-        return this.convertPersonMap(fields);
+    private Map<String, Map<String, Object>> buildUserPersonFieldMap(Set<String> usernames) {
+        List<UserFieldsEntity> fields = userFieldsMapper.getPersonUser(usernames);
+        return UserInfoHelper.buildUserFieldsMap(fields);
     }
 
     /**
@@ -267,7 +265,7 @@ public class UserServiceImpl implements UserService {
      * 补充完善用户权限信息
      */
     private void assembleUserPermissionInfo(User user, String tenantId) {
-        if (userPermissionHelper.isTenant(user)) {
+        if (UserPermissionHelper.isTenant(user)) {
             user.setDisableAssignment(true);
         }
         if (StringUtils.isNotBlank(user.getTenantId()) && !Objects.equals(tenantId, user.getTenantId())) {
@@ -282,7 +280,7 @@ public class UserServiceImpl implements UserService {
         // 锁定状态
     }
 
-    private void assembleUserPersonInfo(Map<String, Map<String, String>> allPersonUserMap, User user) {
+    private void assembleUserPersonInfo(Map<String, Map<String, Object>> allPersonUserMap, User user) {
         if (allPersonUserMap.containsKey(user.getUsername())) {
             user.setPersonal(allPersonUserMap.get(user.getUsername()));
         }
@@ -348,50 +346,9 @@ public class UserServiceImpl implements UserService {
         return result;
     }
 
-    /**
-     * 构造 用户扩展信息对象
-     *
-     * @param fields 所有的数据
-     * @return Map<String, Map < String, String>>
-     */
-    private Map<String, Map<String, String>> convertPersonMap(List<UserFieldsEntity> fields) {
-        Map<String, Map<String, String>> maps = Maps.newHashMap();
-        fields.forEach(userFieldsDO -> {
-            String username = userFieldsDO.getUsername();
-            Map<String, String> map;
-            if (!maps.containsKey(username)) {
-                map = Maps.newHashMap();
-            } else {
-                map = maps.get(username);
-            }
-            map.put(userFieldsDO.getFieldName(), userFieldsDO.getFieldValue());
-            maps.put(username, map);
-        });
-        return maps;
-    }
-
-    /**
-     * 用户扩展信息map 转 用户新增字段信息map
-     *
-     * @param personal 用户新增字段信息map
-     * @param username 用户名
-     * @return List<UserFields>
-     */
-    private List<UserFieldsEntity> convertPersonBean(Map<String, String> personal, String username) {
-        List<UserFieldsEntity> userFieldDOS = new ArrayList<>(personal.size());
-        personal.forEach((k, v) -> {
-            UserFieldsEntity info = new UserFieldsEntity();
-            info.setUsername(username);
-            info.setFieldName(k);
-            info.setFieldValue(v);
-            userFieldDOS.add(info);
-        });
-        return userFieldDOS;
-    }
-
     @Override
-    public List<String> getUidsByOrg(String forge, String role) {
-        return userMapper.selectUsernamesByOrg(forge, role);
+    public List<String> getUsernamesByOrgId(String orgId, String roleId) {
+        return userMapper.selectUsernamesByOrg(orgId, roleId);
     }
 
     @Override
@@ -400,38 +357,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void batchSavePermissions(LoginUser operator, String target, Set<String> permissions) {
+    public void batchSavePermissions(LoginUser operator, String username, Set<String> permissions) {
         List<UserRoleEntity> userRoleEntities = permissions.stream()
                 .map(permission -> {
                     UserRoleEntity userRoleEntity = new UserRoleEntity();
-                    userRoleEntity.setUsername(target);
+                    userRoleEntity.setUsername(username);
                     userRoleEntity.setTenantId(operator.getTenantId());
                     userRoleEntity.setAuthority(permission);
                     return userRoleEntity;
                 })
                 .collect(Collectors.toList());
         userRoleMapper.insert(userRoleEntities);
-    }
-
-    @Override
-    public void batchSavePermissions(LoginUser operator, String source, String target, Set<String> permissions) {
-        if (CollectionUtils.isEmpty(permissions)) {
-            return;
-        }
-        List<RoleResources> insertResources = userMapper.selectRoleResources(source, null, permissions);
-        String tenantId = operator.getTenantId();
-        // TODO 批量保存权限性能优化
-        for (RoleResources roleResources : insertResources) {
-            userMapper.saveUserPermission(target, roleResources, tenantId);
-        }
-    }
-
-    @Override
-    public void batchUpdatePermissions(LoginUser operator, String source, String target, Set<String> permissions) {
-        List<RoleResources> updateResources = userMapper.selectRoleResources(source, MANAGED, permissions);
-        if (CollectionUtils.isNotEmpty(updateResources)) {
-            userMapper.batchUpdateUserPermissions(target, MANAGED, updateResources, operator.getTenantId());
-        }
     }
 
     @Override
@@ -454,7 +390,7 @@ public class UserServiceImpl implements UserService {
         return userMapper.selectUserPermissionsByIdsAndMode(ids, mode);
     }
 
-    @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
+    @CacheEvict(value = "LAResourceOwners", allEntries = true)
     @Override
     public void addUser(CreateUser createUser, LoginUser operator) {
         UserEntity userEntity = createUser.toEntity();
@@ -512,16 +448,16 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    @CacheEvict(value = "LAResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
+    @CacheEvict(value = "LAResourceOwners", allEntries = true)
     @Override
     public void updateUser(UpdateUser updateUser, LoginUser operator) {
         UserEntity userEntity = updateUser.toEntity();
         int updated = userMapper.updateById(userEntity);
-        Assert.isTrue(updated == 0, "用户更新失败！");
+        Assert.isTrue(updated ==1, "用户更新失败！");
         userRoleMapper.deleteUserRoles(userEntity.getUsername());
         this.assignRolesToUser(operator.getTenantId(), userEntity.getUsername(), updateUser.getAuthorities());
         if (MapUtils.isNotEmpty(updateUser.getPersonal())) {
-            List<UserFieldsEntity> fields = this.convertPersonBean(updateUser.getPersonal(), userEntity.getUsername());
+            List<UserFieldsEntity> fields =  UserInfoHelper.buildUserFieldsFromMap(updateUser.getPersonal(), userEntity.getUsername());
             this.userFieldsMapper.deleteByUsername(userEntity.getUsername());
             this.userFieldsMapper.insert(fields);
         }
@@ -624,7 +560,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void unlockUser(String username, LoginUser operator) {}
+    public void unlockUser(String username, LoginUser operator) {
+    }
 
     public static String md5f2(String password) {
         return DigestUtils.md5Hex(DigestUtils.md5Hex(password));
@@ -715,10 +652,10 @@ public class UserServiceImpl implements UserService {
      * @param username 用户id
      */
     @Override
-    public void addUserFields(Map<String, String> personal, String username) {
+    public void addUserFields(Map<String, Object> personal, String username) {
         Assert.notNull(personal, "data must not be null");
-        List<UserFieldsEntity> userFieldDOS = this.convertPersonBean(personal, username);
-        userFieldsMapper.insert(userFieldDOS);
+        List<UserFieldsEntity> fieldsEntities = UserInfoHelper.buildUserFieldsFromMap(personal, username);
+        userFieldsMapper.insert(fieldsEntities);
     }
 
     @Override
@@ -739,5 +676,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportMutableUsers(Page<User> pageable, UserQueryContext parameters) {}
+    public void exportUsers(Page<User> pageable, UserQueryContext parameters) {
+    }
 }

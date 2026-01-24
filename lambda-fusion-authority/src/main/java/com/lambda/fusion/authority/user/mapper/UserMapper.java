@@ -57,10 +57,10 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * 查询所有用户
      *
      * @param page
-     * @param parameters
+     * @param userQueryContext
      * @return
      */
-    Page<User> selectUserPage(Page<User> page, @Param("parameters") UserQueryContext parameters);
+    Page<User> selectUserPage(Page<User> page, @Param("parameters") UserQueryContext userQueryContext);
 
     /**
      * 根据关键字模糊查询用户列表
@@ -170,35 +170,6 @@ public interface UserMapper extends BaseMapper<UserEntity> {
             @Param("authority") String authority,
             @Param("manage") String manage,
             @Param("permissions") Set<String> permissions);
-
-    /**
-     * 批量保存用户权限
-     *
-     * @param target        用户或角色
-     * @param roleResources 权限
-     * @param tenantId      租户编号
-     *
-     */
-    default void saveUserPermission(
-            @Param("uid") String target,
-            @Param("roleResources") RoleResources roleResources,
-            @Param("tenant_id") String tenantId) {}
-
-    /**
-     * 批量更新用户权限
-     *
-     * @param target      用户或角色
-     * @param manage      是否管理权限
-     * @param permissions 权限
-     * @param tenantId    租户编号
-     *
-     */
-    void batchUpdateUserPermissions(
-            @Param("uid") String target,
-            @Param("manage") String manage,
-            @Param("permissions") List<RoleResources> permissions,
-            @Param("tenant_id") String tenantId);
-
     /**
      * 获取用户下拉列表数据
      *

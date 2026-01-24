@@ -1,7 +1,6 @@
 package com.lambda.fusion.authority.user.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.Assert;
@@ -17,18 +16,20 @@ public class UserOnlineLogServiceImpl extends ServiceImpl<UserOnlineLogMapper, O
         implements UserOnlineLogService {
 
     @Override
-    public Boolean isOnline(String username,String deviceType) {
+    public Boolean isOnline(String username, String deviceType) {
         Assert.notNull(username, "username not empty");
         OnlineLogEntity entity = getOne(new LambdaQueryWrapper<OnlineLogEntity>()
                 .eq(OnlineLogEntity::getUsername, username)
-                .eq(OnlineLogEntity::getDeviceType, ObjectUtil.defaultIfBlank(deviceType,FusionConstants.DEVICE_PC_WEB))
+                .eq(
+                        OnlineLogEntity::getDeviceType,
+                        ObjectUtil.defaultIfBlank(deviceType, FusionConstants.DEVICE_DEFAULT))
                 .orderByDesc(OnlineLogEntity::getOnlineTime)
                 .last("LIMIT 1"));
         return entity != null && Integer.valueOf(1).equals(entity.getIsOnline());
     }
 
     @Override
-    public void online(String username,String deviceType) {
+    public void online(String username, String deviceType) {
         OnlineLogEntity entity = getOne(new LambdaQueryWrapper<OnlineLogEntity>()
                 .eq(OnlineLogEntity::getUsername, username)
                 .orderByDesc(OnlineLogEntity::getOnlineTime)
@@ -36,25 +37,32 @@ public class UserOnlineLogServiceImpl extends ServiceImpl<UserOnlineLogMapper, O
         if (entity == null) {
             entity = new OnlineLogEntity();
             entity.setUsername(username);
-            entity.setDeviceType(ObjectUtil.defaultIfBlank(deviceType,FusionConstants.DEVICE_PC_WEB));
+            entity.setDeviceType(ObjectUtil.defaultIfBlank(deviceType, FusionConstants.DEVICE_DEFAULT));
             entity.setIsOnline(FusionConstants.ENABLED);
             entity.setOnlineTime(LocalDateTime.now());
             save(entity);
         } else {
             entity.setIsOnline(FusionConstants.ENABLED);
             entity.setOnlineTime(LocalDateTime.now());
-            updateById(entity);
+            update(
+                    entity,
+                    new LambdaQueryWrapper<OnlineLogEntity>()
+                            .eq(OnlineLogEntity::getUsername, username)
+                            .eq(OnlineLogEntity::getDeviceType, entity.getDeviceType()));
         }
     }
 
-
     @Override
-    public void offline(String username,String deviceType) {
+    public void offline(String username, String deviceType) {
         OnlineLogEntity entity = new OnlineLogEntity();
         entity.setUsername(username);
-        entity.setDeviceType(ObjectUtil.defaultIfBlank(deviceType,FusionConstants.DEVICE_PC_WEB));
+        entity.setDeviceType(ObjectUtil.defaultIfBlank(deviceType, FusionConstants.DEVICE_DEFAULT));
         entity.setIsOnline(FusionConstants.DISABLED);
-        entity.setOnlineTime(LocalDateTime.now());
-        updateById(entity);
+        entity.setOfflineTime(LocalDateTime.now());
+        update(
+                entity,
+                new LambdaQueryWrapper<OnlineLogEntity>()
+                        .eq(OnlineLogEntity::getUsername, username)
+                        .eq(OnlineLogEntity::getDeviceType, entity.getDeviceType()));
     }
 }

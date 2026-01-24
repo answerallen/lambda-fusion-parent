@@ -3,7 +3,6 @@ package com.lambda.fusion.authority.user.controller;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
@@ -23,10 +22,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -212,27 +210,7 @@ public class UserController {
         return TreeBuilder.build(permissions);
     }
 
-    @PutMapping("/permission/copy")
-    @Operation(summary = "用户权限复制")
-    public void permissionCopy(
-            @Parameter(description = "权限来源", required = true) @RequestParam("source") String source,
-            @Parameter(description = "复制对象", required = true) @RequestParam("target") String target) {
-        LoginUser operator = OperatorUtils.getOperator();
-        Set<String> permissions1 = userService.getPermissions(operator, source);
-        Set<String> permissions2 = userService.getPermissions(operator, target);
-        // 两个权限的差集，1中有而2中没有的
-        Set<String> insertPermissions = Sets.difference(permissions1, permissions2);
-        // 两个权限的交集，1中有并且2中也有的
-        Set<String> updatePermissions = Sets.intersection(permissions1, permissions2);
-        // 保存差集权限
-        if (CollectionUtils.isNotEmpty(insertPermissions)) {
-            userService.batchSavePermissions(operator, source, target, insertPermissions);
-        }
-        // 更新交集权限
-        if (CollectionUtils.isNotEmpty(updatePermissions)) {
-            userService.batchUpdatePermissions(operator, source, target, updatePermissions);
-        }
-    }
+
 
     @PatchMapping(value = "/unbind/{username}/{type}")
     @Operation(summary = "解除第三方绑定")

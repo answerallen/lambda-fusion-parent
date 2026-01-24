@@ -143,7 +143,7 @@
         T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled,
         R.AUTHORITY,
         R.alias, R.tenant_id, O.id As orgId, O.alias As orgAlias, OL.IS_ONLINE, OL.OFFLINE_TIME,
-        TC.NICKNAME CREATOR, T.EXPIRED_TIME
+        TC.NICKNAME As CREATOR, T.EXPIRED_TIME
         FROM LA_USERS T
         LEFT JOIN (SELECT T1.USERNAME,T1.authority, T2.alias, T2.tenant_id FROM LA_USER_ROLES T1
         INNER JOIN LA_ROLES T2 ON t2.AUTHORITY = T1.authority AND T2.enabled = 1) R ON R.USERNAME = T.username
@@ -332,19 +332,6 @@
         </where>
         group by  T.RESOURCE_ID ,T.LA_MANAGE
     </select>
-
-    <insert id="saveUserPermission">
-        INSERT INTO LA_ROLE_RESOURCES (resourceid, authority, tenantId, la_manage)
-        VALUES (#{roleResources.resourceId}, #{uid}, #{tenant_id, jdbcType=VARCHAR},#{roleResources.laManage})
-    </insert>
-
-    <!-- 批量更新用户权限 -->
-    <update id="batchUpdateUserPermissions">
-        UPDATE LA_ROLE_RESOURCES SET LA_MANAGE = #{manage},TENANT_ID = #{tenant_id} WHERE AUTHORITY = #{uid} AND resourceid IN
-        <foreach collection="permissions" open="(" close=")" separator="," item="item">
-            #{item.resourceId}
-        </foreach>
-    </update>
 
     <select id="selectUserProfiles" resultType="com.lambda.fusion.authority.user.model.UserProfile">
         SELECT DISTINCT

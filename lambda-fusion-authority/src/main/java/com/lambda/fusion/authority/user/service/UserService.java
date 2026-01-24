@@ -153,7 +153,7 @@ public interface UserService {
      * @param roleid 角色编号
      * @return
      */
-    List<String> getUidsByOrg(String orgid, String roleid);
+    List<String> getUsernamesByOrgId(String orgid, String roleid);
 
     /**
      * 获取用户的权限列表
@@ -167,32 +167,11 @@ public interface UserService {
      * 批量保存用户的权限
      *
      * @param operator
-     * @param target
+     * @param username
      * @param permissions
      * @return void
      */
-    void batchSavePermissions(LoginUser operator, String target, Set<String> permissions);
-
-    /**
-     * 批量保存用户的权限
-     *
-     * @param operator    当前用户
-     * @param source      权限来源
-     * @param target      复制对象
-     * @param permissions 权限
-     */
-    void batchSavePermissions(LoginUser operator, String source, String target, Set<String> permissions);
-
-    /**
-     * 批量更新用户的权限
-     *
-     * @param operator    当前用户
-     * @param source      权限来源
-     * @param target      复制对象
-     * @param permissions 权限
-     *
-     */
-    void batchUpdatePermissions(LoginUser operator, String source, String target, Set<String> permissions);
+    void batchSavePermissions(LoginUser operator, String username, Set<String> permissions);
 
     /**
      * 查询用户所有权限
@@ -243,7 +222,7 @@ public interface UserService {
      * @param personal 字段map
      * @param username 用户id
      */
-    void addUserFields(Map<String, String> personal, String username);
+    void addUserFields(Map<String, Object> personal, String username);
 
     /***
      * 根据租户ID查询租户管理员列表
@@ -266,5 +245,5 @@ public interface UserService {
      * @param pageable   分页
      * @param parameters 查询参数
      */
-    void exportMutableUsers(Page<User> pageable, UserQueryContext parameters);
+    void exportUsers(Page<User> pageable, UserQueryContext parameters);
 }

@@ -72,5 +72,5 @@ public class CreateUser extends BaseDTO<UserEntity> {
 
     @Schema(description = "用户新增字段信息")
     @JsonProperty("personal")
-    private Map<String, String> personal;
+    private Map<String, Object> personal;
 }

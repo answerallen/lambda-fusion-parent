@@ -59,7 +59,7 @@ public class UserQueryHelper {
 
         if (StringUtils.isNotBlank(userQuery.getPersonal())) {
             Map<String, Object> tempMap = JSONUtil.parseObj(userQuery.getPersonal());
-            List<UserFieldsEntity> fields = buildUserFieldsFromMap(tempMap, userPrincipal.getUsername());
+            List<UserFieldsEntity> fields = UserInfoHelper.buildUserFieldsFromMap(tempMap, userPrincipal.getUsername());
             userQueryContext.setUserFields(fields);
         }
 
@@ -77,7 +77,7 @@ public class UserQueryHelper {
         return userQueryContext;
     }
 
-    public Set<String> resolveOrganizationIds(
+    private Set<String> resolveOrganizationIds(
             String organizationId, boolean includeChild, boolean dataPermission, UserPrincipal userPrincipal) {
         Set<String> orgIds = Sets.newHashSet();
         if (includeChild || StringUtils.isBlank(organizationId)) {
@@ -93,21 +93,5 @@ public class UserQueryHelper {
             orgIds.add(organizationId);
         }
         return orgIds;
-    }
-
-    public List<UserFieldsEntity> buildUserFieldsFromMap(Map<String, Object> personal, String username) {
-        return getUserFieldsEntities(personal, username);
-    }
-
-    public List<UserFieldsEntity> getUserFieldsEntities(Map<String, Object> personal, String username) {
-        List<UserFieldsEntity> userFields = new ArrayList<>(personal.size());
-        personal.forEach((k, v) -> {
-            UserFieldsEntity info = new UserFieldsEntity();
-            info.setUsername(username);
-            info.setFieldName(k);
-            info.setFieldValue(v != null ? String.valueOf(v) : null);
-            userFields.add(info);
-        });
-        return userFields;
     }
 }
