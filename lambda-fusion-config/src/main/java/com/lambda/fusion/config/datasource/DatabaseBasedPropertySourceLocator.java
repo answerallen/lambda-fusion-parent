@@ -4,7 +4,7 @@ import static com.lambda.fusion.config.ConfigConstants.DataSource.*;
 import static com.lambda.fusion.config.ConfigConstants.PropertySource.*;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.config.ConfigProperties;
+import com.lambda.fusion.autoconfig.ConfigProperties;
 import com.lambda.fusion.config.exception.ConfigLoadException;
 import com.lambda.fusion.config.utils.DataSourcePropertyUtils;
 import com.zaxxer.hikari.HikariConfig;

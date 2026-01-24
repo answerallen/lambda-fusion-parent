@@ -1,6 +1,6 @@
 package com.lambda.fusion.config.datasource;
 
-import com.lambda.fusion.config.ConfigProperties;
+import com.lambda.fusion.autoconfig.ConfigProperties;
 import java.sql.Connection;
 import java.sql.SQLException;
 import javax.annotation.Nonnull;

@@ -3,7 +3,7 @@ package com.lambda.fusion.config.datasource;
 import static com.lambda.fusion.config.ConfigConstants.Database.*;
 
 import com.google.common.collect.Maps;
-import com.lambda.fusion.config.ConfigProperties;
+import com.lambda.fusion.autoconfig.ConfigProperties;
 import com.lambda.fusion.config.utils.EncryptUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serial;
