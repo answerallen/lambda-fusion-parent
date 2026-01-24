@@ -13,6 +13,8 @@ import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import java.util.*;
+
+import com.lambda.fusion.core.utils.LoginUserUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
@@ -28,7 +30,7 @@ public class UserQueryHelper {
 
     public UserQueryContext buildUserQueryContext(UserQuery userQuery) {
         UserQueryContext userQueryContext = new UserQueryContext();
-        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
         String tenantId = userPrincipal.getTenantId();
 
         // 处理 username (支持逗号分隔)

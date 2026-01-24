@@ -30,6 +30,8 @@ import com.lambda.fusion.core.tree.util.TreeNodeUtils;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
+
+import com.lambda.fusion.core.utils.LoginUserUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -64,7 +66,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<Organization> treeList(OrganizationQuery parameters) {
-        UserPrincipal userPrincipal = OperatorUtils.getLoginUser(UserPrincipal.class);
+        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
         List<Organization> organizations = getOrganizationsByCondition(userPrincipal, parameters);
         applyPermissionConstraints(organizations, userPrincipal);
         return TreeBuilder.build(organizations);
