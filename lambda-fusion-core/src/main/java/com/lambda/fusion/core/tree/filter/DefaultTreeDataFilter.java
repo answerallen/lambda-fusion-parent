@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -18,7 +17,6 @@ import org.springframework.util.MultiValueMap;
  * @author Jin
  */
 @Slf4j
-@Service
 public class DefaultTreeDataFilter implements TreeDataFilter {
 
     @Override

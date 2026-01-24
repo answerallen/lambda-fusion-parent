@@ -23,5 +23,4 @@ public final class SqlParamUtils {
         String escaped = parameter.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
         return FusionConstants.FUZZY + escaped + FusionConstants.FUZZY;
     }
-
 }
