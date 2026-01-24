@@ -23,7 +23,8 @@ import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
-import com.lambda.fusion.authority.user.helper.UserSupportHelper;
+import com.lambda.fusion.authority.user.helper.UserPermissionHelper;
+import com.lambda.fusion.authority.user.helper.UserQueryHelper;
 import com.lambda.fusion.authority.user.mapper.*;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.service.UserOnlineLogService;
@@ -76,7 +77,7 @@ public class UserServiceImpl implements UserService {
     private final OrganizationMapper organizationMapper;
     private final SseEmitterManager sseEmitterManager;
     private final UserOnlineLogService userOnlineLogService;
-    private final UserSupportHelper userSupportHelper;
+    private final UserPermissionHelper userPermissionHelper;
 
     /***
      * @param username 用户账号
@@ -266,7 +267,7 @@ public class UserServiceImpl implements UserService {
      * 补充完善用户权限信息
      */
     private void assembleUserPermissionInfo(User user, String tenantId) {
-        if (userSupportHelper.isTenant(user)) {
+        if (userPermissionHelper.isTenant(user)) {
             user.setDisableAssignment(true);
         }
         if (StringUtils.isNotBlank(user.getTenantId()) && !Objects.equals(tenantId, user.getTenantId())) {

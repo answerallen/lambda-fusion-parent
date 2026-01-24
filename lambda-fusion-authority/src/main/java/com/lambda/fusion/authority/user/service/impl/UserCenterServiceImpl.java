@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.user.service.impl;
 import cn.hutool.json.JSONUtil;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.sms.SmsMessageSender;
-import com.lambda.fusion.authority.user.helper.UserSupportHelper;
+import com.lambda.fusion.authority.user.helper.UserQueryHelper;
 import com.lambda.fusion.authority.user.mapper.UserFieldsMapper;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
@@ -28,7 +28,7 @@ public class UserCenterServiceImpl implements UserCenterService {
     private final UserMapper userMapper;
     private final UserInfoMapper userInfoMapper;
     private final UserFieldsMapper userFieldsMapper;
-    private final UserSupportHelper userSupportHelper;
+    private final UserQueryHelper userQueryHelper;
     private final SmsMessageSender shortMessageSender;
 
     @Override
@@ -79,7 +79,7 @@ public class UserCenterServiceImpl implements UserCenterService {
         if (StringUtils.isNotEmpty(userInfoDTO.getPersonal())) {
             if (StringUtils.isNotBlank(userInfoDTO.getPersonal())) {
                 Map<String, Object> tempMap = JSONUtil.parseObj(userInfoDTO.getPersonal());
-                List<UserFieldsEntity> fields = userSupportHelper.buildUserFieldsFromMap(tempMap, username);
+                List<UserFieldsEntity> fields = userQueryHelper.buildUserFieldsFromMap(tempMap, username);
                 userFieldsMapper.insert(fields);
             }
         }
