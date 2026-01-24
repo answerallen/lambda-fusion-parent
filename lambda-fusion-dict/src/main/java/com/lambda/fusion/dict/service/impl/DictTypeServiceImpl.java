@@ -13,7 +13,7 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
-import com.lambda.fusion.core.utils.ParameterUtils;
+import com.lambda.fusion.core.utils.SqlParamUtils;
 import com.lambda.fusion.dict.DictionaryProperties;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
@@ -110,7 +110,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
                 key = conditions.getId();
             }
             parameters.put("id", key);
-            parameters.put("parentKeys", ParameterUtils.fuzzyQuery(key));
+            parameters.put("parentKeys", SqlParamUtils.fuzzyQuery(key));
             parameters.put("level", conditions.getLevel());
         }
         return TreeBuilder.build(dictTypeMapper.treeList(parameters));
@@ -123,7 +123,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
         Integer dataType = queryDictTree.getDataType();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
         if (StringUtils.isNotBlank(name)) {
-            parameters.put("name", ParameterUtils.fuzzyQuery(name));
+            parameters.put("name", SqlParamUtils.fuzzyQuery(name));
         }
 
         List<DictTypeTree> result = new ArrayList<>();
@@ -140,7 +140,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
                         key = conditions.getId();
                     }
                     parameters.put("id", key);
-                    parameters.put("parentKeys", ParameterUtils.fuzzyQuery(key));
+                    parameters.put("parentKeys", SqlParamUtils.fuzzyQuery(key));
                 }
                 getEnumDict(queryDictTree, name, result);
             } else {
@@ -240,7 +240,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
 
     @Override
     public List<DictTypeTree> getDictTypeList(String type) {
-        return dictTypeMapper.getDictTypeList(StringUtils.isNotBlank(type) ? ParameterUtils.fuzzyQuery(type) : type);
+        return dictTypeMapper.getDictTypeList(StringUtils.isNotBlank(type) ? SqlParamUtils.fuzzyQuery(type) : type);
     }
 
     @Override

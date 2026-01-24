@@ -20,7 +20,7 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.utils.ParameterUtils;
+import com.lambda.fusion.core.utils.SqlParamUtils;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
 import com.lambda.fusion.dict.model.*;
@@ -166,7 +166,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
     public Map<String, Object> getStaticDictInfoGroup(String dictType) {
         String tenantId = OperatorUtils.getOperator().getTenantId();
         List<DictInfoGroup> lists = dictInfoMapper.getAllDictInfoGroup(
-                StringUtils.isNotBlank(dictType) ? ParameterUtils.fuzzyQuery(dictType) : dictType, tenantId);
+                StringUtils.isNotBlank(dictType) ? SqlParamUtils.fuzzyQuery(dictType) : dictType, tenantId);
         Map<String, Object> map = Maps.newHashMapWithExpectedSize(lists.size());
         for (DictInfoGroup info : lists) {
             map.put(info.getDictType(), info.getDictList());
@@ -195,7 +195,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         }
         String tenantId = OperatorUtils.getOperator().getTenantId();
         List<DictInfoGroup> lists = dictInfoMapper.getAllDictInfoGroup(
-                StringUtils.isNotBlank(dictType) ? ParameterUtils.fuzzyQuery(dictType) : dictType, tenantId);
+                StringUtils.isNotBlank(dictType) ? SqlParamUtils.fuzzyQuery(dictType) : dictType, tenantId);
         for (DictInfoGroup info : lists) {
             if (result.containsKey(info.getDictType())) {
                 final DictType vo = result.get(info.getDictType());
@@ -279,7 +279,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         DictInfo wrapper = new DictInfo();
         String keys = dictionaryEntry.getParentKeys();
         if (StringUtils.isNotBlank(keys)) {
-            wrapper.setParentId(ParameterUtils.fuzzyQuery(keys.substring(keys.length() - PARENT_KEY_SUBSTRING_LENGTH)));
+            wrapper.setParentId(SqlParamUtils.fuzzyQuery(keys.substring(keys.length() - PARENT_KEY_SUBSTRING_LENGTH)));
         } else {
             wrapper.setId(dictionaryEntry.getId());
         }
@@ -325,10 +325,10 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
             parameters.put(FIELD_DICT_TYPE, queryDTO.getDictType());
         }
         if (StringUtils.isNotBlank(queryDTO.getFieldType())) {
-            parameters.put(FIELD_FIELD_TYPE, ParameterUtils.fuzzyQuery(queryDTO.getFieldType()));
+            parameters.put(FIELD_FIELD_TYPE, SqlParamUtils.fuzzyQuery(queryDTO.getFieldType()));
         }
         if (StringUtils.isNotBlank(queryDTO.getFieldName())) {
-            parameters.put(FIELD_FIELD_NAME, ParameterUtils.fuzzyQuery(queryDTO.getFieldName()));
+            parameters.put(FIELD_FIELD_NAME, SqlParamUtils.fuzzyQuery(queryDTO.getFieldName()));
         }
         if (StringUtils.isNotBlank(queryDTO.getParentId())) {
             parameters.put(FIELD_PARENT_ID, queryDTO.getParentId());
