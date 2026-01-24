@@ -1,6 +1,6 @@
 package com.lambda.fusion.core.tree.model;
 
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
@@ -26,6 +26,6 @@ public class TreeNodeKey {
                 return key.toString();
             }
         }
-        return parentKey.getKey() + Constants.JOINER + key;
+        return parentKey.getKey() + FusionConstants.JOINER + key;
     }
 }

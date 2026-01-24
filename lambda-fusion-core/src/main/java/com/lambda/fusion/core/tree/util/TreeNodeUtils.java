@@ -4,7 +4,7 @@ import static com.lambda.fusion.core.tree.model.TreeDragMode.BEFORE;
 import static com.lambda.fusion.core.tree.model.TreeDragMode.CHILD;
 
 import com.google.common.collect.Lists;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.tree.TreeNode;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import java.util.List;
@@ -94,7 +94,7 @@ public final class TreeNodeUtils {
         if (StringUtils.isBlank(parentKeys)) {
             return 0;
         }
-        return StringUtils.split(parentKeys, Constants.JOINER).length;
+        return StringUtils.split(parentKeys, FusionConstants.JOINER).length;
     }
 
     /***
@@ -105,7 +105,7 @@ public final class TreeNodeUtils {
      *
      */
     private static String generateParentkeys(String parentKeys, String id) {
-        return StringUtils.isNotBlank(parentKeys) ? parentKeys + Constants.JOINER + id : id;
+        return StringUtils.isNotBlank(parentKeys) ? parentKeys + FusionConstants.JOINER + id : id;
     }
 
     /***
@@ -135,10 +135,10 @@ public final class TreeNodeUtils {
             if (StringUtils.isNotBlank(replacement)) {
                 result = StringUtils.replace(item.parentKeys(), searchString, replacement);
             } else {
-                result = StringUtils.removeStart(item.parentKeys(), searchString + Constants.JOINER);
+                result = StringUtils.removeStart(item.parentKeys(), searchString + FusionConstants.JOINER);
             }
         } else if (StringUtils.isNotBlank(replacement)) {
-            result = replacement + Constants.JOINER + item.parentKeys();
+            result = replacement + FusionConstants.JOINER + item.parentKeys();
         } else {
             result = item.parentKeys();
         }

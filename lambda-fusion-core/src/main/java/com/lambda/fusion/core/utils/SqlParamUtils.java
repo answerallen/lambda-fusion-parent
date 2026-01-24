@@ -1,6 +1,6 @@
 package com.lambda.fusion.core.utils;
 
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import lombok.experimental.UtilityClass;
 
 /**
@@ -21,7 +21,7 @@ public final class SqlParamUtils {
         }
         // 转义SQL模糊查询特殊字符 % 和 _
         String escaped = parameter.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
-        return Constants.FUZZY + escaped + Constants.FUZZY;
+        return FusionConstants.FUZZY + escaped + FusionConstants.FUZZY;
     }
 
 }

@@ -4,7 +4,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.tree.TreeNode;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -184,12 +184,12 @@ public final class TreeBuilder {
                 rankMap.put(rank, new ArrayList<>(Collections.singletonList(obj)));
             }
             // 非顶级节点需要把自身放入children中, key为pid + 父级rank值
-            children.put(pidFc.apply(obj) + Constants.DOT + (rank - 1), obj);
+            children.put(pidFc.apply(obj) + FusionConstants.DOT + (rank - 1), obj);
         }
 
         rankMap.forEach((rank, list) -> {
             list.forEach(obj -> {
-                String key = idFc.apply(obj) + Constants.DOT + rankFc.apply(obj);
+                String key = idFc.apply(obj) + FusionConstants.DOT + rankFc.apply(obj);
                 if (children.containsKey(key)) {
                     childFc.accept(obj, new ArrayList<>(children.get(key)));
                 }

@@ -12,7 +12,7 @@ import org.apache.commons.lang.StringUtils;
  * @author Jin
  */
 @UtilityClass
-public final class Constants {
+public final class FusionConstants {
 
     // ========== 系统基础常量 ==========
     /** 启用 **/
@@ -25,10 +25,6 @@ public final class Constants {
     public static final String TENANT_ID = "tenant_id";
     /** 租户域名 Redis Key */
     public static final String TENANT_HOST_REDIS_KEY = "tenant_host";
-    /** 默认启用状态值 */
-    public static final Integer DEFAULT_ENABLE_STATUS_VALUE = 1;
-    /** 默认禁用状态值 */
-    public static final Integer DEFAULT_DISABLE_STATUS_VALUE = 0;
     /** 日期时间格式 */
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 

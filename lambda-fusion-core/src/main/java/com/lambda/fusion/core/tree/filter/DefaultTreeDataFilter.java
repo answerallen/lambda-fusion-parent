@@ -1,7 +1,7 @@
 package com.lambda.fusion.core.tree.filter;
 
 import com.google.common.collect.Maps;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -58,7 +58,7 @@ public class DefaultTreeDataFilter implements TreeDataFilter {
                 boolean isTop = true;
                 if (StringUtils.isNotEmpty(pKey)) {
                     isTop = false;
-                    final StringTokenizer tokenizer = new StringTokenizer(pKey, Constants.JOINER);
+                    final StringTokenizer tokenizer = new StringTokenizer(pKey, FusionConstants.JOINER);
                     while (tokenizer.hasMoreTokens()) {
                         T t = idMap.get(tokenizer.nextToken());
                         if (t != null) {
@@ -69,7 +69,7 @@ public class DefaultTreeDataFilter implements TreeDataFilter {
                 // 放入当前层级
                 result.add(f);
                 // 放入子级
-                String fixKey = isTop ? idFc.apply(f) : pFullKey.apply(f) + Constants.JOINER + idFc.apply(f);
+                String fixKey = isTop ? idFc.apply(f) : pFullKey.apply(f) + FusionConstants.JOINER + idFc.apply(f);
                 if (StringUtils.isNotEmpty(fixKey)) {
                     for (Map.Entry<String, List<T>> entry : fullKeyMap.entrySet()) {
                         String key = entry.getKey();

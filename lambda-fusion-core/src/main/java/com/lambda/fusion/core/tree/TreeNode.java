@@ -1,7 +1,7 @@
 package com.lambda.fusion.core.tree;
 
 import com.lambda.cloud.core.exception.NotSupportedException;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import java.util.List;
 import org.apache.commons.lang.StringUtils;
 
@@ -52,7 +52,7 @@ public interface TreeNode<T> {
         String pid = this.id();
         String keys = this.parentKeys();
         if (StringUtils.isNotBlank(keys)) {
-            return keys + Constants.TREE_SPLIT + pid;
+            return keys + FusionConstants.TREE_SPLIT + pid;
         }
         return pid;
     }

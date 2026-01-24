@@ -1,7 +1,5 @@
 package com.lambda.fusion.core.tree.model;
 
-import com.lambda.fusion.core.Constants;
-
 /**
  * TreeDragMode
  *

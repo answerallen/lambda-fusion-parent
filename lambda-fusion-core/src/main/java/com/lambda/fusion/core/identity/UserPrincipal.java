@@ -2,7 +2,7 @@ package com.lambda.fusion.core.identity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Collections;
 import java.util.Date;
@@ -162,7 +162,7 @@ public class UserPrincipal implements LoginUser {
      */
     @JsonIgnore
     public boolean isDev() {
-        return roles != null && roles.contains(Constants.ROLE_DEV);
+        return roles != null && roles.contains(FusionConstants.ROLE_DEV);
     }
 
     /**
@@ -172,7 +172,7 @@ public class UserPrincipal implements LoginUser {
      */
     @JsonIgnore
     public boolean isAdmin() {
-        return roles != null && roles.contains(Constants.ROLE_ADMIN);
+        return roles != null && roles.contains(FusionConstants.ROLE_ADMIN);
     }
 
     /**
@@ -182,7 +182,7 @@ public class UserPrincipal implements LoginUser {
      */
     @JsonIgnore
     public boolean isManager() {
-        return roles != null && roles.contains(Constants.ROLE_MANAGER);
+        return roles != null && roles.contains(FusionConstants.ROLE_MANAGER);
     }
 
     /**
@@ -192,6 +192,6 @@ public class UserPrincipal implements LoginUser {
      */
     @JsonIgnore
     public boolean isTenantManager() {
-        return roles != null && roles.contains(Constants.ROLE_TENANT_MANAGER);
+        return roles != null && roles.contains(FusionConstants.ROLE_TENANT_MANAGER);
     }
 }
