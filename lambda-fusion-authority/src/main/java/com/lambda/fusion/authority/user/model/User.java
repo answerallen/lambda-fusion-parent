@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.user.model;
 
 import cn.hutool.core.collection.CollUtil;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.lambda.fusion.authority.organization.domain.OrganizationSummary;
+import com.lambda.fusion.authority.organization.domain.SimpleOrganization;
 import com.lambda.fusion.authority.role.model.SimpleRole;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -51,13 +51,13 @@ public class User {
 
     @JsonProperty("organization")
     @Schema(description = "组织信息")
-    private OrganizationSummary organizationSummary;
+    private SimpleOrganization organization;
 
     public String getOrgName() {
-        if (organizationSummary == null) {
+        if (organization == null) {
             return "-";
         }
-        return organizationSummary.getAlias();
+        return organization.getAlias();
     }
 
     @Schema(description = "角色信息")

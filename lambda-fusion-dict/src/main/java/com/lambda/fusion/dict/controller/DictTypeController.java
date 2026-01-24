@@ -1,7 +1,6 @@
 package com.lambda.fusion.dict.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.utils.LoginUserUtils;
 import com.lambda.fusion.dict.model.DictTypeTree;

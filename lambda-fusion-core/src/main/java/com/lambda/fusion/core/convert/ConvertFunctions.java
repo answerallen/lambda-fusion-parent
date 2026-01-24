@@ -17,4 +17,9 @@ public interface ConvertFunctions {
     static Boolean mapAccountLocked(boolean enabled) {
         return !enabled;
     }
+
+    @Named("mapAccountEnabled")
+    static Integer mapAccountEnabled(boolean enabled) {
+        return enabled ? 1 : 0;
+    }
 }

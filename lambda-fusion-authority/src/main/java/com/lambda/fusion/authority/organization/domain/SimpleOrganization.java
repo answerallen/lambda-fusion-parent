@@ -7,20 +7,20 @@ import lombok.Setter;
 @Getter
 @Setter
 @JsonRootName("Organization")
-public class OrganizationSummary {
+public class SimpleOrganization {
     String id;
 
     String alias;
 
     String fullName;
 
-    public OrganizationSummary() {}
+    public SimpleOrganization() {}
 
-    public OrganizationSummary(String id) {
+    public SimpleOrganization(String id) {
         this.id = id;
     }
 
-    public OrganizationSummary(String id, String alias) {
+    public SimpleOrganization(String id, String alias) {
         this.id = id;
         this.alias = alias;
     }

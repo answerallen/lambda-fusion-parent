@@ -8,7 +8,6 @@ import org.apache.commons.lang.StringUtils;
 
 public class PasswordHelper {
 
-
     public static Password obtainPassword(AuthorityProperties.PasswordStrategy strategy, String parameter) {
         String origin;
         String password;
@@ -34,7 +33,6 @@ public class PasswordHelper {
         }
         return new Password(origin, password);
     }
-
 
     public static String md5f2(String password) {
         return DigestUtils.md5Hex(DigestUtils.md5Hex(password));

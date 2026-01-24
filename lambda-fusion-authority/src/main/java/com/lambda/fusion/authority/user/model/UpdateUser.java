@@ -4,21 +4,23 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.cloud.core.shared.BaseDTO;
-import com.lambda.fusion.authority.organization.domain.OrganizationSummary;
+import com.lambda.fusion.authority.organization.domain.SimpleOrganization;
 import com.lambda.fusion.authority.role.model.SimpleRole;
+import com.lambda.fusion.core.convert.ConvertFunctions;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.hibernate.validator.constraints.Length;
 
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
 @EqualsAndHashCode(callSuper = true)
-@AutoConverter(target = UserEntity.class)
+@AutoConverter(target = UserEntity.class, uses = ConvertFunctions.class)
 @Data
 @Schema(description = "用户信息")
 public class UpdateUser extends BaseDTO<UserEntity> {
@@ -44,13 +46,13 @@ public class UpdateUser extends BaseDTO<UserEntity> {
     @Schema(description = "租户ID")
     private String tenantId;
 
-    @FieldMapping(target = "enabled", ignore = true)
+    @FieldMapping(target = "enabled", source = "enabled", qualifiedByName = "mapAccountEnabled")
     @Schema(description = "是否启用")
     private boolean enabled;
 
     @JsonProperty("organization")
     @Schema(description = "组织信息")
-    private OrganizationSummary org;
+    private SimpleOrganization organization;
 
     @Schema(description = "角色信息")
     @JsonProperty("authorities")

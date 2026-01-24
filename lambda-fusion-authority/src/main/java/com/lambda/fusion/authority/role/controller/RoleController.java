@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.role.model.AccessPermission;
 import com.lambda.fusion.authority.role.model.BatchRoleUserAssignmentRequest;
 import com.lambda.fusion.authority.role.model.CreateRole;
@@ -194,7 +193,6 @@ public class RoleController {
         roleService.prohibitRole(1, authority);
     }
 
-
     @Operation(description = "角色批量分配用户", summary = "角色批量分配用户")
     @PostMapping("/assignUsers")
     public void assignUsersToRole(@Valid @RequestBody BatchRoleUserAssignmentRequest req) {
@@ -226,5 +224,4 @@ public class RoleController {
     public void deleteGroup(@Parameter(description = "分组ID") @PathVariable String groupId) {
         roleService.deleteGroup(groupId);
     }
-
 }

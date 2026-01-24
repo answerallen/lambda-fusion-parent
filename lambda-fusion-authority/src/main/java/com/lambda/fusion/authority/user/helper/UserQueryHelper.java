@@ -4,7 +4,6 @@ import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 import cn.hutool.json.JSONUtil;
 import com.google.common.collect.Sets;
-import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.user.model.UserFieldsEntity;
 import com.lambda.fusion.authority.user.model.UserQuery;
@@ -12,9 +11,8 @@ import com.lambda.fusion.authority.user.model.UserQueryContext;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
-import java.util.*;
-
 import com.lambda.fusion.core.utils.LoginUserUtils;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;

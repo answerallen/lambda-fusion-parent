@@ -15,7 +15,7 @@
         <result column="OFFLINE_TIME" property="offlineTime"/>
         <result column="CREATOR" property="creator"/>
         <result column="EXPIRED_TIME" property="expiredTime"/>
-        <association property="organizationSummary" javaType="com.lambda.fusion.authority.organization.domain.OrganizationSummary">
+        <association property="organization" javaType="com.lambda.fusion.authority.organization.domain.SimpleOrganization">
             <constructor>
                 <idArg column="orgId" javaType="String"/>
                 <arg column="orgAlias" javaType="String"/>
@@ -66,7 +66,7 @@
         <result column="createDate" property="createDate"/>
         <result column="tenant_id" property="tenantId"/>
         <result column="enabled" property="enabled" />
-        <association property="organizationSummary" javaType="com.lambda.fusion.authority.organization.domain.OrganizationSummary">
+        <association property="organization" javaType="com.lambda.fusion.authority.organization.domain.SimpleOrganization">
             <constructor>
                 <idArg column="orgId" javaType="String"/>
             </constructor>

@@ -1,5 +1,7 @@
 package com.lambda.fusion.authority.user.service.impl;
 
+import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
+
 import cn.dev33.satoken.stp.StpLogic;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
@@ -16,7 +18,7 @@ import com.lambda.cloud.core.utils.StpLogicUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.organization.domain.OrganizationEntity;
-import com.lambda.fusion.authority.organization.domain.OrganizationSummary;
+import com.lambda.fusion.authority.organization.domain.SimpleOrganization;
 import com.lambda.fusion.authority.organization.domain.UserOrganizationEntity;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
@@ -34,6 +36,10 @@ import com.lambda.fusion.autoconfig.AuthorityProperties;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -47,13 +53,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
 
 @Slf4j
 @Service
@@ -249,7 +248,7 @@ public class UserServiceImpl implements UserService {
         for (User item : users) {
             usernames.add(item.getUsername());
             if (hasOrganization(item)) {
-                orgIds.add(item.getOrganizationSummary().getId());
+                orgIds.add(item.getOrganization().getId());
             }
         }
         UserBatchInfo parameters = new UserBatchInfo();
@@ -288,7 +287,7 @@ public class UserServiceImpl implements UserService {
      */
     private void assembleUserOrgInfo(Map<String, String> orgNames, User user) {
         if (hasOrganization(user)) {
-            OrganizationSummary org = user.getOrganizationSummary();
+            SimpleOrganization org = user.getOrganization();
             org.setFullName(orgNames.getOrDefault(org.getId(), org.getAlias()));
         }
     }
@@ -297,7 +296,7 @@ public class UserServiceImpl implements UserService {
      * 是否绑定了组织机构
      */
     private boolean hasOrganization(@NonNull User user) {
-        OrganizationSummary org = user.getOrganizationSummary();
+        SimpleOrganization org = user.getOrganization();
         return org != null && StringUtils.isNotBlank(org.getId());
     }
 
@@ -417,10 +416,10 @@ public class UserServiceImpl implements UserService {
         userInfoEntity.setUsername(userEntity.getUsername());
         userInfoMapper.insert(userInfoEntity);
 
-        OrganizationSummary organizationSummary = createUser.getOrg();
-        if (organizationSummary != null && StringUtils.isNotBlank(organizationSummary.getId())) {
+        SimpleOrganization simpleOrganization = createUser.getOrg();
+        if (simpleOrganization != null && StringUtils.isNotBlank(simpleOrganization.getId())) {
             userOrganizationMapper.insert(new UserOrganizationEntity(
-                    userEntity.getUsername(), organizationSummary.getId(), operator.getTenantId()));
+                    userEntity.getUsername(), simpleOrganization.getId(), operator.getTenantId()));
         }
     }
 
@@ -451,6 +450,12 @@ public class UserServiceImpl implements UserService {
         UserEntity userEntity = updateUser.toEntity();
         int updated = userMapper.updateById(userEntity);
         Assert.isTrue(updated == 1, "用户更新失败！");
+        UserInfo updateUserProps = updateUser.getProps();
+        if (updateUserProps != null) {
+            UserInfoEntity userPropsEntity = updateUserProps.toEntity();
+            userPropsEntity.setUsername(userEntity.getUsername());
+            userInfoMapper.updateById(userPropsEntity);
+        }
         userRoleMapper.deleteUserRoles(userEntity.getUsername());
         this.assignRolesToUser(operator.getTenantId(), userEntity.getUsername(), updateUser.getAuthorities());
         if (MapUtils.isNotEmpty(updateUser.getPersonal())) {
@@ -471,9 +476,9 @@ public class UserServiceImpl implements UserService {
      * @param target 实际值
      */
     @Nullable
-    private OrganizationSummary orgUpdated(OrganizationSummary source, OrganizationSummary target) {
+    private SimpleOrganization orgUpdated(SimpleOrganization source, SimpleOrganization target) {
         if (source == null) {
-            return new OrganizationSummary();
+            return new SimpleOrganization();
         }
         if (target == null) {
             return source;
@@ -481,7 +486,7 @@ public class UserServiceImpl implements UserService {
         String id0 = source.getId();
         String id1 = target.getId();
         if (StringUtils.isBlank(id0)) {
-            return new OrganizationSummary();
+            return new SimpleOrganization();
         } else if (id0.equals(id1)) {
             return null;
         } else {
@@ -558,8 +563,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void unlockUser(String username, LoginUser operator) {
-    }
+    public void unlockUser(String username, LoginUser operator) {}
 
     @Override
     public List<UserProfile> getUserProfiles(LoginUser operator, List<String> orgIds) {
@@ -629,6 +633,5 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportUsers(Page<User> pageable, UserQueryContext parameters) {
-    }
+    public void exportUsers(Page<User> pageable, UserQueryContext parameters) {}
 }

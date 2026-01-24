@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.cloud.core.shared.BaseDTO;
-import com.lambda.fusion.authority.organization.domain.OrganizationSummary;
+import com.lambda.fusion.authority.organization.domain.SimpleOrganization;
 import com.lambda.fusion.authority.role.model.SimpleRole;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -56,7 +56,7 @@ public class CreateUser extends BaseDTO<UserEntity> {
 
     @JsonProperty("organization")
     @Schema(description = "组织信息")
-    private OrganizationSummary org;
+    private SimpleOrganization org;
 
     @Schema(description = "角色信息")
     @JsonProperty("authorities")
