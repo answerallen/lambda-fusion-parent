@@ -34,7 +34,7 @@ public class UserQuery extends Pagination<User> {
     private String organizationId;
 
     @Schema(description = "是否查询下级组织的人员", defaultValue = "true")
-    private Boolean includeSubordinates = true;
+    private Boolean includeChild = true;
 
     @Schema(description = "是否是分配人员接口调用", defaultValue = "false")
     private Boolean allocation = false;

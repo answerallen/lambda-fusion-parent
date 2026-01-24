@@ -7,8 +7,8 @@ import lombok.Data;
 
 @Data
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class UserTempParameters {
+public class UserBatchInfo {
 
-    private Set<String> uids = Sets.newHashSet();
+    private Set<String> usernames = Sets.newHashSet();
     private Set<String> orgIds = Sets.newHashSet();
 }

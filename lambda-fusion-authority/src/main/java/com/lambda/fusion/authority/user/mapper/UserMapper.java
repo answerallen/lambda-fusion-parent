@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.user.model.*;
-import com.lambda.fusion.authority.user.model.UserSearchParams;
+import com.lambda.fusion.authority.user.model.UserQueryContext;
 import java.util.List;
 import java.util.Set;
 import org.apache.ibatis.annotations.Mapper;
@@ -60,7 +60,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param parameters
      * @return
      */
-    Page<User> selectUserPage(Page<User> page, @Param("parameters") UserSearchParams parameters);
+    Page<User> selectUserPage(Page<User> page, @Param("parameters") UserQueryContext parameters);
 
     /**
      * 根据关键字模糊查询用户列表
@@ -210,7 +210,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      *
      * @param parameters
      */
-    List<User> selectUsersNoPage(@Param("parameters") UserSearchParams parameters);
+    List<User> selectUsersNoPage(@Param("parameters") UserQueryContext parameters);
 
     /**
      * 修改用户手机号

@@ -9,7 +9,7 @@ import com.lambda.fusion.authority.user.model.UpdateUser;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.model.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.UserProfile;
-import com.lambda.fusion.authority.user.model.UserSearchParams;
+import com.lambda.fusion.authority.user.model.UserQueryContext;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
@@ -71,7 +71,7 @@ public interface UserService {
      * @param pageable   分页信息
      * @param parameters 参数信息
      */
-    Page<User> getUsers(Page<User> pageable, UserSearchParams parameters);
+    Page<User> getUsers(Page<User> pageable, UserQueryContext parameters);
 
     /***
      * 根据关键字模糊查询用户列表
@@ -266,5 +266,5 @@ public interface UserService {
      * @param pageable   分页
      * @param parameters 查询参数
      */
-    void exportMutableUsers(Page<User> pageable, UserSearchParams parameters);
+    void exportMutableUsers(Page<User> pageable, UserQueryContext parameters);
 }

@@ -49,9 +49,6 @@ public class User {
     @Schema(description = "是否锁定")
     private boolean locked;
 
-    @Schema(description = "创建人用户")
-    private String createAccount;
-
     @JsonProperty("organization")
     @Schema(description = "组织信息")
     private OrganizationSummary organizationSummary;
@@ -74,11 +71,6 @@ public class User {
         return authorities.stream().map(SimpleRole::getAlias).collect(Collectors.joining("|"));
     }
 
-    @Schema(description = "扩展属性")
-    @Valid
-    @JsonProperty("props")
-    private UserInfo props;
-
     private boolean self;
 
     @Schema(description = "最后离线时间")
@@ -88,10 +80,10 @@ public class User {
     private String creator;
 
     @Schema(description = "禁止批被分配")
-    private Boolean disAllocation;
+    private Boolean disableAssignment;
 
     @Schema(description = "是否可以被操作")
-    private Boolean noPermission;
+    private Boolean disableOperations;
 
     @Schema(description = "过期时间")
     private Date expiredTime;
@@ -99,4 +91,9 @@ public class User {
     @Schema(description = "用户新增字段信息")
     @JsonProperty("personal")
     private Map<String, String> personal;
+
+    @Schema(description = "扩展属性")
+    @Valid
+    @JsonProperty("props")
+    private UserInfo props;
 }

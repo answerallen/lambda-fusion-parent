@@ -10,17 +10,17 @@ import lombok.experimental.Accessors;
  */
 @Data
 @Accessors(chain = true)
-public class UserSearchParams {
+public class UserQueryContext {
     private List<String> usernames;
     private boolean dev;
     private boolean admin;
-    private String uid;
+    private String username;
     private String email;
     private String nickname;
     private String mobile;
     private String tenantId;
     private String authority;
-    private List<UserFieldsEntity> personal;
+    private List<UserFieldsEntity> userFields;
     private Boolean isOnline;
     private Set<String> orgIds;
 }

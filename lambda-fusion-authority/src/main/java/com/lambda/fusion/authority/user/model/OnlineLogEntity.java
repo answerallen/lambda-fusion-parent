@@ -3,6 +3,8 @@ package com.lambda.fusion.authority.user.model;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.time.LocalDateTime;
 import java.util.Date;
 import lombok.Data;
 
@@ -20,12 +22,12 @@ public class OnlineLogEntity {
     @TableField("TYPE")
     private int type;
 
-    @TableField("ON_LINE")
-    private Integer online;
+    @TableField("IS_ONLINE")
+    private Integer isOnline;
 
     @TableField("ONLINE_TIME")
-    private Date onlineTime;
+    private LocalDateTime onlineTime;
 
     @TableField("OFFLINE_TIME")
-    private Date offlineTime;
+    private LocalDateTime offlineTime;
 }

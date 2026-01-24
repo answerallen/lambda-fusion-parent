@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.organization.controller;
 
-import static com.lambda.fusion.core.utils.ParameterUtils.fuzzyQuery;
+import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;

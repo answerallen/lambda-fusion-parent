@@ -1,9 +1,5 @@
 package com.lambda.fusion.authority.user.service.impl;
 
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
-import static com.lambda.fusion.core.Constants.ROLE_DEV;
-
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjectUtil;
@@ -27,16 +23,14 @@ import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
+import com.lambda.fusion.authority.user.helper.UserSupportHelper;
 import com.lambda.fusion.authority.user.mapper.*;
 import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.service.UserOnlineLogService;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.Constants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +49,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
+import static com.lambda.fusion.core.Constants.ROLE_DEV;
+
 @Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -72,6 +75,8 @@ public class UserServiceImpl implements UserService {
     private final OrganizationService organizationService;
     private final OrganizationMapper organizationMapper;
     private final SseEmitterManager sseEmitterManager;
+    private final UserOnlineLogService userOnlineLogService;
+    private final UserSupportHelper userSupportHelper;
 
     /***
      * @param username 用户账号
@@ -107,8 +112,8 @@ public class UserServiceImpl implements UserService {
         Assert.notNull(username, "username is not empty");
         User user = userMapper.selectUserByUsername(username);
         if (user != null) {
-            user.setOnline(sseEmitterManager.getActiveClients().contains(username));
-            user.setLocked(false);
+            user.setOnline(isOnline(username));
+            user.setLocked(user.isLocked());
             UserInfoEntity userInfoEntity = userInfoMapper.getProps(username);
             if (userInfoEntity != null) {
                 UserInfo userInfo = ConvertUtils.convert(userInfoEntity);
@@ -171,7 +176,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public Page<User> getUsers(Page<User> pagination, UserSearchParams parameters) {
+    public Page<User> getUsers(Page<User> pagination, UserQueryContext parameters) {
         String tenantId = parameters.getTenantId();
 
         // 执行分页查询
@@ -192,15 +197,15 @@ public class UserServiceImpl implements UserService {
      */
     private List<User> enrichUserDetails(List<User> users, String tenantId) {
         List<User> records = userMapper.selectUsers(users);
-        UserTempParameters tempParams = getUserTempParameters(records);
+        UserBatchInfo userBatchInfo = extractUserBatchInfo(records);
 
         // 批量获取关联数据
-        Map<String, String> orgNames = getOrgFullNamesByOrgIds(tempParams.getOrgIds());
-        Map<String, Map<String, String>> personInfo = getPersonsByUids(tempParams.getUids());
+        Map<String, String> orgNames = buildOrgFullNameMap(userBatchInfo.getOrgIds());
+        Map<String, Map<String, String>> personInfo = buildUserPersonFieldMap(userBatchInfo.getUsernames());
 
         // 补充用户信息
         for (User user : records) {
-            fillSingleUserInfo(user, orgNames, personInfo, tenantId);
+            assembleUserInfo(user, orgNames, personInfo, tenantId);
         }
 
         return records;
@@ -209,21 +214,32 @@ public class UserServiceImpl implements UserService {
     /**
      * 补充单个用户的详细信息
      */
-    private void fillSingleUserInfo(
+    private void assembleUserInfo(
             User user, Map<String, String> orgNames, Map<String, Map<String, String>> personInfo, String tenantId) {
-        supplementUserOrgInfo(orgNames, user);
-        supplementUserPersonInfo(personInfo, user);
-        supplementUserLockState(user);
-        supplementUserPermissionInfo(user, tenantId);
-        boolean online = sseEmitterManager.getActiveClients().contains(user.getUsername());
-        user.setOnline(online);
-        // 角色排序
+        assembleUserOrgInfo(orgNames, user);
+        assembleUserPersonInfo(personInfo, user);
+        assembleUserLockState(user);
+        assembleUserPermissionInfo(user, tenantId);
+        assembleUserOnlineState(user);
+
         if (CollectionUtils.isNotEmpty(user.getAuthorities())) {
             user.getAuthorities().sort(Comparator.comparing(SimpleRole::getAuthority));
         }
     }
 
-    private Map<String, Map<String, String>> getPersonsByUids(Set<String> uids) {
+    private void assembleUserOnlineState(User user) {
+        boolean online = isOnline(user.getUsername());
+        user.setOnline(online);
+    }
+
+    private boolean isOnline(String username) {
+        if (sseEmitterManager.getActiveClients().contains(username)) {
+            return true;
+        }
+        return Boolean.TRUE.equals(userOnlineLogService.isOnline(username));
+    }
+
+    private Map<String, Map<String, String>> buildUserPersonFieldMap(Set<String> uids) {
         List<UserFieldsEntity> fields = userFieldsMapper.getPersonUser(uids);
         return this.convertPersonMap(fields);
     }
@@ -231,17 +247,17 @@ public class UserServiceImpl implements UserService {
     /**
      * 整理用户临时参数
      */
-    private UserTempParameters getUserTempParameters(List<User> users) {
-        Set<String> uids = Sets.newHashSet();
+    private UserBatchInfo extractUserBatchInfo(List<User> users) {
+        Set<String> usernames = Sets.newHashSet();
         Set<String> orgIds = Sets.newHashSet();
         for (User item : users) {
-            uids.add(item.getUsername());
-            if (isBindOrg(item)) {
+            usernames.add(item.getUsername());
+            if (hasOrganization(item)) {
                 orgIds.add(item.getOrganizationSummary().getId());
             }
         }
-        UserTempParameters parameters = new UserTempParameters();
-        parameters.setUids(uids);
+        UserBatchInfo parameters = new UserBatchInfo();
+        parameters.setUsernames(usernames);
         parameters.setOrgIds(orgIds);
         return parameters;
     }
@@ -249,48 +265,50 @@ public class UserServiceImpl implements UserService {
     /**
      * 补充完善用户权限信息
      */
-    private void supplementUserPermissionInfo(User item, String tenantId) {
-        // todo if (RoleUtil.isTenant(item)) {
-        // item.setDisAllocation(true);
-        // }
-        extractedPermission(tenantId, item);
+    private void assembleUserPermissionInfo(User user, String tenantId) {
+        if (userSupportHelper.isTenant(user)) {
+            user.setDisableAssignment(true);
+        }
+        if (StringUtils.isNotBlank(user.getTenantId()) && !Objects.equals(tenantId, user.getTenantId())) {
+            user.setDisableOperations(true);
+        }
     }
 
     /**
      * 补充完善用户锁定信息
      */
-    private void supplementUserLockState(User item) {
+    private void assembleUserLockState(User user) {
         // 锁定状态
     }
 
-    private void supplementUserPersonInfo(Map<String, Map<String, String>> allPersonUserMap, User item) {
-        if (allPersonUserMap.containsKey(item.getUsername())) {
-            item.setPersonal(allPersonUserMap.get(item.getUsername()));
+    private void assembleUserPersonInfo(Map<String, Map<String, String>> allPersonUserMap, User user) {
+        if (allPersonUserMap.containsKey(user.getUsername())) {
+            user.setPersonal(allPersonUserMap.get(user.getUsername()));
         }
     }
 
     /**
      * 补充完善用户组织信息
      */
-    private void supplementUserOrgInfo(Map<String, String> orgnames, User item) {
-        if (isBindOrg(item)) {
-            OrganizationSummary org = item.getOrganizationSummary();
-            org.setFullName(orgnames.getOrDefault(org.getId(), org.getAlias()));
+    private void assembleUserOrgInfo(Map<String, String> orgNames, User user) {
+        if (hasOrganization(user)) {
+            OrganizationSummary org = user.getOrganizationSummary();
+            org.setFullName(orgNames.getOrDefault(org.getId(), org.getAlias()));
         }
     }
 
     /**
      * 是否绑定了组织机构
      */
-    private boolean isBindOrg(@NonNull User user0) {
-        OrganizationSummary org = user0.getOrganizationSummary();
+    private boolean hasOrganization(@NonNull User user) {
+        OrganizationSummary org = user.getOrganizationSummary();
         return org != null && StringUtils.isNotBlank(org.getId());
     }
 
     /**
      * 获取组织全名
      */
-    private Map<String, String> getOrgFullNamesByOrgIds(Set<String> orgIds) {
+    private Map<String, String> buildOrgFullNameMap(Set<String> orgIds) {
         if (CollectionUtils.isEmpty(orgIds)) {
             return Collections.emptyMap();
         }
@@ -298,32 +316,32 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(organizations)) {
             return Collections.emptyMap();
         }
-        Map<String, String> newed = Maps.newHashMap();
-        Map<String, String> names0 = Maps.newHashMap();
-        Set<String> parentKeys = Sets.newHashSet();
+        Map<String, String> orgNameMap = Maps.newHashMap();
+        Map<String, String> orgParentKeyMap = Maps.newHashMap();
+        Set<String> parentOrgIds = Sets.newHashSet();
         for (OrganizationEntity item : organizations) {
-            String parentKeys1 = item.getParentKeys();
-            names0.put(item.getId(), item.getAlias());
-            newed.put(item.getId(), parentKeys1);
-            if (StringUtils.isNotBlank(parentKeys1)) {
-                Collections.addAll(parentKeys, parentKeys1.split(Constants.TREE_SPLIT));
+            String parentKeys = item.getParentKeys();
+            orgParentKeyMap.put(item.getId(), item.getAlias());
+            orgNameMap.put(item.getId(), parentKeys);
+            if (StringUtils.isNotBlank(parentKeys)) {
+                Collections.addAll(parentOrgIds, parentKeys.split(Constants.TREE_SPLIT));
             }
         }
         Map<String, String> result = Maps.newHashMap();
-        if (CollectionUtils.isEmpty(parentKeys)) {
+        if (CollectionUtils.isEmpty(parentOrgIds)) {
             return result;
         }
-        List<OrganizationEntity> parents = organizationMapper.selectByIds(parentKeys);
-        Map<String, String> collected =
+        List<OrganizationEntity> parents = organizationMapper.selectByIds(parentOrgIds);
+        Map<String, String> parentNameMap  =
                 parents.stream().collect(Collectors.toMap(OrganizationEntity::getId, OrganizationEntity::getName));
-        newed.forEach((key, value) -> {
+        orgNameMap.forEach((key, value) -> {
             StringBuilder builder = new StringBuilder();
             if (StringUtils.isNotBlank(value)) {
                 for (String token : value.split(Constants.TREE_SPLIT)) {
-                    builder.append(collected.get(token)).append(Constants.TREE_SPLIT);
+                    builder.append(parentNameMap .get(token)).append(Constants.TREE_SPLIT);
                 }
             }
-            builder.append(names0.get(key));
+            builder.append(orgParentKeyMap.get(key));
             result.put(key, builder.toString());
         });
         return result;
@@ -368,18 +386,6 @@ public class UserServiceImpl implements UserService {
             userFieldDOS.add(info);
         });
         return userFieldDOS;
-    }
-
-    /***
-     * 验证是否有权限操作
-     *
-     * @param tenantId 租户id
-     * @param item     当前用户
-     */
-    private void extractedPermission(String tenantId, User item) {
-        if (StringUtils.isNotBlank(item.getTenantId()) && !Objects.equals(tenantId, item.getTenantId())) {
-            item.setNoPermission(true);
-        }
     }
 
     @Override
@@ -614,7 +620,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void unlockUser(String username, LoginUser operator) {}
+    public void unlockUser(String username, LoginUser operator) {
+    }
 
     public static String md5f2(String password) {
         return DigestUtils.md5Hex(DigestUtils.md5Hex(password));
@@ -729,5 +736,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportMutableUsers(Page<User> pageable, UserSearchParams parameters) {}
+    public void exportMutableUsers(Page<User> pageable, UserQueryContext parameters) {
+    }
 }

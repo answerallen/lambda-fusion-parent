@@ -1,11 +1,12 @@
 package com.lambda.fusion.authority;
 
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
-
+import cn.dev33.satoken.listener.SaTokenListener;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
+import com.lambda.cloud.sse.listener.SseEventListener;
+import com.lambda.fusion.authority.user.listenner.UserOnlineLogListener;
+import com.lambda.fusion.authority.user.listenner.UserSeeEventListener;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.impl.InternalRoleServiceImpl;
 import com.lambda.fusion.authority.tenant.TenantProperties;
@@ -13,13 +14,11 @@ import com.lambda.fusion.authority.tenant.cache.TenantConfigurationCache;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationLocalCache;
 import com.lambda.fusion.authority.tenant.cache.TenantConfigurationRedisCache;
 import com.lambda.fusion.authority.tenant.cache.TenantHostCache;
+import com.lambda.fusion.authority.user.service.UserOnlineLogService;
 import com.lambda.fusion.core.utils.LoginUserUtils;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadPoolExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.reflection.MetaObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -35,6 +34,14 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
+
+import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
+import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
 
 @Slf4j
 @Configuration(proxyBeanMethods = false)
@@ -88,6 +95,18 @@ public class AuthorityConfigure {
          */
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         return executor;
+    }
+
+    @Bean
+    @ConditionalOnClass(SaTokenListener.class)
+    public SaTokenListener userOnlineLogListener(@Autowired(required = false) UserOnlineLogService userOnlineLogService) {
+        return new UserOnlineLogListener(userOnlineLogService);
+    }
+
+    @Bean
+    @ConditionalOnClass(SseEventListener.class)
+    public SseEventListener userSeeEventListener(@Autowired(required = false) UserOnlineLogService userOnlineLogService) {
+        return new UserSeeEventListener(userOnlineLogService);
     }
 
     @Configuration(proxyBeanMethods = false)

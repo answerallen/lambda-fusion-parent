@@ -10,7 +10,7 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.tenant.manager.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.model.*;
-import com.lambda.fusion.authority.user.optimizer.UserQueryOptimizer;
+import com.lambda.fusion.authority.user.helper.UserSupportHelper;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
@@ -44,7 +44,7 @@ public class UserController {
 
     private final OrganizationService organizationService;
     private final UserService userService;
-    private final UserQueryOptimizer userQueryOptimizer;
+    private final UserSupportHelper userSupportHelper;
     private final UserCenterService userCenterService;
     private final UserInfoService userInfoService;
     private TenantAuthorizeManager tenantAuthorizeManager;
@@ -66,7 +66,7 @@ public class UserController {
         if (size != null) {
             userQuery.setPageSize(size);
         }
-        UserSearchParams usersQueryParameters = userQueryOptimizer.getUsersQueryParameters(userQuery);
+        UserQueryContext usersQueryParameters = userSupportHelper.buildUserQueryContext(userQuery);
         return userService.getUsers(userQuery.getPage(), usersQueryParameters);
     }
 
