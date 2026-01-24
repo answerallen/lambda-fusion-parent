@@ -2,7 +2,6 @@ package com.lambda.fusion.authority.user.service.impl;
 
 import cn.dev33.satoken.stp.StpLogic;
 import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -24,6 +23,7 @@ import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;
+import com.lambda.fusion.authority.user.helper.PasswordHelper;
 import com.lambda.fusion.authority.user.helper.UserInfoHelper;
 import com.lambda.fusion.authority.user.helper.UserPermissionHelper;
 import com.lambda.fusion.authority.user.mapper.*;
@@ -34,12 +34,8 @@ import com.lambda.fusion.autoconfig.AuthorityProperties;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -77,6 +73,7 @@ public class UserServiceImpl implements UserService {
     private final OrganizationMapper organizationMapper;
     private final SseEmitterManager sseEmitterManager;
     private final UserOnlineLogService userOnlineLogService;
+
     /***
      * @param username 用户账号
      * @return {@link boolean}
@@ -184,7 +181,7 @@ public class UserServiceImpl implements UserService {
 
         if (CollectionUtils.isNotEmpty(users)) {
             // 补充用户详细信息
-            List<User> enrichedUsers = enrichUserDetails(users, tenantId);
+            List<User> enrichedUsers = populateUserDetails(users, tenantId);
             pagination.setRecords(enrichedUsers);
         }
 
@@ -194,7 +191,7 @@ public class UserServiceImpl implements UserService {
     /**
      * 丰富用户详细信息
      */
-    private List<User> enrichUserDetails(List<User> users, String tenantId) {
+    private List<User> populateUserDetails(List<User> users, String tenantId) {
         List<User> records = userMapper.selectUsers(users);
         UserBatchInfo userBatchInfo = extractUserBatchInfo(records);
 
@@ -401,7 +398,7 @@ public class UserServiceImpl implements UserService {
 
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
         String originPassword = userEntity.getPassword();
-        Password encodePassword = obtainPassword(strategy, originPassword);
+        Password encodePassword = PasswordHelper.obtainPassword(strategy, originPassword);
         userEntity.setPassword(passwordEncoder.encode(encodePassword.getEncrypted()));
 
         userEntity.setCreateDate(new Date());
@@ -453,11 +450,12 @@ public class UserServiceImpl implements UserService {
     public void updateUser(UpdateUser updateUser, LoginUser operator) {
         UserEntity userEntity = updateUser.toEntity();
         int updated = userMapper.updateById(userEntity);
-        Assert.isTrue(updated ==1, "用户更新失败！");
+        Assert.isTrue(updated == 1, "用户更新失败！");
         userRoleMapper.deleteUserRoles(userEntity.getUsername());
         this.assignRolesToUser(operator.getTenantId(), userEntity.getUsername(), updateUser.getAuthorities());
         if (MapUtils.isNotEmpty(updateUser.getPersonal())) {
-            List<UserFieldsEntity> fields =  UserInfoHelper.buildUserFieldsFromMap(updateUser.getPersonal(), userEntity.getUsername());
+            List<UserFieldsEntity> fields =
+                    UserInfoHelper.buildUserFieldsFromMap(updateUser.getPersonal(), userEntity.getUsername());
             this.userFieldsMapper.deleteByUsername(userEntity.getUsername());
             this.userFieldsMapper.insert(fields);
         }
@@ -535,7 +533,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public String resetUserPassword(ResetPassword resetPassword) {
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
-        Password password = obtainPassword(strategy, resetPassword.getNewPassword());
+        Password password = PasswordHelper.obtainPassword(strategy, resetPassword.getNewPassword());
         userMapper.updatePassword(resetPassword.getUsername(), passwordEncoder.encode(password.getEncrypted()));
         UserInfoEntity userInfoEntity = new UserInfoEntity();
         userInfoEntity.setUsername(resetPassword.getUsername());
@@ -561,51 +559,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void unlockUser(String username, LoginUser operator) {
-    }
-
-    public static String md5f2(String password) {
-        return DigestUtils.md5Hex(DigestUtils.md5Hex(password));
-    }
-
-    @Getter
-    @Setter
-    @AllArgsConstructor
-    private static class Password {
-        String origin;
-        String encrypted;
-    }
-
-    /**
-     * 根据密码策略生成密码
-     *
-     * @param strategy  密码策略
-     * @param parameter 前台参数
-     * @return 密码对象
-     */
-    static Password obtainPassword(AuthorityProperties.PasswordStrategy strategy, String parameter) {
-        String origin;
-        String password;
-        AuthorityProperties.PasswordStrategy.Mode mode = strategy.getMode();
-        String customize = strategy.getCustomize();
-        switch (mode) {
-            case RANDOM:
-                origin = UUID.randomUUID().toString();
-                password = md5f2(origin);
-                break;
-            case CIPHERTEXT:
-                if (StringUtils.isNotBlank(parameter)) {
-                    origin = null;
-                    password = parameter;
-                } else {
-                    origin = customize;
-                    password = md5f2(customize);
-                }
-                break;
-            default:
-                origin = customize;
-                password = md5f2(customize);
-        }
-        return new Password(origin, password);
     }
 
     @Override

@@ -10,14 +10,13 @@ import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Map;
 
 @Transactional(rollbackFor = Exception.class)
 @Service

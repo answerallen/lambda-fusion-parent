@@ -195,12 +195,13 @@
     <!-- 根据Id查询用户信息 -->
     <select id="selectUserByUsername" resultMap="UserResultMap">
 		SELECT T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled, T.TENANT_ID,
-            R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
+            R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME, OL.IS_ONLINE, OL.OFFLINE_TIME
 		FROM LA_USERS T
 		LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
 		LEFT JOIN LA_ROLES R ON R.authority = UR.authority
         LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
         LEFT JOIN LA_ORGANIZATION O ON O.id = UO.ORGANIZATION_ID
+        LEFT JOIN la_user_online_logs OL ON  T.USERNAME = OL.USERNAME
 		WHERE T.username = #{username}
     </select>
 

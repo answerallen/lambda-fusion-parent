@@ -47,36 +47,4 @@ public class Role extends SimpleRole {
 
     @Schema(description = "是否不可用")
     private Boolean inAvailable;
-
-    public Role() {
-        super();
-    }
-
-    public Role(String authority) {
-        super(authority);
-    }
-
-    public Date getCreateDate() {
-        return createDate;
-    }
-
-    public void setCreateDate(Date createDate) {
-        this.createDate = createDate;
-    }
-
-    public String getRemarks() {
-        return remarks;
-    }
-
-    public void setRemarks(String remarks) {
-        this.remarks = remarks;
-    }
-
-    public String getIcon() {
-        return icon;
-    }
-
-    public void setIcon(String icon) {
-        this.icon = icon;
-    }
 }

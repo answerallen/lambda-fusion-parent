@@ -2,8 +2,9 @@ package com.lambda.fusion.authority.role.model;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.List;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 @Schema(description = "角色分组信息")
@@ -18,9 +19,9 @@ public class GroupRole {
     @Schema(description = "角色列表")
     private List<Role> roles;
 
-    @Schema(description = "是否拥有操作权限")
-    private Boolean noPermission;
+    @Schema(description = "禁止批被分配")
+    private Boolean disableAssignment;
 
-    @Schema(description = "是否不可用")
-    private Boolean inAvailable;
+    @Schema(description = "是否可以被操作")
+    private Boolean disableOperations;
 }

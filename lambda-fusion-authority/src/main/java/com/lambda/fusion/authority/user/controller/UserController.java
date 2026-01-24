@@ -22,7 +22,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.Collections;
 import java.util.List;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
@@ -209,8 +208,6 @@ public class UserController {
         List<Permission> permissions = userService.getUserPermissions(username, mode);
         return TreeBuilder.build(permissions);
     }
-
-
 
     @PatchMapping(value = "/unbind/{username}/{type}")
     @Operation(summary = "解除第三方绑定")

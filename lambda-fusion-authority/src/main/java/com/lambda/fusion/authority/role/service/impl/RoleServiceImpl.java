@@ -21,7 +21,7 @@ import com.lambda.fusion.authority.role.mapper.GroupMapper;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.AccessPermission;
 import com.lambda.fusion.authority.role.model.AuthorityPermission;
-import com.lambda.fusion.authority.role.model.BatchAddRoleUser;
+import com.lambda.fusion.authority.role.model.BatchRoleUserAssignmentRequest;
 import com.lambda.fusion.authority.role.model.CreateRole;
 import com.lambda.fusion.authority.role.model.Group;
 import com.lambda.fusion.authority.role.model.GroupEntity;
@@ -93,7 +93,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<GroupRole> getAllGroupRoles(UserPrincipal userPrincipal, String tenantId) {
+    public List<GroupRole> grouped(UserPrincipal userPrincipal, String tenantId) {
         if (StringUtils.isBlank(tenantId) || StringUtils.isNotBlank(userPrincipal.getTenantId())) {
             tenantId = userPrincipal.getTenantId();
         }
@@ -137,8 +137,8 @@ public class RoleServiceImpl implements RoleService {
             List<Role> children = map.get(group.getGroupId());
             if (CollectionUtils.isNotEmpty(children)) {
                 group.setRoles(children);
-                group.setInAvailable(true);
-                group.setNoPermission(false);
+                group.setDisableAssignment(true);
+                group.setDisableOperations(false);
             }
             result.add(group);
         });
@@ -243,7 +243,7 @@ public class RoleServiceImpl implements RoleService {
     @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void saveAuthorization(String authority, String resourceId, int status, UserPrincipal userPrincipal) {
+    public void grantRolePermission(String authority, String resourceId, int status, UserPrincipal userPrincipal) {
         Assert.notNull(authority, "role name 不能为空");
         Assert.notNull(resourceId, "资源id不能为空！");
         if (!userPrincipal.isDev()) {
@@ -295,7 +295,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
-    public void deleteAuthorization(String authority, String resourceId, UserPrincipal userPrincipal) {
+    public void revokeRolePermission(String authority, String resourceId, UserPrincipal userPrincipal) {
         Assert.notNull(authority, "role name 不能为空");
         Assert.notNull(resourceId, "资源id不能为空！");
         if (!userPrincipal.isDev()) {
@@ -411,7 +411,7 @@ public class RoleServiceImpl implements RoleService {
 
     @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
     @Override
-    public void batchAddRoleUser(UserPrincipal userPrincipal, BatchAddRoleUser req) {
+    public void assignUsersToRole(UserPrincipal userPrincipal, BatchRoleUserAssignmentRequest req) {
         final String authority = req.getRoleId();
         final List<String> usernames = req.getUsername();
         final List<UserRoleEntity> dbResult = userRoleMapper.selectList(

@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.role.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.role.model.AccessPermission;
-import com.lambda.fusion.authority.role.model.BatchAddRoleUser;
+import com.lambda.fusion.authority.role.model.BatchRoleUserAssignmentRequest;
 import com.lambda.fusion.authority.role.model.CreateRole;
 import com.lambda.fusion.authority.role.model.Group;
 import com.lambda.fusion.authority.role.model.GroupRole;
@@ -32,7 +32,7 @@ public interface RoleService {
      * @param tenantId the tenantId
      * @return ig all group roles
      */
-    List<GroupRole> getAllGroupRoles(UserPrincipal userPrincipal, String tenantId);
+    List<GroupRole> grouped(UserPrincipal userPrincipal, String tenantId);
 
     /***
      * 根据条件分页查询角色列表
@@ -104,7 +104,7 @@ public interface RoleService {
      * @param status
      * @param userPrincipal
      */
-    void saveAuthorization(String authority, String resourceId, int status, UserPrincipal userPrincipal);
+    void grantRolePermission(String authority, String resourceId, int status, UserPrincipal userPrincipal);
 
     /**
      * 删除角色权限
@@ -113,7 +113,7 @@ public interface RoleService {
      * @param resourceId
      * @param userPrincipal
      */
-    void deleteAuthorization(String id, String resourceId, UserPrincipal userPrincipal);
+    void revokeRolePermission(String id, String resourceId, UserPrincipal userPrincipal);
 
     /**
      * 查询该角色名是否被使用
@@ -171,7 +171,7 @@ public interface RoleService {
      * @param userPrincipal 当前操作用户
      * @param req  请求
      */
-    void batchAddRoleUser(UserPrincipal userPrincipal, BatchAddRoleUser req);
+    void assignUsersToRole(UserPrincipal userPrincipal, BatchRoleUserAssignmentRequest req);
 
     /**
      * 分组列表查询
