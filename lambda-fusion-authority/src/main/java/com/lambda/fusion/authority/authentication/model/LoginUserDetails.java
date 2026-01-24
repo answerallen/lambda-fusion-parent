@@ -26,7 +26,7 @@ import lombok.Data;
         })
 @Data
 @Schema(description = "简单用户信息")
-public class UserDetails implements Serializable {
+public class LoginUserDetails implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;

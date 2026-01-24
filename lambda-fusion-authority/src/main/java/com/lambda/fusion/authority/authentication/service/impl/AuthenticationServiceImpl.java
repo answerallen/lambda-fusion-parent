@@ -12,7 +12,7 @@ import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
 import com.lambda.fusion.authority.authentication.model.AuthenticatedUser;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
-import com.lambda.fusion.authority.authentication.model.UserDetails;
+import com.lambda.fusion.authority.authentication.model.LoginUserDetails;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
@@ -46,18 +46,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
         Assert.notNull(username, "parameter 'username' cannot be empty or null");
-        UserDetails authUserDetails = authenticationMapper.selectUserDetailByUsername(username);
-        if (authUserDetails == null) {
+        LoginUserDetails authLoginUserDetails = authenticationMapper.selectUserDetailByUsername(username);
+        if (authLoginUserDetails == null) {
             throw new UsernameNotFoundException("user in not found");
         }
-        UserPrincipal userPrincipal = authUserDetails.toUserPrincipal();
+        UserPrincipal userPrincipal = authLoginUserDetails.toUserPrincipal();
         return prepareLoginUser(userPrincipal);
     }
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<UserDetails> details = authenticationMapper.selectUserDetailsByMobile(mobile);
-        UserDetails user = Optional.ofNullable(details)
+        List<LoginUserDetails> details = authenticationMapper.selectUserDetailsByMobile(mobile);
+        LoginUserDetails user = Optional.ofNullable(details)
                 .filter(CollUtil::isNotEmpty)
                 .filter(d -> d.size() == 1)
                 .map(List::getFirst)
@@ -92,19 +92,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public AuthenticatedUser getUserInfo() {
         LoginUser operator = OperatorUtils.getOperator();
-        UserDetails userDetails = authenticationMapper.selectUserDetailByUsername(operator.getName());
-        if (userDetails == null) {
+        LoginUserDetails loginUserDetails = authenticationMapper.selectUserDetailByUsername(operator.getName());
+        if (loginUserDetails == null) {
             throw new UsernameNotFoundException("user not found");
         }
 
         AuthenticatedUser user = new AuthenticatedUser();
-        BeanUtil.copyProperties(userDetails, user);
+        BeanUtil.copyProperties(loginUserDetails, user);
 
-        user.setUserId(userDetails.getUsername());
-        user.setRealName(userDetails.getNickname());
+        user.setUserId(loginUserDetails.getUsername());
+        user.setRealName(loginUserDetails.getNickname());
 
-        if (CollUtil.isNotEmpty(userDetails.getAuthorities())) {
-            user.setRoles(new ArrayList<>(userDetails.getAuthorities()));
+        if (CollUtil.isNotEmpty(loginUserDetails.getAuthorities())) {
+            user.setRoles(new ArrayList<>(loginUserDetails.getAuthorities()));
         } else {
             user.setRoles(new ArrayList<>());
         }
