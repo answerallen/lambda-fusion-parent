@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.event.DataSourceEvent;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
@@ -116,11 +116,11 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        if (Constants.ENABLED.equals(entity.getEnabled())) {
+        if (FusionConstants.ENABLED.equals(entity.getEnabled())) {
             syncDynamicDataSource(entity);
             return;
         }
-        entity.setEnabled(Constants.ENABLED);
+        entity.setEnabled(FusionConstants.ENABLED);
         Assert.isTrue(updateById(entity), "update failed");
         syncDynamicDataSource(entity);
         publishChange(entity);
@@ -132,7 +132,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        entity.setEnabled(Constants.DISABLED);
+        entity.setEnabled(FusionConstants.DISABLED);
         Assert.isTrue(updateById(entity), "update failed");
         dynamicDataSourceService.removeDataSource(id);
         // 如果已禁用，客户端不应使用它。
@@ -143,7 +143,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         if (entity == null) {
             return;
         }
-        if (!Constants.ENABLED.equals(entity.getEnabled())) {
+        if (!FusionConstants.ENABLED.equals(entity.getEnabled())) {
             dynamicDataSourceService.removeDataSource(entity.getId());
             return;
         }

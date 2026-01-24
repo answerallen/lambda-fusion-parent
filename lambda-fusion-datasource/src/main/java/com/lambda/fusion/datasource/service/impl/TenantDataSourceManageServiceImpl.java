@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
 import com.lambda.fusion.datasource.event.DataSourceEvent;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
@@ -98,7 +98,7 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         if (entity == null) {
             return;
         }
-        if (!Constants.ENABLED.equals(entity.getEnabled())) {
+        if (!FusionConstants.ENABLED.equals(entity.getEnabled())) {
             dynamicDataSourceService.removeDataSource(entity.getId());
             return;
         }
