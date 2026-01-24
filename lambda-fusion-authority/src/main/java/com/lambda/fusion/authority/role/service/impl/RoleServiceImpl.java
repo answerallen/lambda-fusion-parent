@@ -34,7 +34,7 @@ import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.manager.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.user.model.UserRoleEntity;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import java.time.LocalDateTime;
@@ -88,7 +88,7 @@ public class RoleServiceImpl implements RoleService {
         parameters.put("dev", userPrincipal.isDev());
         parameters.put(ADMIN, userPrincipal.isAdmin());
         parameters.put("userid", userPrincipal.getUsername());
-        parameters.put(Constants.TENANT_ID, userPrincipal.getTenantId());
+        parameters.put(FusionConstants.TENANT_ID, userPrincipal.getTenantId());
         return roleMapper.getAllRoles(parameters);
     }
 
@@ -98,21 +98,21 @@ public class RoleServiceImpl implements RoleService {
             tenantId = userPrincipal.getTenantId();
         }
         Set<String> excludes = Sets.newHashSet();
-        excludes.add(Constants.ROLE_USER);
-        excludes.add(Constants.ROLE_HMAC);
-        excludes.add(Constants.ROLE_SYSTEM);
-        excludes.add(Constants.ROLE_TENANT);
+        excludes.add(FusionConstants.ROLE_USER);
+        excludes.add(FusionConstants.ROLE_HMAC);
+        excludes.add(FusionConstants.ROLE_SYSTEM);
+        excludes.add(FusionConstants.ROLE_TENANT);
         if (!userPrincipal.isDev()) {
-            excludes.add(Constants.ROLE_DEV);
+            excludes.add(FusionConstants.ROLE_DEV);
             if (!userPrincipal.isAdmin()) {
-                excludes.add(Constants.ROLE_ADMIN);
+                excludes.add(FusionConstants.ROLE_ADMIN);
             }
         }
         Set<String> queryExclude = internalRoleService.queryExclude(userPrincipal);
         excludes.addAll(queryExclude);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(2);
         parameters.put("excludes", excludes);
-        parameters.put(Constants.TENANT_ID, tenantId);
+        parameters.put(FusionConstants.TENANT_ID, tenantId);
         List<Role> roles = roleMapper.getAllRoles(parameters);
         List<GroupEntity> groupEntities = groupMapper.getAllGroup(parameters);
         GroupEntity defaultGroupEntity = newDefaultGroup(tenantId);
@@ -123,8 +123,8 @@ public class RoleServiceImpl implements RoleService {
         final Map<String, List<Role>> map = roles.stream()
                 .filter(mutableRole -> {
                     if (userPrincipal.isDev()) {
-                        return (mutableRole.getAuthority().equals(Constants.ROLE_DEV)
-                                || mutableRole.getAuthority().equals(Constants.ROLE_ADMIN));
+                        return (mutableRole.getAuthority().equals(FusionConstants.ROLE_DEV)
+                                || mutableRole.getAuthority().equals(FusionConstants.ROLE_ADMIN));
                     } else {
                         return true;
                     }
@@ -191,8 +191,8 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public Role getRoleByAuthority(String authority) {
         Assert.notNull(authority, "role name 不能为空");
-        if (authority.startsWith(Constants.ROLE_TENANT)) {
-            authority = Constants.ROLE_TENANT;
+        if (authority.startsWith(FusionConstants.ROLE_TENANT)) {
+            authority = FusionConstants.ROLE_TENANT;
         }
         return roleMapper.getRoleByAuthority(authority);
     }
@@ -387,7 +387,7 @@ public class RoleServiceImpl implements RoleService {
     public List<Group> listGroups(UserPrincipal userPrincipal) {
         String tenantId = userPrincipal.getTenantId();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(1);
-        parameters.put(Constants.TENANT_ID, tenantId);
+        parameters.put(FusionConstants.TENANT_ID, tenantId);
         GroupEntity defaultGroupEntity = newDefaultGroup(tenantId);
         List<GroupEntity> groupEntities = groupMapper.getAllGroup(parameters);
         if (notcontains(groupEntities, defaultGroupEntity)) {

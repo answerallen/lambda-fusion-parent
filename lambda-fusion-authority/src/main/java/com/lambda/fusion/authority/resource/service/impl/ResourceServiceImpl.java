@@ -9,7 +9,7 @@ import com.lambda.fusion.authority.resource.mapper.ResourceMapper;
 import com.lambda.fusion.authority.resource.model.*;
 import com.lambda.fusion.authority.resource.service.ResourceService;
 import com.lambda.fusion.authority.role.service.RoleManager;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
@@ -126,7 +126,7 @@ public class ResourceServiceImpl implements ResourceService {
             rank = parent.getResLevel() + 1;
             parentKeys = parent.getParentKeys();
             if (StringUtils.isNotBlank(parentKeys)) {
-                parentKeys += (Constants.SEPARATOR0 + parent.getId());
+                parentKeys += (FusionConstants.SEPARATOR0 + parent.getId());
             } else {
                 parentKeys = parent.getId();
             }
@@ -154,7 +154,7 @@ public class ResourceServiceImpl implements ResourceService {
                 BeanUtils.copyProperties(buttons.get(i), button);
                 button.setId(UUID.fastUUID().toString());
                 button.setParentId(resource.getId());
-                button.setParentKeys(resource.getParentKeys() + Constants.SEPARATOR0 + resource.getId());
+                button.setParentKeys(resource.getParentKeys() + FusionConstants.SEPARATOR0 + resource.getId());
                 button.setOrderNo(i + 1);
                 button.setResType(ResourceType.BUTTON.ordinal());
                 button.setResLevel(rank + 1);
@@ -413,15 +413,15 @@ public class ResourceServiceImpl implements ResourceService {
                     if (StringUtils.isNotBlank(replacement)) {
                         result = StringUtils.replace(item.getParentKeys(), searchString, replacement);
                     } else {
-                        result = StringUtils.removeStart(item.getParentKeys(), searchString + Constants.SEPARATOR0);
+                        result = StringUtils.removeStart(item.getParentKeys(), searchString + FusionConstants.SEPARATOR0);
                     }
                 } else if (StringUtils.isNotBlank(replacement)) {
-                    result = replacement + Constants.SEPARATOR0 + item.getParentKeys();
+                    result = replacement + FusionConstants.SEPARATOR0 + item.getParentKeys();
                 } else {
                     result = item.getParentKeys();
                 }
                 item.setParentKeys(result);
-                item.setResLevel(StringUtils.split(result, Constants.SEPARATOR0).length);
+                item.setResLevel(StringUtils.split(result, FusionConstants.SEPARATOR0).length);
                 changed2.add(item);
             }
         }
@@ -432,7 +432,7 @@ public class ResourceServiceImpl implements ResourceService {
     public List<Resource> getAllChildrenByOperator(@NonNull UserPrincipal userPrincipal, @NonNull Resource resource) {
         String parentKeys = resource.getParentKeys();
         if (StringUtils.isNotBlank(parentKeys)) {
-            parentKeys = resource.getParentKeys() + Constants.SEPARATOR0 + resource.getId();
+            parentKeys = resource.getParentKeys() + FusionConstants.SEPARATOR0 + resource.getId();
         } else {
             parentKeys = resource.getId();
         }
@@ -455,7 +455,7 @@ public class ResourceServiceImpl implements ResourceService {
     public List<Resource> getAllParentsByOperator(@NonNull UserPrincipal userPrincipal, @NonNull Resource resource) {
         String parentKeys = resource.getParentKeys();
         if (StringUtils.isNotBlank(parentKeys)) {
-            List<String> ids = Arrays.asList(parentKeys.split(Constants.SEPARATOR0));
+            List<String> ids = Arrays.asList(parentKeys.split(FusionConstants.SEPARATOR0));
             Map<String, Object> parameters = getParameters(userPrincipal, ids);
             return resourceMapper.getAllParents(parameters);
         }
@@ -502,6 +502,6 @@ public class ResourceServiceImpl implements ResourceService {
      * 生成parentKeys
      */
     private String generateParentKeys(String parentKeys, String id) {
-        return StringUtils.isNotBlank(parentKeys) ? parentKeys + Constants.SEPARATOR0 + id : id;
+        return StringUtils.isNotBlank(parentKeys) ? parentKeys + FusionConstants.SEPARATOR0 + id : id;
     }
 }

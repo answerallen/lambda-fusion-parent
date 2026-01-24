@@ -4,20 +4,15 @@ import cn.hutool.json.JSONUtil;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
-import com.lambda.fusion.authority.role.model.SimpleRole;
-import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.model.UserFieldsEntity;
 import com.lambda.fusion.authority.user.model.UserQuery;
 import com.lambda.fusion.authority.user.model.UserQueryContext;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
-import com.lambda.fusion.core.utils.LoginUserUtils;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -39,7 +34,7 @@ public class UserQueryHelper {
 
         // 处理 username (支持逗号分隔)
         if (StringUtils.isNotBlank(userQuery.getUsername())) {
-            String[] split = userQuery.getUsername().split(Constants.DELIMITER);
+            String[] split = userQuery.getUsername().split(FusionConstants.DELIMITER);
             userQueryContext.setUsernames(Arrays.asList(split));
         }
 

@@ -1,13 +1,12 @@
 package com.lambda.fusion.authority.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.authority.user.mapper.UserOnlineLogMapper;
 import com.lambda.fusion.authority.user.model.OnlineLogEntity;
 import com.lambda.fusion.authority.user.service.UserOnlineLogService;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -31,7 +30,7 @@ public class UserOnlineLogServiceImpl extends ServiceImpl<UserOnlineLogMapper, O
         OnlineLogEntity entity = new OnlineLogEntity();
         entity.setUsername(username);
         entity.setType(0);
-        entity.setIsOnline(Constants.ENABLED);
+        entity.setIsOnline(FusionConstants.ENABLED);
         entity.setOnlineTime(LocalDateTime.now());
         save(entity);
     }
@@ -41,7 +40,7 @@ public class UserOnlineLogServiceImpl extends ServiceImpl<UserOnlineLogMapper, O
         OnlineLogEntity entity = new OnlineLogEntity();
         entity.setUsername(username);
         entity.setType(0);
-        entity.setIsOnline(Constants.DISABLED);
+        entity.setIsOnline(FusionConstants.DISABLED);
         entity.setOnlineTime(LocalDateTime.now());
         save(entity);
     }

@@ -4,7 +4,7 @@ import com.google.common.collect.Sets;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.UserAuthority;
 import com.lambda.fusion.authority.role.service.RoleManager;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Set;
@@ -32,8 +32,8 @@ public class RoleManagerImpl implements RoleManager {
         results.forEach(item -> {
             String authority = item.getAuthority();
             String orgid = item.getOrgid();
-            if (Constants.ROLE_TENANT.equals(item.getAuthority())) {
-                authority = Constants.ROLE_TENANT + Constants.AT + orgid;
+            if (FusionConstants.ROLE_TENANT.equals(item.getAuthority())) {
+                authority = FusionConstants.ROLE_TENANT + FusionConstants.AT + orgid;
             }
             authorities.add(authority);
         });

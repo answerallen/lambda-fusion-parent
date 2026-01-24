@@ -30,7 +30,7 @@ import com.lambda.fusion.authority.user.mapper.*;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.service.UserOnlineLogService;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -58,7 +58,7 @@ import java.util.stream.Collectors;
 
 import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 import static com.lambda.fusion.authority.AuthorityConstants.MANAGED;
-import static com.lambda.fusion.core.Constants.ROLE_DEV;
+import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
 
 @Slf4j
 @Service
@@ -326,7 +326,7 @@ public class UserServiceImpl implements UserService {
             orgParentKeyMap.put(item.getId(), item.getAlias());
             orgNameMap.put(item.getId(), parentKeys);
             if (StringUtils.isNotBlank(parentKeys)) {
-                Collections.addAll(parentOrgIds, parentKeys.split(Constants.TREE_SPLIT));
+                Collections.addAll(parentOrgIds, parentKeys.split(FusionConstants.TREE_SPLIT));
             }
         }
         Map<String, String> result = Maps.newHashMap();
@@ -339,8 +339,8 @@ public class UserServiceImpl implements UserService {
         orgNameMap.forEach((key, value) -> {
             StringBuilder builder = new StringBuilder();
             if (StringUtils.isNotBlank(value)) {
-                for (String token : value.split(Constants.TREE_SPLIT)) {
-                    builder.append(parentNameMap .get(token)).append(Constants.TREE_SPLIT);
+                for (String token : value.split(FusionConstants.TREE_SPLIT)) {
+                    builder.append(parentNameMap .get(token)).append(FusionConstants.TREE_SPLIT);
                 }
             }
             builder.append(orgParentKeyMap.get(key));
@@ -499,8 +499,8 @@ public class UserServiceImpl implements UserService {
                     .filter(StrUtil::isNotEmpty)
                     .map(authority -> {
                         Assert.notNull(authority, "role not found");
-                        if (authority.startsWith(Constants.ROLE_TENANT)) {
-                            authority = Constants.ROLE_TENANT;
+                        if (authority.startsWith(FusionConstants.ROLE_TENANT)) {
+                            authority = FusionConstants.ROLE_TENANT;
                         }
                         UserRoleEntity userRoleEntity = new UserRoleEntity();
                         userRoleEntity.setAuthority(authority);

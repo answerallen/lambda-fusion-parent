@@ -14,7 +14,7 @@ import com.lambda.fusion.authority.user.helper.UserQueryHelper;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -178,10 +178,10 @@ public class UserController {
     @Operation(summary = "禁用用户")
     public void disabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         LoginUser operator = OperatorUtils.getOperator();
-        userService.deactivateUser(operator, Constants.DISABLED, username);
+        userService.deactivateUser(operator, FusionConstants.DISABLED, username);
 
         if (tenantAuthorizeManager != null) {
-            tenantAuthorizeManager.prohibitUser(Constants.DISABLED, username);
+            tenantAuthorizeManager.prohibitUser(FusionConstants.DISABLED, username);
         }
     }
 
@@ -189,10 +189,10 @@ public class UserController {
     @Operation(summary = "启用用户")
     public void enabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         LoginUser operator = OperatorUtils.getOperator();
-        userService.deactivateUser(operator, Constants.ENABLED, username);
+        userService.deactivateUser(operator, FusionConstants.ENABLED, username);
 
         if (tenantAuthorizeManager != null) {
-            tenantAuthorizeManager.prohibitUser(Constants.ENABLED, username);
+            tenantAuthorizeManager.prohibitUser(FusionConstants.ENABLED, username);
         }
     }
 

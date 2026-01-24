@@ -18,7 +18,7 @@ import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.model.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.UserProfile;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.security.exception.AuthenticationException;
@@ -140,7 +140,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
      */
     private LoginUser prepareLoginUser(UserPrincipal userPrincipal) {
         if (CollUtil.isEmpty(userPrincipal.getRoles())) {
-            userPrincipal.setRoles(Sets.newHashSet(Constants.ROLE_USER));
+            userPrincipal.setRoles(Sets.newHashSet(FusionConstants.ROLE_USER));
         }
         String tenantId = TenantHolder.getTenantId();
         if (StrUtil.isNotBlank(tenantId)) {

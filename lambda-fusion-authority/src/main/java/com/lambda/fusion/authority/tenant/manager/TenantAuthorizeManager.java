@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.tenant.manager;
 
-import static com.lambda.fusion.core.Constants.*;
+import static com.lambda.fusion.core.FusionConstants.*;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;

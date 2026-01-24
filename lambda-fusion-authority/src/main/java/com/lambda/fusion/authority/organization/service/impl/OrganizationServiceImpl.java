@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.organization.service.impl;
 
-import static com.lambda.fusion.core.Constants.FUZZY;
-import static com.lambda.fusion.core.Constants.JOINER;
+import static com.lambda.fusion.core.FusionConstants.FUZZY;
+import static com.lambda.fusion.core.FusionConstants.JOINER;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -22,7 +22,7 @@ import com.lambda.fusion.authority.role.model.Role;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.User;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
@@ -496,7 +496,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             entity.setLevel(TreeNodeUtils.level(parentKeys));
         } else {
             entity.setLevel(0);
-            entity.setParentId(Constants.TREE_TOP_LEVEL);
+            entity.setParentId(FusionConstants.TREE_TOP_LEVEL);
         }
         organizationMapper.insert(entity);
         return getOrganizationById(orgId);

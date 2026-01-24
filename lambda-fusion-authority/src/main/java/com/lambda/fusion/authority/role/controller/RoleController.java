@@ -18,7 +18,7 @@ import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.manager.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.core.Constants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -95,13 +95,13 @@ public class RoleController {
             parameters.put("alias", wrapParameter(alias));
         }
         Set<String> excludes = Sets.newHashSet();
-        excludes.add(Constants.ROLE_USER);
-        excludes.add(Constants.ROLE_HMAC);
-        excludes.add(Constants.ROLE_DEV);
-        excludes.add(Constants.ROLE_SYSTEM);
-        excludes.add(Constants.ROLE_TENANT);
+        excludes.add(FusionConstants.ROLE_USER);
+        excludes.add(FusionConstants.ROLE_HMAC);
+        excludes.add(FusionConstants.ROLE_DEV);
+        excludes.add(FusionConstants.ROLE_SYSTEM);
+        excludes.add(FusionConstants.ROLE_TENANT);
         if (!userPrincipal.isDev()) {
-            excludes.add(Constants.ROLE_ADMIN);
+            excludes.add(FusionConstants.ROLE_ADMIN);
         }
         Set<String> queryExclude = internalRoleService.queryExclude(userPrincipal);
         excludes.addAll(queryExclude);

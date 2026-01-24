@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.tenant.cache;
 
-import static com.lambda.fusion.core.Constants.TENANT_HOST_REDIS_KEY;
+import static com.lambda.fusion.core.FusionConstants.TENANT_HOST_REDIS_KEY;
 
 import com.lambda.cloud.core.utils.Assert;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
