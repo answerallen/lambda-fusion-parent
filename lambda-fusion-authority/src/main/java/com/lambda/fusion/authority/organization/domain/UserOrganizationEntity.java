@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 public class UserOrganizationEntity {
 
     @TableField("USERNAME")
-    private String userid;
+    private String username;
 
     @TableField("ORGANIZATION_ID")
     private String organizationId;

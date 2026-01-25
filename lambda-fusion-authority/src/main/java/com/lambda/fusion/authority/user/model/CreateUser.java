@@ -56,7 +56,7 @@ public class CreateUser extends BaseDTO<UserEntity> {
 
     @JsonProperty("organization")
     @Schema(description = "组织信息")
-    private SimpleOrganization org;
+    private SimpleOrganization organization;
 
     @Schema(description = "角色信息")
     @JsonProperty("authorities")

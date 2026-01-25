@@ -69,7 +69,7 @@ public class UserQueryHelper {
 
         Set<String> orgIds = resolveOrganizationIds(
                 userQuery.getOrganizationId(),
-                userQuery.getIncludeChild(),
+                userQuery.getIncludeChildren(),
                 userQuery.getEnableDataPermission(),
                 userPrincipal);
         userQueryContext.setOrgIds(orgIds);

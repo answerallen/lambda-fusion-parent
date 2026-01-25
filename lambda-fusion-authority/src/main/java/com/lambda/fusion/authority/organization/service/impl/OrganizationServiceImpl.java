@@ -300,7 +300,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.notNull(resource, "organ must not be null");
         Assert.notNull(resource.getUserId(), "user id must not be null");
         UserOrganizationEntity userOrganizationEntity =
-                userOrganizationMapper.queryUserOrganization(resource.getUserId());
+                userOrganizationMapper.selectUserOrganization(resource.getUserId());
         return UserOrganization.fromEntity(UserOrganization.class, userOrganizationEntity);
     }
 

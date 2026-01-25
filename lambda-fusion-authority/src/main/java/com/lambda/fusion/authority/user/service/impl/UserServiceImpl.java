@@ -7,6 +7,7 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -48,7 +49,6 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -192,15 +192,15 @@ public class UserServiceImpl implements UserService {
      */
     private List<User> populateUserDetails(List<User> users, String tenantId) {
         List<User> records = userMapper.selectUsers(users);
-        UserBatchInfo userBatchInfo = extractUserBatchInfo(records);
+        PopulateUserInfo populateUserInfo = extractUserBatchInfo(records);
 
         // 批量获取关联数据
-        Map<String, String> orgNames = buildOrgFullNameMap(userBatchInfo.getOrgIds());
-        Map<String, Map<String, Object>> personInfo = buildUserPersonFieldMap(userBatchInfo.getUsernames());
-
+        Map<String, String> orgNames = buildOrgFullNameMap(populateUserInfo.getOrgIds());
+        Map<String, Map<String, Object>> personInfo = buildUserPersonFieldMap(populateUserInfo.getUsernames());
+        List<UserInfoEntity> userInfos = userInfoMapper.selectByIds(populateUserInfo.getUsernames());
         // 补充用户信息
         for (User user : records) {
-            assembleUserInfo(user, orgNames, personInfo, tenantId);
+            assembleUserOnline(user, orgNames, personInfo, tenantId,userInfos);
         }
 
         return records;
@@ -209,20 +209,26 @@ public class UserServiceImpl implements UserService {
     /**
      * 补充单个用户的详细信息
      */
-    private void assembleUserInfo(
-            User user, Map<String, String> orgNames, Map<String, Map<String, Object>> personInfo, String tenantId) {
+    private void assembleUserOnline(
+            User user, Map<String, String> orgNames, Map<String, Map<String, Object>> personInfo, String tenantId, List<UserInfoEntity> userInfos) {
         assembleUserOrgInfo(orgNames, user);
-        assembleUserPersonInfo(personInfo, user);
+        assembleUserPersonal(personInfo, user);
         assembleUserLockState(user);
         assembleUserPermissionInfo(user, tenantId);
-        assembleUserOnlineState(user);
+        assembleUserOnline(user);
+        userInfos.stream()
+                .filter(userInfoEntity -> userInfoEntity.getUsername().equals(user.getUsername()))
+                .findFirst().ifPresent(userInfoEntity -> {
+                    UserInfo userInfo = ConvertUtils.convert(userInfoEntity);
+                    user.setProps(userInfo);
+        });
 
         if (CollectionUtils.isNotEmpty(user.getAuthorities())) {
             user.getAuthorities().sort(Comparator.comparing(SimpleRole::getAuthority));
         }
     }
 
-    private void assembleUserOnlineState(User user) {
+    private void assembleUserOnline(User user) {
         boolean online = isOnline(user.getUsername());
         user.setOnline(online);
     }
@@ -242,7 +248,7 @@ public class UserServiceImpl implements UserService {
     /**
      * 整理用户临时参数
      */
-    private UserBatchInfo extractUserBatchInfo(List<User> users) {
+    private PopulateUserInfo extractUserBatchInfo(List<User> users) {
         Set<String> usernames = Sets.newHashSet();
         Set<String> orgIds = Sets.newHashSet();
         for (User item : users) {
@@ -251,7 +257,7 @@ public class UserServiceImpl implements UserService {
                 orgIds.add(item.getOrganization().getId());
             }
         }
-        UserBatchInfo parameters = new UserBatchInfo();
+        PopulateUserInfo parameters = new PopulateUserInfo();
         parameters.setUsernames(usernames);
         parameters.setOrgIds(orgIds);
         return parameters;
@@ -276,7 +282,7 @@ public class UserServiceImpl implements UserService {
         // 锁定状态
     }
 
-    private void assembleUserPersonInfo(Map<String, Map<String, Object>> allPersonUserMap, User user) {
+    private void assembleUserPersonal(Map<String, Map<String, Object>> allPersonUserMap, User user) {
         if (allPersonUserMap.containsKey(user.getUsername())) {
             user.setPersonal(allPersonUserMap.get(user.getUsername()));
         }
@@ -416,7 +422,7 @@ public class UserServiceImpl implements UserService {
         userInfoEntity.setUsername(userEntity.getUsername());
         userInfoMapper.insert(userInfoEntity);
 
-        SimpleOrganization simpleOrganization = createUser.getOrg();
+        SimpleOrganization simpleOrganization = createUser.getOrganization();
         if (simpleOrganization != null && StringUtils.isNotBlank(simpleOrganization.getId())) {
             userOrganizationMapper.insert(new UserOrganizationEntity(
                     userEntity.getUsername(), simpleOrganization.getId(), operator.getTenantId()));
@@ -454,44 +460,30 @@ public class UserServiceImpl implements UserService {
         if (updateUserProps != null) {
             UserInfoEntity userPropsEntity = updateUserProps.toEntity();
             userPropsEntity.setUsername(userEntity.getUsername());
-            userInfoMapper.updateById(userPropsEntity);
+            userInfoMapper.insertOrUpdate(userPropsEntity);
         }
-        userRoleMapper.deleteUserRoles(userEntity.getUsername());
-        this.assignRolesToUser(operator.getTenantId(), userEntity.getUsername(), updateUser.getAuthorities());
+
         if (MapUtils.isNotEmpty(updateUser.getPersonal())) {
             List<UserFieldsEntity> fields =
                     UserInfoHelper.buildUserFieldsFromMap(updateUser.getPersonal(), userEntity.getUsername());
             this.userFieldsMapper.deleteByUsername(userEntity.getUsername());
             this.userFieldsMapper.insert(fields);
         }
-    }
 
-    /**
-     * <ol>
-     * <li>当结果值不为空时，用户的组织要变更</li>
-     * <li>当结果值为空时，用户的组织无需变更</li>
-     * </ol>
-     *
-     * @param source 页面值
-     * @param target 实际值
-     */
-    @Nullable
-    private SimpleOrganization orgUpdated(SimpleOrganization source, SimpleOrganization target) {
-        if (source == null) {
-            return new SimpleOrganization();
+        SimpleOrganization simpleOrganization = updateUser.getOrganization();
+        if(simpleOrganization!=null) {
+            UserOrganizationEntity organizationEntity = userOrganizationMapper.selectUserOrganization(userEntity.getUsername());
+            if(organizationEntity!=null && !StrUtil.equals(organizationEntity.getTenantId(),simpleOrganization.getId())) {
+                organizationEntity.setOrganizationId(simpleOrganization.getId());
+                userOrganizationMapper.update(organizationEntity,new LambdaUpdateWrapper<UserOrganizationEntity>()
+                        .eq(UserOrganizationEntity::getUsername,userEntity.getUsername())
+                );
+            }
         }
-        if (target == null) {
-            return source;
-        }
-        String id0 = source.getId();
-        String id1 = target.getId();
-        if (StringUtils.isBlank(id0)) {
-            return new SimpleOrganization();
-        } else if (id0.equals(id1)) {
-            return null;
-        } else {
-            return source;
-        }
+
+        userRoleMapper.deleteUserRoles(userEntity.getUsername());
+        this.assignRolesToUser(operator.getTenantId(), userEntity.getUsername(), updateUser.getAuthorities());
+
     }
 
     @Override
