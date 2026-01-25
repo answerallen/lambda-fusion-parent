@@ -40,6 +40,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -196,33 +197,43 @@ public class UserServiceImpl implements UserService {
 
         // 批量获取关联数据
         Map<String, String> orgNames = buildOrgFullNameMap(populateUserInfo.getOrgIds());
-        Map<String, Map<String, Object>> personInfo = buildUserPersonFieldMap(populateUserInfo.getUsernames());
-        List<UserInfoEntity> userInfos = userInfoMapper.selectByIds(populateUserInfo.getUsernames());
+        Map<String, Map<String, Object>> personInfoMap = buildUserPersonFieldMap(populateUserInfo.getUsernames());
+        Map<String, UserInfoEntity> userInfoMap = buildUserInfoMap(populateUserInfo);
         // 补充用户信息
         for (User user : records) {
-            assembleUserOnline(user, orgNames, personInfo, tenantId,userInfos);
+            assembleUserInfo(user, orgNames, personInfoMap, tenantId,userInfoMap);
         }
 
         return records;
     }
 
+    private Map<String, UserInfoEntity>  buildUserInfoMap(PopulateUserInfo populateUserInfo) {
+        List<UserInfoEntity> userInfos = userInfoMapper.selectByIds(populateUserInfo.getUsernames());
+        return userInfos.stream()
+
+
+                .collect(Collectors.toMap(
+                        UserInfoEntity::getUsername,
+                        Function.identity(),
+                        (a, b) -> a
+                ));
+    }
+
     /**
      * 补充单个用户的详细信息
      */
-    private void assembleUserOnline(
-            User user, Map<String, String> orgNames, Map<String, Map<String, Object>> personInfo, String tenantId, List<UserInfoEntity> userInfos) {
+    private void assembleUserInfo(
+            User user, Map<String, String> orgNames, Map<String, Map<String, Object>> personInfo, String tenantId, Map<String, UserInfoEntity> userInfoMap) {
         assembleUserOrgInfo(orgNames, user);
         assembleUserPersonal(personInfo, user);
         assembleUserLockState(user);
         assembleUserPermissionInfo(user, tenantId);
         assembleUserOnline(user);
-        userInfos.stream()
-                .filter(userInfoEntity -> userInfoEntity.getUsername().equals(user.getUsername()))
-                .findFirst().ifPresent(userInfoEntity -> {
-                    UserInfo userInfo = ConvertUtils.convert(userInfoEntity);
-                    user.setProps(userInfo);
-        });
-
+        UserInfoEntity userInfoEntity = userInfoMap.get(user.getUsername());
+        if (userInfoEntity != null) {
+            UserInfo userInfo = ConvertUtils.convert(userInfoEntity);
+            user.setProps(userInfo);
+        }
         if (CollectionUtils.isNotEmpty(user.getAuthorities())) {
             user.getAuthorities().sort(Comparator.comparing(SimpleRole::getAuthority));
         }
