@@ -23,7 +23,7 @@ public interface OrganizationService {
      *
      * @return
      */
-    OrganizationQuery getQueryParameter();
+    OrganizationQuery getOrganizationQuery();
 
     /**
      * 以树形的方式获取组织权限列表

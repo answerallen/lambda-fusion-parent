@@ -56,7 +56,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final AuthorityProperties authorityProperties;
 
     @Override
-    public OrganizationQuery getQueryParameter() {
+    public OrganizationQuery getOrganizationQuery() {
         OrganizationQuery parameters = new OrganizationQuery();
         String tenantId = OperatorUtils.getOperator().getTenantId();
         parameters.setOwner(StringUtils.isNotBlank(tenantId) ? tenantId : null);

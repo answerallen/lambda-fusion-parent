@@ -55,7 +55,7 @@ public class OrganizationController {
             @RequestParam(required = false) @Parameter(description = "组织别名") String alias,
             @RequestParam(required = false) Boolean enabled) {
         LoginUser operator = OperatorUtils.getOperator();
-        OrganizationQuery parameters = organizationService.getQueryParameter();
+        OrganizationQuery parameters = organizationService.getOrganizationQuery();
         if (BooleanUtils.isTrue(enabled)) {
             parameters.setEnabled(true);
         }
@@ -72,7 +72,7 @@ public class OrganizationController {
     @GetMapping("/list")
     @Operation(summary = "获取组织机构树形下拉列表", description = "查询组织机构列表树形下拉列表")
     public List<OrganizationTree> list() {
-        OrganizationQuery parameters = organizationService.getQueryParameter();
+        OrganizationQuery parameters = organizationService.getOrganizationQuery();
         parameters.setEnabled(true);
         return organizationService.getSimpleOrgTree(parameters);
     }
@@ -146,7 +146,7 @@ public class OrganizationController {
 
     @PatchMapping("/{id}/enabled")
     @Operation(summary = "启用组织机构")
-    public void enabled(@Parameter(description = "机构Id", required = true) @PathVariable("id") String id) {
+    public void enabled(@PathVariable @Parameter(description = "机构Id", required = true) String id) {
         Organization org = organizationService.queryOrganizationById(id);
         Assert.notNull(org, "组织机构不存在！");
         organizationService.prohibitOrganization(1, id);
@@ -154,7 +154,7 @@ public class OrganizationController {
 
     @PatchMapping("/{id}/disabled")
     @Operation(summary = "禁用组织机构")
-    public void disabled(@Parameter(description = "机构Id", required = true) @PathVariable("id") String id) {
+    public void disabled(@PathVariable @Parameter(description = "机构Id", required = true) String id) {
         Organization org = organizationService.queryOrganizationById(id);
         Assert.notNull(org, "组织机构不存在！");
         organizationService.prohibitOrganization(0, id);
@@ -178,7 +178,7 @@ public class OrganizationController {
                         schema = @Schema(allowableValues = {"0", "1", "2"}))
             })
     public void move(
-            @Parameter(description = "拖动节点", required = true) @PathVariable("id") String id,
+            @PathVariable @Parameter(description = "拖动节点", required = true) String id,
             @Parameter(description = "目标节点", required = true) @RequestParam("tid") String tid,
             @Parameter(description = "移动类型", required = true) @RequestParam("type") int type) {
         MoveResource parameter = new MoveResource();

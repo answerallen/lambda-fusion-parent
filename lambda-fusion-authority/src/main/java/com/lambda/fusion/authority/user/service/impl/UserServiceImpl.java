@@ -201,29 +201,27 @@ public class UserServiceImpl implements UserService {
         Map<String, UserInfoEntity> userInfoMap = buildUserInfoMap(populateUserInfo);
         // 补充用户信息
         for (User user : records) {
-            assembleUserInfo(user, orgNames, personInfoMap, tenantId,userInfoMap);
+            assembleUserInfo(user, orgNames, personInfoMap, tenantId, userInfoMap);
         }
 
         return records;
     }
 
-    private Map<String, UserInfoEntity>  buildUserInfoMap(PopulateUserInfo populateUserInfo) {
+    private Map<String, UserInfoEntity> buildUserInfoMap(PopulateUserInfo populateUserInfo) {
         List<UserInfoEntity> userInfos = userInfoMapper.selectByIds(populateUserInfo.getUsernames());
         return userInfos.stream()
-
-
-                .collect(Collectors.toMap(
-                        UserInfoEntity::getUsername,
-                        Function.identity(),
-                        (a, b) -> a
-                ));
+                .collect(Collectors.toMap(UserInfoEntity::getUsername, Function.identity(), (a, b) -> a));
     }
 
     /**
      * 补充单个用户的详细信息
      */
     private void assembleUserInfo(
-            User user, Map<String, String> orgNames, Map<String, Map<String, Object>> personInfo, String tenantId, Map<String, UserInfoEntity> userInfoMap) {
+            User user,
+            Map<String, String> orgNames,
+            Map<String, Map<String, Object>> personInfo,
+            String tenantId,
+            Map<String, UserInfoEntity> userInfoMap) {
         assembleUserOrgInfo(orgNames, user);
         assembleUserPersonal(personInfo, user);
         assembleUserLockState(user);
@@ -482,19 +480,21 @@ public class UserServiceImpl implements UserService {
         }
 
         SimpleOrganization simpleOrganization = updateUser.getOrganization();
-        if(simpleOrganization!=null) {
-            UserOrganizationEntity organizationEntity = userOrganizationMapper.selectUserOrganization(userEntity.getUsername());
-            if(organizationEntity!=null && !StrUtil.equals(organizationEntity.getTenantId(),simpleOrganization.getId())) {
+        if (simpleOrganization != null) {
+            UserOrganizationEntity organizationEntity =
+                    userOrganizationMapper.selectUserOrganization(userEntity.getUsername());
+            if (organizationEntity != null
+                    && !StrUtil.equals(organizationEntity.getTenantId(), simpleOrganization.getId())) {
                 organizationEntity.setOrganizationId(simpleOrganization.getId());
-                userOrganizationMapper.update(organizationEntity,new LambdaUpdateWrapper<UserOrganizationEntity>()
-                        .eq(UserOrganizationEntity::getUsername,userEntity.getUsername())
-                );
+                userOrganizationMapper.update(
+                        organizationEntity,
+                        new LambdaUpdateWrapper<UserOrganizationEntity>()
+                                .eq(UserOrganizationEntity::getUsername, userEntity.getUsername()));
             }
         }
 
         userRoleMapper.deleteUserRoles(userEntity.getUsername());
         this.assignRolesToUser(operator.getTenantId(), userEntity.getUsername(), updateUser.getAuthorities());
-
     }
 
     @Override
