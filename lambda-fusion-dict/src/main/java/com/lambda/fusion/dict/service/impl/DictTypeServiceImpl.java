@@ -62,7 +62,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
         source.setDictType(Optional.ofNullable(source.getDictType()).orElse(source.getId()));
         Assert.notNull(source, MSG_DICT_TYPE_NOT_EMPTY);
         Assert.hasText(source.getDictName(), MSG_DICT_NAME_NOT_EMPTY);
-        Assert.isFalse(dictTypeExists(source), MSG_DICT_TYPE_NOT_EXISTED);
+        Assert.isFalse(dictTypeExists(source), MSG_DICT_TYPE_EXISTED);
         if (StringUtils.isNotBlank(source.getParentId())) {
             DictTypeTree parent = dictTypeMapper.selectById(source.getParentId());
             if (null != parent) {
@@ -254,22 +254,22 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
                     AtomicBoolean hasRank = new AtomicBoolean(false);
                     if (CollectionUtils.isNotEmpty(list)) {
                         list.forEach(v -> {
-                            final DictInfo dictionaryEntry = new DictInfo();
-                            dictionaryEntry.setId(
+                            final DictInfo dictInfo = new DictInfo();
+                            dictInfo.setId(
                                     StringUtils.isNotBlank(v.getId())
                                             ? v.getId()
                                             : v.getVal().toString());
-                            dictionaryEntry.setDictType(dictTypeTree.getDictType());
-                            dictionaryEntry.setDictName(dictTypeTree.getDictName());
-                            dictionaryEntry.setFieldType(v.getVal().toString());
-                            dictionaryEntry.setFieldName(v.getKey());
-                            dictionaryEntry.setParentId(v.getPid());
-                            dictionaryEntry.setSelectable(v.getSelectable());
+                            dictInfo.setDictType(dictTypeTree.getDictType());
+                            dictInfo.setDictName(dictTypeTree.getDictName());
+                            dictInfo.setFieldType(v.getVal().toString());
+                            dictInfo.setFieldName(v.getKey());
+                            dictInfo.setParentId(v.getPid());
+                            dictInfo.setSelectable(v.getSelectable());
                             if (v.getLevel() != null) {
                                 hasRank.set(true);
-                                dictionaryEntry.setLevel(v.getLevel());
+                                dictInfo.setLevel(v.getLevel());
                             }
-                            dictionaryEntries.add(dictionaryEntry);
+                            dictionaryEntries.add(dictInfo);
                         });
                     }
                     List<DictInfo> dictionaryEntryList;
