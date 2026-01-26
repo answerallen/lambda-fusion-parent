@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import org.apache.dubbo.rpc.protocol.tri.rest.openapi.model.Parameter;
 
 /**
  * 字典表注释表
@@ -56,7 +56,7 @@ public class DictTypeTree extends BaseDO implements TreeNode<DictTypeTree> {
     private String notes;
 
     @Schema(description = "排序编码")
-    private String sort;
+    private Integer sort;
 
     @Override
     public String id() {
@@ -80,6 +80,4 @@ public class DictTypeTree extends BaseDO implements TreeNode<DictTypeTree> {
     public void children(List<DictTypeTree> children) {
         this.children = children;
     }
-
-
 }

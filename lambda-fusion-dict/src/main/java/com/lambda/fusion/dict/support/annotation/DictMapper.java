@@ -1,9 +1,8 @@
 package com.lambda.fusion.dict.support.annotation;
 
-import com.lambda.fusion.dict.support.DictUsage;
-
 import static com.lambda.fusion.dict.DictConstants.*;
 
+import com.lambda.fusion.dict.support.DictUsage;
 import java.lang.annotation.*;
 
 /**

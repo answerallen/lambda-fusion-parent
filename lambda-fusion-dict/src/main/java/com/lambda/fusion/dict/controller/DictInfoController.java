@@ -4,7 +4,6 @@ import static com.lambda.fusion.dict.DictConstants.*;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.dict.model.*;
 import com.lambda.fusion.dict.service.DictInfoService;

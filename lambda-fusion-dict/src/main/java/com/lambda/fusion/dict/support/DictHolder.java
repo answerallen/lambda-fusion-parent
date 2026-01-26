@@ -18,7 +18,7 @@ public class DictHolder {
     private Integer dictUsage;
     private List<DynamicDictSource> list;
 
-    public DictHolder(String dictName, String dictDesc,int dictUsage) {
+    public DictHolder(String dictName, String dictDesc, int dictUsage) {
         this.dictName = dictName;
         this.dictDesc = dictDesc;
         this.list = new ArrayList<>();

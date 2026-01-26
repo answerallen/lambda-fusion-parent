@@ -159,7 +159,8 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
             // 非枚举字典
             parameters.put(FIELD_DICT_TYPE, dataType);
             parameters.put("userOnly", queryDictTree.isUserOnly());
-            result.addAll(dictTypeMapper.treeList(parameters));
+            List<DictTypeTree> dictTypeTrees = dictTypeMapper.treeList(parameters);
+            result.addAll(dictTypeTrees);
         }
         final List<DictTypeTree> typeList = treeDataFilter.filter(
                 result,
@@ -185,9 +186,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
         parameters.put(FIELD_PARENT_KEYS, SqlParamUtils.fuzzyQuery(key));
     }
 
-    private void getEnumDict(QueryDictTree queryDictTree, String name, List<DictTypeTree> result) {
-
-    }
+    private void getEnumDict(QueryDictTree queryDictTree, String name, List<DictTypeTree> result) {}
 
     @Override
     public void deleteDictType(String id) {

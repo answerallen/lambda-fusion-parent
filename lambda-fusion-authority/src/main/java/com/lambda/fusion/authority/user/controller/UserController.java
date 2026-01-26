@@ -14,7 +14,9 @@ import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
+import com.lambda.fusion.core.utils.LoginUserUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -64,6 +66,7 @@ public class UserController {
         if (size != null) {
             userQuery.setPageSize(size);
         }
+        UserPrincipal loginUser = LoginUserUtils.getLoginUser();
         UserQueryContext userQueryContext = userQueryHelper.buildUserQueryContext(userQuery);
         return userService.getUsers(userQuery.getPage(), userQueryContext);
     }
@@ -89,10 +92,10 @@ public class UserController {
     @GetMapping("/allUser")
     @Operation(summary = "查询用户下拉列表")
     public List<UserProfile> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
-        LoginUser operator = OperatorUtils.getOperator();
+        UserPrincipal loginUser = LoginUserUtils.getLoginUser();
         List<String> orgIds =
-                isAll != null && isAll ? Collections.emptyList() : organizationService.getSubOrganizationIds(operator);
-        return userService.getUserProfiles(operator, orgIds);
+                isAll != null && isAll ? Collections.emptyList() : organizationService.getSubOrganizationIds(loginUser);
+        return userService.getUserProfiles(loginUser, orgIds);
     }
 
     @GetMapping("/current")
@@ -112,14 +115,12 @@ public class UserController {
     @PostMapping
     @Operation(summary = "新增用户信息")
     public User add(@Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateUser createUser) {
-        LoginUser operator = OperatorUtils.getOperator();
-        userService.addUser(createUser, operator);
-
+        userService.addUser(createUser, LoginUserUtils.getLoginUser());
         if (MapUtils.isNotEmpty(createUser.getPersonal())) {
             userService.addUserFields(createUser.getPersonal(), createUser.getUsername());
         }
         if (tenantAuthorizeManager != null) {
-            // 添加租户用户
+            log.info("添加租户用户");
         }
         return userService.getUserByUsername(createUser.getUsername());
     }
@@ -129,9 +130,8 @@ public class UserController {
     public User update(
             @PathVariable @Parameter(description = "用户名称", required = true) String username,
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody UpdateUser updateUser) {
-        LoginUser operator = OperatorUtils.getOperator();
         updateUser.setUsername(username);
-        userService.updateUser(updateUser, operator);
+        userService.updateUser(updateUser, LoginUserUtils.getLoginUser());
         return userService.getUserByUsername(username);
     }
 
@@ -142,7 +142,7 @@ public class UserController {
         if (tenantAuthorizeManager != null) {
             tenantAuthorizeManager.deleteUser(username);
         }
-        userService.deleteUser(operator, username);
+        userService.deleteUser(LoginUserUtils.getLoginUser(), username);
     }
 
     @PutMapping("/password/edit")
@@ -174,8 +174,7 @@ public class UserController {
     @PatchMapping("/{username}/disabled")
     @Operation(summary = "禁用用户")
     public void disabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
-        LoginUser operator = OperatorUtils.getOperator();
-        userService.deactivateUser(operator, FusionConstants.DISABLED, username);
+        userService.deactivateUser(LoginUserUtils.getLoginUser(), FusionConstants.DISABLED, username);
 
         if (tenantAuthorizeManager != null) {
             tenantAuthorizeManager.prohibitUser(FusionConstants.DISABLED, username);
@@ -185,8 +184,7 @@ public class UserController {
     @PatchMapping("/{username}/enabled")
     @Operation(summary = "启用用户")
     public void enabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
-        LoginUser operator = OperatorUtils.getOperator();
-        userService.deactivateUser(operator, FusionConstants.ENABLED, username);
+        userService.deactivateUser(LoginUserUtils.getLoginUser(), FusionConstants.ENABLED, username);
 
         if (tenantAuthorizeManager != null) {
             tenantAuthorizeManager.prohibitUser(FusionConstants.ENABLED, username);
@@ -197,7 +195,7 @@ public class UserController {
     @Operation(summary = "解锁用户")
     public void unlock(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         LoginUser operator = OperatorUtils.getOperator();
-        userService.unlockUser(username, operator);
+        userService.unlockUser(username, LoginUserUtils.getLoginUser());
     }
 
     @GetMapping("/{username}/permission")
@@ -278,9 +276,8 @@ public class UserController {
     public User updateTenantUser(
             @PathVariable @Parameter(description = "用户名称", required = true) String username,
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody User user) {
-        LoginUser operator = OperatorUtils.getOperator();
         user.setUsername(username);
-        userService.updateTenantUser(user, operator);
+        userService.updateTenantUser(user, LoginUserUtils.getLoginUser());
         User updated = userService.getUserByUsername(username);
         if (tenantAuthorizeManager != null) {
             User copy = BeanUtil.toBean(user, User.class);

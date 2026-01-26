@@ -85,7 +85,7 @@ public class QueryDictInfoPage extends Pagination<DictInfo> {
     public LambdaQueryWrapper<DictInfo> getLambdaQueryWrapper() {
         LambdaQueryWrapper<DictInfo> lambdaQuery = super.getLambdaQueryWrapper();
         String tenantId = LoginUserUtils.getTenantId();
-        lambdaQuery.eq(StrUtil.isNotEmpty(tenantId),DictInfo::getTenantId, tenantId);
+        lambdaQuery.eq(StrUtil.isNotEmpty(tenantId), DictInfo::getTenantId, tenantId);
         lambdaQuery.eq(DictInfo::getDictType, getDictType());
         lambdaQuery.like(StrUtil.isNotEmpty(getFieldType()), DictInfo::getFieldType, getFieldType());
         lambdaQuery.like(StrUtil.isNotEmpty(getFieldName()), DictInfo::getFieldName, getFieldName());

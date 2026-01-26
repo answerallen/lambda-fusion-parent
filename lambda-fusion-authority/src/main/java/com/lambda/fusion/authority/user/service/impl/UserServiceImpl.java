@@ -12,7 +12,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.core.utils.StpLogicUtils;
@@ -363,12 +362,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Set<String> getPermissions(LoginUser operator, String source) {
+    public Set<String> getPermissions(UserPrincipal operator, String source) {
         return userMapper.selectUserPermissions(source);
     }
 
     @Override
-    public void batchSavePermissions(LoginUser operator, String username, Set<String> permissions) {
+    public void batchSavePermissions(UserPrincipal operator, String username, Set<String> permissions) {
         List<UserRoleEntity> userRoleEntities = permissions.stream()
                 .map(permission -> {
                     UserRoleEntity userRoleEntity = new UserRoleEntity();
@@ -403,7 +402,7 @@ public class UserServiceImpl implements UserService {
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true)
     @Override
-    public void addUser(CreateUser createUser, LoginUser operator) {
+    public void addUser(CreateUser createUser, UserPrincipal operator) {
         UserEntity userEntity = createUser.toEntity();
         Assert.notNull(userEntity, "user is not null");
 
@@ -461,7 +460,7 @@ public class UserServiceImpl implements UserService {
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true)
     @Override
-    public void updateUser(UpdateUser updateUser, LoginUser operator) {
+    public void updateUser(UpdateUser updateUser, UserPrincipal operator) {
         UserEntity userEntity = updateUser.toEntity();
         int updated = userMapper.updateById(userEntity);
         Assert.isTrue(updated == 1, "用户更新失败！");
@@ -499,7 +498,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteUser(LoginUser operator, String username) {
+    public void deleteUser(UserPrincipal operator, String username) {
         Assert.notNull(username, "username not empty");
         Assert.isTrue(
                 !username.equals(operator.getName()), "操作失败：用户名 " + username + " 不能等于当前登录用户 " + operator.getName());
@@ -556,7 +555,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deactivateUser(LoginUser operator, Integer type, String username) {
+    public void deactivateUser(UserPrincipal operator, Integer type, String username) {
         Assert.notNull(username, "username not null");
         User user = userMapper.selectUserByUsername(username);
         Assert.notNull(user, "user not found");
@@ -566,15 +565,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void unlockUser(String username, LoginUser operator) {}
+    public void unlockUser(String username, UserPrincipal operator) {}
 
     @Override
-    public List<UserProfile> getUserProfiles(LoginUser operator, List<String> orgIds) {
+    public List<UserProfile> getUserProfiles(UserPrincipal operator, List<String> orgIds) {
         return userMapper.selectUserProfiles(operator.getTenantId(), orgIds);
     }
 
     @Override
-    public Set<String> getSubOrganizationIds(String orgId, LoginUser operator) {
+    public Set<String> getSubOrganizationIds(String orgId, UserPrincipal operator) {
         Set<String> orgIds = new HashSet<>();
 
         if (StringUtils.isNotBlank(orgId)) {
@@ -625,7 +624,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateTenantUser(User source, LoginUser operator) {
+    public void updateTenantUser(User source, UserPrincipal operator) {
         String username = source.getUsername();
         User target = userMapper.selectUserByUsername(username);
         Assert.notNull(target, "user not found");

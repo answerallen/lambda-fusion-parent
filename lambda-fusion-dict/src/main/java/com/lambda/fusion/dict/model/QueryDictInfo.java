@@ -3,9 +3,8 @@ package com.lambda.fusion.dict.model;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
-
 import java.util.Map;
+import lombok.*;
 
 @AutoConverter(target = DictInfo.class)
 @Data
@@ -39,5 +38,4 @@ public class QueryDictInfo {
 
     @Schema(description = "扩展参数")
     private Map<String, Object> extraParams;
-
 }

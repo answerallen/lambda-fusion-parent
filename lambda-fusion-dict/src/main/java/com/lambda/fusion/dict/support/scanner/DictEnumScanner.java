@@ -75,7 +75,7 @@ public class DictEnumScanner extends ClassPathBeanDefinitionScanner {
 
         DictHolder holders = DictRegistry.getDictHolder(dictName);
         if (holders == null) {
-            holders = new DictHolder(dictName, dictDesc,dictUsage.getValue());
+            holders = new DictHolder(dictName, dictDesc, dictUsage.getValue());
         }
         Method values = aClass.getMethod("values");
         Object[] invoke = (Object[]) values.invoke(null);

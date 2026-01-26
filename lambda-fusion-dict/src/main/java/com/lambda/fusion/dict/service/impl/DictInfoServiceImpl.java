@@ -1,5 +1,8 @@
 package com.lambda.fusion.dict.service.impl;
 
+import static com.lambda.fusion.core.FusionConstants.JOINER;
+import static com.lambda.fusion.dict.DictConstants.*;
+
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -24,16 +27,12 @@ import com.lambda.fusion.dict.mapper.DictTypeMapper;
 import com.lambda.fusion.dict.model.*;
 import com.lambda.fusion.dict.service.DictInfoService;
 import com.lambda.fusion.dict.support.registry.DictRegistry;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.core.FusionConstants.JOINER;
-import static com.lambda.fusion.dict.DictConstants.*;
 
 /**
  * 多级数据字典详细信息
@@ -301,8 +300,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
     private Map<String, Object> convertMap(String extra) {
         if (StringUtils.isNotBlank(extra)) {
             try {
-                return objectMapper.readValue(extra, new TypeReference<>() {
-                });
+                return objectMapper.readValue(extra, new TypeReference<>() {});
             } catch (JsonProcessingException e) {
                 log.error(e.getMessage(), e);
             }

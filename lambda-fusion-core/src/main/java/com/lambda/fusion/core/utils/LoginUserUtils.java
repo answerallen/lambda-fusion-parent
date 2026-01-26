@@ -12,6 +12,6 @@ public class LoginUserUtils {
 
     public static String getTenantId() {
         String tenantId = getLoginUser().getTenantId();
-        return StrUtil.nullToDefault(tenantId,"");
+        return StrUtil.nullToDefault(tenantId, "");
     }
 }

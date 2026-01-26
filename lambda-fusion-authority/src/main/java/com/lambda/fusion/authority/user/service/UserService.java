@@ -1,7 +1,6 @@
 package com.lambda.fusion.authority.user.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.user.model.CreateUser;
 import com.lambda.fusion.authority.user.model.Permission;
 import com.lambda.fusion.authority.user.model.ResetPassword;
@@ -86,7 +85,7 @@ public interface UserService {
      * @param user     保存对象
      * @param operator 当前操作人
      */
-    void addUser(CreateUser user, LoginUser operator);
+    void addUser(CreateUser user, UserPrincipal operator);
 
     /***
      * 更新用户
@@ -94,7 +93,7 @@ public interface UserService {
      * @param user     更新对象
      * @param operator 当前操作人
      */
-    void updateUser(UpdateUser user, LoginUser operator);
+    void updateUser(UpdateUser user, UserPrincipal operator);
 
     /***
      * 根据用户名删除用户
@@ -102,7 +101,7 @@ public interface UserService {
      * @param operator
      * @param username 用户名
      */
-    void deleteUser(LoginUser operator, String username);
+    void deleteUser(UserPrincipal operator, String username);
 
     /***
      * 检查用户名是否已经存在
@@ -136,7 +135,7 @@ public interface UserService {
      * @param type
      * @param username
      */
-    void deactivateUser(LoginUser operator, Integer type, String username);
+    void deactivateUser(UserPrincipal operator, Integer type, String username);
 
     /**
      * 解锁用户
@@ -144,7 +143,7 @@ public interface UserService {
      * @param username
      * @param operator
      */
-    void unlockUser(String username, LoginUser operator);
+    void unlockUser(String username, UserPrincipal operator);
 
     /**
      * 根据组织编号查询用户列表
@@ -161,7 +160,7 @@ public interface UserService {
      * @param operator
      * @param source
      */
-    Set<String> getPermissions(LoginUser operator, String source);
+    Set<String> getPermissions(UserPrincipal operator, String source);
 
     /**
      * 批量保存用户的权限
@@ -171,7 +170,7 @@ public interface UserService {
      * @param permissions
      * @return void
      */
-    void batchSavePermissions(LoginUser operator, String username, Set<String> permissions);
+    void batchSavePermissions(UserPrincipal operator, String username, Set<String> permissions);
 
     /**
      * 查询用户所有权限
@@ -188,16 +187,16 @@ public interface UserService {
      * @param orgIds
      * @return
      */
-    List<UserProfile> getUserProfiles(LoginUser operator, List<String> orgIds);
+    List<UserProfile> getUserProfiles(UserPrincipal operator, List<String> orgIds);
 
     /**
      * 当前用户组织机构数据权限
      *
-     * @param orgid    orgid
+     * @param orgId    orgId
      * @param operator operator
      * @return 返回组织机构集合
      */
-    Set<String> getSubOrganizationIds(String orgid, LoginUser operator);
+    Set<String> getSubOrganizationIds(String orgId, UserPrincipal operator);
 
     /**
      * 根据用户名称列表查询用户的扩展属性
@@ -237,7 +236,7 @@ public interface UserService {
      * @param user     更新对象
      * @param operator 当前操作人
      */
-    void updateTenantUser(User user, LoginUser operator);
+    void updateTenantUser(User user, UserPrincipal operator);
 
     /**
      * 导出用户列表

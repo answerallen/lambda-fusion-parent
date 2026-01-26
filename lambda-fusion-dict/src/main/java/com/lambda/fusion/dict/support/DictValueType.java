@@ -8,7 +8,12 @@ import lombok.Getter;
  * @author jin
  */
 @Getter
-@DictMapper(dictName = "DICT_DATA_TYPE",dictUsage = DictUsage.SYSTEM, dictDesc = "字典数据类型", key = "configKey", val = "valueType")
+@DictMapper(
+        dictName = "DICT_DATA_TYPE",
+        dictUsage = DictUsage.SYSTEM,
+        dictDesc = "字典数据类型",
+        key = "configKey",
+        val = "valueType")
 public enum DictValueType {
     /**
      * 静态字典
