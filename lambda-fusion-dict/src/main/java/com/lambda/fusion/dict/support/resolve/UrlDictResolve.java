@@ -1,14 +1,14 @@
 package com.lambda.fusion.dict.support.resolve;
 
 import static com.lambda.cloud.mvc.WebHttpUtils.X_AUTHORIZED_BEARER;
-import static com.lambda.fusion.dict.support.constants.DictConstants.*;
+import static com.lambda.fusion.dict.DictConstants.*;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import com.lambda.fusion.autoconfig.DictionaryProperties;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.support.model.DictValueType;
-import com.lambda.fusion.dict.support.model.DynamicDictionarySource;
+import com.lambda.fusion.dict.support.model.DynamicDictSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.Cookie;
@@ -35,7 +35,7 @@ import org.springframework.web.util.WebUtils;
 @Slf4j
 @Service
 @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-public class UrlDictResolve implements DictionarySourceResolver {
+public class UrlDictResolve implements DictSourceResolver {
 
     protected RestTemplate restTemplate = new RestTemplate();
 
@@ -60,7 +60,7 @@ public class UrlDictResolve implements DictionarySourceResolver {
     }
 
     @Override
-    public List<DynamicDictionarySource> doResolve(DictTypeTree dictTypeTree) {
+    public List<DynamicDictSource> doResolve(DictTypeTree dictTypeTree) {
         String url = dictTypeTree.getDataTypeValue();
         try {
             if (url.startsWith(HTTP_PROTOCOL) || url.startsWith(HTTPS_PROTOCOL)) {
@@ -89,22 +89,22 @@ public class UrlDictResolve implements DictionarySourceResolver {
         return url;
     }
 
-    public List<DynamicDictionarySource> getApi(final String path, final HttpMethod method) {
-        final ResponseEntity<List<DynamicDictionarySource>> response =
+    public List<DynamicDictSource> getApi(final String path, final HttpMethod method) {
+        final ResponseEntity<List<DynamicDictSource>> response =
                 restTemplate.exchange(path, method, null, new ListParameterizedTypeReference());
         return response.getBody();
     }
 
-    public List<DynamicDictionarySource> getApi(final String path, final HttpMethod method, String accessToken) {
+    public List<DynamicDictSource> getApi(final String path, final HttpMethod method, String accessToken) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
-        final ResponseEntity<List<DynamicDictionarySource>> response =
+        final ResponseEntity<List<DynamicDictSource>> response =
                 restTemplate.exchange(path, method, new HttpEntity<>(headers), new ListParameterizedTypeReference());
         return response.getBody();
     }
 
     private static class ListParameterizedTypeReference
-            extends ParameterizedTypeReference<List<DynamicDictionarySource>> {}
+            extends ParameterizedTypeReference<List<DynamicDictSource>> {}
 
     public static String getAccessToken(HttpServletRequest request) {
         String payload = request.getHeader(FusionConstants.AUTHORIZATION);

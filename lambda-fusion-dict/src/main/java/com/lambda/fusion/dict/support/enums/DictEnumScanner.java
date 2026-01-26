@@ -21,8 +21,8 @@ import org.springframework.util.ReflectionUtils;
  * @author Jin
  */
 @Slf4j
-public class DictionaryEnumScanner extends ClassPathBeanDefinitionScanner {
-    public DictionaryEnumScanner(BeanDefinitionRegistry registry, boolean useDefaultFilters) {
+public class DictEnumScanner extends ClassPathBeanDefinitionScanner {
+    public DictEnumScanner(BeanDefinitionRegistry registry, boolean useDefaultFilters) {
         super(registry, useDefaultFilters);
     }
 
@@ -68,8 +68,8 @@ public class DictionaryEnumScanner extends ClassPathBeanDefinitionScanner {
         final String key = annotation.key();
         final String val = annotation.val();
 
-        final DictionaryHolder holders =
-                DictionaryRegistry.MAPPER_HOLDERS.getOrDefault(dictName, new DictionaryHolder(dictName, dictDesc));
+        final DictHolder holders =
+                DictRegistry.MAPPER_HOLDERS.getOrDefault(dictName, new DictHolder(dictName, dictDesc));
         final Method values = aClass.getMethod("values");
         final Object[] invoke = (Object[]) values.invoke(null);
         final Field keyField = ReflectionUtils.findField(aClass, key);
@@ -80,7 +80,7 @@ public class DictionaryEnumScanner extends ClassPathBeanDefinitionScanner {
             for (Object obj : invoke) {
                 holders.addOption(keyField.get(obj).toString(), valField.get(obj));
             }
-            DictionaryRegistry.addDictHolder(holders);
+            DictRegistry.addDictHolder(holders);
         }
     }
 

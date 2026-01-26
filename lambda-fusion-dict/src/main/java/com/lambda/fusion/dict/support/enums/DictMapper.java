@@ -1,6 +1,6 @@
 package com.lambda.fusion.dict.support.enums;
 
-import static com.lambda.fusion.dict.support.constants.DictConstants.*;
+import static com.lambda.fusion.dict.DictConstants.*;
 
 import java.lang.annotation.*;
 

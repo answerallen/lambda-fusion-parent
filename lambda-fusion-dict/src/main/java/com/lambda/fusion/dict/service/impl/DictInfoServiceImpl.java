@@ -1,7 +1,7 @@
 package com.lambda.fusion.dict.service.impl;
 
 import static com.lambda.fusion.core.FusionConstants.JOINER;
-import static com.lambda.fusion.dict.support.constants.DictConstants.*;
+import static com.lambda.fusion.dict.DictConstants.*;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
@@ -25,7 +25,7 @@ import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
 import com.lambda.fusion.dict.model.*;
 import com.lambda.fusion.dict.service.DictInfoService;
-import com.lambda.fusion.dict.support.enums.DictionaryRegistry;
+import com.lambda.fusion.dict.support.enums.DictRegistry;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -184,7 +184,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         Map<String, DictType> result = Maps.newHashMapWithExpectedSize(dictTypeTrees.size());
 
         // Enum List
-        final List<DictTypeTree> enumList = DictionaryRegistry.getDictTypeList();
+        final List<DictTypeTree> enumList = DictRegistry.getDictTypeList();
         if (CollectionUtils.isNotEmpty(enumList)) {
             dictTypeTrees.addAll(enumList);
         }

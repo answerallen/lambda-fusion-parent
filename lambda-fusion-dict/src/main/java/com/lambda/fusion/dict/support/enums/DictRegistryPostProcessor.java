@@ -2,6 +2,8 @@ package com.lambda.fusion.dict.support.enums;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import com.lambda.fusion.dict.DictConstants;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
@@ -34,7 +36,7 @@ import org.springframework.stereotype.Component;
  * }
  * </pre>
  *
- * @see DictionaryFactory
+ * @see DictFactory
  * @author Jin
  */
 @Slf4j
@@ -42,12 +44,11 @@ import org.springframework.stereotype.Component;
 public class DictRegistryPostProcessor implements BeanDefinitionRegistryPostProcessor, BeanPostProcessor {
     @Override
     public void postProcessBeanDefinitionRegistry(@NonNull BeanDefinitionRegistry registry) throws BeansException {
-        final DictionaryEnumScanner scanner = new DictionaryEnumScanner(registry, false);
+        final DictEnumScanner scanner = new DictEnumScanner(registry, false);
         List<String> packages = new ArrayList<>();
+        packages.add(DictConstants.DEFAULT_PACKAGE);
         if (registry instanceof DefaultListableBeanFactory beanFactory) {
             packages.addAll(AutoConfigurationPackages.get(beanFactory));
-        } else {
-            packages.add("com.lambda.cloud");
         }
         scanner.setIncludeAnnotationConfig(false);
         scanner.addIncludeFilter(new AnnotationTypeFilter(DictMapper.class));
@@ -56,9 +57,9 @@ public class DictRegistryPostProcessor implements BeanDefinitionRegistryPostProc
 
     @Override
     public Object postProcessAfterInitialization(@NonNull Object bean, @NonNull String beanName) throws BeansException {
-        if (bean instanceof DictionaryFactory dictionaryFactory) {
-            final DictionaryHolder dictionaryHolder = dictionaryFactory.getDictHolder();
-            DictionaryRegistry.MAPPER_HOLDERS.put(dictionaryHolder.getDictName(), dictionaryHolder);
+        if (bean instanceof DictFactory dictFactory) {
+            final DictHolder dictHolder = dictFactory.getDictHolder();
+            DictRegistry.MAPPER_HOLDERS.put(dictHolder.getDictName(), dictHolder);
             log.info("process {} success.", bean.getClass());
         }
         return bean;

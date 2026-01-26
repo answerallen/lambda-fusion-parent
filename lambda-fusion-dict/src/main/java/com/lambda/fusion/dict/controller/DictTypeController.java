@@ -7,8 +7,8 @@ import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.model.QueryDictTree;
 import com.lambda.fusion.dict.model.QueryDictTypePage;
 import com.lambda.fusion.dict.service.DictTypeService;
-import com.lambda.fusion.dict.support.enums.DictionaryHolder;
-import com.lambda.fusion.dict.support.enums.DictionaryRegistry;
+import com.lambda.fusion.dict.support.enums.DictHolder;
+import com.lambda.fusion.dict.support.enums.DictRegistry;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -113,7 +113,7 @@ public class DictTypeController {
 
     @GetMapping("/dict/enum")
     @Operation(summary = "获取所有枚举字典", description = "获取所有枚举字典")
-    public Map<String, DictionaryHolder> getAllEnumDict() {
-        return DictionaryRegistry.getMapperHolders();
+    public Map<String, DictHolder> getAllEnumDict() {
+        return DictRegistry.getMapperHolders();
     }
 }

@@ -1,6 +1,6 @@
 package com.lambda.fusion.dict.controller;
 
-import static com.lambda.fusion.dict.support.constants.DictConstants.*;
+import static com.lambda.fusion.dict.DictConstants.*;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.OperatorUtils;

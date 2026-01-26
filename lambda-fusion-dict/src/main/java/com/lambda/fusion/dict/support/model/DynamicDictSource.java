@@ -1,6 +1,6 @@
 package com.lambda.fusion.dict.support.model;
 
-import static com.lambda.fusion.dict.support.constants.DictConstants.*;
+import static com.lambda.fusion.dict.DictConstants.*;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Schema(description = "动态字典")
 @NoArgsConstructor
-public class DynamicDictionarySource {
+public class DynamicDictSource {
     @Schema(description = "展示参数, 页面展示使用")
     private String key;
 
@@ -31,13 +31,13 @@ public class DynamicDictionarySource {
     @Schema(description = "级别：最顶层为1，后边层数累加", hidden = true)
     private Integer level;
 
-    public DynamicDictionarySource(String key, Object val) {
+    public DynamicDictSource(String key, Object val) {
         this.key = key;
         this.val = val;
         this.selectable = SELECTABLE_ENABLED;
     }
 
-    public DynamicDictionarySource(String key, Object val, Integer selectable) {
+    public DynamicDictSource(String key, Object val, Integer selectable) {
         this.key = key;
         this.val = val;
         this.selectable = selectable;

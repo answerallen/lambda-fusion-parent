@@ -1,13 +1,13 @@
 package com.lambda.fusion.dict.support.resolve;
 
 import com.lambda.fusion.dict.model.DictTypeTree;
-import com.lambda.fusion.dict.support.model.DynamicDictionarySource;
+import com.lambda.fusion.dict.support.model.DynamicDictSource;
 import java.util.List;
 
 /**
  * @author Jin
  */
-public interface DictionarySourceResolver {
+public interface DictSourceResolver {
 
     /**
      * 能否解析
@@ -23,5 +23,5 @@ public interface DictionarySourceResolver {
      * @param dictTypeTree 配置信息
      * @return 列表
      */
-    List<DynamicDictionarySource> doResolve(DictTypeTree dictTypeTree);
+    List<DynamicDictSource> doResolve(DictTypeTree dictTypeTree);
 }

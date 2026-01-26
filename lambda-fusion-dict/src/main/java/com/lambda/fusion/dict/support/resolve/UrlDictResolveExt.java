@@ -2,8 +2,8 @@ package com.lambda.fusion.dict.support.resolve;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import com.lambda.fusion.dict.model.DictTypeTree;
-import com.lambda.fusion.dict.support.constants.DictConstants;
-import com.lambda.fusion.dict.support.model.DynamicDictionarySource;
+import com.lambda.fusion.dict.DictConstants;
+import com.lambda.fusion.dict.support.model.DynamicDictSource;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
@@ -21,7 +21,7 @@ public class UrlDictResolveExt extends UrlDictResolve {
         return false;
     }
 
-    public List<DynamicDictionarySource> doResolve(DictTypeTree dictTypeTree, String accessToken) {
+    public List<DynamicDictSource> doResolve(DictTypeTree dictTypeTree, String accessToken) {
         String url = dictTypeTree.getDataTypeValue();
         if (CharSequenceUtil.isEmpty(accessToken)
                 || url.startsWith(DictConstants.HTTP_PROTOCOL)

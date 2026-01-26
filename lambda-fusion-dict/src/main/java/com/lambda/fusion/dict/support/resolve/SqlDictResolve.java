@@ -1,11 +1,11 @@
 package com.lambda.fusion.dict.support.resolve;
 
-import static com.lambda.fusion.dict.support.constants.DictConstants.*;
+import static com.lambda.fusion.dict.DictConstants.*;
 
 import com.lambda.fusion.dict.mapper.DictSqlMapper;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.support.model.DictValueType;
-import com.lambda.fusion.dict.support.model.DynamicDictionarySource;
+import com.lambda.fusion.dict.support.model.DynamicDictSource;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SqlDictResolve implements DictionarySourceResolver {
+public class SqlDictResolve implements DictSourceResolver {
 
     protected final DictSqlMapper dictSqlMapper;
 
@@ -37,9 +37,9 @@ public class SqlDictResolve implements DictionarySourceResolver {
     }
 
     @Override
-    public List<DynamicDictionarySource> doResolve(DictTypeTree dictTypeTree) {
+    public List<DynamicDictSource> doResolve(DictTypeTree dictTypeTree) {
         final String sql = dictTypeTree.getDataTypeValue();
-        List<DynamicDictionarySource> result = new ArrayList<>();
+        List<DynamicDictSource> result = new ArrayList<>();
         try {
             final Statement parse = PARSER_MANAGER.parse(new StringReader(sql));
             if (parse instanceof Select) {
@@ -54,9 +54,9 @@ public class SqlDictResolve implements DictionarySourceResolver {
         return result;
     }
 
-    private void addResult(List<LinkedHashMap<String, Object>> list, List<DynamicDictionarySource> result) {
+    private void addResult(List<LinkedHashMap<String, Object>> list, List<DynamicDictSource> result) {
         for (LinkedHashMap<String, Object> map : list) {
-            DynamicDictionarySource dict = new DynamicDictionarySource();
+            DynamicDictSource dict = new DynamicDictSource();
             if (map.containsKey(SQL_KEY) && map.containsKey(SQL_VAL)) {
                 dict.setKey(map.get(SQL_KEY).toString());
                 dict.setVal(map.get(SQL_VAL));

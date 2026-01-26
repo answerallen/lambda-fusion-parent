@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.support.constants;
+package com.lambda.fusion.dict;
 
 /**
  * 字典模块常量定义
@@ -148,54 +148,52 @@ public final class DictConstants {
 
     // ==================== 错误消息常量 ====================
 
-    /** 非法SQL错误消息 */
-    public static final String ERROR_ILLEGAL_SQL = "Illegal SQL";
-
     /** SQL解析异常错误消息 */
-    public static final String ERROR_JSQL_PARSER_EXCEPTION = "JSQLParserException";
+    public static final String ERROR_JSQL_PARSER_EXCEPTION = "SQL解析异常错误";
 
     /** 字典HTTP请求错误消息 */
     public static final String ERROR_DICT_HTTP_REQUEST = "字典http请求错误";
 
-    // ==================== 国际化消息键常量 ====================
-
     /** 字典类型不能为空 */
-    public static final String MSG_DICT_TYPE_NOT_EMPTY = "fx.dictionary.dict.type.notempty";
+    public static final String MSG_DICT_TYPE_NOT_EMPTY = "字典类型不能为空";
 
     /** 字典字段类型不能为空 */
-    public static final String MSG_DICT_FIELD_TYPE_NOT_EMPTY = "fx.dictionary.dict.fieldtype.notempty";
+    public static final String MSG_DICT_FIELD_TYPE_NOT_EMPTY = "字典字段类型不能为空";
 
     /** 字典字段名不能为空 */
-    public static final String MSG_DICT_FIELD_NAME_NOT_EMPTY = "fx.dictionary.dict.field.name.notempty";
+    public static final String MSG_DICT_FIELD_NAME_NOT_EMPTY = "字典字段名不能为空";
 
     /** 字典排序号不能为空 */
-    public static final String MSG_DICT_SORT_NUMBER_NOT_EMPTY = "fx.dictionary.dict.sort.number.notempty";
+    public static final String MSG_DICT_SORT_NUMBER_NOT_EMPTY = "字典排序号不能为空";
 
     /** 字典启用状态不能为空 */
-    public static final String MSG_DICT_ENABLED_NOT_EMPTY = "fx.dictionary.dict.enabled.notempty";
+    public static final String MSG_DICT_ENABLED_NOT_EMPTY = "字典启用状态不能为空";
 
     /** 字典ID不能为空 */
-    public static final String MSG_DICT_ID_NOT_EMPTY = "fx.dictionary.dict.id.notempty";
+    public static final String MSG_DICT_ID_NOT_EMPTY = "字典ID不能为空";
 
     /** 字典更新数据不存在 */
-    public static final String MSG_DICT_UPDATE_DATA_NOT_EXISTED = "fx.dictionary.dict.update.data.not.existed";
+    public static final String MSG_DICT_UPDATE_DATA_NOT_EXISTED = "字典更新数据不存在";
 
     /** 字典类型已存在子类型 */
-    public static final String MSG_DICT_EXISTED_CHILD_TYPE = "fx.dictionary.dict.existed.child.type";
+    public static final String MSG_DICT_EXISTED_CHILD_TYPE = "字典类型已存在子类型";
 
     /** 字典类型不存在 */
-    public static final String MSG_DICT_TYPE_NOT_EXISTED = "fx.dictionary.dict.type.not.existed";
+    public static final String MSG_DICT_TYPE_NOT_EXISTED = "字典类型不存在";
 
     /** 字典类型已存在 */
-    public static final String MSG_DICT_TYPE_EXISTED = "fx.dictionary.dict.type.existed";
+    public static final String MSG_DICT_TYPE_EXISTED = "字典类型已存在";
 
     /** 字典名称不能为空 */
-    public static final String MSG_DICT_NAME_NOT_EMPTY = "fx.dictionary.dict.name.notempty";
+    public static final String MSG_DICT_NAME_NOT_EMPTY = "字典名称不能为空";
 
     // ==================== 其他常量 ====================
 
     /** 默认字典名称 */
     public static final String DEFAULT_DICT_NAME = "default";
+
+    /** 默认包名 */
+    public static final String DEFAULT_PACKAGE = "com.lambda.fusion";
 
     /** 父级键截取长度 */
     public static final int PARENT_KEY_SUBSTRING_LENGTH = 8;
