@@ -1,13 +1,8 @@
-package com.lambda.fusion.dict.support.enums;
+package com.lambda.fusion.dict.support.scanner;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Set;
-import javax.annotation.Nonnull;
+import com.lambda.fusion.dict.support.DictHolder;
+import com.lambda.fusion.dict.support.DictMapper;
+import com.lambda.fusion.dict.support.registry.DictRegistry;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
@@ -16,6 +11,15 @@ import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.context.annotation.ClassPathBeanDefinitionScanner;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.ReflectionUtils;
+
+import javax.annotation.Nonnull;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Jin
@@ -62,18 +66,20 @@ public class DictEnumScanner extends ClassPathBeanDefinitionScanner {
             return;
         }
         // 字典类型
-        final String dictName = annotation.dictName();
-        final String dictDesc = annotation.dictDesc();
+        String dictName = annotation.dictName();
+        String dictDesc = annotation.dictDesc();
         // 字典选项
-        final String key = annotation.key();
-        final String val = annotation.val();
+        String key = annotation.key();
+        String val = annotation.val();
 
-        final DictHolder holders =
-                DictRegistry.MAPPER_HOLDERS.getOrDefault(dictName, new DictHolder(dictName, dictDesc));
-        final Method values = aClass.getMethod("values");
-        final Object[] invoke = (Object[]) values.invoke(null);
-        final Field keyField = ReflectionUtils.findField(aClass, key);
-        final Field valField = ReflectionUtils.findField(aClass, val);
+        DictHolder holders = DictRegistry.getDictHolder(dictName);
+        if (holders == null) {
+            holders = new DictHolder(dictName, dictDesc);
+        }
+        Method values = aClass.getMethod("values");
+        Object[] invoke = (Object[]) values.invoke(null);
+        Field keyField = ReflectionUtils.findField(aClass, key);
+        Field valField = ReflectionUtils.findField(aClass, val);
         if (Objects.nonNull(keyField) && Objects.nonNull(valField)) {
             keyField.setAccessible(true);
             valField.setAccessible(true);

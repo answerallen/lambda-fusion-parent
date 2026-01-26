@@ -1,7 +1,6 @@
-package com.lambda.fusion.dict.support.model;
+package com.lambda.fusion.dict.support;
 
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.dict.support.enums.DictMapper;
 import lombok.Getter;
 
 /**
@@ -42,7 +41,7 @@ public enum DictValueType {
         this.configKey = configKey;
     }
 
-    public static DictValueType getByValueType(Integer valueType) {
+    public static DictValueType of(Integer valueType) {
         DictValueType type = null;
         for (DictValueType value : values()) {
             if (value.getValueType().equals(valueType)) {
@@ -52,5 +51,13 @@ public enum DictValueType {
         }
         Assert.notNull(type, "字典类型未配置");
         return type;
+    }
+
+    public boolean isEnumDict() {
+        return DictValueType.ENUM_DICT.equals(this);
+    }
+
+    public boolean isNotEnumDict() {
+        return !DictValueType.ENUM_DICT.equals(this);
     }
 }

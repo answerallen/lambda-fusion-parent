@@ -25,7 +25,7 @@ import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
 import com.lambda.fusion.dict.model.*;
 import com.lambda.fusion.dict.service.DictInfoService;
-import com.lambda.fusion.dict.support.enums.DictRegistry;
+import com.lambda.fusion.dict.support.registry.DictRegistry;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -98,7 +98,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         String dictType = source.getDictType();
         String fieldType = source.getFieldType();
         String fieldName = source.getFieldName();
-        Assert.notNull(source, "");
+        Assert.notNull(source, ERROR_DICT_NOT_NULL);
         Assert.hasText(dictType, MSG_DICT_TYPE_NOT_EMPTY);
         Assert.hasText(fieldType, MSG_DICT_FIELD_TYPE_NOT_EMPTY);
         Assert.hasText(fieldName, MSG_DICT_FIELD_NAME_NOT_EMPTY);

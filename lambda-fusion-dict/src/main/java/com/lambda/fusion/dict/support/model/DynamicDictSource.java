@@ -34,7 +34,6 @@ public class DynamicDictSource {
     public DynamicDictSource(String key, Object val) {
         this.key = key;
         this.val = val;
-        this.selectable = SELECTABLE_ENABLED;
     }
 
     public DynamicDictSource(String key, Object val, Integer selectable) {

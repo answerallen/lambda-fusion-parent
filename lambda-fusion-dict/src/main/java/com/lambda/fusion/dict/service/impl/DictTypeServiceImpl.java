@@ -21,7 +21,8 @@ import com.lambda.fusion.dict.model.DictInfo;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.model.QueryDictTree;
 import com.lambda.fusion.dict.service.DictTypeService;
-import com.lambda.fusion.dict.support.enums.DictRegistry;
+import com.lambda.fusion.dict.support.registry.DictRegistry;
+import com.lambda.fusion.dict.support.DictValueType;
 import com.lambda.fusion.dict.support.model.DynamicDictSource;
 import com.lambda.fusion.dict.support.resolve.DictSourceResolver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -103,7 +104,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
         if (StringUtils.isNotBlank(type)) {
             DictTypeTree conditions = dictTypeMapper.selectOne(new QueryWrapper<DictTypeTree>().eq(FIELD_DICT_TYPE, type));
             Assert.notNull(conditions, MSG_DICT_TYPE_NOT_EXISTED);
-            assembeyQueryParamater(parameters, conditions);
+            assemblyQueryParameter(parameters, conditions);
             parameters.put(FIELD_LEVEL, conditions.getLevel());
         }
         return TreeBuilder.build(dictTypeMapper.treeList(parameters));
@@ -114,19 +115,20 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
         String type = queryDictTree.getType();
         String name = queryDictTree.getName();
         Integer dataType = queryDictTree.getDataType();
+        DictValueType dictValueType = DictValueType.of(dataType);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
         if (StringUtils.isNotBlank(name)) {
             parameters.put("name", SqlParamUtils.fuzzyQuery(name));
         }
 
         List<DictTypeTree> result = new ArrayList<>();
-        if (dataType == null || dataType.equals(DATA_TYPE_ENUM)) {
+        if (dataType == null || dictValueType.isEnumDict()) {
             // 枚举字典
             if (StringUtils.isNotBlank(type)) {
                 DictTypeTree conditions = dictTypeMapper.selectOne(
                         new LambdaQueryWrapper<DictTypeTree>().eq(DictTypeTree::getDictType, type));
                 if (Objects.nonNull(conditions)) {
-                    assembeyQueryParamater(parameters, conditions);
+                    assemblyQueryParameter(parameters, conditions);
                 }
                 getEnumDict(queryDictTree, name, result);
             } else {
@@ -143,7 +145,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
                 }
             }
         }
-        if (dataType == null || !dataType.equals(DATA_TYPE_ENUM)) {
+        if (dataType == null || dictValueType.isNotEnumDict()) {
             // 非枚举字典
             parameters.put(FIELD_DICT_TYPE, dataType);
             parameters.put("userOnly", queryDictTree.isUserOnly());
@@ -162,7 +164,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
         return TreeBuilder.build(typeList);
     }
 
-    private void assembeyQueryParamater(Map<String, Object> parameters, DictTypeTree conditions) {
+    private void assemblyQueryParameter(Map<String, Object> parameters, DictTypeTree conditions) {
         String key = conditions.getParentKeys();
         if (StringUtils.isNotBlank(key)) {
             key = key.substring(0, 8);

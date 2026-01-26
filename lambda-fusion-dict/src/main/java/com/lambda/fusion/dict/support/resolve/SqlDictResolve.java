@@ -4,7 +4,7 @@ import static com.lambda.fusion.dict.DictConstants.*;
 
 import com.lambda.fusion.dict.mapper.DictSqlMapper;
 import com.lambda.fusion.dict.model.DictTypeTree;
-import com.lambda.fusion.dict.support.model.DictValueType;
+import com.lambda.fusion.dict.support.DictValueType;
 import com.lambda.fusion.dict.support.model.DynamicDictSource;
 import java.io.StringReader;
 import java.util.ArrayList;

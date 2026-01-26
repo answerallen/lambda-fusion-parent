@@ -1,8 +1,9 @@
-package com.lambda.fusion.dict.support.enums;
+package com.lambda.fusion.dict.support.registry;
 
 import com.lambda.fusion.dict.model.DictInfo;
 import com.lambda.fusion.dict.model.DictTypeTree;
-import com.lambda.fusion.dict.support.model.DictValueType;
+import com.lambda.fusion.dict.support.DictValueType;
+import com.lambda.fusion.dict.support.DictHolder;
 import com.lambda.fusion.dict.support.model.DynamicDictSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;

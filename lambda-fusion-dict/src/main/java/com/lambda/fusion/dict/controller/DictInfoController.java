@@ -94,7 +94,7 @@ public class DictInfoController {
     @OperationLog
     @PutMapping("/{id}")
     @Operation(summary = "更新字典详细信息", description = "更新字典详细信息")
-    public void updateDictInfo(@PathVariable("id") String id, @Valid InputDictInfo inputDictInfo) {
+    public void updateDictInfo(@PathVariable String id, @Valid InputDictInfo inputDictInfo) {
         dictInfoService.updateDictInfo(id, inputDictInfo.toEntity());
     }
 
@@ -107,34 +107,34 @@ public class DictInfoController {
 
     @PutMapping("/{id}/enable")
     @Operation(summary = "启用字典", description = "启用字典")
-    public void changeEnable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
+    public void changeEnable(@PathVariable @Parameter(required = true, description = "字典详细信息Id") String id) {
         dictInfoService.updateEnableState(
                 OperationDictState.builder().id(id).state(ENABLE_STATE_ENABLED).build());
     }
 
     @PutMapping("/{id}/disable")
     @Operation(summary = "禁用字典", description = "禁用字典")
-    public void changeDisable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
+    public void changeDisable(@PathVariable @Parameter(required = true, description = "字典详细信息Id") String id) {
         dictInfoService.updateEnableState(
                 OperationDictState.builder().id(id).state(ENABLE_STATE_DISABLED).build());
     }
 
     @PutMapping("/{id}/selectable")
     @Operation(summary = "设置可选择", description = "设置可选择")
-    public void changeSelectable(@PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
+    public void changeSelectable(@PathVariable @Parameter(required = true, description = "字典详细信息Id") String id) {
         dictInfoService.updateSelectableState(OperationDictState.builder()
                 .id(id)
-                .state(SELECTABLE_STATE_ENABLED)
+                .state(SELECTABLE_DISABLED)
                 .build());
     }
 
     @PutMapping("/{id}/unselectable")
     @Operation(summary = "设置不可选择", description = "设置不可选择")
     public void changeUnselectable(
-            @PathVariable("id") @Parameter(required = true, description = "字典详细信息Id") String id) {
+            @PathVariable @Parameter(required = true, description = "字典详细信息Id") String id) {
         dictInfoService.updateSelectableState(OperationDictState.builder()
                 .id(id)
-                .state(SELECTABLE_STATE_DISABLED)
+                .state(SELECTABLE_ENABLED)
                 .build());
     }
 }

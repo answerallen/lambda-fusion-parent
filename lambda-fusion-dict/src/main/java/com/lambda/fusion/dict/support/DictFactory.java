@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.support.enums;
+package com.lambda.fusion.dict.support;
 
 /**
  * @author jin

@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.support.enums;
+package com.lambda.fusion.dict.support;
 
 import com.lambda.fusion.dict.support.model.DynamicDictSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -23,12 +23,11 @@ public class DictHolder {
         this.list = new ArrayList<>();
     }
 
-    public DictHolder addOption(String key, Object val) {
-        return addOption(new DynamicDictSource(key, val));
+    public void addOption(String key, Object val) {
+        addOption(new DynamicDictSource(key, val));
     }
 
-    public DictHolder addOption(DynamicDictSource dictOption) {
+    public void addOption(DynamicDictSource dictOption) {
         list.add(dictOption);
-        return this;
     }
 }

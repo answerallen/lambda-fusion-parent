@@ -7,7 +7,7 @@ import cn.hutool.core.text.CharSequenceUtil;
 import com.lambda.fusion.autoconfig.DictionaryProperties;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.dict.model.DictTypeTree;
-import com.lambda.fusion.dict.support.model.DictValueType;
+import com.lambda.fusion.dict.support.DictValueType;
 import com.lambda.fusion.dict.support.model.DynamicDictSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
