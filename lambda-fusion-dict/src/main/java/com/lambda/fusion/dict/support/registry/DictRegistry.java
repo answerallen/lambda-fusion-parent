@@ -2,8 +2,8 @@ package com.lambda.fusion.dict.support.registry;
 
 import com.lambda.fusion.dict.model.DictInfo;
 import com.lambda.fusion.dict.model.DictTypeTree;
-import com.lambda.fusion.dict.support.DictValueType;
 import com.lambda.fusion.dict.support.DictHolder;
+import com.lambda.fusion.dict.support.DictValueType;
 import com.lambda.fusion.dict.support.model.DynamicDictSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
@@ -55,18 +55,19 @@ public class DictRegistry {
         dictTypeTree.setDictType(dictHolder.getDictName());
         dictTypeTree.setDataType(DictValueType.ENUM_DICT.getValueType());
         dictTypeTree.setDictName(dictHolder.getDictDesc());
+        dictTypeTree.setDictUsage(dictHolder.getDictUsage());
         dictTypeTree.setLevel(1);
 
         final List<DynamicDictSource> dictHolderList = dictHolder.getList();
         List<DictInfo> dictionaryEntries = new ArrayList<>(dictHolderList.size());
         for (DynamicDictSource dynamicDictSource : dictHolderList) {
-            final DictInfo dictionaryEntry = new DictInfo();
-            dictionaryEntry.setId(dynamicDictSource.getKey());
-            dictionaryEntry.setDictType(dictTypeTree.getDictType());
-            dictionaryEntry.setDictName(dictTypeTree.getDictName());
-            dictionaryEntry.setFieldType(dynamicDictSource.getVal().toString());
-            dictionaryEntry.setFieldName(dynamicDictSource.getKey());
-            dictionaryEntries.add(dictionaryEntry);
+            final DictInfo dictInfo = new DictInfo();
+            dictInfo.setId(dynamicDictSource.getKey());
+            dictInfo.setDictType(dictTypeTree.getDictType());
+            dictInfo.setDictName(dictTypeTree.getDictName());
+            dictInfo.setFieldType(dynamicDictSource.getVal().toString());
+            dictInfo.setFieldName(dynamicDictSource.getKey());
+            dictionaryEntries.add(dictInfo);
         }
         dictTypeTree.setData(dictionaryEntries);
         return dictTypeTree;

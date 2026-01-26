@@ -15,12 +15,14 @@ import lombok.Data;
 public class DictHolder {
     private String dictName;
     private String dictDesc;
+    private Integer dictUsage;
     private List<DynamicDictSource> list;
 
-    public DictHolder(String dictName, String dictDesc) {
+    public DictHolder(String dictName, String dictDesc,int dictUsage) {
         this.dictName = dictName;
         this.dictDesc = dictDesc;
         this.list = new ArrayList<>();
+        this.dictUsage = dictUsage;
     }
 
     public void addOption(String key, Object val) {

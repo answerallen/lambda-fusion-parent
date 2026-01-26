@@ -1,8 +1,17 @@
 package com.lambda.fusion.dict.support.scanner;
 
 import com.lambda.fusion.dict.support.DictHolder;
-import com.lambda.fusion.dict.support.DictMapper;
+import com.lambda.fusion.dict.support.DictUsage;
+import com.lambda.fusion.dict.support.annotation.DictMapper;
 import com.lambda.fusion.dict.support.registry.DictRegistry;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Set;
+import javax.annotation.Nonnull;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
@@ -11,15 +20,6 @@ import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.context.annotation.ClassPathBeanDefinitionScanner;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.ReflectionUtils;
-
-import javax.annotation.Nonnull;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Set;
 
 /**
  * @author Jin
@@ -68,13 +68,14 @@ public class DictEnumScanner extends ClassPathBeanDefinitionScanner {
         // 字典类型
         String dictName = annotation.dictName();
         String dictDesc = annotation.dictDesc();
+        DictUsage dictUsage = annotation.dictUsage();
         // 字典选项
         String key = annotation.key();
         String val = annotation.val();
 
         DictHolder holders = DictRegistry.getDictHolder(dictName);
         if (holders == null) {
-            holders = new DictHolder(dictName, dictDesc);
+            holders = new DictHolder(dictName, dictDesc,dictUsage.getValue());
         }
         Method values = aClass.getMethod("values");
         Object[] invoke = (Object[]) values.invoke(null);

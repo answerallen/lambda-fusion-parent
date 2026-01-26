@@ -1,4 +1,6 @@
-package com.lambda.fusion.dict.support;
+package com.lambda.fusion.dict.support.annotation;
+
+import com.lambda.fusion.dict.support.DictUsage;
 
 import static com.lambda.fusion.dict.DictConstants.*;
 
@@ -16,6 +18,11 @@ public @interface DictMapper {
      * @return 字典名称
      */
     String dictName() default DEFAULT_DICT_NAME;
+
+    /**
+     * @return 字典用途
+     */
+    DictUsage dictUsage() default DictUsage.USER;
 
     /**
      * @return 字典描述

@@ -2,7 +2,7 @@ package com.lambda.fusion.dict.controller;
 
 import static com.lambda.fusion.dict.DictConstants.*;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.identity.UserPrincipal;
@@ -34,7 +34,7 @@ public class DictInfoController {
 
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "字典类型分页查询", description = "字典类型分页查询，支持多条件查询和排序")
-    public Page<DictInfo> dictTypeList(
+    public IPage<DictInfo> dictTypeList(
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
             @Valid QueryDictInfoPage pageQueryDTO) {
@@ -44,7 +44,7 @@ public class DictInfoController {
         if (size != null) {
             pageQueryDTO.setPageSize(size);
         }
-        return dictInfoService.page(pageQueryDTO.getPage(), pageQueryDTO.toDictInfoQueryDTO());
+        return dictInfoService.page(pageQueryDTO);
     }
 
     @GetMapping("/dynamic")
@@ -66,12 +66,11 @@ public class DictInfoController {
         return dictInfoService.getSubTreeData(type);
     }
 
-    @OperationLog
-    @GetMapping("/tree/data/{parentid}")
+    @GetMapping("/tree/data/{parentId}")
     @Operation(summary = "根据数据项父节点查询数据项树", description = "根据数据项父节点查询数据项树")
     public List<DictInfo> queryDictInfoByParentId(
-            @Parameter(description = "数据项父ID", required = true) @PathVariable String parentid) {
-        return dictInfoService.getDictInfoByParentId(parentid);
+            @Parameter(description = "数据项父ID", required = true) @PathVariable String parentId) {
+        return dictInfoService.getDictInfoByParentId(parentId);
     }
 
     @GetMapping("/data/select")
@@ -80,7 +79,6 @@ public class DictInfoController {
         return dictInfoService.selectDictInfo(queryDictInfo);
     }
 
-    @OperationLog
     @PostMapping
     @Operation(summary = "添加字典详细信息", description = "添加字典详细信息")
     public DictInfo saveDictInfo(@Valid @RequestBody DictInfo dictInfo) {
@@ -91,14 +89,12 @@ public class DictInfoController {
         return dictInfoService.saveDictInfo(userPrincipal, dictInfo);
     }
 
-    @OperationLog
     @PutMapping("/{id}")
     @Operation(summary = "更新字典详细信息", description = "更新字典详细信息")
     public void updateDictInfo(@PathVariable String id, @Valid InputDictInfo inputDictInfo) {
         dictInfoService.updateDictInfo(id, inputDictInfo.toEntity());
     }
 
-    @OperationLog
     @DeleteMapping("/{id}")
     @Operation(summary = "删除字典详细信息", description = "删除字典详细信息")
     public void deleteDictInfo(@Parameter(description = "字典类型编号", required = true) @PathVariable String id) {
@@ -122,19 +118,14 @@ public class DictInfoController {
     @PutMapping("/{id}/selectable")
     @Operation(summary = "设置可选择", description = "设置可选择")
     public void changeSelectable(@PathVariable @Parameter(required = true, description = "字典详细信息Id") String id) {
-        dictInfoService.updateSelectableState(OperationDictState.builder()
-                .id(id)
-                .state(SELECTABLE_DISABLED)
-                .build());
+        dictInfoService.updateSelectableState(
+                OperationDictState.builder().id(id).state(SELECTABLE_DISABLED).build());
     }
 
     @PutMapping("/{id}/unselectable")
     @Operation(summary = "设置不可选择", description = "设置不可选择")
-    public void changeUnselectable(
-            @PathVariable @Parameter(required = true, description = "字典详细信息Id") String id) {
-        dictInfoService.updateSelectableState(OperationDictState.builder()
-                .id(id)
-                .state(SELECTABLE_ENABLED)
-                .build());
+    public void changeUnselectable(@PathVariable @Parameter(required = true, description = "字典详细信息Id") String id) {
+        dictInfoService.updateSelectableState(
+                OperationDictState.builder().id(id).state(SELECTABLE_ENABLED).build());
     }
 }

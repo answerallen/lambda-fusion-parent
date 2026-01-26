@@ -9,8 +9,8 @@
         <result property="dictName" column="DICT_NAME"/>
         <result property="fieldType" column="FIELD_TYPE"/>
         <result property="fieldName" column="FIELD_NAME"/>
-        <result property="sort" column="SORT"/>
-        <result property="notes" column="notes"/>
+        <result property="sort" column="SORT_NO"/>
+        <result property="remarks" column="REMARKS"/>
         <result property="tenantId" column="TENANT_ID"/>
         <result property="createTime" column="create_Time"/>
         <result property="createUser" column="create_User"/>
@@ -28,8 +28,8 @@
             <result property="fieldType" column="fieldType"/>
             <result property="fieldName" column="fieldName"/>
             <result property="parentId" column="parentId"/>
-            <result property="sort" column="sort"/>
-            <result property="notes" column="notes"/>
+            <result property="sort" column="sort_no"/>
+            <result property="remarks" column="REMARKS"/>
             <result property="selectable" column="SELECT_ABLE"/>
         </collection>
     </resultMap>
@@ -42,7 +42,7 @@
         REMARKS,
         TENANT_ID,
         SELECT_ABLE,
-        SORT FROM la_dict_info
+        SORT_NO FROM la_dict_info
         WHERE ENABLE_STATE = 1
         AND (
         TENANT_ID IS NULL
@@ -53,7 +53,7 @@
         <if test="type !=null and type != ''">
             AND DICT_TYPE  LIKE #{type}
         </if>
-        GROUP BY DICT_TYPE,FIELD_TYPE,FIELD_NAME,parentId,TENANT_ID,REMARKS,SELECT_ABLE,SORT ORDER BY SORT ASC
+        GROUP BY DICT_TYPE,FIELD_TYPE,FIELD_NAME,parentId,TENANT_ID,REMARKS,SELECT_ABLE,SORT_NO ORDER BY SORT_NO ASC
     </select>
 
     <select id="page" parameterType="HashMap" resultType="com.lambda.fusion.dict.model.DictInfo">
@@ -61,13 +61,13 @@
         DI.DICT_TYPE ,
         DI.FIELD_TYPE ,
         DI.FIELD_NAME ,
-        DI.SORT,
+        DI.SORT_NO,
         DI.REMARKS,
         DI.TENANT_ID,
-        DI.FOUND_TIME ,
-        DI.FOUND_PEOPLE ,
         DI.UPDATE_TIME ,
-        DI.UPDATE_PEOPLE ,
+        DI.UPDATE_USER ,
+        DI.CREATE_USER ,
+        DI.CREATE_TIME ,
         DI.ENABLE_STATE ,
         DT.DICT_NAME,
         DI.PARENT_ID,
@@ -84,13 +84,13 @@
         DI.DICT_TYPE ,
         DI.FIELD_TYPE ,
         DI.FIELD_NAME ,
-        DI.SORT,
+        DI.SORT_NO,
         DI.REMARKS,
         DI.TENANT_ID,
-        DI.FOUND_TIME ,
-        DI.FOUND_PEOPLE ,
         DI.UPDATE_TIME ,
-        DI.UPDATE_PEOPLE ,
+        DI.UPDATE_USER ,
+        DI.CREATE_USER ,
+        DI.CREATE_TIME ,
         DI.ENABLE_STATE ,
         DT.DICT_NAME,
         DI.EXTRA,
@@ -119,13 +119,13 @@
         DI.DICT_TYPE ,
         DI.FIELD_TYPE ,
         DI.FIELD_NAME ,
-        DI.SORT,
+        DI.SORT_NO,
         DI.REMARKS,
         DI.TENANT_ID,
-        DI.FOUND_TIME ,
-        DI.FOUND_PEOPLE ,
         DI.UPDATE_TIME ,
-        DI.UPDATE_PEOPLE ,
+        DI.UPDATE_USER ,
+        DI.CREATE_USER ,
+        DI.CREATE_TIME ,
         DI.ENABLE_STATE ,
         DI.PARENT_ID ,
         DI.PARENT_KEYS ,

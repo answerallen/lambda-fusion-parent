@@ -103,8 +103,7 @@ public class UrlDictResolve implements DictSourceResolver {
         return response.getBody();
     }
 
-    private static class ListParameterizedTypeReference
-            extends ParameterizedTypeReference<List<DynamicDictSource>> {}
+    private static class ListParameterizedTypeReference extends ParameterizedTypeReference<List<DynamicDictSource>> {}
 
     public static String getAccessToken(HttpServletRequest request) {
         String payload = request.getHeader(FusionConstants.AUTHORIZATION);

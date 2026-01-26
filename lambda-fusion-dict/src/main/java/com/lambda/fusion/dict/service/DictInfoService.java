@@ -1,12 +1,9 @@
 package com.lambda.fusion.dict.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.dict.model.DictInfo;
-import com.lambda.fusion.dict.model.DictType;
-import com.lambda.fusion.dict.model.OperationDictState;
-import com.lambda.fusion.dict.model.QueryDictInfo;
+import com.lambda.fusion.dict.model.*;
 import java.util.List;
 import java.util.Map;
 
@@ -20,11 +17,9 @@ public interface DictInfoService extends IService<DictInfo> {
     /**
      * 分页查询字典信息
      *
-     * @param pageable 分页参数
-     * @param queryDTO 查询条件
      * @return 分页结果
      */
-    Page<DictInfo> page(Page<DictInfo> pageable, QueryDictInfo queryDTO);
+    IPage<DictInfo> page(QueryDictInfoPage pageQueryDTO);
 
     /**
      * 根据条件查询字典信息列表

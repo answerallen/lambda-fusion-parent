@@ -8,6 +8,7 @@ import com.lambda.fusion.dict.model.QueryDictTree;
 import com.lambda.fusion.dict.model.QueryDictTypePage;
 import com.lambda.fusion.dict.service.DictTypeService;
 import com.lambda.fusion.dict.support.DictHolder;
+import com.lambda.fusion.dict.support.DictUsage;
 import com.lambda.fusion.dict.support.registry.DictRegistry;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,10 +49,10 @@ public class DictTypeController {
         UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
         if (userPrincipal.isDev()) {
             if (dictTypeTree.getDictUsage() == null) {
-                dictTypeTree.setDictUsage(DictTypeTree.DictUsage.SYSTEM.getValue());
+                dictTypeTree.setDictUsage(DictUsage.SYSTEM.getValue());
             }
         } else {
-            dictTypeTree.setDictUsage(DictTypeTree.DictUsage.USER.getValue());
+            dictTypeTree.setDictUsage(DictUsage.USER.getValue());
         }
         return dictTypeService.saveDictType(dictTypeTree);
     }

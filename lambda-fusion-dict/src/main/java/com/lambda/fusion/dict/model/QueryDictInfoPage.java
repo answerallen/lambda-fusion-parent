@@ -1,6 +1,9 @@
 package com.lambda.fusion.dict.model;
 
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.fusion.core.pagination.Pagination;
+import com.lambda.fusion.core.utils.LoginUserUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
@@ -78,20 +81,17 @@ public class QueryDictInfoPage extends Pagination<DictInfo> {
     @Size(max = 64, message = "字典信息ID长度不能超过64个字符")
     private String dictInfoId;
 
-    /**
-     * 转换为原有的查询DTO
-     *
-     * @return DictInfoQueryDTO
-     */
-    public QueryDictInfo toDictInfoQueryDTO() {
-        return QueryDictInfo.builder()
-                .dictType(this.dictType)
-                .fieldType(this.fieldType)
-                .fieldName(this.fieldName)
-                .parentId(this.parentId)
-                .enableState(this.enableState)
-                .selectable(this.selectable)
-                .dictInfoId(this.dictInfoId)
-                .build();
+    @Override
+    public LambdaQueryWrapper<DictInfo> getLambdaQueryWrapper() {
+        LambdaQueryWrapper<DictInfo> lambdaQuery = super.getLambdaQueryWrapper();
+        String tenantId = LoginUserUtils.getTenantId();
+        lambdaQuery.eq(StrUtil.isNotEmpty(tenantId),DictInfo::getTenantId, tenantId);
+        lambdaQuery.eq(DictInfo::getDictType, getDictType());
+        lambdaQuery.like(StrUtil.isNotEmpty(getFieldType()), DictInfo::getFieldType, getFieldType());
+        lambdaQuery.like(StrUtil.isNotEmpty(getFieldName()), DictInfo::getFieldName, getFieldName());
+        lambdaQuery.eq(getEnableState() != null, DictInfo::getEnableState, getEnableState());
+        lambdaQuery.eq(StrUtil.isNotEmpty(getDictInfoId()), DictInfo::getParentId, getDictInfoId());
+        lambdaQuery.orderByAsc(DictInfo::getDictType, DictInfo::getSort).orderByDesc(DictInfo::getId);
+        return lambdaQuery;
     }
 }

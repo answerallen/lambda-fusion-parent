@@ -1,21 +1,20 @@
 package com.lambda.fusion.dict.model;
 
 import com.lambda.cloud.core.annotation.AutoConverter;
-import com.lambda.cloud.core.shared.BaseDTO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.Map;
 import lombok.*;
 
+import java.util.Map;
+
 @AutoConverter(target = DictInfo.class)
-@EqualsAndHashCode(callSuper = true)
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "字典信息查询参数")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class QueryDictInfo extends BaseDTO<DictInfo> {
+public class QueryDictInfo {
 
     @Schema(description = "字典类型")
     private String dictType;
@@ -40,4 +39,5 @@ public class QueryDictInfo extends BaseDTO<DictInfo> {
 
     @Schema(description = "扩展参数")
     private Map<String, Object> extraParams;
+
 }

@@ -1,8 +1,8 @@
 package com.lambda.fusion.dict.support.resolve;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.DictConstants;
+import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.support.model.DynamicDictSource;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;

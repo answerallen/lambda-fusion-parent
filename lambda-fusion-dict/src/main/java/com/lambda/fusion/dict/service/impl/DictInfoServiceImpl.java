@@ -1,14 +1,11 @@
 package com.lambda.fusion.dict.service.impl;
 
-import static com.lambda.fusion.core.FusionConstants.JOINER;
-import static com.lambda.fusion.dict.DictConstants.*;
-
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -20,18 +17,23 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
+import com.lambda.fusion.core.utils.LoginUserUtils;
 import com.lambda.fusion.core.utils.SqlParamUtils;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
 import com.lambda.fusion.dict.model.*;
 import com.lambda.fusion.dict.service.DictInfoService;
 import com.lambda.fusion.dict.support.registry.DictRegistry;
-import java.util.*;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.core.FusionConstants.JOINER;
+import static com.lambda.fusion.dict.DictConstants.*;
 
 /**
  * 多级数据字典详细信息
@@ -51,46 +53,37 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
     private final DictTypeMapper dictTypeMapper;
 
     @Override
-    public Page<DictInfo> page(Page<DictInfo> pageable, QueryDictInfo queryDTO) {
-        Map<String, Object> parameters = convertQueryDTOToMap(queryDTO);
-        LambdaQueryWrapper<DictInfo> lambdaQuery = Wrappers.lambdaQuery();
-        lambdaQuery.eq(DictInfo::getTenantId, parameters.get(FIELD_TENANT_ID));
-        lambdaQuery.eq(StrUtil.isNotEmpty(queryDTO.getDictType()), DictInfo::getDictType, queryDTO.getDictType());
-        lambdaQuery.like(StrUtil.isNotEmpty(queryDTO.getFieldType()), DictInfo::getFieldType, queryDTO.getFieldType());
-        lambdaQuery.like(StrUtil.isNotEmpty(queryDTO.getFieldName()), DictInfo::getFieldName, queryDTO.getFieldName());
-        lambdaQuery.eq(queryDTO.getEnableState() != null, DictInfo::getEnableState, queryDTO.getEnableState());
-        lambdaQuery.eq(StrUtil.isNotEmpty(queryDTO.getDictInfoId()), DictInfo::getParentId, queryDTO.getDictInfoId());
-        lambdaQuery.orderByAsc(DictInfo::getDictType, DictInfo::getSort).orderByDesc(DictInfo::getId);
-        pageable = dictInfoMapper.page(pageable, parameters);
-        pageable.getRecords().forEach(info -> {
-            info.setParameters(convertMap(info.getExtra()));
-            info.setExtra(StringUtils.EMPTY);
+    public IPage<DictInfo> page(QueryDictInfoPage pageQueryDTO) {
+        IPage<DictInfo> dictInfoPage =
+                dictInfoMapper.selectPage(pageQueryDTO.getPage(), pageQueryDTO.getLambdaQueryWrapper());
+        return dictInfoPage.convert(dictInfo -> {
+            Map<String, Object> stringObjectMap = convertMap(dictInfo.getExtra());
+            dictInfo.setParameters(stringObjectMap);
+            dictInfo.setExtra(StringUtils.EMPTY);
+            return dictInfo;
         });
-        return pageable;
     }
 
     @Override
     public List<DictInfo> selectDictInfo(QueryDictInfo queryDTO) {
-        String tenantId = OperatorUtils.getOperator().getTenantId();
-        LambdaQueryWrapper<DictInfo> lambdaQuery = Wrappers.lambdaQuery();
-        lambdaQuery
+        String tenantId = LoginUserUtils.getLoginUser().getTenantId();
+        List<DictInfo> dictInfos = dictInfoMapper.selectDictInfo(new LambdaQueryWrapper<DictInfo>()
+                .eq(DictInfo::getDictType, queryDTO.getDictType())
                 .eq(StrUtil.isNotEmpty(tenantId), DictInfo::getTenantId, tenantId)
-                .eq(StrUtil.isNotEmpty(queryDTO.getDictType()), DictInfo::getDictType, queryDTO.getDictType())
                 .like(StrUtil.isNotEmpty(queryDTO.getFieldType()), DictInfo::getFieldType, queryDTO.getFieldType())
                 .like(StrUtil.isNotEmpty(queryDTO.getFieldName()), DictInfo::getFieldName, queryDTO.getFieldName())
                 .eq(queryDTO.getEnableState() != null, DictInfo::getEnableState, queryDTO.getEnableState())
                 .eq(StrUtil.isNotEmpty(queryDTO.getDictInfoId()), DictInfo::getParentId, queryDTO.getDictInfoId())
                 .orderByAsc(DictInfo::getDictType, DictInfo::getSort)
-                .orderByDesc(DictInfo::getId);
-        List<DictInfo> outcomes = dictInfoMapper.selectDictInfo(lambdaQuery);
-        if (CollectionUtils.isEmpty(outcomes)) {
+                .orderByDesc(DictInfo::getId));
+        if (CollectionUtils.isEmpty(dictInfos)) {
             return Collections.emptyList();
         }
-        outcomes.forEach(info -> {
+        dictInfos.forEach(info -> {
             info.setParameters(convertMap(info.getExtra()));
             info.setExtra(StringUtils.EMPTY);
         });
-        return TreeBuilder.build(outcomes);
+        return TreeBuilder.build(dictInfos);
     }
 
     @Override
@@ -308,46 +301,12 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
     private Map<String, Object> convertMap(String extra) {
         if (StringUtils.isNotBlank(extra)) {
             try {
-                return objectMapper.readValue(extra, new TypeReference<>() {});
+                return objectMapper.readValue(extra, new TypeReference<>() {
+                });
             } catch (JsonProcessingException e) {
                 log.error(e.getMessage(), e);
             }
         }
         return null;
-    }
-
-    private Map<String, Object> convertQueryDTOToMap(QueryDictInfo queryDTO) {
-        if (queryDTO == null) {
-            return new HashMap<>();
-        }
-        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(8);
-        if (StringUtils.isNotBlank(queryDTO.getDictType())) {
-            parameters.put(FIELD_DICT_TYPE, queryDTO.getDictType());
-        }
-        if (StringUtils.isNotBlank(queryDTO.getFieldType())) {
-            parameters.put(FIELD_FIELD_TYPE, SqlParamUtils.fuzzyQuery(queryDTO.getFieldType()));
-        }
-        if (StringUtils.isNotBlank(queryDTO.getFieldName())) {
-            parameters.put(FIELD_FIELD_NAME, SqlParamUtils.fuzzyQuery(queryDTO.getFieldName()));
-        }
-        if (StringUtils.isNotBlank(queryDTO.getParentId())) {
-            parameters.put(FIELD_PARENT_ID, queryDTO.getParentId());
-        }
-        if (queryDTO.getEnableState() != null) {
-            parameters.put(FIELD_ENABLE_STATE, queryDTO.getEnableState());
-        }
-        if (queryDTO.getDictInfoId() != null) {
-            parameters.put(FIELD_DICT_INFO_ID, queryDTO.getDictInfoId());
-        }
-        if (queryDTO.getSelectable() != null) {
-            parameters.put(FIELD_SELECTABLE, queryDTO.getSelectable());
-        }
-        UserPrincipal userPrincipal = (UserPrincipal) OperatorUtils.getOperator();
-        parameters.put(FIELD_TENANT_ID, userPrincipal.getTenantId());
-
-        if (queryDTO.getExtraParams() != null && !queryDTO.getExtraParams().isEmpty()) {
-            parameters.putAll(queryDTO.getExtraParams());
-        }
-        return parameters;
     }
 }

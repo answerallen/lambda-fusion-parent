@@ -44,7 +44,7 @@ public class DictInfo extends BaseDO implements TreeNode<DictInfo> {
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "字段描述")
     private String fieldName;
 
-    @TableField("sort")
+    @TableField("sort_no")
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "排序（顺序越小越靠前，0-999999）", example = "0")
     private String sort;
 
@@ -65,7 +65,7 @@ public class DictInfo extends BaseDO implements TreeNode<DictInfo> {
     private String tenantId;
 
     @Schema(description = "备注", example = "备注")
-    private String notes;
+    private String remarks;
 
     @JsonIgnore
     @TableField("extra")
