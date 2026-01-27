@@ -107,7 +107,7 @@ public class RoleServiceImpl implements RoleService {
         List<Role> roles = roleMapper.getAllRoles(parameters);
         List<GroupEntity> groupEntities = groupMapper.getAllGroup(parameters);
         GroupEntity defaultGroupEntity = newDefaultGroup(tenantId);
-        if (notcontains(groupEntities, defaultGroupEntity)) {
+        if (notContains(groupEntities, defaultGroupEntity)) {
             groupEntities.add(defaultGroupEntity);
         }
         // Jin 如果当前用户的角色是开发工程师 只返回ROLE_DEV和ROLE_ADMIN
@@ -384,13 +384,13 @@ public class RoleServiceImpl implements RoleService {
         parameters.put(FusionConstants.TENANT_ID, tenantId);
         GroupEntity defaultGroupEntity = newDefaultGroup(tenantId);
         List<GroupEntity> groupEntities = groupMapper.getAllGroup(parameters);
-        if (notcontains(groupEntities, defaultGroupEntity)) {
+        if (notContains(groupEntities, defaultGroupEntity)) {
             groupEntities.add(defaultGroupEntity);
         }
         return BeanUtil.copyToList(groupEntities, Group.class);
     }
 
-    private boolean notcontains(List<GroupEntity> groupEntities, GroupEntity defaultGroupEntity) {
+    private boolean notContains(List<GroupEntity> groupEntities, GroupEntity defaultGroupEntity) {
         return CollectionUtils.isEmpty(groupEntities)
                 || (CollectionUtils.isNotEmpty(groupEntities) && !groupEntities.contains(defaultGroupEntity));
     }

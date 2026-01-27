@@ -158,29 +158,6 @@ public class RoleController {
         return roleService.getAccessPermissions(userPrincipal, authority, mode);
     }
 
-    @PutMapping("/{authority}/grant/{resourceId}")
-    @Operation(description = "授予指定角色的特定权限", summary = "授予指定角色的特定权限")
-    public void grantRolePermission(
-            @Parameter(description = "角色名称", required = true) @PathVariable String authority,
-            @Parameter(description = "资源编号", required = true) @PathVariable String resourceId,
-            @Parameter(description = "授权模式.-0:角色,1:用户") Integer mode,
-            @Parameter(description = "授权模式.-0:仅使用,1:可管理", schema = @Schema(defaultValue = "1"))
-                    @RequestParam(defaultValue = "1")
-                    Integer status) {
-        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
-        roleService.grantRolePermission(authority, resourceId, status, userPrincipal);
-    }
-
-    @DeleteMapping("/{authority}/revoke/{resourceId}")
-    @Operation(description = "删除指定角色的特定权限", summary = "删除指定角色的特定权限")
-    public void revokeRolePermission(
-            @Parameter(description = "角色名称", required = true) @PathVariable String authority,
-            @Parameter(description = "资源编号", required = true) @PathVariable String resourceId,
-            @Parameter(description = "授权模式.-0:角色,1:用户") Integer mode) {
-        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
-        roleService.revokeRolePermission(authority, resourceId, userPrincipal);
-    }
-
     @PatchMapping("/{authority}/disabled")
     @Operation(description = "禁用角色", summary = "禁用角色")
     public void disabled(@PathVariable @Parameter(description = "角色名称", required = true) String authority) {
@@ -191,6 +168,25 @@ public class RoleController {
     @Operation(description = "启用角色", summary = "启用角色")
     public void enabled(@PathVariable @Parameter(description = "角色名称", required = true) String authority) {
         roleService.prohibitRole(1, authority);
+    }
+
+    @PutMapping("/{authority}/grant/{resourceId}")
+    @Operation(description = "授予指定角色的特定权限", summary = "授予指定角色的特定权限")
+    public void grantRolePermission(
+            @Parameter(description = "角色名称", required = true) @PathVariable String authority,
+            @Parameter(description = "资源编号", required = true) @PathVariable String resourceId,
+            @Parameter(description = "授权模式.-0:仅使用,1:可管理", schema = @Schema(defaultValue = "1"))
+            @RequestParam(defaultValue = "1")
+            Integer status) {
+        roleService.grantRolePermission(authority, resourceId, status, LoginUserUtils.getLoginUser());
+    }
+
+    @DeleteMapping("/{authority}/grant/{resourceId}")
+    @Operation(description = "删除指定角色的特定权限", summary = "删除指定角色的特定权限")
+    public void revokeRolePermission(
+            @Parameter(description = "角色名称", required = true) @PathVariable String authority,
+            @Parameter(description = "资源编号", required = true) @PathVariable String resourceId) {
+        roleService.revokeRolePermission(authority, resourceId, LoginUserUtils.getLoginUser());
     }
 
     @Operation(description = "角色批量分配用户", summary = "角色批量分配用户")

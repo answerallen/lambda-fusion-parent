@@ -22,14 +22,15 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.Collections;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 用户信息Api
@@ -66,7 +67,6 @@ public class UserController {
         if (size != null) {
             userQuery.setPageSize(size);
         }
-        UserPrincipal loginUser = LoginUserUtils.getLoginUser();
         UserQueryContext userQueryContext = userQueryHelper.buildUserQueryContext(userQuery);
         return userService.getUsers(userQuery.getPage(), userQueryContext);
     }
@@ -80,7 +80,7 @@ public class UserController {
     @GetMapping(value = "/{username}")
     @Operation(summary = "查询用户信息")
     public User getUser(@PathVariable @Parameter(description = "用户名", required = true) String username) {
-        return userService.getUserByUsername(StrUtil.trim(username));
+        return userService.getByUsername(StrUtil.trim(username));
     }
 
     @GetMapping("/search")
@@ -102,7 +102,7 @@ public class UserController {
     @Operation(summary = "查询当前用户的详细信息")
     public User getCurrent() {
         LoginUser operator = OperatorUtils.getOperator();
-        return userService.getUserByUsername(operator.getName());
+        return userService.getByUsername(operator.getName());
     }
 
     @GetMapping("/authority/{authority}")
@@ -122,7 +122,7 @@ public class UserController {
         if (tenantAuthorizeManager != null) {
             log.info("添加租户用户");
         }
-        return userService.getUserByUsername(createUser.getUsername());
+        return userService.getByUsername(createUser.getUsername());
     }
 
     @PutMapping(value = "/{username}")
@@ -132,13 +132,12 @@ public class UserController {
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody UpdateUser updateUser) {
         updateUser.setUsername(username);
         userService.updateUser(updateUser, LoginUserUtils.getLoginUser());
-        return userService.getUserByUsername(username);
+        return userService.getByUsername(username);
     }
 
     @DeleteMapping(value = "/{username}")
     @Operation(summary = "删除用户信息")
     public void delete(@PathVariable @Parameter(description = "用户名", required = true) String username) {
-        LoginUser operator = OperatorUtils.getOperator();
         if (tenantAuthorizeManager != null) {
             tenantAuthorizeManager.deleteUser(username);
         }
@@ -160,7 +159,7 @@ public class UserController {
 
     @PutMapping("/password/reset")
     @Operation(summary = "重置用户密码", description = "主要由用户管理员使用")
-    public void resetUserPassword(
+    public String resetUserPassword(
             @Parameter(description = "重置密码参数", required = true) @RequestBody ResetPassword resetPassword) {
         String username = resetPassword.getUsername();
         Assert.notNull(username, "username is not empty");
@@ -169,6 +168,7 @@ public class UserController {
             resetPassword.setNewPassword(password);
             tenantAuthorizeManager.resetPassword(resetPassword);
         }
+        return password;
     }
 
     @PatchMapping("/{username}/disabled")
@@ -194,7 +194,6 @@ public class UserController {
     @PatchMapping("/{username}/unlock")
     @Operation(summary = "解锁用户")
     public void unlock(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
-        LoginUser operator = OperatorUtils.getOperator();
         userService.unlockUser(username, LoginUserUtils.getLoginUser());
     }
 
@@ -212,11 +211,11 @@ public class UserController {
     public void unbind(
             @PathVariable @Parameter(description = "用户编号", required = true) String username,
             @PathVariable
-                    @Parameter(
-                            description = "第三方绑定类型(1、钉钉；2、微信)",
-                            required = true,
-                            schema = @Schema(defaultValue = "1"))
-                    String type) {
+            @Parameter(
+                    description = "第三方绑定类型(1、钉钉；2、微信)",
+                    required = true,
+                    schema = @Schema(defaultValue = "1"))
+            String type) {
         LoginUser operator = OperatorUtils.getOperator();
         userInfoService.unbindUserInfo(operator, type, username);
     }
@@ -243,9 +242,9 @@ public class UserController {
     @Operation(
             summary = "更新个人信息",
             parameters = {
-                @Parameter(name = "nickname", description = "昵称", required = true),
-                @Parameter(name = "email", description = "邮箱", required = true),
-                @Parameter(name = "personal", description = "新增字段")
+                    @Parameter(name = "nickname", description = "昵称", required = true),
+                    @Parameter(name = "email", description = "邮箱", required = true),
+                    @Parameter(name = "personal", description = "新增字段")
             })
     public User updateInfo(MultipartFile avatar, RestUserInfo restUserInfo) {
         LoginUser operator = OperatorUtils.getOperator();
@@ -265,7 +264,7 @@ public class UserController {
     }
 
     @GetMapping("/tenant")
-    @Operation(summary = "根据租户ID查询租户管理员")
+    @Operation(summary = "根据租户ID 查询租户管理员")
     public List<User> tenant(
             @Parameter(description = "租户ID", required = true) @RequestParam("tenantId") String tenantId) {
         return userService.getUsersByTenantId(tenantId);
@@ -278,7 +277,7 @@ public class UserController {
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody User user) {
         user.setUsername(username);
         userService.updateTenantUser(user, LoginUserUtils.getLoginUser());
-        User updated = userService.getUserByUsername(username);
+        User updated = userService.getByUsername(username);
         if (tenantAuthorizeManager != null) {
             User copy = BeanUtil.toBean(user, User.class);
             tenantAuthorizeManager.updateUser(copy);

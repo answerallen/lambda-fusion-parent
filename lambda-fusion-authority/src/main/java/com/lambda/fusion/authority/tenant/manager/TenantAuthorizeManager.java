@@ -131,7 +131,7 @@ public class TenantAuthorizeManager {
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void deleteUser(String username) {
-        User user = userService.getUserByUsername(username);
+        User user = userService.getByUsername(username);
         if (!isTenantAdmin(user)) {
             return;
         }
@@ -147,7 +147,7 @@ public class TenantAuthorizeManager {
         if (StringUtils.isBlank(newPassword)) {
             return;
         }
-        User user = userService.getUserByUsername(username);
+        User user = userService.getByUsername(username);
         if (!isTenantAdmin(user)) {
             return;
         }
@@ -163,7 +163,7 @@ public class TenantAuthorizeManager {
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void prohibitUser(Integer type, String username) {
-        User user = userService.getUserByUsername(username);
+        User user = userService.getByUsername(username);
         if (!isTenantAdmin(user)) {
             return;
         }

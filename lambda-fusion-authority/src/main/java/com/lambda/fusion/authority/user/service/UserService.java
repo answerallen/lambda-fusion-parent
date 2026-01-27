@@ -50,7 +50,7 @@ public interface UserService {
      *
      * @param username 用户名
      */
-    User getUserByUsername(String username);
+    User getByUsername(String username);
 
     /***
      * 获取当前用户得详情

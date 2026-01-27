@@ -1,7 +1,5 @@
 package com.lambda.fusion.authority.user.service.impl;
 
-import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
-
 import cn.dev33.satoken.stp.StpLogic;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
@@ -35,12 +33,8 @@ import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.autoconfig.AuthorityProperties;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
+import com.lambda.security.web.form.FormLockingStrategy;
 import jakarta.validation.constraints.NotBlank;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -53,6 +47,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
 
 @Slf4j
 @Service
@@ -72,6 +74,7 @@ public class UserServiceImpl implements UserService {
     private final OrganizationMapper organizationMapper;
     private final SseEmitterManager sseEmitterManager;
     private final UserOnlineLogService userOnlineLogService;
+    private final FormLockingStrategy formLockingStrategy;
 
     /***
      * @param username 用户账号
@@ -103,7 +106,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public User getUserByUsername(String username) {
+    public User getByUsername(String username) {
         Assert.notNull(username, "username is not empty");
         User user = userMapper.selectUserByUsername(username);
         if (user != null) {
@@ -127,7 +130,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @Override
     public User getCurrentUser(UserPrincipal userPrincipal) {
-        User user = this.getUserByUsername(userPrincipal.getName());
+        User user = this.getByUsername(userPrincipal.getName());
         UserInfo props = user.getProps();
         if (props != null && properties.getPasswordStrategy().getEnablePeriodChange()) {
             boolean notMatched = !userPrincipal.isDev()
@@ -288,6 +291,8 @@ public class UserServiceImpl implements UserService {
      */
     private void assembleUserLockState(User user) {
         // 锁定状态
+        boolean lockedState = formLockingStrategy.getLockedState(user.getUsername());
+        user.setLocked(lockedState);
     }
 
     private void assembleUserPersonal(Map<String, Map<String, Object>> allPersonUserMap, User user) {
@@ -482,13 +487,17 @@ public class UserServiceImpl implements UserService {
         if (simpleOrganization != null) {
             UserOrganizationEntity organizationEntity =
                     userOrganizationMapper.selectUserOrganization(userEntity.getUsername());
-            if (organizationEntity != null
-                    && !StrUtil.equals(organizationEntity.getTenantId(), simpleOrganization.getId())) {
-                organizationEntity.setOrganizationId(simpleOrganization.getId());
-                userOrganizationMapper.update(
-                        organizationEntity,
-                        new LambdaUpdateWrapper<UserOrganizationEntity>()
-                                .eq(UserOrganizationEntity::getUsername, userEntity.getUsername()));
+            if (organizationEntity != null) {
+                if (!StrUtil.equals(organizationEntity.getTenantId(), simpleOrganization.getId())) {
+                    organizationEntity.setOrganizationId(simpleOrganization.getId());
+                    userOrganizationMapper.update(
+                            organizationEntity,
+                            new LambdaUpdateWrapper<UserOrganizationEntity>()
+                                    .eq(UserOrganizationEntity::getUsername, userEntity.getUsername()));
+                }
+            } else {
+                userOrganizationMapper.insert(new UserOrganizationEntity(
+                        userEntity.getUsername(), simpleOrganization.getId(), operator.getTenantId()));
             }
         }
 
@@ -551,7 +560,7 @@ public class UserServiceImpl implements UserService {
         }
         StpLogic activeStpLogic = StpLogicUtils.getActiveStpLogic();
         activeStpLogic.logout(resetPassword.getUsername());
-        return password.getOrigin();
+        return password.getEncrypted();
     }
 
     @Override
@@ -565,7 +574,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void unlockUser(String username, UserPrincipal operator) {}
+    public void unlockUser(String username, UserPrincipal operator) {
+        formLockingStrategy.unlock(username);
+    }
 
     @Override
     public List<UserProfile> getUserProfiles(UserPrincipal operator, List<String> orgIds) {
@@ -575,14 +586,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public Set<String> getSubOrganizationIds(String orgId, UserPrincipal operator) {
         Set<String> orgIds = new HashSet<>();
-
         if (StringUtils.isNotBlank(orgId)) {
             orgIds.add(orgId);
             orgIds.addAll(organizationService.getChildrenById(orgId));
         } else {
-
             orgIds.addAll(
-                    ((UserPrincipal) operator).isAdmin()
+                    operator.isAdmin()
                             ? Collections.emptyList()
                             : organizationService.getSubOrganizationIds(operator));
         }
@@ -619,7 +628,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<User> getUsersByTenantId(String tenantId) {
-        Assert.notNull(tenantId, "租户id不能为空");
+        Assert.notNull(tenantId, "租户 id 不能为空");
         return userMapper.selectUsersByTenantId(tenantId);
     }
 
@@ -635,5 +644,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportUsers(Page<User> pageable, UserQueryContext parameters) {}
+    public void exportUsers(Page<User> pageable, UserQueryContext parameters) {
+    }
 }
