@@ -167,7 +167,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
     }
 
     @Override
-    public Map<String, DictType> getDynamicDictInfoGroup(String dictType) {
+    public Map<String, DictType> getCompositeDictInfoGroup(String dictType) {
         final LambdaQueryWrapper<DictTypeTree> query = Wrappers.lambdaQuery(DictTypeTree.class);
         if (StringUtils.isNotEmpty(dictType)) {
             query.like(DictTypeTree::getDictType, dictType);

@@ -112,7 +112,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
     }
 
     @Override
-    public List<DictTypeTree> dynamicTreeList(QueryDictTree queryDictTree) {
+    public List<DictTypeTree> compositeTreeList(QueryDictTree queryDictTree) {
         String type = queryDictTree.getType();
         String name = queryDictTree.getName();
         Integer dataType = queryDictTree.getDataType();
@@ -243,7 +243,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
     }
 
     @Override
-    public DictTypeTree dynamicDict(String dictTypeId) {
+    public DictTypeTree compositeDict(String dictTypeId) {
         final DictTypeTree dictTypeTree = getById(dictTypeId);
         try {
             for (DictSourceResolver dynamicDictResolve : dynamicDictResolves) {

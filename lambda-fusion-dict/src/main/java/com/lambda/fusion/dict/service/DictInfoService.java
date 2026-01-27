@@ -74,7 +74,7 @@ public interface DictInfoService extends IService<DictInfo> {
      * @param dictType 字典类型，支持模糊查询
      * @return 动态字典分组数据
      */
-    Map<String, DictType> getDynamicDictInfoGroup(String dictType);
+    Map<String, DictType> getCompositeDictInfoGroup(String dictType);
 
     /**
      * 根据字典类型获取树型结构数据

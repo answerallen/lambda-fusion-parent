@@ -34,7 +34,7 @@ public interface DictTypeService extends IService<DictTypeTree> {
      * @param queryDictTree
      * @return
      */
-    List<DictTypeTree> dynamicTreeList(QueryDictTree queryDictTree);
+    List<DictTypeTree> compositeTreeList(QueryDictTree queryDictTree);
 
     /**
      * 删除多级字典类型
@@ -57,5 +57,5 @@ public interface DictTypeService extends IService<DictTypeTree> {
      * @param dictType 类型ID
      * @return 结果集
      */
-    DictTypeTree dynamicDict(String dictType);
+    DictTypeTree compositeDict(String dictType);
 }

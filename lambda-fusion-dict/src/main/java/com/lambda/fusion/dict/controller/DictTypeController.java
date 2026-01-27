@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
  * @author Jin
  */
 @RestController
-@RequestMapping({"/dict/Type"})
+@RequestMapping({"/dictType"})
 @Tag(name = "数据字典相关")
 @RequiredArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -99,17 +99,17 @@ public class DictTypeController {
         return dictTypeService.page(pageQueryDTO.getPage(), pageQueryDTO.getLambdaQueryWrapper());
     }
 
-    @GetMapping("/tree/dynamic")
+    @GetMapping("/tree/composite")
     @Operation(summary = "查询树形结构的字典类型(动态字典)包含上下级节点", description = "查询树形结构的字典类型")
-    public List<DictTypeTree> dynamicTree(@Parameter QueryDictTree queryDictTree) {
-        return dictTypeService.dynamicTreeList(queryDictTree);
+    public List<DictTypeTree> compositeTree(@Parameter QueryDictTree queryDictTree) {
+        return dictTypeService.compositeTreeList(queryDictTree);
     }
 
-    @GetMapping("/dict/dynamic")
+    @GetMapping("/dict/composite")
     @Operation(summary = "动态字典查询", description = "动态字典查询")
-    public DictTypeTree dynamicDict(
+    public DictTypeTree compositeDict(
             @Parameter(required = true, description = "字典类型ID") @RequestParam String dictTypeId) {
-        return dictTypeService.dynamicDict(dictTypeId);
+        return dictTypeService.compositeDict(dictTypeId);
     }
 
     @GetMapping("/dict/enum")

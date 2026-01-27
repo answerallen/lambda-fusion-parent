@@ -46,38 +46,6 @@ public class DictInfoController {
         return dictInfoService.page(pageQueryDTO);
     }
 
-    @GetMapping("/dynamic")
-    @Operation(summary = "获取所有启用的动态字典", description = "获取所有启用的字典")
-    public Map<String, DictType> getAllDynamicDictInfo(
-            @Parameter(description = "字典类型") @RequestParam(required = false) String type) {
-        return dictInfoService.getDynamicDictInfoGroup(type);
-    }
-
-    @GetMapping("/dict/tree/data/{type}")
-    @Operation(summary = "查询树形结构的数据项", description = "根据字典类型查询树形结构数据项")
-    public List<DictInfo> treeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
-        return dictInfoService.getTreeData(type);
-    }
-
-    @GetMapping("/dict/tree/subData/{type}")
-    @Operation(summary = "根据数据类型查询包含子集数据类型的数据项", description = "根据数据类型查询包含子集数据类型的数据项")
-    public List<DictInfo> subTreeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
-        return dictInfoService.getSubTreeData(type);
-    }
-
-    @GetMapping("/tree/data/{parentId}")
-    @Operation(summary = "根据数据项父节点查询数据项树", description = "根据数据项父节点查询数据项树")
-    public List<DictInfo> queryDictInfoByParentId(
-            @Parameter(description = "数据项父ID", required = true) @PathVariable String parentId) {
-        return dictInfoService.getDictInfoByParentId(parentId);
-    }
-
-    @GetMapping("/data/select")
-    @Operation(summary = "数据项条件查询", description = "分页查询所有数据列表")
-    public List<DictInfo> selectDictInfo(QueryDictInfo queryDictInfo) {
-        return dictInfoService.selectDictInfo(queryDictInfo);
-    }
-
     @PostMapping
     @Operation(summary = "添加字典详细信息", description = "添加字典详细信息")
     public DictInfo saveDictInfo(@Valid @RequestBody DictInfo dictInfo) {
@@ -126,5 +94,37 @@ public class DictInfoController {
     public void changeUnselectable(@PathVariable @Parameter(required = true, description = "字典详细信息Id") String id) {
         dictInfoService.updateSelectableState(
                 OperationDictState.builder().id(id).state(SELECTABLE_ENABLED).build());
+    }
+
+    @GetMapping("/composite")
+    @Operation(summary = "获取所有启用的动态字典", description = "获取所有启用的字典")
+    public Map<String, DictType> getAllCompositeDictInfo(
+            @Parameter(description = "字典类型") @RequestParam(required = false) String dictType) {
+        return dictInfoService.getCompositeDictInfoGroup(dictType);
+    }
+
+    @GetMapping("/dict/tree/{dictType}")
+    @Operation(summary = "查询树形结构的数据项", description = "根据字典类型查询树形结构数据项")
+    public List<DictInfo> treeData(@Parameter(description = "字典类型") @PathVariable(required = false) String dictType) {
+        return dictInfoService.getTreeData(dictType);
+    }
+
+    @GetMapping("/dict/tree/{type}/data")
+    @Operation(summary = "根据数据类型查询包含子集数据类型的数据项", description = "根据数据类型查询包含子集数据类型的数据项")
+    public List<DictInfo> subTreeData(@Parameter(description = "字典类型") @PathVariable(required = false) String type) {
+        return dictInfoService.getSubTreeData(type);
+    }
+
+    @GetMapping("/tree/{parentId}")
+    @Operation(summary = "根据数据项父节点查询数据项树", description = "根据数据项父节点查询数据项树")
+    public List<DictInfo> queryDictInfoByParentId(
+            @Parameter(description = "数据项父ID", required = true) @PathVariable String parentId) {
+        return dictInfoService.getDictInfoByParentId(parentId);
+    }
+
+    @GetMapping("/data/select")
+    @Operation(summary = "数据项条件查询", description = "查询所有数据列表")
+    public List<DictInfo> selectDictInfo(QueryDictInfo queryDictInfo) {
+        return dictInfoService.selectDictInfo(queryDictInfo);
     }
 }
