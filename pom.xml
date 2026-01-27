@@ -11,7 +11,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <spotbugs.skip>true</spotbugs.skip>
+        <spotbugs.skip>false</spotbugs.skip>
     </properties>
 
     <modules>

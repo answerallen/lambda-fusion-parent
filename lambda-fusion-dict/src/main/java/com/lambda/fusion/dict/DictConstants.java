@@ -150,9 +150,6 @@ public interface DictConstants {
 
     // ==================== 其他常量 ====================
 
-    /** 默认字典名称 */
-    String DEFAULT_DICT_NAME = "default";
-
     /** 默认包名 */
     String DEFAULT_PACKAGE = "com.lambda.fusion";
 

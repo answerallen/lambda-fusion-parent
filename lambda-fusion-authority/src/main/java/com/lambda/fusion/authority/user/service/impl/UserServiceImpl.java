@@ -1,5 +1,7 @@
 package com.lambda.fusion.authority.user.service.impl;
 
+import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
+
 import cn.dev33.satoken.stp.StpLogic;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
@@ -35,6 +37,11 @@ import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.security.web.form.FormLockingStrategy;
 import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -47,14 +54,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
 
 @Slf4j
 @Service
@@ -591,9 +590,7 @@ public class UserServiceImpl implements UserService {
             orgIds.addAll(organizationService.getChildrenById(orgId));
         } else {
             orgIds.addAll(
-                    operator.isAdmin()
-                            ? Collections.emptyList()
-                            : organizationService.getSubOrganizationIds(operator));
+                    operator.isAdmin() ? Collections.emptyList() : organizationService.getSubOrganizationIds(operator));
         }
         return orgIds;
     }
@@ -644,6 +641,5 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportUsers(Page<User> pageable, UserQueryContext parameters) {
-    }
+    public void exportUsers(Page<User> pageable, UserQueryContext parameters) {}
 }

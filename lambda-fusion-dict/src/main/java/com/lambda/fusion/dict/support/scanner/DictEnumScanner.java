@@ -1,8 +1,7 @@
 package com.lambda.fusion.dict.support.scanner;
 
+import com.lambda.fusion.core.annotation.DictMapper;
 import com.lambda.fusion.dict.support.DictHolder;
-import com.lambda.fusion.dict.support.DictUsage;
-import com.lambda.fusion.dict.support.annotation.DictMapper;
 import com.lambda.fusion.dict.support.registry.DictRegistry;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -68,14 +67,14 @@ public class DictEnumScanner extends ClassPathBeanDefinitionScanner {
         // 字典类型
         String dictName = annotation.dictName();
         String dictDesc = annotation.dictDesc();
-        DictUsage dictUsage = annotation.dictUsage();
+        int dictUsage = annotation.dictUsage();
         // 字典选项
         String key = annotation.key();
         String val = annotation.val();
 
         DictHolder holders = DictRegistry.getDictHolder(dictName);
         if (holders == null) {
-            holders = new DictHolder(dictName, dictDesc, dictUsage.getValue());
+            holders = new DictHolder(dictName, dictDesc, dictUsage);
         }
         Method values = aClass.getMethod("values");
         Object[] invoke = (Object[]) values.invoke(null);

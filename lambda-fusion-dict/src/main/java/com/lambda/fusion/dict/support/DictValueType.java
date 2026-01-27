@@ -1,19 +1,14 @@
 package com.lambda.fusion.dict.support;
 
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.dict.support.annotation.DictMapper;
+import com.lambda.fusion.core.annotation.DictMapper;
 import lombok.Getter;
 
 /**
  * @author jin
  */
 @Getter
-@DictMapper(
-        dictName = "DICT_DATA_TYPE",
-        dictUsage = DictUsage.SYSTEM,
-        dictDesc = "字典数据类型",
-        key = "configKey",
-        val = "valueType")
+@DictMapper(dictName = "DICT_DATA_TYPE", dictUsage = 0, dictDesc = "字典数据类型", key = "configKey", val = "valueType")
 public enum DictValueType {
     /**
      * 静态字典

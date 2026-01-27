@@ -176,8 +176,8 @@ public class RoleController {
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "资源编号", required = true) @PathVariable String resourceId,
             @Parameter(description = "授权模式.-0:仅使用,1:可管理", schema = @Schema(defaultValue = "1"))
-            @RequestParam(defaultValue = "1")
-            Integer status) {
+                    @RequestParam(defaultValue = "1")
+                    Integer status) {
         roleService.grantRolePermission(authority, resourceId, status, LoginUserUtils.getLoginUser());
     }
 
