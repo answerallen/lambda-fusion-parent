@@ -36,6 +36,7 @@ import com.lambda.fusion.autoconfig.AuthorityProperties;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.security.web.form.FormLockingStrategy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -55,6 +56,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)

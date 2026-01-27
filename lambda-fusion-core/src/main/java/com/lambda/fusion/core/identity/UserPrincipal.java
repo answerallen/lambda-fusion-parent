@@ -3,6 +3,7 @@ package com.lambda.fusion.core.identity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.core.FusionConstants;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Collections;
 import java.util.Date;
@@ -26,6 +27,7 @@ import lombok.EqualsAndHashCode;
  * <li>提供账户状态查询（是否过期、锁定等）</li>
  * </ul>
  */
+@SuppressFBWarnings("EI_EXPOSE_REP")
 @Data
 @EqualsAndHashCode
 @Schema(description = "用户身份主体")

@@ -5,13 +5,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
+import com.lambda.fusion.datasource.JdbcConfig;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.model.*;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.stream.Collectors;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
@@ -23,6 +24,7 @@ import org.springframework.util.StringUtils;
  */
 @Slf4j
 @RequiredArgsConstructor
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
 
     private final DataSourceManageService dataSourceManageService;
@@ -254,6 +256,12 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     private RemoteDataSource toDTO(DataSourceEntity entity) {
+        RemoteDataSource dto = buildDataSourceEntity(entity);
+        dto.setVersion(System.currentTimeMillis()); // Set version
+        return dto;
+    }
+
+    public static RemoteDataSource buildDataSourceEntity(DataSourceEntity entity) {
         RemoteDataSource dto = new RemoteDataSource();
         dto.setId(entity.getId());
         dto.setDatasourceName(entity.getDatasourceName());
@@ -262,7 +270,6 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         dto.setUsername(entity.getUsername());
         dto.setPassword(entity.getPassword());
         dto.setEnabled(entity.getEnabled());
-        dto.setVersion(System.currentTimeMillis()); // Set version
         return dto;
     }
 
@@ -299,32 +306,40 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         return ConvertUtils.convert(dto);
     }
 
-    private UpsertTenantDataSource toUpsertTenantDataSource(RemoteDataSource dto) {
+    private UpsertTenantDataSource toUpsertTenantDataSource(RemoteDataSource remoteDataSource) {
         UpsertTenantDataSource input = new UpsertTenantDataSource();
-        input.setId(dto.getId());
-        input.setDbName(dto.getDatasourceName());
-        input.setTenantId(dto.getTenantId());
-        input.setEnabled(dto.getEnabled());
+        input.setId(remoteDataSource.getId());
+        input.setDbName(remoteDataSource.getDatasourceName());
+        input.setTenantId(remoteDataSource.getTenantId());
+        input.setEnabled(remoteDataSource.getEnabled());
 
-        if (StringUtils.hasText(dto.getDbType())) {
-            input.setDbType(dto.getDbType());
+        if (StringUtils.hasText(remoteDataSource.getDbType())) {
+            input.setDbType(remoteDataSource.getDbType());
         } else {
             input.setDbType("mysql");
         }
 
         try {
-            var config = new Object() {
-                @Getter
-                public final String jdbcUrl = dto.getJdbcUrl();
+            var config = new JdbcConfig() {
+                @Override
+                public String getJdbcUrl() {
+                    return remoteDataSource.getJdbcUrl();
+                }
 
-                @Getter
-                public final String username = dto.getUsername();
+                @Override
+                public String getUsername() {
+                    return remoteDataSource.getUsername();
+                }
 
-                @Getter
-                public final String password = dto.getPassword();
+                @Override
+                public String getPassword() {
+                    return remoteDataSource.getPassword();
+                }
 
-                @Getter
-                public final String driverClassName = dto.getDriverClassName();
+                @Override
+                public String getDriverClassName() {
+                    return remoteDataSource.getDriverClassName();
+                }
             };
             input.setConfiguration(objectMapper.writeValueAsString(config));
         } catch (Exception e) {

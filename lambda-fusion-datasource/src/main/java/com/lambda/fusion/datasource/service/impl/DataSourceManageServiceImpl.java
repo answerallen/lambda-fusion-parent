@@ -8,6 +8,7 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
 import com.lambda.fusion.datasource.event.DataSourceEvent;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
@@ -16,6 +17,7 @@ import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.context.ApplicationEventPublisher;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, DataSourceEntity>
         implements DataSourceManageService {
 
@@ -158,17 +161,10 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     }
 
     private void publishChange(DataSourceEntity entity) {
-        RemoteDataSource dto = new RemoteDataSource();
-        dto.setId(entity.getId());
-        dto.setDatasourceName(entity.getDatasourceName());
-        dto.setDriverClassName(entity.getDriverClassName());
-        dto.setJdbcUrl(entity.getJdbcUrl());
-        dto.setUsername(entity.getUsername());
-        dto.setPassword(entity.getPassword());
-        dto.setEnabled(entity.getEnabled());
-        dto.setTenantId(null); // 全局共享
+        RemoteDataSource remoteDataSource = RemoteDataSourceServiceImpl.buildDataSourceEntity(entity);
+        remoteDataSource.setTenantId(null); // 全局共享
         // 由于没有 updateTime，使用哈希码作为版本号
-        dto.setVersion(Objects.hash(
+        remoteDataSource.setVersion(Objects.hash(
                 entity.getId(),
                 entity.getDatasourceName(),
                 entity.getDriverClassName(),
@@ -177,6 +173,6 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
                 entity.getPassword(),
                 entity.getEnabled()));
 
-        eventPublisher.publishEvent(DataSourceEvent.update(this, dto));
+        eventPublisher.publishEvent(DataSourceEvent.update(this, remoteDataSource));
     }
 }

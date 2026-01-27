@@ -5,6 +5,7 @@ import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.UUID;
@@ -19,6 +20,7 @@ import org.springframework.boot.ApplicationRunner;
  */
 @Slf4j
 @RequiredArgsConstructor
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class ClientDataSourceInitializer implements ApplicationRunner {
 
     @DubboReference(version = "1.0.0", group = "datasource", check = false)

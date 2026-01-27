@@ -5,6 +5,7 @@ import com.lambda.fusion.authority.area.mapper.AreaMapper;
 import com.lambda.fusion.authority.area.model.*;
 import com.lambda.fusion.authority.area.service.AreaService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 行政区划服务实现
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Service
 @RequiredArgsConstructor
 public class AreaServiceImpl implements AreaService {

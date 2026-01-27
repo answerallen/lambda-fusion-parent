@@ -6,6 +6,7 @@ import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @RequiredArgsConstructor
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class DataSourceChangeListenerImpl implements DataSourceChangeListener {
 
     private final DynamicDataSourceService dynamicDataSourceService;

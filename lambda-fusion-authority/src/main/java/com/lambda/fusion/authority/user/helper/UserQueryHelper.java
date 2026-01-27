@@ -12,12 +12,14 @@ import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserPrincipal;
 import com.lambda.fusion.core.utils.LoginUserUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
 @Component
 @RequiredArgsConstructor

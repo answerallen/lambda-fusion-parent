@@ -26,7 +26,7 @@ public class DictionaryConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public TreeDataFilter DefaultTreeDataFilter() {
+    public TreeDataFilter defaultTreeDataFilter() {
         return new DefaultTreeDataFilter();
     }
 }

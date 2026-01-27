@@ -28,6 +28,7 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
 import com.lambda.fusion.core.utils.LoginUserUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -41,6 +42,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
 @Service
 @RequiredArgsConstructor

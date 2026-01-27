@@ -10,6 +10,7 @@ import com.lambda.fusion.config.utils.DataSourcePropertyUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PreDestroy;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -27,6 +28,7 @@ import org.springframework.util.ClassUtils;
 
 @Slf4j
 @Order(100)
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator {
     private volatile HikariDataSource dataSource;
     private final ReentrantReadWriteLock dataSourceLock = new ReentrantReadWriteLock();

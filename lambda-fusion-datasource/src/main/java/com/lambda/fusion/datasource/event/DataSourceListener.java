@@ -2,6 +2,7 @@ package com.lambda.fusion.datasource.event;
 
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,6 +20,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * @author Jin
  */
 @Slf4j
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Component
 @RequiredArgsConstructor
 public class DataSourceListener {

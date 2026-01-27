@@ -27,6 +27,7 @@ import com.lambda.fusion.dict.mapper.DictTypeMapper;
 import com.lambda.fusion.dict.model.*;
 import com.lambda.fusion.dict.service.DictInfoService;
 import com.lambda.fusion.dict.support.registry.DictRegistry;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * @author Jin
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
 @Service
 @Transactional(rollbackFor = Exception.class)

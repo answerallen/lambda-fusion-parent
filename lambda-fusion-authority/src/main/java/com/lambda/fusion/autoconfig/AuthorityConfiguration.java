@@ -113,7 +113,7 @@ public class AuthorityConfiguration {
 
     @ConditionalOnMissingBean
     @Bean
-    public TreeDataFilter DefaultTreeDataFilter() {
+    public TreeDataFilter defaultTreeDataFilter() {
         return new DefaultTreeDataFilter();
     }
 

@@ -8,6 +8,7 @@ import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import org.springframework.boot.ApplicationRunner;
  * 服务端模式初始化器 - 从本地数据库加载数据源
  */
 @Slf4j
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
 public class ServerDataSourceInitializer implements ApplicationRunner {
 

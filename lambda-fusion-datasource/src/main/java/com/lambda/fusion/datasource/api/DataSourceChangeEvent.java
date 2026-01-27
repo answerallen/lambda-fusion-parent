@@ -1,6 +1,7 @@
 package com.lambda.fusion.datasource.api;
 
 import com.lambda.fusion.datasource.model.RemoteDataSource;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serial;
 import java.io.Serializable;
 import lombok.Data;
@@ -9,6 +10,7 @@ import lombok.Data;
  * 数据源变更事件
  */
 @Data
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class DataSourceChangeEvent implements Serializable {
 
     @Serial

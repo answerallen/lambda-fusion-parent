@@ -14,6 +14,7 @@ import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSourceMapper, TenantDataSourceEntity>
         implements TenantDataSourceManageService {
 

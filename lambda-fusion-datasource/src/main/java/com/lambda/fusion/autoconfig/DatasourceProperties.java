@@ -1,12 +1,14 @@
 package com.lambda.fusion.autoconfig;
 
 import com.lambda.fusion.datasource.DatasourceConstant;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * 数据源模块配置属性
  */
+@SuppressFBWarnings("EI_EXPOSE_REP")
 @Data
 @ConfigurationProperties(prefix = DatasourceConstant.PREFIX)
 public class DatasourceProperties {

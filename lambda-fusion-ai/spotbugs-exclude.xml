@@ -3,10 +3,4 @@
     <Match>
         <Class name="~.*\.model\..*"/>
     </Match>
-    <Match>
-        <Class name="~.*\.domain\..*"/>
-    </Match>
-    <Match>
-        <Class name="~.*\.controller\..*"/>
-    </Match>
 </FindBugsFilter>

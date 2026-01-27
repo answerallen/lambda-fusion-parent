@@ -1,6 +1,7 @@
 package com.lambda.fusion.datasource.event;
 
 import com.lambda.fusion.datasource.model.RemoteDataSource;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
@@ -10,6 +11,7 @@ import org.springframework.context.ApplicationEvent;
  * @author Jin
  */
 @Getter
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class DataSourceEvent extends ApplicationEvent {
 
     private final RemoteDataSource dataSource;

@@ -17,6 +17,7 @@ import com.lambda.fusion.config.model.ConfigOptionEntity;
 import com.lambda.fusion.config.refresh.DatabaseContextRefresher;
 import com.lambda.fusion.config.service.ConfigChangedService;
 import com.lambda.fusion.config.service.ConfigService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Set;
@@ -31,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 系统配置服务实现类
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Service
 @Transactional(rollbackFor = Exception.class)
 @RequiredArgsConstructor
