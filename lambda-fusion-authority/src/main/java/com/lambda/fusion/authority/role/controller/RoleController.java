@@ -166,7 +166,7 @@ public class RoleController {
     public List<AccessPermission> auth(
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "模式-0:后台资源,1:APP资源") Integer mode) {
-        return roleService.getPermissions(LoginUserUtils.getLoginUser(), authority, mode);
+        return roleService.getAccessPermission(LoginUserUtils.getLoginUser(), authority, mode);
     }
 
     @PutMapping("/{authority}/grant/{resourceId}")

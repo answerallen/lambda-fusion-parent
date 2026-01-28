@@ -216,7 +216,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<AccessPermission> getPermissions(UserPrincipal userPrincipal, String authority, Integer mode) {
+    public List<AccessPermission> getAccessPermission(UserPrincipal userPrincipal, String authority, Integer mode) {
         Assert.notNull(authority, "role name 不能为空");
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(3);
         parameters.put("authority", authority);
@@ -227,7 +227,7 @@ public class RoleServiceImpl implements RoleService {
             authorities.add(userPrincipal.getUsername());
             parameters.put("authorities", authorities);
         }
-        List<AccessPermission> permissions = roleMapper.getPermissions(parameters);
+        List<AccessPermission> permissions = roleMapper.getAccessPermission(parameters);
         if (CollectionUtils.isEmpty(permissions)) {
             return Collections.emptyList();
         }

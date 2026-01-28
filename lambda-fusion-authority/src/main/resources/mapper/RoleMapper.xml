@@ -183,7 +183,7 @@
         SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, T.ROLE_TYPE AS roleType, T.DATA_TYPE AS dataType FROM LA_ROLES T WHERE T.OWNER = #{owner}
     </select>
 
-    <select id="getPermissions" resultMap="AccessPermission">
+    <select id="getAccessPermission" resultMap="AccessPermission">
         SELECT DISTINCT
             T.id,
             T.res_name,
