@@ -1,6 +1,7 @@
 package com.lambda.fusion.authority.resource.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.lambda.cloud.core.annotation.AutoConverter;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -9,6 +10,7 @@ import lombok.Setter;
 /**
  * 单一资源信息
  */
+@AutoConverter(target = ResourceEntity.class)
 @Getter
 @Setter
 @Schema(description = "资源元数据")

@@ -1,6 +1,5 @@
 package com.lambda.fusion.authority.role.service.impl;
 
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
 import static com.lambda.fusion.authority.AuthorityConstants.DEFAULT_GROUP_NAME;
 
 import cn.dev33.satoken.stp.StpUtil;
@@ -234,14 +233,14 @@ public class RoleServiceImpl implements RoleService {
         return TreeBuilder.build(permissions);
     }
 
-    @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
+    @CacheEvict(value = "ResourceOwners", allEntries = true)
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void grantRolePermission(String authority, String resourceId, int status, UserPrincipal userPrincipal) {
         Assert.notNull(authority, "role name 不能为空");
         Assert.notNull(resourceId, "资源id不能为空！");
         if (!userPrincipal.isDev()) {
-            StpUtil.checkPermission(authority);
+            // TODO 判断是否为自身权限
         }
         String tenantId = userPrincipal.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
@@ -254,27 +253,28 @@ public class RoleServiceImpl implements RoleService {
             resources.add(resource);
             resources.addAll(children);
             Set<String> ids = resources.stream().map(Resource::getId).collect(Collectors.toSet());
-            Set<String> authorized = Sets.newHashSet(roleMapper.hasAuthorizedWithIntersection(authority, ids));
+            List<String> has = roleMapper.hasAuthorizedWithIntersection(authority, ids);
+            Set<String> authorized = Sets.newHashSet(has);
 
             Set<String> intersection = Sets.intersection(ids, authorized);
             if (CollectionUtils.isNotEmpty(intersection)) {
-                AuthorityPermission parameters = new AuthorityPermission();
-                parameters.setAuthority(authority);
-                parameters.setIds(intersection);
-                parameters.setTenantId(tenantId);
-                parameters.setStatus(status);
-                roleMapper.batchUpdateAuthorization(parameters);
+                AuthorityPermission authorityPermission = new AuthorityPermission();
+                authorityPermission.setAuthority(authority);
+                authorityPermission.setIds(intersection);
+                authorityPermission.setTenantId(tenantId);
+                authorityPermission.setStatus(status);
+                roleMapper.batchUpdateAuthorization(authorityPermission);
             }
             Set<String> differently = Sets.difference(ids, authorized);
             if (!CollectionUtils.isEmpty(differently)) {
                 List<AuthorityPermission> list = new ArrayList<>(differently.size());
                 for (String id : differently) {
-                    AuthorityPermission parameters = new AuthorityPermission();
-                    parameters.setAuthority(authority);
-                    parameters.setTenantId(tenantId);
-                    parameters.setStatus(status);
-                    parameters.setId(id);
-                    list.add(parameters);
+                    AuthorityPermission authorityPermission = new AuthorityPermission();
+                    authorityPermission.setAuthority(authority);
+                    authorityPermission.setTenantId(tenantId);
+                    authorityPermission.setStatus(status);
+                    authorityPermission.setId(id);
+                    list.add(authorityPermission);
                 }
                 roleMapper.batchSaveAuthorization(list);
             }
@@ -288,7 +288,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
+    @CacheEvict(value = "ResourceOwners", allEntries = true)
     public void revokeRolePermission(String authority, String resourceId, UserPrincipal userPrincipal) {
         Assert.notNull(authority, "role name 不能为空");
         Assert.notNull(resourceId, "资源id不能为空！");
@@ -403,7 +403,7 @@ public class RoleServiceImpl implements RoleService {
         return defaultGroupEntity;
     }
 
-    @CacheEvict(value = "ResourceOwners", allEntries = true, cacheManager = CACHE_MANAGER)
+    @CacheEvict(value = "ResourceOwners", allEntries = true)
     @Override
     public void assignUsersToRole(UserPrincipal userPrincipal, BatchRoleUserAssignmentRequest req) {
         final String authority = req.getRoleId();

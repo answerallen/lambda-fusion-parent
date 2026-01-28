@@ -6,7 +6,7 @@
     <resultMap id="AccessPermission" type="com.lambda.fusion.authority.role.model.AccessPermission">
         <id column="id" property="id"/>
         <result column="res_name" property="name"/>
-        <result column="parentId" property="parentId"/>
+        <result column="PARENT_ID" property="parentId"/>
         <result column="res_type" property="type"/>
         <result column="checked" property="checked"/>
     </resultMap>
@@ -114,6 +114,7 @@
         UPDATE LA_ROLE_RESOURCES SET TENANT_ID = TENANT_ID WHERE AUTHORITY = #{authority} AND RESOURCE_ID IN
         <foreach collection="ids" item="item" separator="," open="(" close=")">#{item}</foreach>
     </update>
+
     <select id="hasAuthorized" resultType="String">
         SELECT RESOURCE_ID FROM LA_ROLE_RESOURCES WHERE AUTHORITY = #{authority}
     </select>
@@ -146,7 +147,7 @@
         SUM(CASE WHEN T3.RESOURCE_ID IS NULL THEN 0 ELSE 1 END) AS existed
         FROM
         LA_RESOURCES T
-        LEFT JOIN LA_RESOURCES T2 ON T2.PARENTID = T.ID
+        LEFT JOIN LA_RESOURCES T2 ON T2.PARENT_ID = T.ID
         LEFT JOIN LA_ORGANIZATION_RESOURCES T3 ON T3.RESOURCE_ID = T2.ID AND T3.ORGANIZATION_ID = #{organizationid}
         LEFT JOIN LA_ORGANIZATION_RESOURCES T4 ON T4.RESOURCE_ID = T.ID AND T4.ORGANIZATION_ID = #{organizationid}
         <where>
@@ -197,7 +198,7 @@
             INNER JOIN LA_ROLE_RESOURCES T2 ON T2.RESOURCE_ID = T.ID
         </if>
         LEFT JOIN LA_ROLE_RESOURCES T3 ON T3.RESOURCE_ID = T.ID AND T3.AUTHORITY = #{parameters.authority}
-        WHERE T.DEV = 0 AND T.res_type != 0 AND T.res_mode = #{parameters.mode}
+        WHERE T.IS_DEV = 0 AND T.res_type != 0 AND T.res_mode = #{parameters.mode}
         <if test="parameters.authorities != null and parameters.authorities.size > 0">
             AND T2.AUTHORITY IN
             <foreach collection="parameters.authorities" item="item" open="(" close=")" separator=",">

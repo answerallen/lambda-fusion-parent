@@ -47,7 +47,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<ResourceTree> getChildren(NavigationQuery parameter) {
-        List<Resource> resources = resourceMapper.queryAvailableMutableResources(parameter);
+        List<Resource> resources = resourceMapper.queryAvailableResources(parameter);
         if (CollectionUtils.isEmpty(resources)) {
             return new ArrayList<>();
         }
@@ -288,7 +288,7 @@ public class ResourceServiceImpl implements ResourceService {
 
         // 需要改变排序号的资源列表
         List<Resource> changed = new ArrayList<>();
-        // 需要改变parentKeys的资源列表
+        // 需要改变 parentKeys 的资源列表
         List<Resource> changed2 = new ArrayList<>();
         String parentKeys = generateParentKeys(resource.getParentKeys(), resource.getId());
         switch (parameter.getType()) {
@@ -309,8 +309,8 @@ public class ResourceServiceImpl implements ResourceService {
             resourceMapper.updateResourceOrdered(changed);
         }
         if (CollectionUtils.isNotEmpty(changed2)) {
-            resourceMapper.updateResourceParentkeys(changed2);
-            resourceMapper.updateResourceRank(changed2);
+            resourceMapper.updateResourceParentKeys(changed2);
+            resourceMapper.updateResourceLevel(changed2);
         }
         if (!peer) {
             List<ResourceTree> children = resourceMapper.getDirectChildren(pid0);

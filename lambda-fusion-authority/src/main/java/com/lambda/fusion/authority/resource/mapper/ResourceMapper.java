@@ -1,10 +1,12 @@
 package com.lambda.fusion.authority.resource.mapper;
 
-import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.model.Resource;
+import com.lambda.fusion.authority.resource.model.ResourceEntity;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
-import com.lambda.fusion.authority.resource.model.UserPermission;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,7 +18,7 @@ import org.apache.ibatis.annotations.Param;
  *
  */
 @Mapper
-public interface ResourceMapper {
+public interface ResourceMapper extends BaseMapper<ResourceEntity> {
     /**
      * 根据操作用户查询所有下级(直接下级和间接下级)的信息
      *
@@ -75,14 +77,20 @@ public interface ResourceMapper {
      *
      * @param resource
      */
-    void updateResource(Resource resource);
+    default void updateResource(Resource resource) {
+        ResourceEntity resourceEntity = ConvertUtils.convert(resource);
+        this.updateById(resourceEntity);
+    }
 
     /***
      * 根据编号查询资源信息
      *
      * @param id
      */
-    Resource getResourceById(String id);
+    default Resource getResourceById(String id) {
+        ResourceEntity resourceEntity = selectById(id);
+        return ConvertUtils.convert(resourceEntity);
+    }
 
     /***
      * 新建资源
@@ -90,7 +98,10 @@ public interface ResourceMapper {
      * @param resource
      * @return void
      */
-    void addResource(Resource resource);
+    default void addResource(Resource resource) {
+        ResourceEntity resourceEntity = ConvertUtils.convert(resource);
+        this.insert(resourceEntity);
+    }
 
     /***
      * 删除资源
@@ -98,7 +109,9 @@ public interface ResourceMapper {
      * @param ids
      * @return void
      */
-    void deleteResource(Set<String> ids);
+    default void deleteResource(Set<String> ids) {
+        this.deleteByIds(ids);
+    }
 
     /***
      * 删除资源关系的角色列表
@@ -112,7 +125,13 @@ public interface ResourceMapper {
      * 获取所有可用的资源
      * @param parameter 参数
      */
-    List<Resource> queryAvailableMutableResources(NavigationQuery parameter);
+    default List<Resource> queryAvailableResources(NavigationQuery parameter) {
+        List<ResourceEntity> resourceEntities = selectList(new LambdaQueryWrapper<ResourceEntity>()
+                .eq(ResourceEntity::getResMode, parameter.getMode())
+                .ge(ResourceEntity::getResType, 0)
+                .orderByAsc(ResourceEntity::getResLevel, ResourceEntity::getOrderNo));
+        return ConvertUtils.convertList(resourceEntities);
+    }
 
     /**
      * 查询系统资源列表
@@ -139,13 +158,13 @@ public interface ResourceMapper {
     /***
      * 获取所有的资源信息
      */
-    List<Resource> getAllMutableResources();
+    List<Resource> getAllResources();
 
     /***
      * 更新Parentkeys
      * @param resources
      */
-    void updateResourceParentkeys(List<Resource> resources);
+    void updateResourceParentKeys(List<Resource> resources);
 
     /**
      * 是否已经执行过
@@ -153,26 +172,13 @@ public interface ResourceMapper {
      * @param map
      * @return boolean
      */
-    boolean hasChangedParentkeys(Map<String, Object> map);
+    boolean hasChangedParentKeys(Map<String, Object> map);
 
     /***
      * 批量更新Rank值
      * @param changed2
      */
-    void updateResourceRank(List<Resource> changed2);
-
-    /***
-     * 根据资源API权限ID查询拥有者
-     * @param permissionId
-     */
-    @InterceptorIgnore(tenantLine = "true")
-    List<String> getUserIdsByResourcePermissionId(String permissionId);
-
-    /**
-     * 获取所有接口
-     *
-     */
-    List<Resource> queryAvailableServices();
+    void updateResourceLevel(List<Resource> changed2);
 
     /**
      * 更新移动的资源
@@ -181,48 +187,4 @@ public interface ResourceMapper {
      * @return void
      */
     void updateMovedResource(Resource moved);
-
-    /**
-     * 根据资源id删除所有接口关联关系
-     *
-     * @param resourceId
-     */
-    @InterceptorIgnore(tenantLine = "true")
-    void deleteAllResourceApi(String resourceId);
-
-    /**
-     * 批量添加接口资源关联关系
-     *
-     * @param resourceId
-     * @param ids
-     */
-    @InterceptorIgnore(tenantLine = "true")
-    void batchInsertResourceApi(@Param("ids") Set<String> ids, @Param("resourceId") String resourceId);
-
-    /**
-     * 根据资源id获取关联的所有接口id
-     *
-     * @param resourceId
-     * @return
-     */
-    @InterceptorIgnore(tenantLine = "true")
-    List<String> getApiIdsByResourceId(String resourceId);
-
-    /**
-     * 获取权限关联了哪些用户
-     *
-     * @param permissionIds
-     * @return
-     */
-    @InterceptorIgnore(tenantLine = "true")
-    List<UserPermission> getUserPermissions(List<String> permissionIds);
-
-    /**
-     * 获取权限关联了哪些用户
-     *
-     * @param map Map
-     * @return
-     */
-    @InterceptorIgnore(tenantLine = "true")
-    List<UserPermission> getAllUserPermissions(Map<String, Object> map);
 }

@@ -18,7 +18,7 @@
             <if test="tenantId != null and tenantId != ''">
                 AND T.TENANT_ID = #{tenantId, jdbcType=VARCHAR}
             </if>
-            AND (T2.PARENTKEYS LIKE CONCAT('%', CONCAT(#{id}, '-%')) OR T2.PARENTID = #{id})
+            AND (T2.PARENT_KEYS LIKE CONCAT('%', CONCAT(#{id}, '-%')) OR T2.PARENT_ID = #{id})
         )
     </select>
 </mapper>

@@ -8,8 +8,6 @@ public interface AuthorityConstants {
 
     String ROLE_MANAGER = "ROLE_MANAGER";
 
-    String CACHE_MANAGER = "AuthorityCacheManager";
-
     String OPERATION_LOG_EXECUTOR = "OperationLogExecutor";
 
     String DEFAULT_GROUP_NAME = "默认分组";

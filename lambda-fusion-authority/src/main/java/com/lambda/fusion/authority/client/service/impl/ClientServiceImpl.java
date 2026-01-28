@@ -1,7 +1,5 @@
 package com.lambda.fusion.authority.client.service.impl;
 
-import static com.lambda.fusion.authority.AuthorityConstants.CACHE_MANAGER;
-
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.client.mapper.ClientMapper;
@@ -25,7 +23,7 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, ClientEntity>
         implements ClientService, HmacClientService {
 
     @Override
-    @CacheEvict(value = "Clients", key = "#entity.id", cacheManager = CACHE_MANAGER)
+    @CacheEvict(value = "Clients", key = "#entity.id")
     public boolean updateById(ClientEntity entity) {
         return super.updateById(entity);
     }
@@ -38,7 +36,7 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, ClientEntity>
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    @Cacheable(value = "Clients", key = "#appid", cacheManager = CACHE_MANAGER)
+    @Cacheable(value = "Clients", key = "#appid")
     public LoginUser loadClientByAppid(String appid) {
         HmacClient client = this.baseMapper.getClientById(appid);
         if (client == null) {

@@ -163,7 +163,7 @@ public class RoleController {
 
     @GetMapping("/{authority}/permissions")
     @Operation(description = "查询指定角色的权限信息", summary = "查询指定角色的权限信息")
-    public List<AccessPermission> auth(
+    public List<AccessPermission> getAccessPermission(
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "模式-0:后台资源,1:APP资源") Integer mode) {
         return roleService.getAccessPermission(LoginUserUtils.getLoginUser(), authority, mode);
