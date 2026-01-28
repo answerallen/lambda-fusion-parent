@@ -76,7 +76,7 @@ public class CreateResource {
     @Schema(description = "业务扩展字段")
     private String businessExpand;
 
-    private List<ButtonParameter> buttons;
+    private List<Button> buttons;
 
     public Integer getMode() {
         if (null != mode && mode != 0) {
@@ -87,7 +87,7 @@ public class CreateResource {
 
     @Getter
     @Setter
-    public static class ButtonParameter {
+    public static class Button {
         @NotNull
         @Schema(description = "资源名称")
         @JsonProperty("name")

@@ -147,7 +147,7 @@ public class ResourceServiceImpl implements ResourceService {
         Objects.requireNonNull(children2);
         resource.setOrderNo(children2.size() + 1);
         resourceMapper.addResource(resource);
-        List<CreateResource.ButtonParameter> buttons = parameter.getButtons();
+        List<CreateResource.Button> buttons = parameter.getButtons();
         if (CollectionUtils.isNotEmpty(buttons)) {
             for (int i = 0; i < buttons.size(); i++) {
                 Resource button = new Resource();
