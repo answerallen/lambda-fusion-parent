@@ -3,6 +3,14 @@
 
 <mapper namespace="com.lambda.fusion.authority.role.mapper.RoleMapper">
 
+    <resultMap id="AccessPermission" type="com.lambda.fusion.authority.role.model.AccessPermission">
+        <id column="id" property="id"/>
+        <result column="res_name" property="name"/>
+        <result column="parentId" property="parentId"/>
+        <result column="res_type" property="type"/>
+        <result column="checked" property="checked"/>
+    </resultMap>
+
     <select id="getAllRoles" resultType="com.lambda.fusion.authority.role.model.Role">
         SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, (CASE WHEN T.GROUP_ID IS NULL THEN 'default' ELSE T.GROUP_ID END) AS groupId
         FROM LA_ROLES T WHERE ENABLED = 1
@@ -174,14 +182,8 @@
     <select id="getTenantRolesByOwner" resultType="com.lambda.fusion.authority.role.model.Role">
         SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, T.ROLE_TYPE AS roleType, T.DATA_TYPE AS dataType FROM LA_ROLES T WHERE T.OWNER = #{owner}
     </select>
-    <resultMap id="AccessPermission" type="com.lambda.fusion.authority.role.model.AccessPermission">
-        <id column="id" property="id"/>
-        <result column="res_name" property="name"/>
-        <result column="parentId" property="parentId"/>
-        <result column="res_type" property="type"/>
-        <result column="checked" property="checked"/>
-    </resultMap>
-    <select id="getAccessPermissions" resultMap="AccessPermission">
+
+    <select id="getPermissions" resultMap="AccessPermission">
         SELECT DISTINCT
             T.id,
             T.res_name,

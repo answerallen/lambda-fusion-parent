@@ -149,15 +149,6 @@ public class RoleController {
         }
     }
 
-    @GetMapping("/{authority}/permissions")
-    @Operation(description = "查询指定角色的权限信息", summary = "查询指定角色的权限信息")
-    public List<AccessPermission> auth(
-            @Parameter(description = "角色名称", required = true) @PathVariable String authority,
-            @Parameter(description = "模式-0:后台资源,1:APP资源") Integer mode) {
-        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
-        return roleService.getAccessPermissions(userPrincipal, authority, mode);
-    }
-
     @PatchMapping("/{authority}/disabled")
     @Operation(description = "禁用角色", summary = "禁用角色")
     public void disabled(@PathVariable @Parameter(description = "角色名称", required = true) String authority) {
@@ -168,6 +159,14 @@ public class RoleController {
     @Operation(description = "启用角色", summary = "启用角色")
     public void enabled(@PathVariable @Parameter(description = "角色名称", required = true) String authority) {
         roleService.prohibitRole(1, authority);
+    }
+
+    @GetMapping("/{authority}/permissions")
+    @Operation(description = "查询指定角色的权限信息", summary = "查询指定角色的权限信息")
+    public List<AccessPermission> auth(
+            @Parameter(description = "角色名称", required = true) @PathVariable String authority,
+            @Parameter(description = "模式-0:后台资源,1:APP资源") Integer mode) {
+        return roleService.getPermissions(LoginUserUtils.getLoginUser(), authority, mode);
     }
 
     @PutMapping("/{authority}/grant/{resourceId}")

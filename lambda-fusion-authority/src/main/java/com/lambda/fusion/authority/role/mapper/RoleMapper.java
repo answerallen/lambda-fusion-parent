@@ -215,7 +215,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      *
      * @param parameters
      */
-    List<AccessPermission> getAccessPermissions(@Param("parameters") Map<String, Object> parameters);
+    List<AccessPermission> getPermissions(@Param("parameters") Map<String, Object> parameters);
 
     /**
      * 查询已有的访问权限

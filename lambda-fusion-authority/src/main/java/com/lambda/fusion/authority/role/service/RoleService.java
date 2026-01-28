@@ -95,7 +95,7 @@ public interface RoleService {
      * @param mode 角色模式
      * @return
      */
-    List<AccessPermission> getAccessPermissions(UserPrincipal userPrincipal, String id, Integer mode);
+    List<AccessPermission> getPermissions(UserPrincipal userPrincipal, String id, Integer mode);
 
     /**
      * 保存角色权限
