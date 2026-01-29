@@ -6,6 +6,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import lombok.Getter;
@@ -25,7 +26,7 @@ public class CreateResource {
     @Schema(hidden = true, description = "资源ID，仅在租户分库同步新增资源情况下使用")
     private String id;
 
-    @NotNull
+    @NotBlank(message = "资源名称不能为空")
     @Schema(description = "资源名称")
     @JsonProperty("name")
     private String resName;

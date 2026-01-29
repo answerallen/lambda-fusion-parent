@@ -20,6 +20,9 @@ public class AccessPermission implements TreeNode<AccessPermission> {
     @Schema(description = "是否选中")
     private Boolean checked;
 
+    @Schema(description = "ICON")
+    private String icon;
+
     private int type;
 
     @Schema(description = "下级权限")

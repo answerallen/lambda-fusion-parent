@@ -191,6 +191,7 @@
             T.PARENT_ID,
             T.RES_LEVEL,
             T.res_type,
+            T.icon,
             (CASE WHEN T3.RESOURCE_ID IS NOT NULL THEN 1 ELSE 0 END ) AS checked,
             T.ORDER_NO
         FROM LA_RESOURCES T
