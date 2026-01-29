@@ -25,4 +25,8 @@ public enum ResourceType {
         }
         return null;
     }
+
+    public Boolean isButton(){
+        return BUTTON.equals(this);
+    }
 }

@@ -62,8 +62,8 @@
         T1.res_path,
         T1.icon as icon,
         T1.RES_LEVEL,
-        T1.orderNo,
-        T1.parentId,
+        T1.ORDER_NO,
+        T1.parent_Id,
         T1.res_type,
         T1.hidden,
         T1.res_mode,
@@ -86,19 +86,19 @@
             AND T1.RES_LEVEL = #{query.level}
         </if>
         <if test="query.parentId != null and query.parentId != ''">
-            AND T1.parentKeys LIKE CONCAT(#{query.parentId}, '%')
+            AND T1.parent_keys LIKE CONCAT(#{query.parentId}, '%')
         </if>
         <if test="query.name != null and query.name != ''">
             AND T1.res_name LIKE CONCAT('%', #{query.name}, '%')
         </if>
-        ORDER BY T1.RES_LEVEL, T1.parentId, T1.orderNo
+        ORDER BY T1.RES_LEVEL, T1.parent_id, T1.ORDER_NO
     </select>
     
     <select id="selectResources" resultType="com.lambda.fusion.authority.resource.model.ResourceTree">
         SELECT
             T1.id,
             T1.res_name,
-            T1.parentId,
+            T1.parent_Id,
             T1.business_expand
         FROM LA_RESOURCES T1
         inner join la_role_resources T2 on T1.id = T2.RESOURCE_ID
@@ -110,7 +110,7 @@
                 AND T1.res_type IN <foreach collection="types" open="(" close=")" separator="," item="item">#{item}</foreach>
             </if>
         </where>
-        ORDER BY T1.RES_LEVEL, T1.parentId, T1.orderNo
+        ORDER BY T1.RES_LEVEL, T1.parent_Id, T1.ORDER_NO
     </select>
 
     <select id="selectUserProfileByRoleId" resultType="com.lambda.fusion.authority.user.model.UserProfile">

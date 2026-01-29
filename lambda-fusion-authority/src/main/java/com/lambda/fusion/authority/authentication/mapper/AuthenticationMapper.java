@@ -38,7 +38,7 @@ public interface AuthenticationMapper {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    List<ResourceTree> selectNavigation(NavigationQuery query);
+    List<ResourceTree> selectNavigation(@Param("query") NavigationQuery query);
 
     /**
      * 根据查询条件获取简单资源列表
@@ -46,7 +46,7 @@ public interface AuthenticationMapper {
      * @param query 资源查询参数
      * @return 简单资源列表
      */
-    List<ResourceTree> selectResources(ResourceQuery query);
+    List<ResourceTree> selectResources(@Param("query") ResourceQuery query);
 
     /**
      * 根据角色ID获取用户列表

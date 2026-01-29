@@ -31,6 +31,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -41,6 +43,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class RoleServiceImpl implements RoleService {
 
@@ -51,26 +54,24 @@ public class RoleServiceImpl implements RoleService {
 
     private static final String ADMIN = "admin";
 
-    @Autowired
-    private RoleMapper roleMapper;
+    private final RoleMapper roleMapper;
 
-    @Autowired
-    private ResourceService resourceService;
+    private final ResourceService resourceService;
 
-    @Autowired
-    private GroupMapper groupMapper;
+    private final GroupMapper groupMapper;
 
-    @Autowired
-    private UserRoleMapper userRoleMapper;
+    private final UserRoleMapper userRoleMapper;
 
-    @jakarta.annotation.Resource
-    private AccessPermissionMapper accessPermissionMapper;
+    private final AccessPermissionMapper accessPermissionMapper;
 
-    @Autowired
-    private InternalRoleService internalRoleService;
+    private final InternalRoleService internalRoleService;
+
+    private TenantAuthorizeManager tenantAuthorizeManager;
 
     @Autowired(required = false)
-    private TenantAuthorizeManager tenantAuthorizeManager;
+    public void setTenantAuthorizeManager(TenantAuthorizeManager tenantAuthorizeManager) {
+        this.tenantAuthorizeManager = tenantAuthorizeManager;
+    }
 
     @Override
     public List<Role> getAllRoles(UserPrincipal userPrincipal) {
@@ -101,7 +102,7 @@ public class RoleServiceImpl implements RoleService {
         Set<String> queryExclude = internalRoleService.queryExclude(userPrincipal);
         excludes.addAll(queryExclude);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(2);
-        parameters.put("excludes", excludes);
+        parameters.put(FusionConstants.EXCLUDES, excludes);
         parameters.put(FusionConstants.TENANT_ID, tenantId);
         List<Role> roles = roleMapper.getAllRoles(parameters);
         List<GroupEntity> groupEntities = groupMapper.getAllGroup(parameters);
@@ -265,10 +266,10 @@ public class RoleServiceImpl implements RoleService {
                 authorityPermission.setStatus(status);
                 roleMapper.batchUpdateAuthorization(authorityPermission);
             }
-            Set<String> differently = Sets.difference(ids, authorized);
-            if (!CollectionUtils.isEmpty(differently)) {
-                List<AuthorityPermission> list = new ArrayList<>(differently.size());
-                for (String id : differently) {
+            Set<String> diff = Sets.difference(ids, authorized);
+            if (!CollectionUtils.isEmpty(diff)) {
+                List<AuthorityPermission> list = new ArrayList<>(diff.size());
+                for (String id : diff) {
                     AuthorityPermission authorityPermission = new AuthorityPermission();
                     authorityPermission.setAuthority(authority);
                     authorityPermission.setTenantId(tenantId);
@@ -307,7 +308,8 @@ public class RoleServiceImpl implements RoleService {
             if (CollectionUtils.isNotEmpty(ids)) {
                 roleMapper.batchDeleteAuthorization(authority, ids, tenantId);
             }
-            if (!ResourceType.BUTTON.equals(ResourceType.get(resource.getResType()))) {
+            ResourceType resourceType = ResourceType.get(resource.getResType());
+            if (resourceType != null && !resourceType.isButton()) {
                 List<Resource> parents = resourceService.getAllParentsByOperator(userPrincipal, resource);
                 for (Resource parent : parents) {
                     AuthorityPermission parameters = new AuthorityPermission();
@@ -335,7 +337,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void prohibitRole(int type, String authority) {
-        Assert.notNull(authority, "role name 不能为空");
+        Assert.notNull(authority, "角色不能为空");
         Role role = getRoleByAuthority(authority);
         Assert.notNull(role, " 角色" + authority + "不存在");
         roleMapper.prohibitRole(type, role.getAuthority());

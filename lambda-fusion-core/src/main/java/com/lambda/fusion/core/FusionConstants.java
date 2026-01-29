@@ -20,7 +20,7 @@ public final class FusionConstants {
     /** 停用 **/
     public static final Integer DISABLED = 0;
     /** 系统标识 */
-    public static final String SYSTEM = "system";
+    public static final String EXCLUDES = "excludes";
     /** 设备终端 */
     public static final String DEVICE_DEFAULT = "default";
     /** 租户ID 字段名 */
