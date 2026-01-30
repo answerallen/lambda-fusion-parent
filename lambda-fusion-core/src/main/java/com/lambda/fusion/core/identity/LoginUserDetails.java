@@ -31,7 +31,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode
 @Schema(description = "用户身份主体")
-public class UserPrincipal implements LoginUser {
+public class LoginUserDetails implements LoginUser {
 
     /**
      * 用户名
@@ -195,5 +195,25 @@ public class UserPrincipal implements LoginUser {
     @JsonIgnore
     public boolean isTenantManager() {
         return roles != null && roles.contains(FusionConstants.ROLE_TENANT_MANAGER);
+    }
+
+    /**
+     * 判断用户是否为租户角色
+     *
+     * @return true 表示用户具有租户角色，false 表示不具有
+     */
+    @JsonIgnore
+    public boolean isTenant() {
+        return roles != null && roles.contains(FusionConstants.ROLE_TENANT);
+    }
+
+    /**
+     * 判断用户是否为系统管理员角色
+     *
+     * @return true 表示用户具有系统管理员角色，false 表示不具有
+     */
+    @JsonIgnore
+    public boolean isSystem() {
+        return roles != null && roles.contains(FusionConstants.ROLE_SYSTEM);
     }
 }
