@@ -55,18 +55,18 @@ public class OrganizationController {
             @RequestParam(required = false) @Parameter(description = "组织别名") String alias,
             @RequestParam(required = false) Boolean enabled) {
         LoginUser operator = OperatorUtils.getOperator();
-        OrganizationQuery parameters = organizationService.getOrganizationQuery();
+        OrganizationQuery organizationQuery = organizationService.getOrganizationQuery();
         if (BooleanUtils.isTrue(enabled)) {
-            parameters.setEnabled(true);
+            organizationQuery.setEnabled(true);
         }
         if (StringUtils.isNotBlank(name)) {
-            parameters.setName(name);
+            organizationQuery.setName(name);
         }
         if (StringUtils.isNotBlank(alias)) {
-            parameters.setAlias(fuzzyQuery(alias));
+            organizationQuery.setAlias(fuzzyQuery(alias));
         }
-        parameters.setTenantId(operator.getTenantId());
-        return organizationService.treeList(parameters);
+        organizationQuery.setTenantId(operator.getTenantId());
+        return organizationService.treeList(organizationQuery);
     }
 
     @GetMapping("/list")
@@ -79,7 +79,7 @@ public class OrganizationController {
 
     @PostMapping({"", "/{id}"})
     @Operation(summary = "新增组织机构信息", description = "当id为非空时新增其子组织机构信息")
-    public Organization add(
+    public Organization addOrganization(
             @Parameter(description = "组织编号") @PathVariable(required = false) String id,
             @Parameter(description = "组织信息", required = true) @Valid @RequestBody
                     CreateOrganization createOrganization) {
@@ -93,7 +93,7 @@ public class OrganizationController {
 
     @PutMapping("/{id}")
     @Operation(summary = "更新组织机构信息", description = "根据编号更新指定的组织机构信息")
-    public Organization update(
+    public Organization updateOrganization(
             @Parameter(description = "组织编号", required = true) @PathVariable String id,
             @Parameter(description = "组织信息", required = true) @Valid @RequestBody
                     UpdateOrganization updateOrganization) {
@@ -116,22 +116,22 @@ public class OrganizationController {
     public UserOrganization queryUserOrganization(
             @Parameter(description = "用户名称", required = true) @PathVariable String username) {
         UserOrganizationChange resource = new UserOrganizationChange();
-        resource.setUserId(username);
+        resource.setUsername(username);
         return organizationService.queryUserOrganization(resource);
     }
 
     @PostMapping("/user/{username}")
     @Operation(summary = "添加用户组织信息", description = "添加用户组织信息")
-    public UserOrganization addUserOrgan(
+    public UserOrganization addUserOrganization(
             @Parameter(description = "用户名称", required = true) @PathVariable String username,
             @Parameter(description = "用户组织信息", required = true) @RequestBody UserOrganizationChange resource) {
-        resource.setUserId(username);
+        resource.setUsername(username);
         return organizationService.addUserOrganization(resource);
     }
 
     @DeleteMapping("/user/{username}")
     @Operation(summary = "删除用户组织信息", description = "删除用户添加组织信息")
-    public void deleteUserOrgan(@Parameter(description = "用户名称", required = true) @PathVariable String username) {
+    public void deleteUserOrganization(@Parameter(description = "用户名称", required = true) @PathVariable String username) {
         organizationService.deleteUserOrganization(username);
     }
 
@@ -140,7 +140,7 @@ public class OrganizationController {
     public UserOrganization updateUserOrganization(
             @Parameter(description = "用户名称", required = true) @PathVariable String username,
             @Parameter(description = "用户组织信息", required = true) @RequestBody UserOrganizationChange resource) {
-        resource.setUserId(username);
+        resource.setUsername(username);
         return organizationService.updateUserOrganization(resource);
     }
 

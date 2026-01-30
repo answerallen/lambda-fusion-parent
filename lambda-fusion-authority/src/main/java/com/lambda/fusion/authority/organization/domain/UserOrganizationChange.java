@@ -19,7 +19,7 @@ public class UserOrganizationChange extends BaseDTO<UserOrganizationEntity> {
 
     @NotEmpty
     @Schema(description = "用户ID")
-    private String userId;
+    private String username;
 
     @NotEmpty
     @Schema(description = "组织ID")

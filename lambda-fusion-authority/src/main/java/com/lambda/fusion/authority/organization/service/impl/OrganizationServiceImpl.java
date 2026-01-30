@@ -66,9 +66,9 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<Organization> treeList(OrganizationQuery parameters) {
+    public List<Organization> treeList(OrganizationQuery organizationQuery) {
         UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
-        List<Organization> organizations = getOrganizationsByCondition(userPrincipal, parameters);
+        List<Organization> organizations = getOrganizationsByCondition(userPrincipal, organizationQuery);
         applyPermissionConstraints(organizations, userPrincipal);
         return TreeBuilder.build(organizations);
     }
@@ -99,11 +99,11 @@ public class OrganizationServiceImpl implements OrganizationService {
      * 根据搜索条件获取组织列表
      */
     private List<Organization> getOrganizationsBySearchCondition(
-            UserPrincipal userPrincipal, OrganizationQuery parameters) {
-        List<Organization> list = getOrgByCondition(userPrincipal, parameters);
+            UserPrincipal principal, OrganizationQuery parameters) {
+        List<Organization> list = getOrgByCondition(principal, parameters);
 
-        if (userPrincipal.isAdmin()) {
-            Set<String> additionalOrgIds = collectAdditionalOrgIds(userPrincipal.getOrgId(), list);
+        if (principal.isAdmin()) {
+            Set<String> additionalOrgIds = collectAdditionalOrgIds(principal.getOrgId(), list);
             if (CollectionUtils.isNotEmpty(additionalOrgIds)) {
                 parameters.setIds(new ArrayList<>(additionalOrgIds));
                 list.addAll(organizationMapper.getOrganizations(parameters));
@@ -300,9 +300,9 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     public UserOrganization queryUserOrganization(UserOrganizationChange resource) {
         Assert.notNull(resource, "organ must not be null");
-        Assert.notNull(resource.getUserId(), "user id must not be null");
+        Assert.notNull(resource.getUsername(), "user id must not be null");
         UserOrganizationEntity userOrganizationEntity =
-                userOrganizationMapper.selectUserOrganization(resource.getUserId());
+                userOrganizationMapper.selectUserOrganization(resource.getUsername());
         return UserOrganization.fromEntity(UserOrganization.class, userOrganizationEntity);
     }
 
@@ -310,10 +310,10 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public UserOrganization addUserOrganization(UserOrganizationChange userOrganizationDTO) {
         Assert.notNull(userOrganizationDTO, "organ must not be null");
-        Assert.notNull(userOrganizationDTO.getUserId(), "user id must not be null");
+        Assert.notNull(userOrganizationDTO.getUsername(), "user id must not be null");
         Assert.notNull(userOrganizationDTO.getOrganizationId(), "organization id must not be null");
         Assert.notNull(
-                userMapper.selectUserByUsername(userOrganizationDTO.getUserId()),
+                userMapper.selectUserByUsername(userOrganizationDTO.getUsername()),
                 "lambda.authority.organ.user.notfound");
         Assert.notNull(getOrganizationById(userOrganizationDTO.getOrganizationId()), "机构不存在！");
         UserOrganizationEntity userOrganization = userOrganizationDTO.toEntity();
@@ -330,7 +330,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public UserOrganization updateUserOrganization(UserOrganizationChange resource) {
-        Assert.notNull(resource.getUserId(), "user id must not be null");
+        Assert.notNull(resource.getUsername(), "user id must not be null");
         Assert.notNull(resource.getOrganizationId(), "organization id must not be null");
         Organization organization = getOrganizationById(resource.getOrganizationId());
         Assert.notNull(organization, "机构不存在！");
