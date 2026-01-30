@@ -14,7 +14,7 @@ import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.identity.UserPrincipal;
+import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.LoginUserUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -91,9 +91,9 @@ public class UserController {
     @GetMapping("/allUser")
     @Operation(summary = "查询用户下拉列表")
     public List<UserProfile> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
-        UserPrincipal loginUser = LoginUserUtils.getLoginUser();
+        LoginUserDetails loginUser = LoginUserUtils.getLoginUser();
         List<String> orgIds =
-                isAll != null && isAll ? Collections.emptyList() : organizationService.getSubOrganizationIds(loginUser);
+                isAll != null && isAll ? Collections.emptyList() : organizationService.getSubOrganizations(loginUser);
         return userService.getUserProfiles(loginUser, orgIds);
     }
 

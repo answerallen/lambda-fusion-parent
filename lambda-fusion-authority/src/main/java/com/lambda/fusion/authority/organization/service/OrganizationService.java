@@ -39,7 +39,7 @@ public interface OrganizationService {
      * @param parameters
      * @return
      */
-    List<Organization> getSubOrganizationIds(OrganizationQuery parameters);
+    List<Organization> getSubOrganizations(OrganizationQuery parameters);
 
     /**
      * 根据ID查询组织信息
@@ -153,7 +153,7 @@ public interface OrganizationService {
      *
      * @return
      */
-    List<String> getSubOrganizationIds(LoginUser operator);
+    List<String> getSubOrganizations(LoginUser operator);
 
     /**
      * 根据指定组织编号查询下级组织列表
@@ -161,7 +161,7 @@ public interface OrganizationService {
      * @param orgId
      * @return
      */
-    List<String> getSubOrganizationIds(String orgId);
+    List<String> getSubOrganizations(String orgId);
 
     /**
      * 通过excel来增加组织
@@ -185,7 +185,7 @@ public interface OrganizationService {
      * @param ids 组织id
      * @return Map<String, Organization
      */
-    Map<String, Organization> getOrganizationByIds(Set<String> ids);
+    Map<String, Organization> getOrganizationMapByIds(Set<String> ids);
 
     /**
      * 移动组织树节点

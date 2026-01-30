@@ -18,7 +18,7 @@ import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.manager.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.identity.UserPrincipal;
+import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.utils.LoginUserUtils;
 import com.lambda.fusion.core.utils.SqlParamUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,8 +59,8 @@ public class RoleController {
     @SaCheckLogin
     @Operation(description = "获取所有角色列表", summary = "获取所有角色列表")
     public List<Role> list() {
-        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
-        return roleService.getAllRoles(userPrincipal);
+        LoginUserDetails loginUserDetails = LoginUserUtils.getLoginUser();
+        return roleService.getAllRoles(loginUserDetails);
     }
 
     @GetMapping("/grouped")
@@ -69,8 +69,8 @@ public class RoleController {
             summary = "获取所有角色分组列表",
             parameters = {@Parameter(name = "tenant_id", description = "租户id")})
     public List<GroupRole> grouped() {
-        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
-        return roleService.grouped(userPrincipal, userPrincipal.getTenantId());
+        LoginUserDetails loginUserDetails = LoginUserUtils.getLoginUser();
+        return roleService.grouped(loginUserDetails, loginUserDetails.getTenantId());
     }
 
     @GetMapping({"/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
@@ -80,7 +80,7 @@ public class RoleController {
             @PathVariable(required = false) Integer size,
             String alias,
             String groupId) {
-        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
+        LoginUserDetails loginUserDetails = LoginUserUtils.getLoginUser();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
         if (ObjectUtil.isNotNull(groupId)) {
             parameters.put("groupId", groupId);
@@ -94,13 +94,13 @@ public class RoleController {
         excludes.add(FusionConstants.ROLE_DEV);
         excludes.add(FusionConstants.ROLE_SYSTEM);
         excludes.add(FusionConstants.ROLE_TENANT);
-        if (!userPrincipal.isDev()) {
+        if (!loginUserDetails.isDev()) {
             excludes.add(FusionConstants.ROLE_ADMIN);
         }
-        Set<String> queryExclude = internalRoleService.queryExclude(userPrincipal);
+        Set<String> queryExclude = internalRoleService.queryExclude(loginUserDetails);
         excludes.addAll(queryExclude);
         parameters.put("excludes", excludes);
-        String tenantId = userPrincipal.getTenantId();
+        String tenantId = loginUserDetails.getTenantId();
         if (StringUtils.isNotBlank(tenantId)) {
             parameters.put("tenant_id", tenantId);
         }
@@ -125,8 +125,8 @@ public class RoleController {
     @PostMapping
     @Operation(description = "新增角色信息", summary = "新增角色信息")
     public Role add(@Parameter(description = "角色信息", required = true) @RequestBody CreateRole createRole) {
-        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
-        return roleService.saveRole(userPrincipal, createRole);
+        LoginUserDetails loginUserDetails = LoginUserUtils.getLoginUser();
+        return roleService.saveRole(loginUserDetails, createRole);
     }
 
     @PutMapping("/{authority}")
@@ -136,8 +136,8 @@ public class RoleController {
             @Parameter(description = "角色信息", required = true) @RequestBody UpdateRole updateRole) {
         Assert.notNull(authority, "角色名称不能为空！");
         updateRole.setAuthority(authority);
-        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
-        return roleService.updateRole(userPrincipal, updateRole);
+        LoginUserDetails loginUserDetails = LoginUserUtils.getLoginUser();
+        return roleService.updateRole(loginUserDetails, updateRole);
     }
 
     @DeleteMapping("/{authority}")
@@ -191,15 +191,15 @@ public class RoleController {
     @Operation(description = "角色批量分配用户", summary = "角色批量分配用户")
     @PostMapping("/assignUsers")
     public void assignUsersToRole(@Valid @RequestBody BatchRoleUserAssignmentRequest req) {
-        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
-        roleService.assignUsersToRole(userPrincipal, req);
+        LoginUserDetails loginUserDetails = LoginUserUtils.getLoginUser();
+        roleService.assignUsersToRole(loginUserDetails, req);
     }
 
     @Operation(description = "分组列表", summary = "分组列表")
     @GetMapping("/group")
     public List<Group> listGroups() {
-        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
-        return roleService.listGroups(userPrincipal);
+        LoginUserDetails loginUserDetails = LoginUserUtils.getLoginUser();
+        return roleService.listGroups(loginUserDetails);
     }
 
     @Operation(description = "新增角色分组", summary = "新增角色分组")

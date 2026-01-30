@@ -8,7 +8,7 @@ import com.lambda.fusion.authority.role.model.Group;
 import com.lambda.fusion.authority.role.model.GroupRole;
 import com.lambda.fusion.authority.role.model.Role;
 import com.lambda.fusion.authority.role.model.UpdateRole;
-import com.lambda.fusion.core.identity.UserPrincipal;
+import com.lambda.fusion.core.identity.LoginUserDetails;
 import java.util.List;
 import java.util.Map;
 
@@ -20,19 +20,19 @@ public interface RoleService {
     /**
      * 获取用户的所有角色信息
      *
-     * @param userPrincipal
+     * @param loginUserDetails
      * @return
      */
-    List<Role> getAllRoles(UserPrincipal userPrincipal);
+    List<Role> getAllRoles(LoginUserDetails loginUserDetails);
 
     /**
      * 获取角色分组
      *
-     * @param userPrincipal 用户
+     * @param loginUserDetails 用户
      * @param tenantId the tenantId
      * @return ig all group roles
      */
-    List<GroupRole> grouped(UserPrincipal userPrincipal, String tenantId);
+    List<GroupRole> grouped(LoginUserDetails loginUserDetails, String tenantId);
 
     /***
      * 根据条件分页查询角色列表
@@ -46,23 +46,23 @@ public interface RoleService {
     /**
      * 修改角色
      *
-     * @param userPrincipal
+     * @param loginUserDetails
      * @param role
      * @return
      * @throws Exception
      */
-    Role updateRole(UserPrincipal userPrincipal, UpdateRole role);
+    Role updateRole(LoginUserDetails loginUserDetails, UpdateRole role);
 
     /**
      * 增加角色
      * 默认新增角色是启用状态
      *
-     * @param userPrincipal
+     * @param loginUserDetails
      * @param role
      * @return
      * @throws Exception
      */
-    Role saveRole(UserPrincipal userPrincipal, CreateRole role);
+    Role saveRole(LoginUserDetails loginUserDetails, CreateRole role);
 
     /**
      * 根据角色编号查询角色信息
@@ -90,30 +90,30 @@ public interface RoleService {
 
     /**
      * 查询角色权限
-     * @param userPrincipal 当前用户
+     * @param loginUserDetails 当前用户
      * @param id 角色id
      * @param mode 角色模式
      * @return
      */
-    List<AccessPermission> getAccessPermission(UserPrincipal userPrincipal, String id, Integer mode);
+    List<AccessPermission> getAccessPermission(LoginUserDetails loginUserDetails, String id, Integer mode);
 
     /**
      * 保存角色权限
      *  @param authority
      * @param resourceId
      * @param status
-     * @param userPrincipal
+     * @param loginUserDetails
      */
-    void grantRolePermission(String authority, String resourceId, int status, UserPrincipal userPrincipal);
+    void grantRolePermission(String authority, String resourceId, int status, LoginUserDetails loginUserDetails);
 
     /**
      * 删除角色权限
      *
      * @param id
      * @param resourceId
-     * @param userPrincipal
+     * @param loginUserDetails
      */
-    void revokeRolePermission(String id, String resourceId, UserPrincipal userPrincipal);
+    void revokeRolePermission(String id, String resourceId, LoginUserDetails loginUserDetails);
 
     /**
      * 查询该角色名是否被使用
@@ -168,16 +168,16 @@ public interface RoleService {
     /**
      * 批量添加角色用户
      *
-     * @param userPrincipal 当前操作用户
+     * @param loginUserDetails 当前操作用户
      * @param req  请求
      */
-    void assignUsersToRole(UserPrincipal userPrincipal, BatchRoleUserAssignmentRequest req);
+    void assignUsersToRole(LoginUserDetails loginUserDetails, BatchRoleUserAssignmentRequest req);
 
     /**
      * 分组列表查询
      *
-     * @param userPrincipal 当前用户
+     * @param loginUserDetails 当前用户
      * @return 列表
      */
-    List<Group> listGroups(UserPrincipal userPrincipal);
+    List<Group> listGroups(LoginUserDetails loginUserDetails);
 }

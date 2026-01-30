@@ -11,7 +11,6 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
 import com.lambda.fusion.authority.authentication.model.AuthenticatedUser;
-import com.lambda.fusion.authority.authentication.model.LoginUserDetails;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
@@ -19,7 +18,7 @@ import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.model.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.identity.UserPrincipal;
+import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
@@ -46,18 +45,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
         Assert.notNull(username, "parameter 'username' cannot be empty or null");
-        LoginUserDetails authLoginUserDetails = authenticationMapper.selectUserDetailByUsername(username);
+        com.lambda.fusion.authority.authentication.model.LoginUserDetails authLoginUserDetails = authenticationMapper.selectUserDetailByUsername(username);
         if (authLoginUserDetails == null) {
             throw new UsernameNotFoundException("user in not found");
         }
-        UserPrincipal userPrincipal = authLoginUserDetails.toUserPrincipal();
-        return prepareLoginUser(userPrincipal);
+        LoginUserDetails loginUserDetails = authLoginUserDetails.toUserPrincipal();
+        return prepareLoginUser(loginUserDetails);
     }
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<LoginUserDetails> details = authenticationMapper.selectUserDetailsByMobile(mobile);
-        LoginUserDetails user = Optional.ofNullable(details)
+        List<com.lambda.fusion.authority.authentication.model.LoginUserDetails> details = authenticationMapper.selectUserDetailsByMobile(mobile);
+        com.lambda.fusion.authority.authentication.model.LoginUserDetails user = Optional.ofNullable(details)
                 .filter(CollUtil::isNotEmpty)
                 .filter(d -> d.size() == 1)
                 .map(List::getFirst)
@@ -71,8 +70,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         query.setParentId(parentId);
         query.setLevel(level);
         query.setMode(0);
-        if (loginUser instanceof UserPrincipal && CollUtil.isNotEmpty(((UserPrincipal) loginUser).getRoles())) {
-            query.setIds(new ArrayList<>(((UserPrincipal) loginUser).getRoles()));
+        if (loginUser instanceof LoginUserDetails && CollUtil.isNotEmpty(((LoginUserDetails) loginUser).getRoles())) {
+            query.setIds(new ArrayList<>(((LoginUserDetails) loginUser).getRoles()));
         }
         return getNavigation(loginUser, query);
     }
@@ -92,7 +91,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public AuthenticatedUser getUserInfo() {
         LoginUser operator = OperatorUtils.getOperator();
-        LoginUserDetails loginUserDetails = authenticationMapper.selectUserDetailByUsername(operator.getName());
+        com.lambda.fusion.authority.authentication.model.LoginUserDetails loginUserDetails = authenticationMapper.selectUserDetailByUsername(operator.getName());
         if (loginUserDetails == null) {
             throw new UsernameNotFoundException("user not found");
         }
@@ -135,17 +134,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     /**
      * 构建登录用户信息
      *
-     * @param userPrincipal 用户对象
+     * @param loginUserDetails 用户对象
      * @return 登录用户
      */
-    private LoginUser prepareLoginUser(UserPrincipal userPrincipal) {
-        if (CollUtil.isEmpty(userPrincipal.getRoles())) {
-            userPrincipal.setRoles(Sets.newHashSet(FusionConstants.ROLE_USER));
+    private LoginUser prepareLoginUser(LoginUserDetails loginUserDetails) {
+        if (CollUtil.isEmpty(loginUserDetails.getRoles())) {
+            loginUserDetails.setRoles(Sets.newHashSet(FusionConstants.ROLE_USER));
         }
         String tenantId = TenantHolder.getTenantId();
         if (StrUtil.isNotBlank(tenantId)) {
-            userPrincipal.setTenantId(tenantId);
+            loginUserDetails.setTenantId(tenantId);
         }
-        return userPrincipal;
+        return loginUserDetails;
     }
 }

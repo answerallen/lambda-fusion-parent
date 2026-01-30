@@ -17,12 +17,12 @@ public class AuthorityProperties {
     /**
      * 是否开启数据角色
      */
-    private boolean dataRoleEnabled = false;
+    private boolean enabledDataRole = false;
 
     /**
-     * 组织名称作为id使用并入库
+     * 组织名称作为 id 使用并入库
      */
-    private boolean organizationNameAsId = false;
+    private boolean useOrgNameAsId = false;
 
     /**
      * 密码策略
@@ -31,7 +31,7 @@ public class AuthorityProperties {
     /**
      * 开发者角色配置
      */
-    private DevRole devRole = new DevRole();
+    private DevRole dev = new DevRole();
 
     /**
      * 密码策略
@@ -80,7 +80,7 @@ public class AuthorityProperties {
     @Setter
     public static class DevRole {
         private final String[] defaultWhiteArray = new String[] {
-            "/public/**", "**/dictionaries/**", "/dictionaries/**", "/monitor/**", "/error/**", "/error", "/v3/**",
+            "/public/**", "**/dict/**", "/dict/**", "/monitor/**", "/error/**", "/error", "/v3/**",
         };
         private List<String> whiteList;
 

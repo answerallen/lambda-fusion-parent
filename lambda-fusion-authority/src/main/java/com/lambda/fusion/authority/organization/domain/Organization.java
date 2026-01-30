@@ -101,10 +101,6 @@ public class Organization extends BaseVO<OrganizationEntity> implements TreeNode
     @Schema(description = "组织类别")
     private Integer type;
 
-    @Schema(description = "父组织编码")
-    @Length(max = 40)
-    private String spid;
-
     @Schema(description = "组织排序号")
     @JsonProperty("sort")
     private int orderNo;

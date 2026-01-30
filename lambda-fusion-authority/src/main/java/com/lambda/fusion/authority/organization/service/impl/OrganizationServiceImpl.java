@@ -23,7 +23,7 @@ import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.autoconfig.AuthorityProperties;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.identity.UserPrincipal;
+import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
@@ -67,49 +67,40 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<Organization> treeList(OrganizationQuery organizationQuery) {
-        UserPrincipal userPrincipal = LoginUserUtils.getLoginUser();
-        List<Organization> organizations = getOrganizationsByCondition(userPrincipal, organizationQuery);
-        applyPermissionConstraints(organizations, userPrincipal);
+        LoginUserDetails loginUserDetails = LoginUserUtils.getLoginUser();
+        List<Organization> organizations = queryOrganizations(loginUserDetails, organizationQuery);
+        this.applyPermissionConstraints(organizations, loginUserDetails);
         return TreeBuilder.build(organizations);
     }
 
     /**
      * 根据条件获取组织列表
      *
-     * @param userPrincipal 操作用户
-     * @param parameters    查询参数
+     * @param loginUserDetails 操作用户
+     * @param organizationQuery    查询参数
      * @return 组织列表
      */
-    private List<Organization> getOrganizationsByCondition(UserPrincipal userPrincipal, OrganizationQuery parameters) {
-        if (hasSearchCondition(parameters)) {
-            return getOrganizationsBySearchCondition(userPrincipal, parameters);
+    private List<Organization> queryOrganizations(LoginUserDetails loginUserDetails, OrganizationQuery organizationQuery) {
+        if (StringUtils.isNotBlank(organizationQuery.getAlias()) || StringUtils.isNotBlank(organizationQuery.getName())) {
+            return getOrganizations(loginUserDetails, organizationQuery);
         } else {
-            return getSubOrganizationIds(parameters);
+            return getSubOrganizations(organizationQuery);
         }
-    }
-
-    /**
-     * 检查是否有搜索条件
-     */
-    private boolean hasSearchCondition(OrganizationQuery parameters) {
-        return StringUtils.isNotBlank(parameters.getAlias()) || StringUtils.isNotBlank(parameters.getName());
     }
 
     /**
      * 根据搜索条件获取组织列表
      */
-    private List<Organization> getOrganizationsBySearchCondition(
-            UserPrincipal principal, OrganizationQuery parameters) {
-        List<Organization> list = getOrgByCondition(principal, parameters);
-
+    private List<Organization> getOrganizations(
+            LoginUserDetails principal, OrganizationQuery organizationQuery) {
+        List<Organization> list = getOrgByCondition(principal, organizationQuery);
         if (principal.isAdmin()) {
             Set<String> additionalOrgIds = collectAdditionalOrgIds(principal.getOrgId(), list);
             if (CollectionUtils.isNotEmpty(additionalOrgIds)) {
-                parameters.setIds(new ArrayList<>(additionalOrgIds));
-                list.addAll(organizationMapper.getOrganizations(parameters));
+                organizationQuery.setIds(new ArrayList<>(additionalOrgIds));
+                list.addAll(organizationMapper.getOrganizations(organizationQuery));
             }
         }
-
         return list.stream().distinct().collect(Collectors.toList());
     }
 
@@ -119,14 +110,14 @@ public class OrganizationServiceImpl implements OrganizationService {
     private Set<String> collectAdditionalOrgIds(String orgId, List<Organization> list) {
         Set<String> orgIds = new HashSet<>();
         for (Organization org : list) {
-            addParentOrgIds(orgId, org, orgIds, true);
+            this.addParentOrgIds(orgId, org, orgIds, LoginUserUtils.getLoginUser().isManager());
             orgIds.addAll(getChildrenById(org.getId()));
         }
         return orgIds;
     }
 
     /**
-     * 添加父级组织ID
+     * 添加 父级组织 ID
      */
     private void addParentOrgIds(String orgId, Organization org, Set<String> orgIds, boolean isAdmin) {
         String parentKeys = org.getParentKeys();
@@ -149,28 +140,26 @@ public class OrganizationServiceImpl implements OrganizationService {
     /**
      * 应用权限约束
      */
-    private void applyPermissionConstraints(List<Organization> organizations, UserPrincipal userPrincipal) {
-        String operatorOrgId = userPrincipal.getOrgId();
-        String operatorTenantId = userPrincipal.getTenantId();
-
-        for (Organization org : organizations) {
+    private void applyPermissionConstraints(List<Organization> organizations, LoginUserDetails loginUserDetails) {
+        String operatorOrgId = loginUserDetails.getOrgId();
+        String operatorTenantId = loginUserDetails.getTenantId();
+        for (Organization organization : organizations) {
             // 设置操作权限
-            if (!userPrincipal.isAdmin() && org.getId().equals(operatorOrgId)) {
-                org.setNoPermission(true);
+            if (!loginUserDetails.isAdmin() && organization.getId().equals(operatorOrgId)) {
+                organization.setNoPermission(true);
             }
 
             // 设置租户权限
-            if (!Objects.equals(operatorTenantId, org.getOwner())) {
-                org.setNoPermission(true);
-                org.setInAvailable(true);
+            if (!Objects.equals(operatorTenantId, organization.getOwner())) {
+                organization.setNoPermission(true);
+                organization.setInAvailable(true);
             }
         }
     }
 
     @Override
-    public List<Organization> getSubOrganizationIds(OrganizationQuery parameters) {
-        LoginUser operator = OperatorUtils.getOperator();
-        List<String> orgIds = getSubOrganizationIds(operator);
+    public List<Organization> getSubOrganizations(OrganizationQuery parameters) {
+        List<String> orgIds = getSubOrganizations(LoginUserUtils.getLoginUser());
         if (CollectionUtils.isNotEmpty(orgIds)) {
             parameters.setIds(orgIds);
         }
@@ -178,7 +167,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     public List<Organization> getOrgByCondition(LoginUser operator, OrganizationQuery parameters) {
-        List<String> orgIds = getSubOrganizationIds(operator);
+        List<String> orgIds = getSubOrganizations(operator);
         if (CollectionUtils.isNotEmpty(orgIds)) {
             parameters.setIds(orgIds);
         }
@@ -482,7 +471,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Assert.isNull(checked, "组织机构名称重复！");
         String orgId;
         // 通过配置来确定组织id的来源
-        if (authorityProperties.isOrganizationNameAsId()) {
+        if (authorityProperties.isUseOrgNameAsId()) {
             orgId = createOrganization.getName();
         } else {
             orgId = IdWorker.getIdStr();
@@ -506,11 +495,11 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<String> getSubOrganizationIds(LoginUser operator) {
+    public List<String> getSubOrganizations(LoginUser operator) {
         List<String> orgIds = new ArrayList<>();
-        if (operator instanceof UserPrincipal userPrincipal) {
+        if (operator instanceof LoginUserDetails loginUserDetails) {
             // todo 根据用户类型增加组织机构权限
-            if (userPrincipal.isManager()) {
+            if (loginUserDetails.isManager()) {
                 String orgId = operator.getOrgId();
                 if (StringUtils.isNotBlank(orgId)) {
                     orgIds.add(orgId);
@@ -524,7 +513,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<String> getSubOrganizationIds(@Nonnull String orgId) {
+    public List<String> getSubOrganizations(@Nonnull String orgId) {
         List<String> list = Lists.newArrayList(orgId);
         List<String> children = getChildrenById(orgId);
         if (CollectionUtils.isNotEmpty(children)) {
@@ -550,7 +539,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public Map<String, Organization> getOrganizationByIds(Set<String> ids) {
+    public Map<String, Organization> getOrganizationMapByIds(Set<String> ids) {
         if (CollectionUtils.isEmpty(ids)) {
             return Collections.emptyMap();
         }
@@ -568,14 +557,14 @@ public class OrganizationServiceImpl implements OrganizationService {
             companyIds.add(companyId);
         }
 
-        List<OrganizationEntity> companies = organizationMapper.selectByIds(companyIds);
-        Map<String, Organization> companyMap = Maps.newHashMap();
-        for (OrganizationEntity company : companies) {
-            companyMap.put(company.getId(), Organization.fromEntity(Organization.class, company));
+        List<OrganizationEntity> organizationEntityList = organizationMapper.selectByIds(companyIds);
+        Map<String, Organization> organizationMap = Maps.newHashMap();
+        for (OrganizationEntity company : organizationEntityList) {
+            organizationMap.put(company.getId(), Organization.fromEntity(Organization.class, company));
         }
         Map<String, Organization> result = Maps.newHashMap();
         for (Map.Entry<String, String> entry : orgMap.entrySet()) {
-            result.put(entry.getKey(), companyMap.get(entry.getValue()));
+            result.put(entry.getKey(), organizationMap.get(entry.getValue()));
         }
         return result;
     }
