@@ -21,7 +21,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param users 用户信息
      * @return 用户信息列表
      */
-    List<OrganizationWithUser> getOrganizationUsers(List<User> users);
+    List<OrganizationWithUser> selectOrganizationByUsers(List<User> users);
 
     /**
      * 查询全部组织角色
@@ -29,7 +29,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param parameters 查询参数
      * @return 组织列表
      */
-    List<Organization> getOrganizations(@Param("parameters") OrganizationQuery parameters);
+    List<Organization> selectOrganizations(@Param("parameters") OrganizationQuery parameters);
 
     /**
      * 查询所有可用组织
@@ -37,7 +37,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param parameters 查询参数
      * @return java.util.List<OrganizationTree>
      */
-    List<OrganizationTree> getEnabledOrganization(@Param("parameters") OrganizationQuery parameters);
+    List<OrganizationTree> selectEnabledOrganization(@Param("parameters") OrganizationQuery parameters);
 
     /**
      * 查询组织、角色信息
@@ -45,21 +45,21 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param ids 组织、角色ID
      * @return 组织角色信息
      */
-    List<Organization> queryOrganizationList(List<Organization> ids);
+    List<Organization> selectOrganizationList(List<Organization> ids);
 
     /***
      * 根据编号查询组织详情
      * @param id 组织id
      */
     @InterceptorIgnore(tenantLine = "true")
-    Organization queryOrganizationById(String id);
+    Organization selectOrganizationById(String id);
 
     /***
      * 根据租户编号查询组织详情
      * @param id 租户id
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<Organization> queryOrganizationByTenantId(String id);
+    List<Organization> selectOrganizationByTenantId(String id);
 
     /**
      * 是否存在上级组织
@@ -77,7 +77,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @return 子组织id列表
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<String> getChildrenById(String id);
+    List<String> selectChildrenByOrganizationId(String id);
 
     /**
      * 获取指定节点的所有子节点
@@ -86,7 +86,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @return 子组织列表
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<Organization> getSubOrganizationsById(String id);
+    List<Organization> selectSubOrganizationsById(String id);
 
     /**
      * 批量禁用/启用组织机构
@@ -144,10 +144,10 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
     /**
      * 根据条件查询组织
      *
-     * @param parameters 条件参数
+     * @param organizationQuery 条件参数
      * @return 组织
      */
-    List<Organization> getOrgIdsByCondition(@Param("parameters") OrganizationQuery parameters);
+    List<Organization> selectOrganizationsByQuery(@Param("parameters") OrganizationQuery organizationQuery);
 
     /**
      * 根据组织ID删除组织
@@ -175,11 +175,11 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * 获取节点的直接下级
      *
      */
-    List<Organization> findDirectChildren(String id);
+    List<Organization> selectChildren(String id);
 
     /**
      * 获取节点的所有下级，包含下级的下级
      *
      */
-    List<Organization> findDescendants(String parentKeys);
+    List<Organization> selectOrganizationsByParentKeys(String parentKeys);
 }

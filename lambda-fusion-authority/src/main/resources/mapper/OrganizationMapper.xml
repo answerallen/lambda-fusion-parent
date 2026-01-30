@@ -11,7 +11,7 @@
     </resultMap>
 
     <!-- 查询用户组织列表 -->
-    <select id="getOrganizationUsers" parameterType="com.lambda.fusion.authority.user.model.User"
+    <select id="selectOrganizationByUsers" parameterType="com.lambda.fusion.authority.user.model.User"
             resultMap="MutableOrganization">
         SELECT
         T.USERNAME as username, O.ID, O.ALIAS, O.PARENT_ID AS parentId
@@ -38,7 +38,7 @@
         <result column="order_no" property="orderNo"/>
     </resultMap>
     <!-- 查询用户组织列表 -->
-    <select id="getOrganizations" resultMap="Organization">
+    <select id="selectOrganizations" resultMap="Organization">
         SELECT
             ID,
             ORG_NAME AS organization,
@@ -82,7 +82,7 @@
         ORDER BY O.ORG_RANK, O.ORDER_NO, O.PARENT_ID, O.ORG_NAME
     </select>
 
-    <select id="getOrgIdsByCondition" resultMap="Organization">
+    <select id="selectOrganizationsByQuery" resultMap="Organization">
         SELECT
             ID,
             ORG_NAME AS organization,
@@ -126,7 +126,7 @@
         ORDER BY O.ORG_RANK, O.ORDER_NO, O.PARENT_ID, O.ORG_NAME
     </select>
 
-    <select id="getEnabledOrganization" resultType="com.lambda.fusion.authority.organization.domain.OrganizationTree">
+    <select id="selectEnabledOrganization" resultType="com.lambda.fusion.authority.organization.domain.OrganizationTree">
         SELECT ID, ALIAS AS name, PARENT_ID AS pid
         FROM LA_ORGANIZATION O
         WHERE O.ENABLED = 1
@@ -147,7 +147,7 @@
     </select>
 
     <!-- 查询用户组织列表 -->
-    <select id="queryOrganizationList" resultMap="Organization">
+    <select id="selectOrganizationList" resultMap="Organization">
         SELECT
             ID,
             ORG_NAME AS organization,
@@ -166,7 +166,7 @@
         SELECT 1 - COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_ORGANIZATION WHERE PARENT_ID = #{id})
     </select>
 
-    <select id="queryOrganizationById" resultMap="Organization">
+    <select id="selectOrganizationById" resultMap="Organization">
         SELECT
             ID,
             ORG_NAME AS organization,
@@ -183,7 +183,7 @@
         FROM LA_ORGANIZATION O WHERE O.ID = #{id}
     </select>
 
-    <select id="queryOrganizationByTenantId" resultMap="Organization">
+    <select id="selectOrganizationByTenantId" resultMap="Organization">
         SELECT
             ID,
             ORG_NAME AS organization,
@@ -222,11 +222,11 @@
         UPDATE LA_USER_ORGANIZATION SET ORGANIZATION_ID = #{organizationId} WHERE USERNAME = #{userId}
     </update>
 
-    <select id="getChildrenById" resultType="java.lang.String">
+    <select id="selectChildrenByOrganizationId" resultType="java.lang.String">
         SELECT ID FROM LA_ORGANIZATION T WHERE T.PARENT_KEYS LIKE CONCAT(#{id},'%') ORDER BY PARENT_KEYS
     </select>
 
-    <select id="getSubOrganizationsById" resultMap="Organization">
+    <select id="selectSubOrganizationsById" resultMap="Organization">
         SELECT ID, ORG_CATEGORY FROM LA_ORGANIZATION T WHERE T.PARENT_KEYS LIKE CONCAT(#{id},'-%') OR T.PARENT_KEYS = #{id} ORDER BY PARENT_KEYS
     </select>
 
@@ -274,7 +274,7 @@
     </delete>
 
 
-    <select id="findDirectChildren" resultMap="Organization">
+    <select id="selectChildren" resultMap="Organization">
         SELECT
             ID AS id,
             ALIAS AS alias,
@@ -291,7 +291,7 @@
         </where>
         ORDER BY ORDER_NO
     </select>
-    <select id="findDescendants" resultMap="Organization">
+    <select id="selectOrganizationsByParentKeys" resultMap="Organization">
         SELECT
             ID AS id,
             ALIAS AS alias,

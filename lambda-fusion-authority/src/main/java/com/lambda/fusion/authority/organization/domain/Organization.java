@@ -93,10 +93,10 @@ public class Organization extends BaseVO<OrganizationEntity> implements TreeNode
     private int enabled;
 
     @Schema(description = "是否拥有操作权限")
-    private Boolean noPermission;
+    private Boolean hasPermission;
 
     @Schema(description = "是否可以选中")
-    private Boolean inAvailable;
+    private Boolean selectable;
 
     @Schema(description = "组织类别")
     private Integer type;

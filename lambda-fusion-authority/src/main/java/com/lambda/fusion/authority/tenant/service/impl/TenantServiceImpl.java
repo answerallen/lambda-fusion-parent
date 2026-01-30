@@ -311,7 +311,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
 
     protected List<Organization> queryOrganizationByTenantId(String tenantId) {
         Assert.notNull(tenantId, "tenantId must not be null");
-        return organizationMapper.queryOrganizationByTenantId(tenantId);
+        return organizationMapper.selectOrganizationByTenantId(tenantId);
     }
 
     protected List<String> getSubOrgIdsByType(List<Organization> orgIds, Boolean isTenant) {

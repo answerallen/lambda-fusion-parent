@@ -98,7 +98,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             Set<String> additionalOrgIds = collectAdditionalOrgIds(principal.getOrgId(), list);
             if (CollectionUtils.isNotEmpty(additionalOrgIds)) {
                 organizationQuery.setIds(new ArrayList<>(additionalOrgIds));
-                list.addAll(organizationMapper.getOrganizations(organizationQuery));
+                list.addAll(organizationMapper.selectOrganizations(organizationQuery));
             }
         }
         return list.stream().distinct().collect(Collectors.toList());
@@ -146,42 +146,42 @@ public class OrganizationServiceImpl implements OrganizationService {
         for (Organization organization : organizations) {
             // 设置操作权限
             if (!loginUserDetails.isAdmin() && organization.getId().equals(operatorOrgId)) {
-                organization.setNoPermission(true);
+                organization.setHasPermission(true);
             }
 
             // 设置租户权限
             if (!Objects.equals(operatorTenantId, organization.getOwner())) {
-                organization.setNoPermission(true);
-                organization.setInAvailable(true);
+                organization.setHasPermission(true);
+                organization.setSelectable(true);
             }
         }
     }
 
     @Override
-    public List<Organization> getSubOrganizations(OrganizationQuery parameters) {
+    public List<Organization> getSubOrganizations(OrganizationQuery organizationQuery) {
         List<String> orgIds = getSubOrganizations(LoginUserUtils.getLoginUser());
         if (CollectionUtils.isNotEmpty(orgIds)) {
-            parameters.setIds(orgIds);
+            organizationQuery.setIds(orgIds);
         }
-        return organizationMapper.getOrganizations(parameters);
+        return organizationMapper.selectOrganizations(organizationQuery);
     }
 
-    public List<Organization> getOrgByCondition(LoginUser operator, OrganizationQuery parameters) {
+    public List<Organization> getOrgByCondition(LoginUser operator, OrganizationQuery organizationQuery) {
         List<String> orgIds = getSubOrganizations(operator);
         if (CollectionUtils.isNotEmpty(orgIds)) {
-            parameters.setIds(orgIds);
+            organizationQuery.setIds(orgIds);
         }
-        return organizationMapper.getOrgIdsByCondition(parameters);
+        return organizationMapper.selectOrganizationsByQuery(organizationQuery);
     }
 
     @Override
     public List<Organization> selectAll(OrganizationQuery parameters) {
-        return organizationMapper.getOrganizations(parameters);
+        return organizationMapper.selectOrganizations(parameters);
     }
 
     @Override
-    public List<OrganizationTree> getSimpleOrgTree(OrganizationQuery parameters) {
-        List<OrganizationTree> list = organizationMapper.getEnabledOrganization(parameters);
+    public List<OrganizationTree> getSimpleOrgTree(OrganizationQuery organizationQuery) {
+        List<OrganizationTree> list = organizationMapper.selectEnabledOrganization(organizationQuery);
         return TreeBuilder.build(list);
     }
 
@@ -191,7 +191,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     private Organization getOrganizationById(String id) {
-        return organizationMapper.queryOrganizationById(id);
+        return organizationMapper.selectOrganizationById(id);
     }
 
     @Override
@@ -283,7 +283,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<OrganizationWithUser> getAllOrganMutableUsers(List<User> users) {
-        return organizationMapper.getOrganizationUsers(users);
+        return organizationMapper.selectOrganizationByUsers(users);
     }
 
     @Override
@@ -331,7 +331,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     public List<String> getParentsById(String id) {
         Assert.notNull(id, "id must not be null");
-        Organization organ = organizationMapper.queryOrganizationById(id);
+        Organization organ = organizationMapper.selectOrganizationById(id);
         if (organ != null) {
             String parentKeys = organ.getParentKeys();
             if (StringUtils.isNotBlank(parentKeys)) {
@@ -379,13 +379,13 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     protected List<Organization> getSubOrgIds(String id) {
         Assert.notNull(id, "id must not be null");
-        Organization organ = organizationMapper.queryOrganizationById(id);
+        Organization organ = organizationMapper.selectOrganizationById(id);
         Assert.notNull(organ, "机构不存在！");
         String keys = organ.getParentKeys();
         if (StringUtils.isNotBlank(keys)) {
             id = keys + JOINER + id;
         }
-        return organizationMapper.getSubOrganizationsById(id);
+        return organizationMapper.selectSubOrganizationsById(id);
     }
 
     protected List<String> getSubOrgIdsByType(List<Organization> orgIds, Boolean isTenant) {
@@ -498,8 +498,8 @@ public class OrganizationServiceImpl implements OrganizationService {
     public List<String> getSubOrganizations(LoginUser operator) {
         List<String> orgIds = new ArrayList<>();
         if (operator instanceof LoginUserDetails loginUserDetails) {
-            // todo 根据用户类型增加组织机构权限
-            if (loginUserDetails.isManager()) {
+            // 根据用户类型增加组织机构权限
+            if (!loginUserDetails.isManager()) {
                 String orgId = operator.getOrgId();
                 if (StringUtils.isNotBlank(orgId)) {
                     orgIds.add(orgId);
@@ -576,10 +576,10 @@ public class OrganizationServiceImpl implements OrganizationService {
         String tid = parameter.getTid();
         TreeDragMode mode = TreeDragMode.valueOf(parameter.getType());
 
-        Organization source = organizationMapper.queryOrganizationById(id);
-        Organization target = organizationMapper.queryOrganizationById(tid);
+        Organization source = organizationMapper.selectOrganizationById(id);
+        Organization target = organizationMapper.selectOrganizationById(tid);
         List<Organization> changed = TreeNodeUtils.getAllChangedAfterMoved(
-                source, target, mode, organizationMapper::findDirectChildren, organizationMapper::findDescendants);
+                source, target, mode, organizationMapper::selectChildren, organizationMapper::selectOrganizationsByParentKeys);
         organizationMapper.updateAffectedNodesAfterMove(changed);
     }
 }
