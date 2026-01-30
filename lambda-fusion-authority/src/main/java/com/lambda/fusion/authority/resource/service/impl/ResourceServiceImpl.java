@@ -430,7 +430,8 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<Resource> getAllChildrenByOperator(@NonNull LoginUserDetails loginUserDetails, @NonNull Resource resource) {
+    public List<Resource> getAllChildrenByOperator(
+            @NonNull LoginUserDetails loginUserDetails, @NonNull Resource resource) {
         String parentKeys = resource.getParentKeys();
         if (StringUtils.isNotBlank(parentKeys)) {
             parentKeys = resource.getParentKeys() + FusionConstants.SEPARATOR0 + resource.getId();
@@ -453,7 +454,8 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<Resource> getAllParentsByOperator(@NonNull LoginUserDetails loginUserDetails, @NonNull Resource resource) {
+    public List<Resource> getAllParentsByOperator(
+            @NonNull LoginUserDetails loginUserDetails, @NonNull Resource resource) {
         String parentKeys = resource.getParentKeys();
         if (StringUtils.isNotBlank(parentKeys)) {
             List<String> ids = Arrays.asList(parentKeys.split(FusionConstants.SEPARATOR0));

@@ -48,9 +48,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         Assert.notNull(username, "parameter 'username' cannot be empty or null");
         UserDetails authUserDetails = authenticationMapper.selectUserDetailByUsername(username);
         if (authUserDetails == null) {
-            throw new UsernameNotFoundException("user in not found");
+            throw new UsernameNotFoundException("用户不存！");
         }
-        LoginUserDetails loginUserDetails = authUserDetails.toUserPrincipal();
+        LoginUserDetails loginUserDetails = authUserDetails.toLoginUser();
         return prepareLoginUser(loginUserDetails);
     }
 
@@ -61,8 +61,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .filter(CollUtil::isNotEmpty)
                 .filter(d -> d.size() == 1)
                 .map(List::getFirst)
-                .orElseThrow(() -> new UsernameNotFoundException("Mobile not found"));
-        return prepareLoginUser(user.toUserPrincipal());
+                .orElseThrow(() -> new UsernameNotFoundException("手机号不存在！"));
+        return prepareLoginUser(user.toLoginUser());
     }
 
     @Override

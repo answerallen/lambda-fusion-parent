@@ -131,7 +131,8 @@ public class OrganizationController {
 
     @DeleteMapping("/user/{username}")
     @Operation(summary = "删除用户组织信息", description = "删除用户添加组织信息")
-    public void deleteUserOrganization(@Parameter(description = "用户名称", required = true) @PathVariable String username) {
+    public void deleteUserOrganization(
+            @Parameter(description = "用户名称", required = true) @PathVariable String username) {
         organizationService.deleteUserOrganization(username);
     }
 

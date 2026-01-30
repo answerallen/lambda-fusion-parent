@@ -61,7 +61,8 @@ public class UserQueryHelper {
 
         if (StringUtils.isNotBlank(userQuery.getPersonal())) {
             Map<String, Object> tempMap = JSONUtil.parseObj(userQuery.getPersonal());
-            List<UserFieldsEntity> fields = UserInfoHelper.buildUserFieldsFromMap(tempMap, loginUserDetails.getUsername());
+            List<UserFieldsEntity> fields =
+                    UserInfoHelper.buildUserFieldsFromMap(tempMap, loginUserDetails.getUsername());
             userQueryContext.setUserFields(fields);
         }
 

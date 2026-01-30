@@ -80,8 +80,10 @@ public class OrganizationServiceImpl implements OrganizationService {
      * @param organizationQuery    查询参数
      * @return 组织列表
      */
-    private List<Organization> queryOrganizations(LoginUserDetails loginUserDetails, OrganizationQuery organizationQuery) {
-        if (StringUtils.isNotBlank(organizationQuery.getAlias()) || StringUtils.isNotBlank(organizationQuery.getName())) {
+    private List<Organization> queryOrganizations(
+            LoginUserDetails loginUserDetails, OrganizationQuery organizationQuery) {
+        if (StringUtils.isNotBlank(organizationQuery.getAlias())
+                || StringUtils.isNotBlank(organizationQuery.getName())) {
             return getOrganizations(loginUserDetails, organizationQuery);
         } else {
             return getSubOrganizations(organizationQuery);
@@ -91,8 +93,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     /**
      * 根据搜索条件获取组织列表
      */
-    private List<Organization> getOrganizations(
-            LoginUserDetails principal, OrganizationQuery organizationQuery) {
+    private List<Organization> getOrganizations(LoginUserDetails principal, OrganizationQuery organizationQuery) {
         List<Organization> list = getOrgByCondition(principal, organizationQuery);
         if (principal.isAdmin()) {
             Set<String> additionalOrgIds = collectAdditionalOrgIds(principal.getOrgId(), list);
@@ -110,7 +111,8 @@ public class OrganizationServiceImpl implements OrganizationService {
     private Set<String> collectAdditionalOrgIds(String orgId, List<Organization> list) {
         Set<String> orgIds = new HashSet<>();
         for (Organization org : list) {
-            this.addParentOrgIds(orgId, org, orgIds, LoginUserUtils.getLoginUser().isManager());
+            this.addParentOrgIds(
+                    orgId, org, orgIds, LoginUserUtils.getLoginUser().isManager());
             orgIds.addAll(getChildrenById(org.getId()));
         }
         return orgIds;
@@ -579,7 +581,11 @@ public class OrganizationServiceImpl implements OrganizationService {
         Organization source = organizationMapper.selectOrganizationById(id);
         Organization target = organizationMapper.selectOrganizationById(tid);
         List<Organization> changed = TreeNodeUtils.getAllChangedAfterMoved(
-                source, target, mode, organizationMapper::selectChildren, organizationMapper::selectOrganizationsByParentKeys);
+                source,
+                target,
+                mode,
+                organizationMapper::selectChildren,
+                organizationMapper::selectOrganizationsByParentKeys);
         organizationMapper.updateAffectedNodesAfterMove(changed);
     }
 }

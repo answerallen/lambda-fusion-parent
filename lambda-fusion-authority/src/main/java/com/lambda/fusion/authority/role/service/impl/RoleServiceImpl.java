@@ -215,7 +215,8 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<AccessPermission> getAccessPermission(LoginUserDetails loginUserDetails, String authority, Integer mode) {
+    public List<AccessPermission> getAccessPermission(
+            LoginUserDetails loginUserDetails, String authority, Integer mode) {
         Assert.notNull(authority, "role name 不能为空");
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(3);
         parameters.put("authority", authority);
@@ -236,7 +237,8 @@ public class RoleServiceImpl implements RoleService {
     @CacheEvict(value = "ResourceOwners", allEntries = true)
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void grantRolePermission(String authority, String resourceId, int status, LoginUserDetails loginUserDetails) {
+    public void grantRolePermission(
+            String authority, String resourceId, int status, LoginUserDetails loginUserDetails) {
         Assert.notNull(authority, "role name 不能为空");
         Assert.notNull(resourceId, "资源id不能为空！");
         if (!loginUserDetails.isDev()) {

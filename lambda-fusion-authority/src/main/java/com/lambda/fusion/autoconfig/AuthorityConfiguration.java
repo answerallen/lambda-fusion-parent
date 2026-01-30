@@ -20,6 +20,7 @@ import com.lambda.fusion.authority.user.service.UserOnlineLogService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.LoginUserUtils;
+import com.lambda.security.inteceptor.SecureInterceptor;
 import java.time.LocalDateTime;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -64,6 +65,13 @@ public class AuthorityConfiguration {
                         String.class,
                         LoginUserUtils.getLoginUser().getUsername());
             }
+        };
+    }
+
+    @Bean
+    public SecureInterceptor secureInterceptor() {
+        return (handler, stpLogic, operator) -> {
+            stpLogic.checkLogin();
         };
     }
 
