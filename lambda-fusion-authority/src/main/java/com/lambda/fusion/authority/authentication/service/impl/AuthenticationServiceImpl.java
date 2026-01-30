@@ -12,6 +12,7 @@ import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
 import com.lambda.fusion.authority.authentication.model.AuthenticatedUser;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.authentication.model.UserDetails;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
@@ -45,18 +46,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
         Assert.notNull(username, "parameter 'username' cannot be empty or null");
-        com.lambda.fusion.authority.authentication.model.LoginUserDetails authLoginUserDetails = authenticationMapper.selectUserDetailByUsername(username);
-        if (authLoginUserDetails == null) {
+        UserDetails authUserDetails = authenticationMapper.selectUserDetailByUsername(username);
+        if (authUserDetails == null) {
             throw new UsernameNotFoundException("user in not found");
         }
-        LoginUserDetails loginUserDetails = authLoginUserDetails.toUserPrincipal();
+        LoginUserDetails loginUserDetails = authUserDetails.toUserPrincipal();
         return prepareLoginUser(loginUserDetails);
     }
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<com.lambda.fusion.authority.authentication.model.LoginUserDetails> details = authenticationMapper.selectUserDetailsByMobile(mobile);
-        com.lambda.fusion.authority.authentication.model.LoginUserDetails user = Optional.ofNullable(details)
+        List<UserDetails> details = authenticationMapper.selectUserDetailsByMobile(mobile);
+        UserDetails user = Optional.ofNullable(details)
                 .filter(CollUtil::isNotEmpty)
                 .filter(d -> d.size() == 1)
                 .map(List::getFirst)
@@ -91,19 +92,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public AuthenticatedUser getUserInfo() {
         LoginUser operator = OperatorUtils.getOperator();
-        com.lambda.fusion.authority.authentication.model.LoginUserDetails loginUserDetails = authenticationMapper.selectUserDetailByUsername(operator.getName());
-        if (loginUserDetails == null) {
+        UserDetails userDetails = authenticationMapper.selectUserDetailByUsername(operator.getName());
+        if (userDetails == null) {
             throw new UsernameNotFoundException("user not found");
         }
 
         AuthenticatedUser user = new AuthenticatedUser();
-        BeanUtil.copyProperties(loginUserDetails, user);
+        BeanUtil.copyProperties(userDetails, user);
 
-        user.setUserId(loginUserDetails.getUsername());
-        user.setRealName(loginUserDetails.getNickname());
+        user.setUserId(userDetails.getUsername());
+        user.setRealName(userDetails.getNickname());
 
-        if (CollUtil.isNotEmpty(loginUserDetails.getAuthorities())) {
-            user.setRoles(new ArrayList<>(loginUserDetails.getAuthorities()));
+        if (CollUtil.isNotEmpty(userDetails.getAuthorities())) {
+            user.setRoles(new ArrayList<>(userDetails.getAuthorities()));
         } else {
             user.setRoles(new ArrayList<>());
         }
