@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
  */
 @Getter
 @Setter
-@Configuration(proxyBeanMethods = false)
 @ConfigurationProperties(prefix = "lambda.fusion.dict")
 public class DictionaryProperties {
 
