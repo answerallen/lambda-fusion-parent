@@ -5,8 +5,10 @@ import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECU
 import cn.dev33.satoken.listener.SaTokenListener;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lambda.autoconfig.SecurityAutoConfiguration;
 import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
 import com.lambda.cloud.sse.listener.SseEventListener;
+import com.lambda.fusion.authority.AuthorityConfigure;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.impl.InternalRoleServiceImpl;
 import com.lambda.fusion.authority.tenant.TenantProperties;
@@ -20,7 +22,6 @@ import com.lambda.fusion.authority.user.service.UserOnlineLogService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.LoginUserUtils;
-import com.lambda.security.inteceptor.SecureInterceptor;
 import java.time.LocalDateTime;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -32,16 +33,20 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Slf4j
-@AutoConfiguration
-@ComponentScan(basePackages = "com.lambda.fusion.authority")
+@AutoConfiguration(before = SecurityAutoConfiguration.class)
+@Import(AuthorityConfigure.class)
 @EnableConfigurationProperties({AuthorityProperties.class, TenantProperties.class})
 public class AuthorityConfiguration {
+
+    public AuthorityConfiguration() {
+        log.trace("Authority Configuration init");
+    }
 
     @Bean
     public EntityMetaFiller entityMetaFiller() {
@@ -65,13 +70,6 @@ public class AuthorityConfiguration {
                         String.class,
                         LoginUserUtils.getLoginUser().getUsername());
             }
-        };
-    }
-
-    @Bean
-    public SecureInterceptor secureInterceptor() {
-        return (handler, stpLogic, operator) -> {
-            stpLogic.checkLogin();
         };
     }
 

@@ -6,7 +6,6 @@ import com.lambda.fusion.authority.authentication.model.AuthenticatedUser;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.authority.user.model.UserProfile;
-import com.lambda.security.service.ThirdPartyLoginService;
 import com.lambda.security.service.UserDetailService;
 import java.util.List;
 
@@ -14,7 +13,7 @@ import java.util.List;
  * 认证服务接口
  * 负责用户认证、授权和导航菜单相关的业务逻辑
  */
-public interface AuthenticationService extends UserDetailService, ThirdPartyLoginService {
+public interface AuthenticationService extends UserDetailService {
 
     /**
      * 获取用户的导航菜单

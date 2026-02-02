@@ -12,6 +12,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.resource.model.ResourceType;
 import com.lambda.fusion.authority.resource.service.ResourceService;
@@ -27,6 +28,7 @@ import com.lambda.fusion.authority.user.model.UserRoleEntity;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -41,17 +43,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Service
 @RequiredArgsConstructor
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class RoleServiceImpl implements RoleService {
-
-    private static final String[] BUILT_IN_ROLES = {
-        "ROLE_SYSTEM", "ROLE_ADMIN", "ROLE_DEV", "ROLE_USER", "ROLE_MANAGER", "ROLE_ORG"
-    };
-    public static final String DEFAULT = "default";
-
-    private static final String ADMIN = "admin";
 
     private final RoleMapper roleMapper;
 
@@ -76,8 +72,8 @@ public class RoleServiceImpl implements RoleService {
     public List<Role> getAllRoles(LoginUserDetails loginUserDetails) {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
         parameters.put("dev", loginUserDetails.isDev());
-        parameters.put(ADMIN, loginUserDetails.isAdmin());
-        parameters.put("userid", loginUserDetails.getUsername());
+        parameters.put(AuthorityConstants.ADMIN, loginUserDetails.isAdmin());
+        parameters.put("username", loginUserDetails.getUsername());
         parameters.put(FusionConstants.TENANT_ID, loginUserDetails.getTenantId());
         return roleMapper.getAllRoles(parameters);
     }
@@ -145,7 +141,7 @@ public class RoleServiceImpl implements RoleService {
         if (CollectionUtils.isNotEmpty(roles)) {
             for (Role item : roles) {
                 String authority = item.getAuthority();
-                item.setBuiltIn(ArrayUtils.contains(BUILT_IN_ROLES, authority));
+                item.setBuiltIn(ArrayUtils.contains(AuthorityConstants.BUILT_IN_ROLES, authority));
             }
         }
         return pageable;
@@ -172,7 +168,7 @@ public class RoleServiceImpl implements RoleService {
         createRole.setAuthority(authority);
         createRole.setAuthority(authority);
         createRole.setTenantId(tenantId);
-        String groupId = Optional.ofNullable(createRole.getGroupId()).orElse(DEFAULT);
+        String groupId = Optional.ofNullable(createRole.getGroupId()).orElse(AuthorityConstants.DEFAULT);
         createRole.setGroupId(groupId);
         RoleEntity roleEntity = createRole.toEntity();
         roleEntity.setCreateBy(loginUserDetails.getName());
@@ -194,7 +190,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteRoleById(String authority) {
         Assert.notNull(authority, "role name 不能为空");
-        Set<String> excludes = Stream.of(BUILT_IN_ROLES).collect(Collectors.toSet());
+        Set<String> excludes = Stream.of(AuthorityConstants.BUILT_IN_ROLES).collect(Collectors.toSet());
         Set<String> deleteExclude = internalRoleService.deleteExclude(OperatorUtils.getOperator());
         excludes.addAll(deleteExclude);
         Assert.isTrue(!excludes.contains(authority), "角色" + authority + "不能删除");
@@ -358,8 +354,8 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void deleteGroup(String groupId) {
-        Assert.isFalse(Objects.equals(groupId, DEFAULT), "默认组不能删除");
-        groupMapper.updateRoleGroupId(groupId, DEFAULT);
+        Assert.isFalse(Objects.equals(groupId, AuthorityConstants.DEFAULT), "默认组不能删除");
+        groupMapper.updateRoleGroupId(groupId, AuthorityConstants.DEFAULT);
         groupMapper.deleteById(groupId);
     }
 
@@ -400,7 +396,7 @@ public class RoleServiceImpl implements RoleService {
 
     private GroupEntity newDefaultGroup(String tenantId) {
         GroupEntity defaultGroupEntity = new GroupEntity();
-        defaultGroupEntity.setGroupId(DEFAULT);
+        defaultGroupEntity.setGroupId(AuthorityConstants.DEFAULT);
         defaultGroupEntity.setGroupName(DEFAULT_GROUP_NAME);
         defaultGroupEntity.setTenantId(tenantId);
         return defaultGroupEntity;

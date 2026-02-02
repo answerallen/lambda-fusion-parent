@@ -23,7 +23,6 @@ import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
-import com.lambda.security.provider.ThirdPartLoginResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -119,11 +118,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         user.setHomePath("/dashboard/analysis");
 
         return user;
-    }
-
-    @Override
-    public LoginUser loadByThirdLoginResult(ThirdPartLoginResult thirdLoginResult, String loginType) {
-        return null;
     }
 
     @Override

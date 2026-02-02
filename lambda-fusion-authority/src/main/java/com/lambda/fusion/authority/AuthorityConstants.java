@@ -12,6 +12,11 @@ public interface AuthorityConstants {
 
     String DEFAULT_GROUP_NAME = "默认分组";
 
+    String[] BUILT_IN_ROLES = {"ROLE_SYSTEM", "ROLE_ADMIN", "ROLE_DEV", "ROLE_USER", "ROLE_MANAGER", "ROLE_ORG"};
+    String DEFAULT = "default";
+
+    String ADMIN = "admin";
+
     @SuppressWarnings("unused")
     interface Enums {
 
