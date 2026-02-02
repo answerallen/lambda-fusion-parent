@@ -74,7 +74,7 @@ public class OrganizationController {
     public List<OrganizationTree> list() {
         OrganizationQuery parameters = organizationService.getOrganizationQuery();
         parameters.setEnabled(true);
-        return organizationService.getSimpleOrgTree(parameters);
+        return organizationService.getOrganizationTree(parameters);
     }
 
     @PostMapping({"", "/{id}"})

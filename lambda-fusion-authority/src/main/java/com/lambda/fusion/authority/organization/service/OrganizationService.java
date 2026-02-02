@@ -146,7 +146,7 @@ public interface OrganizationService {
      *
      * @param parameters
      */
-    List<OrganizationTree> getSimpleOrgTree(OrganizationQuery parameters);
+    List<OrganizationTree> getOrganizationTree(OrganizationQuery parameters);
 
     /**
      * 根据用户所在组织机构获取当前机构含子集id

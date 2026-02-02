@@ -182,7 +182,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<OrganizationTree> getSimpleOrgTree(OrganizationQuery organizationQuery) {
+    public List<OrganizationTree> getOrganizationTree(OrganizationQuery organizationQuery) {
         List<OrganizationTree> list = organizationMapper.selectEnabledOrganization(organizationQuery);
         return TreeBuilder.build(list);
     }
