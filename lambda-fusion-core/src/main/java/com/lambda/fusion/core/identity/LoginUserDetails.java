@@ -184,7 +184,7 @@ public class LoginUserDetails implements LoginUser {
      */
     @JsonIgnore
     public boolean isManager() {
-        return roles != null && roles.contains(FusionConstants.ROLE_MANAGER);
+        return roles != null && (roles.contains(FusionConstants.ROLE_MANAGER) || roles.contains(FusionConstants.ROLE_DEV));
     }
 
     /**
