@@ -24,7 +24,7 @@ import org.springframework.context.annotation.Import;
 @AutoConfiguration
 @Import(ConfigConfigure.class)
 @EnableConfigurationProperties(ConfigProperties.class)
-public class ConfigConfiguration {
+public class ConfigAutoConfiguration {
 
     @Bean
     @RefreshScope
