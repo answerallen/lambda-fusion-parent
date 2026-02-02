@@ -1,4 +1,4 @@
-package com.lambda.fusion.startup;
+package com.fusion.startup;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

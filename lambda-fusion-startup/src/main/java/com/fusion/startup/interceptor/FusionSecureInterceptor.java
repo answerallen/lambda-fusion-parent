@@ -1,0 +1,21 @@
+package com.fusion.startup.interceptor;
+
+import cn.dev33.satoken.stp.StpLogic;
+import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.security.inteceptor.SecureInterceptor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class FusionSecureInterceptor implements SecureInterceptor {
+
+    public FusionSecureInterceptor() {
+        log.trace("FusionSecureInterceptor init....");
+    }
+
+    @Override
+    public void handle(Object handler, StpLogic stpLogic, LoginUser operator) {
+        stpLogic.checkLogin();
+    }
+}
