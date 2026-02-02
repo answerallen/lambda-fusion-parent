@@ -1,4 +1,4 @@
-package com.fusion.startup;
+package com.fusion.boot;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

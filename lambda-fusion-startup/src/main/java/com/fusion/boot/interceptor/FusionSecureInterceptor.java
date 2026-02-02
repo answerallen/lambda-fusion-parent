@@ -1,4 +1,4 @@
-package com.fusion.startup.interceptor;
+package com.fusion.boot.interceptor;
 
 import cn.dev33.satoken.stp.StpLogic;
 import com.lambda.cloud.core.principal.LoginUser;

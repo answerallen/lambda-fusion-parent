@@ -23,8 +23,8 @@
                 T.password,
                 T.enabled,
                 R.authority,
-                UO.ORGANIZATION_ID AS orgId,
-                T.TENANT_ID AS tenantId,
+                UO.ORGANIZATION_ID AS org_id,
+                T.TENANT_ID AS tenant_id,
                 T.EXPIRED_TIME
             FROM
                 LA_USERS T
