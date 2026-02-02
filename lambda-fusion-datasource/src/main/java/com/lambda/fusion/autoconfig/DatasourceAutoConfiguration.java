@@ -2,6 +2,7 @@ package com.lambda.fusion.autoconfig;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
+import com.lambda.fusion.datasource.DatasourceConfigure;
 import com.lambda.fusion.datasource.DatasourceConstant;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
@@ -19,7 +20,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Import;
 
 /**
  * 数据源模块自动配置
@@ -27,10 +28,9 @@ import org.springframework.context.annotation.ComponentScan;
  * @author jin
  */
 @AutoConfiguration
-@ComponentScan(basePackages = "com.lambda.fusion.datasource")
+@Import(DatasourceConfigure.class)
 @EnableConfigurationProperties(DatasourceProperties.class)
-@ComponentScan(basePackageClasses = DatasourceConfigure.class)
-public class DatasourceConfigure {
+public class DatasourceAutoConfiguration {
 
     @Bean
     public DataSourceChangeDispatcher dataSourceCallbackManager() {
