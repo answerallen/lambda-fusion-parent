@@ -505,7 +505,8 @@ public class OrganizationServiceImpl implements OrganizationService {
                 String orgId = operator.getOrgId();
                 if (StringUtils.isNotBlank(orgId)) {
                     orgIds.add(orgId);
-                    orgIds.addAll(getChildrenById(orgId));
+                    List<String> children = getChildrenById(orgId);
+                    orgIds.addAll(children);
                 } else {
                     orgIds.add("undefined");
                 }
