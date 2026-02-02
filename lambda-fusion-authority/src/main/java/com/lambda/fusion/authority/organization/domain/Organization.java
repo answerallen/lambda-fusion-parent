@@ -75,7 +75,7 @@ public class Organization extends BaseVO<OrganizationEntity> implements TreeNode
     private Date createDate;
 
     @Schema(description = "组织机构类型：部门为0, 租户为1")
-    private Integer tenant = 0;
+    private Integer category = 0;
 
     @Schema(description = "子节点")
     private List<Organization> children;
@@ -141,7 +141,7 @@ public class Organization extends BaseVO<OrganizationEntity> implements TreeNode
      * @return true表示租户组织，false表示普通部门
      */
     public boolean typeOfTenant() {
-        return BooleanUtils.toBoolean(this.tenant);
+        return BooleanUtils.toBoolean(this.category);
     }
 
     @Override

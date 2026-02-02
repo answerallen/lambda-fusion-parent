@@ -27,15 +27,15 @@
         <result column="alias" property="alias"/>
         <result column="org_owner" property="owner"/>
         <result column="tenant_id" property="tenantId"/>
-        <result column="parentId" property="parentId"/>
-        <result column="org_rank" property="level"/>
-        <result column="createDate" property="createDate"/>
-        <result column="remarks" property="remarks"/>
-        <result column="parentKeys" property="parentKeys"/>
-        <result column="org_category" property="tenant"/>
-        <result column="enabled" property="enabled"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="parent_Keys" property="parentKeys"/>
         <result column="org_type" property="type"/>
+        <result column="org_category" property="category"/>
+        <result column="org_rank" property="level"/>
+        <result column="enabled" property="enabled"/>
         <result column="order_no" property="orderNo"/>
+        <result column="create_date" property="createDate"/>
+        <result column="remarks" property="remarks"/>
     </resultMap>
     <!-- 查询用户组织列表 -->
     <select id="selectOrganizations" resultMap="Organization">
@@ -45,11 +45,11 @@
             ALIAS,
             ORG_OWNER,
             TENANT_ID AS tenant_id,
-            PARENT_ID AS parentId,
+            PARENT_ID AS parent_id,
             ORG_RANK AS org_rank,
-            CREATE_DATE AS createDate,
+            CREATE_DATE AS create_date,
             REMARKS,
-            PARENT_KEYS AS parentKeys,
+            PARENT_KEYS AS parent_keys,
             ORG_CATEGORY,
             ENABLED,
             ORG_TYPE,
@@ -89,9 +89,9 @@
             ALIAS,
             ORG_OWNER,
             TENANT_ID AS tenant_id,
-            PARENT_ID AS parentId,
+            PARENT_ID,
             ORG_RANK AS org_rank,
-            CREATE_DATE AS createDate,
+            CREATE_DATE ,
             REMARKS,
             PARENT_KEYS AS parentKeys,
             ORG_CATEGORY,
@@ -152,11 +152,11 @@
             ID,
             ORG_NAME AS organization,
             ALIAS,
-            PARENT_ID AS parentId,
+            PARENT_ID,
             ORG_RANK AS org_rank,
-            CREATE_DATE AS createDate,
+            CREATE_DATE ,
             REMARKS,
-            PARENT_KEYS AS parentKeys
+            PARENT_KEYS
         FROM LA_ORGANIZATION O
         WhERE O.enabled = 1 AND O.id IN
         <foreach collection="list" open="(" close=")" separator="," item="organ">#{organ.id}</foreach>
@@ -171,11 +171,11 @@
             ID,
             ORG_NAME AS organization,
             ALIAS,
-            PARENT_ID AS parentId,
+            PARENT_ID,
             ORG_RANK AS org_rank,
-            CREATE_DATE AS createDate,
+            CREATE_DATE ,
             REMARKS,
-            PARENT_KEYS AS parentKeys,
+            PARENT_KEYS ,
             ORG_CATEGORY,
             ENABLED,
             ORG_OWNER,
@@ -188,11 +188,11 @@
             ID,
             ORG_NAME AS organization,
             ALIAS,
-            PARENT_ID AS parentId,
+            PARENT_ID,
             ORG_RANK AS org_rank,
-            CREATE_DATE AS createDate,
+            CREATE_DATE ,
             REMARKS,
-            PARENT_KEYS AS parentKeys,
+            PARENT_KEYS ,
             ORG_CATEGORY,
             ENABLED,
             ORG_OWNER,
@@ -278,9 +278,9 @@
         SELECT
             ID AS id,
             ALIAS AS alias,
-            PARENT_ID AS parentId,
+            PARENT_ID,
             ORG_RANK AS org_rank,
-            PARENT_KEYS AS parentKeys,
+            PARENT_KEYS ,
             ORDER_NO AS order_no
         FROM LA_ORGANIZATION T
         <where>
@@ -295,9 +295,9 @@
         SELECT
             ID AS id,
             ALIAS AS alias,
-            PARENT_ID AS parentId,
+            PARENT_ID,
             ORG_RANK AS org_rank,
-            PARENT_KEYS AS parentKeys,
+            PARENT_KEYS ,
             ORDER_NO AS order_no
         FROM LA_ORGANIZATION T
         WHERE (T.PARENT_KEYS = #{parentKeys} OR T.PARENT_KEYS LIKE CONCAT(#{parentKeys},'-%'))

@@ -317,7 +317,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
     protected List<String> getSubOrgIdsByType(List<Organization> orgIds, Boolean isTenant) {
         if (CollectionUtils.isNotEmpty(orgIds)) {
             return orgIds.stream()
-                    .filter(org -> BooleanUtils.toBoolean(org.getTenant()) == isTenant)
+                    .filter(org -> BooleanUtils.toBoolean(org.getCategory()) == isTenant)
                     .map(Organization::id)
                     .collect(Collectors.toList());
         } else {

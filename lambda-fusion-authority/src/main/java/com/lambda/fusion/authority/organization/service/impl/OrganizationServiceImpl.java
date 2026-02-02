@@ -240,7 +240,7 @@ public class OrganizationServiceImpl implements OrganizationService {
      * 执行删除操作
      */
     private void performDeletion(Organization organization, String id) {
-        if (BooleanUtils.toBoolean(organization.getTenant())) {
+        if (BooleanUtils.toBoolean(organization.getCategory())) {
             deleteTenantRelatedData(id);
         }
 
@@ -356,7 +356,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         final List<String> ordinaries = getSubOrgIdsByType(orgIds, false);
         final List<String> ids = orgIds.stream().map(Organization::getId).collect(Collectors.toList());
         ids.add(id);
-        if (BooleanUtils.toBoolean(org.getTenant())) {
+        if (BooleanUtils.toBoolean(org.getCategory())) {
             tenants.add(id);
         } else {
             ordinaries.add(id);
@@ -393,7 +393,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     protected List<String> getSubOrgIdsByType(List<Organization> orgIds, Boolean isTenant) {
         if (CollectionUtils.isNotEmpty(orgIds)) {
             return orgIds.stream()
-                    .filter(org -> BooleanUtils.toBoolean(org.getTenant()) == isTenant)
+                    .filter(org -> BooleanUtils.toBoolean(org.getCategory()) == isTenant)
                     .map(Organization::id)
                     .collect(Collectors.toList());
         } else {
