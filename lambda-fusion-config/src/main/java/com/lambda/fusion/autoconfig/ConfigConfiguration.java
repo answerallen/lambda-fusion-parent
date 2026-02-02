@@ -3,6 +3,7 @@ package com.lambda.fusion.autoconfig;
 import com.alibaba.cloud.nacos.NacosConfigAutoConfiguration;
 import com.alibaba.cloud.nacos.NacosConfigProperties;
 import com.alibaba.nacos.api.config.ConfigService;
+import com.lambda.fusion.config.ConfigConfigure;
 import com.lambda.fusion.config.datasource.DatabaseBasedPropertySourceLocator;
 import com.lambda.fusion.config.refresh.DatabaseContextRefresher;
 import com.lambda.fusion.config.service.ConfigChangedService;
@@ -16,12 +17,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 @Slf4j
 @AutoConfiguration
-@ComponentScan(basePackages = "com.lambda.fusion.config")
+@Import(ConfigConfigure.class)
 @EnableConfigurationProperties(ConfigProperties.class)
 public class ConfigConfiguration {
 
