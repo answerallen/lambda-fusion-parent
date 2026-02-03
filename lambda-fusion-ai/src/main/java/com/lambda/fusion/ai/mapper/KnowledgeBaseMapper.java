@@ -3,10 +3,9 @@ package com.lambda.fusion.ai.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.entity.KnowledgeBaseEntity;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 /**
  * 知识库 Mapper接口
@@ -25,9 +24,7 @@ public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
      * @return 分页结果
      */
     Page<KnowledgeBaseEntity> pageByTenantId(
-            Page<KnowledgeBaseEntity> page,
-            @Param("tenantId") Long tenantId,
-            @Param("status") String status);
+            Page<KnowledgeBaseEntity> page, @Param("tenantId") Long tenantId, @Param("status") String status);
 
     /**
      * 根据kbId查询知识库
@@ -44,7 +41,5 @@ public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
      * @param status   状态(可选)
      * @return 知识库列表
      */
-    List<KnowledgeBaseEntity> listByTenantId(
-            @Param("tenantId") Long tenantId,
-            @Param("status") String status);
+    List<KnowledgeBaseEntity> listByTenantId(@Param("tenantId") Long tenantId, @Param("status") String status);
 }

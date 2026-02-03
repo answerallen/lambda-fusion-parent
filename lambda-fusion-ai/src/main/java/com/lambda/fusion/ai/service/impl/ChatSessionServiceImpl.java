@@ -7,12 +7,11 @@ import com.lambda.fusion.ai.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.model.dto.CreateSessionDTO;
 import com.lambda.fusion.ai.model.vo.ChatSessionVO;
 import com.lambda.fusion.ai.service.ChatSessionService;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

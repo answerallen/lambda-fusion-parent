@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.ai.entity.LlmModelEntity;
 import com.lambda.fusion.ai.model.dto.RegisterModelDTO;
 import com.lambda.fusion.ai.model.vo.LlmModelVO;
-
 import java.util.List;
 
 public interface LlmModelService extends IService<LlmModelEntity> {

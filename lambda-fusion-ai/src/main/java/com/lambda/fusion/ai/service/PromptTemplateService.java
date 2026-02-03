@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.ai.entity.PromptTemplateEntity;
 import com.lambda.fusion.ai.model.dto.CreateTemplateDTO;
 import com.lambda.fusion.ai.model.vo.PromptTemplateVO;
-
 import java.util.List;
 import java.util.Map;
 

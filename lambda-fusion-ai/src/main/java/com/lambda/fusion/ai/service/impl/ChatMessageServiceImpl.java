@@ -7,12 +7,11 @@ import com.lambda.fusion.ai.mapper.ChatMessageMapper;
 import com.lambda.fusion.ai.model.dto.SendMessageDTO;
 import com.lambda.fusion.ai.model.vo.ChatMessageVO;
 import com.lambda.fusion.ai.service.ChatMessageService;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

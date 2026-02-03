@@ -9,10 +9,13 @@ import lombok.Data;
 public class CreateTemplateDTO {
     @NotBlank
     private String name;
+
     private String description;
     private String category;
+
     @NotBlank
     private String templateContent;
+
     private String variables;
     private Long tenantId;
     private Long ownerUserId;

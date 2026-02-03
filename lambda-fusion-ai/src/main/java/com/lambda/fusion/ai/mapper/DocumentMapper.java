@@ -3,10 +3,9 @@ package com.lambda.fusion.ai.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.entity.DocumentEntity;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 /**
  * 文档 Mapper接口
@@ -25,9 +24,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 分页结果
      */
     Page<DocumentEntity> pageByKbId(
-            Page<DocumentEntity> page,
-            @Param("kbId") Long kbId,
-            @Param("status") String status);
+            Page<DocumentEntity> page, @Param("kbId") Long kbId, @Param("status") String status);
 
     /**
      * 根据知识库ID查询文档列表
@@ -36,9 +33,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @param status 处理状态(可选)
      * @return 文档列表
      */
-    List<DocumentEntity> listByKbId(
-            @Param("kbId") Long kbId,
-            @Param("status") String status);
+    List<DocumentEntity> listByKbId(@Param("kbId") Long kbId, @Param("status") String status);
 
     /**
      * 根据文件哈希查询文档(去重检测)
@@ -47,9 +42,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @param kbId     知识库ID
      * @return 文档实体
      */
-    DocumentEntity selectByFileHash(
-            @Param("fileHash") String fileHash,
-            @Param("kbId") Long kbId);
+    DocumentEntity selectByFileHash(@Param("fileHash") String fileHash, @Param("kbId") Long kbId);
 
     /**
      * 根据documentId查询文档

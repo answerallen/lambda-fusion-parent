@@ -6,7 +6,6 @@ import com.lambda.fusion.ai.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.model.dto.CreateKnowledgeBaseDTO;
 import com.lambda.fusion.ai.model.dto.UpdateKnowledgeBaseDTO;
 import com.lambda.fusion.ai.model.vo.KnowledgeBaseVO;
-
 import java.util.List;
 
 /**

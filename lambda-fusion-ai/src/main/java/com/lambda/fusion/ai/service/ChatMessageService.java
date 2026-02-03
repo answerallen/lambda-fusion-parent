@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.ai.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.model.dto.SendMessageDTO;
 import com.lambda.fusion.ai.model.vo.ChatMessageVO;
-
 import java.util.List;
 
 public interface ChatMessageService extends IService<ChatMessageEntity> {

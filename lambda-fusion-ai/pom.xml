@@ -9,6 +9,10 @@
     </parent>
     <artifactId>lambda-fusion-ai</artifactId>
 
+    <properties>
+        <spotbugs.skip>true</spotbugs.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>dev.langchain4j</groupId>

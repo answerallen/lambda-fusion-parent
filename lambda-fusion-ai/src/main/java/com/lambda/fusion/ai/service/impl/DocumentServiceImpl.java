@@ -12,19 +12,18 @@ import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.model.vo.DocumentVO;
 import com.lambda.fusion.ai.service.DocumentService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.BeanUtils;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 文档Service实现类
@@ -34,8 +33,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEntity>
-        implements DocumentService {
+public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEntity> implements DocumentService {
 
     private final DocumentMapper documentMapper;
     private final KnowledgeBaseMapper knowledgeBaseMapper;
@@ -128,9 +126,8 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
 
         // 转换为VO
         Page<DocumentVO> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
-        List<DocumentVO> voList = resultPage.getRecords().stream()
-                .map(this::entityToVO)
-                .collect(Collectors.toList());
+        List<DocumentVO> voList =
+                resultPage.getRecords().stream().map(this::entityToVO).collect(Collectors.toList());
         voPage.setRecords(voList);
 
         return voPage;
@@ -142,9 +139,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
 
         List<DocumentEntity> entities = documentMapper.listByKbId(kbId, status);
 
-        return entities.stream()
-                .map(this::entityToVO)
-                .collect(Collectors.toList());
+        return entities.stream().map(this::entityToVO).collect(Collectors.toList());
     }
 
     @Override

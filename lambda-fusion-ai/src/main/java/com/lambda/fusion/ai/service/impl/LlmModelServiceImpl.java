@@ -7,14 +7,13 @@ import com.lambda.fusion.ai.mapper.LlmModelMapper;
 import com.lambda.fusion.ai.model.dto.RegisterModelDTO;
 import com.lambda.fusion.ai.model.vo.LlmModelVO;
 import com.lambda.fusion.ai.service.LlmModelService;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -51,9 +50,7 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
 
     @Override
     public List<LlmModelVO> listAll() {
-        return llmModelMapper.selectList(null).stream()
-                .map(this::entityToVO)
-                .collect(Collectors.toList());
+        return llmModelMapper.selectList(null).stream().map(this::entityToVO).collect(Collectors.toList());
     }
 
     @Override

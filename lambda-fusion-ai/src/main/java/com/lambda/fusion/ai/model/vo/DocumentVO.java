@@ -1,9 +1,8 @@
 package com.lambda.fusion.ai.model.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
-
 import java.time.LocalDateTime;
+import lombok.Data;
 
 /**
  * 文档VO

@@ -10,15 +10,14 @@ import com.lambda.fusion.ai.model.dto.UpdateKnowledgeBaseDTO;
 import com.lambda.fusion.ai.model.vo.KnowledgeBaseVO;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
 import com.lambda.fusion.ai.util.VectorTableNameResolver;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 知识库Service实现类
@@ -94,9 +93,8 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
 
         // 转换为VO
         Page<KnowledgeBaseVO> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
-        List<KnowledgeBaseVO> voList = resultPage.getRecords().stream()
-                .map(this::entityToVO)
-                .collect(Collectors.toList());
+        List<KnowledgeBaseVO> voList =
+                resultPage.getRecords().stream().map(this::entityToVO).collect(Collectors.toList());
         voPage.setRecords(voList);
 
         return voPage;
@@ -138,9 +136,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
 
         List<KnowledgeBaseEntity> entities = knowledgeBaseMapper.listByTenantId(tenantId, status);
 
-        return entities.stream()
-                .map(this::entityToVO)
-                .collect(Collectors.toList());
+        return entities.stream().map(this::entityToVO).collect(Collectors.toList());
     }
 
     /**

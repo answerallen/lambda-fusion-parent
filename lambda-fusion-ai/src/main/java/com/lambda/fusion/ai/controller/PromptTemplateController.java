@@ -6,11 +6,10 @@ import com.lambda.fusion.ai.service.PromptTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/prompt-templates")
@@ -32,7 +31,8 @@ public class PromptTemplateController {
         if (category != null) {
             return promptTemplateService.listByCategory(category);
         }
-        return promptTemplateService.list();
+        promptTemplateService.list();
+        return null;
     }
 
     @GetMapping("/system")

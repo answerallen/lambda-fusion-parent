@@ -9,10 +9,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 知识库管理Controller
@@ -45,8 +44,7 @@ public class KnowledgeBaseController {
 
     @GetMapping("/{id}")
     @Operation(summary = "查询知识库详情", description = "根据ID查询知识库详细信息")
-    public KnowledgeBaseVO getById(
-            @Parameter(description = "知识库ID", required = true) @PathVariable Long id) {
+    public KnowledgeBaseVO getById(@Parameter(description = "知识库ID", required = true) @PathVariable Long id) {
         return knowledgeBaseService.getKnowledgeBaseById(id);
     }
 
@@ -60,8 +58,7 @@ public class KnowledgeBaseController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除知识库", description = "删除指定的知识库(软删除)")
-    public void delete(
-            @Parameter(description = "知识库ID", required = true) @PathVariable Long id) {
+    public void delete(@Parameter(description = "知识库ID", required = true) @PathVariable Long id) {
         knowledgeBaseService.deleteKnowledgeBase(id);
     }
 
