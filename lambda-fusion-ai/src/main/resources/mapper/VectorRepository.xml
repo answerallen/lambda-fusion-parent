@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lambda.fusion.ai.repository.VectorRepository">
+
+    <insert id="insertVector">
+        INSERT INTO ${tableName}
+        (id, vector_id, content, metadata, embedding, created_at)
+        VALUES
+        (#{id}, #{vectorId}, #{content}, #{metadata}::jsonb, #{embedding, typeHandler=com.lambda.fusion.ai.handler.PgVectorHandler}, CURRENT_TIMESTAMP)
+    </insert>
+
+    <select id="searchSimilar" resultType="com.lambda.fusion.ai.model.dto.VectorSearchResultDTO">
+        SELECT 
+            id, 
+            vector_id, 
+            content, 
+            metadata,
+            (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.handler.PgVectorHandler})) as score,
+            (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.handler.PgVectorHandler}) as distance
+        FROM ${tableName}
+        WHERE (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.handler.PgVectorHandler})) > #{minScore}
+        ORDER BY score DESC
+        LIMIT #{topK}
+    </select>
+
+    <select id="searchKeyword" resultType="com.lambda.fusion.ai.model.dto.VectorSearchResultDTO">
+        SELECT 
+            id, 
+            vector_id, 
+            content, 
+            metadata,
+            similarity(content, #{keyword}) as score,
+            (1 - similarity(content, #{keyword})) as distance
+        FROM ${tableName}
+        WHERE content % #{keyword}
+        ORDER BY score DESC
+        LIMIT #{topK}
+    </select>
+
+    <delete id="deleteVector">
+        DELETE FROM ${tableName}
+        WHERE vector_id = #{vectorId}
+    </delete>
+
+    <delete id="deleteVectors">
+        DELETE FROM ${tableName}
+        WHERE vector_id IN
+        <foreach collection="vectorIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

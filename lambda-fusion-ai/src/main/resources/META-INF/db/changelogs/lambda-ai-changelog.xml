@@ -757,6 +757,62 @@
             DROP TRIGGER IF EXISTS tr_kb_updated_at ON ai_knowledge_base;
             DROP FUNCTION IF EXISTS update_updated_at_column();
         </rollback>
+    <!-- ========================================== -->
+    <!-- 向量表自动创建与索引优化 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602050010" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+        </preConditions>
+        <createProcedure>
+            CREATE OR REPLACE FUNCTION create_vector_table(dimension INTEGER)
+            RETURNS TEXT AS $$
+            DECLARE
+                table_name TEXT;
+            BEGIN
+                table_name := 'ai_vector_store_' || dimension::TEXT;
+                
+                -- 检查表是否已存在
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = table_name) THEN
+                    RETURN table_name || ' already exists';
+                END IF;
+                
+                -- 动态创建表
+                EXECUTE format('
+                    CREATE TABLE %I (
+                        id BIGSERIAL PRIMARY KEY,
+                        vector_id VARCHAR(100) UNIQUE NOT NULL,
+                        kb_id BIGINT NOT NULL,
+                        document_id BIGINT,
+                        chunk_id BIGINT,
+                        collection_name VARCHAR(100) NOT NULL,
+                        embedding vector(%s) NOT NULL,
+                        content TEXT NOT NULL,
+                        metadata JSONB,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (kb_id) REFERENCES ai_knowledge_base(id) ON DELETE CASCADE,
+                        FOREIGN KEY (document_id) REFERENCES ai_document(id) ON DELETE CASCADE,
+                        FOREIGN KEY (chunk_id) REFERENCES ai_document_chunk(id) ON DELETE CASCADE
+                    );
+                    
+                    CREATE INDEX idx_%I_kb_id ON %I (kb_id);
+                    CREATE INDEX idx_%I_embedding ON %I USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+                    -- 添加 Trigram 索引支持混合检索
+                    CREATE INDEX idx_%I_content_trgm ON %I USING gist (content gist_trgm_ops);
+                ', table_name, dimension, 
+                   table_name, table_name,
+                   table_name, table_name,
+                   table_name, table_name);
+                
+                RETURN table_name || ' created successfully';
+            END;
+            $$ LANGUAGE plpgsql;
+        </createProcedure>
+        <sql>
+            -- 初始化常用维度的向量表
+            SELECT create_vector_table(768);
+            SELECT create_vector_table(1536);
+        </sql>
     </changeSet>
 
 </databaseChangeLog>

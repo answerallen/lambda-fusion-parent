@@ -52,7 +52,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
         // 验证知识库存在
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
-            throw new IllegalArgumentException("知识库不存在, kbId: " + kbId);
+            throw new RuntimeException("知识库不存在");
         }
 
         // 验证文件大小
@@ -76,14 +76,17 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
         }
 
         // 保存文件到本地
-        String fileName = file.getOriginalFilename();
-        String fileExtension = FileUtil.extName(fileName);
+        String originalFilename = file.getOriginalFilename();
+        String fileExtension = FileUtil.extName(originalFilename);
+        // long fileSize = file.getSize();
+
         String relativePath = kbId + "/" + IdUtil.fastSimpleUUID() + "." + fileExtension;
         String fullPath = basePath + "/" + relativePath;
 
+        File destFile = new File(fullPath);
+        FileUtil.mkParentDirs(destFile);
+
         try {
-            File destFile = new File(fullPath);
-            FileUtil.mkParentDirs(destFile);
             file.transferTo(destFile);
             log.info("文件保存成功: {}", fullPath);
         } catch (IOException e) {
@@ -94,7 +97,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
         DocumentEntity entity = new DocumentEntity();
         entity.setKbId(kbId);
         entity.setDocumentId(IdUtil.fastSimpleUUID());
-        entity.setFileName(fileName);
+        entity.setFileName(originalFilename);
         entity.setFileType(fileExtension.toUpperCase());
         entity.setFileSize(file.getSize());
         entity.setFileHash(fileHash);

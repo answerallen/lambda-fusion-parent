@@ -24,6 +24,16 @@ public class ChatMessageController {
         return chatMessageService.sendMessage(sessionId, dto);
     }
 
+    @PostMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "流式发送消息")
+    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamSend(
+            @PathVariable Long sessionId, @Valid @RequestBody SendMessageDTO dto) {
+        org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter =
+                new org.springframework.web.servlet.mvc.method.annotation.SseEmitter(0L);
+        chatMessageService.sendMessageStream(sessionId, dto, emitter);
+        return emitter;
+    }
+
     @GetMapping
     @Operation(summary = "查询消息列表")
     public List<ChatMessageVO> list(@PathVariable Long sessionId, @RequestParam(defaultValue = "50") Integer limit) {
