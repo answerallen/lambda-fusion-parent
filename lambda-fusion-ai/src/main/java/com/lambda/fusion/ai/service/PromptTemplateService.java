@@ -1,9 +1,9 @@
 package com.lambda.fusion.ai.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.ai.model.entity.PromptTemplateEntity;
 import com.lambda.fusion.ai.model.CreateTemplate;
 import com.lambda.fusion.ai.model.PromptTemplate;
+import com.lambda.fusion.ai.model.entity.PromptTemplateEntity;
 import java.util.List;
 import java.util.Map;
 

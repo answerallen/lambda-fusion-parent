@@ -2,8 +2,8 @@ package com.lambda.fusion.ai.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
-import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBase;
+import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -28,8 +28,8 @@ public class KnowledgeBaseController {
 
     @PostMapping
     @Operation(summary = "创建知识库", description = "创建一个新的知识库")
-    public KnowledgeBase create(@Valid @RequestBody CreateKnowledgeBase dto) {
-        return knowledgeBaseService.createKnowledgeBase(dto);
+    public KnowledgeBase create(@Valid @RequestBody CreateKnowledgeBase createKnowledgeBase) {
+        return knowledgeBaseService.createKnowledgeBase(createKnowledgeBase);
     }
 
     @GetMapping("/page")

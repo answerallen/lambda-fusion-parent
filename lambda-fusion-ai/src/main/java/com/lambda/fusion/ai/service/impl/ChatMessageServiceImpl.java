@@ -3,14 +3,14 @@ package com.lambda.fusion.ai.service.impl;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.ai.model.RagResult;
-import com.lambda.fusion.ai.model.entity.ChatMessageEntity;
-import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.mapper.ChatMessageMapper;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
+import com.lambda.fusion.ai.model.ChatMessage;
+import com.lambda.fusion.ai.model.RagResult;
 import com.lambda.fusion.ai.model.SendMessage;
 import com.lambda.fusion.ai.model.VectorSearchResult;
-import com.lambda.fusion.ai.model.ChatMessage;
+import com.lambda.fusion.ai.model.entity.ChatMessageEntity;
+import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.service.ChatMessageService;
 import com.lambda.fusion.ai.service.RagService;
 import dev.langchain4j.data.message.AiMessage;
@@ -105,9 +105,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         userMsg.setIsRagEnhanced(false);
         chatMessageMapper.insert(userMsg);
 
-        // n. 统一检索入口 (仅执行一次)
-        List<VectorSearchResult> retrievedChunks =
-                ragService.retrieve(dto.getContent(), session.getKbId(), null, null);
+        List<VectorSearchResult> retrievedChunks = ragService.retrieve(dto.getContent(), session.getKbId(), null, null);
 
         StringBuilder fullAnswer = new StringBuilder();
 

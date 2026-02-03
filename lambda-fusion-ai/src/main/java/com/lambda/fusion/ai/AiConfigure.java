@@ -7,5 +7,4 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @MapperScan(basePackages = {"com.lambda.fusion.ai.**.mapper"})
 @ComponentScan(basePackageClasses = AiConfigure.class)
-public class AiConfigure {
-}
+public class AiConfigure {}

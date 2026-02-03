@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.controller;
 
-import com.lambda.fusion.ai.model.CreateSession;
 import com.lambda.fusion.ai.model.ChatSession;
+import com.lambda.fusion.ai.model.CreateSession;
 import com.lambda.fusion.ai.service.ChatSessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

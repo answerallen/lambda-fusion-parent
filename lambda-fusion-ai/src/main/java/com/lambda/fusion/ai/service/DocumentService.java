@@ -2,8 +2,8 @@ package com.lambda.fusion.ai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.Document;
+import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 

@@ -2,10 +2,10 @@ package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.mapper.LlmModelMapper;
-import com.lambda.fusion.ai.model.RegisterModel;
 import com.lambda.fusion.ai.model.LlmModel;
+import com.lambda.fusion.ai.model.RegisterModel;
+import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.service.LlmModelService;
 import java.util.List;
 import java.util.stream.Collectors;

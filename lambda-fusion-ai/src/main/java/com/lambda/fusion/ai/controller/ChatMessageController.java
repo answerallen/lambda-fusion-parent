@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.controller;
 
-import com.lambda.fusion.ai.model.SendMessage;
 import com.lambda.fusion.ai.model.ChatMessage;
+import com.lambda.fusion.ai.model.SendMessage;
 import com.lambda.fusion.ai.service.ChatMessageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

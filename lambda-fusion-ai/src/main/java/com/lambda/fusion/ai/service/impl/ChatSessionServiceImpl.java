@@ -2,10 +2,10 @@ package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
-import com.lambda.fusion.ai.model.CreateSession;
 import com.lambda.fusion.ai.model.ChatSession;
+import com.lambda.fusion.ai.model.CreateSession;
+import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.service.ChatSessionService;
 import java.util.List;
 import java.util.stream.Collectors;

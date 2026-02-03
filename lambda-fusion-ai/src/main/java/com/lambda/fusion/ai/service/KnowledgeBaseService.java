@@ -2,10 +2,10 @@ package com.lambda.fusion.ai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
-import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBase;
+import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
+import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import java.util.List;
 
 /**

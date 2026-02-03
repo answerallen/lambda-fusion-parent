@@ -1,9 +1,9 @@
 package com.lambda.fusion.ai.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.ai.model.entity.LlmModelEntity;
-import com.lambda.fusion.ai.model.RegisterModel;
 import com.lambda.fusion.ai.model.LlmModel;
+import com.lambda.fusion.ai.model.RegisterModel;
+import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import java.util.List;
 
 public interface LlmModelService extends IService<LlmModelEntity> {
