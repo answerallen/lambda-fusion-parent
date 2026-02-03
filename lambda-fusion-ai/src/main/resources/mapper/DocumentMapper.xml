@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lambda.fusion.ai.mapper.DocumentMapper">
+    
+    <resultMap id="BaseResultMap" type="com.lambda.fusion.ai.entity.DocumentEntity">
+        <id column="id" property="id" />
+        <result column="kb_id" property="kbId" />
+        <result column="document_id" property="documentId" />
+        <result column="file_name" property="fileName" />
+        <result column="file_type" property="fileType" />
+        <result column="file_size" property="fileSize" />
+        <result column="file_hash" property="fileHash" />
+        <result column="storage_type" property="storageType" />
+        <result column="storage_path" property="storagePath" />
+        <result column="storage_url" property="storageUrl" />
+        <result column="chunk_count" property="chunkCount" />
+        <result column="vector_count" property="vectorCount" />
+        <result column="process_status" property="processStatus" />
+        <result column="process_progress" property="processProgress" />
+        <result column="error_message" property="errorMessage" />
+        <result column="metadata" property="metadata" />
+        <result column="char_count" property="charCount" />
+        <result column="word_count" property="wordCount" />
+        <result column="page_count" property="pageCount" />
+        <result column="uploaded_at" property="uploadedAt" />
+        <result column="uploaded_by" property="uploadedBy" />
+        <result column="processed_at" property="processedAt" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+        <result column="deleted_at" property="deletedAt" />
+    </resultMap>
+    
+    <select id="pageByKbId" resultMap="BaseResultMap">
+        SELECT *
+        FROM ai_document
+        WHERE kb_id = #{kbId}
+        <if test="status != null and status != ''">
+            AND process_status = #{status}
+        </if>
+        AND deleted_at IS NULL
+        ORDER BY uploaded_at DESC
+    </select>
+    
+    <select id="listByKbId" resultMap="BaseResultMap">
+        SELECT *
+        FROM ai_document
+        WHERE kb_id = #{kbId}
+        <if test="status != null and status != ''">
+            AND process_status = #{status}
+        </if>
+        AND deleted_at IS NULL
+        ORDER BY uploaded_at DESC
+    </select>
+    
+    <select id="selectByFileHash" resultMap="BaseResultMap">
+        SELECT *
+        FROM ai_document
+        WHERE file_hash = #{fileHash}
+        AND kb_id = #{kbId}
+        AND deleted_at IS NULL
+        LIMIT 1
+    </select>
+    
+    <select id="selectByDocumentId" resultMap="BaseResultMap">
+        SELECT *
+        FROM ai_document
+        WHERE document_id = #{documentId}
+        AND deleted_at IS NULL
+        LIMIT 1
+    </select>
+    
+    <update id="updateProcessStatus">
+        UPDATE ai_document
+        SET process_status = #{processStatus},
+            process_progress = #{processProgress},
+            error_message = #{errorMessage},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+    
+</mapper>

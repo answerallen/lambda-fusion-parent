@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lambda.fusion.ai.mapper.KnowledgeBaseMapper">
+    
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.lambda.fusion.ai.entity.KnowledgeBaseEntity">
+        <id column="id" property="id" />
+        <result column="kb_id" property="kbId" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="category" property="category" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="owner_user_id" property="ownerUserId" />
+        <result column="embedding_model" property="embeddingModel" />
+        <result column="embedding_dimension" property="embeddingDimension" />
+        <result column="vector_table_name" property="vectorTableName" />
+        <result column="chunk_size" property="chunkSize" />
+        <result column="chunk_overlap" property="chunkOverlap" />
+        <result column="chunk_strategy" property="chunkStrategy" />
+        <result column="retrieval_top_k" property="retrievalTopK" />
+        <result column="similarity_threshold" property="similarityThreshold" />
+        <result column="document_count" property="documentCount" />
+        <result column="chunk_count" property="chunkCount" />
+        <result column="vector_count" property="vectorCount" />
+        <result column="total_size_bytes" property="totalSizeBytes" />
+        <result column="status" property="status" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+        <result column="created_by" property="createdBy" />
+        <result column="updated_by" property="updatedBy" />
+        <result column="deleted_at" property="deletedAt" />
+    </resultMap>
+    
+    <!-- 根据租户ID分页查询 -->
+    <select id="pageByTenantId" resultMap="BaseResultMap">
+        SELECT *
+        FROM ai_knowledge_base
+        WHERE tenant_id = #{tenantId}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        AND deleted_at IS NULL
+        ORDER BY created_at DESC
+    </select>
+    
+    <!-- 根据kbId查询 -->
+    <select id="selectByKbId" resultMap="BaseResultMap">
+        SELECT *
+        FROM ai_knowledge_base
+        WHERE kb_id = #{kbId}
+        AND deleted_at IS NULL
+        LIMIT 1
+    </select>
+    
+    <!-- 根据租户ID查询列表 -->
+    <select id="listByTenantId" resultMap="BaseResultMap">
+        SELECT *
+        FROM ai_knowledge_base
+        WHERE tenant_id = #{tenantId}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        AND deleted_at IS NULL
+        ORDER BY created_at DESC
+    </select>
+    
+</mapper>

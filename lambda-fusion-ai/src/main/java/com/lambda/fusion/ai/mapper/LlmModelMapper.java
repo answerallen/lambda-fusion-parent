@@ -1,0 +1,38 @@
+package com.lambda.fusion.ai.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.fusion.ai.entity.LlmModelEntity;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+/**
+ * LLM模型 Mapper接口
+ *
+ * @author Jin
+ */
+@Mapper
+public interface LlmModelMapper extends BaseMapper<LlmModelEntity> {
+
+    /**
+     * 根据模型类型查询模型列表
+     */
+    List<LlmModelEntity> listByModelType(@Param("modelType") String modelType);
+
+    /**
+     * 根据提供商查询模型列表
+     */
+    List<LlmModelEntity> listByProvider(@Param("provider") String provider);
+
+    /**
+     * 查询默认模型
+     */
+    LlmModelEntity selectDefaultModel(@Param("modelType") String modelType);
+
+    /**
+     * 根据modelId查询
+     */
+    LlmModelEntity selectByModelId(@Param("modelId") String modelId);
+}
