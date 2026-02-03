@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.controller;
 
-import com.lambda.fusion.ai.model.dto.CreateSessionDTO;
-import com.lambda.fusion.ai.model.vo.ChatSessionVO;
+import com.lambda.fusion.ai.model.CreateSession;
+import com.lambda.fusion.ai.model.ChatSession;
 import com.lambda.fusion.ai.service.ChatSessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,13 +19,13 @@ public class ChatSessionController {
 
     @PostMapping
     @Operation(summary = "创建会话")
-    public ChatSessionVO create(@RequestBody CreateSessionDTO dto) {
+    public ChatSession create(@RequestBody CreateSession dto) {
         return chatSessionService.createSession(dto);
     }
 
     @GetMapping
     @Operation(summary = "查询用户会话列表")
-    public List<ChatSessionVO> list(@RequestParam Long userId) {
+    public List<ChatSession> list(@RequestParam Long userId) {
         return chatSessionService.listUserSessions(userId);
     }
 

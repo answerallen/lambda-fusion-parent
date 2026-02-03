@@ -2,10 +2,10 @@ package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.ai.entity.PromptTemplateEntity;
+import com.lambda.fusion.ai.model.entity.PromptTemplateEntity;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
-import com.lambda.fusion.ai.model.dto.CreateTemplateDTO;
-import com.lambda.fusion.ai.model.vo.PromptTemplateVO;
+import com.lambda.fusion.ai.model.CreateTemplate;
+import com.lambda.fusion.ai.model.PromptTemplate;
 import com.lambda.fusion.ai.service.PromptTemplateService;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +22,7 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
     private final PromptTemplateMapper promptTemplateMapper;
 
     @Override
-    public PromptTemplateVO createTemplate(CreateTemplateDTO dto) {
+    public PromptTemplate createTemplate(CreateTemplate dto) {
         PromptTemplateEntity entity = new PromptTemplateEntity();
         BeanUtils.copyProperties(dto, entity);
         entity.setTemplateId(IdUtil.fastSimpleUUID());
@@ -43,21 +43,21 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
     }
 
     @Override
-    public List<PromptTemplateVO> listByCategory(String category) {
+    public List<PromptTemplate> listByCategory(String category) {
         return promptTemplateMapper.listByCategory(category).stream()
                 .map(this::entityToVO)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<PromptTemplateVO> listSystemTemplates() {
+    public List<PromptTemplate> listSystemTemplates() {
         return promptTemplateMapper.listSystemTemplates().stream()
                 .map(this::entityToVO)
                 .collect(Collectors.toList());
     }
 
-    private PromptTemplateVO entityToVO(PromptTemplateEntity entity) {
-        PromptTemplateVO vo = new PromptTemplateVO();
+    private PromptTemplate entityToVO(PromptTemplateEntity entity) {
+        PromptTemplate vo = new PromptTemplate();
         BeanUtils.copyProperties(entity, vo);
         return vo;
     }

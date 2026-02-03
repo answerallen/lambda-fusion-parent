@@ -1,10 +1,13 @@
 package com.lambda.fusion.ai.service;
 
-import com.lambda.fusion.ai.model.dto.VectorSearchResultDTO;
+import com.lambda.fusion.ai.model.RagResult;
+import com.lambda.fusion.ai.model.VectorSearchResult;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.model.StreamingResponseHandler;
 import java.util.List;
 
 /**
- * RAG核心服务接口
+ * RAG服务接口
  * 负责向量检索和增强生成
  *
  * @author Jin
@@ -20,7 +23,7 @@ public interface RagService {
      * @param minScore 最小相似度
      * @return 搜索结果列表
      */
-    List<VectorSearchResultDTO> retrieve(String query, Long kbId, Integer topK, Double minScore);
+    List<VectorSearchResult> retrieve(String query, Long kbId, Integer topK, Double minScore);
 
     /**
      * RAG问答
@@ -29,18 +32,20 @@ public interface RagService {
      * @param kbId  知识库ID
      * @return RAG执行结果
      */
-    com.lambda.fusion.ai.model.dto.RagResult chat(String query, Long kbId);
+    RagResult chat(String query, Long kbId);
 
     /**
-     * 流式RAG问答
+     * 流式对话 (RAG)
      *
-     * @param query   用户问题
-     * @param kbId    知识库ID
-     * @param handler 流式响应处理器
-     * @return 检索到的相关文档块
+     * @param query           用户问题
+     * @param kbId            知识库ID
+     * @param retrievedChunks 预先检索到的文档块 (可选，若为null则内部重新检索)
+     * @param handler         流式响应处理器
+     * @return 最终召回的文档块
      */
-    java.util.List<com.lambda.fusion.ai.model.dto.VectorSearchResultDTO> streamChat(
+    List<VectorSearchResult> streamChat(
             String query,
             Long kbId,
-            dev.langchain4j.model.StreamingResponseHandler<dev.langchain4j.data.message.AiMessage> handler);
+            List<VectorSearchResult> retrievedChunks,
+            StreamingResponseHandler<AiMessage> handler);
 }

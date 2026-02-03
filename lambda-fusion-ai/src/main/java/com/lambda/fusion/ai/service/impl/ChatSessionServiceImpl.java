@@ -2,10 +2,10 @@ package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.ai.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
-import com.lambda.fusion.ai.model.dto.CreateSessionDTO;
-import com.lambda.fusion.ai.model.vo.ChatSessionVO;
+import com.lambda.fusion.ai.model.CreateSession;
+import com.lambda.fusion.ai.model.ChatSession;
 import com.lambda.fusion.ai.service.ChatSessionService;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,7 +21,7 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
     private final ChatSessionMapper chatSessionMapper;
 
     @Override
-    public ChatSessionVO createSession(CreateSessionDTO dto) {
+    public ChatSession createSession(CreateSession dto) {
         ChatSessionEntity entity = new ChatSessionEntity();
         BeanUtils.copyProperties(dto, entity);
         entity.setSessionId(IdUtil.fastSimpleUUID());
@@ -33,7 +33,7 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
     }
 
     @Override
-    public List<ChatSessionVO> listUserSessions(Long userId) {
+    public List<ChatSession> listUserSessions(Long userId) {
         return chatSessionMapper.listByUserId(userId).stream()
                 .map(this::entityToVO)
                 .collect(Collectors.toList());
@@ -46,8 +46,8 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
         chatSessionMapper.updateById(entity);
     }
 
-    private ChatSessionVO entityToVO(ChatSessionEntity entity) {
-        ChatSessionVO vo = new ChatSessionVO();
+    private ChatSession entityToVO(ChatSessionEntity entity) {
+        ChatSession vo = new ChatSession();
         BeanUtils.copyProperties(entity, vo);
         return vo;
     }

@@ -2,7 +2,7 @@ package com.lambda.fusion.ai.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.ai.entity.DocumentEntity;
+import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

@@ -2,10 +2,10 @@ package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.ai.entity.LlmModelEntity;
+import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.mapper.LlmModelMapper;
-import com.lambda.fusion.ai.model.dto.RegisterModelDTO;
-import com.lambda.fusion.ai.model.vo.LlmModelVO;
+import com.lambda.fusion.ai.model.RegisterModel;
+import com.lambda.fusion.ai.model.LlmModel;
 import com.lambda.fusion.ai.service.LlmModelService;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,7 +24,7 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public LlmModelVO registerModel(RegisterModelDTO dto) {
+    public LlmModel registerModel(RegisterModel dto) {
         LlmModelEntity entity = new LlmModelEntity();
         BeanUtils.copyProperties(dto, entity);
         entity.setModelId(IdUtil.fastSimpleUUID());
@@ -37,19 +37,19 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
     }
 
     @Override
-    public void updateModel(Long id, RegisterModelDTO dto) {
+    public void updateModel(Long id, RegisterModel dto) {
         LlmModelEntity entity = llmModelMapper.selectById(id);
         BeanUtils.copyProperties(dto, entity);
         llmModelMapper.updateById(entity);
     }
 
     @Override
-    public LlmModelVO getModelById(Long id) {
+    public LlmModel getModelById(Long id) {
         return entityToVO(llmModelMapper.selectById(id));
     }
 
     @Override
-    public List<LlmModelVO> listAll() {
+    public List<LlmModel> listAll() {
         return llmModelMapper.selectList(null).stream().map(this::entityToVO).collect(Collectors.toList());
     }
 
@@ -58,8 +58,8 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
         llmModelMapper.deleteById(id);
     }
 
-    private LlmModelVO entityToVO(LlmModelEntity entity) {
-        LlmModelVO vo = new LlmModelVO();
+    private LlmModel entityToVO(LlmModelEntity entity) {
+        LlmModel vo = new LlmModel();
         BeanUtils.copyProperties(entity, vo);
         vo.setApiKeyEncrypted(null); // 不返回加密的API Key
         return vo;

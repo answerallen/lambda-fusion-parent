@@ -1,20 +1,20 @@
 package com.lambda.fusion.ai.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.ai.entity.ChatMessageEntity;
-import com.lambda.fusion.ai.model.dto.SendMessageDTO;
-import com.lambda.fusion.ai.model.vo.ChatMessageVO;
+import com.lambda.fusion.ai.model.entity.ChatMessageEntity;
+import com.lambda.fusion.ai.model.SendMessage;
+import com.lambda.fusion.ai.model.ChatMessage;
 import java.util.List;
 
 public interface ChatMessageService extends IService<ChatMessageEntity> {
-    ChatMessageVO sendMessage(Long sessionId, SendMessageDTO dto);
+    ChatMessage sendMessage(Long sessionId, SendMessage dto);
 
     void sendMessageStream(
             Long sessionId,
-            SendMessageDTO dto,
+            SendMessage dto,
             org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter);
 
-    List<ChatMessageVO> listMessages(Long sessionId, Integer limit);
+    List<ChatMessage> listMessages(Long sessionId, Integer limit);
 
     void submitFeedback(Long messageId, Integer feedback);
 }

@@ -1,6 +1,6 @@
 package com.lambda.fusion.ai.repository;
 
-import com.lambda.fusion.ai.model.dto.VectorSearchResultDTO;
+import com.lambda.fusion.ai.model.VectorSearchResult;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -43,7 +43,7 @@ public interface VectorRepository {
      * @param minScore    最小相似度
      * @return 搜索结果
      */
-    List<VectorSearchResultDTO> searchSimilar(
+    List<VectorSearchResult> searchSimilar(
             @Param("tableName") String tableName,
             @Param("queryVector") List<Double> queryVector,
             @Param("topK") Integer topK,
@@ -57,7 +57,7 @@ public interface VectorRepository {
      * @param topK 返回数量
      * @return 搜索结果
      */
-    List<VectorSearchResultDTO> searchKeyword(
+    List<VectorSearchResult> searchKeyword(
             @Param("tableName") String tableName, @Param("keyword") String keyword, @Param("topK") Integer topK);
 
     /**

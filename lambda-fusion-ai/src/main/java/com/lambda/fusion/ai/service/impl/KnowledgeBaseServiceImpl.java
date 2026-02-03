@@ -3,13 +3,13 @@ package com.lambda.fusion.ai.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.ai.entity.KnowledgeBaseEntity;
+import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
-import com.lambda.fusion.ai.model.dto.CreateKnowledgeBaseDTO;
-import com.lambda.fusion.ai.model.dto.UpdateKnowledgeBaseDTO;
-import com.lambda.fusion.ai.model.vo.KnowledgeBaseVO;
+import com.lambda.fusion.ai.model.CreateKnowledgeBase;
+import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
+import com.lambda.fusion.ai.model.KnowledgeBase;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
-import com.lambda.fusion.ai.util.VectorTableNameResolver;
+import com.lambda.fusion.ai.support.resolver.VectorTableNameResolver;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,7 +35,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public KnowledgeBaseVO createKnowledgeBase(CreateKnowledgeBaseDTO dto) {
+    public KnowledgeBase createKnowledgeBase(CreateKnowledgeBase dto) {
         log.info("创建知识库: {}", dto.getName());
 
         // 创建实体
@@ -67,7 +67,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateKnowledgeBase(Long id, UpdateKnowledgeBaseDTO dto) {
+    public void updateKnowledgeBase(Long id, UpdateKnowledgeBase dto) {
         log.info("更新知识库, id: {}", id);
 
         KnowledgeBaseEntity entity = knowledgeBaseMapper.selectById(id);
@@ -85,15 +85,15 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
     }
 
     @Override
-    public Page<KnowledgeBaseVO> pageKnowledgeBases(Integer pageNum, Integer pageSize, Long tenantId, String status) {
+    public Page<KnowledgeBase> pageKnowledgeBases(Integer pageNum, Integer pageSize, Long tenantId, String status) {
         log.info("分页查询知识库, tenantId: {}, pageNum: {}, pageSize: {}", tenantId, pageNum, pageSize);
 
         Page<KnowledgeBaseEntity> page = new Page<>(pageNum, pageSize);
         Page<KnowledgeBaseEntity> resultPage = knowledgeBaseMapper.pageByTenantId(page, tenantId, status);
 
         // 转换为VO
-        Page<KnowledgeBaseVO> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
-        List<KnowledgeBaseVO> voList =
+        Page<KnowledgeBase> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
+        List<KnowledgeBase> voList =
                 resultPage.getRecords().stream().map(this::entityToVO).collect(Collectors.toList());
         voPage.setRecords(voList);
 
@@ -101,7 +101,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
     }
 
     @Override
-    public KnowledgeBaseVO getKnowledgeBaseById(Long id) {
+    public KnowledgeBase getKnowledgeBaseById(Long id) {
         log.info("查询知识库详情, id: {}", id);
 
         KnowledgeBaseEntity entity = knowledgeBaseMapper.selectById(id);
@@ -131,7 +131,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
     }
 
     @Override
-    public List<KnowledgeBaseVO> listByTenantId(Long tenantId, String status) {
+    public List<KnowledgeBase> listByTenantId(Long tenantId, String status) {
         log.info("查询知识库列表, tenantId: {}, status: {}", tenantId, status);
 
         List<KnowledgeBaseEntity> entities = knowledgeBaseMapper.listByTenantId(tenantId, status);
@@ -142,8 +142,8 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
     /**
      * 实体转VO
      */
-    private KnowledgeBaseVO entityToVO(KnowledgeBaseEntity entity) {
-        KnowledgeBaseVO vo = new KnowledgeBaseVO();
+    private KnowledgeBase entityToVO(KnowledgeBaseEntity entity) {
+        KnowledgeBase vo = new KnowledgeBase();
         BeanUtils.copyProperties(entity, vo);
         return vo;
     }

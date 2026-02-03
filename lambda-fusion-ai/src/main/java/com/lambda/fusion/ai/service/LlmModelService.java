@@ -1,19 +1,19 @@
 package com.lambda.fusion.ai.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.ai.entity.LlmModelEntity;
-import com.lambda.fusion.ai.model.dto.RegisterModelDTO;
-import com.lambda.fusion.ai.model.vo.LlmModelVO;
+import com.lambda.fusion.ai.model.entity.LlmModelEntity;
+import com.lambda.fusion.ai.model.RegisterModel;
+import com.lambda.fusion.ai.model.LlmModel;
 import java.util.List;
 
 public interface LlmModelService extends IService<LlmModelEntity> {
-    LlmModelVO registerModel(RegisterModelDTO dto);
+    LlmModel registerModel(RegisterModel dto);
 
-    void updateModel(Long id, RegisterModelDTO dto);
+    void updateModel(Long id, RegisterModel dto);
 
-    LlmModelVO getModelById(Long id);
+    LlmModel getModelById(Long id);
 
-    List<LlmModelVO> listAll();
+    List<LlmModel> listAll();
 
     void deleteModel(Long id);
 }

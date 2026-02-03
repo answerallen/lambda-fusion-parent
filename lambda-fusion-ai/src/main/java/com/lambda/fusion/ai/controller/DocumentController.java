@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.ai.model.vo.DocumentVO;
+import com.lambda.fusion.ai.model.Document;
 import com.lambda.fusion.ai.service.DocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,7 +26,7 @@ public class DocumentController {
 
     @PostMapping
     @Operation(summary = "上传文档", description = "上传文档到指定知识库")
-    public DocumentVO upload(
+    public Document upload(
             @Parameter(description = "知识库ID", required = true) @PathVariable Long kbId,
             @Parameter(description = "文件", required = true) @RequestParam("file") MultipartFile file,
             @Parameter(description = "上传用户ID", required = true) @RequestParam Long uploadedBy) {
@@ -35,7 +35,7 @@ public class DocumentController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询文档", description = "分页查询知识库中的文档列表")
-    public Page<DocumentVO> page(
+    public Page<Document> page(
             @Parameter(description = "知识库ID", required = true) @PathVariable Long kbId,
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer pageNum,
             @Parameter(description = "页大小") @RequestParam(defaultValue = "10") Integer pageSize,
@@ -45,7 +45,7 @@ public class DocumentController {
 
     @GetMapping
     @Operation(summary = "查询文档列表", description = "查询知识库中的所有文档")
-    public List<DocumentVO> list(
+    public List<Document> list(
             @Parameter(description = "知识库ID", required = true) @PathVariable Long kbId,
             @Parameter(description = "处理状态") @RequestParam(required = false) String status) {
         return documentService.listByKbId(kbId, status);
@@ -53,7 +53,7 @@ public class DocumentController {
 
     @GetMapping("/{docId}")
     @Operation(summary = "查询文档详情", description = "根据ID查询文档详细信息")
-    public DocumentVO getById(
+    public Document getById(
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
             @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
         return documentService.getDocumentById(docId);
@@ -69,7 +69,7 @@ public class DocumentController {
 
     @GetMapping("/{docId}/status")
     @Operation(summary = "查询处理状态", description = "查询文档处理状态和进度")
-    public DocumentVO getStatus(
+    public Document getStatus(
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
             @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
         return documentService.getProcessStatus(docId);

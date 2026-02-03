@@ -3,7 +3,7 @@
 <mapper namespace="com.lambda.fusion.ai.mapper.KnowledgeBaseMapper">
     
     <!-- 结果映射 -->
-    <resultMap id="BaseResultMap" type="com.lambda.fusion.ai.entity.KnowledgeBaseEntity">
+    <resultMap id="BaseResultMap" type="com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity">
         <id column="id" property="id" />
         <result column="kb_id" property="kbId" />
         <result column="name" property="name" />

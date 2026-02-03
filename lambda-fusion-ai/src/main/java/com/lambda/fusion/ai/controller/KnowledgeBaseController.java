@@ -1,9 +1,9 @@
 package com.lambda.fusion.ai.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.ai.model.dto.CreateKnowledgeBaseDTO;
-import com.lambda.fusion.ai.model.dto.UpdateKnowledgeBaseDTO;
-import com.lambda.fusion.ai.model.vo.KnowledgeBaseVO;
+import com.lambda.fusion.ai.model.CreateKnowledgeBase;
+import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
+import com.lambda.fusion.ai.model.KnowledgeBase;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -28,13 +28,13 @@ public class KnowledgeBaseController {
 
     @PostMapping
     @Operation(summary = "创建知识库", description = "创建一个新的知识库")
-    public KnowledgeBaseVO create(@Valid @RequestBody CreateKnowledgeBaseDTO dto) {
+    public KnowledgeBase create(@Valid @RequestBody CreateKnowledgeBase dto) {
         return knowledgeBaseService.createKnowledgeBase(dto);
     }
 
     @GetMapping("/page")
     @Operation(summary = "分页查询知识库", description = "根据租户ID分页查询知识库列表")
-    public Page<KnowledgeBaseVO> page(
+    public Page<KnowledgeBase> page(
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer pageNum,
             @Parameter(description = "页大小") @RequestParam(defaultValue = "10") Integer pageSize,
             @Parameter(description = "租户ID", required = true) @RequestParam Long tenantId,
@@ -44,7 +44,7 @@ public class KnowledgeBaseController {
 
     @GetMapping("/{id}")
     @Operation(summary = "查询知识库详情", description = "根据ID查询知识库详细信息")
-    public KnowledgeBaseVO getById(@Parameter(description = "知识库ID", required = true) @PathVariable Long id) {
+    public KnowledgeBase getById(@Parameter(description = "知识库ID", required = true) @PathVariable Long id) {
         return knowledgeBaseService.getKnowledgeBaseById(id);
     }
 
@@ -52,7 +52,7 @@ public class KnowledgeBaseController {
     @Operation(summary = "更新知识库", description = "更新知识库配置信息")
     public void update(
             @Parameter(description = "知识库ID", required = true) @PathVariable Long id,
-            @Valid @RequestBody UpdateKnowledgeBaseDTO dto) {
+            @Valid @RequestBody UpdateKnowledgeBase dto) {
         knowledgeBaseService.updateKnowledgeBase(id, dto);
     }
 
@@ -64,7 +64,7 @@ public class KnowledgeBaseController {
 
     @GetMapping("/list")
     @Operation(summary = "查询知识库列表", description = "根据租户ID查询知识库列表")
-    public List<KnowledgeBaseVO> list(
+    public List<KnowledgeBase> list(
             @Parameter(description = "租户ID", required = true) @RequestParam Long tenantId,
             @Parameter(description = "状态") @RequestParam(required = false) String status) {
         return knowledgeBaseService.listByTenantId(tenantId, status);

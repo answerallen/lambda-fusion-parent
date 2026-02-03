@@ -9,7 +9,7 @@
         (#{id}, #{vectorId}, #{content}, #{metadata}::jsonb, #{embedding, typeHandler=com.lambda.fusion.ai.handler.PgVectorHandler}, CURRENT_TIMESTAMP)
     </insert>
 
-    <select id="searchSimilar" resultType="com.lambda.fusion.ai.model.dto.VectorSearchResultDTO">
+    <select id="searchSimilar" resultType="com.lambda.fusion.ai.model.VectorSearchResult">
         SELECT 
             id, 
             vector_id, 
@@ -23,7 +23,7 @@
         LIMIT #{topK}
     </select>
 
-    <select id="searchKeyword" resultType="com.lambda.fusion.ai.model.dto.VectorSearchResultDTO">
+    <select id="searchKeyword" resultType="com.lambda.fusion.ai.model.VectorSearchResult">
         SELECT 
             id, 
             vector_id, 

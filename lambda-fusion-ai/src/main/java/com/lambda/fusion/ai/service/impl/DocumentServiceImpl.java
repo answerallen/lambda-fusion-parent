@@ -5,12 +5,12 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.ai.entity.DocumentEntity;
-import com.lambda.fusion.ai.entity.KnowledgeBaseEntity;
-import com.lambda.fusion.ai.enums.DocumentStatus;
+import com.lambda.fusion.ai.model.entity.DocumentEntity;
+import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
+import com.lambda.fusion.ai.support.enums.DocumentStatus;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
-import com.lambda.fusion.ai.model.vo.DocumentVO;
+import com.lambda.fusion.ai.model.Document;
 import com.lambda.fusion.ai.service.DocumentService;
 import java.io.File;
 import java.io.IOException;
@@ -46,7 +46,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public DocumentVO uploadDocument(Long kbId, MultipartFile file, Long uploadedBy) {
+    public Document uploadDocument(Long kbId, MultipartFile file, Long uploadedBy) {
         log.info("上传文档到知识库: kbId={}, fileName={}", kbId, file.getOriginalFilename());
 
         // 验证知识库存在
@@ -121,15 +121,15 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
     }
 
     @Override
-    public Page<DocumentVO> pageDocuments(Integer pageNum, Integer pageSize, Long kbId, String status) {
+    public Page<Document> pageDocuments(Integer pageNum, Integer pageSize, Long kbId, String status) {
         log.info("分页查询文档, kbId={}, pageNum={}, pageSize={}", kbId, pageNum, pageSize);
 
         Page<DocumentEntity> page = new Page<>(pageNum, pageSize);
         Page<DocumentEntity> resultPage = documentMapper.pageByKbId(page, kbId, status);
 
         // 转换为VO
-        Page<DocumentVO> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
-        List<DocumentVO> voList =
+        Page<Document> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
+        List<Document> voList =
                 resultPage.getRecords().stream().map(this::entityToVO).collect(Collectors.toList());
         voPage.setRecords(voList);
 
@@ -137,7 +137,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
     }
 
     @Override
-    public List<DocumentVO> listByKbId(Long kbId, String status) {
+    public List<Document> listByKbId(Long kbId, String status) {
         log.info("查询文档列表, kbId={}, status={}", kbId, status);
 
         List<DocumentEntity> entities = documentMapper.listByKbId(kbId, status);
@@ -146,7 +146,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
     }
 
     @Override
-    public DocumentVO getDocumentById(Long id) {
+    public Document getDocumentById(Long id) {
         log.info("查询文档详情, id={}", id);
 
         DocumentEntity entity = documentMapper.selectById(id);
@@ -184,7 +184,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
     }
 
     @Override
-    public DocumentVO getProcessStatus(Long id) {
+    public Document getProcessStatus(Long id) {
         log.info("查询文档处理状态, id={}", id);
 
         DocumentEntity entity = documentMapper.selectById(id);
@@ -215,8 +215,8 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
     /**
      * 实体转VO
      */
-    private DocumentVO entityToVO(DocumentEntity entity) {
-        DocumentVO vo = new DocumentVO();
+    private Document entityToVO(DocumentEntity entity) {
+        Document vo = new Document();
         BeanUtils.copyProperties(entity, vo);
         return vo;
     }

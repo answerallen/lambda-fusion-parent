@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.lambda.fusion.ai.mapper.DocumentMapper">
     
-    <resultMap id="BaseResultMap" type="com.lambda.fusion.ai.entity.DocumentEntity">
+    <resultMap id="BaseResultMap" type="com.lambda.fusion.ai.model.entity.DocumentEntity">
         <id column="id" property="id" />
         <result column="kb_id" property="kbId" />
         <result column="document_id" property="documentId" />

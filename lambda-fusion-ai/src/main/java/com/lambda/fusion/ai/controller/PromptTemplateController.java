@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.controller;
 
-import com.lambda.fusion.ai.model.dto.CreateTemplateDTO;
-import com.lambda.fusion.ai.model.vo.PromptTemplateVO;
+import com.lambda.fusion.ai.model.CreateTemplate;
+import com.lambda.fusion.ai.model.PromptTemplate;
 import com.lambda.fusion.ai.service.PromptTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,13 +21,13 @@ public class PromptTemplateController {
 
     @PostMapping
     @Operation(summary = "创建模板")
-    public PromptTemplateVO create(@Valid @RequestBody CreateTemplateDTO dto) {
+    public PromptTemplate create(@Valid @RequestBody CreateTemplate dto) {
         return promptTemplateService.createTemplate(dto);
     }
 
     @GetMapping
     @Operation(summary = "查询所有模板")
-    public List<PromptTemplateVO> list(@RequestParam(required = false) String category) {
+    public List<PromptTemplate> list(@RequestParam(required = false) String category) {
         if (category != null) {
             return promptTemplateService.listByCategory(category);
         }
@@ -37,7 +37,7 @@ public class PromptTemplateController {
 
     @GetMapping("/system")
     @Operation(summary = "查询系统模板")
-    public List<PromptTemplateVO> listSystem() {
+    public List<PromptTemplate> listSystem() {
         return promptTemplateService.listSystemTemplates();
     }
 

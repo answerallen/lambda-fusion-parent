@@ -2,8 +2,8 @@ package com.lambda.fusion.ai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.ai.entity.DocumentEntity;
-import com.lambda.fusion.ai.model.vo.DocumentVO;
+import com.lambda.fusion.ai.model.entity.DocumentEntity;
+import com.lambda.fusion.ai.model.Document;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,7 +22,7 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param uploadedBy 上传用户ID
      * @return 文档VO
      */
-    DocumentVO uploadDocument(Long kbId, MultipartFile file, Long uploadedBy);
+    Document uploadDocument(Long kbId, MultipartFile file, Long uploadedBy);
 
     /**
      * 分页查询文档列表
@@ -33,7 +33,7 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param status   处理状态(可选)
      * @return 分页结果
      */
-    Page<DocumentVO> pageDocuments(Integer pageNum, Integer pageSize, Long kbId, String status);
+    Page<Document> pageDocuments(Integer pageNum, Integer pageSize, Long kbId, String status);
 
     /**
      * 根据知识库ID查询文档列表
@@ -42,7 +42,7 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param status 处理状态(可选)
      * @return 文档列表
      */
-    List<DocumentVO> listByKbId(Long kbId, String status);
+    List<Document> listByKbId(Long kbId, String status);
 
     /**
      * 根据ID查询文档详情
@@ -50,7 +50,7 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param id 文档ID
      * @return 文档VO
      */
-    DocumentVO getDocumentById(Long id);
+    Document getDocumentById(Long id);
 
     /**
      * 删除文档
@@ -65,7 +65,7 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param id 文档ID
      * @return 处理状态信息
      */
-    DocumentVO getProcessStatus(Long id);
+    Document getProcessStatus(Long id);
 
     /**
      * 更新处理状态

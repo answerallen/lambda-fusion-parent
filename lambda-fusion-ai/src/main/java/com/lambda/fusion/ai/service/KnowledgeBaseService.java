@@ -2,10 +2,10 @@ package com.lambda.fusion.ai.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.ai.entity.KnowledgeBaseEntity;
-import com.lambda.fusion.ai.model.dto.CreateKnowledgeBaseDTO;
-import com.lambda.fusion.ai.model.dto.UpdateKnowledgeBaseDTO;
-import com.lambda.fusion.ai.model.vo.KnowledgeBaseVO;
+import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
+import com.lambda.fusion.ai.model.CreateKnowledgeBase;
+import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
+import com.lambda.fusion.ai.model.KnowledgeBase;
 import java.util.List;
 
 /**
@@ -21,7 +21,7 @@ public interface KnowledgeBaseService extends IService<KnowledgeBaseEntity> {
      * @param dto 创建知识库DTO
      * @return 知识库VO
      */
-    KnowledgeBaseVO createKnowledgeBase(CreateKnowledgeBaseDTO dto);
+    KnowledgeBase createKnowledgeBase(CreateKnowledgeBase dto);
 
     /**
      * 更新知识库
@@ -29,7 +29,7 @@ public interface KnowledgeBaseService extends IService<KnowledgeBaseEntity> {
      * @param id  知识库ID
      * @param dto 更新知识库DTO
      */
-    void updateKnowledgeBase(Long id, UpdateKnowledgeBaseDTO dto);
+    void updateKnowledgeBase(Long id, UpdateKnowledgeBase dto);
 
     /**
      * 分页查询知识库
@@ -40,7 +40,7 @@ public interface KnowledgeBaseService extends IService<KnowledgeBaseEntity> {
      * @param status   状态(可选)
      * @return 分页结果
      */
-    Page<KnowledgeBaseVO> pageKnowledgeBases(Integer pageNum, Integer pageSize, Long tenantId, String status);
+    Page<KnowledgeBase> pageKnowledgeBases(Integer pageNum, Integer pageSize, Long tenantId, String status);
 
     /**
      * 根据ID查询知识库
@@ -48,7 +48,7 @@ public interface KnowledgeBaseService extends IService<KnowledgeBaseEntity> {
      * @param id 知识库ID
      * @return 知识库VO
      */
-    KnowledgeBaseVO getKnowledgeBaseById(Long id);
+    KnowledgeBase getKnowledgeBaseById(Long id);
 
     /**
      * 删除知识库(软删除)
@@ -64,5 +64,5 @@ public interface KnowledgeBaseService extends IService<KnowledgeBaseEntity> {
      * @param status   状态(可选)
      * @return 知识库列表
      */
-    List<KnowledgeBaseVO> listByTenantId(Long tenantId, String status);
+    List<KnowledgeBase> listByTenantId(Long tenantId, String status);
 }

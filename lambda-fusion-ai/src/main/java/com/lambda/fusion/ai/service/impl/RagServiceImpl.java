@@ -1,9 +1,12 @@
 package com.lambda.fusion.ai.service.impl;
 
-import com.lambda.fusion.ai.entity.KnowledgeBaseEntity;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
+import com.lambda.fusion.ai.model.entity.PromptTemplateEntity;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
-import com.lambda.fusion.ai.model.dto.RagResult;
-import com.lambda.fusion.ai.model.dto.VectorSearchResultDTO;
+import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
+import com.lambda.fusion.ai.model.RagResult;
+import com.lambda.fusion.ai.model.VectorSearchResult;
 import com.lambda.fusion.ai.repository.VectorRepository;
 import com.lambda.fusion.ai.service.RagService;
 import dev.langchain4j.data.embedding.Embedding;
@@ -35,13 +38,14 @@ public class RagServiceImpl implements RagService {
 
     private final VectorRepository vectorRepository;
     private final KnowledgeBaseMapper knowledgeBaseMapper;
+    private final PromptTemplateMapper promptTemplateMapper;
     private final EmbeddingModel embeddingModel;
 
     private final ChatLanguageModel chatLanguageModel;
     private final StreamingChatLanguageModel streamingChatLanguageModel;
 
     @Override
-    public List<VectorSearchResultDTO> retrieve(String query, Long kbId, Integer topK, Double minScore) {
+    public List<VectorSearchResult> retrieve(String query, Long kbId, Integer topK, Double minScore) {
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
             throw new RuntimeException("知识库不存在");
@@ -53,39 +57,38 @@ public class RagServiceImpl implements RagService {
                 .collect(Collectors.toList());
 
         String tableName = kb.getVectorTableName();
-        Integer limit = topK != null ? topK : kb.getRetrievalTopK();
-        if (limit == null) limit = 5;
-
-        Double scoreThreshold = minScore != null ? minScore : 0.6;
+        Integer limit = topK != null ? topK : (kb.getRetrievalTopK() != null ? kb.getRetrievalTopK() : 5);
+        Double scoreThreshold = minScore != null
+                ? minScore
+                : (kb.getSimilarityThreshold() != null
+                        ? kb.getSimilarityThreshold().doubleValue()
+                        : 0.6);
 
         // 双路搜寻: 向量搜索 + 关键词搜索
-        List<VectorSearchResultDTO> vectorResults =
+        List<VectorSearchResult> vectorResults =
                 vectorRepository.searchSimilar(tableName, queryVector, limit * 2, scoreThreshold);
-        List<VectorSearchResultDTO> keywordResults = vectorRepository.searchKeyword(tableName, query, limit * 2);
+        List<VectorSearchResult> keywordResults = vectorRepository.searchKeyword(tableName, query, limit * 2);
 
         // 使用 RRF 算法进行结果融合
         return reciprocalRankFusion(vectorResults, keywordResults, limit);
     }
 
-    /**
-     * Reciprocal Rank Fusion (RRF) 算法实现
-     */
-    private List<VectorSearchResultDTO> reciprocalRankFusion(
-            List<VectorSearchResultDTO> vectorResults, List<VectorSearchResultDTO> keywordResults, int topK) {
+    private List<VectorSearchResult> reciprocalRankFusion(
+            List<VectorSearchResult> vectorResults, List<VectorSearchResult> keywordResults, int topK) {
 
         Map<String, Double> rrfScores = new HashMap<>();
-        Map<String, VectorSearchResultDTO> idToResult = new HashMap<>();
+        Map<String, VectorSearchResult> idToResult = new HashMap<>();
         int k = 60;
 
         for (int i = 0; i < vectorResults.size(); i++) {
-            VectorSearchResultDTO res = vectorResults.get(i);
+            VectorSearchResult res = vectorResults.get(i);
             String vectorId = res.getVectorId();
             rrfScores.put(vectorId, rrfScores.getOrDefault(vectorId, 0.0) + 1.0 / (k + i + 1));
             idToResult.putIfAbsent(vectorId, res);
         }
 
         for (int i = 0; i < keywordResults.size(); i++) {
-            VectorSearchResultDTO res = keywordResults.get(i);
+            VectorSearchResult res = keywordResults.get(i);
             String vectorId = res.getVectorId();
             rrfScores.put(vectorId, rrfScores.getOrDefault(vectorId, 0.0) + 1.0 / (k + i + 1));
             idToResult.putIfAbsent(vectorId, res);
@@ -95,7 +98,7 @@ public class RagServiceImpl implements RagService {
                 .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
                 .limit(topK)
                 .map(entry -> {
-                    VectorSearchResultDTO res = idToResult.get(entry.getKey());
+                    VectorSearchResult res = idToResult.get(entry.getKey());
                     res.setScore(entry.getValue());
                     return res;
                 })
@@ -104,18 +107,18 @@ public class RagServiceImpl implements RagService {
 
     @Override
     public RagResult chat(String query, Long kbId) {
-        List<VectorSearchResultDTO> searchResults = retrieve(query, kbId, 5, 0.6);
-        String context =
-                searchResults.stream().map(VectorSearchResultDTO::getContent).collect(Collectors.joining("\n\n"));
+        List<VectorSearchResult> searchResults = retrieve(query, kbId, null, null);
+        KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
 
-        String template =
-                "基于以下已知信息，回答用户的问题。如果无法从中得到答案，请说'不知道'，不要编造信息。\n\n" + "已知信息：\n{{context}}\n\n" + "问题：{{question}}";
+        String context =
+                searchResults.stream().map(VectorSearchResult::getContent).collect(Collectors.joining("\n\n"));
+        String templateContent = loadPromptTemplate(kb.getCategory());
 
         Map<String, Object> variables = new HashMap<>();
         variables.put("context", context);
         variables.put("question", query);
 
-        Prompt prompt = PromptTemplate.from(template).apply(variables);
+        Prompt prompt = PromptTemplate.from(templateContent).apply(variables);
 
         Response<AiMessage> response = chatLanguageModel.generate(prompt.toUserMessage());
         String answer = response.content().text();
@@ -132,23 +135,59 @@ public class RagServiceImpl implements RagService {
     }
 
     @Override
-    public List<VectorSearchResultDTO> streamChat(
-            String query, Long kbId, StreamingResponseHandler<AiMessage> handler) {
-        List<VectorSearchResultDTO> searchResults = retrieve(query, kbId, 5, 0.6);
-        String context =
-                searchResults.stream().map(VectorSearchResultDTO::getContent).collect(Collectors.joining("\n\n"));
+    public List<VectorSearchResult> streamChat(
+            String query,
+            Long kbId,
+            List<VectorSearchResult> retrievedChunks,
+            StreamingResponseHandler<AiMessage> handler) {
+        KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
+        if (kb == null) {
+            throw new RuntimeException("知识库不存在");
+        }
 
-        String template =
-                "基于以下已知信息，回答用户的问题。如果无法从中得到答案，请说'不知道'，不要编造信息。\n\n" + "已知信息：\n{{context}}\n\n" + "问题：{{question}}";
+        List<VectorSearchResult> searchResults = retrievedChunks;
+        if (searchResults == null) {
+            searchResults = retrieve(query, kbId, null, null);
+        }
+
+        String context =
+                searchResults.stream().map(VectorSearchResult::getContent).collect(Collectors.joining("\n\n"));
+        String templateContent = loadPromptTemplate(kb.getCategory());
 
         Map<String, Object> variables = new HashMap<>();
         variables.put("context", context);
         variables.put("question", query);
 
-        Prompt prompt = PromptTemplate.from(template).apply(variables);
+        Prompt prompt = PromptTemplate.from(templateContent).apply(variables);
 
         streamingChatLanguageModel.generate(prompt.toUserMessage(), handler);
 
         return searchResults;
+    }
+
+    private String loadPromptTemplate(String category) {
+        // 1. 尝试按分类加载系统内置模板
+        PromptTemplateEntity template = promptTemplateMapper.selectOne(new LambdaQueryWrapper<PromptTemplateEntity>()
+                .eq(PromptTemplateEntity::getCategory, category)
+                .eq(PromptTemplateEntity::getIsSystem, true)
+                .eq(PromptTemplateEntity::getEnabled, true)
+                .last("LIMIT 1"));
+
+        if (template != null) {
+            return template.getTemplateContent();
+        }
+
+        // 2. 备选方案：加载默认 RAG 模板
+        template = promptTemplateMapper.selectOne(new LambdaQueryWrapper<PromptTemplateEntity>()
+                .eq(PromptTemplateEntity::getTemplateId, "system_rag_default")
+                .eq(PromptTemplateEntity::getEnabled, true)
+                .last("LIMIT 1"));
+
+        if (template != null) {
+            return template.getTemplateContent();
+        }
+
+        // 3. 最后保底：硬编码模板（不推荐，但为容错提供）
+        return "基于以下背景回答问题:\n{{context}}\n\n问题: {{question}}";
     }
 }
