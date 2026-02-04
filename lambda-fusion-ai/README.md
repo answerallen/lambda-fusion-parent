@@ -376,14 +376,3 @@ public class CustomLlmProvider implements LlmProvider {
     }
 }
 ```
-
-## 版本信息
-
-- **当前版本**: 2025.1.1-SNAPSHOT
-- **LangChain4j版本**: 1.10.0-beta18
-- **最低Java版本**: JDK 21
-- **Spring Boot版本**: 3.x
-
-## 许可证
-
-本项目采用 [Apache License 2.0](../LICENSE) 开源许可证。
