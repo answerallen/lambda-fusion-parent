@@ -1,6 +1,8 @@
 package com.lambda.fusion.ai.support.processor;
 
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.NumberUtil;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.json.JSONUtil;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
@@ -72,66 +74,66 @@ public class DocumentProcessor {
             String vectorTableName = kb.getVectorTableName();
 
             // 4. 文档切分
-            int chunkSize = kb.getChunkSize() != null ? kb.getChunkSize() : 500;
-            int chunkOverlap = kb.getChunkOverlap() != null ? kb.getChunkOverlap() : 50;
+            int chunkSize = ObjectUtil.defaultIfNull(kb.getChunkSize(),500);
+            int chunkOverlap = ObjectUtil.defaultIfNull(kb.getChunkOverlap(),500);
 
-            DocumentSplitter splitter;
-            // 简单实现，根据策略选择(目前主要支持递归)
-            // String chunkStrategy = kb.getChunkStrategy();
-            splitter = DocumentSplitters.recursive(chunkSize, chunkOverlap);
-
+            DocumentSplitter splitter = DocumentSplitters.recursive(chunkSize, chunkOverlap);
             List<TextSegment> segments = splitter.split(Document.from(content));
             updateStatus(doc, DocumentStatus.PROCESSING, 40, "文档切分完成: " + segments.size() + "块");
 
-            // 5. 批量生成向量并存储
-            int totalChunks = segments.size();
+            // 5. 批量处理向量和分片
             List<DocumentChunkEntity> chunkEntities = new ArrayList<>();
+            int totalChunks = segments.size();
 
             for (int i = 0; i < totalChunks; i++) {
                 TextSegment segment = segments.get(i);
 
-                // 生成向量
+                // 向量化
                 Response<Embedding> embeddingResponse = embeddingModel.embed(segment);
                 List<Double> vector = embeddingResponse.content().vectorAsList().stream()
                         .map(Float::doubleValue)
                         .collect(Collectors.toList());
-                // 注意：LangChain4j返回Float列表，转为Double
 
-                // 构建Chunk实体
+                // 构建实体
                 DocumentChunkEntity chunk = new DocumentChunkEntity();
                 chunk.setChunkId(IdUtil.fastSimpleUUID());
-                chunk.setDocumentId(doc.getId()); // 使用数据库ID
+                chunk.setDocumentId(doc.getId());
                 chunk.setKbId(kb.getId());
                 chunk.setContent(segment.text());
                 chunk.setChunkIndex(i);
                 chunk.setEmbeddingStatus("COMPLETED");
-                chunk.setVectorId(IdUtil.fastSimpleUUID()); // 向量ID
+                chunk.setVectorId(IdUtil.fastSimpleUUID());
+                chunk.setCharCount(segment.text().length());
+                chunk.setMetadata(JSONUtil.toJsonStr(segment.metadata()));
+                chunk.setEmbedding(vector); // 临时持有用于后续批量操作
 
-                // 保存Chunk到数据库
-                documentChunkMapper.insert(chunk);
                 chunkEntities.add(chunk);
 
-                // 保存向量到向量表
-                vectorRepository.insertVector(
-                        vectorTableName,
-                        chunk.getId(), // 使用Chunk的主键ID作为关联
-                        chunk.getVectorId(),
-                        segment.text(),
-                        JSONUtil.toJsonStr(segment.metadata()),
-                        vector);
-
-                // 更新进度
-                if (i % 10 == 0) {
+                // 每 50 个分片更新一次进度
+                if (i % 50 == 0) {
                     int progress = 40 + (int) ((double) i / totalChunks * 50);
-                    updateStatus(doc, DocumentStatus.PROCESSING, progress, "向量化中...");
+                    updateStatus(doc, DocumentStatus.PROCESSING, progress,
+                            "向量化处理中 (" + (i + 1) + "/" + totalChunks + ")");
                 }
             }
 
-            // 6. 更新文档统计信息和最终状态
+            // 6. 执行批量插入 (MyBatis-Plus 方式)
+            if (!chunkEntities.isEmpty()) {
+                log.info("执行批量存储: {} chunks", chunkEntities.size());
+
+                // 存储到 relational DB (ai_document_chunk) - 使用自定义 batchInsert
+                documentChunkMapper.batchInsert(chunkEntities);
+
+                // 存储到动态向量表 (ai_vector_store_XXX)
+                vectorRepository.batchInsertVectors(vectorTableName, chunkEntities);
+            }
+
+            // 7. 更新文档统计信息和最终状态
             doc.setChunkCount(totalChunks);
             doc.setVectorCount(totalChunks);
             doc.setProcessStatus(DocumentStatus.COMPLETED.name());
             doc.setProcessProgress(100);
+            doc.setProcessedAt(java.time.LocalDateTime.now());
             documentMapper.updateById(doc);
 
             log.info("文档处理完成: {}", documentId);
@@ -144,17 +146,14 @@ public class DocumentProcessor {
 
     private String loadContent(DocumentEntity doc) {
         if ("LOCAL".equals(doc.getStorageType())) {
-            File file = new File(doc.getStoragePath());
+            File file = new File(doc.getStorageUrl());
             if (!file.exists()) {
-                throw new RuntimeException("文件不存在: " + doc.getStoragePath());
+                throw new RuntimeException("文件不存在: " + doc.getStorageUrl());
             }
-
-            // 使用 LangChain4j 的 FileSystemDocumentLoader 自动处理 PDF, Word, TXT 等格式
-            Document document =
-                    dev.langchain4j.data.document.loader.FileSystemDocumentLoader.loadDocument(file.toPath());
+            Document document = dev.langchain4j.data.document.loader.FileSystemDocumentLoader
+                    .loadDocument(file.toPath());
             return document.text();
         }
-        // TODO: 支持 OSS 存储的流式加载 (需引入 UrlDocumentLoader 或自定义 Loader)
         throw new UnsupportedOperationException("暂不支持的存储类型: " + doc.getStorageType());
     }
 
@@ -162,6 +161,6 @@ public class DocumentProcessor {
         doc.setProcessStatus(status.name());
         doc.setProcessProgress(progress);
         doc.setErrorMessage(msg);
-        // documentMapper.updateProcessStatus(doc); // 使用自定义的更新方法
+        documentMapper.updateProcessStatus(doc.getId(), status.name(), progress, msg);
     }
 }

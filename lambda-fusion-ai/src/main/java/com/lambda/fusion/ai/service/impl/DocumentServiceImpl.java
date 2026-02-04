@@ -3,18 +3,25 @@ package com.lambda.fusion.ai.service.impl;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.crypto.digest.DigestUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.model.Document;
+import com.lambda.fusion.ai.model.DocumentChunk;
+import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
+import com.lambda.fusion.ai.repository.VectorRepository;
 import com.lambda.fusion.ai.service.DocumentService;
 import com.lambda.fusion.ai.support.enums.DocumentStatus;
+import com.lambda.fusion.ai.support.processor.DocumentProcessor;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +43,10 @@ import org.springframework.web.multipart.MultipartFile;
 public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEntity> implements DocumentService {
 
     private final DocumentMapper documentMapper;
+    private final DocumentChunkMapper documentChunkMapper;
     private final KnowledgeBaseMapper knowledgeBaseMapper;
+    private final VectorRepository vectorRepository;
+    private final DocumentProcessor documentProcessor;
 
     @Value("${lambda.fusion.ai.document.base-path:/data/ai-documents}")
     private String basePath;
@@ -49,18 +59,15 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
     public Document uploadDocument(Long kbId, MultipartFile file, Long uploadedBy) {
         log.info("上传文档到知识库: kbId={}, fileName={}", kbId, file.getOriginalFilename());
 
-        // 验证知识库存在
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
             throw new RuntimeException("知识库不存在");
         }
 
-        // 验证文件大小
         if (file.getSize() > maxFileSize) {
             throw new IllegalArgumentException("文件大小超过限制: " + maxFileSize + " bytes");
         }
 
-        // 计算文件哈希
         String fileHash;
         try {
             fileHash = DigestUtil.sha256Hex(file.getInputStream());
@@ -68,18 +75,14 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
             throw new RuntimeException("计算文件哈希失败", e);
         }
 
-        // 检查是否重复
         DocumentEntity existingDoc = documentMapper.selectByFileHash(fileHash, kbId);
         if (existingDoc != null) {
             log.warn("文档已存在, fileHash={}, documentId={}", fileHash, existingDoc.getDocumentId());
             return entityToVO(existingDoc);
         }
 
-        // 保存文件到本地
         String originalFilename = file.getOriginalFilename();
         String fileExtension = FileUtil.extName(originalFilename);
-        // long fileSize = file.getSize();
-
         String relativePath = kbId + "/" + IdUtil.fastSimpleUUID() + "." + fileExtension;
         String fullPath = basePath + "/" + relativePath;
 
@@ -93,7 +96,6 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
             throw new RuntimeException("文件保存失败", e);
         }
 
-        // 创建文档实体
         DocumentEntity entity = new DocumentEntity();
         entity.setKbId(kbId);
         entity.setDocumentId(IdUtil.fastSimpleUUID());
@@ -110,50 +112,37 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
         entity.setProcessProgress(0);
         entity.setUploadedBy(uploadedBy);
 
-        // 保存到数据库
         documentMapper.insert(entity);
 
         log.info("文档上传成功, documentId={}, id={}", entity.getDocumentId(), entity.getId());
 
-        // TODO: 发送异步任务进行文档解析(后续实现)
+        // 触发异步处理
+        documentProcessor.processDocument(entity.getId());
 
         return entityToVO(entity);
     }
 
     @Override
     public Page<Document> pageDocuments(Integer pageNum, Integer pageSize, Long kbId, String status) {
-        log.info("分页查询文档, kbId={}, pageNum={}, pageSize={}", kbId, pageNum, pageSize);
-
         Page<DocumentEntity> page = new Page<>(pageNum, pageSize);
         Page<DocumentEntity> resultPage = documentMapper.pageByKbId(page, kbId, status);
 
-        // 转换为VO
         Page<Document> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
-        List<Document> voList =
-                resultPage.getRecords().stream().map(this::entityToVO).collect(Collectors.toList());
-        voPage.setRecords(voList);
-
+        voPage.setRecords(resultPage.getRecords().stream().map(this::entityToVO).collect(Collectors.toList()));
         return voPage;
     }
 
     @Override
     public List<Document> listByKbId(Long kbId, String status) {
-        log.info("查询文档列表, kbId={}, status={}", kbId, status);
-
-        List<DocumentEntity> entities = documentMapper.listByKbId(kbId, status);
-
-        return entities.stream().map(this::entityToVO).collect(Collectors.toList());
+        return documentMapper.listByKbId(kbId, status).stream().map(this::entityToVO).collect(Collectors.toList());
     }
 
     @Override
     public Document getDocumentById(Long id) {
-        log.info("查询文档详情, id={}", id);
-
         DocumentEntity entity = documentMapper.selectById(id);
         if (entity == null) {
             throw new IllegalArgumentException("文档不存在, id: " + id);
         }
-
         return entityToVO(entity);
     }
 
@@ -161,17 +150,27 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
     @Transactional(rollbackFor = Exception.class)
     public void deleteDocument(Long id) {
         log.info("删除文档, id={}", id);
-
         DocumentEntity entity = documentMapper.selectById(id);
         if (entity == null) {
             throw new IllegalArgumentException("文档不存在, id: " + id);
         }
 
-        // 软删除
+        // 1. 获取关联知识库信息以确定向量表
+        KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(entity.getKbId());
+
+        // 2. 删除向量数据
+        if (kb != null && kb.getVectorTableName() != null) {
+            vectorRepository.deleteByDocumentId(kb.getVectorTableName(), id);
+        }
+
+        // 3. 删除文档块数据
+        documentChunkMapper.deleteByDocumentIds(Collections.singletonList(id));
+
+        // 4. 软删除文档
         entity.setDeletedAt(LocalDateTime.now());
         documentMapper.updateById(entity);
 
-        // 删除物理文件
+        // 5. 删除物理文件
         if ("LOCAL".equals(entity.getStorageType())) {
             File file = new File(entity.getStorageUrl());
             if (file.exists()) {
@@ -179,30 +178,21 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
                 log.info("物理文件已删除: {}", entity.getStorageUrl());
             }
         }
-
-        log.info("文档删除成功, id={}", id);
     }
 
     @Override
     public Document getProcessStatus(Long id) {
-        log.info("查询文档处理状态, id={}", id);
-
         DocumentEntity entity = documentMapper.selectById(id);
         if (entity == null) {
             throw new IllegalArgumentException("文档不存在, id: " + id);
         }
-
         return entityToVO(entity);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateProcessStatus(Long id, String processStatus, Integer progress, String errorMessage) {
-        log.info("更新文档处理状态, id={}, status={}, progress={}", id, processStatus, progress);
-
         documentMapper.updateProcessStatus(id, processStatus, progress, errorMessage);
-
-        // 如果处理完成，更新处理完成时间
         if (DocumentStatus.COMPLETED.name().equals(processStatus)) {
             DocumentEntity entity = documentMapper.selectById(id);
             if (entity != null) {
@@ -212,11 +202,45 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
         }
     }
 
-    /**
-     * 实体转VO
-     */
+    @Override
+    public Page<DocumentChunk> pageChunks(Long docId, Integer pageNum, Integer pageSize) {
+        Page<DocumentChunkEntity> page = new Page<>(pageNum, pageSize);
+        Page<DocumentChunkEntity> resultPage = documentChunkMapper.selectPage(page,
+                new LambdaQueryWrapper<DocumentChunkEntity>()
+                        .eq(DocumentChunkEntity::getDocumentId, docId)
+                        .orderByAsc(DocumentChunkEntity::getChunkIndex));
+
+        Page<DocumentChunk> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
+        voPage.setRecords(resultPage.getRecords().stream().map(this::chunkEntityToVO).collect(Collectors.toList()));
+        return voPage;
+    }
+
+    @Override
+    public void reprocessDocument(Long id) {
+        DocumentEntity entity = documentMapper.selectById(id);
+        if (entity == null) {
+            throw new IllegalArgumentException("文档不存在");
+        }
+
+        // 清理旧数据
+        KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(entity.getKbId());
+        if (kb != null && kb.getVectorTableName() != null) {
+            vectorRepository.deleteByDocumentId(kb.getVectorTableName(), id);
+        }
+        documentChunkMapper.deleteByDocumentIds(Collections.singletonList(id));
+
+        // 重新触发
+        documentProcessor.processDocument(id);
+    }
+
     private Document entityToVO(DocumentEntity entity) {
         Document vo = new Document();
+        BeanUtils.copyProperties(entity, vo);
+        return vo;
+    }
+
+    private DocumentChunk chunkEntityToVO(DocumentChunkEntity entity) {
+        DocumentChunk vo = new DocumentChunk();
         BeanUtils.copyProperties(entity, vo);
         return vo;
     }

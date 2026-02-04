@@ -129,4 +129,10 @@ public class DocumentChunkEntity {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     @Schema(description = "更新时间")
     private LocalDateTime updatedAt;
+
+    /**
+     * 临时存储向量数据 (不映射到 ai_document_chunk 表)
+     */
+    @TableField(exist = false)
+    private java.util.List<Double> embedding;
 }

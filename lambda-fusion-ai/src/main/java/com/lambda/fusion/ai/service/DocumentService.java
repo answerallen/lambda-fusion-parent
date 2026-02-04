@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.ai.model.Document;
+import com.lambda.fusion.ai.model.DocumentChunk;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
@@ -76,4 +77,14 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param errorMessage  错误信息
      */
     void updateProcessStatus(Long id, String processStatus, Integer progress, String errorMessage);
+
+    /**
+     * 分页查询文档块
+     */
+    Page<DocumentChunk> pageChunks(Long docId, Integer pageNum, Integer pageSize);
+
+    /**
+     * 重新处理文档 (重新切分和向量化)
+     */
+    void reprocessDocument(Long docId);
 }

@@ -2,10 +2,12 @@ package com.lambda.fusion.ai.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.model.Document;
+import com.lambda.fusion.ai.model.DocumentChunk;
 import com.lambda.fusion.ai.service.DocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +39,7 @@ public class DocumentController {
     @Operation(summary = "分页查询文档", description = "分页查询知识库中的文档列表")
     public Page<Document> page(
             @Parameter(description = "知识库ID", required = true) @PathVariable Long kbId,
-            @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer pageNum,
+            @Parameter(description = "页号") @RequestParam(defaultValue = "1") Integer pageNum,
             @Parameter(description = "页大小") @RequestParam(defaultValue = "10") Integer pageSize,
             @Parameter(description = "处理状态") @RequestParam(required = false) String status) {
         return documentService.pageDocuments(pageNum, pageSize, kbId, status);
@@ -73,5 +75,23 @@ public class DocumentController {
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
             @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
         return documentService.getProcessStatus(docId);
+    }
+
+    @GetMapping("/{docId}/chunks")
+    @Operation(summary = "分页查询文档块", description = "查看文档切分后的块列表")
+    public Page<DocumentChunk> pageChunks(
+            @Parameter(description = "知识库ID") @PathVariable Long kbId,
+            @Parameter(description = "文档ID", required = true) @PathVariable Long docId,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer pageNum,
+            @Parameter(description = "页大小") @RequestParam(defaultValue = "10") Integer pageSize) {
+        return documentService.pageChunks(docId, pageNum, pageSize);
+    }
+
+    @PostMapping("/{docId}/reprocess")
+    @Operation(summary = "重新处理文档", description = "重新执行文档切分和向量化")
+    public void reprocess(
+            @Parameter(description = "知识库ID") @PathVariable Long kbId,
+            @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
+        documentService.reprocessDocument(docId);
     }
 }
