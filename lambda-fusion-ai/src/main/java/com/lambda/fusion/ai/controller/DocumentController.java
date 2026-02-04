@@ -18,7 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
  * @author Jin
  */
 @RestController
-@RequestMapping("/api/v1/knowledge-bases/{kbId}/documents")
+@RequestMapping("/v1/knowledge-bases/{kbId}/documents")
 @Tag(name = "文档管理", description = "文档相关接口")
 @RequiredArgsConstructor
 public class DocumentController {

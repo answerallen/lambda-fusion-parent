@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/prompt-templates")
+@RequestMapping("/v1/prompt-templates")
 @Tag(name = "提示词模板管理")
 @RequiredArgsConstructor
 public class PromptTemplateController {

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
-@RequestMapping("/api/v1/chat/sessions/{sessionId}/messages")
+@RequestMapping("/v1/chat/sessions/{sessionId}/messages")
 @Tag(name = "对话消息管理")
 @RequiredArgsConstructor
 public class ChatMessageController {

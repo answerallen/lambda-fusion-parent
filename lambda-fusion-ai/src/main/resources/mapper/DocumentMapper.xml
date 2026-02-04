@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lambda.fusion.ai.mapper.DocumentMapper">
+
+    <!-- 按知识库ID和处理状态查询 -->
+    <select id="selectByKbIdAndStatus" resultType="com.lambda.fusion.ai.model.entity.DocumentEntity">
+        SELECT * FROM ai_document
+        WHERE kb_id = #{kbId}
+        <if test="processStatus != null and processStatus != ''">
+            AND process_status = #{processStatus}
+        </if>
+        AND deleted_at IS NULL
+        ORDER BY uploaded_at DESC
+    </select>
+
+    <!-- 统计知识库文档数 -->
+    <select id="countByKbId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM ai_document
+        WHERE kb_id = #{kbId} AND deleted_at IS NULL
+    </select>
+
+    <!-- 按处理状态查询 -->
+    <select id="selectByProcessStatus" resultType="com.lambda.fusion.ai.model.entity.DocumentEntity">
+        SELECT * FROM ai_document
+        WHERE process_status = #{processStatus}
+        AND deleted_at IS NULL
+        ORDER BY uploaded_at DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 批量更新处理状态 -->
+    <update id="updateProcessStatusBatch">
+        <foreach collection="list" item="item" separator=";">
+            UPDATE ai_document
+            SET process_status = #{item.processStatus},
+                process_progress = #{item.processProgress},
+                error_message = #{item.errorMessage},
+                updated_at = NOW()
+            WHERE id = #{item.id}
+        </foreach>
+    </update>
+
+    <!-- 批量删除文档(软删除) -->
+    <update id="deleteByKbIdBatch">
+        UPDATE ai_document
+        SET deleted_at = NOW(), updated_at = NOW()
+        WHERE kb_id IN
+        <foreach collection="kbIds" item="kbId" open="(" separator="," close=")">
+            #{kbId}
+        </foreach>
+    </update>
+
+    <!-- 查询待处理文档 -->
+    <select id="selectPendingDocuments" resultType="com.lambda.fusion.ai.model.entity.DocumentEntity">
+        SELECT * FROM ai_document
+        WHERE process_status IN ('PENDING', 'PROCESSING')
+        AND deleted_at IS NULL
+        ORDER BY uploaded_at ASC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 统计知识库各状态文档数 -->
+    <select id="countByKbIdGroupByStatus" resultType="java.util.Map">
+        SELECT process_status as status, COUNT(*) as count
+        FROM ai_document
+        WHERE kb_id = #{kbId} AND deleted_at IS NULL
+        GROUP BY process_status
+    </select>
+
+</mapper>

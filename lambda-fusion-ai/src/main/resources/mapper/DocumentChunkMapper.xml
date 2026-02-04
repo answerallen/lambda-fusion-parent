@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lambda.fusion.ai.mapper.DocumentChunkMapper">
+
+    <!-- 按知识库ID和向量化状态查询 -->
+    <select id="selectByKbIdAndEmbeddingStatus" resultType="com.lambda.fusion.ai.model.entity.DocumentChunkEntity">
+        SELECT * FROM ai_document_chunk
+        WHERE kb_id = #{kbId}
+        <if test="embeddingStatus != null and embeddingStatus != ''">
+            AND embedding_status = #{embeddingStatus}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 统计文档块数 -->
+    <select id="countByDocumentId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM ai_document_chunk
+        WHERE document_id = #{documentId}
+    </select>
+
+    <!-- 统计知识库块数 -->
+    <select id="countByKbId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM ai_document_chunk
+        WHERE kb_id = #{kbId}
+    </select>
+
+    <!-- 按文档ID和向量化状态查询 -->
+    <select id="selectByDocumentIdAndEmbeddingStatus" resultType="com.lambda.fusion.ai.model.entity.DocumentChunkEntity">
+        SELECT * FROM ai_document_chunk
+        WHERE document_id = #{documentId}
+        <if test="embeddingStatus != null and embeddingStatus != ''">
+            AND embedding_status = #{embeddingStatus}
+        </if>
+        ORDER BY chunk_index ASC
+    </select>
+
+    <!-- 按文档ID批量更新向量化状态 -->
+    <update id="updateEmbeddingStatusByDocumentId">
+        UPDATE ai_document_chunk
+        SET embedding_status = #{embeddingStatus}, updated_at = NOW()
+        WHERE document_id = #{documentId}
+    </update>
+
+    <!-- 按内容哈希查询(去重) -->
+    <select id="selectByContentHash" resultType="com.lambda.fusion.ai.model.entity.DocumentChunkEntity">
+        SELECT * FROM ai_document_chunk
+        WHERE kb_id = #{kbId} AND content_hash = #{contentHash}
+        LIMIT 1
+    </select>
+
+    <!-- 查询待向量化块 -->
+    <select id="selectPendingEmbeddingChunks" resultType="com.lambda.fusion.ai.model.entity.DocumentChunkEntity">
+        SELECT * FROM ai_document_chunk
+        WHERE embedding_status IN ('PENDING', 'PROCESSING')
+        ORDER BY created_at ASC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+
+    <!-- 统计各向量化状态块数 -->
+    <select id="countByKbIdGroupByEmbeddingStatus" resultType="java.util.Map">
+        SELECT embedding_status as status, COUNT(*) as count
+        FROM ai_document_chunk
+        WHERE kb_id = #{kbId}
+        GROUP BY embedding_status
+    </select>
+
+</mapper>

@@ -4,10 +4,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import java.util.List;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import java.util.Map;
+
+import org.apache.ibatis.annotations.*;
 
 /**
  * 文档 Mapper接口
@@ -67,4 +66,60 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
             @Param("processStatus") String processStatus,
             @Param("processProgress") Integer processProgress,
             @Param("errorMessage") String errorMessage);
+
+    /**
+     * 根据知识库ID和处理状态查询
+     * @param kbId 知识库ID
+     * @param processStatus 处理状态
+     * @return 文档列表
+     */
+    List<DocumentEntity> selectByKbIdAndStatus(
+            @Param("kbId") Long kbId,
+            @Param("processStatus") String processStatus);
+
+    /**
+     * 统计知识库文档数
+     * @param kbId 知识库ID
+     * @return 文档数量
+     */
+    Integer countByKbId(@Param("kbId") Long kbId);
+
+    /**
+     * 按处理状态查询文档
+     * @param processStatus 处理状态(PENDING/PROCESSING/COMPLETED/FAILED)
+     * @param limit 限制数量
+     * @return 文档列表
+     */
+    List<DocumentEntity> selectByProcessStatus(
+            @Param("processStatus") String processStatus,
+            @Param("limit") Integer limit);
+
+    /**
+     * 批量更新处理状态
+     * @param documents 包含id、processStatus、processProgress、errorMessage的文档列表
+     * @return 更新数量
+     */
+    int updateProcessStatusBatch(@Param("list") List<DocumentEntity> documents);
+
+    /**
+     * 批量删除知识库文档(软删除)
+     * @param kbIds 知识库ID列表
+     * @return 删除数量
+     */
+    int deleteByKbIdBatch(@Param("kbIds") List<Long> kbIds);
+
+    /**
+     * 查询待处理文档
+     * @param limit 限制数量
+     * @return 待处理文档列表
+     */
+    List<DocumentEntity> selectPendingDocuments(@Param("limit") Integer limit);
+
+    /**
+     * 统计知识库各状态文档数
+     * @param kbId 知识库ID
+     * @return Map<status, count>
+     */
+    @MapKey("status")
+    List<Map<String, Object>> countByKbIdGroupByStatus(@Param("kbId") Long kbId);
 }

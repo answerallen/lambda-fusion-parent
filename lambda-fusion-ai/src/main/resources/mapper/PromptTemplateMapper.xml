@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lambda.fusion.ai.mapper.PromptTemplateMapper">
+
+    <!-- 按分类查询 -->
+    <select id="listByCategory" resultType="com.lambda.fusion.ai.model.entity.PromptTemplateEntity">
+        SELECT * FROM ai_prompt_template
+        WHERE category = #{category}
+        AND enabled = true
+        ORDER BY usage_count DESC, created_at DESC
+    </select>
+
+    <!-- 查询系统模板 -->
+    <select id="listSystemTemplates" resultType="com.lambda.fusion.ai.model.entity.PromptTemplateEntity">
+        SELECT * FROM ai_prompt_template
+        WHERE is_system = true
+        AND enabled = true
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 按templateId查询 -->
+    <select id="selectByTemplateId" resultType="com.lambda.fusion.ai.model.entity.PromptTemplateEntity">
+        SELECT * FROM ai_prompt_template
+        WHERE template_id = #{templateId}
+        LIMIT 1
+    </select>
+
+    <!-- 按租户查询 -->
+    <select id="selectByTenantId" resultType="com.lambda.fusion.ai.model.entity.PromptTemplateEntity">
+        SELECT * FROM ai_prompt_template
+        WHERE tenant_id = #{tenantId}
+        AND enabled = true
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询公开模板 -->
+    <select id="selectPublicTemplates" resultType="com.lambda.fusion.ai.model.entity.PromptTemplateEntity">
+        SELECT * FROM ai_prompt_template
+        WHERE is_public = true
+        AND enabled = true
+        ORDER BY usage_count DESC, created_at DESC
+    </select>
+
+    <!-- 按所有者查询 -->
+    <select id="selectByOwnerUserId" resultType="com.lambda.fusion.ai.model.entity.PromptTemplateEntity">
+        SELECT * FROM ai_prompt_template
+        WHERE owner_user_id = #{ownerUserId}
+        AND enabled = true
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 批量更新使用次数 -->
+    <update id="updateUsageCountBatch">
+        <foreach collection="list" item="item" separator=";">
+            UPDATE ai_prompt_template
+            SET usage_count = usage_count + #{item.usageIncrement},
+                updated_at = NOW()
+            WHERE id = #{item.templateId}
+        </foreach>
+    </update>
+
+    <!-- 统计各分类模板数 -->
+    <select id="countByCategoryGroupByIsSystem" resultType="java.util.Map">
+        SELECT category, is_system, COUNT(*) as count
+        FROM ai_prompt_template
+        WHERE enabled = true
+        GROUP BY category, is_system
+    </select>
+
+</mapper>

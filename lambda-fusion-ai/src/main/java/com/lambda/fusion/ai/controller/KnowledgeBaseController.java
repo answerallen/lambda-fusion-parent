@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
  * @author Jin
  */
 @RestController
-@RequestMapping("/api/v1/knowledge-bases")
+@RequestMapping("/v1/knowledge-bases")
 @Tag(name = "知识库管理", description = "知识库相关接口")
 @RequiredArgsConstructor
 public class KnowledgeBaseController {

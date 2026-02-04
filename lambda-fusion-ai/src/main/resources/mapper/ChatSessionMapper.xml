@@ -55,4 +55,65 @@
         WHERE id = #{id} AND version = #{version}
     </update>
 
+    <!-- 按用户ID和状态查询会话 -->
+    <select id="selectByUserIdAndStatus" resultMap="BaseResultMap">
+        SELECT id, version, session_id, title, kb_id, user_id, tenant_id, llm_model_id,
+               system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
+               status, created_at, updated_at, last_message_at
+        FROM ai_chat_session
+        WHERE user_id = #{userId}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY last_message_at DESC NULLS LAST
+    </select>
+
+    <!-- 按租户ID查询会话 -->
+    <select id="selectByTenantId" resultMap="BaseResultMap">
+        SELECT id, version, session_id, title, kb_id, user_id, tenant_id, llm_model_id,
+               system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
+               status, created_at, updated_at, last_message_at
+        FROM ai_chat_session
+        WHERE tenant_id = #{tenantId}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询过期会话(超过30天未活动) -->
+    <select id="selectExpiredSessions" resultMap="BaseResultMap">
+        SELECT id, version, session_id, title, kb_id, user_id, tenant_id, llm_model_id,
+               system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
+               status, created_at, updated_at, last_message_at
+        FROM ai_chat_session
+        WHERE status = 'ACTIVE'
+        AND (last_message_at IS NULL OR last_message_at &lt; DATE_SUB(NOW(), INTERVAL 30 DAY))
+        ORDER BY last_message_at ASC NULLS FIRST
+    </select>
+
+    <!-- 批量更新状态 -->
+    <update id="updateStatusBatch">
+        <foreach collection="sessionIds" item="id" separator=";">
+            UPDATE ai_chat_session
+            SET status = #{status}, updated_at = NOW()
+            WHERE id = #{id}
+        </foreach>
+    </update>
+
+    <!-- 批量删除会话 -->
+    <delete id="deleteByUserIdBatch">
+        DELETE FROM ai_chat_session
+        WHERE user_id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </delete>
+
+    <!-- 统计用户活跃会话数 -->
+    <select id="countActiveSessionsByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM ai_chat_session
+        WHERE user_id = #{userId} AND status = 'ACTIVE'
+    </select>
+
 </mapper>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lambda.fusion.ai.mapper.KnowledgeBaseMapper">
+
+    <!-- 统计租户知识库数 -->
+    <select id="countByTenantId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM ai_knowledge_base
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
+    </select>
+
+    <!-- 按租户ID和状态查询(优化版) -->
+    <select id="selectByTenantIdAndStatus" resultType="com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity">
+        SELECT * FROM ai_knowledge_base
+        WHERE tenant_id = #{tenantId}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        AND deleted_at IS NULL
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 批量更新状态 -->
+    <update id="updateStatusBatch">
+        <foreach collection="kbIds" item="id" separator=";">
+            UPDATE ai_knowledge_base
+            SET status = #{status}, updated_at = NOW()
+            WHERE id = #{id}
+        </foreach>
+    </update>
+
+    <!-- 查询过期知识库(超过90天未更新) -->
+    <select id="selectExpiredKnowledgeBases" resultType="com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity">
+        SELECT * FROM ai_knowledge_base
+        WHERE status = 'ACTIVE'
+        AND updated_at &lt; DATE_SUB(NOW(), INTERVAL 90 DAY)
+        AND deleted_at IS NULL
+        ORDER BY updated_at ASC
+    </select>
+
+    <!-- 统计租户各状态知识库数 -->
+    <select id="countByTenantIdGroupByStatus" resultType="java.util.Map">
+        SELECT status, COUNT(*) as count
+        FROM ai_knowledge_base
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
+        GROUP BY status
+    </select>
+
+    <!-- 按所有者查询知识库 -->
+    <select id="selectByOwnerUserId" resultType="com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity">
+        SELECT * FROM ai_knowledge_base
+        WHERE owner_user_id = #{ownerUserId}
+        AND deleted_at IS NULL
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

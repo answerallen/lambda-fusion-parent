@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/chat/sessions")
+@RequestMapping("/v1/chat/sessions")
 @Tag(name = "对话会话管理")
 @RequiredArgsConstructor
 public class ChatSessionController {

@@ -4,12 +4,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import java.util.List;
-import org.apache.ibatis.annotations.Delete;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import java.util.Map;
+
+import org.apache.ibatis.annotations.*;
 
 /**
  * 文档块 Mapper接口
@@ -83,4 +80,73 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
      */
     @Select("SELECT id FROM ai_document_chunk WHERE document_id = #{documentId} AND content_hash = #{hash} LIMIT 1")
     Long findIdByHash(@Param("documentId") Long documentId, @Param("hash") String hash);
+
+    /**
+     * 按知识库ID和向量化状态查询
+     * @param kbId 知识库ID
+     * @param embeddingStatus 向量化状态
+     * @return 文档块列表
+     */
+    List<DocumentChunkEntity> selectByKbIdAndEmbeddingStatus(
+            @Param("kbId") Long kbId,
+            @Param("embeddingStatus") String embeddingStatus);
+
+    /**
+     * 统计文档块数
+     * @param documentId 文档ID
+     * @return 块数量
+     */
+    Integer countByDocumentId(@Param("documentId") Long documentId);
+
+    /**
+     * 统计知识库块数
+     * @param kbId 知识库ID
+     * @return 块数量
+     */
+    Integer countByKbId(@Param("kbId") Long kbId);
+
+    /**
+     * 按文档ID和向量化状态查询
+     * @param documentId 文档ID
+     * @param embeddingStatus 向量化状态
+     * @return 文档块列表
+     */
+    List<DocumentChunkEntity> selectByDocumentIdAndEmbeddingStatus(
+            @Param("documentId") Long documentId,
+            @Param("embeddingStatus") String embeddingStatus);
+
+    /**
+     * 按文档ID批量更新向量化状态
+     * @param documentId 文档ID
+     * @param embeddingStatus 新状态
+     * @return 更新数量
+     */
+    int updateEmbeddingStatusByDocumentId(
+            @Param("documentId") Long documentId,
+            @Param("embeddingStatus") String embeddingStatus);
+
+    /**
+     * 按内容哈希查询(去重)
+     * @param kbId 知识库ID
+     * @param contentHash 内容哈希
+     * @return 文档块
+     */
+    DocumentChunkEntity selectByContentHash(
+            @Param("kbId") Long kbId,
+            @Param("contentHash") String contentHash);
+
+    /**
+     * 查询待向量化块
+     * @param limit 限制数量
+     * @return 待向量化块列表
+     */
+    List<DocumentChunkEntity> selectPendingEmbeddingChunks(@Param("limit") Integer limit);
+
+    /**
+     * 统计知识库各向量化状态块数
+     * @param kbId 知识库ID
+     * @return Map<status, count>
+     */
+    @MapKey("status")
+    List<Map<String, Object>> countByKbIdGroupByEmbeddingStatus(@Param("kbId") Long kbId);
 }

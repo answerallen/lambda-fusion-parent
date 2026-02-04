@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/llm-models")
+@RequestMapping("/v1/llm-models")
 @Tag(name = "LLM模型管理")
 @RequiredArgsConstructor
 public class LlmModelController {
