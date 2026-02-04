@@ -3,6 +3,8 @@ package com.lambda.fusion.ai.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBase;
@@ -42,7 +44,7 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
         KnowledgeBaseEntity entity = new KnowledgeBaseEntity();
         BeanUtils.copyProperties(dto, entity);
 
-        // 生成kbId (UUID)
+        // 生成kbId(UUID)
         entity.setKbId(IdUtil.fastSimpleUUID());
 
         // 根据embedding_dimension确定vector_table_name
@@ -70,9 +72,14 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
     public void updateKnowledgeBase(Long id, UpdateKnowledgeBase dto) {
         log.info("更新知识库, id: {}", id);
 
+        // 验证输入参数
+        if (id == null) {
+            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
+        }
+
         KnowledgeBaseEntity entity = knowledgeBaseMapper.selectById(id);
         if (entity == null) {
-            throw new IllegalArgumentException("知识库不存在, id: " + id);
+            throw AiBusinessException.knowledgeBaseNotFound(id);
         }
 
         // 复制属性(忽略null值)
@@ -104,9 +111,14 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
     public KnowledgeBase getKnowledgeBaseById(Long id) {
         log.info("查询知识库详情, id: {}", id);
 
+        // 验证输入参数
+        if (id == null) {
+            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
+        }
+
         KnowledgeBaseEntity entity = knowledgeBaseMapper.selectById(id);
         if (entity == null) {
-            throw new IllegalArgumentException("知识库不存在, id: " + id);
+            throw AiBusinessException.knowledgeBaseNotFound(id);
         }
 
         return entityToVO(entity);
@@ -117,9 +129,14 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
     public void deleteKnowledgeBase(Long id) {
         log.info("删除知识库, id: {}", id);
 
+        // 验证输入参数
+        if (id == null) {
+            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
+        }
+
         KnowledgeBaseEntity entity = knowledgeBaseMapper.selectById(id);
         if (entity == null) {
-            throw new IllegalArgumentException("知识库不存在, id: " + id);
+            throw AiBusinessException.knowledgeBaseNotFound(id);
         }
 
         // 软删除

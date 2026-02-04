@@ -6,6 +6,8 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
@@ -33,7 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * 文档Service实现类
+ * 文档 Service 实现类
  *
  * @author Jin
  */
@@ -59,9 +61,14 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
     public Document uploadDocument(Long kbId, MultipartFile file, Long uploadedBy) {
         log.info("上传文档到知识库: kbId={}, fileName={}", kbId, file.getOriginalFilename());
 
+        // 验证输入参数
+        if (kbId == null) {
+            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
+        }
+
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
-            throw new RuntimeException("知识库不存在");
+            throw AiBusinessException.knowledgeBaseNotFound(kbId);
         }
 
         if (file.getSize() > maxFileSize) {
@@ -134,14 +141,21 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
 
     @Override
     public List<Document> listByKbId(Long kbId, String status) {
-        return documentMapper.listByKbId(kbId, status).stream().map(this::entityToVO).collect(Collectors.toList());
+        return documentMapper.listByKbId(kbId, status).stream()
+                .map(this::entityToVO)
+                .collect(Collectors.toList());
     }
 
     @Override
     public Document getDocumentById(Long id) {
+        // 验证输入参数
+        if (id == null) {
+            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
+        }
+
         DocumentEntity entity = documentMapper.selectById(id);
         if (entity == null) {
-            throw new IllegalArgumentException("文档不存在, id: " + id);
+            throw AiBusinessException.documentNotFound(id);
         }
         return entityToVO(entity);
     }
@@ -150,9 +164,15 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
     @Transactional(rollbackFor = Exception.class)
     public void deleteDocument(Long id) {
         log.info("删除文档, id={}", id);
+
+        // 验证输入参数
+        if (id == null) {
+            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
+        }
+
         DocumentEntity entity = documentMapper.selectById(id);
         if (entity == null) {
-            throw new IllegalArgumentException("文档不存在, id: " + id);
+            throw AiBusinessException.documentNotFound(id);
         }
 
         // 1. 获取关联知识库信息以确定向量表
@@ -182,9 +202,14 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
 
     @Override
     public Document getProcessStatus(Long id) {
+        // 验证输入参数
+        if (id == null) {
+            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
+        }
+
         DocumentEntity entity = documentMapper.selectById(id);
         if (entity == null) {
-            throw new IllegalArgumentException("文档不存在, id: " + id);
+            throw AiBusinessException.documentNotFound(id);
         }
         return entityToVO(entity);
     }
@@ -205,21 +230,28 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
     @Override
     public Page<DocumentChunk> pageChunks(Long docId, Integer pageNum, Integer pageSize) {
         Page<DocumentChunkEntity> page = new Page<>(pageNum, pageSize);
-        Page<DocumentChunkEntity> resultPage = documentChunkMapper.selectPage(page,
+        Page<DocumentChunkEntity> resultPage = documentChunkMapper.selectPage(
+                page,
                 new LambdaQueryWrapper<DocumentChunkEntity>()
                         .eq(DocumentChunkEntity::getDocumentId, docId)
                         .orderByAsc(DocumentChunkEntity::getChunkIndex));
 
         Page<DocumentChunk> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
-        voPage.setRecords(resultPage.getRecords().stream().map(this::chunkEntityToVO).collect(Collectors.toList()));
+        voPage.setRecords(
+                resultPage.getRecords().stream().map(this::chunkEntityToVO).collect(Collectors.toList()));
         return voPage;
     }
 
     @Override
     public void reprocessDocument(Long id) {
+        // 验证输入参数
+        if (id == null) {
+            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
+        }
+
         DocumentEntity entity = documentMapper.selectById(id);
         if (entity == null) {
-            throw new IllegalArgumentException("文档不存在");
+            throw AiBusinessException.documentNotFound(id);
         }
 
         // 清理旧数据

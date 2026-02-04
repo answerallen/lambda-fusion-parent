@@ -1,6 +1,5 @@
 package com.lambda.fusion.autoconfig;
 
-import com.lambda.autoconfig.SecurityAutoConfiguration;
 import com.lambda.fusion.ai.AiConfigure;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -16,11 +15,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 @Slf4j
-@AutoConfiguration(before = SecurityAutoConfiguration.class)
+@AutoConfiguration
 @Import(AiConfigure.class)
 @EnableAsync
 @EnableConfigurationProperties({AiProperties.class})
-public class AiConfiguration {
+public class AiAutoConfiguration {
 
     @Bean
     public EmbeddingModel embeddingModel(AiProperties aiProperties) {

@@ -1,8 +1,6 @@
 package com.lambda.fusion.ai.support.processor;
 
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.NumberUtil;
-import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.json.JSONUtil;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
@@ -13,22 +11,22 @@ import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.repository.VectorRepository;
 import com.lambda.fusion.ai.support.enums.DocumentStatus;
 import com.lambda.fusion.autoconfig.AiProperties;
-import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 文档处理管道
@@ -73,12 +71,14 @@ public class DocumentProcessor {
             KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(doc.getKbId());
             String vectorTableName = kb.getVectorTableName();
 
-            // 4. 文档切分
-            int chunkSize = ObjectUtil.defaultIfNull(kb.getChunkSize(),500);
-            int chunkOverlap = ObjectUtil.defaultIfNull(kb.getChunkOverlap(),500);
+            // 4. 文档切分 - 使用配置验证
+            int chunkSize = aiProperties.getDocumentChunk().getValidatedChunkSize(kb.getChunkSize());
+            int chunkOverlap = aiProperties.getDocumentChunk().getValidatedChunkOverlap(kb.getChunkOverlap(), chunkSize);
+
+            log.info("使用配置进行文档切分 - ChunkSize: {}, ChunkOverlap: {}", chunkSize, chunkOverlap);
 
             DocumentSplitter splitter = DocumentSplitters.recursive(chunkSize, chunkOverlap);
-            List<TextSegment> segments = splitter.split(Document.from(content));
+            List<TextSegment> segments = splitter.split(dev.langchain4j.data.document.Document.from(content));
             updateStatus(doc, DocumentStatus.PROCESSING, 40, "文档切分完成: " + segments.size() + "块");
 
             // 5. 批量处理向量和分片
@@ -109,22 +109,22 @@ public class DocumentProcessor {
 
                 chunkEntities.add(chunk);
 
-                // 每 50 个分片更新一次进度
-                if (i % 50 == 0) {
+                // 每批次更新一次进度 (使用配置的批次大小)
+                if (i % aiProperties.getDocumentChunk().getBatchSize() == 0) {
                     int progress = 40 + (int) ((double) i / totalChunks * 50);
-                    updateStatus(doc, DocumentStatus.PROCESSING, progress,
-                            "向量化处理中 (" + (i + 1) + "/" + totalChunks + ")");
+                    updateStatus(
+                            doc, DocumentStatus.PROCESSING, progress, "向量化处理中 (" + (i + 1) + "/" + totalChunks + ")");
                 }
             }
 
-            // 6. 执行批量插入 (MyBatis-Plus 方式)
+            // 6. 执行批量插入(MyBatis-Plus方式)
             if (!chunkEntities.isEmpty()) {
                 log.info("执行批量存储: {} chunks", chunkEntities.size());
 
-                // 存储到 relational DB (ai_document_chunk) - 使用自定义 batchInsert
+                // 存储到关系数据库(ai_document_chunk) - 使用自定义batchInsert
                 documentChunkMapper.batchInsert(chunkEntities);
 
-                // 存储到动态向量表 (ai_vector_store_XXX)
+                // 存储到动态向量表(ai_vector_store_XXX)
                 vectorRepository.batchInsertVectors(vectorTableName, chunkEntities);
             }
 
@@ -150,8 +150,8 @@ public class DocumentProcessor {
             if (!file.exists()) {
                 throw new RuntimeException("文件不存在: " + doc.getStorageUrl());
             }
-            Document document = dev.langchain4j.data.document.loader.FileSystemDocumentLoader
-                    .loadDocument(file.toPath());
+            dev.langchain4j.data.document.Document document =
+                    dev.langchain4j.data.document.loader.FileSystemDocumentLoader.loadDocument(file.toPath());
             return document.text();
         }
         throw new UnsupportedOperationException("暂不支持的存储类型: " + doc.getStorageType());

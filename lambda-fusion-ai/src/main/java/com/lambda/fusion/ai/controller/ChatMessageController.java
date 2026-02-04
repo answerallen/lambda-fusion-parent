@@ -27,8 +27,7 @@ public class ChatMessageController {
 
     @PostMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式发送消息")
-    public SseEmitter streamSend(
-            @PathVariable Long sessionId, @Valid @RequestBody SendMessage sendMessage) {
+    public SseEmitter streamSend(@PathVariable Long sessionId, @Valid @RequestBody SendMessage sendMessage) {
         org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter =
                 new org.springframework.web.servlet.mvc.method.annotation.SseEmitter(0L);
         chatMessageService.sendMessageStream(sessionId, sendMessage, emitter);

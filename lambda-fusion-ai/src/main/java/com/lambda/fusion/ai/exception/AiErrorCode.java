@@ -219,7 +219,17 @@ public enum AiErrorCode implements ErrorCode {
     /**
      * 不支持的操作
      */
-    OPERATION_NOT_SUPPORTED(30902, "不支持的操作");
+    OPERATION_NOT_SUPPORTED(30902, "不支持的操作"),
+
+    /**
+     * 参数无效
+     */
+    INVALID_PARAMETER(30903, "参数无效"),
+
+    /**
+     * 并发更新失败
+     */
+    CONCURRENT_UPDATE_FAILED(30904, "并发更新失败，请重试");
 
     /**
      * 错误码

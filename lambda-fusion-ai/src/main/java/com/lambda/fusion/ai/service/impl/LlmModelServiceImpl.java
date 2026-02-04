@@ -2,6 +2,8 @@ package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.LlmModelMapper;
 import com.lambda.fusion.ai.model.LlmModel;
 import com.lambda.fusion.ai.model.RegisterModel;
@@ -38,14 +40,33 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
 
     @Override
     public void updateModel(Long id, RegisterModel dto) {
+        // 验证输入参数
+        if (id == null) {
+            throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
+        }
+
         LlmModelEntity entity = llmModelMapper.selectById(id);
+        if (entity == null) {
+            throw AiBusinessException.llmModelNotFound(id);
+        }
+
         BeanUtils.copyProperties(dto, entity);
         llmModelMapper.updateById(entity);
     }
 
     @Override
     public LlmModel getModelById(Long id) {
-        return entityToVO(llmModelMapper.selectById(id));
+        // 验证输入参数
+        if (id == null) {
+            throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
+        }
+
+        LlmModelEntity entity = llmModelMapper.selectById(id);
+        if (entity == null) {
+            throw AiBusinessException.llmModelNotFound(id);
+        }
+
+        return entityToVO(entity);
     }
 
     @Override
@@ -55,6 +76,16 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
 
     @Override
     public void deleteModel(Long id) {
+        // 验证输入参数
+        if (id == null) {
+            throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
+        }
+
+        LlmModelEntity entity = llmModelMapper.selectById(id);
+        if (entity == null) {
+            throw AiBusinessException.llmModelNotFound(id);
+        }
+
         llmModelMapper.deleteById(id);
     }
 

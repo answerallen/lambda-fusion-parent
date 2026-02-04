@@ -70,7 +70,7 @@ public class RagServiceImpl implements RagService {
                 vectorRepository.searchSimilar(tableName, queryVector, limit * 2, scoreThreshold);
         List<VectorSearchResult> keywordResults = vectorRepository.searchKeyword(tableName, query, limit * 2);
 
-        // 使用 RRF 算法进行结果融合
+        // 使用RRF算法进行结果融合
         return reciprocalRankFusion(vectorResults, keywordResults, limit);
     }
 
@@ -121,7 +121,7 @@ public class RagServiceImpl implements RagService {
 
         Prompt prompt = PromptTemplate.from(templateContent).apply(variables);
 
-        // 使用 Factory 获取模型 (OpenAI / Ollama 等)
+        // 使用Factory获取模型(OpenAI/Ollama等)
         ChatModel chatModel = chatModelFactory.getChatModel(llmModelId);
         UserMessage userMessage = prompt.toUserMessage();
 
@@ -166,7 +166,7 @@ public class RagServiceImpl implements RagService {
 
         Prompt prompt = PromptTemplate.from(templateContent).apply(variables);
 
-        // 使用 Factory 获取流式模型
+        // 使用Factory获取流式模型
         StreamingChatModel streamingModel = chatModelFactory.getStreamingChatModel(llmModelId);
 
         streamingModel.chat(prompt.text(), handler);
@@ -186,7 +186,7 @@ public class RagServiceImpl implements RagService {
             return template.getTemplateContent();
         }
 
-        // 2. 备选方案：加载默认 RAG 模板
+        // 2. 备选方案：加载默认RAG模板
         template = promptTemplateMapper.selectOne(new LambdaQueryWrapper<PromptTemplateEntity>()
                 .eq(PromptTemplateEntity::getTemplateId, "system_rag_default")
                 .eq(PromptTemplateEntity::getEnabled, true)

@@ -2,6 +2,8 @@ package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.model.ChatSession;
 import com.lambda.fusion.ai.model.CreateSession;
@@ -41,7 +43,16 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
 
     @Override
     public void archiveSession(Long sessionId) {
+        // 验证输入参数
+        if (sessionId == null) {
+            throw new AiBusinessException(AiErrorCode.SESSION_NOT_FOUND, "会话ID不能为空");
+        }
+
         ChatSessionEntity entity = chatSessionMapper.selectById(sessionId);
+        if (entity == null) {
+            throw AiBusinessException.sessionNotFound(sessionId);
+        }
+
         entity.setStatus("ARCHIVED");
         chatSessionMapper.updateById(entity);
     }

@@ -19,6 +19,9 @@ public class ChatSessionEntity {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @Version
+    private Long version;
+
     private String sessionId;
     private String title;
     private Long kbId;

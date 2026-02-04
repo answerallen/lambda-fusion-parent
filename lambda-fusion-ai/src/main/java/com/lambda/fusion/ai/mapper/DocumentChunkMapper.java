@@ -61,23 +61,21 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
     /**
      * 批量更新嵌入状态
      */
-    @Update("<script>" +
-            "UPDATE ai_document_chunk SET embedding_status = #{status} WHERE id IN " +
-            "<foreach collection='ids' item='id' open='(' separator=',' close=')'>" +
-            "#{id}" +
-            "</foreach>" +
-            "</script>")
+    @Update("<script>" + "UPDATE ai_document_chunk SET embedding_status = #{status} WHERE id IN "
+            + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>"
+            + "#{id}"
+            + "</foreach>"
+            + "</script>")
     int updateEmbeddingStatusBatch(@Param("ids") List<Long> ids, @Param("status") String status);
 
     /**
      * 根据文档ID批量删除
      */
-    @Delete("<script>" +
-            "DELETE FROM ai_document_chunk WHERE document_id IN " +
-            "<foreach collection='documentIds' item='docId' open='(' separator=',' close=')'>" +
-            "#{docId}" +
-            "</foreach>" +
-            "</script>")
+    @Delete("<script>" + "DELETE FROM ai_document_chunk WHERE document_id IN "
+            + "<foreach collection='documentIds' item='docId' open='(' separator=',' close=')'>"
+            + "#{docId}"
+            + "</foreach>"
+            + "</script>")
     int deleteByDocumentIds(@Param("documentIds") List<Long> documentIds);
 
     /**

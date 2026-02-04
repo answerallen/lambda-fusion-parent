@@ -61,7 +61,7 @@ public class ChatModelFactory {
     private ChatModel createChatModel(Long modelId) {
         LlmModelEntity entity = llmModelService.getById(modelId);
         if (entity == null) {
-            throw new RuntimeException("LLM Model configuration not found: " + modelId);
+            throw new RuntimeException("未找到LLM模型配置: " + modelId);
         }
         return buildChatModel(entity);
     }
@@ -69,7 +69,7 @@ public class ChatModelFactory {
     private StreamingChatModel createStreamingChatModel(Long modelId) {
         LlmModelEntity entity = llmModelService.getById(modelId);
         if (entity == null) {
-            throw new RuntimeException("LLM Model configuration not found: " + modelId);
+            throw new RuntimeException("未找到LLM模型配置: " + modelId);
         }
         return buildStreamingChatModel(entity);
     }
@@ -98,7 +98,7 @@ public class ChatModelFactory {
                                         : 0.7)
                         .timeout(Duration.ofSeconds(60))
                         .build();
-            default -> throw new UnsupportedOperationException("Unsupported provider: " + provider);
+            default -> throw new UnsupportedOperationException("不支持的提供商: " + provider);
         };
     }
 
@@ -126,7 +126,7 @@ public class ChatModelFactory {
                                         : 0.7)
                         .timeout(Duration.ofSeconds(60))
                         .build();
-            default -> throw new UnsupportedOperationException("Unsupported provider: " + provider);
+            default -> throw new UnsupportedOperationException("不支持的提供商: " + provider);
         };
     }
 
@@ -139,7 +139,7 @@ public class ChatModelFactory {
         if (def != null) {
             return getChatModel(def.getId());
         }
-        throw new RuntimeException("No default model configured");
+        throw new RuntimeException("未配置默认模型");
     }
 
     private StreamingChatModel getDefaultStreamingChatModel() {
@@ -150,6 +150,6 @@ public class ChatModelFactory {
         if (def != null) {
             return getStreamingChatModel(def.getId());
         }
-        throw new RuntimeException("No default model configured");
+        throw new RuntimeException("未配置默认模型");
     }
 }

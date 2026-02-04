@@ -9,7 +9,7 @@ import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedTypes;
 
 /**
- * MyBatis TypeHandler for PgVector
+ * PgVector的MyBatis类型处理器
  * 处理 List<Double> 与 PostgreSQL vector 类型的转换
  *
  * @author Jin
@@ -50,7 +50,7 @@ public class PgVectorHandler extends BaseTypeHandler<List<Double>> {
         if (vectorStr == null) {
             return null;
         }
-        // pgvector returns string like "[1.1,2.2,3.3]"
+        // pgvector返回类似"[1.1,2.2,3.3]"的字符串
         PGvector pgVector = new PGvector(vectorStr);
         float[] floats = pgVector.toArray();
         List<Double> list = new ArrayList<>(floats.length);

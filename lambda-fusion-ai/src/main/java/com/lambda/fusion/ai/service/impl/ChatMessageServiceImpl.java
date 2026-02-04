@@ -13,11 +13,11 @@ import com.lambda.fusion.ai.model.SendMessage;
 import com.lambda.fusion.ai.model.VectorSearchResult;
 import com.lambda.fusion.ai.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
 import com.lambda.fusion.ai.service.ChatMessageService;
 import com.lambda.fusion.ai.service.RagService;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +41,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     private final ChatMessageMapper chatMessageMapper;
     private final ChatSessionMapper chatSessionMapper;
     private final RagService ragService;
+    private final AtomicSessionUpdateService atomicSessionUpdateService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -72,10 +73,9 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         aiMsg.setTotalTokens(ragResult.getPromptTokens() + ragResult.getCompletionTokens());
         chatMessageMapper.insert(aiMsg);
 
-        session.setLastMessageAt(LocalDateTime.now());
-        session.setMessageCount(session.getMessageCount() + 2);
-        session.setTotalTokens(session.getTotalTokens() + aiMsg.getTotalTokens());
-        chatSessionMapper.updateById(session);
+        // 使用原子操作更新会话统计
+        // 这可以防止并发访问时的竞态条件
+        atomicSessionUpdateService.updateSessionStatistics(sessionId, 2, aiMsg.getTotalTokens());
 
         return entityToVO(aiMsg);
     }
@@ -107,7 +107,8 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
             userMsg.setIsRagEnhanced(false);
             chatMessageMapper.insert(userMsg);
 
-            List<VectorSearchResult> retrievedChunks = ragService.retrieve(dto.getContent(), session.getKbId(), null, null);
+            List<VectorSearchResult> retrievedChunks =
+                    ragService.retrieve(dto.getContent(), session.getKbId(), null, null);
 
             StringBuilder fullAnswer = new StringBuilder();
 
@@ -155,11 +156,10 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
                                 chatMessageMapper.insert(aiMsg);
 
-                                // 同步更新统计
-                                session.setLastMessageAt(LocalDateTime.now());
-                                session.setMessageCount(session.getMessageCount() + 2);
-                                session.setTotalTokens(session.getTotalTokens() + aiMsg.getTotalTokens());
-                                chatSessionMapper.updateById(session);
+                                // 使用原子操作更新会话统计
+                                // 这可以防止并发访问时的竞态条件
+                                atomicSessionUpdateService.updateSessionStatistics(
+                                        sessionId, 2, aiMsg.getTotalTokens());
 
                                 emitter.send(SseEmitter.event().name("finish").data(aiMsg.getMessageId()));
                                 emitter.complete();
@@ -201,10 +201,18 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
     @Override
     public void submitFeedback(Long messageId, Integer feedback) {
+        // 验证输入参数
+        if (messageId == null) {
+            throw new AiBusinessException(AiErrorCode.MESSAGE_NOT_FOUND, "消息ID不能为空");
+        }
+
+        // 获取实体并在继续之前检查是否为null
         ChatMessageEntity entity = chatMessageMapper.selectById(messageId);
         if (entity == null) {
             throw AiBusinessException.messageNotFound(messageId);
         }
+
+        // 更新反馈 - 此时实体保证非null
         entity.setUserFeedback(feedback);
         chatMessageMapper.updateById(entity);
     }
