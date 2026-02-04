@@ -112,13 +112,9 @@ public class AiProperties {
             }
 
             if (configChanged) {
-                log.warn(
-                        "配置已自动修正。请更新您的配置文件以避免此警告。");
+                log.warn("配置已自动修正。请更新您的配置文件以避免此警告。");
             } else {
-                log.info(
-                        "AI配置验证成功完成。分块大小: {}, 分块重叠: {}",
-                        defaultChunkSize,
-                        defaultChunkOverlap);
+                log.info("AI配置验证成功完成。分块大小: {}, 分块重叠: {}", defaultChunkSize, defaultChunkOverlap);
             }
         }
 
@@ -168,17 +164,13 @@ public class AiProperties {
             // 确保重叠小于分块大小
             if (configuredOverlap >= chunkSize) {
                 int correctedOverlap = Math.max(10, chunkSize / 10);
-                log.warn(
-                        "配置的分块重叠({})不小于分块大小({})，使用分块大小的10%: {}",
-                        configuredOverlap, chunkSize, correctedOverlap);
+                log.warn("配置的分块重叠({})不小于分块大小({})，使用分块大小的10%: {}", configuredOverlap, chunkSize, correctedOverlap);
                 return correctedOverlap;
             }
 
             // 如果重叠超过分块大小的50%则警告（不常见但不无效）
             if (configuredOverlap > chunkSize / 2) {
-                log.warn(
-                        "配置的分块重叠({})超过分块大小的50%({})。这可能导致过度重叠。",
-                        configuredOverlap, chunkSize);
+                log.warn("配置的分块重叠({})超过分块大小的50%({})。这可能导致过度重叠。", configuredOverlap, chunkSize);
             }
 
             return configuredOverlap;

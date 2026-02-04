@@ -41,11 +41,7 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
             throw AiBusinessException.sessionNotFound(sessionId);
         }
 
-        log.debug(
-                "成功更新会话{}统计: 消息 +{}, token +{}",
-                sessionId,
-                messageIncrement,
-                tokenIncrement);
+        log.debug("成功更新会话{}统计: 消息 +{}, token +{}", sessionId, messageIncrement, tokenIncrement);
     }
 
     @Override
@@ -71,11 +67,7 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
                 // 尝试乐观更新
                 int updatedRows = chatSessionMapper.updateByIdWithVersion(session);
                 if (updatedRows > 0) {
-                    log.debug(
-                            "使用乐观锁成功更新会话{}统计: 消息 +{}, token +{}",
-                            sessionId,
-                            messageIncrement,
-                            tokenIncrement);
+                    log.debug("使用乐观锁成功更新会话{}统计: 消息 +{}, token +{}", sessionId, messageIncrement, tokenIncrement);
                     return; // 成功
                 }
 
@@ -83,8 +75,7 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
                 log.debug("会话{}乐观锁冲突，尝试 {}/{}", sessionId, attempt + 1, maxRetries);
 
             } catch (OptimisticLockingFailureException e) {
-                log.debug(
-                        "会话{}乐观锁失败，尝试 {}/{}", sessionId, attempt + 1, maxRetries);
+                log.debug("会话{}乐观锁失败，尝试 {}/{}", sessionId, attempt + 1, maxRetries);
             }
 
             // 使用指数退避重试（除了最后一次尝试）
@@ -100,13 +91,8 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
         }
 
         // 所有重试都已用尽
-        log.error(
-                "由于并发修改，在{}次尝试后更新会话{}统计失败",
-                maxRetries,
-                sessionId);
-        throw new AiBusinessException(
-                AiErrorCode.CONCURRENT_UPDATE_FAILED,
-                "由于并发修改导致更新会话统计失败");
+        log.error("由于并发修改，在{}次尝试后更新会话{}统计失败", maxRetries, sessionId);
+        throw new AiBusinessException(AiErrorCode.CONCURRENT_UPDATE_FAILED, "由于并发修改导致更新会话统计失败");
     }
 
     @Override

@@ -17,16 +17,15 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 文档处理管道
@@ -73,7 +72,8 @@ public class DocumentProcessor {
 
             // 4. 文档切分 - 使用配置验证
             int chunkSize = aiProperties.getDocumentChunk().getValidatedChunkSize(kb.getChunkSize());
-            int chunkOverlap = aiProperties.getDocumentChunk().getValidatedChunkOverlap(kb.getChunkOverlap(), chunkSize);
+            int chunkOverlap =
+                    aiProperties.getDocumentChunk().getValidatedChunkOverlap(kb.getChunkOverlap(), chunkSize);
 
             log.info("使用配置进行文档切分 - ChunkSize: {}, ChunkOverlap: {}", chunkSize, chunkOverlap);
 
