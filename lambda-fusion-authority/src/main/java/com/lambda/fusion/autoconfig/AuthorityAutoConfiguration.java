@@ -42,9 +42,9 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @AutoConfiguration(before = SecurityAutoConfiguration.class)
 @Import(AuthorityConfigure.class)
 @EnableConfigurationProperties({AuthorityProperties.class, TenantProperties.class})
-public class AuthorityConfiguration {
+public class AuthorityAutoConfiguration {
 
-    public AuthorityConfiguration() {
+    public AuthorityAutoConfiguration() {
         log.trace("Authority Configuration init");
     }
 
