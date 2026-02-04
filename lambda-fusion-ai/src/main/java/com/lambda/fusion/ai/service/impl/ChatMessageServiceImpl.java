@@ -13,9 +13,8 @@ import com.lambda.fusion.ai.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.service.ChatMessageService;
 import com.lambda.fusion.ai.service.RagService;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.model.StreamingResponseHandler;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,7 +56,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         userMsg.setIsRagEnhanced(false);
         chatMessageMapper.insert(userMsg);
 
-        RagResult ragResult = ragService.chat(dto.getContent(), session.getKbId());
+        RagResult ragResult = ragService.chat(dto.getContent(), session.getKbId(), session.getLlmModelId());
 
         ChatMessageEntity aiMsg = new ChatMessageEntity();
         aiMsg.setMessageId(IdUtil.fastSimpleUUID());
@@ -111,9 +110,13 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
         // 3. 开始流式推送
         ragService.streamChat(
-                dto.getContent(), session.getKbId(), retrievedChunks, new StreamingResponseHandler<AiMessage>() {
+                dto.getContent(),
+                session.getKbId(),
+                retrievedChunks,
+                session.getLlmModelId(),
+                new StreamingChatResponseHandler() {
                     @Override
-                    public void onNext(String token) {
+                    public void onPartialResponse(String token) {
                         try {
                             emitter.send(SseEmitter.event().data(token));
                             fullAnswer.append(token);
@@ -123,7 +126,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                     }
 
                     @Override
-                    public void onComplete(Response<AiMessage> response) {
+                    public void onCompleteResponse(ChatResponse response) {
                         try {
                             // 获取最终答案
                             String finalContent = fullAnswer.toString();

@@ -9,11 +9,13 @@ import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.model.entity.PromptTemplateEntity;
 import com.lambda.fusion.ai.repository.VectorRepository;
 import com.lambda.fusion.ai.service.RagService;
+import com.lambda.fusion.ai.support.factory.ChatModelFactory;
 import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.model.StreamingResponseHandler;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
@@ -41,8 +43,7 @@ public class RagServiceImpl implements RagService {
     private final PromptTemplateMapper promptTemplateMapper;
     private final EmbeddingModel embeddingModel;
 
-    private final ChatLanguageModel chatLanguageModel;
-    private final StreamingChatLanguageModel streamingChatLanguageModel;
+    private final ChatModelFactory chatModelFactory;
 
     @Override
     public List<VectorSearchResult> retrieve(String query, Long kbId, Integer topK, Double minScore) {
@@ -106,7 +107,7 @@ public class RagServiceImpl implements RagService {
     }
 
     @Override
-    public RagResult chat(String query, Long kbId) {
+    public RagResult chat(String query, Long kbId, Long llmModelId) {
         List<VectorSearchResult> searchResults = retrieve(query, kbId, null, null);
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
 
@@ -120,8 +121,12 @@ public class RagServiceImpl implements RagService {
 
         Prompt prompt = PromptTemplate.from(templateContent).apply(variables);
 
-        Response<AiMessage> response = chatLanguageModel.generate(prompt.toUserMessage());
-        String answer = response.content().text();
+        // 使用 Factory 获取模型 (OpenAI / Ollama 等)
+        ChatModel chatModel = chatModelFactory.getChatModel(llmModelId);
+        UserMessage userMessage = prompt.toUserMessage();
+
+        ChatResponse response = chatModel.chat(userMessage);
+        String answer = response.aiMessage().text();
 
         return RagResult.builder()
                 .answer(answer)
@@ -139,7 +144,8 @@ public class RagServiceImpl implements RagService {
             String query,
             Long kbId,
             List<VectorSearchResult> retrievedChunks,
-            StreamingResponseHandler<AiMessage> handler) {
+            Long llmModelId,
+            StreamingChatResponseHandler handler) {
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
             throw new RuntimeException("知识库不存在");
@@ -160,7 +166,10 @@ public class RagServiceImpl implements RagService {
 
         Prompt prompt = PromptTemplate.from(templateContent).apply(variables);
 
-        streamingChatLanguageModel.generate(prompt.toUserMessage(), handler);
+        // 使用 Factory 获取流式模型
+        StreamingChatModel streamingModel = chatModelFactory.getStreamingChatModel(llmModelId);
+
+        streamingModel.chat(prompt.text(), handler);
 
         return searchResults;
     }

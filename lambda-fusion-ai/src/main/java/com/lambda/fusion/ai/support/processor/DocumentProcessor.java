@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.support.processor;
 
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
@@ -20,7 +19,6 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -82,7 +80,7 @@ public class DocumentProcessor {
             // String chunkStrategy = kb.getChunkStrategy();
             splitter = DocumentSplitters.recursive(chunkSize, chunkOverlap);
 
-            List<TextSegment> segments = splitter.split(new Document(content));
+            List<TextSegment> segments = splitter.split(Document.from(content));
             updateStatus(doc, DocumentStatus.PROCESSING, 40, "文档切分完成: " + segments.size() + "块");
 
             // 5. 批量生成向量并存储
@@ -145,22 +143,25 @@ public class DocumentProcessor {
     }
 
     private String loadContent(DocumentEntity doc) {
-        // 目前仅支持本地LOCAL存储的TXT/Markdown
-        // TODO: 支持OSS和更多文件格式(PDF/Word)
         if ("LOCAL".equals(doc.getStorageType())) {
             File file = new File(doc.getStoragePath());
             if (!file.exists()) {
                 throw new RuntimeException("文件不存在: " + doc.getStoragePath());
             }
-            return FileUtil.readString(file, StandardCharsets.UTF_8);
+
+            // 使用 LangChain4j 的 FileSystemDocumentLoader 自动处理 PDF, Word, TXT 等格式
+            Document document =
+                    dev.langchain4j.data.document.loader.FileSystemDocumentLoader.loadDocument(file.toPath());
+            return document.text();
         }
-        throw new UnsupportedOperationException("不支持的存储类型: " + doc.getStorageType());
+        // TODO: 支持 OSS 存储的流式加载 (需引入 UrlDocumentLoader 或自定义 Loader)
+        throw new UnsupportedOperationException("暂不支持的存储类型: " + doc.getStorageType());
     }
 
     private void updateStatus(DocumentEntity doc, DocumentStatus status, int progress, String msg) {
         doc.setProcessStatus(status.name());
         doc.setProcessProgress(progress);
         doc.setErrorMessage(msg);
-        //        documentMapper.updateProcessStatus(doc); // 使用自定义的更新方法
+        // documentMapper.updateProcessStatus(doc); // 使用自定义的更新方法
     }
 }

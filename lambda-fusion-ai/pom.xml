@@ -17,13 +17,9 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-spring-boot-starter</artifactId>
-            <version>0.36.2</version>
+            <version>1.10.0-beta18</version>
         </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-core</artifactId>
-            <version>0.36.2</version>
-        </dependency>
+
         <dependency>
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-fusion-core</artifactId>
@@ -82,10 +78,26 @@
             <artifactId>pgvector</artifactId>
             <version>0.1.6</version>
         </dependency>
+        <!-- 文档解析器 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-document-parser-apache-pdfbox</artifactId>
+            <version>1.10.0-beta18</version>
+        </dependency>
+       <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-document-parser-apache-poi</artifactId>
+            <version>1.10.0-beta18</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-ollama</artifactId>
+            <version>1.10.0</version>
+        </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai</artifactId>
-            <version>0.36.2</version>
+            <version>1.10.0</version>
         </dependency>
     </dependencies>
 

@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/v1/chat/sessions/{sessionId}/messages")
@@ -20,17 +21,17 @@ public class ChatMessageController {
 
     @PostMapping
     @Operation(summary = "发送消息")
-    public ChatMessage send(@PathVariable Long sessionId, @Valid @RequestBody SendMessage dto) {
-        return chatMessageService.sendMessage(sessionId, dto);
+    public ChatMessage send(@PathVariable Long sessionId, @Valid @RequestBody SendMessage sendMessage) {
+        return chatMessageService.sendMessage(sessionId, sendMessage);
     }
 
     @PostMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式发送消息")
-    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter streamSend(
-            @PathVariable Long sessionId, @Valid @RequestBody SendMessage dto) {
+    public SseEmitter streamSend(
+            @PathVariable Long sessionId, @Valid @RequestBody SendMessage sendMessage) {
         org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter =
                 new org.springframework.web.servlet.mvc.method.annotation.SseEmitter(0L);
-        chatMessageService.sendMessageStream(sessionId, dto, emitter);
+        chatMessageService.sendMessageStream(sessionId, sendMessage, emitter);
         return emitter;
     }
 

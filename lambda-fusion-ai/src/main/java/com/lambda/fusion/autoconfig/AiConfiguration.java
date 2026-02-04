@@ -2,8 +2,8 @@ package com.lambda.fusion.autoconfig;
 
 import com.lambda.autoconfig.SecurityAutoConfiguration;
 import com.lambda.fusion.ai.AiConfigure;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
@@ -34,7 +34,7 @@ public class AiConfiguration {
     }
 
     @Bean
-    public ChatLanguageModel chatLanguageModel(AiProperties aiProperties) {
+    public ChatModel chatLanguageModel(AiProperties aiProperties) {
         AiProperties.ChatConfig config = aiProperties.getChat();
 
         return OpenAiChatModel.builder()
@@ -46,7 +46,7 @@ public class AiConfiguration {
     }
 
     @Bean
-    public StreamingChatLanguageModel streamingChatLanguageModel(AiProperties aiProperties) {
+    public StreamingChatModel streamingChatLanguageModel(AiProperties aiProperties) {
         AiProperties.ChatConfig config = aiProperties.getChat();
 
         return OpenAiStreamingChatModel.builder()
