@@ -1,48 +1,136 @@
 package com.lambda.fusion.ai;
 
-import com.lambda.fusion.core.annotation.DictMapper;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 public interface AiConstants {
 
-    String ROLE_MANAGER = "ROLE_MANAGER";
-
-    String OPERATION_LOG_EXECUTOR = "OperationLogExecutor";
-
-    String DEFAULT_GROUP_NAME = "默认分组";
-
-    String[] BUILT_IN_ROLES = {"ROLE_SYSTEM", "ROLE_ADMIN", "ROLE_DEV", "ROLE_USER", "ROLE_MANAGER", "ROLE_ORG"};
-    String DEFAULT = "default";
-
-    String ADMIN = "admin";
 
     @SuppressWarnings("unused")
     interface Enums {
 
+        /**
+         * 文本分段策略枚举
+         *
+         * @author Jin
+         */
         @Getter
-        @DictMapper(dictName = "ROLE_TYPE", dictUsage = 0, dictDesc = "角色类型")
         @AllArgsConstructor
-        enum RoleType {
-            FUNC_ROLE(1, "功能角色"),
-            DATA_ROLE(2, "数据角色");
+        enum ChunkStrategy {
 
-            private final Integer val;
-            private final String key;
+            /**
+             * 固定长度分段
+             */
+            FIXED("固定长度"),
+
+            /**
+             * 按段落分段
+             */
+            PARAGRAPH("按段落"),
+
+            /**
+             * 按句子分段
+             */
+            SENTENCE("按句子"),
+
+            /**
+             * 滑动窗口分段
+             */
+            SLIDING_WINDOW("滑动窗口");
+
+            private final String description;
         }
 
+        /**
+         * 文档处理状态枚举
+         *
+         * @author Jin
+         */
         @Getter
-        @DictMapper(dictName = "MENU_TYPE", dictUsage = 0, dictDesc = "菜单类型")
         @AllArgsConstructor
-        enum MenuType {
-            INTERFACE(1, "接口"),
-            MENU(2, "菜单"),
-            BUTTON(3, "按钮"),
-            EXTERNAL_LINK(4, "外部链接"),
-            EMBEDDED_PAGE(5, "内嵌页面");
+        enum DocumentStatus {
 
-            private final Integer val;
-            private final String key;
+            /**
+             * 待处理
+             */
+            PENDING("待处理"),
+
+            /**
+             * 处理中
+             */
+            PROCESSING("处理中"),
+
+            /**
+             * 已完成
+             */
+            COMPLETED("已完成"),
+
+            /**
+             * 处理失败
+             */
+            FAILED("失败");
+
+            private final String description;
         }
+    }
+
+    /**
+     * LLM提供商枚举
+     *
+     * @author Jin
+     */
+    @Getter
+    @AllArgsConstructor
+    enum LlmProvider {
+
+        /**
+         * OpenAI
+         */
+        OPENAI("OpenAI"),
+
+        /**
+         * Ollama (本地部署)
+         */
+        OLLAMA("Ollama"),
+
+        /**
+         * Azure OpenAI
+         */
+        AZURE_OPENAI("Azure OpenAI"),
+
+        /**
+         * Anthropic Claude
+         */
+        ANTHROPIC("Anthropic");
+
+        private final String description;
+    }
+
+
+    /**
+     * 模型类型枚举
+     *
+     * @author Jin
+     */
+    @Getter
+    @AllArgsConstructor
+    enum ModelType {
+
+        /**
+         * 聊天模型
+         */
+        CHAT("聊天模型"),
+
+        /**
+         * Embedding模型(向量化)
+         */
+        EMBEDDING("Embedding模型"),
+
+        /**
+         * 文本补全模型
+         */
+        COMPLETION("补全模型");
+
+        private final String description;
     }
 }

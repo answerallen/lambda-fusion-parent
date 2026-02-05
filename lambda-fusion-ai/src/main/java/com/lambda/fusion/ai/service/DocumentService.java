@@ -1,10 +1,10 @@
 package com.lambda.fusion.ai.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.ai.model.Document;
 import com.lambda.fusion.ai.model.DocumentChunk;
+import com.lambda.fusion.ai.model.DocumentChunkQuery;
 import com.lambda.fusion.ai.model.DocumentQuery;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import jakarta.validation.Valid;
@@ -59,7 +59,7 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param id 文档ID
      * @return 处理状态信息
      */
-    Document getProcessStatus(Long id);
+    String getProcessStatus(Long id);
 
     /**
      * 更新处理状态
@@ -70,16 +70,10 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param errorMessage  错误信息
      */
     void updateProcessStatus(Long id, String processStatus, Integer progress, String errorMessage);
-
-    /**
-     * 分页查询文档块
-     */
-    Page<DocumentChunk> pageChunks(Long docId, Integer pageNum, Integer pageSize);
-
     /**
      * 重新处理文档 (重新切分和向量化)
      */
-    void reprocessDocument(Long docId);
+    void reprocessDocument(Long docId, Long id);
 
     /**
      * 分页查询文档列表
@@ -89,5 +83,11 @@ public interface DocumentService extends IService<DocumentEntity> {
      */
     IPage<Document> pageDocuments(@Valid DocumentQuery documentQuery);
 
-
+    /**
+     * 分页查询文档列表
+     *
+     * @param documentChunkQuery DocumentChunkQuery
+     * @return 分页结果
+     */
+    IPage<DocumentChunk> pageChunks(@Valid DocumentChunkQuery documentChunkQuery);
 }

@@ -2,10 +2,12 @@ package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.cloud.core.utils.Assert;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
@@ -13,18 +15,18 @@ import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.model.Document;
 import com.lambda.fusion.ai.model.DocumentChunk;
+import com.lambda.fusion.ai.model.DocumentChunkQuery;
 import com.lambda.fusion.ai.model.DocumentQuery;
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.repository.VectorRepository;
 import com.lambda.fusion.ai.service.DocumentService;
-import com.lambda.fusion.ai.support.enums.DocumentStatus;
+import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.support.processor.DocumentProcessor;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +37,6 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 文档 Service 实现类
@@ -88,10 +89,12 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         DocumentEntity existingDoc = documentMapper.selectByFileHash(fileHash, kbId);
         if (existingDoc != null) {
             log.warn("文档已存在, fileHash={}, documentId={}", fileHash, existingDoc.getDocumentId());
-            return entityToVO(existingDoc);
+            return toVO(existingDoc);
         }
 
         String originalFilename = file.getOriginalFilename();
+        Assert.hasText(originalFilename,"文件名不能为空！");
+
         String fileExtension = FileUtil.extName(originalFilename);
         String relativePath = kbId + "/" + IdUtil.fastSimpleUUID() + "." + fileExtension;
         String fullPath = basePath + "/" + relativePath;
@@ -110,7 +113,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         entity.setKbId(kbId);
         entity.setDocumentId(IdUtil.fastSimpleUUID());
         entity.setFileName(originalFilename);
-        entity.setFileType(fileExtension.toUpperCase());
+        entity.setFileType(StrUtil.toUpperCase(fileExtension));
         entity.setFileSize(file.getSize());
         entity.setFileHash(fileHash);
         entity.setStorageType("LOCAL");
@@ -129,15 +132,14 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         // 触发异步处理
         documentProcessor.processDocument(entity.getId());
 
-        return entityToVO(entity);
+        return toVO(entity);
     }
 
 
     @Override
     public List<Document> listByKbId(Long kbId, String status) {
-        return documentMapper.listByKbId(kbId, status).stream()
-                .map(this::entityToVO)
-                .collect(Collectors.toList());
+        List<DocumentEntity> documentEntities = documentMapper.listByKbId(kbId, status);
+        return toVO(documentEntities);
     }
 
     @Override
@@ -153,11 +155,6 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     @Transactional(rollbackFor = Exception.class)
     public void deleteDocument(Long id) {
         log.info("删除文档, id={}", id);
-
-        // 验证输入参数
-        if (id == null) {
-            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
-        }
 
         DocumentEntity entity = documentMapper.selectById(id);
         if (entity == null) {
@@ -190,12 +187,12 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     }
 
     @Override
-    public Document getProcessStatus(Long id) {
-        Document document = getByIdForVO(id);
-        if (document == null) {
+    public String getProcessStatus(Long id) {
+        DocumentEntity documentEntity = getById(id);
+        if (documentEntity == null) {
             throw AiBusinessException.documentNotFound(id);
         }
-        return document;
+        return documentEntity.getProcessStatus();
     }
 
     @Override
@@ -211,41 +208,17 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         }
     }
 
-    @Override
-    public Page<DocumentChunk> pageChunks(Long docId, Integer pageNum, Integer pageSize) {
-        Page<DocumentChunkEntity> page = new Page<>(pageNum, pageSize);
-        Page<DocumentChunkEntity> resultPage = documentChunkMapper.selectPage(
-                page,
-                new LambdaQueryWrapper<DocumentChunkEntity>()
-                        .eq(DocumentChunkEntity::getDocumentId, docId)
-                        .orderByAsc(DocumentChunkEntity::getChunkIndex));
-
-        Page<DocumentChunk> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
-        voPage.setRecords(
-                resultPage.getRecords().stream().map(this::chunkEntityToVO).collect(Collectors.toList()));
-        return voPage;
-    }
 
     @Override
-    public void reprocessDocument(Long id) {
-        // 验证输入参数
-        if (id == null) {
-            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
+    public void reprocessDocument(Long kbId, Long id) {
+        KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
+        if (kb == null) {
+            throw AiBusinessException.knowledgeBaseNotFound(id);
         }
-
-        DocumentEntity entity = documentMapper.selectById(id);
-        if (entity == null) {
-            throw AiBusinessException.documentNotFound(id);
-        }
-
-        // 清理旧数据
-        KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(entity.getKbId());
-        if (kb != null && kb.getVectorTableName() != null) {
+        if (kb.getVectorTableName() != null) {
             vectorRepository.deleteByDocumentId(kb.getVectorTableName(), id);
         }
         documentChunkMapper.deleteByDocumentIds(Collections.singletonList(id));
-
-        // 重新触发
         documentProcessor.processDocument(id);
     }
 
@@ -254,15 +227,9 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         return pageForVO(documentQuery.getPage(), documentQuery.getLambdaQueryWrapper());
     }
 
-    private Document entityToVO(DocumentEntity entity) {
-        Document vo = new Document();
-        BeanUtils.copyProperties(entity, vo);
-        return vo;
-    }
-
-    private DocumentChunk chunkEntityToVO(DocumentChunkEntity entity) {
-        DocumentChunk vo = new DocumentChunk();
-        BeanUtils.copyProperties(entity, vo);
-        return vo;
+    @Override
+    public IPage<DocumentChunk> pageChunks(DocumentChunkQuery documentChunkQuery) {
+        Page<DocumentChunkEntity> documentChunkEntityPage = documentChunkMapper.selectPage(documentChunkQuery.getPage(), documentChunkQuery.getLambdaQueryWrapper());
+        return documentChunkEntityPage.convert(ConvertUtils::convert);
     }
 }

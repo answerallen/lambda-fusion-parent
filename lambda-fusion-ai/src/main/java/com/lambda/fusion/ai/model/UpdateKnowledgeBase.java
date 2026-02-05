@@ -1,5 +1,8 @@
 package com.lambda.fusion.ai.model;
 
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.shared.BaseDTO;
+import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import lombok.Data;
@@ -9,9 +12,10 @@ import lombok.Data;
  *
  * @author Jin
  */
+@AutoConverter(target = KnowledgeBaseEntity.class)
 @Data
 @Schema(description = "更新知识库DTO")
-public class UpdateKnowledgeBase {
+public class UpdateKnowledgeBase extends BaseDTO<KnowledgeBaseEntity> {
 
     @Schema(description = "知识库名称")
     private String name;

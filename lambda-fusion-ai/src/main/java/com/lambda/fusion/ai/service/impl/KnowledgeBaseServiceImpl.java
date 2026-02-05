@@ -1,12 +1,9 @@
 package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.fusion.ai.exception.AiBusinessException;
-import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBase;
@@ -15,16 +12,16 @@ import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
 import com.lambda.fusion.ai.support.resolver.VectorTableNameResolver;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.lambda.fusion.core.service.AbstractCrudService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 知识库Service实现类
@@ -34,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KnowledgeBaseServiceImpl extends AbstractCrudService<KnowledgeBaseEntity,KnowledgeBase,KnowledgeBaseMapper>
+public class KnowledgeBaseServiceImpl extends AbstractCrudService<KnowledgeBaseEntity, KnowledgeBase, KnowledgeBaseMapper>
         implements KnowledgeBaseService {
 
     private final KnowledgeBaseMapper knowledgeBaseMapper;
@@ -74,71 +71,27 @@ public class KnowledgeBaseServiceImpl extends AbstractCrudService<KnowledgeBaseE
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateKnowledgeBase(Long id, UpdateKnowledgeBase dto) {
+    public void updateKnowledgeBase(Long id, UpdateKnowledgeBase updateKnowledgeBase) {
         log.info("更新知识库, id: {}", id);
-
-        // 验证输入参数
-        if (id == null) {
-            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
-        }
-
-        KnowledgeBaseEntity entity = knowledgeBaseMapper.selectById(id);
-        if (entity == null) {
-            throw AiBusinessException.knowledgeBaseNotFound(id);
-        }
-
-        // 复制属性(忽略null值)
-        BeanUtils.copyProperties(dto, entity, getNullPropertyNames(dto));
-
-        // 更新
-        knowledgeBaseMapper.updateById(entity);
-
-        log.info("知识库更新成功, id: {}", id);
-    }
-
-    @Override
-    public Page<KnowledgeBase> pageKnowledgeBases(Integer pageNum, Integer pageSize, Long tenantId, String status) {
-        log.info("分页查询知识库, tenantId: {}, pageNum: {}, pageSize: {}", tenantId, pageNum, pageSize);
-
-        Page<KnowledgeBaseEntity> page = new Page<>(pageNum, pageSize);
-        Page<KnowledgeBaseEntity> resultPage = knowledgeBaseMapper.pageByTenantId(page, tenantId, status);
-
-        // 转换为VO
-        Page<KnowledgeBase> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
-        List<KnowledgeBase> voList =
-                resultPage.getRecords().stream().map(this::entityToVO).collect(Collectors.toList());
-        voPage.setRecords(voList);
-
-        return voPage;
+        KnowledgeBaseEntity entity = updateKnowledgeBase.toEntity();
+        entity.setId(id);
+        int updated = knowledgeBaseMapper.updateById(entity);
+        log.info("知识库更新成功, id: {} updated: {}", id,updated);
     }
 
     @Override
     public KnowledgeBase getKnowledgeBaseById(Long id) {
-        log.info("查询知识库详情, id: {}", id);
-
-        // 验证输入参数
-        if (id == null) {
-            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
-        }
-
-        KnowledgeBaseEntity entity = knowledgeBaseMapper.selectById(id);
-        if (entity == null) {
+        KnowledgeBase knowledgeBase = getByIdForVO(id);
+        if (knowledgeBase == null) {
             throw AiBusinessException.knowledgeBaseNotFound(id);
         }
 
-        return entityToVO(entity);
+        return knowledgeBase;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteKnowledgeBase(Long id) {
-        log.info("删除知识库, id: {}", id);
-
-        // 验证输入参数
-        if (id == null) {
-            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
-        }
-
         KnowledgeBaseEntity entity = knowledgeBaseMapper.selectById(id);
         if (entity == null) {
             throw AiBusinessException.knowledgeBaseNotFound(id);
@@ -163,7 +116,7 @@ public class KnowledgeBaseServiceImpl extends AbstractCrudService<KnowledgeBaseE
 
     @Override
     public IPage<KnowledgeBase> pageKnowledgeBases(KnowledgeBaseQuery knowledgeBaseQuery) {
-        return pageForVO(knowledgeBaseQuery.getPage(),knowledgeBaseQuery.getLambdaQueryWrapper());
+        return pageForVO(knowledgeBaseQuery.getPage(), knowledgeBaseQuery.getLambdaQueryWrapper());
     }
 
     /**
@@ -173,23 +126,5 @@ public class KnowledgeBaseServiceImpl extends AbstractCrudService<KnowledgeBaseE
         KnowledgeBase vo = new KnowledgeBase();
         BeanUtils.copyProperties(entity, vo);
         return vo;
-    }
-
-    /**
-     * 获取对象中为null的属性名
-     */
-    private String[] getNullPropertyNames(Object source) {
-        final org.springframework.beans.BeanWrapper src = new org.springframework.beans.BeanWrapperImpl(source);
-        java.beans.PropertyDescriptor[] pds = src.getPropertyDescriptors();
-
-        java.util.Set<String> emptyNames = new java.util.HashSet<>();
-        for (java.beans.PropertyDescriptor pd : pds) {
-            Object srcValue = src.getPropertyValue(pd.getName());
-            if (srcValue == null) {
-                emptyNames.add(pd.getName());
-            }
-        }
-
-        return emptyNames.toArray(new String[0]);
     }
 }

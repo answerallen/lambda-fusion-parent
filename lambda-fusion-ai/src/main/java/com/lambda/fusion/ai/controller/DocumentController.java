@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.model.Document;
 import com.lambda.fusion.ai.model.DocumentChunk;
+import com.lambda.fusion.ai.model.DocumentChunkQuery;
 import com.lambda.fusion.ai.model.DocumentQuery;
 import com.lambda.fusion.ai.service.DocumentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -80,20 +81,29 @@ public class DocumentController {
 
     @GetMapping("/{docId}/status")
     @Operation(summary = "查询处理状态", description = "查询文档处理状态和进度")
-    public Document getStatus(
+    public String getStatus(
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
             @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
         return documentService.getProcessStatus(docId);
     }
 
-    @GetMapping("/{docId}/chunks/{number:\\d+}/size/{size:\\d+}")
+    @GetMapping({"/{docId}/chunks/page", "/{docId}/chunks/page/{number:\\d+}", "/{docId}/chunks/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询文档块", description = "查看文档切分后的块列表")
-    public Page<DocumentChunk> pageChunks(
+    public IPage<DocumentChunk> pageChunks(
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
             @Parameter(description = "文档ID", required = true) @PathVariable Long docId,
-            @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer pageNum,
-            @Parameter(description = "页大小") @RequestParam(defaultValue = "10") Integer pageSize) {
-        return documentService.pageChunks(docId, pageNum, pageSize);
+            @PathVariable(required = false) Integer number,
+            @PathVariable(required = false) Integer size,
+            @Valid DocumentChunkQuery documentChunkQuery) {
+        if (number != null) {
+            documentChunkQuery.setPageNum(number);
+        }
+        if (size != null) {
+            documentChunkQuery.setPageSize(size);
+        }
+        documentChunkQuery.setDocumentId(docId);
+        documentChunkQuery.setKbId(kbId);
+        return documentService.pageChunks(documentChunkQuery);
     }
 
     @PostMapping("/{docId}/reprocess")
@@ -101,6 +111,6 @@ public class DocumentController {
     public void reprocess(
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
             @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
-        documentService.reprocessDocument(docId);
+        documentService.reprocessDocument(kbId,docId);
     }
 }

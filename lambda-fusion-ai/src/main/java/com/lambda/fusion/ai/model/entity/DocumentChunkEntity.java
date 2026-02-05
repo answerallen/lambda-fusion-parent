@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.model.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.fusion.ai.model.Document;
+import com.lambda.fusion.ai.model.DocumentChunk;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.Data;
@@ -12,7 +13,7 @@ import lombok.Data;
  *
  * @author Jin
  */
-@AutoConverter(target = Document.class)
+@AutoConverter(target = DocumentChunk.class)
 @Data
 @TableName("ai_document_chunk")
 @Schema(description = "文档块实体")
