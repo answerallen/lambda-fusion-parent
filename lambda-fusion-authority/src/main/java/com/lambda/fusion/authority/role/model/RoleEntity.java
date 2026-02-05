@@ -44,6 +44,6 @@ public class RoleEntity {
     @TableField("CREATE_BY")
     private String createBy;
 
-    @TableField("CREATE_DATE")
-    private LocalDateTime createDate;
+    @TableField("created_at")
+    private LocalDateTime createdAt;
 }

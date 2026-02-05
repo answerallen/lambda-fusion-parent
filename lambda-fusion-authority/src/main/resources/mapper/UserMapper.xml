@@ -8,12 +8,12 @@
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="mobile" property="mobile"/>
         <result column="email" property="email"/>
-        <result column="create_date" property="createDate"/>
+        <result column="created_at" property="createdAt"/>
         <result column="tenant_id" property="tenantId"/>
         <result column="enabled" property="enabled" />
         <result column="ON_LINE" property="online"/>
         <result column="OFFLINE_TIME" property="offlineTime"/>
-        <result column="CREATOR" property="creator"/>
+        <result column="created_by" property="createdBy"/>
         <result column="EXPIRED_TIME" property="expiredTime"/>
         <association property="organization" javaType="com.lambda.fusion.authority.organization.domain.SimpleOrganization">
             <constructor>
@@ -63,7 +63,7 @@
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="mobile" property="mobile"/>
         <result column="email" property="email"/>
-        <result column="createDate" property="createDate"/>
+        <result column="created_at" property="createdAt"/>
         <result column="tenant_id" property="tenantId"/>
         <result column="enabled" property="enabled" />
         <association property="organization" javaType="com.lambda.fusion.authority.organization.domain.SimpleOrganization">
@@ -135,29 +135,29 @@
                 </choose>
             </if>
         </where>
-        ORDER BY T.CREATE_DATE DESC, T.USERNAME
+        ORDER BY T.created_at DESC, T.USERNAME
     </select>
     <!-- 查询用户列表 -->
     <select id="selectUsers" resultMap="UserResultMap">
         SELECT
-        T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled,
+        T.username, T.nickname, T.mobile, T.email, T.created_at AS created_at, T.enabled,
         R.AUTHORITY,
         R.alias, R.tenant_id, O.id As orgId, O.alias As orgAlias, OL.IS_ONLINE, OL.OFFLINE_TIME,
-        TC.NICKNAME As CREATOR, T.EXPIRED_TIME
+        TC.NICKNAME As created_by, T.EXPIRED_TIME
         FROM LA_USERS T
         LEFT JOIN (SELECT T1.USERNAME,T1.authority, T2.alias, T2.tenant_id FROM LA_USER_ROLES T1
         INNER JOIN LA_ROLES T2 ON t2.AUTHORITY = T1.authority AND T2.enabled = 1) R ON R.USERNAME = T.username
         LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
         LEFT JOIN LA_ORGANIZATION O ON O.id = UO.ORGANIZATION_ID
         LEFT JOIN la_user_online_logs OL ON  T.USERNAME = OL.USERNAME
-        LEFT JOIN LA_USERS TC ON  T.CREATOR = TC.USERNAME
+        LEFT JOIN LA_USERS TC ON  T.created_by = TC.USERNAME
         WHERE T.username IN <foreach collection="list" open="(" close=")" separator="," item="user">#{user.username}</foreach>
-        ORDER BY T.CREATE_DATE DESC, T.USERNAME
+        ORDER BY T.created_at DESC, T.USERNAME
     </select>
 
     <!-- 查询用户列表 -->
     <select id="selectUsersByKey" parameterType="String" resultMap="UserResultMap">
-        SELECT T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled,
+        SELECT T.username, T.nickname, T.mobile, T.email, T.created_at AS created_at, T.enabled,
         R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
         FROM LA_USERS T
         LEFT JOIN LA_USER_ROLES U ON U.USERNAME = T.username
@@ -194,7 +194,7 @@
 
     <!-- 根据Id查询用户信息 -->
     <select id="selectUserByUsername" resultMap="UserResultMap">
-		SELECT T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled, T.TENANT_ID,
+		SELECT T.username, T.nickname, T.mobile, T.email, T.created_at AS created_at, T.enabled, T.TENANT_ID,
             R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME, OL.IS_ONLINE, OL.OFFLINE_TIME
 		FROM LA_USERS T
 		LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
@@ -211,9 +211,9 @@
     </select>
     <!-- 保存用户 -->
     <insert id="insertUser" parameterType="com.lambda.fusion.authority.user.model.User">
-        INSERT INTO LA_USERS (USERNAME, PASSWORD, NICKNAME, MOBILE, EMAIL, CREATE_DATE, ENABLED, TENANT_ID, CREATOR, EXPIRED_TIME)
+        INSERT INTO LA_USERS (USERNAME, PASSWORD, NICKNAME, MOBILE, EMAIL, created_at, ENABLED, TENANT_ID, created_by, EXPIRED_TIME)
         VALUES(#{username}, #{password}, #{nickname}, #{mobile,jdbcType=VARCHAR}, #{email, jdbcType=VARCHAR},
-        #{createDate, jdbcType=TIMESTAMP}, 1, #{tenant_Id, jdbcType=VARCHAR}, #{creator, jdbcType=VARCHAR}, #{expiredTime, jdbcType=TIMESTAMP})
+        #{createdAt, jdbcType=TIMESTAMP}, 1, #{tenant_Id, jdbcType=VARCHAR}, #{createdBy, jdbcType=VARCHAR}, #{expiredTime, jdbcType=TIMESTAMP})
     </insert>
     <!-- 更新用户 -->
     <update id="updateUser" parameterType="com.lambda.fusion.authority.user.model.User">
@@ -258,7 +258,7 @@
 
     <select id="selectAllUsers" resultMap="UserResultMap">
         SELECT DISTINCT
-        T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled,
+        T.username, T.nickname, T.mobile, T.email, T.created_at AS created_at, T.enabled,
         R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
         FROM LA_USERS T
         LEFT JOIN LA_USER_ROLES U ON U.USERNAME = T.username
@@ -269,7 +269,7 @@
 
     <select id="selectOrgUsers" parameterType="string" resultMap="UserResultMap">
         SELECT
-        T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS create_date, T.enabled,
+        T.username, T.nickname, T.mobile, T.email, T.created_at AS created_at, T.enabled,
         R.authority, R.alias, O.id As orgId, O.alias As orgAlias
         FROM LA_USERS T
         LEFT JOIN LA_USER_ROLES U ON U.USERNAME = T.username
@@ -367,7 +367,7 @@
 
 
     <select id="selectUsersNoPage" resultMap="UserResultMap">
-        SELECT DISTINCT(T.username), T.nickname, T.mobile, T.email, T.enabled, T.CREATE_DATE AS create_date,
+        SELECT DISTINCT(T.username), T.nickname, T.mobile, T.email, T.enabled, T.created_at AS created_at,
         mi.USERNAME AS userid,
         mi.avatar,
         mi.remark,
@@ -383,12 +383,12 @@
         r.authority,
         r.alias,
         mi.extend_param,
-        TC.NICKNAME CREATOR
+        TC.NICKNAME created_by
         FROM LA_USERS T
         LEFT JOIN LA_USER_INFO mi ON T.username = mi.USERNAME
         LEFT JOIN (SELECT  ur.AUTHORITY,mr.ALIAS,ur.USERNAME	FROM la_user_roles ur LEFT JOIN la_roles mr  ON ur.AUTHORITY = mr.AUTHORITY) R ON T.USERNAME = R.USERNAME
         LEFT JOIN (SELECT mo.ID orgId, uo.USERNAME, mo.alias FROM LA_USER_ORGANIZATION uo LEFT JOIN la_organization mo ON uo.ORGANIZATION_ID = mo.id WHERE mo.id is not null)  O ON T.USERNAME = O.USERNAME
-        LEFT JOIN (SELECT NICKNAME, USERNAME FROM LA_USERS) TC ON  T.CREATOR = TC.USERNAME
+        LEFT JOIN (SELECT NICKNAME, USERNAME FROM LA_USERS) TC ON  T.created_by = TC.USERNAME
         <if test="parameters != null and parameters.authority != null and parameters.authority != ''">
             LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.USERNAME
         </if>
@@ -446,12 +446,12 @@
                 </if>
             </if>
         </where>
-        ORDER BY T.CREATE_DATE DESC, username asc
+        ORDER BY T.created_at DESC, username asc
     </select>
 
     <!-- 根据租户ID，查询租户管理员用户列表 -->
     <select id="selectUsersByTenantId" parameterType="String" resultMap="TenantUser">
-        SELECT T.username, T.nickname, T.mobile, T.email, T.CREATE_DATE AS createDate, T.enabled, T.TENANT_ID,
+        SELECT T.username, T.nickname, T.mobile, T.email, T.created_at AS createdAt, T.enabled, T.TENANT_ID,
         UR.AUTHORITY AS authority, UO.ORGANIZATION_ID AS orgId
         FROM LA_USERS T
         INNER JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username

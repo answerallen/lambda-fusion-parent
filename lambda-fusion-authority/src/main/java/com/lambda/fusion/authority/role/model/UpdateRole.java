@@ -25,7 +25,7 @@ public class UpdateRole extends BaseDTO<RoleEntity> {
     private String icon;
 
     @Schema(description = "创建时间")
-    private Date createDate;
+    private Date createdAt;
 
     @Schema(description = "备注")
     private String remarks;

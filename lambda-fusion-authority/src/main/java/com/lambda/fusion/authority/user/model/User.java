@@ -35,7 +35,7 @@ public class User {
     private String email;
 
     @Schema(description = "创建时间")
-    private Date createDate;
+    private Date createdAt;
 
     @Schema(description = "租户ID")
     private String tenantId;
@@ -77,7 +77,7 @@ public class User {
     private Date offlineTime;
 
     @Schema(description = "创建人")
-    private String creator;
+    private String createdBy;
 
     @Schema(description = "禁止批被分配")
     private Boolean disableAssignment;

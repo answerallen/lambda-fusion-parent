@@ -420,9 +420,9 @@ public class UserServiceImpl implements UserService {
         Password encodePassword = PasswordHelper.obtainPassword(strategy, originPassword);
         userEntity.setPassword(passwordEncoder.encode(encodePassword.getEncrypted()));
 
-        userEntity.setCreateDate(new Date());
+        userEntity.setCreatedAt(new Date());
         userEntity.setTenantId(operator.getTenantId());
-        userEntity.setCreator(operator.getName());
+        userEntity.setCreatedBy(operator.getName());
         userMapper.insert(userEntity);
 
         List<SimpleRole> roles = createUser.getAuthorities();

@@ -72,7 +72,7 @@ public class Organization extends BaseVO<OrganizationEntity> implements TreeNode
     private Integer level;
 
     @Schema(description = "创建日期")
-    private Date createDate;
+    private Date createdAt;
 
     @Schema(description = "组织机构类型：部门为0, 租户为1")
     private Integer category = 0;

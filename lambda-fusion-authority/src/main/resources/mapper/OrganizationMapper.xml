@@ -34,7 +34,7 @@
         <result column="tenant_id" property="tenantId"/>
         <result column="enabled" property="enabled"/>
         <result column="order_no" property="orderNo"/>
-        <result column="create_date" property="createDate"/>
+        <result column="created_at" property="createdAt"/>
         <result column="remarks" property="remarks"/>
     </resultMap>
     <!-- 查询用户组织列表 -->
@@ -47,7 +47,7 @@
             TENANT_ID AS tenant_id,
             PARENT_ID AS parent_id,
             ORG_RANK AS org_rank,
-            CREATE_DATE AS create_date,
+            created_at AS created_at,
             REMARKS,
             PARENT_KEYS AS parent_keys,
             ORG_CATEGORY,
@@ -91,7 +91,7 @@
             TENANT_ID AS tenant_id,
             PARENT_ID,
             ORG_RANK AS org_rank,
-            CREATE_DATE ,
+            created_at ,
             REMARKS,
             PARENT_KEYS AS parentKeys,
             ORG_CATEGORY,
@@ -154,7 +154,7 @@
             ALIAS,
             PARENT_ID,
             ORG_RANK AS org_rank,
-            CREATE_DATE ,
+            created_at ,
             REMARKS,
             PARENT_KEYS
         FROM LA_ORGANIZATION O
@@ -173,7 +173,7 @@
             ALIAS,
             PARENT_ID,
             ORG_RANK AS org_rank,
-            CREATE_DATE ,
+            created_at ,
             REMARKS,
             PARENT_KEYS ,
             ORG_CATEGORY,
@@ -190,7 +190,7 @@
             ALIAS,
             PARENT_ID,
             ORG_RANK AS org_rank,
-            CREATE_DATE ,
+            created_at ,
             REMARKS,
             PARENT_KEYS ,
             ORG_CATEGORY,

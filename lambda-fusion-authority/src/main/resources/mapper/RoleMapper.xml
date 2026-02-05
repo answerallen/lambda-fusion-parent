@@ -29,7 +29,7 @@
     </select>
 
     <select id="getAllMutableRoles" resultType="com.lambda.fusion.authority.role.model.Role">
-        SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, T.TENANT_ID AS tenantId, T.ENABLED AS enabled, T.ROLE_TYPE AS roleType, T.DATA_TYPE AS dataType, T.ICON AS icon, T.REMARKS AS remarks, T.CREATE_DATE AS createDate,
+        SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, T.TENANT_ID AS tenantId, T.ENABLED AS enabled, T.ROLE_TYPE AS roleType, T.DATA_TYPE AS dataType, T.ICON AS icon, T.REMARKS AS remarks, T.created_at AS createdAt,
                CASE WHEN T.GROUP_ID IS NULL THEN 'default' ELSE T.GROUP_ID END AS groupId
         FROM LA_ROLES T
         <where>
@@ -55,14 +55,14 @@
     </select>
 
     <insert id="insertRole" parameterType="com.lambda.fusion.authority.role.model.Role">
-        INSERT INTO LA_ROLES (AUTHORITY, ALIAS, ICON, REMARKS, CREATE_DATE, TENANT_ID, OWNER, ROLE_TYPE, DATA_TYPE, ENABLED, GROUP_ID)
+        INSERT INTO LA_ROLES (AUTHORITY, ALIAS, ICON, REMARKS, created_at, TENANT_ID, OWNER, ROLE_TYPE, DATA_TYPE, ENABLED, GROUP_ID)
         VALUES(
         #{authority},
         #{alias}, #{icon,jdbcType=VARCHAR}, #{remarks,jdbcType=VARCHAR},
-        #{createDate}, #{tenantId,jdbcType=VARCHAR}, #{owner,jdbcType=VARCHAR}, #{roleType,jdbcType=INTEGER}, #{dataType,jdbcType=INTEGER}, 1, #{groupId})
+        #{createdAt}, #{tenantId,jdbcType=VARCHAR}, #{owner,jdbcType=VARCHAR}, #{roleType,jdbcType=INTEGER}, #{dataType,jdbcType=INTEGER}, 1, #{groupId})
     </insert>
     <select id="getRoleByAuthority" parameterType="string" resultType="com.lambda.fusion.authority.role.model.Role">
-        SELECT AUTHORITY AS authority, ALIAS AS alias, ROLE_TYPE AS roleType, DATA_TYPE AS dataType, ENABLED AS enabled, ICON AS icon, REMARKS AS remarks, CREATE_DATE AS createDate,
+        SELECT AUTHORITY AS authority, ALIAS AS alias, ROLE_TYPE AS roleType, DATA_TYPE AS dataType, ENABLED AS enabled, ICON AS icon, REMARKS AS remarks, created_at AS createdAt,
                CASE WHEN GROUP_ID IS NULL THEN 'default' ELSE GROUP_ID END AS groupId
         FROM LA_ROLES WHERE AUTHORITY = #{authority}
     </select>

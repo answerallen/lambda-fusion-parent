@@ -31,11 +31,11 @@ public class UserEntity {
     @TableField("TENANT_ID")
     private String tenantId;
 
-    @TableField("CREATOR")
-    private String creator;
+    @TableField("created_by")
+    private String createdBy;
 
-    @TableField("CREATE_DATE")
-    private Date createDate;
+    @TableField("created_at")
+    private Date createdAt;
 
     @TableField("EXPIRED_TIME")
     private Date expiredTime;

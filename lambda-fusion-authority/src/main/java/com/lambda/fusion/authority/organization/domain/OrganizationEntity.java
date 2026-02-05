@@ -32,8 +32,8 @@ public class OrganizationEntity {
     @TableField("PARENT_ID")
     private String parentId; // 父ID，NULL 代表顶级
 
-    @TableField("CREATE_DATE")
-    private Date createDate; // 创建日期，默认为当前时间
+    @TableField("created_at")
+    private Date createdAt; // 创建日期，默认为当前时间
 
     @TableField("REMARKS")
     private String remarks; // 备注
