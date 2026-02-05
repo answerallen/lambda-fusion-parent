@@ -38,17 +38,17 @@ public class TenantDataSourceEntity {
     @Schema(description = "配置参数")
     private String configuration;
 
-    @TableField("CREATE_TIME")
+    @TableField("CREATED_AT")
     @Schema(description = "创建时间")
-    private Date createTime;
+    private Date createdAt;
 
-    @TableField("UPDATE_TIME")
+    @TableField("UPDATED_AT")
     @Schema(description = "更新时间")
-    private Date updateTime;
+    private Date updatedAt;
 
-    @TableField("CREATE_BY")
+    @TableField("CREATED_BY")
     @Schema(description = "创建人id")
-    private String createBy;
+    private String createdBy;
 
     @TableField("ENABLED")
     @Schema(description = "是否启用 0禁用 1启用")

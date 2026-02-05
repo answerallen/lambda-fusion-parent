@@ -4,7 +4,6 @@ import com.lambda.cloud.core.shared.BaseDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.Date;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -30,15 +29,6 @@ public class UpsertTenantDataSource extends BaseDTO<TenantDataSourceEntity> {
 
     @Schema(description = "配置参数")
     private String configuration;
-
-    @Schema(description = "创建时间")
-    private Date createTime;
-
-    @Schema(description = "更新时间")
-    private Date updateTime;
-
-    @Schema(description = "创建人id")
-    private String createBy;
 
     @NotNull
     @Schema(description = "是否启用 0禁用 1启用")

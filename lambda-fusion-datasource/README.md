@@ -279,7 +279,7 @@ CREATE TABLE la_tenant_datasource (
   CONFIGURATION TEXT,                      -- 配置信息（JSON格式）
   CREATE_TIME DATETIME,                    -- 创建时间
   UPDATE_TIME DATETIME,                    -- 更新时间
-  CREATE_BY VARCHAR(64),                   -- 创建人
+  CREATED_BY VARCHAR(64),                   -- 创建人
   ENABLED INT DEFAULT 1,                   -- 是否启用（0:禁用 1:启用）
   TENANT_ID VARCHAR(64),                   -- 租户ID
   MAPPING_OF VARCHAR(64)                   -- 映射关系
