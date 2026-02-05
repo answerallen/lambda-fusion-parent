@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.lambda.cloud.core.shared.BaseDO;
+import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Date;
 import lombok.Data;
@@ -14,7 +14,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @TableName("la_clients")
 @Schema(description = "第三方客户端")
-public class ClientEntity extends BaseDO {
+public class ClientEntity extends BaseEntity {
 
     /**
      * 主键
