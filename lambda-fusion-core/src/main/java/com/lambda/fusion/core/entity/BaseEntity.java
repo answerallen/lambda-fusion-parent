@@ -34,7 +34,7 @@ public class BaseEntity implements Serializable {
      * </p>
      */
     @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createAt;
+    private LocalDateTime createdAt;
 
     /**
      * 更新用户

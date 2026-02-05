@@ -186,7 +186,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      *
      * <p>
      * 将Java属性名（驼峰命名）转换为数据库列名（下划线命名）。
-     * 例如：createTime -> create_time
+     * 例如：createAt -> CREATED_AT
      *
      * @param camelCase 驼峰命名字符串
      * @return 下划线命名字符串
