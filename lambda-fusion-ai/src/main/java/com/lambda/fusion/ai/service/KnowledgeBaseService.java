@@ -8,7 +8,6 @@ import com.lambda.fusion.ai.model.KnowledgeBaseQuery;
 import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import jakarta.validation.Valid;
-
 import java.util.List;
 
 /**

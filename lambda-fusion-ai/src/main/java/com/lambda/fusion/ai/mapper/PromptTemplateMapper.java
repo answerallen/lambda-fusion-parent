@@ -4,14 +4,13 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.ai.model.entity.PromptTemplateEntity;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface PromptTemplateMapper extends BaseMapper<PromptTemplateEntity> {
-    
+
     /**
      * 按分类查询模板列表
      * @param category 分类

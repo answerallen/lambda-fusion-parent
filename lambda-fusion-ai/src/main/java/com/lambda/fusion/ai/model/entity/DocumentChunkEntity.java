@@ -2,7 +2,6 @@ package com.lambda.fusion.ai.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.lambda.cloud.core.annotation.AutoConverter;
-import com.lambda.fusion.ai.model.Document;
 import com.lambda.fusion.ai.model.DocumentChunk;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;

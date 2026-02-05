@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -64,8 +63,7 @@ public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
      * @return 知识库列表
      */
     List<KnowledgeBaseEntity> selectByTenantIdAndStatus(
-            @Param("tenantId") Long tenantId,
-            @Param("status") String status);
+            @Param("tenantId") Long tenantId, @Param("status") String status);
 
     /**
      * 批量更新知识库状态
@@ -73,9 +71,7 @@ public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
      * @param status 新状态
      * @return 更新数量
      */
-    int updateStatusBatch(
-            @Param("kbIds") List<Long> kbIds,
-            @Param("status") String status);
+    int updateStatusBatch(@Param("kbIds") List<Long> kbIds, @Param("status") String status);
 
     /**
      * 查询过期知识库(超过90天未更新)

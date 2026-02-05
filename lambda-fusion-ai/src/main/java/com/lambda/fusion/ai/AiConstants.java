@@ -5,7 +5,6 @@ import lombok.Getter;
 
 public interface AiConstants {
 
-
     @SuppressWarnings("unused")
     interface Enums {
 
@@ -105,7 +104,6 @@ public interface AiConstants {
 
         private final String description;
     }
-
 
     /**
      * 模型类型枚举

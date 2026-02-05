@@ -66,7 +66,8 @@ public class DocumentChunkQuery extends Pagination<DocumentChunkEntity> {
         LambdaQueryWrapper<DocumentChunkEntity> lambdaQueryWrapper = super.getLambdaQueryWrapper();
         lambdaQueryWrapper.eq(documentId != null, DocumentChunkEntity::getDocumentId, documentId);
         lambdaQueryWrapper.eq(kbId != null, DocumentChunkEntity::getKbId, kbId);
-        lambdaQueryWrapper.eq(StringUtils.isNotBlank(embeddingStatus), DocumentChunkEntity::getEmbeddingStatus, embeddingStatus);
+        lambdaQueryWrapper.eq(
+                StringUtils.isNotBlank(embeddingStatus), DocumentChunkEntity::getEmbeddingStatus, embeddingStatus);
         lambdaQueryWrapper.like(StringUtils.isNotBlank(content), DocumentChunkEntity::getContent, content);
         lambdaQueryWrapper.eq(pageNumber != null, DocumentChunkEntity::getPageNumber, pageNumber);
         return lambdaQueryWrapper;

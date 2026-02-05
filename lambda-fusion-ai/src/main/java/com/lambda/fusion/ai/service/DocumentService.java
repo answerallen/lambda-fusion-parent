@@ -8,9 +8,8 @@ import com.lambda.fusion.ai.model.DocumentChunkQuery;
 import com.lambda.fusion.ai.model.DocumentQuery;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import jakarta.validation.Valid;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 文档Service接口

@@ -1,7 +1,6 @@
 package com.lambda.fusion.ai.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBase;

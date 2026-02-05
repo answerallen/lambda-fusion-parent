@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.ConvertUtils;
+import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
@@ -22,21 +23,19 @@ import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.repository.VectorRepository;
 import com.lambda.fusion.ai.service.DocumentService;
-import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.support.processor.DocumentProcessor;
 import com.lambda.fusion.core.service.AbstractCrudService;
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.File;
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * 文档 Service 实现类
@@ -46,7 +45,8 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Document, DocumentMapper> implements DocumentService {
+public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Document, DocumentMapper>
+        implements DocumentService {
 
     private final DocumentMapper documentMapper;
     private final DocumentChunkMapper documentChunkMapper;
@@ -93,7 +93,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         }
 
         String originalFilename = file.getOriginalFilename();
-        Assert.hasText(originalFilename,"文件名不能为空！");
+        Assert.hasText(originalFilename, "文件名不能为空！");
 
         String fileExtension = FileUtil.extName(originalFilename);
         String relativePath = kbId + "/" + IdUtil.fastSimpleUUID() + "." + fileExtension;
@@ -134,7 +134,6 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
         return toVO(entity);
     }
-
 
     @Override
     public List<Document> listByKbId(Long kbId, String status) {
@@ -208,7 +207,6 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         }
     }
 
-
     @Override
     public void reprocessDocument(Long kbId, Long id) {
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
@@ -229,7 +227,8 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
     @Override
     public IPage<DocumentChunk> pageChunks(DocumentChunkQuery documentChunkQuery) {
-        Page<DocumentChunkEntity> documentChunkEntityPage = documentChunkMapper.selectPage(documentChunkQuery.getPage(), documentChunkQuery.getLambdaQueryWrapper());
+        Page<DocumentChunkEntity> documentChunkEntityPage = documentChunkMapper.selectPage(
+                documentChunkQuery.getPage(), documentChunkQuery.getLambdaQueryWrapper());
         return documentChunkEntityPage.convert(ConvertUtils::convert);
     }
 }

@@ -2,7 +2,6 @@ package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
@@ -13,15 +12,14 @@ import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
 import com.lambda.fusion.ai.support.resolver.VectorTableNameResolver;
 import com.lambda.fusion.core.service.AbstractCrudService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 知识库Service实现类
@@ -31,7 +29,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KnowledgeBaseServiceImpl extends AbstractCrudService<KnowledgeBaseEntity, KnowledgeBase, KnowledgeBaseMapper>
+public class KnowledgeBaseServiceImpl
+        extends AbstractCrudService<KnowledgeBaseEntity, KnowledgeBase, KnowledgeBaseMapper>
         implements KnowledgeBaseService {
 
     private final KnowledgeBaseMapper knowledgeBaseMapper;
@@ -76,7 +75,7 @@ public class KnowledgeBaseServiceImpl extends AbstractCrudService<KnowledgeBaseE
         KnowledgeBaseEntity entity = updateKnowledgeBase.toEntity();
         entity.setId(id);
         int updated = knowledgeBaseMapper.updateById(entity);
-        log.info("知识库更新成功, id: {} updated: {}", id,updated);
+        log.info("知识库更新成功, id: {} updated: {}", id, updated);
     }
 
     @Override

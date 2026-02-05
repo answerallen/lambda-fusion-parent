@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -51,8 +50,7 @@ public interface LlmModelMapper extends BaseMapper<LlmModelEntity> {
      * @return 模型列表
      */
     List<LlmModelEntity> selectByModelTypeAndProvider(
-            @Param("modelType") String modelType,
-            @Param("provider") String provider);
+            @Param("modelType") String modelType, @Param("provider") String provider);
 
     /**
      * 批量更新调用统计

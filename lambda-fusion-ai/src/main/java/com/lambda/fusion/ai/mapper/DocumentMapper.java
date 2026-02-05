@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.ibatis.annotations.*;
 
 /**
@@ -73,9 +72,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @param processStatus 处理状态
      * @return 文档列表
      */
-    List<DocumentEntity> selectByKbIdAndStatus(
-            @Param("kbId") Long kbId,
-            @Param("processStatus") String processStatus);
+    List<DocumentEntity> selectByKbIdAndStatus(@Param("kbId") Long kbId, @Param("processStatus") String processStatus);
 
     /**
      * 统计知识库文档数
@@ -91,8 +88,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 文档列表
      */
     List<DocumentEntity> selectByProcessStatus(
-            @Param("processStatus") String processStatus,
-            @Param("limit") Integer limit);
+            @Param("processStatus") String processStatus, @Param("limit") Integer limit);
 
     /**
      * 批量更新处理状态

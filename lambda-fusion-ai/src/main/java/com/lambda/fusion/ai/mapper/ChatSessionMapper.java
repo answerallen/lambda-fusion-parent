@@ -4,14 +4,13 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {
-    
+
     /**
      * 按用户ID查询会话列表
      */
@@ -55,9 +54,7 @@ public interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {
      * @param status 会话状态(ACTIVE/ARCHIVED)
      * @return 会话列表
      */
-    List<ChatSessionEntity> selectByUserIdAndStatus(
-            @Param("userId") Long userId,
-            @Param("status") String status);
+    List<ChatSessionEntity> selectByUserIdAndStatus(@Param("userId") Long userId, @Param("status") String status);
 
     /**
      * 按租户ID查询会话
@@ -65,9 +62,7 @@ public interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {
      * @param status 会话状态
      * @return 会话列表
      */
-    List<ChatSessionEntity> selectByTenantId(
-            @Param("tenantId") Long tenantId,
-            @Param("status") String status);
+    List<ChatSessionEntity> selectByTenantId(@Param("tenantId") Long tenantId, @Param("status") String status);
 
     /**
      * 查询过期会话(超过30天未活动)
@@ -81,9 +76,7 @@ public interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {
      * @param status 新状态
      * @return 更新数量
      */
-    int updateStatusBatch(
-            @Param("sessionIds") List<Long> sessionIds,
-            @Param("status") String status);
+    int updateStatusBatch(@Param("sessionIds") List<Long> sessionIds, @Param("status") String status);
 
     /**
      * 批量删除用户会话

@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.ibatis.annotations.*;
 
 /**
@@ -88,8 +87,7 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
      * @return 文档块列表
      */
     List<DocumentChunkEntity> selectByKbIdAndEmbeddingStatus(
-            @Param("kbId") Long kbId,
-            @Param("embeddingStatus") String embeddingStatus);
+            @Param("kbId") Long kbId, @Param("embeddingStatus") String embeddingStatus);
 
     /**
      * 统计文档块数
@@ -112,8 +110,7 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
      * @return 文档块列表
      */
     List<DocumentChunkEntity> selectByDocumentIdAndEmbeddingStatus(
-            @Param("documentId") Long documentId,
-            @Param("embeddingStatus") String embeddingStatus);
+            @Param("documentId") Long documentId, @Param("embeddingStatus") String embeddingStatus);
 
     /**
      * 按文档ID批量更新向量化状态
@@ -122,8 +119,7 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
      * @return 更新数量
      */
     int updateEmbeddingStatusByDocumentId(
-            @Param("documentId") Long documentId,
-            @Param("embeddingStatus") String embeddingStatus);
+            @Param("documentId") Long documentId, @Param("embeddingStatus") String embeddingStatus);
 
     /**
      * 按内容哈希查询(去重)
@@ -131,9 +127,7 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
      * @param contentHash 内容哈希
      * @return 文档块
      */
-    DocumentChunkEntity selectByContentHash(
-            @Param("kbId") Long kbId,
-            @Param("contentHash") String contentHash);
+    DocumentChunkEntity selectByContentHash(@Param("kbId") Long kbId, @Param("contentHash") String contentHash);
 
     /**
      * 查询待向量化块

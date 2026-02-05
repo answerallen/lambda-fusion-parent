@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface ChatMessageMapper extends BaseMapper<ChatMessageEntity> {
-    
+
     /**
      * 按会话ID查询消息列表
      */
@@ -23,9 +23,7 @@ public interface ChatMessageMapper extends BaseMapper<ChatMessageEntity> {
      * @return 消息列表
      */
     List<ChatMessageEntity> selectBySessionIdAndRole(
-            @Param("sessionId") Long sessionId,
-            @Param("role") String role,
-            @Param("limit") Integer limit);
+            @Param("sessionId") Long sessionId, @Param("role") String role, @Param("limit") Integer limit);
 
     /**
      * 统计会话消息数

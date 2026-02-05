@@ -1,7 +1,6 @@
 package com.lambda.fusion.ai.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.model.Document;
 import com.lambda.fusion.ai.model.DocumentChunk;
 import com.lambda.fusion.ai.model.DocumentChunkQuery;
@@ -87,7 +86,11 @@ public class DocumentController {
         return documentService.getProcessStatus(docId);
     }
 
-    @GetMapping({"/{docId}/chunks/page", "/{docId}/chunks/page/{number:\\d+}", "/{docId}/chunks/page/{number:\\d+}/size/{size:\\d+}"})
+    @GetMapping({
+        "/{docId}/chunks/page",
+        "/{docId}/chunks/page/{number:\\d+}",
+        "/{docId}/chunks/page/{number:\\d+}/size/{size:\\d+}"
+    })
     @Operation(summary = "分页查询文档块", description = "查看文档切分后的块列表")
     public IPage<DocumentChunk> pageChunks(
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
@@ -111,6 +114,6 @@ public class DocumentController {
     public void reprocess(
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
             @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
-        documentService.reprocessDocument(kbId,docId);
+        documentService.reprocessDocument(kbId, docId);
     }
 }

@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.support.processor;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
+import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
@@ -9,7 +10,6 @@ import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.repository.VectorRepository;
-import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.autoconfig.AiProperties;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
