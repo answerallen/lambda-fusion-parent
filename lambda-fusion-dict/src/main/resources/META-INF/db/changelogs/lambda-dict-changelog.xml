@@ -36,16 +36,16 @@
             <column name="sort" type="varchar(20)" remarks="排序编码">
                 <constraints nullable="false"/>
             </column>
-            <column name="create_time" type="datetime" remarks="创建时间">
+            <column name="CREATED_AT" type="datetime" remarks="创建时间">
                 <constraints nullable="false"/>
             </column>
-            <column name="update_time" type="datetime" remarks="更新时间">
+            <column name="UPDATED_AT" type="datetime" remarks="更新时间">
                 <constraints nullable="true"/>
             </column>
-            <column name="create_user" type="varchar(32)" remarks="创建人ID">
+            <column name="created_by" type="varchar(32)" remarks="创建人ID">
                 <constraints nullable="false"/>
             </column>
-            <column name="update_user" type="varchar(32)" remarks="修改人ID">
+            <column name="updated_by" type="varchar(32)" remarks="修改人ID">
                 <constraints nullable="true"/>
             </column>
             <column name="del_flag" type="tinyint(1)" remarks="删除状态（0 正常 1删除）" defaultValue="0">
@@ -84,16 +84,16 @@
             <column name="parent_keys" type="varchar(100)" remarks="父字段"/>
             <column name="notes" type="varchar(100)" remarks="备注"/>
             <column name="sort" type="int(11)" remarks="排序编码" defaultValue="0" />
-            <column name="create_time" type="datetime" remarks="创建时间">
+            <column name="CREATED_AT" type="datetime" remarks="创建时间">
                 <constraints nullable="false"/>
             </column>
-            <column name="update_time" type="datetime" remarks="更新时间">
+            <column name="UPDATED_AT" type="datetime" remarks="更新时间">
                 <constraints nullable="true"/>
             </column>
-            <column name="create_user" type="varchar(32)" remarks="创建人ID">
+            <column name="created_byuser" type="varchar(32)" remarks="创建人ID">
                 <constraints nullable="false"/>
             </column>
-            <column name="update_user" type="varchar(32)" remarks="修改人ID">
+            <column name="updated_by" type="varchar(32)" remarks="修改人ID">
                 <constraints nullable="true"/>
             </column>
             <column name="del_flag" type="tinyint(1)" remarks="删除状态（0 正常 1删除）" defaultValue="0">

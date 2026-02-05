@@ -12,10 +12,10 @@
         <result property="sort" column="SORT_NO"/>
         <result property="remarks" column="REMARKS"/>
         <result property="tenantId" column="TENANT_ID"/>
-        <result property="createTime" column="create_Time"/>
-        <result property="createUser" column="create_User"/>
-        <result property="updateTime" column="UPDATE_TIME"/>
-        <result property="updateUser" column="update_User"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="updatedBy" column="updated_by"/>
         <result property="enableState" column="ENABLE_STATE"/>
         <result property="selectable" column="SELECT_ABLE"/>
     </resultMap>
@@ -64,10 +64,10 @@
         DI.SORT_NO,
         DI.REMARKS,
         DI.TENANT_ID,
-        DI.UPDATE_TIME ,
-        DI.UPDATE_USER ,
-        DI.CREATE_USER ,
-        DI.CREATE_TIME ,
+        DI.UPDATED_AT ,
+        DI.updated_by ,
+        DI.created_byUSER ,
+        DI.CREATED_AT ,
         DI.ENABLE_STATE ,
         DT.DICT_NAME,
         DI.PARENT_ID,
@@ -87,10 +87,10 @@
         DI.SORT_NO,
         DI.REMARKS,
         DI.TENANT_ID,
-        DI.UPDATE_TIME ,
-        DI.UPDATE_USER ,
-        DI.CREATE_USER ,
-        DI.CREATE_TIME ,
+        DI.UPDATED_AT ,
+        DI.updated_by ,
+        DI.created_byUSER ,
+        DI.CREATED_AT ,
         DI.ENABLE_STATE ,
         DT.DICT_NAME,
         DI.EXTRA,
@@ -122,10 +122,10 @@
         DI.SORT_NO,
         DI.REMARKS,
         DI.TENANT_ID,
-        DI.UPDATE_TIME ,
-        DI.UPDATE_USER ,
-        DI.CREATE_USER ,
-        DI.CREATE_TIME ,
+        DI.UPDATED_AT ,
+        DI.updated_by ,
+        DI.created_byUSER ,
+        DI.CREATED_AT ,
         DI.ENABLE_STATE ,
         DI.PARENT_ID ,
         DI.PARENT_KEYS ,

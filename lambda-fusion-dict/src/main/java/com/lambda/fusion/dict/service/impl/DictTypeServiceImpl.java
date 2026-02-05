@@ -75,8 +75,8 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
         if (StringUtils.isBlank(source.getDictType())) {
             source.setDictType(source.getId());
         }
-        source.setCreateUser(OperatorUtils.getOperator().getName());
-        source.setCreateTime(LocalDateTime.now());
+        source.setCreatedBy(OperatorUtils.getOperator().getName());
+        source.setCreatedAt(LocalDateTime.now());
         dictTypeMapper.insert(source);
         return dictTypeMapper.selectById(source.getId());
     }
@@ -218,11 +218,6 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
 
     /**
      * 将树形结构所有节点的数据平铺
-     *
-     * @param list
-     * @param target
-     * @param supplier
-     * @param <T>
      */
     public static <T> void flatMap(List<T> list, List<T> target, Function<T, List<T>> supplier) {
         if (CollectionUtils.isEmpty(list)) {
