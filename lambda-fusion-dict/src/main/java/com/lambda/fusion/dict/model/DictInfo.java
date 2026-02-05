@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.lambda.cloud.core.shared.BaseDO;
+import com.lambda.fusion.core.entity.BaseEntity;
 import com.lambda.fusion.core.tree.TreeNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -22,7 +22,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @TableName(value = TABLE_SYS_DICT_INFO)
-public class DictInfo extends BaseDO implements TreeNode<DictInfo> {
+public class DictInfo extends BaseEntity implements TreeNode<DictInfo> {
     @TableId
     @Schema(description = "id")
     private String id;
