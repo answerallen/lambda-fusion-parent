@@ -13,11 +13,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TenantHostCache {
 
-    /**
-     * 租户配置信息中的host配置key
-     */
-    public static final String TENANT_CONFIG_HOST_KEY = "tenant-host";
-
     private final RedisTemplate<String, Object> redisTemplate;
 
     public TenantHostCache(RedisTemplate<String, Object> redisTemplate) {

@@ -2,14 +2,18 @@ package com.lambda.fusion.authority.tenant.cache;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cache.Cache;
+import org.springframework.cache.caffeine.CaffeineCache;
 
 /**
  * 租户配置本地缓存
@@ -18,19 +22,19 @@ import org.springframework.cache.Cache;
 @SuppressFBWarnings("NP_UNWRITTEN_FIELD")
 public class TenantConfigurationLocalCache implements TenantConfigurationCache {
 
-    private Cache cache;
+    private final Cache cache;
 
     @Resource
     private ObjectMapper objectMapper;
 
     public TenantConfigurationLocalCache() {
-        //        Caffeine.newBuilder()
-        //                .initialCapacity(200)
-        //                .maximumSize(500)
-        //                .expireAfterWrite(30, TimeUnit.MINUTES)
-        //                .recordStats()
-        //                .build();
-        //        this.cache = new CaffeineCache(TENANT_CONFIG_CACHE_NAME, null);
+                Caffeine.newBuilder()
+                        .initialCapacity(200)
+                        .maximumSize(500)
+                        .expireAfterWrite(30, TimeUnit.MINUTES)
+                        .recordStats()
+                        .build();
+                this.cache = new CaffeineCache(TENANT_CONFIG_CACHE_KEY, null);
     }
 
     @Override
