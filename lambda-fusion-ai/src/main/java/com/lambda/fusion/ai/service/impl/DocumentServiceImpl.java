@@ -4,8 +4,8 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
@@ -13,6 +13,7 @@ import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.model.Document;
 import com.lambda.fusion.ai.model.DocumentChunk;
+import com.lambda.fusion.ai.model.DocumentQuery;
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
@@ -20,12 +21,7 @@ import com.lambda.fusion.ai.repository.VectorRepository;
 import com.lambda.fusion.ai.service.DocumentService;
 import com.lambda.fusion.ai.support.enums.DocumentStatus;
 import com.lambda.fusion.ai.support.processor.DocumentProcessor;
-import java.io.File;
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.lambda.fusion.core.service.AbstractCrudService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -33,6 +29,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 文档 Service 实现类
@@ -42,7 +45,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEntity> implements DocumentService {
+public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Document, DocumentMapper> implements DocumentService {
 
     private final DocumentMapper documentMapper;
     private final DocumentChunkMapper documentChunkMapper;
@@ -129,15 +132,6 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
         return entityToVO(entity);
     }
 
-    @Override
-    public Page<Document> pageDocuments(Integer pageNum, Integer pageSize, Long kbId, String status) {
-        Page<DocumentEntity> page = new Page<>(pageNum, pageSize);
-        Page<DocumentEntity> resultPage = documentMapper.pageByKbId(page, kbId, status);
-
-        Page<Document> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
-        voPage.setRecords(resultPage.getRecords().stream().map(this::entityToVO).collect(Collectors.toList()));
-        return voPage;
-    }
 
     @Override
     public List<Document> listByKbId(Long kbId, String status) {
@@ -148,16 +142,11 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
 
     @Override
     public Document getDocumentById(Long id) {
-        // 验证输入参数
-        if (id == null) {
-            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
-        }
-
-        DocumentEntity entity = documentMapper.selectById(id);
-        if (entity == null) {
+        Document document = getByIdForVO(id);
+        if (document == null) {
             throw AiBusinessException.documentNotFound(id);
         }
-        return entityToVO(entity);
+        return document;
     }
 
     @Override
@@ -202,16 +191,11 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
 
     @Override
     public Document getProcessStatus(Long id) {
-        // 验证输入参数
-        if (id == null) {
-            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
-        }
-
-        DocumentEntity entity = documentMapper.selectById(id);
-        if (entity == null) {
+        Document document = getByIdForVO(id);
+        if (document == null) {
             throw AiBusinessException.documentNotFound(id);
         }
-        return entityToVO(entity);
+        return document;
     }
 
     @Override
@@ -263,6 +247,11 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, DocumentEnt
 
         // 重新触发
         documentProcessor.processDocument(id);
+    }
+
+    @Override
+    public IPage<Document> pageDocuments(DocumentQuery documentQuery) {
+        return pageForVO(documentQuery.getPage(), documentQuery.getLambdaQueryWrapper());
     }
 
     private Document entityToVO(DocumentEntity entity) {

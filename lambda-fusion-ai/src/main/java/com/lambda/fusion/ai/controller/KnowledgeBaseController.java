@@ -1,8 +1,11 @@
 package com.lambda.fusion.ai.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBase;
+import com.lambda.fusion.ai.model.KnowledgeBaseQuery;
 import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,14 +35,20 @@ public class KnowledgeBaseController {
         return knowledgeBaseService.createKnowledgeBase(createKnowledgeBase);
     }
 
-    @GetMapping("/page")
+    @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询知识库", description = "根据租户ID分页查询知识库列表")
-    public Page<KnowledgeBase> page(
-            @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer pageNum,
-            @Parameter(description = "页大小") @RequestParam(defaultValue = "10") Integer pageSize,
-            @Parameter(description = "租户ID", required = true) @RequestParam Long tenantId,
-            @Parameter(description = "状态") @RequestParam(required = false) String status) {
-        return knowledgeBaseService.pageKnowledgeBases(pageNum, pageSize, tenantId, status);
+    public IPage<KnowledgeBase> page(
+            @PathVariable(required = false) Integer number,
+            @PathVariable(required = false) Integer size,
+            @Valid KnowledgeBaseQuery knowledgeBaseQuery) {
+        if (number != null) {
+            knowledgeBaseQuery.setPageNum(number);
+        }
+        if (size != null) {
+            knowledgeBaseQuery.setPageSize(size);
+        }
+        knowledgeBaseQuery.setTenantId(OperatorUtils.getOperator().getTenantId());
+        return knowledgeBaseService.pageKnowledgeBases(knowledgeBaseQuery);
     }
 
     @GetMapping("/{id}")

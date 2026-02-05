@@ -1,6 +1,8 @@
 package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.fusion.ai.exception.AiBusinessException;
@@ -8,6 +10,7 @@ import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBase;
+import com.lambda.fusion.ai.model.KnowledgeBaseQuery;
 import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
@@ -15,6 +18,8 @@ import com.lambda.fusion.ai.support.resolver.VectorTableNameResolver;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.lambda.fusion.core.service.AbstractCrudService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -29,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, KnowledgeBaseEntity>
+public class KnowledgeBaseServiceImpl extends AbstractCrudService<KnowledgeBaseEntity,KnowledgeBase,KnowledgeBaseMapper>
         implements KnowledgeBaseService {
 
     private final KnowledgeBaseMapper knowledgeBaseMapper;
@@ -154,6 +159,11 @@ public class KnowledgeBaseServiceImpl extends ServiceImpl<KnowledgeBaseMapper, K
         List<KnowledgeBaseEntity> entities = knowledgeBaseMapper.listByTenantId(tenantId, status);
 
         return entities.stream().map(this::entityToVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public IPage<KnowledgeBase> pageKnowledgeBases(KnowledgeBaseQuery knowledgeBaseQuery) {
+        return pageForVO(knowledgeBaseQuery.getPage(),knowledgeBaseQuery.getLambdaQueryWrapper());
     }
 
     /**

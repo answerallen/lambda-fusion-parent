@@ -1,11 +1,16 @@
 package com.lambda.fusion.ai.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBase;
+import com.lambda.fusion.ai.model.KnowledgeBaseQuery;
 import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
+import jakarta.validation.Valid;
+
 import java.util.List;
 
 /**
@@ -65,4 +70,6 @@ public interface KnowledgeBaseService extends IService<KnowledgeBaseEntity> {
      * @return 知识库列表
      */
     List<KnowledgeBase> listByTenantId(Long tenantId, String status);
+
+    IPage<KnowledgeBase> pageKnowledgeBases(@Valid KnowledgeBaseQuery knowledgeBaseQuery);
 }
