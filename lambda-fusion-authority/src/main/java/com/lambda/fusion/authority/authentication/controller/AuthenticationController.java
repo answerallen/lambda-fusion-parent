@@ -44,7 +44,7 @@ public class AuthenticationController {
 
     @GetMapping("/authorities")
     @Operation(summary = "获取当前用户的权限码集合", description = "返回当前登录用户拥有的所有权限标识符列表")
-    public List<String> getAccessCodes() {
+    public List<String> getAuthorities() {
         return authenticationService.getAuthorities();
     }
 }

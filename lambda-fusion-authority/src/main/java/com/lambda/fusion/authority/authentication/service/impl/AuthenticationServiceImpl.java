@@ -126,12 +126,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return authenticationMapper.selectAuthoritiesByUsername(operator.getName());
     }
 
-    /**
-     * 构建登录用户信息
-     *
-     * @param loginUserDetails 用户对象
-     * @return 登录用户
-     */
     private LoginUser prepareLoginUser(LoginUserDetails loginUserDetails) {
         if (CollUtil.isEmpty(loginUserDetails.getRoles())) {
             loginUserDetails.setRoles(Sets.newHashSet(FusionConstants.ROLE_USER));

@@ -2,11 +2,11 @@ package com.lambda.fusion.authority.client.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.client.model.ClientEntity;
 import com.lambda.fusion.authority.client.model.ClientQuery;
-import com.lambda.fusion.authority.client.model.CreateClient;
+import com.lambda.fusion.authority.client.model.UpsertClient;
 import com.lambda.fusion.authority.client.service.ClientService;
+import com.lambda.fusion.core.utils.LoginUserUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,7 +33,7 @@ public class ClientController {
         if (size != null) {
             clientQuery.setPageSize(size);
         }
-        clientQuery.setTenantId(OperatorUtils.getOperator().getTenantId());
+        clientQuery.setTenantId(LoginUserUtils.getTenantId());
         return clientService.page(clientQuery.getPage(), clientQuery.getLambdaQueryWrapper());
     }
 
@@ -45,8 +45,8 @@ public class ClientController {
 
     @PostMapping
     @Operation(summary = "新增客户端信息", description = "新增客户端信息")
-    public void save(@Parameter(description = "客户端信息", required = true) @Valid @RequestBody CreateClient createClient) {
-        ClientEntity clientEntity = createClient.toEntity();
+    public void save(@Parameter(description = "客户端信息", required = true) @Valid @RequestBody UpsertClient upsertClient) {
+        ClientEntity clientEntity = upsertClient.toEntity();
         clientService.save(clientEntity);
     }
 
@@ -54,10 +54,10 @@ public class ClientController {
     @Operation(summary = "更新客户端信息", description = "更新客户端信息")
     public void update(
             @Parameter(description = "客户端编号", required = true) @PathVariable String id,
-            @Parameter(description = "客户端信息", required = true) @RequestBody @Valid CreateClient createClient) {
+            @Parameter(description = "客户端信息", required = true) @RequestBody @Valid UpsertClient upsertClient) {
         ClientEntity original = clientService.getById(id);
         Assert.notNull(original, "客户端不存在");
-        ClientEntity clientEntity = createClient.toEntity();
+        ClientEntity clientEntity = upsertClient.toEntity();
         clientEntity.setId(id);
         clientEntity.setSecret(original.getSecret());
         clientEntity.setTenantId(original.getTenantId());

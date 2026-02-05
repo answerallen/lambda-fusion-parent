@@ -16,7 +16,7 @@ import org.hibernate.validator.constraints.Length;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Schema(description = "客户端信息")
-public class CreateClient extends BaseDTO<ClientEntity> {
+public class UpsertClient extends BaseDTO<ClientEntity> {
     /**
      * 客户端名称
      */
