@@ -132,7 +132,7 @@ public class TenantController {
         TenantEntity target = new TenantEntity();
         BeanUtils.copyProperties(entity, target);
         target.setTenantId(id);
-        target.setLastUpdateBy(operator.getName());
+        target.setUpdatedBy(operator.getName());
         if (CollectionUtils.isNotEmpty(entity.getPrefectureList())) {
             target.setPrefecture(StringUtils.join(entity.getPrefectureList(), ","));
         } else {

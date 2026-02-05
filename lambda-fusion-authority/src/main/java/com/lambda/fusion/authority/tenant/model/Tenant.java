@@ -100,7 +100,7 @@ public class Tenant {
      * 创建人
      */
     @Schema(description = "创建人")
-    private String createBy;
+    private String createdByy;
     /**
      * 创建时间
      */

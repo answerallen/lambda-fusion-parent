@@ -23,10 +23,10 @@
         <result property="city" column="CITY"/>
         <result property="district" column="DISTRICT"/>
         <result property="enabled" column="ENABLED"/>
-        <result property="createBy" column="CREATE_BY"/>
-        <result property="createTime" column="CREATE_TIME"/>
-        <result property="lastUpdateBy" column="LAST_UPDATE_BY"/>
-        <result property="lastUpdateTime" column="LAST_UPDATE_TIME"/>
+        <result property="createdBy" column="CREATED_BY"/>
+        <result property="createdAt" column="CREATED_AT"/>
+        <result property="updatedBy" column="UPDATED_BY"/>
+        <result property="updatedAt" column="UPDATED_AT"/>
         <result property="examineState" column="EXAMINE_STATE"/>
         <result property="owner" column="OWNER"/>
         <result property="alias" column="ALIAS"/>
@@ -46,7 +46,7 @@
     </update>
 
     <select id="queryTenantList" resultType="com.lambda.fusion.authority.tenant.model.TenantOption">
-        select TENANT_CODE,TENANT_NAME FROM LA_TENANT where ENABLED = 1 and EXAMINE_STATE = 1 ORDER BY CREATE_TIME DESC
+        select TENANT_CODE,TENANT_NAME FROM LA_TENANT where ENABLED = 1 and EXAMINE_STATE = 1 ORDER BY CREATED_AT DESC
     </select>
     <select id="isExist" resultType="java.lang.Boolean">
         SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_TENANT WHERE TENANT_ID = #{id})

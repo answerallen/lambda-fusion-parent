@@ -41,7 +41,7 @@ public class ApiTokenEntity {
     private Integer enabled;
 
     @Schema(description = "创建日期")
-    @TableField("CREATE_TIME")
+    @TableField("CREATED_AT")
     private Date createTime;
 
     @Schema(description = "失效日期")

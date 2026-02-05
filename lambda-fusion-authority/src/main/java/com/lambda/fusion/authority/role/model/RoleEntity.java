@@ -41,8 +41,8 @@ public class RoleEntity {
     @TableField("GROUP_ID")
     private String groupId;
 
-    @TableField("CREATE_BY")
-    private String createBy;
+    @TableField("created_BY")
+    private String createdBy;
 
     @TableField("created_at")
     private LocalDateTime createdAt;

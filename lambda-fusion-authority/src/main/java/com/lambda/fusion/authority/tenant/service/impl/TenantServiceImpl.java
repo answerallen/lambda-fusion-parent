@@ -267,7 +267,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
         Optional.ofNullable(parameters.get("tenantAddress")).ifPresent(u -> query.like("TENANT_ADDRESS", u));
         // 法人
         Optional.ofNullable(parameters.get("legalPerson")).ifPresent(u -> query.eq("LEGAL_PERSON", u));
-        query.orderByDesc("CREATE_TIME");
+        query.orderByDesc("CREATED_AT");
         return query;
     }
 

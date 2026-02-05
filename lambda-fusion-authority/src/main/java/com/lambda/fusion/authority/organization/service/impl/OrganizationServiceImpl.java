@@ -481,7 +481,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         entity.setId(orgId);
         entity.setOwner(tenantId);
         entity.setTenantId(tenantId);
-        entity.setCreateDate(new Date());
+        entity.setCreatedAt(new Date());
         if (StringUtils.isNotBlank(createOrganization.getParentId())) {
             Organization parent = getOrganizationById(createOrganization.getParentId());
             Assert.notNull(parent, "上级组织未查询到！");

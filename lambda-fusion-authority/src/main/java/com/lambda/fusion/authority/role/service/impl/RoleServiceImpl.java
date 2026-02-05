@@ -171,8 +171,8 @@ public class RoleServiceImpl implements RoleService {
         String groupId = Optional.ofNullable(createRole.getGroupId()).orElse(AuthorityConstants.DEFAULT);
         createRole.setGroupId(groupId);
         RoleEntity roleEntity = createRole.toEntity();
-        roleEntity.setCreateBy(loginUserDetails.getName());
-        roleEntity.setCreateDate(LocalDateTime.now());
+        roleEntity.setCreatedBy(loginUserDetails.getName());
+        roleEntity.setCreatedAt(LocalDateTime.now());
         roleMapper.insert(roleEntity);
         return getRoleByAuthority(authority);
     }

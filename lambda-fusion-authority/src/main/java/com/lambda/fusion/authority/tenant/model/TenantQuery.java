@@ -124,7 +124,7 @@ public class TenantQuery extends Pagination<TenantEntity> {
         wrapper.like(StringUtils.isNotBlank(prefecture), TenantEntity::getPrefecture, prefecture);
 
         // 默认按创建时间降序排序
-        wrapper.orderByDesc(TenantEntity::getCreateTime);
+        wrapper.orderByDesc(TenantEntity::getCreateAt);
 
         return wrapper;
     }

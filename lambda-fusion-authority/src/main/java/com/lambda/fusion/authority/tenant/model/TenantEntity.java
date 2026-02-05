@@ -135,26 +135,26 @@ public class TenantEntity {
      * 创建人
      */
     @Schema(description = "创建人")
-    @TableField("CREATE_BY")
-    private String createBy;
+    @TableField("CREATED_BY")
+    private String createdBy;
     /**
      * 创建时间
      */
     @Schema(description = "创建时间")
-    @TableField("CREATE_TIME")
-    private Date createTime;
+    @TableField("CREATED_AT")
+    private Date createAt;
     /**
      * 最后修改人
      */
     @Schema(description = "最后修改人")
-    @TableField("LAST_UPDATE_BY")
-    private String lastUpdateBy;
+    @TableField("UPDATED_BY")
+    private String updatedBy;
     /**
      * 最后修改时间
      */
     @Schema(description = "最后修改时间")
-    @TableField("LAST_UPDATE_TIME")
-    private Date lastUpdateTime;
+    @TableField("UPDATED_AT")
+    private Date updatedAt;
 
     /**
      * 审核状态，未审核:0,审核通过:1
