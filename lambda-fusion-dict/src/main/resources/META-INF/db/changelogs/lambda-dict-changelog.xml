@@ -4,7 +4,7 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
 
-    <changeSet id="lambda-fusion-dict-202410140015" author="jin">
+    <changeSet id="lambda-fusion-dict-2024101400151" author="jin">
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="la_dict_info"/>
@@ -60,7 +60,7 @@
         </createTable>
     </changeSet>
 
-    <changeSet id="lambda-fusion-dict-202410140023" author="jin">
+    <changeSet id="lambda-fusion-dict-2024101400231" author="jin">
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="la_dict_type"/>
