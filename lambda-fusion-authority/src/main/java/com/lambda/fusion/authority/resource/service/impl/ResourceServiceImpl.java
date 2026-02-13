@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.resource.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;
+import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.utils.Assert;
@@ -106,7 +107,7 @@ public class ResourceServiceImpl implements ResourceService {
     public Resource addResource(CreateResource createResource) {
         Resource resource = createResource.toEntity();
         int type = createResource.getResType();
-        String id = UUID.fastUUID().toString();
+        String id = IdUtil.getSnowflakeNextIdStr();
         if (type == 0) {
             if (StringUtils.isNotBlank(createResource.getMethod())) {
                 id = createResource.getMethod();

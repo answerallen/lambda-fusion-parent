@@ -1,9 +1,10 @@
 package com.lambda.fusion.authority;
 
 import com.lambda.fusion.core.annotation.DictMapper;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+
+import java.util.List;
 
 public interface AuthorityConstants {
 
@@ -38,11 +39,11 @@ public interface AuthorityConstants {
         @DictMapper(dictName = "MENU_TYPE", dictUsage = 0, dictDesc = "菜单类型")
         @AllArgsConstructor
         enum MenuType {
-            INTERFACE(1, "接口"),
-            MENU(2, "菜单"),
+            MENU(1, "菜单"),
+            EMBEDDED_PAGE(2, "内嵌页面"),
             BUTTON(3, "按钮"),
-            EXTERNAL_LINK(4, "外部链接"),
-            EMBEDDED_PAGE(5, "内嵌页面");
+            INTERFACE(4, "接口"),
+            EXTERNAL_LINK(5, "外部链接");
 
             private final Integer val;
             private final String key;
