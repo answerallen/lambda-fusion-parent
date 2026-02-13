@@ -38,7 +38,7 @@
         SELECT DICT_TYPE AS dictType,
         FIELD_TYPE AS fieldType,
         FIELD_NAME AS fieldName,
-        parentId,
+        parent_id as parentId,
         REMARKS,
         TENANT_ID,
         SELECT_ABLE,
@@ -53,7 +53,7 @@
         <if test="type !=null and type != ''">
             AND DICT_TYPE  LIKE #{type}
         </if>
-        GROUP BY DICT_TYPE,FIELD_TYPE,FIELD_NAME,parentId,TENANT_ID,REMARKS,SELECT_ABLE,SORT_NO ORDER BY SORT_NO ASC
+        GROUP BY DICT_TYPE,FIELD_TYPE,FIELD_NAME,parent_id,TENANT_ID,REMARKS,SELECT_ABLE,SORT_NO ORDER BY SORT_NO ASC
     </select>
 
     <select id="page" parameterType="HashMap" resultType="com.lambda.fusion.dict.model.DictInfo">
