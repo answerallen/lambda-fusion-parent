@@ -1,6 +1,7 @@
 package com.lambda.fusion.authority.resource.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.model.CreateResource;
 import com.lambda.fusion.authority.resource.model.MoveResource;
@@ -22,7 +23,9 @@ import org.springframework.web.bind.annotation.*;
  * 资源服务API
  */
 @RestController
-@SaCheckRole({"ROLE_DEV", "ROLE_SYSTEM", "ROLE_ADMIN"})
+@SaCheckRole(
+        value = {"ROLE_DEV", "ROLE_SYSTEM", "ROLE_ADMIN"},
+        mode = SaMode.OR)
 @RequestMapping({"/authority/resources"})
 @Tag(name = "资源管理")
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
