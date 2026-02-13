@@ -8,7 +8,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -28,13 +27,13 @@ public class TenantConfigurationLocalCache implements TenantConfigurationCache {
     private ObjectMapper objectMapper;
 
     public TenantConfigurationLocalCache() {
-                Caffeine.newBuilder()
-                        .initialCapacity(200)
-                        .maximumSize(500)
-                        .expireAfterWrite(30, TimeUnit.MINUTES)
-                        .recordStats()
-                        .build();
-                this.cache = new CaffeineCache(TENANT_CONFIG_CACHE_KEY, null);
+        Caffeine.newBuilder()
+                .initialCapacity(200)
+                .maximumSize(500)
+                .expireAfterWrite(30, TimeUnit.MINUTES)
+                .recordStats()
+                .build();
+        this.cache = new CaffeineCache(TENANT_CONFIG_CACHE_KEY, null);
     }
 
     @Override
