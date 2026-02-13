@@ -35,10 +35,10 @@ public class Resource {
 
     @Schema(description = "资源级别")
     @JsonProperty("level")
-    private int resLevel;
+    private Integer resLevel;
 
     @Schema(description = "资源顺序")
-    private int orderNo;
+    private Integer orderNo;
 
     @Schema(description = "资源图标")
     private String icon;
@@ -47,7 +47,7 @@ public class Resource {
     private String method;
 
     @Schema(description = "是否隐藏")
-    private boolean hidden = false;
+    private Boolean hidden = false;
 
     @Schema(description = "资源类型.1：菜单，2：外链, 3: 按钮")
     @JsonProperty("type")
@@ -67,7 +67,7 @@ public class Resource {
     private String keyName;
 
     @Schema(description = "是否缓存")
-    private boolean keepAlive;
+    private Boolean keepAlive;
 
     @Schema(description = "内置扩展字段")
     private String expand;

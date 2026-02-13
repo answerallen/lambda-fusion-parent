@@ -1,11 +1,11 @@
 package com.lambda.fusion.authority.authentication.service;
 
-import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.authentication.model.AuthenticatedUser;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
-import com.lambda.fusion.authority.resource.model.ResourceTree;
+import com.lambda.fusion.authority.authentication.model.NavigationRoute;
 import com.lambda.fusion.authority.user.model.UserProfile;
+import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.utils.LoginUserUtils;
 import com.lambda.security.service.UserDetailService;
 import java.util.List;
 
@@ -23,7 +23,7 @@ public interface AuthenticationService extends UserDetailService {
      * @param level    指定菜单层级
      * @return 导航菜单列表
      */
-    List<ResourceTree> getNavigation(LoginUser user, String parentId, Integer level);
+    List<NavigationRoute> getNavigation(LoginUserDetails user, String parentId, Integer level);
 
     /**
      * 获取用户的导航菜单
@@ -32,7 +32,7 @@ public interface AuthenticationService extends UserDetailService {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    default List<ResourceTree> getNavigation(LoginUser user, NavigationQuery query) {
+    default List<NavigationRoute> getNavigation(LoginUserDetails user, NavigationQuery query) {
         return getNavigation(user, query.getParentId(), query.getLevel());
     }
 
@@ -41,9 +41,8 @@ public interface AuthenticationService extends UserDetailService {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    default List<ResourceTree> getNavigation(NavigationQuery query) {
-        LoginUser user = OperatorUtils.getOperator();
-        return getNavigation(user, query.getParentId(), query.getLevel());
+    default List<NavigationRoute> getNavigation(NavigationQuery query) {
+        return getNavigation(LoginUserUtils.getLoginUser(), query.getParentId(), query.getLevel());
     }
 
     /**

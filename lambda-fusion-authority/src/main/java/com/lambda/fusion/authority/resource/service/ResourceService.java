@@ -39,7 +39,7 @@ public interface ResourceService {
      *
      * @param id
      */
-    List<Resource> getParents(String id);
+    List<Resource> getParentResources(String id);
 
     /**
      * 根据编号查询资源信息

@@ -2,6 +2,8 @@ package com.lambda.fusion.authority.resource.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.shared.BaseDTO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,11 +18,12 @@ import lombok.Setter;
  * 单一资源信息
  *
  */
+@AutoConverter(target = Resource.class)
 @Getter
 @Setter
 @Schema(description = "资源元数据")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class CreateResource {
+public class CreateResource extends BaseDTO<Resource> {
 
     @JsonIgnore
     @Schema(hidden = true, description = "资源ID，仅在租户分库同步新增资源情况下使用")

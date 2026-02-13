@@ -3,8 +3,8 @@ package com.lambda.fusion.authority.authentication.controller;
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.lambda.fusion.authority.authentication.model.AuthenticatedUser;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.authentication.model.NavigationRoute;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
-import com.lambda.fusion.authority.resource.model.ResourceTree;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,7 +32,7 @@ public class AuthenticationController {
                 @Parameter(name = "level", description = "菜单层级"),
                 @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
             })
-    public List<ResourceTree> getNavigation(@Parameter NavigationQuery query) {
+    public List<NavigationRoute> getNavigation(@Parameter NavigationQuery query) {
         return authenticationService.getNavigation(query);
     }
 

@@ -32,10 +32,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
@@ -141,7 +139,7 @@ public class RoleServiceImpl implements RoleService {
         if (CollectionUtils.isNotEmpty(roles)) {
             for (Role item : roles) {
                 String authority = item.getAuthority();
-                item.setBuiltIn(ArrayUtils.contains(AuthorityConstants.BUILT_IN_ROLES, authority));
+                item.setBuiltIn(AuthorityConstants.BUILT_IN_ROLES.contains(authority));
             }
         }
         return pageable;
@@ -190,7 +188,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteRoleById(String authority) {
         Assert.notNull(authority, "role name 不能为空");
-        Set<String> excludes = Stream.of(AuthorityConstants.BUILT_IN_ROLES).collect(Collectors.toSet());
+        Set<String> excludes = new HashSet<>(AuthorityConstants.BUILT_IN_ROLES);
         Set<String> deleteExclude = internalRoleService.deleteExclude(OperatorUtils.getOperator());
         excludes.addAll(deleteExclude);
         Assert.isTrue(!excludes.contains(authority), "角色" + authority + "不能删除");

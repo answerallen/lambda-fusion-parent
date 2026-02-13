@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.resource.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Maps;
@@ -84,13 +85,13 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<Resource> getParents(String id) {
+    public List<Resource> getParentResources(String id) {
         Resource resource = resourceMapper.getResourceById(id);
         if (resource != null) {
             List<Resource> list = new ArrayList<>();
             list.add(resource);
             if (resource.getParentId() != null) {
-                List<Resource> parents = getParents(resource.getParentId());
+                List<Resource> parents = getParentResources(resource.getParentId());
                 if (parents != null) {
                     list.addAll(parents);
                 }
@@ -102,28 +103,27 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Resource addResource(CreateResource parameter) {
-        Resource resource = new Resource();
-        int type = parameter.getResType();
+    public Resource addResource(CreateResource createResource) {
+        Resource resource = createResource.toEntity();
+        int type = createResource.getResType();
         String id = UUID.fastUUID().toString();
         if (type == 0) {
-            if (StringUtils.isNotBlank(parameter.getMethod())) {
-                id = parameter.getMethod();
+            if (StringUtils.isNotBlank(createResource.getMethod())) {
+                id = createResource.getMethod();
             } else {
                 id = IdWorker.getIdStr();
             }
         }
         resource.setId(id);
-        BeanUtils.copyProperties(parameter, resource);
         Resource parent;
         String parentKeys = StringUtils.EMPTY;
-        int rank = 0;
+        int resLevel = 0;
         if (StringUtils.isNotBlank(resource.getParentId())) {
             parent = getResourceById(resource.getParentId());
-            Assert.notNull(parent, "lambda.authority.resource.parent.notfound");
+            Assert.notNull(parent, "父类不存在！");
             Assert.isFalse(
                     !parent.getResMode().equals(resource.getResMode()), "lambda.authority.resource.model.inconsistent");
-            rank = parent.getResLevel() + 1;
+            resLevel = parent.getResLevel() + 1;
             parentKeys = parent.getParentKeys();
             if (StringUtils.isNotBlank(parentKeys)) {
                 parentKeys += (FusionConstants.SEPARATOR0 + parent.getId());
@@ -132,9 +132,9 @@ public class ResourceServiceImpl implements ResourceService {
             }
         }
         if (resource.getResType() == ResourceType.BUTTON.ordinal()) {
-            rank = Integer.MAX_VALUE;
+            resLevel = Integer.MAX_VALUE;
         }
-        resource.setResLevel(rank);
+        resource.setResLevel(resLevel);
         resource.setParentKeys(parentKeys);
 
         if (StringUtils.isBlank(resource.getResPath())) {
@@ -143,11 +143,11 @@ public class ResourceServiceImpl implements ResourceService {
         if (StringUtils.isBlank(resource.getIcon())) {
             resource.setIcon(null);
         }
-        List<ResourceTree> children2 = resourceMapper.getDirectChildren(resource.getParentId());
-        Objects.requireNonNull(children2);
-        resource.setOrderNo(children2.size() + 1);
+        List<ResourceTree> directChildren = resourceMapper.getDirectChildren(resource.getParentId());
+        Objects.requireNonNull(directChildren);
+        resource.setOrderNo(directChildren.size() + 1);
         resourceMapper.addResource(resource);
-        List<CreateResource.Button> buttons = parameter.getButtons();
+        List<CreateResource.Button> buttons = createResource.getButtons();
         if (CollectionUtils.isNotEmpty(buttons)) {
             for (int i = 0; i < buttons.size(); i++) {
                 Resource button = new Resource();
@@ -157,12 +157,12 @@ public class ResourceServiceImpl implements ResourceService {
                 button.setParentKeys(resource.getParentKeys() + FusionConstants.SEPARATOR0 + resource.getId());
                 button.setOrderNo(i + 1);
                 button.setResType(ResourceType.BUTTON.ordinal());
-                button.setResLevel(rank + 1);
+                button.setResLevel(resLevel + 1);
                 resourceMapper.addResource(button);
             }
         }
 
-        changeResourceOrdered(children2);
+        changeResourceOrdered(directChildren);
         return resourceMapper.getResourceById(resource.getId());
     }
 
@@ -185,24 +185,24 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Resource updateResource(Resource resource) {
-        Assert.notNull(resource, "Resource can't be null");
-        Assert.notNull(resource.getId(), "Resource id can't be null");
-        Resource source = getResourceById(resource.getId());
+    public Resource updateResource(Resource updateResource) {
+        Assert.notNull(updateResource, "Resource can't be null");
+        Assert.notNull(updateResource.getId(), "Resource id can't be null");
+        Resource source = getResourceById(updateResource.getId());
         // 更新时只更新属性，不改变上下级关系，因此parentKeys也无须变化
-        resource.setResLevel(source.getResLevel());
-        resource.setParentKeys(source.getParentKeys());
+        updateResource.setResLevel(source.getResLevel());
+        updateResource.setParentKeys(source.getParentKeys());
         Assert.notNull(source, "resource not found");
         // 更新时如果没有传顺序号,则不修改顺序值
-        if (resource.getOrderNo() == 0) {
-            resource.setOrderNo(source.getOrderNo());
+        if (updateResource.getOrderNo() == 0) {
+            updateResource.setOrderNo(source.getOrderNo());
         }
-        boolean orderChanged = source.getOrderNo() != resource.getOrderNo();
-        boolean typeChanged = !source.getResType().equals(resource.getResType());
-        boolean hiddenChanged = source.isHidden() != resource.isHidden();
+        boolean orderChanged = !source.getOrderNo().equals(updateResource.getOrderNo());
+        boolean typeChanged = !source.getResType().equals(updateResource.getResType());
+        boolean hiddenChanged = source.getHidden() != updateResource.getHidden();
         if (typeChanged) {
-            if (resource.getResType() == ResourceType.BUTTON.ordinal()) {
-                resource.setResLevel(Integer.MAX_VALUE);
+            if (updateResource.getResType() == ResourceType.BUTTON.ordinal()) {
+                updateResource.setResLevel(Integer.MAX_VALUE);
             }
             String parentId = source.getParentId();
             Resource parent;
@@ -211,17 +211,17 @@ public class ResourceServiceImpl implements ResourceService {
                 Assert.notNull(parent, "lambda.authority.resource.parent.notfound");
             }
         }
-        BeanUtils.copyProperties(resource, source);
+        BeanUtil.copyProperties(updateResource, source);
         resourceMapper.updateResource(source);
 
         if (orderChanged) {
-            List<ResourceTree> children2 = resourceMapper.getDirectChildren(source.getParentId());
-            changeResourceOrdered(children2);
+            List<ResourceTree> directChildren = resourceMapper.getDirectChildren(source.getParentId());
+            changeResourceOrdered(directChildren);
         }
         if (hiddenChanged) {
-            List<ResourceTree> children3 = resourceMapper.getDirectChildren(source.getId());
-            if (CollectionUtils.isNotEmpty(children3)) {
-                resourceMapper.updateResourceIsHidden(children3, resource.isHidden());
+            List<ResourceTree> directChildren = resourceMapper.getDirectChildren(source.getId());
+            if (CollectionUtils.isNotEmpty(directChildren)) {
+                resourceMapper.updateResourceIsHidden(directChildren, updateResource.getHidden());
             }
         }
         return source;
@@ -468,10 +468,10 @@ public class ResourceServiceImpl implements ResourceService {
     /**
      * 改变资源列表顺序
      */
-    private void changeResourceOrdered(List<ResourceTree> children2) {
-        List<Resource> changed = new ArrayList<>(children2.size());
+    private void changeResourceOrdered(List<ResourceTree> treeList) {
+        List<Resource> changed = new ArrayList<>(treeList.size());
         int n = 1;
-        for (Resource item : children2) {
+        for (Resource item : treeList) {
             if (item.getOrderNo() != n) {
                 item.setOrderNo(n);
                 changed.add(item);

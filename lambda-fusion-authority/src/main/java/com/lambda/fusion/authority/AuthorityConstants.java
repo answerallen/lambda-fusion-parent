@@ -1,6 +1,7 @@
 package com.lambda.fusion.authority;
 
 import com.lambda.fusion.core.annotation.DictMapper;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -12,7 +13,9 @@ public interface AuthorityConstants {
 
     String DEFAULT_GROUP_NAME = "默认分组";
 
-    String[] BUILT_IN_ROLES = {"ROLE_SYSTEM", "ROLE_ADMIN", "ROLE_DEV", "ROLE_USER", "ROLE_MANAGER", "ROLE_ORG"};
+    List<String> BUILT_IN_ROLES =
+            List.of("ROLE_SYSTEM", "ROLE_ADMIN", "ROLE_DEV", "ROLE_USER", "ROLE_MANAGER", "ROLE_ORG");
+
     String DEFAULT = "default";
 
     String ADMIN = "admin";

@@ -69,7 +69,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
 
     private ApplicationEventPublisher applicationEventPublisher;
 
-    @Autowired
+    @Autowired(required = false)
     private TenantConfigurationCache configurationCache;
 
     @Autowired(required = false)

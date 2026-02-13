@@ -55,26 +55,26 @@
         ]]>
     </select>
 
-    <select id="selectNavigation" resultType="com.lambda.fusion.authority.resource.model.ResourceTree">
+    <select id="selectNavigation" resultType="com.lambda.fusion.authority.authentication.model.NavigationRoute">
         SELECT
         T1.id,
-        T1.res_name,
-        T1.res_path,
+        T1.res_name as name,
+        T1.res_path as path,
         T1.icon as icon,
-        T1.RES_LEVEL,
-        T1.ORDER_NO,
-        T1.parent_Id,
-        T1.res_type,
+        T1.res_level,
+        T1.order_no,
+        T1.parent_Id as pid,
+        T1.res_type as type,
         T1.hidden,
         T1.res_mode,
         T1.remark,
-        T1.res_url,
+        T1.res_url as url,
         T1.key_name,
         T1.keep_alive,
         T1.expand,
         T1.business_expand
         FROM LA_RESOURCES T1
-        WHERE T1.res_type != 0
+        WHERE T1.res_type != 3
         AND T1.res_mode = #{query.mode}
         <if test="query.ids != null and query.ids.size > 0">
             AND T1.ID IN (

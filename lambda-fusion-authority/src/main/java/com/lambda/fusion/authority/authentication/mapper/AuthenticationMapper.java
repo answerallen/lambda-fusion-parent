@@ -1,6 +1,7 @@
 package com.lambda.fusion.authority.authentication.mapper;
 
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
+import com.lambda.fusion.authority.authentication.model.NavigationRoute;
 import com.lambda.fusion.authority.authentication.model.ResourceQuery;
 import com.lambda.fusion.authority.authentication.model.UserDetails;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
@@ -38,7 +39,7 @@ public interface AuthenticationMapper {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    List<ResourceTree> selectNavigation(@Param("query") NavigationQuery query);
+    List<NavigationRoute> selectNavigation(@Param("query") NavigationQuery query);
 
     /**
      * 根据查询条件获取简单资源列表

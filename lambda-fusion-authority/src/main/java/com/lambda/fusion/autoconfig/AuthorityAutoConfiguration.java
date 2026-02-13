@@ -4,7 +4,6 @@ import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECU
 
 import cn.dev33.satoken.listener.SaTokenListener;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.autoconfig.SecurityAutoConfiguration;
 import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
 import com.lambda.cloud.sse.listener.SseEventListener;
@@ -12,9 +11,6 @@ import com.lambda.fusion.authority.AuthorityConfigure;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.impl.InternalRoleServiceImpl;
 import com.lambda.fusion.authority.tenant.TenantProperties;
-import com.lambda.fusion.authority.tenant.cache.TenantConfigurationCache;
-import com.lambda.fusion.authority.tenant.cache.TenantConfigurationLocalCache;
-import com.lambda.fusion.authority.tenant.cache.TenantConfigurationRedisCache;
 import com.lambda.fusion.authority.tenant.cache.TenantHostCache;
 import com.lambda.fusion.authority.user.listenner.UserOnlineLogListener;
 import com.lambda.fusion.authority.user.listenner.UserSeeEventListener;
@@ -132,17 +128,5 @@ public class AuthorityAutoConfiguration {
         public TenantHostCache tenantHostCache(RedisTemplate<String, Object> redisTemplate) {
             return new TenantHostCache(redisTemplate);
         }
-
-        @Bean
-        public TenantConfigurationCache tenantConfigurationRedisCache(
-                RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper) {
-            return new TenantConfigurationRedisCache(redisTemplate, objectMapper);
-        }
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(TenantConfigurationCache.class)
-    public TenantConfigurationCache tenantConfigurationLocalCache() {
-        return new TenantConfigurationLocalCache();
     }
 }

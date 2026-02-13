@@ -62,6 +62,6 @@ public class Button {
         this.parentId = resourceTree.getParentId();
         this.rank = resourceTree.getResLevel();
         this.orderNo = resourceTree.getOrderNo();
-        this.hidden = BooleanUtils.toBoolean(resourceTree.isHidden());
+        this.hidden = BooleanUtils.toBoolean(resourceTree.getHidden());
     }
 }
