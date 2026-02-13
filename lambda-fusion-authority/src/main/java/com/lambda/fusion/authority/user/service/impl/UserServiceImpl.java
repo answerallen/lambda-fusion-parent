@@ -249,7 +249,10 @@ public class UserServiceImpl implements UserService {
         if (sseEmitterManager.getActiveClients().contains(username)) {
             return true;
         }
-        return Boolean.TRUE.equals(userOnlineLogService.isOnline(username, null));
+        if (Boolean.TRUE.equals(userOnlineLogService.isOnline(username, null))) {
+            userOnlineLogService.offline(username, null);
+        }
+        return false;
     }
 
     private Map<String, Map<String, Object>> buildUserPersonFieldMap(Set<String> usernames) {
