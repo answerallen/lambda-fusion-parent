@@ -91,7 +91,7 @@ public class DatabaseContextRefresher
     /**
      * 检查配置变更并应用刷新
      */
-    public void apply() {
+    public void refresh() {
         if (databaseBasedPropertySourceLocator.changed(environment)) {
             log.debug("Database config data has been changed! Ready to refresh context..");
             doRefresh();
@@ -123,7 +123,7 @@ public class DatabaseContextRefresher
     public void run(ApplicationArguments args) {
         log.info("DatabaseContextRefresher is starting up...");
         EXECUTOR_SERVICE.scheduleWithFixedDelay(
-                this::apply, INITIAL_DELAY_SECONDS, REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
+                this::refresh, INITIAL_DELAY_SECONDS, REFRESH_INTERVAL_SECONDS, TimeUnit.SECONDS);
         log.info(
                 "DatabaseContextRefresher scheduled with {}s initial delay and {}s interval",
                 INITIAL_DELAY_SECONDS,

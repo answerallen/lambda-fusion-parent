@@ -196,101 +196,22 @@ public interface ConfigService extends IService<ConfigEntity> {
      * </ul>
      *
      * @param updateDTO 批量更新参数，包含应用名称和配置更新项列表
-     * @return 更新是否成功，true表示全部更新成功，false表示存在更新失败的项
-     *
      * @see BatchUpdateConfig 批量更新参数说明
      * @since 1.0.0
      */
-    boolean batchUpdateConfigs(BatchUpdateConfig updateDTO);
+    void batchUpdateConfigs(BatchUpdateConfig updateDTO);
 
     /**
      * 更新配置及其选项
      *
      * <p>根据配置ID更新配置的基本信息和选项，支持增量更新，只更新提供的字段。
-     *
-     * <h3>功能特性：</h3>
-     * <ul>
-     * <li>支持增量更新，null字段不会更新</li>
-     * <li>配置选项全量替换策略</li>
-     * <li>自动记录操作日志</li>
-     * <li>事务保证数据一致性</li>
-     * </ul>
-     *
-     * <h3>更新内容：</h3>
-     * <ul>
-     * <li><strong>基本信息：</strong>配置键、值、名称、描述、类型</li>
-     * <li><strong>选项管理：</strong>删除原有选项并创建新选项</li>
-     * <li><strong>元数据：</strong>自动更新修改时间等信息</li>
-     * </ul>
-     *
-     * <h3>业务逻辑：</h3>
-     * <ol>
-     * <li>验证配置ID存在性</li>
-     * <li>增量更新配置基本信息</li>
-     * <li>如果提供了选项，删除原有选项并创建新选项</li>
-     * <li>记录操作日志</li>
-     * <li>返回更新后的完整配置实体</li>
-     * </ol>
-     *
-     * <h3>选项处理策略：</h3>
-     * <ul>
-     * <li>如果updateDTO.options不为null，执行全量替换</li>
-     * <li>如果updateDTO.options为null，保持原有选项不变</li>
-     * <li>如果updateDTO.options为空列表，删除所有选项</li>
-     * </ul>
-     *
-     * @param updateDTO 配置更新参数，支持增量更新，通过参数校验
-     * @return 更新后的完整配置实体，包含最新的选项信息
-     *
-     * @see UpdateConfig 更新参数详细说明
-     * @since 1.0.0
      */
-    ConfigEntity updateConfigWithOptions(UpdateConfig updateDTO);
+    void updateConfigWithOptions(UpdateConfig updateDTO);
 
     /**
      * 保存配置及其选项
      *
      * <p>创建新的系统配置项，支持同时保存配置基本信息和配置选项。
-     *
-     * <h3>功能特性：</h3>
-     * <ul>
-     * <li>配置键唯一性检查</li>
-     * <li>支持多个配置选项</li>
-     * <li>事务保证数据一致性</li>
-     * <li>自动记录操作日志</li>
-     * </ul>
-     *
-     * <h3>保存内容：</h3>
-     * <ul>
-     * <li><strong>基本信息：</strong>应用名称、配置键、值、名称、描述、类型</li>
-     * <li><strong>选项信息：</strong>配置的可选值和描述</li>
-     * <li><strong>元数据：</strong>创建时间、修改时间等系统字段</li>
-     * </ul>
-     *
-     * <h3>业务逻辑：</h3>
-     * <ol>
-     * <li>接收配置保存DTO参数</li>
-     * <li>校验配置键在应用内的唯一性</li>
-     * <li>保存配置基本信息</li>
-     * <li>如果存在选项则批量保存配置选项</li>
-     * <li>记录操作日志</li>
-     * <li>返回完整的配置实体</li>
-     * </ol>
-     *
-     * <h3>数据校验：</h3>
-     * <ul>
-     * <li>配置键在应用内必须唯一</li>
-     * <li>必填字段验证</li>
-     * <li>数据格式验证</li>
-     * <li>业务规则验证</li>
-     * </ul>
-     *
-     * <h3>异常情况：</h3>
-     * <ul>
-     * <li>配置键已存在：抛出业务异常</li>
-     * <li>参数校验失败：抛出参数异常</li>
-     * <li>保存操作失败：抛出数据异常</li>
-     * </ul>
      *
      * @param saveDTO 配置保存参数，包含配置基本信息和选项，必须通过参数校验
      * @return 保存后的完整配置实体，包含生成的ID和创建时间
@@ -298,5 +219,5 @@ public interface ConfigService extends IService<ConfigEntity> {
      * @see SaveConfig 保存参数详细说明
      * @since 1.0.0
      */
-    ConfigEntity saveConfigWithOptions(SaveConfig saveDTO);
+    void saveConfigWithOptions(SaveConfig saveDTO);
 }
