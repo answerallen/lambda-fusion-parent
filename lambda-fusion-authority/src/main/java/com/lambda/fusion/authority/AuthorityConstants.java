@@ -1,10 +1,9 @@
 package com.lambda.fusion.authority;
 
 import com.lambda.fusion.core.annotation.DictMapper;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
-import java.util.List;
 
 public interface AuthorityConstants {
 

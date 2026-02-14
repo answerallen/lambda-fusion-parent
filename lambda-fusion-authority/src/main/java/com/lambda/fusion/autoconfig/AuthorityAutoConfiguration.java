@@ -49,20 +49,20 @@ public class AuthorityAutoConfiguration {
         return new EntityMetaFiller() {
             @Override
             public void insertFill(MetaObjectHandler handler, MetaObject metaObject) {
-                handler.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
+                handler.strictInsertFill(metaObject, "createdAt", LocalDateTime.class, LocalDateTime.now());
                 handler.strictInsertFill(
                         metaObject,
-                        "createUser",
+                        "createdBy",
                         String.class,
                         LoginUserUtils.getLoginUser().getUsername());
             }
 
             @Override
             public void updateFill(MetaObjectHandler handler, MetaObject metaObject) {
-                handler.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+                handler.strictUpdateFill(metaObject, "updatedAt", LocalDateTime.class, LocalDateTime.now());
                 handler.strictUpdateFill(
                         metaObject,
-                        "updateUser",
+                        "updatedBy",
                         String.class,
                         LoginUserUtils.getLoginUser().getUsername());
             }
