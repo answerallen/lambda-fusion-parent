@@ -65,5 +65,7 @@
  - 绑定/解绑车辆、收货地址      
 -----------------------------
 
+cmd /c mklink /D "H:\java-project\lambda-fusion-parent\_lambda_cloud_parent" "H:\java-project\lamuda-cloud-parent"
+
 =======================================================
 
