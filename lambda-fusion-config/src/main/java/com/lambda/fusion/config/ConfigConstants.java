@@ -160,8 +160,7 @@ public interface ConfigConstants {
 
             STRING(3, "字符串"),
 
-            NUMBER(4, "数值类型"),
-            ;
+            NUMBER(4, "数值类型");
 
             private final Integer val;
             private final String key;

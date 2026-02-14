@@ -296,6 +296,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
                 ConfigOptionEntity optionEntity = new ConfigOptionEntity();
                 optionEntity.setApplication(application);
                 optionEntity.setPid(target.getId());
+                optionEntity.setName(optionDTO.getLabel());
                 optionEntity.setValue(optionDTO.getValue());
                 optionEntity.setDescription(optionDTO.getDescription());
                 configOptionMapper.insert(optionEntity);
