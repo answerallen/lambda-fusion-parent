@@ -66,4 +66,73 @@
         )
     </delete>
 
+    <delete id="deleteByKbId">
+        DELETE FROM ${tableName}
+        WHERE id IN (
+            SELECT id FROM ai_document_chunk WHERE kb_id = #{kbId}
+        )
+    </delete>
+
+    <insert id="insertVectorUnified">
+        INSERT INTO ai_vector_store
+        (id, vector_id, kb_id, document_id, chunk_id, content, metadata, embedding, dimension, created_at)
+        VALUES
+        (#{id}, #{vectorId}, #{kbId}, #{documentId}, #{chunkId}, #{content}, #{metadata}::jsonb, #{embedding, typeHandler=com.lambda.fusion.ai.handler.PgVectorHandler}, #{dimension}, CURRENT_TIMESTAMP)
+    </insert>
+
+    <insert id="batchInsertVectorsUnified">
+        INSERT INTO ai_vector_store
+        (id, vector_id, kb_id, document_id, chunk_id, content, metadata, embedding, dimension, created_at)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.vectorId}, #{kbId}, #{item.documentId}, #{item.chunkId}, #{item.content}, #{item.metadata}::jsonb, #{item.embedding, typeHandler=com.lambda.fusion.ai.handler.PgVectorHandler}, #{dimension}, CURRENT_TIMESTAMP)
+        </foreach>
+    </insert>
+
+    <select id="searchSimilarUnified" resultType="com.lambda.fusion.ai.model.VectorSearchResult">
+        SELECT
+            id,
+            vector_id,
+            content,
+            metadata,
+            (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.handler.PgVectorHandler})) as score,
+            (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.handler.PgVectorHandler}) as distance
+        FROM ai_vector_store
+        WHERE kb_id = #{kbId}
+          AND dimension = #{dimension}
+          AND (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.handler.PgVectorHandler})) > #{minScore}
+        ORDER BY score DESC
+        LIMIT #{topK}
+    </select>
+
+    <select id="searchKeywordUnified" resultType="com.lambda.fusion.ai.model.VectorSearchResult">
+        SELECT
+            id,
+            vector_id,
+            content,
+            metadata,
+            similarity(content, #{keyword}) as score,
+            (1 - similarity(content, #{keyword})) as distance
+        FROM ai_vector_store
+        WHERE kb_id = #{kbId}
+          AND content % #{keyword}
+        ORDER BY score DESC
+        LIMIT #{topK}
+    </select>
+
+    <delete id="deleteVectorUnified">
+        DELETE FROM ai_vector_store
+        WHERE vector_id = #{vectorId}
+    </delete>
+
+    <delete id="deleteByDocumentIdUnified">
+        DELETE FROM ai_vector_store
+        WHERE document_id = #{documentId}
+    </delete>
+
+    <delete id="deleteByKbIdUnified">
+        DELETE FROM ai_vector_store
+        WHERE kb_id = #{kbId}
+    </delete>
+
 </mapper>

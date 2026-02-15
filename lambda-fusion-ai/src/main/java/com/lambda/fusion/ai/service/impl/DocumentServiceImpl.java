@@ -8,6 +8,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.ConvertUtils;
+import com.lambda.cloud.oss.client.OssClient;
+import com.lambda.cloud.oss.manager.OssClientManager;
+import com.lambda.cloud.oss.model.UploadObjectResult;
 import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
@@ -32,9 +35,9 @@ import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -56,9 +59,12 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     private final VectorRepository vectorRepository;
     private final DocumentProcessor documentProcessor;
     private final TransactionTemplate transactionTemplate;
+    private OssClient ossClient;
 
-    @Value("${lambda.fusion.ai.document.base-path:/data/ai-documents}")
-    private String basePath;
+    @Autowired
+    public void setOssClient(OssClientManager ossClientManager){
+        this.ossClient = ossClientManager.get("zsk");
+    }
 
     @Value("${lambda.fusion.ai.document.max-file-size:10485760}")
     private Long maxFileSize;
@@ -97,17 +103,22 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         Assert.hasText(originalFilename, "文件名不能为空！");
 
         String fileExtension = FileUtil.extName(originalFilename);
-        String relativePath = kbId + "/" + IdUtil.fastSimpleUUID() + "." + fileExtension;
-        String fullPath = basePath + "/" + relativePath;
 
-        File destFile = new File(fullPath);
-        FileUtil.mkParentDirs(destFile);
+        String ossKey = "ai-documents/" + kbId + "/" + fileHash + "." + fileExtension;
 
+        File tempFile = null;
         try {
-            file.transferTo(destFile);
-            log.info("文件保存成功: {}", fullPath);
+            tempFile = File.createTempFile("upload-", "." + fileExtension);
+            file.transferTo(tempFile);
+
+            UploadObjectResult uploadResult = ossClient.upload(tempFile, ossKey);
+            log.info("文件上传到OSS成功: {}", uploadResult.getKey());
         } catch (IOException e) {
             throw new RuntimeException("文件保存失败", e);
+        } finally {
+            if (tempFile != null && tempFile.exists()) {
+                tempFile.delete();
+            }
         }
 
         DocumentEntity entity = new DocumentEntity();
@@ -117,9 +128,9 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         entity.setFileType(StrUtil.toUpperCase(fileExtension));
         entity.setFileSize(file.getSize());
         entity.setFileHash(fileHash);
-        entity.setStorageType("LOCAL");
-        entity.setStoragePath(relativePath);
-        entity.setStorageUrl(fullPath);
+        entity.setStorageType("OSS");
+        entity.setStoragePath(ossKey);
+        entity.setStorageUrl(ossKey);
         entity.setChunkCount(0);
         entity.setVectorCount(0);
         entity.setProcessStatus(DocumentStatus.PENDING.name());
@@ -166,8 +177,8 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(entity.getKbId());
 
         // 2. 删除向量数据
-        if (kb != null && kb.getVectorTableName() != null) {
-            vectorRepository.deleteByDocumentId(kb.getVectorTableName(), id);
+        if (kb != null) {
+            vectorRepository.deleteByDocumentIdUnified(id);
         }
 
         // 3. 删除文档块数据
@@ -177,12 +188,13 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         entity.setDeletedAt(LocalDateTime.now());
         documentMapper.updateById(entity);
 
-        // 5. 删除物理文件
-        if ("LOCAL".equals(entity.getStorageType())) {
-            File file = new File(entity.getStorageUrl());
-            if (file.exists()) {
-                FileUtil.del(file);
-                log.info("物理文件已删除: {}", entity.getStorageUrl());
+        // 5. 删除OSS文件
+        if ("OSS".equals(entity.getStorageType())) {
+            try {
+                ossClient.delete(entity.getStoragePath());
+                log.info("OSS文件已删除: {}", entity.getStoragePath());
+            } catch (Exception e) {
+                log.error("OSS文件删除失败: {}", entity.getStoragePath(), e);
             }
         }
     }
@@ -215,9 +227,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         if (kb == null) {
             throw AiBusinessException.knowledgeBaseNotFound(id);
         }
-        if (kb.getVectorTableName() != null) {
-            vectorRepository.deleteByDocumentId(kb.getVectorTableName(), id);
-        }
+        vectorRepository.deleteByDocumentIdUnified(id);
         documentChunkMapper.deleteByDocumentIds(Collections.singletonList(id));
         documentProcessor.processDocument(id);
     }

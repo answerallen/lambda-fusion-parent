@@ -815,4 +815,48 @@
         </sql>
     </changeSet>
 
+    <changeSet id="create-unified-vector-table" author="lambda-fusion">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_vector_store"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_vector_store">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="vector_id" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="kb_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="document_id" type="bigint"/>
+            <column name="chunk_id" type="bigint"/>
+            <column name="embedding" type="vector(1536)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dimension" type="integer">
+                <constraints nullable="false" defaultValue="1536"/>
+            </column>
+            <column name="content" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metadata" type="jsonb"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+        <createIndex tableName="ai_vector_store" indexName="idx_vector_kb_id">
+            <column name="kb_id"/>
+        </createIndex>
+        <createIndex tableName="ai_vector_store" indexName="idx_vector_embedding">
+            using ivfflat (embedding vector_cosine_ops) with (lists = 100)
+        </createIndex>
+        <createIndex tableName="ai_vector_store" indexName="idx_vector_content_trgm">
+            using gist (content gist_trgm_ops)
+        </createIndex>
+        <createIndex tableName="ai_vector_store" indexName="idx_vector_dimension">
+            <column name="dimension"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

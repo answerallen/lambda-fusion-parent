@@ -2,6 +2,8 @@ package com.lambda.fusion.ai.repository;
 
 import com.lambda.fusion.ai.model.VectorSearchResult;
 import java.util.List;
+
+import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
@@ -79,4 +81,43 @@ public interface VectorRepository {
      * 根据文档ID删除向量
      */
     void deleteByDocumentId(@Param("tableName") String tableName, @Param("documentId") Long documentId);
+
+    /**
+     * 根据知识库ID删除向量
+     */
+    void deleteByKbId(@Param("tableName") String tableName, @Param("kbId") Long kbId);
+
+    void insertVectorUnified(
+            @Param("id") Long id,
+            @Param("vectorId") String vectorId,
+            @Param("kbId") Long kbId,
+            @Param("documentId") Long documentId,
+            @Param("chunkId") Long chunkId,
+            @Param("content") String content,
+            @Param("metadata") String metadata,
+            @Param("embedding") List<Double> embedding,
+            @Param("dimension") Integer dimension);
+
+    List<VectorSearchResult> searchSimilarUnified(
+            @Param("kbId") Long kbId,
+            @Param("queryVector") List<Double> queryVector,
+            @Param("topK") Integer topK,
+            @Param("minScore") Double minScore,
+            @Param("dimension") Integer dimension);
+
+    List<VectorSearchResult> searchKeywordUnified(
+            @Param("kbId") Long kbId,
+            @Param("keyword") String keyword,
+            @Param("topK") Integer topK);
+
+    void deleteVectorUnified(@Param("vectorId") String vectorId);
+
+    void batchInsertVectorsUnified(
+            @Param("list") List<DocumentChunkEntity> documentChunkEntities,
+            @Param("kbId") Long kbId,
+            @Param("dimension") Integer dimension);
+
+    void deleteByDocumentIdUnified(@Param("documentId") Long documentId);
+
+    void deleteByKbIdUnified(@Param("kbId") Long kbId);
 }

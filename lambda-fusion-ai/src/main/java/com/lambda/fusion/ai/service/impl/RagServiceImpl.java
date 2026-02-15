@@ -57,7 +57,7 @@ public class RagServiceImpl implements RagService {
                 .map(Float::doubleValue)
                 .collect(Collectors.toList());
 
-        String tableName = kb.getVectorTableName();
+        Integer embeddingDimension = kb.getEmbeddingDimension();
         Integer limit = topK != null ? topK : (kb.getRetrievalTopK() != null ? kb.getRetrievalTopK() : 5);
         Double scoreThreshold = minScore != null
                 ? minScore
@@ -65,12 +65,11 @@ public class RagServiceImpl implements RagService {
                         ? kb.getSimilarityThreshold().doubleValue()
                         : 0.6);
 
-        // 双路搜寻: 向量搜索 + 关键词搜索
         List<VectorSearchResult> vectorResults =
-                vectorRepository.searchSimilar(tableName, queryVector, limit * 2, scoreThreshold);
-        List<VectorSearchResult> keywordResults = vectorRepository.searchKeyword(tableName, query, limit * 2);
+                vectorRepository.searchSimilarUnified(kbId, queryVector, limit * 2, scoreThreshold, embeddingDimension);
+        List<VectorSearchResult> keywordResults =
+                vectorRepository.searchKeywordUnified(kbId, query, limit * 2);
 
-        // 使用RRF算法进行结果融合
         return reciprocalRankFusion(vectorResults, keywordResults, limit);
     }
 

@@ -2,15 +2,19 @@ package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
+import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBaseQuery;
 import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
+import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
+import com.lambda.fusion.ai.repository.VectorRepository;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
-import com.lambda.fusion.ai.support.resolver.VectorTableNameResolver;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,7 +38,9 @@ public class KnowledgeBaseServiceImpl
         implements KnowledgeBaseService {
 
     private final KnowledgeBaseMapper knowledgeBaseMapper;
-    private final VectorTableNameResolver vectorTableNameResolver;
+    private final DocumentMapper documentMapper;
+    private final DocumentChunkMapper documentChunkMapper;
+    private final VectorRepository vectorRepository;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -48,10 +54,6 @@ public class KnowledgeBaseServiceImpl
         // 生成kbId(UUID)
         entity.setKbId(IdUtil.fastSimpleUUID());
 
-        // 根据embedding_dimension确定vector_table_name
-        String vectorTableName = vectorTableNameResolver.resolve(dto.getEmbeddingDimension());
-        entity.setVectorTableName(vectorTableName);
-
         // 设置默认值
         entity.setStatus("ACTIVE");
         entity.setDocumentCount(0);
@@ -64,8 +66,7 @@ public class KnowledgeBaseServiceImpl
 
         log.info("知识库创建成功, kbId: {}, id: {}", entity.getKbId(), entity.getId());
 
-        // 转换为VO返回
-        return entityToVO(entity);
+        return ConvertUtils.convert(entity);
     }
 
     @Override
@@ -96,7 +97,19 @@ public class KnowledgeBaseServiceImpl
             throw AiBusinessException.knowledgeBaseNotFound(id);
         }
 
-        // 软删除
+        List<DocumentEntity> documents = documentMapper.listByKbId(id, null);
+        if (!documents.isEmpty()) {
+            List<Long> documentIds = documents.stream()
+                    .map(DocumentEntity::getId)
+                    .collect(Collectors.toList());
+
+            vectorRepository.deleteByKbIdUnified(id);
+
+            documentChunkMapper.deleteByDocumentIds(documentIds);
+
+            documentMapper.deleteByKbIdBatch(List.of(id));
+        }
+
         entity.setStatus("DELETED");
         entity.setDeletedAt(LocalDateTime.now());
         knowledgeBaseMapper.updateById(entity);
@@ -110,7 +123,7 @@ public class KnowledgeBaseServiceImpl
 
         List<KnowledgeBaseEntity> entities = knowledgeBaseMapper.listByTenantId(tenantId, status);
 
-        return entities.stream().map(this::entityToVO).collect(Collectors.toList());
+        return ConvertUtils.convertList(entities);
     }
 
     @Override

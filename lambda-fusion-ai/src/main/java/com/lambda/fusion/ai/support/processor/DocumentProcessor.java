@@ -11,21 +11,24 @@ import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.repository.VectorRepository;
 import com.lambda.fusion.autoconfig.AiProperties;
+import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
+import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 文档处理管道
@@ -33,6 +36,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * @author Jin
  */
+@SuppressWarnings("all")
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -46,7 +50,7 @@ public class DocumentProcessor {
     private final AiProperties aiProperties;
     private final TransactionTemplate transactionTemplate;
 
-    @Async
+    @Async("documentProcessExecutor")
     public void processDocument(Long documentId) {
         log.info("开始处理文档: {}", documentId);
         DocumentEntity doc = documentMapper.selectById(documentId);
@@ -68,7 +72,7 @@ public class DocumentProcessor {
 
             // 3. 获取知识库配置
             KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(doc.getKbId());
-            String vectorTableName = kb.getVectorTableName();
+            Integer embeddingDimension = kb.getEmbeddingDimension();
 
             // 4. 文档切分 - 使用配置验证
             int chunkSize = aiProperties.getDocumentChunk().getValidatedChunkSize(kb.getChunkSize());
@@ -78,7 +82,7 @@ public class DocumentProcessor {
             log.info("使用配置进行文档切分 - ChunkSize: {}, ChunkOverlap: {}", chunkSize, chunkOverlap);
 
             DocumentSplitter splitter = DocumentSplitters.recursive(chunkSize, chunkOverlap);
-            List<TextSegment> segments = splitter.split(dev.langchain4j.data.document.Document.from(content));
+            List<TextSegment> segments = splitter.split(Document.from(content));
             updateStatus(doc, DocumentStatus.PROCESSING, 40, "文档切分完成: " + segments.size() + "块");
 
             // 5. 批量处理向量和分片
@@ -123,7 +127,7 @@ public class DocumentProcessor {
 
                 transactionTemplate.execute(status -> {
                     documentChunkMapper.batchInsert(chunkEntities);
-                    vectorRepository.batchInsertVectors(vectorTableName, chunkEntities);
+                    vectorRepository.batchInsertVectorsUnified(chunkEntities, kb.getId(), embeddingDimension);
                     return null;
                 });
             }
@@ -139,7 +143,7 @@ public class DocumentProcessor {
             log.info("文档处理完成: {}", documentId);
 
         } catch (Exception e) {
-            log.error("文档处理失败: " + e.getMessage(), e);
+            log.error("文档处理失败: {}", e.getMessage(), e);
             updateStatus(doc, DocumentStatus.FAILED, 0, e.getMessage());
         }
     }
@@ -150,8 +154,7 @@ public class DocumentProcessor {
             if (!file.exists()) {
                 throw new RuntimeException("文件不存在: " + doc.getStorageUrl());
             }
-            dev.langchain4j.data.document.Document document =
-                    dev.langchain4j.data.document.loader.FileSystemDocumentLoader.loadDocument(file.toPath());
+            Document document = FileSystemDocumentLoader.loadDocument(file.toPath());
             return document.text();
         }
         throw new UnsupportedOperationException("暂不支持的存储类型: " + doc.getStorageType());

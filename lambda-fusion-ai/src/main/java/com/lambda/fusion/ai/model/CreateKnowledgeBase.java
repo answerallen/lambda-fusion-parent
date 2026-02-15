@@ -16,7 +16,7 @@ import lombok.Data;
 public class CreateKnowledgeBase {
 
     @NotBlank(message = "知识库名称不能为空")
-    @Schema(description = "知识库名称", required = true)
+    @Schema(description = "知识库名称")
     private String name;
 
     @Schema(description = "知识库描述")
@@ -26,19 +26,19 @@ public class CreateKnowledgeBase {
     private String category;
 
     @NotNull(message = "租户ID不能为空")
-    @Schema(description = "租户ID", required = true)
+    @Schema(description = "租户ID")
     private Long tenantId;
 
     @NotNull(message = "创建者ID不能为空")
-    @Schema(description = "创建者ID", required = true)
+    @Schema(description = "创建者ID")
     private Long ownerUserId;
 
     @NotBlank(message = "Embedding模型不能为空")
-    @Schema(description = "Embedding模型", example = "text-embedding-ada-002", required = true)
+    @Schema(description = "Embedding模型", example = "text-embedding-ada-002")
     private String embeddingModel;
 
     @NotNull(message = "向量维度不能为空")
-    @Schema(description = "向量维度", example = "1536", required = true)
+    @Schema(description = "向量维度", example = "1536")
     private Integer embeddingDimension;
 
     @Schema(description = "文本块大小", example = "500")
