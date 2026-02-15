@@ -5,17 +5,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
-import com.lambda.fusion.datasource.JdbcConfig;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.model.*;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 远程数据源服务Server端实现
@@ -320,28 +320,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         }
 
         try {
-            var config = new JdbcConfig() {
-                @Override
-                public String getJdbcUrl() {
-                    return remoteDataSource.getJdbcUrl();
-                }
-
-                @Override
-                public String getUsername() {
-                    return remoteDataSource.getUsername();
-                }
-
-                @Override
-                public String getPassword() {
-                    return remoteDataSource.getPassword();
-                }
-
-                @Override
-                public String getDriverClassName() {
-                    return remoteDataSource.getDriverClassName();
-                }
-            };
-            input.setConfiguration(objectMapper.writeValueAsString(config));
+            input.setConfiguration(objectMapper.writeValueAsString(remoteDataSource));
         } catch (Exception e) {
             log.error("Failed to serialize tenant configuration", e);
         }
