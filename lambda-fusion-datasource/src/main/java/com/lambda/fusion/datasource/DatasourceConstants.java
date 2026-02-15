@@ -3,7 +3,7 @@ package com.lambda.fusion.datasource;
 /**
  * 数据源常量定义
  */
-public interface DatasourceConstant {
+public interface DatasourceConstants {
 
     /**
      * 配置前缀

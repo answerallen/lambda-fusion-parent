@@ -1,6 +1,6 @@
 package com.lambda.fusion.autoconfig;
 
-import com.lambda.fusion.datasource.DatasourceConstant;
+import com.lambda.fusion.datasource.DatasourceConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @SuppressFBWarnings("EI_EXPOSE_REP")
 @Data
-@ConfigurationProperties(prefix = DatasourceConstant.PREFIX)
+@ConfigurationProperties(prefix = DatasourceConstants.PREFIX)
 public class DatasourceProperties {
 
     /**
@@ -19,7 +19,7 @@ public class DatasourceProperties {
      * server: 服务端模式，读取本地数据库，对外提供数据源信息
      * client: 客户端模式，远程订阅数据源信息
      */
-    private String mode = DatasourceConstant.DEFAULT_MODE;
+    private String mode = DatasourceConstants.DEFAULT_MODE;
 
     /**
      * Dubbo 相关配置
@@ -31,11 +31,11 @@ public class DatasourceProperties {
         /**
          * 服务分组
          */
-        private String group = DatasourceConstant.DUBBO_GROUP;
+        private String group = DatasourceConstants.DUBBO_GROUP;
 
         /**
          * 服务版本
          */
-        private String version = DatasourceConstant.DUBBO_VERSION;
+        private String version = DatasourceConstants.DUBBO_VERSION;
     }
 }

@@ -3,7 +3,7 @@ package com.lambda.fusion.autoconfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.fusion.datasource.DatasourceConfigure;
-import com.lambda.fusion.datasource.DatasourceConstant;
+import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
 import com.lambda.fusion.datasource.client.ClientDataSourceInitializer;
@@ -39,8 +39,8 @@ public class DatasourceAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(
-            name = DatasourceConstant.MODE_PROPERTY,
-            havingValue = DatasourceConstant.MODE_SERVER,
+            name = DatasourceConstants.MODE_PROPERTY,
+            havingValue = DatasourceConstants.MODE_SERVER,
             matchIfMissing = true)
     public RemoteDataSourceService remoteDataSourceService(
             DataSourceManageService dataSourceManageService,
@@ -53,8 +53,8 @@ public class DatasourceAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(
-            name = DatasourceConstant.MODE_PROPERTY,
-            havingValue = DatasourceConstant.MODE_SERVER,
+            name = DatasourceConstants.MODE_PROPERTY,
+            havingValue = DatasourceConstants.MODE_SERVER,
             matchIfMissing = true)
     public ServiceBean<RemoteDataSourceService> remoteDataSourceServiceBean(
             RemoteDataSourceService remoteDataSourceService,
@@ -70,8 +70,8 @@ public class DatasourceAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(
-            name = DatasourceConstant.MODE_PROPERTY,
-            havingValue = DatasourceConstant.MODE_SERVER,
+            name = DatasourceConstants.MODE_PROPERTY,
+            havingValue = DatasourceConstants.MODE_SERVER,
             matchIfMissing = true)
     public ServerDataSourceInitializer serverDataSourceInitializer(
             DataSourceMapper dataSourceMapper,
@@ -80,13 +80,13 @@ public class DatasourceAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(name = DatasourceConstant.MODE_PROPERTY, havingValue = DatasourceConstant.MODE_CLIENT)
+    @ConditionalOnProperty(name = DatasourceConstants.MODE_PROPERTY, havingValue = DatasourceConstants.MODE_CLIENT)
     public DataSourceChangeListenerImpl dataSourceChangeListener(DynamicDataSourceService dynamicDataSourceService) {
         return new DataSourceChangeListenerImpl(dynamicDataSourceService);
     }
 
     @Bean
-    @ConditionalOnProperty(name = DatasourceConstant.MODE_PROPERTY, havingValue = DatasourceConstant.MODE_CLIENT)
+    @ConditionalOnProperty(name = DatasourceConstants.MODE_PROPERTY, havingValue = DatasourceConstants.MODE_CLIENT)
     public ClientDataSourceInitializer clientDataSourceInitializer(
             DynamicDataSourceService dynamicDataSourceService, DataSourceChangeListenerImpl dataSourceChangeListener) {
         return new ClientDataSourceInitializer(dynamicDataSourceService, dataSourceChangeListener);
