@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.service.impl;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.ChatMessageMapper;
@@ -25,7 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 消息服务实现类
@@ -42,6 +42,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     private final ChatSessionMapper chatSessionMapper;
     private final RagService ragService;
     private final AtomicSessionUpdateService atomicSessionUpdateService;
+    private final SseEmitterManager sseEmitterManager;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -81,24 +82,15 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     }
 
     @Override
-    public void sendMessageStream(Long sessionId, SendMessage dto, SseEmitter emitter) {
+    public void sendMessageStream(Long sessionId, SendMessage dto) {
         ChatSessionEntity session = chatSessionMapper.selectById(sessionId);
         if (session == null) {
             throw AiBusinessException.sessionNotFound(sessionId);
         }
 
-        // 1. 设置 SSE 回调
-        emitter.onTimeout(() -> {
-            log.warn("SSE 会话超时: {}", sessionId);
-            emitter.complete();
-        });
-        emitter.onError(e -> {
-            log.error("SSE 会话异常: {}", sessionId, e);
-            emitter.complete();
-        });
+        String clientId = "chat_" + sessionId;
 
         try {
-            // 2. 预先保存用户消息
             ChatMessageEntity userMsg = new ChatMessageEntity();
             userMsg.setMessageId(IdUtil.fastSimpleUUID());
             userMsg.setSessionId(sessionId);
@@ -112,7 +104,6 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
             StringBuilder fullAnswer = new StringBuilder();
 
-            // 3. 开始流式推送
             ragService.streamChat(
                     dto.getContent(),
                     session.getKbId(),
@@ -121,73 +112,49 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                     new StreamingChatResponseHandler() {
                         @Override
                         public void onPartialResponse(String token) {
-                            try {
-                                emitter.send(SseEmitter.event().data(token));
-                                fullAnswer.append(token);
-                            } catch (Exception e) {
-                                log.error("SSE 推送 Token 失败", e);
-                            }
+                            sseEmitterManager.sendEvent(clientId, "message", token);
+                            fullAnswer.append(token);
                         }
 
                         @Override
                         public void onCompleteResponse(ChatResponse response) {
-                            try {
-                                // 获取最终答案
-                                String finalContent = fullAnswer.toString();
+                            String finalContent = fullAnswer.toString();
 
-                                // 记录 AI 回复
-                                ChatMessageEntity aiMsg = new ChatMessageEntity();
-                                aiMsg.setMessageId(IdUtil.fastSimpleUUID());
-                                aiMsg.setSessionId(sessionId);
-                                aiMsg.setRole("assistant");
-                                aiMsg.setContent(finalContent);
-                                aiMsg.setIsRagEnhanced(true);
-                                aiMsg.setRetrievedChunks(JSONUtil.toJsonStr(retrievedChunks));
+                            ChatMessageEntity aiMsg = new ChatMessageEntity();
+                            aiMsg.setMessageId(IdUtil.fastSimpleUUID());
+                            aiMsg.setSessionId(sessionId);
+                            aiMsg.setRole("assistant");
+                            aiMsg.setContent(finalContent);
+                            aiMsg.setIsRagEnhanced(true);
+                            aiMsg.setRetrievedChunks(JSONUtil.toJsonStr(retrievedChunks));
 
-                                int promptTokens = response.tokenUsage() != null
-                                        ? response.tokenUsage().inputTokenCount()
-                                        : 0;
-                                int completionTokens = response.tokenUsage() != null
-                                        ? response.tokenUsage().outputTokenCount()
-                                        : 0;
-                                aiMsg.setPromptTokens(promptTokens);
-                                aiMsg.setCompletionTokens(completionTokens);
-                                aiMsg.setTotalTokens(promptTokens + completionTokens);
+                            int promptTokens = response.tokenUsage() != null
+                                    ? response.tokenUsage().inputTokenCount()
+                                    : 0;
+                            int completionTokens = response.tokenUsage() != null
+                                    ? response.tokenUsage().outputTokenCount()
+                                    : 0;
+                            aiMsg.setPromptTokens(promptTokens);
+                            aiMsg.setCompletionTokens(completionTokens);
+                            aiMsg.setTotalTokens(promptTokens + completionTokens);
 
-                                chatMessageMapper.insert(aiMsg);
+                            chatMessageMapper.insert(aiMsg);
 
-                                // 使用原子操作更新会话统计
-                                // 这可以防止并发访问时的竞态条件
-                                atomicSessionUpdateService.updateSessionStatistics(
-                                        sessionId, 2, aiMsg.getTotalTokens());
+                            atomicSessionUpdateService.updateSessionStatistics(
+                                    sessionId, 2, aiMsg.getTotalTokens());
 
-                                emitter.send(SseEmitter.event().name("finish").data(aiMsg.getMessageId()));
-                                emitter.complete();
-                            } catch (Exception e) {
-                                log.error("流式响应结算异常", e);
-                                emitter.completeWithError(e);
-                            }
+                            sseEmitterManager.sendEvent(clientId, "finish", aiMsg.getMessageId());
                         }
 
                         @Override
                         public void onError(Throwable error) {
                             log.error("RAG 推理异常", error);
-                            try {
-                                emitter.send(SseEmitter.event().name("error").data(error.getMessage()));
-                                emitter.complete();
-                            } catch (Exception e) {
-                                log.error("SSE 异常通知发送失败", e);
-                            }
+                            sseEmitterManager.sendEvent(clientId, "error", error.getMessage());
                         }
                     });
         } catch (Exception e) {
             log.error("流式消息发送失败", e);
-            try {
-                emitter.send(SseEmitter.event().name("error").data(e.getMessage()));
-            } catch (Exception ignored) {
-                // 忽略发送错误消息时的异常
-            }
-            emitter.completeWithError(e);
+            sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
             throw new AiBusinessException(AiErrorCode.MESSAGE_SEND_FAILED, e);
         }
     }

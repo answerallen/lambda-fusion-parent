@@ -34,7 +34,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -53,6 +55,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final VectorRepository vectorRepository;
     private final DocumentProcessor documentProcessor;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${lambda.fusion.ai.document.base-path:/data/ai-documents}")
     private String basePath;
@@ -61,11 +64,9 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     private Long maxFileSize;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public Document uploadDocument(Long kbId, MultipartFile file, Long uploadedBy) {
         log.info("上传文档到知识库: kbId={}, fileName={}", kbId, file.getOriginalFilename());
 
-        // 验证输入参数
         if (kbId == null) {
             throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
         }
@@ -125,11 +126,12 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         entity.setProcessProgress(0);
         entity.setUploadedBy(uploadedBy);
 
-        documentMapper.insert(entity);
+        transactionTemplate.execute(status -> {
+            documentMapper.insert(entity);
+            log.info("文档上传成功, documentId={}, id={}", entity.getDocumentId(), entity.getId());
+            return entity;
+        });
 
-        log.info("文档上传成功, documentId={}, id={}", entity.getDocumentId(), entity.getId());
-
-        // 触发异步处理
         documentProcessor.processDocument(entity.getId());
 
         return toVO(entity);

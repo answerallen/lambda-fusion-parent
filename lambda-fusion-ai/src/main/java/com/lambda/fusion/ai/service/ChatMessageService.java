@@ -9,8 +9,7 @@ import java.util.List;
 public interface ChatMessageService extends IService<ChatMessageEntity> {
     ChatMessage sendMessage(Long sessionId, SendMessage dto);
 
-    void sendMessageStream(
-            Long sessionId, SendMessage dto, org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter);
+    void sendMessageStream(Long sessionId, SendMessage dto);
 
     List<ChatMessage> listMessages(Long sessionId, Integer limit);
 

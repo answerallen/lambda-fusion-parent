@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 文档处理管道
@@ -44,9 +44,9 @@ public class DocumentProcessor {
     private final VectorRepository vectorRepository;
     private final EmbeddingModel embeddingModel;
     private final AiProperties aiProperties;
+    private final TransactionTemplate transactionTemplate;
 
     @Async
-    @Transactional(rollbackFor = Exception.class)
     public void processDocument(Long documentId) {
         log.info("开始处理文档: {}", documentId);
         DocumentEntity doc = documentMapper.selectById(documentId);
@@ -121,11 +121,11 @@ public class DocumentProcessor {
             if (!chunkEntities.isEmpty()) {
                 log.info("执行批量存储: {} chunks", chunkEntities.size());
 
-                // 存储到关系数据库(ai_document_chunk) - 使用自定义batchInsert
-                documentChunkMapper.batchInsert(chunkEntities);
-
-                // 存储到动态向量表(ai_vector_store_XXX)
-                vectorRepository.batchInsertVectors(vectorTableName, chunkEntities);
+                transactionTemplate.execute(status -> {
+                    documentChunkMapper.batchInsert(chunkEntities);
+                    vectorRepository.batchInsertVectors(vectorTableName, chunkEntities);
+                    return null;
+                });
             }
 
             // 7. 更新文档统计信息和最终状态

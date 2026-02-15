@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.controller;
 
+import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.ai.model.ChatMessage;
 import com.lambda.fusion.ai.model.SendMessage;
 import com.lambda.fusion.ai.service.ChatMessageService;
@@ -18,6 +19,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class ChatMessageController {
 
     private final ChatMessageService chatMessageService;
+    private final SseEmitterManager sseEmitterManager;
 
     @PostMapping
     @Operation(summary = "发送消息")
@@ -25,13 +27,18 @@ public class ChatMessageController {
         return chatMessageService.sendMessage(sessionId, sendMessage);
     }
 
-    @PostMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式发送消息")
-    public SseEmitter streamSend(@PathVariable Long sessionId, @Valid @RequestBody SendMessage sendMessage) {
-        org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter =
-                new org.springframework.web.servlet.mvc.method.annotation.SseEmitter(0L);
-        chatMessageService.sendMessageStream(sessionId, sendMessage, emitter);
+    public SseEmitter streamSend(@PathVariable Long sessionId) {
+        String clientId = "chat_" + sessionId;
+        SseEmitter emitter = sseEmitterManager.createEmitter(clientId);
         return emitter;
+    }
+
+    @PostMapping(value = "/stream")
+    @Operation(summary = "发起流式对话")
+    public void startStreamChat(@PathVariable Long sessionId, @Valid @RequestBody SendMessage sendMessage) {
+        chatMessageService.sendMessageStream(sessionId, sendMessage);
     }
 
     @GetMapping
