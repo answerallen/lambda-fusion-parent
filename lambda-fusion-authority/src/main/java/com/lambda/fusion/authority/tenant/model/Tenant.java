@@ -1,5 +1,7 @@
 package com.lambda.fusion.authority.tenant.model;
 
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.shared.BaseDTO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
@@ -10,10 +12,11 @@ import lombok.Data;
 /**
  * 租户信息表
  */
+@AutoConverter(target = Tenant.class)
 @Data
 @Schema(description = "租户信息表")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class Tenant {
+public class Tenant extends BaseDTO<TenantEntity> {
 
     /**
      * 租户编码

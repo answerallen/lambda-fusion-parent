@@ -3,6 +3,7 @@ package com.lambda.fusion.authority.tenant.model;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lambda.fusion.core.entity.BaseEntity;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
@@ -11,16 +12,18 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.apache.commons.lang.StringUtils;
 
 /**
  * 租户信息表
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("la_tenant")
 @Schema(description = "租户信息表")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class TenantEntity {
+public class TenantEntity extends BaseEntity {
 
     /**
      * 租户ID
@@ -84,18 +87,6 @@ public class TenantEntity {
     @TableField("LEGAL_PERSON")
     private String legalPerson;
     /**
-     * 经度
-     */
-    @Schema(description = "经度")
-    @TableField("LONGITUDE")
-    private BigDecimal longitude;
-    /**
-     * 维度
-     */
-    @Schema(description = "维度")
-    @TableField("LATITUDE")
-    private BigDecimal latitude;
-    /**
      * ICP备案号
      */
     @Schema(description = "ICP备案号")
@@ -108,53 +99,11 @@ public class TenantEntity {
     @TableField("NETWORK_PUT_ON_RECORD")
     private String networkPutOnRecord;
     /**
-     * 省级编码
-     */
-    @Schema(description = "省级编码")
-    @TableField("PROVINCE")
-    private String province;
-    /**
-     * 市级编码
-     */
-    @Schema(description = "市级编码")
-    @TableField("CITY")
-    private String city;
-    /**
-     * 行政区编码
-     */
-    @Schema(description = "行政区编码")
-    @TableField("DISTRICT")
-    private String district;
-    /**
      * 是否启用，未启用:0,已启用:1
      */
     @Schema(description = "是否启用，未启用:0,已启用:1, 已停用:99")
     @TableField("ENABLED")
     private Integer enabled;
-    /**
-     * 创建人
-     */
-    @Schema(description = "创建人")
-    @TableField("CREATED_BY")
-    private String createdBy;
-    /**
-     * 创建时间
-     */
-    @Schema(description = "创建时间")
-    @TableField("CREATED_AT")
-    private Date createAt;
-    /**
-     * 最后修改人
-     */
-    @Schema(description = "最后修改人")
-    @TableField("UPDATED_BY")
-    private String updatedBy;
-    /**
-     * 最后修改时间
-     */
-    @Schema(description = "最后修改时间")
-    @TableField("UPDATED_AT")
-    private Date updatedAt;
 
     /**
      * 审核状态，未审核:0,审核通过:1
@@ -180,16 +129,9 @@ public class TenantEntity {
     /**
      * 地区
      */
-    @Schema(description = "地区")
-    @TableField("PREFECTURE")
-    private String prefecture;
-
-    /**
-     * 地区
-     */
-    @Schema(description = "地区")
-    @TableField(exist = false)
-    private List<String> prefectureList;
+    @Schema(description = "区域编码")
+    @TableField("area_code")
+    private String areaCode;
 
     /**
      * 租户配置
@@ -198,10 +140,4 @@ public class TenantEntity {
     @TableField("CONFIG")
     private String config;
 
-    public List<String> getPrefectureList() {
-        if (StringUtils.isNotBlank(this.prefecture)) {
-            return Arrays.asList(this.prefecture.split(","));
-        }
-        return Collections.emptyList();
-    }
 }

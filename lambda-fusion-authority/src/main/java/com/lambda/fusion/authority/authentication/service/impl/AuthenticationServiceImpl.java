@@ -184,8 +184,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public AuthenticatedUser getUserInfo() {
-        LoginUser operator = OperatorUtils.getOperator();
-        UserDetails userDetails = authenticationMapper.selectUserDetailByUsername(operator.getName());
+        LoginUser loginUser = LoginUserUtils.getLoginUser();
+        UserDetails userDetails = authenticationMapper.selectUserDetailByUsername(loginUser.getName());
         if (userDetails == null) {
             throw new UsernameNotFoundException("user not found");
         }
@@ -202,7 +202,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             user.setRoles(new ArrayList<>());
         }
 
-        UserInfoEntity userInfoEntity = userInfoMapper.selectById(operator.getName());
+        UserInfoEntity userInfoEntity = userInfoMapper.selectById(loginUser.getName());
         if (userInfoEntity != null) {
             user.setAvatar(userInfoEntity.getAvatar());
             user.setDesc(userInfoEntity.getRemark());

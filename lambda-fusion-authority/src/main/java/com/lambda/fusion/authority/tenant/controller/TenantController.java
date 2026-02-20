@@ -112,9 +112,6 @@ public class TenantController {
         String tenantId = operator.getTenantId();
         target.setOwner(tenantId);
         target.setTenantId(id);
-        if (CollectionUtils.isNotEmpty(entity.getPrefectureList())) {
-            target.setPrefecture(StringUtils.join(entity.getPrefectureList(), ","));
-        }
         if (tenantLogo != null) {
             log.info("file: {}", tenantLogo);
         }
@@ -127,17 +124,12 @@ public class TenantController {
     public TenantEntity update(
             MultipartFile tenantLogo,
             @Parameter(description = "租户信息编号", required = true) @PathVariable String id,
-            @Parameter(description = "租户信息信息", required = true) @RequestBody Tenant entity) {
+            @Parameter(description = "租户信息信息", required = true) @RequestBody Tenant tenant) {
         LoginUser operator = OperatorUtils.getOperator();
         TenantEntity target = new TenantEntity();
-        BeanUtils.copyProperties(entity, target);
+        BeanUtils.copyProperties(tenant, target);
         target.setTenantId(id);
         target.setUpdatedBy(operator.getName());
-        if (CollectionUtils.isNotEmpty(entity.getPrefectureList())) {
-            target.setPrefecture(StringUtils.join(entity.getPrefectureList(), ","));
-        } else {
-            target.setPrefecture("");
-        }
         if (tenantLogo != null) {
             log.info("file: {}", tenantLogo);
         }
