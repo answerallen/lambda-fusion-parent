@@ -25,6 +25,7 @@ public class Role extends SimpleRole {
     private boolean builtIn = false;
 
     private String owner;
+
     private String tenantId;
 
     @Schema(description = "角色类型:功能角色为0，数据角色为1", allowableValues = "0,1")

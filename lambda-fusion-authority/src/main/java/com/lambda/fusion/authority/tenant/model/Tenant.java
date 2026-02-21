@@ -4,10 +4,9 @@ import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
 import lombok.Data;
+
+import java.util.Date;
 
 /**
  * 租户信息表
@@ -65,16 +64,6 @@ public class Tenant extends BaseDTO<TenantEntity> {
     @Schema(description = "法人")
     private String legalPerson;
     /**
-     * 经度
-     */
-    @Schema(description = "经度")
-    private BigDecimal longitude;
-    /**
-     * 维度
-     */
-    @Schema(description = "维度")
-    private BigDecimal latitude;
-    /**
      * ICP备案号
      */
     @Schema(description = "ICP备案号")
@@ -85,40 +74,25 @@ public class Tenant extends BaseDTO<TenantEntity> {
     @Schema(description = "联网备案号")
     private String networkPutOnRecord;
     /**
-     * 省级编码
-     */
-    @Schema(description = "省级编码")
-    private String province;
-    /**
-     * 市级编码
-     */
-    @Schema(description = "市级编码")
-    private String city;
-    /**
-     * 行政区编码
-     */
-    @Schema(description = "行政区编码")
-    private String district;
-    /**
      * 创建人
      */
     @Schema(description = "创建人")
-    private String createdByy;
+    private String createdBy;
     /**
      * 创建时间
      */
     @Schema(description = "创建时间")
-    private Date createTime;
+    private Date createdAt;
     /**
      * 最后修改人
      */
     @Schema(description = "最后修改人")
-    private String lastUpdateBy;
+    private String updatedBy;
     /**
      * 最后修改时间
      */
     @Schema(description = "最后修改时间")
-    private Date lastUpdateTime;
+    private Date updatedAt;
 
     /**
      * 拥有者
@@ -135,12 +109,6 @@ public class Tenant extends BaseDTO<TenantEntity> {
     /**
      * 地区
      */
-    @Schema(description = "地区")
-    private String prefecture;
-
-    /**
-     * 地区
-     */
-    @Schema(description = "地区")
-    private List<String> prefectureList;
+    @Schema(description = "区域编码")
+    private String areaCode;
 }
