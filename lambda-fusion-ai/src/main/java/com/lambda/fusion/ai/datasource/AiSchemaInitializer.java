@@ -1,7 +1,8 @@
 package com.lambda.fusion.ai.datasource;
 
 import com.lambda.fusion.autoconfig.AiProperties;
-import com.lambda.fusion.datasource.util.DataSourceSwitcher;
+import com.lambda.fusion.datasource.api.DataSourceSwitcher;
+import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import liquibase.integration.spring.SpringLiquibase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +25,7 @@ import javax.sql.DataSource;
  * <pre>
  * // 初始化租户 Schema
  * try {
- *     aiSchemaInitializer.initializeTenantSchema("1001", dataSource);
+ *     aiSchemaInitializer.initializeSchema("1001", dataSource);
  *     log.info("Tenant schema initialized successfully");
  * } catch (Exception e) {
  *     log.error("Failed to initialize tenant schema", e);
@@ -35,7 +36,7 @@ import javax.sql.DataSource;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AiSchemaInitializer {
+public class AiSchemaInitializer implements TenantSchemaInitializer {
     
     private final AiProperties aiProperties;
     private final AiTenantDataSourceHelper tenantDataSourceHelper;
@@ -46,7 +47,8 @@ public class AiSchemaInitializer {
      * @param tenantId 租户ID
      * @param dataSource 租户数据源
      */
-    public void initializeTenantSchema(String tenantId, DataSource dataSource) {
+    @Override
+    public void initializeSchema(String tenantId, DataSource dataSource) {
         log.info("Initializing schema for tenant: {}", tenantId);
         
         try {
