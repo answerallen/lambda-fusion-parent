@@ -2,8 +2,6 @@ package com.lambda.fusion.ai.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.ai.exception.AiBusinessException;
-import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBaseQuery;
@@ -13,9 +11,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 知识库管理Controller
@@ -55,16 +54,7 @@ public class KnowledgeBaseController {
     @GetMapping("/{id}")
     @Operation(summary = "查询知识库详情", description = "根据ID查询知识库详细信息")
     public KnowledgeBase getById(@Parameter(description = "知识库ID", required = true) @PathVariable Long id) {
-        KnowledgeBase kb = knowledgeBaseService.getKnowledgeBaseById(id);
-        
-        // 验证租户隔离：确保用户只能访问自己租户的知识库
-        Long currentTenantId = OperatorUtils.getOperator().getTenantId();
-        if (!kb.getTenantId().equals(currentTenantId)) {
-            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, 
-                "无权访问该知识库");
-        }
-        
-        return kb;
+        return knowledgeBaseService.getKnowledgeBaseById(id);
     }
 
     @PutMapping("/{id}")
@@ -72,30 +62,12 @@ public class KnowledgeBaseController {
     public void update(
             @Parameter(description = "知识库ID", required = true) @PathVariable Long id,
             @Valid @RequestBody UpdateKnowledgeBase dto) {
-        KnowledgeBase kb = knowledgeBaseService.getKnowledgeBaseById(id);
-        
-        // 验证租户隔离
-        Long currentTenantId = OperatorUtils.getOperator().getTenantId();
-        if (!kb.getTenantId().equals(currentTenantId)) {
-            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, 
-                "无权修改该知识库");
-        }
-        
         knowledgeBaseService.updateKnowledgeBase(id, dto);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除知识库", description = "删除指定的知识库(软删除)")
     public void delete(@Parameter(description = "知识库ID", required = true) @PathVariable Long id) {
-        KnowledgeBase kb = knowledgeBaseService.getKnowledgeBaseById(id);
-        
-        // 验证租户隔离
-        Long currentTenantId = OperatorUtils.getOperator().getTenantId();
-        if (!kb.getTenantId().equals(currentTenantId)) {
-            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, 
-                "无权删除该知识库");
-        }
-        
         knowledgeBaseService.deleteKnowledgeBase(id);
     }
 

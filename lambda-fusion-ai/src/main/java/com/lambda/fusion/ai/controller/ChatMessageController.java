@@ -31,8 +31,7 @@ public class ChatMessageController {
     @Operation(summary = "流式发送消息")
     public SseEmitter streamSend(@PathVariable Long sessionId) {
         String clientId = "chat_" + sessionId;
-        SseEmitter emitter = sseEmitterManager.createEmitter(clientId);
-        return emitter;
+        return sseEmitterManager.createEmitter(clientId);
     }
 
     @PostMapping(value = "/stream")
