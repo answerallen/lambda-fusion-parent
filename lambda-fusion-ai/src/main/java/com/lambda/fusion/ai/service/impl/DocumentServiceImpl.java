@@ -88,11 +88,14 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
             throw new IllegalArgumentException("文件大小超过限制: " + maxFileSize + " bytes");
         }
 
+        String originalFilename = file.getOriginalFilename();
+        Assert.hasText(originalFilename, "文件名不能为空！");
+
         String fileHash;
         try {
             fileHash = DigestUtil.sha256Hex(file.getInputStream());
         } catch (IOException e) {
-            throw new RuntimeException("计算文件哈希失败", e);
+            throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "计算文件哈希失败", e);
         }
 
         DocumentEntity existingDoc = documentMapper.selectByFileHash(fileHash, kbId);
@@ -101,11 +104,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
             return toVO(existingDoc);
         }
 
-        String originalFilename = file.getOriginalFilename();
-        Assert.hasText(originalFilename, "文件名不能为空！");
-
         String fileExtension = FileUtil.extName(originalFilename);
-
         String ossKey = "ai-documents/" + kbId + "/" + fileHash + "." + fileExtension;
 
         File tempFile = null;
@@ -115,39 +114,47 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
             UploadObjectResult uploadResult = ossClient.upload(tempFile, ossKey);
             log.info("文件上传到OSS成功: {}", uploadResult.getKey());
-        } catch (IOException e) {
-            throw new RuntimeException("文件保存失败", e);
-        } finally {
-            if (tempFile != null && tempFile.exists()) {
-                tempFile.delete();
-            }
-        }
 
-        DocumentEntity entity = new DocumentEntity();
-        entity.setKbId(kbId);
-        entity.setDocumentId(IdUtil.fastSimpleUUID());
-        entity.setFileName(originalFilename);
-        entity.setFileType(StrUtil.toUpperCase(fileExtension));
-        entity.setFileSize(file.getSize());
-        entity.setFileHash(fileHash);
-        entity.setStorageType("OSS");
-        entity.setStoragePath(ossKey);
-        entity.setStorageUrl(ossKey);
-        entity.setChunkCount(0);
-        entity.setVectorCount(0);
-        entity.setProcessStatus(DocumentStatus.PENDING.name());
-        entity.setProcessProgress(0);
-        entity.setUploadedBy(uploadedBy);
+            DocumentEntity entity = new DocumentEntity();
+            entity.setKbId(kbId);
+            entity.setDocumentId(IdUtil.fastSimpleUUID());
+            entity.setFileName(originalFilename);
+            entity.setFileType(StrUtil.toUpperCase(fileExtension));
+            entity.setFileSize(file.getSize());
+            entity.setFileHash(fileHash);
+            entity.setStorageType("OSS");
+            entity.setStoragePath(ossKey);
+            entity.setStorageUrl(ossKey);
+            entity.setChunkCount(0);
+            entity.setVectorCount(0);
+            entity.setProcessStatus(DocumentStatus.PENDING.name());
+            entity.setProcessProgress(0);
+            entity.setUploadedBy(uploadedBy);
 
-        transactionTemplate.execute(status -> {
+            // 在同一事务中保存文档
             documentMapper.insert(entity);
             log.info("文档上传成功, documentId={}, id={}", entity.getDocumentId(), entity.getId());
-            return entity;
-        });
 
-        documentProcessor.processDocument(entity.getId());
+            // 异步处理文档
+            documentProcessor.processDocument(entity.getId());
 
-        return toVO(entity);
+            return toVO(entity);
+            
+        } catch (IOException e) {
+            log.error("文件保存失败", e);
+            throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "文件保存失败", e);
+        } finally {
+            // 确保临时文件被删除
+            if (tempFile != null && tempFile.exists()) {
+                try {
+                    if (!tempFile.delete()) {
+                        log.warn("临时文件删除失败: {}", tempFile.getAbsolutePath());
+                    }
+                } catch (Exception e) {
+                    log.error("删除临时文件异常: {}", tempFile.getAbsolutePath(), e);
+                }
+            }
+        }
     }
 
     @Override

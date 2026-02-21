@@ -72,6 +72,9 @@ public class DocumentProcessor {
 
             // 3. 获取知识库配置
             KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(doc.getKbId());
+            if (kb == null) {
+                throw new RuntimeException("知识库不存在: " + doc.getKbId());
+            }
             Integer embeddingDimension = kb.getEmbeddingDimension();
 
             // 4. 文档切分 - 使用配置验证
@@ -94,6 +97,10 @@ public class DocumentProcessor {
 
                 // 向量化
                 Response<Embedding> embeddingResponse = embeddingModel.embed(segment);
+                if (embeddingResponse == null || embeddingResponse.content() == null) {
+                    throw new RuntimeException("向量化失败: 返回结果为空");
+                }
+                
                 List<Double> vector = embeddingResponse.content().vectorAsList().stream()
                         .map(Float::doubleValue)
                         .collect(Collectors.toList());
@@ -109,11 +116,11 @@ public class DocumentProcessor {
                 chunk.setVectorId(IdUtil.fastSimpleUUID());
                 chunk.setCharCount(segment.text().length());
                 chunk.setMetadata(JSONUtil.toJsonStr(segment.metadata()));
-                chunk.setEmbedding(vector); // 临时持有用于后续批量操作
+                chunk.setEmbedding(vector);
 
                 chunkEntities.add(chunk);
 
-                // 每批次更新一次进度 (使用配置的批次大小)
+                // 每批次更新一次进度
                 if (i % aiProperties.getDocumentChunk().getBatchSize() == 0) {
                     int progress = 40 + (int) ((double) i / totalChunks * 50);
                     updateStatus(
@@ -121,14 +128,20 @@ public class DocumentProcessor {
                 }
             }
 
-            // 6. 执行批量插入(MyBatis-Plus方式)
+            // 6. 执行批量插入 - 在单一事务中完成
             if (!chunkEntities.isEmpty()) {
                 log.info("执行批量存储: {} chunks", chunkEntities.size());
 
                 transactionTemplate.execute(status -> {
-                    documentChunkMapper.batchInsert(chunkEntities);
-                    vectorRepository.batchInsertVectorsUnified(chunkEntities, kb.getId(), embeddingDimension);
-                    return null;
+                    try {
+                        documentChunkMapper.batchInsert(chunkEntities);
+                        vectorRepository.batchInsertVectorsUnified(chunkEntities, kb.getId(), embeddingDimension);
+                        return null;
+                    } catch (Exception e) {
+                        log.error("批量插入失败，事务将回滚", e);
+                        status.setRollbackOnly();
+                        throw new RuntimeException("批量插入失败", e);
+                    }
                 });
             }
 
@@ -143,8 +156,12 @@ public class DocumentProcessor {
             log.info("文档处理完成: {}", documentId);
 
         } catch (Exception e) {
-            log.error("文档处理失败: {}", e.getMessage(), e);
-            updateStatus(doc, DocumentStatus.FAILED, 0, e.getMessage());
+            log.error("文档处理失败: {}", documentId, e);
+            try {
+                updateStatus(doc, DocumentStatus.FAILED, 0, e.getMessage());
+            } catch (Exception updateException) {
+                log.error("更新文档失败状态异常: {}", documentId, updateException);
+            }
         }
     }
 

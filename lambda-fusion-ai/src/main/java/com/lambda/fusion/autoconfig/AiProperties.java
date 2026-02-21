@@ -1,6 +1,5 @@
 package com.lambda.fusion.autoconfig;
 
-import com.lambda.fusion.ai.config.AiDataSource;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -15,18 +14,9 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "lambda.fusion.ai")
 public class AiProperties {
 
-    private DocumentConfig document = new DocumentConfig();
     private EmbeddingConfig embedding = new EmbeddingConfig();
-    private ChatConfig chat = new ChatConfig(); // 已添加
     private DocumentChunkConfig documentChunk = new DocumentChunkConfig(); // 已添加
     private AiDataSource dataSource = new AiDataSource();
-
-    @Data
-    public static class DocumentConfig {
-        private String storageType = "LOCAL";
-        private String basePath = "/data/ai-documents";
-        private Long maxFileSize = 10 * 1024 * 1024L;
-    }
 
     @Data
     public static class EmbeddingConfig {
@@ -35,15 +25,6 @@ public class AiProperties {
         private String modelName = "text-embedding-3-small";
         private String baseUrl;
         private Integer dimension = 1536;
-    }
-
-    @Data // 已添加
-    public static class ChatConfig {
-        private String provider = "openai";
-        private String apiKey;
-        private String modelName = "gpt-4o-mini";
-        private String baseUrl;
-        private Double temperature = 0.7;
     }
 
     /**
@@ -130,7 +111,7 @@ public class AiProperties {
 
         /**
          * 在启动时验证配置参数，如有需要则应用修正
-         *
+         * <p>
          * 此方法确保：
          * 1. 分块重叠小于分块大小
          * 2. 如果检测到无效组合，则应用修正值
@@ -198,7 +179,7 @@ public class AiProperties {
          * 获取经过验证的分块重叠，确保其适合给定的分块大小
          *
          * @param configuredOverlap 知识库配置的分块重叠
-         * @param chunkSize 用于验证的分块大小
+         * @param chunkSize         用于验证的分块大小
          * @return 经过验证的分块重叠
          */
         public int getValidatedChunkOverlap(Integer configuredOverlap, int chunkSize) {

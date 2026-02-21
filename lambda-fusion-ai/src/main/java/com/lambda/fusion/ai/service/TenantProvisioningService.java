@@ -2,7 +2,9 @@ package com.lambda.fusion.ai.service;
 
 import com.lambda.fusion.ai.datasource.AiSchemaInitializer;
 import com.lambda.fusion.ai.datasource.AiTenantDataSourceHelper;
+import com.lambda.fusion.ai.datasource.TenantDataSourceProxy;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
+import com.lambda.fusion.datasource.util.DataSourceSwitcher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -152,17 +154,16 @@ public class TenantProvisioningService {
     /**
      * 获取租户数据源实例
      * 
-     * 注意：这是一个占位方法，实际实现需要从 DynamicRoutingDataSource 中获取
-     * 
      * @param tenantId 租户ID
      * @return DataSource 实例
      */
     private DataSource getDataSourceForTenant(String tenantId) {
-        // TODO: 实际实现需要注入 DynamicRoutingDataSource 并获取对应的数据源
-        // 示例代码：
-        // String dsName = aiTenantDataSourceHelper.getTenantDataSourceName(tenantId);
-        // return dynamicRoutingDataSource.getDataSource(dsName);
-        
-        throw new UnsupportedOperationException("getDataSourceForTenant not implemented yet");
+        String dsName = aiTenantDataSourceHelper.getTenantDataSourceName(tenantId);
+        try (DataSourceSwitcher switcher = aiTenantDataSourceHelper.switchToTenantDataSource(tenantId)) {
+            // 通过 DataSourceSwitcher 获取当前数据源
+            // 实际的 DataSource 实例由 DynamicRoutingDataSource 管理
+            // 这里返回一个代理数据源，确保后续操作在正确的租户上下文中执行
+            return new TenantDataSourceProxy(dsName, aiTenantDataSourceHelper);
+        }
     }
 }

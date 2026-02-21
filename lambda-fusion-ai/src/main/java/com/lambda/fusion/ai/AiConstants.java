@@ -71,6 +71,33 @@ public interface AiConstants {
 
             private final String description;
         }
+
+        /**
+         * 会话状态枚举
+         *
+         * @author Jin
+         */
+        @Getter
+        @AllArgsConstructor
+        enum SessionStatus {
+
+            /**
+             * 活跃
+             */
+            ACTIVE("活跃"),
+
+            /**
+             * 已归档
+             */
+            ARCHIVED("已归档"),
+
+            /**
+             * 已删除
+             */
+            DELETED("已删除");
+
+            private final String description;
+        }
     }
 
     /**
