@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- 
+        AI 模块数据库变更日志主文件
+        
+        此文件定义了 AI 模块所有表的创建和迁移脚本。
+        使用 context="ai" 标识 AI 模块的变更集。
+        
+        表结构：
+        1. ai_knowledge_base - 知识库表
+        2. ai_document - 文档表
+        3. ai_document_chunk - 文档块表
+        4. ai_llm_model - LLM 模型配置表
+        5. ai_vector_store - 向量存储表（通用）
+        6. ai_vector_store_768 - 向量存储表（768 维度，使用 pgvector）
+    -->
+
+    <!-- 包含所有表的创建脚本 -->
+    <include file="db/changelog/changesets/001-create-ai-knowledge-base.xml" context="ai"/>
+    <include file="db/changelog/changesets/002-create-ai-document.xml" context="ai"/>
+    <include file="db/changelog/changesets/003-create-ai-document-chunk.xml" context="ai"/>
+    <include file="db/changelog/changesets/004-create-ai-llm-model.xml" context="ai"/>
+    <include file="db/changelog/changesets/005-create-ai-vector-store.xml" context="ai"/>
+    <include file="db/changelog/changesets/006-create-ai-vector-store-768.xml" context="ai"/>
+
+</databaseChangeLog>

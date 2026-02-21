@@ -1,0 +1,134 @@
+# Lambda AI 模块动态数据源配置示例
+# 
+# 此文件展示了如何配置 AI 模块的动态数据源功能
+# 包括：默认数据源、向量数据源、租户数据源前缀等
+
+spring:
+  application:
+    name: lambda-fusion-ai
+  
+  # 数据源配置（baomidou dynamic-datasource）
+  datasource:
+    dynamic:
+      # 主数据源（默认）
+      primary: master
+      
+      # 严格模式（如果数据源不存在则抛出异常）
+      strict: false
+      
+      # 数据源配置
+      datasource:
+        # 主数据源（MySQL - 业务数据）
+        master:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://localhost:3306/lambda_fusion?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+          username: root
+          password: password
+          
+        # AI 数据源（PostgreSQL - AI 数据 + pgvector）
+        ai-postgres:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://localhost:5432/lambda_ai?currentSchema=public
+          username: postgres
+          password: password
+          
+        # 租户数据源示例（PostgreSQL - 租户 1001）
+        ai-tenant-1001:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://localhost:5432/tenant_1001?currentSchema=public
+          username: postgres
+          password: password
+          
+        # 租户数据源示例（PostgreSQL - 租户 1002）
+        ai-tenant-1002:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://localhost:5432/tenant_1002?currentSchema=public
+          username: postgres
+          password: password
+
+# Lambda AI 模块数据源配置
+lambda:
+  fusion:
+    ai:
+      datasource:
+        # 是否启用动态数据源功能
+        enabled: true
+        
+        # 默认数据源名称（用于 AI 核心数据）
+        default-name: ai-postgres
+        
+        # 向量数据源名称（用于向量存储和相似度搜索）
+        vector-name: ai-postgres
+        
+        # 租户数据源名称前缀
+        # 租户数据源命名规则: {tenant-prefix}{tenantId}
+        # 例如: ai-tenant-1001, ai-tenant-1002
+        tenant-prefix: ai-tenant-
+
+# Liquibase 配置
+liquibase:
+  enabled: true
+  change-log: classpath:db/changelog/ai-changelog-master.xml
+  contexts: ai
+
+---
+# 开发环境配置
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+lambda:
+  fusion:
+    ai:
+      datasource:
+        enabled: true
+        default-name: ai-postgres
+        vector-name: ai-postgres
+        tenant-prefix: ai-tenant-dev-
+
+---
+# 测试环境配置
+spring:
+  config:
+    activate:
+      on-profile: test
+
+lambda:
+  fusion:
+    ai:
+      datasource:
+        enabled: true
+        default-name: ai-postgres-test
+        vector-name: ai-postgres-test
+        tenant-prefix: ai-tenant-test-
+
+---
+# 生产环境配置
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+lambda:
+  fusion:
+    ai:
+      datasource:
+        enabled: true
+        default-name: ai-postgres-prod
+        vector-name: ai-postgres-prod
+        tenant-prefix: ai-tenant-prod-
+
+---
+# 禁用动态数据源（回退到单一数据源模式）
+spring:
+  config:
+    activate:
+      on-profile: single-datasource
+
+lambda:
+  fusion:
+    ai:
+      datasource:
+        # 禁用动态数据源功能
+        enabled: false

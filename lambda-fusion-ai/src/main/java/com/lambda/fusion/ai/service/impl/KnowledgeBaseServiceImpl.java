@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.exception.AiBusinessException;
@@ -33,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@DS("#{@aiDataSourceProperties.defaultName}")
 public class KnowledgeBaseServiceImpl
         extends AbstractCrudService<KnowledgeBaseEntity, KnowledgeBase, KnowledgeBaseMapper>
         implements KnowledgeBaseService {
@@ -131,12 +133,5 @@ public class KnowledgeBaseServiceImpl
         return pageForVO(knowledgeBaseQuery.getPage(), knowledgeBaseQuery.getLambdaQueryWrapper());
     }
 
-    /**
-     * 实体转VO
-     */
-    private KnowledgeBase entityToVO(KnowledgeBaseEntity entity) {
-        KnowledgeBase vo = new KnowledgeBase();
-        BeanUtils.copyProperties(entity, vo);
-        return vo;
-    }
 }
+

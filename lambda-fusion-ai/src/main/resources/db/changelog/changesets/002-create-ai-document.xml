@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="002-create-ai-document" author="Jin" context="ai">
+        <createTable tableName="ai_document">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="document_id" type="VARCHAR(64)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="kb_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_type" type="VARCHAR(50)"/>
+            <column name="file_size" type="BIGINT"/>
+            <column name="file_hash" type="VARCHAR(64)"/>
+            <column name="storage_type" type="VARCHAR(50)"/>
+            <column name="storage_path" type="VARCHAR(500)"/>
+            <column name="storage_url" type="VARCHAR(500)"/>
+            <column name="chunk_count" type="INT" defaultValue="0"/>
+            <column name="vector_count" type="INT" defaultValue="0"/>
+            <column name="process_status" type="VARCHAR(50)" defaultValue="pending"/>
+            <column name="process_progress" type="INT" defaultValue="0"/>
+            <column name="error_message" type="TEXT"/>
+            <column name="metadata" type="TEXT"/>
+            <column name="char_count" type="INT"/>
+            <column name="word_count" type="INT"/>
+            <column name="page_count" type="INT"/>
+            <column name="uploaded_at" type="TIMESTAMP"/>
+            <column name="uploaded_by" type="BIGINT"/>
+            <column name="processed_at" type="TIMESTAMP"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <createIndex tableName="ai_document" indexName="idx_doc_kb_id">
+            <column name="kb_id"/>
+        </createIndex>
+
+        <createIndex tableName="ai_document" indexName="idx_doc_process_status">
+            <column name="process_status"/>
+        </createIndex>
+
+        <createIndex tableName="ai_document" indexName="idx_doc_file_hash">
+            <column name="file_hash"/>
+        </createIndex>
+
+        <createIndex tableName="ai_document" indexName="idx_doc_uploaded_by">
+            <column name="uploaded_by"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

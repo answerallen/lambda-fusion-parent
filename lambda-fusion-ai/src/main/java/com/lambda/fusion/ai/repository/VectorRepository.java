@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.repository;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.lambda.fusion.ai.model.VectorSearchResult;
 import java.util.List;
 
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Repository;
  */
 @Mapper
 @Repository
+@DS("#{@aiDataSourceProperties.vectorName}")
 public interface VectorRepository {
 
     /**

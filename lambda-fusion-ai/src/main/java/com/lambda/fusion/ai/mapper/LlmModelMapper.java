@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import java.util.List;
@@ -14,6 +15,7 @@ import org.apache.ibatis.annotations.Param;
  * @author Jin
  */
 @Mapper
+@DS("#{@aiDataSourceProperties.defaultName}")
 public interface LlmModelMapper extends BaseMapper<LlmModelEntity> {
 
     /**

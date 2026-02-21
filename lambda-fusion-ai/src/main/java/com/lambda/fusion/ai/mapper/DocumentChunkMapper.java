@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
@@ -11,6 +12,7 @@ import org.apache.ibatis.annotations.*;
  * 文档块 Mapper接口
  */
 @Mapper
+@DS("#{@aiDataSourceProperties.defaultName}")
 public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
 
     /**

@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
@@ -14,6 +15,7 @@ import org.apache.ibatis.annotations.Select;
  * 知识库 Mapper接口
  */
 @Mapper
+@DS("#{@aiDataSourceProperties.defaultName}")
 public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
 
     /**
@@ -94,3 +96,4 @@ public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
      */
     List<KnowledgeBaseEntity> selectByOwnerUserId(@Param("ownerUserId") Long ownerUserId);
 }
+

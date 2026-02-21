@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="004-create-ai-llm-model" author="Jin" context="ai">
+        <createTable tableName="ai_llm_model">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="model_id" type="VARCHAR(64)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="display_name" type="VARCHAR(255)"/>
+            <column name="model_type" type="VARCHAR(50)"/>
+            <column name="provider" type="VARCHAR(100)"/>
+            <column name="base_url" type="VARCHAR(500)"/>
+            <column name="api_key_encrypted" type="VARCHAR(500)"/>
+            <column name="model_name" type="VARCHAR(100)"/>
+            <column name="default_temperature" type="DECIMAL(3,2)" defaultValue="0.7"/>
+            <column name="default_max_tokens" type="INT" defaultValue="2000"/>
+            <column name="enabled" type="BOOLEAN" defaultValue="true"/>
+            <column name="is_default" type="BOOLEAN" defaultValue="false"/>
+            <column name="total_calls" type="BIGINT" defaultValue="0"/>
+            <column name="total_tokens" type="BIGINT" defaultValue="0"/>
+            <column name="total_cost" type="DECIMAL(15,6)" defaultValue="0"/>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <createIndex tableName="ai_llm_model" indexName="idx_llm_provider">
+            <column name="provider"/>
+        </createIndex>
+
+        <createIndex tableName="ai_llm_model" indexName="idx_llm_enabled">
+            <column name="enabled"/>
+        </createIndex>
+
+        <createIndex tableName="ai_llm_model" indexName="idx_llm_is_default">
+            <column name="is_default"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
