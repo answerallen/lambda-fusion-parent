@@ -1,7 +1,6 @@
 package com.lambda.fusion.ai.datasource;
 
 import com.lambda.fusion.autoconfig.AiProperties;
-import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import liquibase.integration.spring.SpringLiquibase;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +38,6 @@ import javax.sql.DataSource;
 public class AiSchemaInitializer implements TenantSchemaInitializer {
     
     private final AiProperties aiProperties;
-    private final AiTenantDataSourceHelper tenantDataSourceHelper;
     
     /**
      * 初始化租户数据源的 Schema
@@ -49,32 +47,29 @@ public class AiSchemaInitializer implements TenantSchemaInitializer {
      */
     @Override
     public void initializeSchema(String tenantId, DataSource dataSource) {
-        log.info("Initializing schema for tenant: {}", tenantId);
+        log.info("Initializing AI schema for tenant: {}", tenantId);
         
         try {
-            // 切换到租户数据源
-            try (DataSourceSwitcher switcher = tenantDataSourceHelper.switchToTenantDataSource(tenantId)) {
-                
-                // 1. 检测数据库类型
-                String dbType = detectDatabaseType(dataSource);
-                log.info("Detected database type: {} for tenant: {}", dbType, tenantId);
-                
-                // 2. 如果是 PostgreSQL，初始化 pgvector 扩展
-                if ("postgresql".equalsIgnoreCase(dbType)) {
-                    initializePgVector(dataSource);
-                    log.info("Initialized pgvector extension for tenant: {}", tenantId);
-                }
-                
-                // 3. 执行 Liquibase 数据库迁移
-                executeLiquibaseMigration(dataSource, tenantId);
-                log.info("Executed Liquibase migration for tenant: {}", tenantId);
+
+            // 1. 检测数据库类型
+            String dbType = detectDatabaseType(dataSource);
+            log.info("Detected database type: {} for tenant: {}", dbType, tenantId);
+            
+            // 2. 如果是 PostgreSQL，初始化 pgvector 扩展
+            if ("postgresql".equalsIgnoreCase(dbType)) {
+                initializePgVector(dataSource);
+                log.info("Initialized pgvector extension for tenant: {}", tenantId);
             }
             
-            log.info("Schema initialization completed for tenant: {}", tenantId);
+            // 3. 执行 Liquibase 数据库迁移
+            executeLiquibaseMigration(dataSource, tenantId);
+            log.info("Executed Liquibase migration for tenant: {}", tenantId);
+            
+            log.info("AI schema initialization completed for tenant: {}", tenantId);
             
         } catch (Exception e) {
-            log.error("Failed to initialize schema for tenant: {}", tenantId, e);
-            throw new RuntimeException("Schema initialization failed for tenant: " + tenantId, e);
+            log.error("Failed to initialize AI schema for tenant: {}", tenantId, e);
+            throw new RuntimeException("AI schema initialization failed for tenant: " + tenantId, e);
         }
     }
     

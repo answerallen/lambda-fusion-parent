@@ -1,7 +1,6 @@
-package com.lambda.fusion.ai.support.tenant;
+package com.lambda.fusion.ai.datasource;
 
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
-import com.lambda.fusion.ai.datasource.AiSchemaInitializer;
 import com.lambda.fusion.autoconfig.AiProperties;
 import com.lambda.fusion.datasource.tenant.AbstractTenantProvisioningService;
 import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
