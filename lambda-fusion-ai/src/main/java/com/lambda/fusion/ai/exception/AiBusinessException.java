@@ -10,7 +10,6 @@ import com.lambda.cloud.mvc.execption.BusinessException;
  * 提供便捷的构造方法，支持错误码和参数化消息
  *
  * @author Jin
- * @since 1.0.0
  */
 public class AiBusinessException extends BusinessException {
 

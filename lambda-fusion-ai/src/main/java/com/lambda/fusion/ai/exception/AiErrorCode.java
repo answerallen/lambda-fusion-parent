@@ -11,7 +11,6 @@ import lombok.Getter;
  * 错误码规则：AI模块使用 30000-39999 范围
  *
  * @author Jin
- * @since 1.0.0
  */
 @Getter
 @AllArgsConstructor
@@ -204,6 +203,42 @@ public enum AiErrorCode implements ErrorCode {
      * 无权访问会话
      */
     NO_PERMISSION_TO_ACCESS_SESSION(30703, "无权访问此会话"),
+
+    // ========== 数据源相关错误 (30800-30899) ==========
+    /**
+     * 数据源错误
+     */
+    DATASOURCE_ERROR(30801, "数据源操作失败"),
+
+    /**
+     * 租户数据源创建失败
+     */
+    TENANT_DATASOURCE_CREATE_FAILED(30802, "租户数据源创建失败"),
+
+    /**
+     * 租户数据源不存在
+     */
+    TENANT_DATASOURCE_NOT_FOUND(30803, "租户数据源不存在"),
+
+    /**
+     * 租户数据源连接失败
+     */
+    TENANT_DATASOURCE_CONNECTION_FAILED(30804, "租户数据源连接失败"),
+
+    /**
+     * 租户数据源配置无效
+     */
+    TENANT_DATASOURCE_CONFIG_INVALID(30805, "租户数据源配置无效"),
+
+    /**
+     * 租户数据源已存在
+     */
+    TENANT_DATASOURCE_ALREADY_EXISTS(30806, "租户数据源已存在"),
+
+    /**
+     * 租户数据源移除失败
+     */
+    TENANT_DATASOURCE_REMOVE_FAILED(30807, "租户数据源移除失败"),
 
     // ========== 系统错误 (30900-30999) ==========
     /**
