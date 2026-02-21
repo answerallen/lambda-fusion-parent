@@ -1,4 +1,4 @@
-package com.lambda.fusion.datasource.util;
+package com.lambda.fusion.datasource.api;
 
 import com.baomidou.dynamic.datasource.toolkit.DynamicDataSourceContextHolder;
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +21,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class DataSourceSwitcher implements AutoCloseable {
-    
+
     private final String previousDataSource;
-    
+
     private DataSourceSwitcher(String targetDataSource) {
         this.previousDataSource = DynamicDataSourceContextHolder.peek();
         DynamicDataSourceContextHolder.push(targetDataSource);

@@ -1,6 +1,7 @@
-package com.lambda.fusion.datasource.util;
+package com.lambda.fusion.datasource.tenant;
 
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
+import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import lombok.RequiredArgsConstructor;
