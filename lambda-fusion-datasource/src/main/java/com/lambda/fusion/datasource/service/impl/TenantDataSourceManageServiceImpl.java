@@ -1,5 +1,6 @@
 package com.lambda.fusion.datasource.service.impl;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,6 +11,7 @@ import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
 import com.lambda.fusion.datasource.event.DataSourceEvent;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
+import com.lambda.fusion.datasource.model.QueryTenantDataSource;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
@@ -32,12 +34,15 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
 
     private final ApplicationEventPublisher eventPublisher;
     private final DynamicDataSourceService dynamicDataSourceService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public TenantDataSourceManageServiceImpl(
-            ApplicationEventPublisher eventPublisher, DynamicDataSourceService dynamicDataSourceService) {
+            ApplicationEventPublisher eventPublisher,
+            DynamicDataSourceService dynamicDataSourceService,
+            ObjectMapper objectMapper) {
         this.eventPublisher = eventPublisher;
         this.dynamicDataSourceService = dynamicDataSourceService;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -50,6 +55,12 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
     public TenantDataSourceEntity get(String id) {
         return getById(id);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
+    public IPage<TenantDataSourceEntity> page(QueryTenantDataSource queryDTO) {
+        return page(queryDTO.getPage(), queryDTO.getLambdaQueryWrapper());
     }
 
     @Override
@@ -83,13 +94,54 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         Assert.hasText(id, "id is blank");
         TenantDataSourceEntity existing = getById(id);
         if (existing != null) {
-            dynamicDataSourceService.removeDataSource(id);
             RemoteDataSource remoteDataSource = new RemoteDataSource();
             remoteDataSource.setId(id);
             remoteDataSource.setTenantId(existing.getTenantId());
             eventPublisher.publishEvent(DataSourceEvent.remove(this, remoteDataSource));
         }
         removeById(id);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
+    public boolean test(String id) {
+        Assert.hasText(id, "id is blank");
+        TenantDataSourceEntity entity = getById(id);
+        Assert.notNull(entity, "entity not found");
+        RemoteDataSource dto = toDTO(entity);
+        DataSourceProperty dataSourceProperty = com.lambda.fusion.datasource.util.DataSourcePropertyUtils.getDataSourceProperty(dto);
+        return dynamicDataSourceService.test(dataSourceProperty);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void enable(String id) {
+        Assert.hasText(id, "id is blank");
+        TenantDataSourceEntity entity = getById(id);
+        Assert.notNull(entity, "entity not found");
+        if (FusionConstants.ENABLED.equals(entity.getEnabled())) {
+            syncDynamicDataSource(entity);
+            return;
+        }
+        entity.setEnabled(FusionConstants.ENABLED);
+        Assert.isTrue(updateById(entity), "update failed");
+        syncDynamicDataSource(entity);
+        publishChange(entity);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void disable(String id) {
+        Assert.hasText(id, "id is blank");
+        TenantDataSourceEntity entity = getById(id);
+        Assert.notNull(entity, "entity not found");
+        entity.setEnabled(FusionConstants.DISABLED);
+        Assert.isTrue(updateById(entity), "update failed");
+
+        RemoteDataSource remoteDataSource = new RemoteDataSource();
+        remoteDataSource.setId(id);
+        remoteDataSource.setTenantId(entity.getTenantId());
+        eventPublisher.publishEvent(DataSourceEvent.remove(this, remoteDataSource));
     }
 
     private void publishAdd(TenantDataSourceEntity entity) {

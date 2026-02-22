@@ -93,7 +93,6 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity existing = getById(id);
         if (existing != null) {
-            dynamicDataSourceService.removeDataSource(id);
             // 构建用于删除的 DTO（包含 Name 以便客户端移除）
             RemoteDataSource dto = new RemoteDataSource();
             dto.setId(id);
@@ -137,7 +136,6 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.notNull(entity, "entity not found");
         entity.setEnabled(FusionConstants.DISABLED);
         Assert.isTrue(updateById(entity), "update failed");
-        dynamicDataSourceService.removeDataSource(id);
         // 禁用需发 REMOVE 事件，Client 端才会调用 removeDataSource() 移除连接池
         publishRemove(entity);
     }

@@ -1,5 +1,6 @@
 package com.lambda.fusion.datasource.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
@@ -20,10 +21,34 @@ public class TenantDataSourceController {
 
     private final TenantDataSourceManageService tenantDataSourceManageService;
 
+    @GetMapping("/page")
+    @Operation(summary = "分页查询数据源", description = "分页查询数据源列表")
+    public IPage<TenantDataSourceEntity> page(@Valid com.lambda.fusion.datasource.model.QueryTenantDataSource query) {
+        return tenantDataSourceManageService.page(query);
+    }
+
     @GetMapping("/list")
     @Operation(summary = "查询数据源列表", description = "查询数据源列表")
     public List<TenantDataSourceEntity> list() {
         return tenantDataSourceManageService.listAll();
+    }
+
+    @GetMapping("/{id}/test")
+    @Operation(summary = "测试数据源连接", description = "测试对应连接")
+    public boolean test(@Parameter(description = "数据源编号", required = true) @PathVariable String id) {
+        return tenantDataSourceManageService.test(id);
+    }
+
+    @PutMapping("/{id}/enable")
+    @Operation(summary = "启用数据源", description = "更新 enabled=1 并同步到运行时动态数据源")
+    public void enable(@Parameter(description = "数据源编号", required = true) @PathVariable String id) {
+        tenantDataSourceManageService.enable(id);
+    }
+
+    @PutMapping("/{id}/disable")
+    @Operation(summary = "禁用数据源", description = "更新 enabled=0 并从运行时动态数据源移除")
+    public void disable(@Parameter(description = "数据源编号", required = true) @PathVariable String id) {
+        tenantDataSourceManageService.disable(id);
     }
 
     @GetMapping("/{id}")

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -15,7 +16,7 @@ import lombok.Setter;
 @AutoConverter(target = RemoteDataSource.class)
 @TableName("la_datasources")
 @Schema(description = "动态数据源")
-public class DataSourceEntity {
+public class DataSourceEntity extends BaseEntity {
 
     @TableId("id")
     @Schema(description = "数据源编号")

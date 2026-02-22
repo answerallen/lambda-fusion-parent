@@ -1,5 +1,6 @@
 package com.lambda.fusion.datasource.event;
 
+import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -9,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -22,10 +24,12 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @Component
+@ConditionalOnBean(DataSourceChangeDispatcher.class)
 @RequiredArgsConstructor
 public class DataSourceListener {
 
     private final DataSourceChangeDispatcher dataSourceChangeDispatcher;
+    private final DynamicDataSourceService dynamicDataSourceService;
 
     private final ExecutorService executorService = new ThreadPoolExecutor(
             2,
@@ -62,7 +66,11 @@ public class DataSourceListener {
                 switch (event.getChangeType()) {
                     case ADD -> apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.ADD);
                     case UPDATE -> apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.UPDATE);
-                    case REMOVE -> apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.DELETE);
+                    case REMOVE -> {
+                        apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.DELETE);
+                        // 在事务提交后（AFTER_COMMIT）移除本地连接池，避免在 Service 中出现副作用（无法回滚）
+                        dynamicDataSourceService.removeDataSource(event.getDataSource().getId());
+                    }
                     default -> {
                         log.warn("Unknown DataSourceEvent.ChangeType: {}", event.getChangeType());
                         return;
