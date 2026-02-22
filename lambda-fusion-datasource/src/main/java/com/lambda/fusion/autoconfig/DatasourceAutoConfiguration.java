@@ -88,7 +88,10 @@ public class DatasourceAutoConfiguration {
     @Bean
     @ConditionalOnProperty(name = DatasourceConstants.MODE_PROPERTY, havingValue = DatasourceConstants.MODE_CLIENT)
     public ClientDataSourceInitializer clientDataSourceInitializer(
-            DynamicDataSourceService dynamicDataSourceService, DataSourceChangeListenerImpl dataSourceChangeListener) {
-        return new ClientDataSourceInitializer(dynamicDataSourceService, dataSourceChangeListener);
+            DynamicDataSourceService dynamicDataSourceService,
+            DataSourceChangeListenerImpl dataSourceChangeListener,
+            DatasourceProperties datasourceProperties) {
+        return new ClientDataSourceInitializer(
+                dynamicDataSourceService, dataSourceChangeListener, datasourceProperties);
     }
 }

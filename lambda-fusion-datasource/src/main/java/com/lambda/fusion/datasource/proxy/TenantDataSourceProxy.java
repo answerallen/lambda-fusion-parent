@@ -43,8 +43,6 @@ public class TenantDataSourceProxy implements DataSource {
     public Connection getConnection() throws SQLException {
         String tenantId = extractTenantIdFromDataSourceName(tenantDataSourceName);
         try (var ignored = tenantDataSourceManager.switchToTenantDataSource(tenantId, tenantPrefix)) {
-            // 在租户上下文中获取连接
-            // 实际连接由 DynamicRoutingDataSource 提供
             return dynamicRoutingDataSource.getConnection();
         }
     }
@@ -55,7 +53,7 @@ public class TenantDataSourceProxy implements DataSource {
     }
     
     @Override
-    public PrintWriter getLogWriter() throws SQLException {
+    public PrintWriter getLogWriter() {
         return dynamicRoutingDataSource.getLogWriter();
     }
     
@@ -75,7 +73,7 @@ public class TenantDataSourceProxy implements DataSource {
     }
     
     @Override
-    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+    public Logger getParentLogger() {
         return dynamicRoutingDataSource.getParentLogger();
     }
     

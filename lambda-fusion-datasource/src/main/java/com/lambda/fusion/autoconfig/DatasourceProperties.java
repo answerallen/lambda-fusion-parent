@@ -26,6 +26,11 @@ public class DatasourceProperties {
      */
     private Dubbo dubbo = new Dubbo();
 
+    /**
+     * 客户端初始化重试配置（仅 client 模式生效）
+     */
+    private Retry retry = new Retry();
+
     @Data
     public static class Dubbo {
         /**
@@ -37,5 +42,28 @@ public class DatasourceProperties {
          * 服务版本
          */
         private String version = DatasourceConstants.DUBBO_VERSION;
+    }
+
+    @Data
+    public static class Retry {
+        /**
+         * 最大重试次数（不含首次尝试），0 表示不重试
+         */
+        private int maxAttempts = 5;
+
+        /**
+         * 初始重试等待时间（毫秒）
+         */
+        private long initialDelay = 5000L;
+
+        /**
+         * 退避乘数（指数退避）
+         */
+        private double multiplier = 2.0;
+
+        /**
+         * 最大重试等待时间（毫秒）
+         */
+        private long maxDelay = 60000L;
     }
 }
