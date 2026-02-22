@@ -108,7 +108,7 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         Assert.hasText(id, "id is blank");
         TenantDataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        RemoteDataSource dto = toDTO(entity);
+        RemoteDataSource dto = toRemoteDataSource(entity);
         DataSourceProperty dataSourceProperty = com.lambda.fusion.datasource.util.DataSourcePropertyUtils.getDataSourceProperty(dto);
         return dynamicDataSourceService.test(dataSourceProperty);
     }
@@ -145,12 +145,12 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
     }
 
     private void publishAdd(TenantDataSourceEntity entity) {
-        RemoteDataSource remoteDataSource = toDTO(entity);
+        RemoteDataSource remoteDataSource = toRemoteDataSource(entity);
         eventPublisher.publishEvent(DataSourceEvent.add(this, remoteDataSource));
     }
 
     private void publishChange(TenantDataSourceEntity entity) {
-        RemoteDataSource remoteDataSource = toDTO(entity);
+        RemoteDataSource remoteDataSource = toRemoteDataSource(entity);
         eventPublisher.publishEvent(DataSourceEvent.update(this, remoteDataSource));
     }
 
@@ -164,8 +164,8 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         }
 
         // 使用工具类统一构建，确保 poolName 被正确设置（路由依赖此字段）
-        RemoteDataSource dto = toDTO(entity);
-        DataSourceProperty property = DataSourcePropertyUtils.getDataSourceProperty(dto);
+        RemoteDataSource remoteDataSource = toRemoteDataSource(entity);
+        DataSourceProperty property = DataSourcePropertyUtils.getDataSourceProperty(remoteDataSource);
 
         boolean updated = dynamicDataSourceService.updateDataSource(entity.getId(), property);
         if (!updated) {
@@ -176,7 +176,7 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         }
     }
 
-    private RemoteDataSource toDTO(TenantDataSourceEntity entity) {
+    private RemoteDataSource toRemoteDataSource(TenantDataSourceEntity entity) {
         RemoteDataSource remoteDataSource = new RemoteDataSource();
         remoteDataSource.setId(entity.getId());
         remoteDataSource.setDatasourceName(entity.getDbName());
