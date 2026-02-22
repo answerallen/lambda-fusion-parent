@@ -14,6 +14,7 @@ import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
+import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
@@ -58,7 +59,7 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         TenantDataSourceEntity entity = input.toEntity();
         Assert.isTrue(save(entity), "save failed");
         syncDynamicDataSource(entity);
-        publishChange(entity);
+        publishAdd(entity);
     }
 
     @Override
@@ -91,6 +92,11 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         removeById(id);
     }
 
+    private void publishAdd(TenantDataSourceEntity entity) {
+        RemoteDataSource remoteDataSource = toDTO(entity);
+        eventPublisher.publishEvent(DataSourceEvent.add(this, remoteDataSource));
+    }
+
     private void publishChange(TenantDataSourceEntity entity) {
         RemoteDataSource remoteDataSource = toDTO(entity);
         eventPublisher.publishEvent(DataSourceEvent.update(this, remoteDataSource));
@@ -105,13 +111,9 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
             return;
         }
 
+        // 使用工具类统一构建，确保 poolName 被正确设置（路由依赖此字段）
         RemoteDataSource dto = toDTO(entity);
-        DataSourceProperty property = new DataSourceProperty();
-        property.setId(dto.getId());
-        property.setUrl(dto.getJdbcUrl());
-        property.setUsername(dto.getUsername());
-        property.setPassword(dto.getPassword());
-        property.setDriverClassName(dto.getDriverClassName());
+        DataSourceProperty property = DataSourcePropertyUtils.getDataSourceProperty(dto);
 
         boolean updated = dynamicDataSourceService.updateDataSource(entity.getId(), property);
         if (!updated) {

@@ -14,20 +14,58 @@ import org.springframework.context.ApplicationEvent;
 @SuppressFBWarnings("EI_EXPOSE_REP")
 public class DataSourceEvent extends ApplicationEvent {
 
-    private final RemoteDataSource dataSource;
-    private final boolean isRemove;
+    /**
+     * 变更类型
+     */
+    public enum ChangeType {
+        /** 新增数据源 */
+        ADD,
+        /** 更新数据源（配置变更、启用）*/
+        UPDATE,
+        /** 删除或禁用数据源 */
+        REMOVE
+    }
 
-    public DataSourceEvent(Object source, RemoteDataSource dataSource, boolean isRemove) {
+    private final RemoteDataSource dataSource;
+
+    /** 变更类型，用于 DataSourceListener 精确映射广播事件的 ChangeType */
+    private final ChangeType changeType;
+
+    /**
+     * 内部构造，统一通过工厂方法创建
+     */
+    private DataSourceEvent(Object source, RemoteDataSource dataSource, ChangeType changeType) {
         super(source);
         this.dataSource = dataSource;
-        this.isRemove = isRemove;
+        this.changeType = changeType;
     }
 
+    /**
+     * 新增数据源事件
+     */
+    public static DataSourceEvent add(Object source, RemoteDataSource dataSource) {
+        return new DataSourceEvent(source, dataSource, ChangeType.ADD);
+    }
+
+    /**
+     * 更新数据源事件（配置变更、启用）
+     */
     public static DataSourceEvent update(Object source, RemoteDataSource dataSource) {
-        return new DataSourceEvent(source, dataSource, false);
+        return new DataSourceEvent(source, dataSource, ChangeType.UPDATE);
     }
 
+    /**
+     * 删除/禁用数据源事件
+     */
     public static DataSourceEvent remove(Object source, RemoteDataSource dataSource) {
-        return new DataSourceEvent(source, dataSource, true);
+        return new DataSourceEvent(source, dataSource, ChangeType.REMOVE);
+    }
+
+    /**
+     * @deprecated 使用 {@link #getChangeType()} 代替，保留此方法以兼容现有调用
+     */
+    @Deprecated
+    public boolean isRemove() {
+        return changeType == ChangeType.REMOVE;
     }
 }

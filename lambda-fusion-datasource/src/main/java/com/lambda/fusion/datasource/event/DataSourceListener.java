@@ -50,22 +50,24 @@ public class DataSourceListener {
                 log.info(
                         "Received data source change event. ID: {}, Type: {}",
                         event.getDataSource().getId(),
-                        event.isRemove() ? "REMOVE" : "UPDATE");
+                        event.getChangeType());
 
                 DataSourceChangeEvent apiEvent = new DataSourceChangeEvent();
-
-                if (event.isRemove()) {
-                    apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.DELETE);
-                } else {
-                    // 默认为 UPDATE，如果是新增场景在 Service 层应复用此事件或区分
-                    // 此处为了兼容，假设非移除即为更新/新增，具体由 Client 端幂等处理
-                    apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.UPDATE);
-                }
-
                 apiEvent.setDataSourceId(event.getDataSource().getId());
                 apiEvent.setTenantId(event.getDataSource().getTenantId());
                 apiEvent.setDataSource(event.getDataSource());
                 apiEvent.setTimestamp(System.currentTimeMillis());
+
+                // 根据 DataSourceEvent.ChangeType 精确映射广播类型，不再依赖 boolean isRemove
+                switch (event.getChangeType()) {
+                    case ADD -> apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.ADD);
+                    case UPDATE -> apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.UPDATE);
+                    case REMOVE -> apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.DELETE);
+                    default -> {
+                        log.warn("Unknown DataSourceEvent.ChangeType: {}", event.getChangeType());
+                        return;
+                    }
+                }
 
                 dataSourceChangeDispatcher.broadcast(apiEvent);
             } catch (Exception e) {

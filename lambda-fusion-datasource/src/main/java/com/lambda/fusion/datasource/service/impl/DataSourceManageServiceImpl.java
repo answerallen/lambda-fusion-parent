@@ -65,7 +65,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         entity.setId(IdUtil.getSnowflakeNextIdStr());
         Assert.isTrue(save(entity), "save failed");
         syncDynamicDataSource(entity);
-        publishChange(entity);
+        publishAdd(entity);
     }
 
     @Override
@@ -138,8 +138,8 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         entity.setEnabled(FusionConstants.DISABLED);
         Assert.isTrue(updateById(entity), "update failed");
         dynamicDataSourceService.removeDataSource(id);
-        // 如果已禁用，客户端不应使用它。
-        publishChange(entity);
+        // 禁用需发 REMOVE 事件，Client 端才会调用 removeDataSource() 移除连接池
+        publishRemove(entity);
     }
 
     private void syncDynamicDataSource(DataSourceEntity entity) {
@@ -160,7 +160,22 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         }
     }
 
+    private void publishAdd(DataSourceEntity entity) {
+        RemoteDataSource remoteDataSource = buildRemoteDataSource(entity);
+        eventPublisher.publishEvent(DataSourceEvent.add(this, remoteDataSource));
+    }
+
     private void publishChange(DataSourceEntity entity) {
+        RemoteDataSource remoteDataSource = buildRemoteDataSource(entity);
+        eventPublisher.publishEvent(DataSourceEvent.update(this, remoteDataSource));
+    }
+
+    private void publishRemove(DataSourceEntity entity) {
+        RemoteDataSource remoteDataSource = buildRemoteDataSource(entity);
+        eventPublisher.publishEvent(DataSourceEvent.remove(this, remoteDataSource));
+    }
+
+    private RemoteDataSource buildRemoteDataSource(DataSourceEntity entity) {
         RemoteDataSource remoteDataSource = RemoteDataSourceServiceImpl.buildDataSourceEntity(entity);
         remoteDataSource.setTenantId(null); // 全局共享
         // 由于没有 updateTime，使用哈希码作为版本号
@@ -172,7 +187,6 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
                 entity.getUsername(),
                 entity.getPassword(),
                 entity.getEnabled()));
-
-        eventPublisher.publishEvent(DataSourceEvent.update(this, remoteDataSource));
+        return remoteDataSource;
     }
 }
