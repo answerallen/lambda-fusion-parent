@@ -63,6 +63,9 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.notNull(input, "input is null");
         DataSourceEntity entity = input.toEntity();
         entity.setId(IdUtil.getSnowflakeNextIdStr());
+        Date now = new Date();
+        entity.setCreatedAt(now);
+        entity.setUpdatedAt(now);
         Assert.isTrue(save(entity), "save failed");
         syncDynamicDataSource(entity);
         publishAdd(entity);
@@ -135,6 +138,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
         entity.setEnabled(FusionConstants.DISABLED);
+        entity.setUpdatedAt(new Date());
         Assert.isTrue(updateById(entity), "update failed");
         // 禁用需发 REMOVE 事件，Client 端才会调用 removeDataSource() 移除连接池
         publishRemove(entity);
@@ -176,15 +180,12 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     private RemoteDataSource buildRemoteDataSource(DataSourceEntity entity) {
         RemoteDataSource remoteDataSource = RemoteDataSourceServiceImpl.buildDataSourceEntity(entity);
         remoteDataSource.setTenantId(null); // 全局共享
-        // 由于没有 updateTime，使用哈希码作为版本号
-        remoteDataSource.setVersion(Objects.hash(
-                entity.getId(),
-                entity.getDatasourceName(),
-                entity.getDriverClassName(),
-                entity.getJdbcUrl(),
-                entity.getUsername(),
-                entity.getPassword(),
-                entity.getEnabled()));
+        // P2-9：利用 updatedAt 代替不稳定且计算耗时的哈希码作为 version
+        if (entity.getUpdatedAt() != null) {
+            remoteDataSource.setVersion(entity.getUpdatedAt().getTime());
+        } else {
+            remoteDataSource.setVersion(System.currentTimeMillis());
+        }
         return remoteDataSource;
     }
 }

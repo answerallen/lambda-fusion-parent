@@ -245,9 +245,8 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     @Override
-    public void subscribe(String clientId, DataSourceChangeListener callback) {
-        String currentTenantId = DubboContextHolder.getCurrentTenantId();
-        callbackManager.addSubscriber(clientId, currentTenantId, callback);
+    public void subscribe(String clientId, String tenantId, DataSourceChangeListener callback) {
+        callbackManager.addSubscriber(clientId, tenantId, callback);
     }
 
     @Override
@@ -268,7 +267,9 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         dto.setDriverClassName(entity.getDriverClassName());
         dto.setJdbcUrl(entity.getJdbcUrl());
         dto.setUsername(entity.getUsername());
-        dto.setPassword(entity.getPassword());
+        if (entity.getPassword() != null) {
+            dto.setPassword(cn.hutool.core.codec.Base64.encode(entity.getPassword()));
+        }
         dto.setEnabled(entity.getEnabled());
         return dto;
     }
@@ -290,6 +291,12 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         } catch (Exception e) {
             log.error("Failed to parse tenant configuration", e);
         }
+        
+        // 由于 validAndSet 直接从 JSON 解析获取明文密码，此处再将其统一进行 Base64 编码
+        if (dto.getPassword() != null) {
+            dto.setPassword(cn.hutool.core.codec.Base64.encode(dto.getPassword()));
+        }
+        
         return dto;
     }
 

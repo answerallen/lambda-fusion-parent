@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
+import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -114,8 +115,9 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
 
         // 2. 订阅变更推送
         String clientId = generateClientId();
-        remoteDataSourceService.subscribe(clientId, callback);
-        log.info("Subscribed to remote datasource changes. ClientId: {}", clientId);
+        String tenantId = DubboContextHolder.getCurrentTenantId();
+        remoteDataSourceService.subscribe(clientId, tenantId, callback);
+        log.info("Subscribed to remote datasource changes. ClientId: {}, TenantId: {}", clientId, tenantId);
 
         // 3. 注册 ShutdownHook 取消订阅
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

@@ -24,7 +24,10 @@ public class DataSourcePropertyUtils {
         property.setId(dto.getId());
         property.setUrl(dto.getJdbcUrl());
         property.setUsername(dto.getUsername());
-        property.setPassword(dto.getPassword());
+        if (dto.getPassword() != null) {
+            // P2-10 修复：反解 Base64 的密码，建立物理连接需要明文
+            property.setPassword(cn.hutool.core.codec.Base64.decodeStr(dto.getPassword()));
+        }
         property.setDriverClassName(dto.getDriverClassName());
         return property;
     }

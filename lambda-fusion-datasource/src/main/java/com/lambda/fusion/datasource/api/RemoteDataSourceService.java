@@ -63,9 +63,10 @@ public interface RemoteDataSourceService {
      * </p>
      *
      * @param clientId 客户端唯一标识（建议使用 应用名+IP+端口）
+     * @param tenantId 租户隔离标识
      * @param callback 回调接口实现
      */
-    void subscribe(String clientId, DataSourceChangeListener callback);
+    void subscribe(String clientId, String tenantId, DataSourceChangeListener callback);
 
     /**
      * 取消订阅数据源变更通知
