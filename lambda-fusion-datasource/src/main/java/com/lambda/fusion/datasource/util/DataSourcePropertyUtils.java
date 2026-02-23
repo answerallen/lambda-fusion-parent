@@ -1,5 +1,6 @@
 package com.lambda.fusion.datasource.util;
 
+import cn.hutool.core.codec.Base64;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.DynamicDataSourceProperty;
@@ -26,7 +27,7 @@ public class DataSourcePropertyUtils {
         property.setUsername(dto.getUsername());
         if (dto.getPassword() != null) {
             // P2-10 修复：反解 Base64 的密码，建立物理连接需要明文
-            property.setPassword(cn.hutool.core.codec.Base64.decodeStr(dto.getPassword()));
+            property.setPassword(Base64.decodeStr(dto.getPassword()));
         }
         property.setDriverClassName(dto.getDriverClassName());
         return property;

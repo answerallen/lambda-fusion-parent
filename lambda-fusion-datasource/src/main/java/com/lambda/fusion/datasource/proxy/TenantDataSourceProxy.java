@@ -9,7 +9,6 @@ import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.util.logging.Logger;
 
 /**
@@ -18,7 +17,7 @@ import java.util.logging.Logger;
  * 用于在租户上下文中获取数据库连接
  * 确保所有连接都在正确的租户数据源上执行
  * </p>
- * 
+ *
  * <p>使用示例：</p>
  * <pre>
  * DataSource proxy = new TenantDataSourceProxy(
@@ -27,18 +26,18 @@ import java.util.logging.Logger;
  *     "ai_tenant_",
  *     dynamicRoutingDataSource
  * );
- * Connection conn = proxy.getConnection();
+ * Connection connection = proxy.getConnection();
  * </pre>
  */
 @Slf4j
 @RequiredArgsConstructor
 public class TenantDataSourceProxy implements DataSource {
-    
+
     private final String tenantDataSourceName;
     private final TenantDataSourceManager tenantDataSourceManager;
     private final String tenantPrefix;
     private final DynamicRoutingDataSource dynamicRoutingDataSource;
-    
+
     @Override
     public Connection getConnection() throws SQLException {
         String tenantId = extractTenantIdFromDataSourceName(tenantDataSourceName);
@@ -46,50 +45,50 @@ public class TenantDataSourceProxy implements DataSource {
             return dynamicRoutingDataSource.getConnection();
         }
     }
-    
+
     @Override
     public Connection getConnection(String username, String password) throws SQLException {
         return getConnection();
     }
-    
+
     @Override
     public PrintWriter getLogWriter() {
         return dynamicRoutingDataSource.getLogWriter();
     }
-    
+
     @Override
     public void setLogWriter(PrintWriter out) throws SQLException {
         dynamicRoutingDataSource.setLogWriter(out);
     }
-    
+
     @Override
     public void setLoginTimeout(int seconds) throws SQLException {
         dynamicRoutingDataSource.setLoginTimeout(seconds);
     }
-    
+
     @Override
     public int getLoginTimeout() throws SQLException {
         return dynamicRoutingDataSource.getLoginTimeout();
     }
-    
+
     @Override
     public Logger getParentLogger() {
         return dynamicRoutingDataSource.getParentLogger();
     }
-    
+
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
         return dynamicRoutingDataSource.unwrap(iface);
     }
-    
+
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return dynamicRoutingDataSource.isWrapperFor(iface);
     }
-    
+
     /**
      * 从数据源名称中提取租户ID
-     * 
+     *
      * @param dsName 数据源名称，格式: {tenantPrefix}{tenantId}
      * @return 租户ID
      * @throws IllegalArgumentException 如果格式无效

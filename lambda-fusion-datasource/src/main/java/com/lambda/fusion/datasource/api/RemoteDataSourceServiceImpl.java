@@ -1,5 +1,6 @@
 package com.lambda.fusion.datasource.api;
 
+import cn.hutool.core.codec.Base64;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -268,7 +269,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         dto.setJdbcUrl(entity.getJdbcUrl());
         dto.setUsername(entity.getUsername());
         if (entity.getPassword() != null) {
-            dto.setPassword(cn.hutool.core.codec.Base64.encode(entity.getPassword()));
+            dto.setPassword(Base64.encode(entity.getPassword()));
         }
         dto.setEnabled(entity.getEnabled());
         return dto;
@@ -294,7 +295,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         
         // 由于 validAndSet 直接从 JSON 解析获取明文密码，此处再将其统一进行 Base64 编码
         if (dto.getPassword() != null) {
-            dto.setPassword(cn.hutool.core.codec.Base64.encode(dto.getPassword()));
+            dto.setPassword(Base64.encode(dto.getPassword()));
         }
         
         return dto;

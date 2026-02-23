@@ -3,12 +3,11 @@ package com.lambda.fusion.datasource.service.impl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.Assert;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
 import com.lambda.fusion.datasource.event.DataSourceEvent;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
 import com.lambda.fusion.datasource.model.QueryTenantDataSource;
@@ -16,34 +15,28 @@ import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
+import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.List;
-import java.util.Objects;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSourceMapper, TenantDataSourceEntity>
         implements TenantDataSourceManageService {
 
     private final ApplicationEventPublisher eventPublisher;
     private final DynamicDataSourceService dynamicDataSourceService;
-    private final ObjectMapper objectMapper;
-
-    public TenantDataSourceManageServiceImpl(
-            ApplicationEventPublisher eventPublisher,
-            DynamicDataSourceService dynamicDataSourceService,
-            ObjectMapper objectMapper) {
-        this.eventPublisher = eventPublisher;
-        this.dynamicDataSourceService = dynamicDataSourceService;
-        this.objectMapper = objectMapper;
-    }
+    private final TenantDataSourceManager tenantDataSourceManager;
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
@@ -108,8 +101,8 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
         Assert.hasText(id, "id is blank");
         TenantDataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        RemoteDataSource dto = toRemoteDataSource(entity);
-        DataSourceProperty dataSourceProperty = com.lambda.fusion.datasource.util.DataSourcePropertyUtils.getDataSourceProperty(dto);
+        RemoteDataSource dto = ConvertUtils.convert(entity);
+        DataSourceProperty dataSourceProperty = DataSourcePropertyUtils.getDataSourceProperty(dto);
         return dynamicDataSourceService.test(dataSourceProperty);
     }
 
@@ -145,12 +138,12 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
     }
 
     private void publishAdd(TenantDataSourceEntity entity) {
-        RemoteDataSource remoteDataSource = toRemoteDataSource(entity);
+        RemoteDataSource remoteDataSource =ConvertUtils.convert(entity);
         eventPublisher.publishEvent(DataSourceEvent.add(this, remoteDataSource));
     }
 
     private void publishChange(TenantDataSourceEntity entity) {
-        RemoteDataSource remoteDataSource = toRemoteDataSource(entity);
+        RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
         eventPublisher.publishEvent(DataSourceEvent.update(this, remoteDataSource));
     }
 
@@ -163,45 +156,16 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
             return;
         }
 
-        // 使用工具类统一构建，确保 poolName 被正确设置（路由依赖此字段）
-        RemoteDataSource remoteDataSource = toRemoteDataSource(entity);
+        // 使用转换器统一构建 RemoteDataSource
+        RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
         DataSourceProperty property = DataSourcePropertyUtils.getDataSourceProperty(remoteDataSource);
 
         boolean updated = dynamicDataSourceService.updateDataSource(entity.getId(), property);
         if (!updated) {
             boolean added = dynamicDataSourceService.addDataSource(property);
             if (!added) {
-                throw new RuntimeException("Sync dynamic datasource failed for id: " + entity.getId());
+                throw new RuntimeException("同步动态数据源失败，ID: " + entity.getId());
             }
         }
-    }
-
-    private RemoteDataSource toRemoteDataSource(TenantDataSourceEntity entity) {
-        RemoteDataSource remoteDataSource = new RemoteDataSource();
-        remoteDataSource.setId(entity.getId());
-        remoteDataSource.setDatasourceName(entity.getDbName());
-        remoteDataSource.setEnabled(entity.getEnabled());
-        remoteDataSource.setTenantId(entity.getTenantId());
-        remoteDataSource.setDbType(entity.getDbType());
-
-        // 解析配置信息
-        try {
-            if (entity.getConfiguration() != null && !entity.getConfiguration().isEmpty()) {
-                com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(entity.getConfiguration());
-                RemoteDataSourceServiceImpl.validAndSet(remoteDataSource, node);
-            }
-        } catch (Exception e) {
-            log.error("Failed to parse tenant configuration for datasource: {}", entity.getDbName(), e);
-        }
-
-        // 使用哈希码作为版本号以保持一致性
-        remoteDataSource.setVersion(Objects.hash(
-                entity.getId(),
-                entity.getDbName(),
-                entity.getConfiguration(),
-                entity.getEnabled(),
-                entity.getTenantId()));
-
-        return remoteDataSource;
     }
 }

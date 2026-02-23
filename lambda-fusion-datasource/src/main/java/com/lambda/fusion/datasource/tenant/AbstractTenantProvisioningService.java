@@ -93,22 +93,22 @@ public abstract class AbstractTenantProvisioningService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void provisionTenant(String tenantId, RemoteDataSource dataSourceConfig) throws Exception {
-        log.info("Starting tenant provisioning for tenant: {} with prefix: {}", tenantId, getTenantPrefix());
+        log.info("开始为租户 [{}] 配置数据源，前缀: {}", tenantId, getTenantPrefix());
         
         try {
             // 1. 检查租户数据源是否已存在
             if (tenantDataSourceExists(tenantId)) {
-                log.warn("Tenant datasource already exists for tenant: {}", tenantId);
-                throw new IllegalStateException("Tenant datasource already exists: " + tenantId);
+                log.warn("租户 [{}] 的数据源已存在", tenantId);
+                throw new IllegalStateException("租户数据源已存在: " + tenantId);
             }
             
             // 2. 创建租户数据源
             boolean created = createTenantDataSource(tenantId, dataSourceConfig);
             if (!created) {
-                throw new RuntimeException("Failed to create tenant datasource for tenant: " + tenantId);
+                throw new RuntimeException("为租户 [" + tenantId + "] 创建数据源失败");
             }
             
-            log.info("Tenant datasource created successfully for tenant: {}", tenantId);
+            log.info("租户 [{}] 的数据源创建成功", tenantId);
             
             // 3. 初始化 Schema
             try {
@@ -117,29 +117,29 @@ public abstract class AbstractTenantProvisioningService {
                 
                 if (schemaInitializer != null) {
                     schemaInitializer.initializeSchema(tenantId, dataSource);
-                    log.info("Tenant schema initialized successfully for tenant: {}", tenantId);
+                    log.info("租户 [{}] 的 Schema 初始化成功", tenantId);
                 } else {
-                    log.warn("No schema initializer provided, skipping schema initialization for tenant: {}", tenantId);
+                    log.warn("未提供 Schema 初始化器，跳过租户 [{}] 的 Schema 初始化", tenantId);
                 }
                 
             } catch (Exception e) {
-                log.error("Failed to initialize schema for tenant: {}, rolling back datasource creation", tenantId, e);
-                
+                log.error("为租户 [{}] 初始化 Schema 失败，正在回滚数据源创建", tenantId, e);
+
                 // 回滚：删除已创建的数据源
                 try {
                     deleteTenantDataSource(tenantId);
-                    log.info("Rolled back tenant datasource for tenant: {}", tenantId);
+                    log.info("已回滚租户 [{}] 的数据源", tenantId);
                 } catch (Exception rollbackException) {
-                    log.error("Failed to rollback tenant datasource for tenant: {}", tenantId, rollbackException);
+                    log.error("为租户 [{}] 回滚数据源失败", tenantId, rollbackException);
                 }
-                
-                throw new RuntimeException("Failed to initialize tenant schema for tenant: " + tenantId, e);
+
+                throw new RuntimeException("为租户 [" + tenantId + "] 初始化 Schema 失败", e);
             }
             
-            log.info("Tenant provisioning completed successfully for tenant: {}", tenantId);
-            
+            log.info("租户 [{}] 配置完成", tenantId);
+
         } catch (Exception e) {
-            log.error("Tenant provisioning failed for tenant: {}", tenantId, e);
+            log.error("租户 [{}] 配置失败", tenantId, e);
             throw e;
         }
     }
@@ -151,28 +151,28 @@ public abstract class AbstractTenantProvisioningService {
      * @return true 如果删除成功
      */
     public boolean deprovisionTenant(String tenantId) {
-        log.info("Starting tenant deprovisioning for tenant: {} with prefix: {}", tenantId, getTenantPrefix());
-        
+        log.info("开始为租户 [{}] 注销数据源，前缀: {}", tenantId, getTenantPrefix());
+
         try {
             // 检查租户数据源是否存在
             if (!tenantDataSourceExists(tenantId)) {
-                log.warn("Tenant datasource does not exist for tenant: {}", tenantId);
+                log.warn("租户 [{}] 的数据源不存在", tenantId);
                 return false;
             }
-            
+
             // 删除租户数据源
             boolean deleted = deleteTenantDataSource(tenantId);
-            
+
             if (deleted) {
-                log.info("Tenant deprovisioning completed successfully for tenant: {}", tenantId);
+                log.info("租户 [{}] 注销成功", tenantId);
             } else {
-                log.warn("Failed to deprovision tenant: {}", tenantId);
+                log.warn("租户 [{}] 注销失败", tenantId);
             }
-            
+
             return deleted;
-            
+
         } catch (Exception e) {
-            log.error("Tenant deprovisioning failed for tenant: {}", tenantId, e);
+            log.error("租户 [{}] 注销失败", tenantId, e);
             return false;
         }
     }
