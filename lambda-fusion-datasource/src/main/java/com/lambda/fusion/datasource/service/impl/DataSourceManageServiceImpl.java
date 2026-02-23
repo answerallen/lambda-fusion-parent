@@ -18,6 +18,9 @@ import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.context.ApplicationEventPublisher;
@@ -63,7 +66,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.notNull(input, "input is null");
         DataSourceEntity entity = input.toEntity();
         entity.setId(IdUtil.getSnowflakeNextIdStr());
-        Date now = new Date();
+        LocalDateTime now = LocalDateTime.now();
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
         Assert.isTrue(save(entity), "save failed");
@@ -138,7 +141,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
         entity.setEnabled(FusionConstants.DISABLED);
-        entity.setUpdatedAt(new Date());
+        entity.setUpdatedAt(LocalDateTime.now());
         Assert.isTrue(updateById(entity), "update failed");
         // 禁用需发 REMOVE 事件，Client 端才会调用 removeDataSource() 移除连接池
         publishRemove(entity);
@@ -178,11 +181,11 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     }
 
     private RemoteDataSource buildRemoteDataSource(DataSourceEntity entity) {
-        RemoteDataSource remoteDataSource = RemoteDataSourceServiceImpl.buildDataSourceEntity(entity);
+        RemoteDataSource remoteDataSource = DataSourcePropertyUtils.buildDataSourceEntity(entity);
         remoteDataSource.setTenantId(null); // 全局共享
         // P2-9：利用 updatedAt 代替不稳定且计算耗时的哈希码作为 version
         if (entity.getUpdatedAt() != null) {
-            remoteDataSource.setVersion(entity.getUpdatedAt().getTime());
+            remoteDataSource.setVersion(entity.getUpdatedAt().toLocalTime().getSecond());
         } else {
             remoteDataSource.setVersion(System.currentTimeMillis());
         }

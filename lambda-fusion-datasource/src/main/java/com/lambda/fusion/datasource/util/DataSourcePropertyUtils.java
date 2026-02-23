@@ -26,10 +26,24 @@ public class DataSourcePropertyUtils {
         property.setUrl(dto.getJdbcUrl());
         property.setUsername(dto.getUsername());
         if (dto.getPassword() != null) {
-            // P2-10 修复：反解 Base64 的密码，建立物理连接需要明文
             property.setPassword(Base64.decodeStr(dto.getPassword()));
         }
         property.setDriverClassName(dto.getDriverClassName());
         return property;
+    }
+
+
+    public static RemoteDataSource buildDataSourceEntity(DataSourceEntity entity) {
+        RemoteDataSource remoteDataSource = new RemoteDataSource();
+        remoteDataSource.setId(entity.getId());
+        remoteDataSource.setDatasourceName(entity.getDatasourceName());
+        remoteDataSource.setDriverClassName(entity.getDriverClassName());
+        remoteDataSource.setJdbcUrl(entity.getJdbcUrl());
+        remoteDataSource.setUsername(entity.getUsername());
+        if (entity.getPassword() != null) {
+            remoteDataSource.setPassword(Base64.encode(entity.getPassword()));
+        }
+        remoteDataSource.setEnabled(entity.getEnabled());
+        return remoteDataSource;
     }
 }

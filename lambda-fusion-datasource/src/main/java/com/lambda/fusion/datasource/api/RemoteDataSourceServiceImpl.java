@@ -10,6 +10,7 @@ import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.model.*;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
+import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -256,24 +257,11 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     private RemoteDataSource toRemoteDataSource(DataSourceEntity entity) {
-        RemoteDataSource dto = buildDataSourceEntity(entity);
-        dto.setVersion(System.currentTimeMillis()); // Set version
-        return dto;
+        RemoteDataSource remoteDataSource = DataSourcePropertyUtils.buildDataSourceEntity(entity);
+        remoteDataSource.setVersion(System.currentTimeMillis());
+        return remoteDataSource;
     }
 
-    public static RemoteDataSource buildDataSourceEntity(DataSourceEntity entity) {
-        RemoteDataSource dto = new RemoteDataSource();
-        dto.setId(entity.getId());
-        dto.setDatasourceName(entity.getDatasourceName());
-        dto.setDriverClassName(entity.getDriverClassName());
-        dto.setJdbcUrl(entity.getJdbcUrl());
-        dto.setUsername(entity.getUsername());
-        if (entity.getPassword() != null) {
-            dto.setPassword(Base64.encode(entity.getPassword()));
-        }
-        dto.setEnabled(entity.getEnabled());
-        return dto;
-    }
 
     private RemoteDataSource toRemoteDataSource(TenantDataSourceEntity entity) {
         RemoteDataSource dto = new RemoteDataSource();
@@ -282,7 +270,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         dto.setEnabled(entity.getEnabled());
         dto.setTenantId(entity.getTenantId());
         dto.setDbType(entity.getDbType());
-        dto.setVersion(System.currentTimeMillis()); // Set version
+        dto.setVersion(System.currentTimeMillis());
 
         try {
             if (StringUtils.hasText(entity.getConfiguration())) {
