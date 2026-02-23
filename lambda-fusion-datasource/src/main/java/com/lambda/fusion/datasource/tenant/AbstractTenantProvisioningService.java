@@ -38,7 +38,8 @@ import javax.sql.DataSource;
  * @author Lambda
  */
 @Slf4j
-public abstract class AbstractTenantProvisioningService {
+public abstract class
+AbstractTenantProvisioningService {
     
     private final TenantDataSourceManager tenantDataSourceManager;
     private final DynamicRoutingDataSource dynamicRoutingDataSource;
