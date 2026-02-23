@@ -207,7 +207,7 @@ public class TenantAuthorizeManager {
         for (String dsKey : tenantDsKey) {
             try {
                 if (StringUtils.isNotBlank(dsKey)) {
-                    //                TODO    DynamicDataSourceWrapper.wrap(dsKey, runnable);
+//                   DynamicDataSourceWrapper.wrap(dsKey, runnable);
                 }
             } catch (Exception e) {
                 log.error("租户主库执行异常，数据源id:{}", dsKey);
