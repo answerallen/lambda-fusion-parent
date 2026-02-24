@@ -2,14 +2,13 @@ package com.lambda.fusion.datasource.proxy;
 
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.logging.Logger;
+import javax.sql.DataSource;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 租户数据源代理（通用组件）

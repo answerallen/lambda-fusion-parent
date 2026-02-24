@@ -12,12 +12,11 @@ import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 远程数据源服务Server端实现
@@ -37,8 +36,9 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     @Override
     public List<RemoteDataSource> listAll() {
         // 1. 全局数据源
-        List<RemoteDataSource> globals =
-                dataSourceManageService.listAll().stream().map(this::toRemoteDataSource).collect(Collectors.toList());
+        List<RemoteDataSource> globals = dataSourceManageService.listAll().stream()
+                .map(this::toRemoteDataSource)
+                .collect(Collectors.toList());
 
         // 2. 当前租户数据源 (如果有上下文)
         String currentTenantId = DubboContextHolder.getCurrentTenantId();
@@ -262,7 +262,6 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         return remoteDataSource;
     }
 
-
     private RemoteDataSource toRemoteDataSource(TenantDataSourceEntity entity) {
         RemoteDataSource dto = new RemoteDataSource();
         dto.setId(entity.getId());
@@ -280,12 +279,12 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         } catch (Exception e) {
             log.error("Failed to parse tenant configuration", e);
         }
-        
+
         // 由于 validAndSet 直接从 JSON 解析获取明文密码，此处再将其统一进行 Base64 编码
         if (dto.getPassword() != null) {
             dto.setPassword(Base64.encode(dto.getPassword()));
         }
-        
+
         return dto;
     }
 

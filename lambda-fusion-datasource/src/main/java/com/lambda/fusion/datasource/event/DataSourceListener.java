@@ -69,7 +69,8 @@ public class DataSourceListener {
                     case REMOVE -> {
                         apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.DELETE);
                         // 在事务提交后（AFTER_COMMIT）移除本地连接池，避免在 Service 中出现副作用（无法回滚）
-                        dynamicDataSourceService.removeDataSource(event.getDataSource().getId());
+                        dynamicDataSourceService.removeDataSource(
+                                event.getDataSource().getId());
                     }
                     default -> {
                         log.warn("Unknown DataSourceEvent.ChangeType: {}", event.getChangeType());

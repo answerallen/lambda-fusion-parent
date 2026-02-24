@@ -2,11 +2,10 @@ package com.lambda.fusion.autoconfig;
 
 import com.lambda.fusion.datasource.DatasourceConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.util.HashMap;
 import java.util.Map;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * 数据源模块配置属性

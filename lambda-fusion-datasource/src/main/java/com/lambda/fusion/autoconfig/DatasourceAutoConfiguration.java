@@ -13,7 +13,6 @@ import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
-import org.apache.dubbo.config.annotation.DubboReference;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;

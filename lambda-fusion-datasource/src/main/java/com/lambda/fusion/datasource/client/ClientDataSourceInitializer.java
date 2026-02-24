@@ -2,6 +2,7 @@ package com.lambda.fusion.datasource.client;
 
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
+import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.fusion.autoconfig.DatasourceProperties;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
@@ -15,7 +16,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
-import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -44,12 +44,11 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
     private final AtomicBoolean initialized = new AtomicBoolean(false);
 
     /** 异步执行初始化的单线程执行器，不阻塞 Spring 主启动线程 */
-    private final ExecutorService initExecutor =
-            Executors.newSingleThreadExecutor(r -> {
-                Thread t = new Thread(r, "datasource-client-init");
-                t.setDaemon(true);
-                return t;
-            });
+    private final ExecutorService initExecutor = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "datasource-client-init");
+        t.setDaemon(true);
+        return t;
+    });
 
     public ClientDataSourceInitializer(
             DynamicDataSourceService dynamicDataSourceService,
@@ -73,9 +72,7 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
         try {
             retryTemplate.execute(context -> {
                 int attempt = context.getRetryCount() + 1;
-                log.info(
-                        "Starting dynamic datasource initialization (Client Mode), attempt={}",
-                        attempt);
+                log.info("Starting dynamic datasource initialization (Client Mode), attempt={}", attempt);
                 doInit();
                 return null;
             });

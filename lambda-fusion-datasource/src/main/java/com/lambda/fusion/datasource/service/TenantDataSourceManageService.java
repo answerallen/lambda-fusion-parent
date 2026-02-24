@@ -19,8 +19,7 @@ public interface TenantDataSourceManageService extends IService<TenantDataSource
 
     void delete(String id);
 
-    IPage<TenantDataSourceEntity> page(
-            QueryTenantDataSource queryDTO);
+    IPage<TenantDataSourceEntity> page(QueryTenantDataSource queryDTO);
 
     boolean test(String id);
 

@@ -8,12 +8,12 @@ import javax.sql.DataSource;
  * 定义租户数据源 Schema 初始化的标准接口。
  * 不同模块可以实现此接口来提供特定的 Schema 初始化逻辑。
  * </p>
- * 
+ *
  * <p>实现示例：</p>
  * <pre>
  * &#64;Component
  * public class AiSchemaInitializer implements TenantSchemaInitializer {
- *     
+ *
  *     &#64;Override
  *     public void initializeSchema(String tenantId, DataSource dataSource) {
  *         // 1. 初始化 pgvector 扩展
@@ -22,11 +22,11 @@ import javax.sql.DataSource;
  *     }
  * }
  * </pre>
- * 
+ *
  * @author Lambda
  */
 public interface TenantSchemaInitializer {
-    
+
     /**
      * 初始化租户数据源的 Schema
      * <p>
@@ -36,7 +36,7 @@ public interface TenantSchemaInitializer {
      * - 创建表结构
      * - 初始化默认数据
      * </p>
-     * 
+     *
      * @param tenantId 租户ID
      * @param dataSource 租户数据源
      * @throws RuntimeException 如果初始化失败

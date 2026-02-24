@@ -18,14 +18,13 @@ import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
 import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -138,7 +137,7 @@ public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSou
     }
 
     private void publishAdd(TenantDataSourceEntity entity) {
-        RemoteDataSource remoteDataSource =ConvertUtils.convert(entity);
+        RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
         eventPublisher.publishEvent(DataSourceEvent.add(this, remoteDataSource));
     }
 

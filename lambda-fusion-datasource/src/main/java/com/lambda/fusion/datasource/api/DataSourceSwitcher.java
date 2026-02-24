@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
  * 提供编程式数据源切换能力，支持 try-with-resources 自动恢复。
  * 使用 baomidou 的 DynamicDataSourceContextHolder 管理上下文。
  * </p>
- * 
+ *
  * <p>使用示例：</p>
  * <pre>
  * // 切换到指定数据源
@@ -29,17 +29,17 @@ public class DataSourceSwitcher implements AutoCloseable {
         DynamicDataSourceContextHolder.push(targetDataSource);
         log.debug("Switched datasource from {} to {}", previousDataSource, targetDataSource);
     }
-    
+
     /**
      * 切换到指定数据源
-     * 
+     *
      * @param dataSourceName 目标数据源名称
      * @return DataSourceSwitcher 实例，用于 try-with-resources
      */
     public static DataSourceSwitcher switchTo(String dataSourceName) {
         return new DataSourceSwitcher(dataSourceName);
     }
-    
+
     @Override
     public void close() {
         DynamicDataSourceContextHolder.poll();

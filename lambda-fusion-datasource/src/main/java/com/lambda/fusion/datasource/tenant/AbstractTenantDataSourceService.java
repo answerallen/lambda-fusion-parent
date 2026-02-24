@@ -3,11 +3,10 @@ package com.lambda.fusion.datasource.tenant;
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.proxy.TenantDataSourceProxy;
+import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.sql.DataSource;
 
 /**
  * 租户数据源服务抽象基类
@@ -44,7 +43,6 @@ public abstract class AbstractTenantDataSourceService {
 
     private final TenantDataSourceManager tenantDataSourceManager;
     private final DynamicRoutingDataSource dynamicRoutingDataSource;
-
 
     /**
      * 获取 Schema 初始化器

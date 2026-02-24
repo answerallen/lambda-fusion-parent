@@ -32,7 +32,6 @@ public class DataSourcePropertyUtils {
         return property;
     }
 
-
     public static RemoteDataSource buildDataSourceEntity(DataSourceEntity entity) {
         RemoteDataSource remoteDataSource = new RemoteDataSource();
         remoteDataSource.setId(entity.getId());
