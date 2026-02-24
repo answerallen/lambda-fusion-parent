@@ -28,21 +28,6 @@ public enum AuthorityErrorCode implements ErrorCode {
     USER_NAME_EXISTS(13002, "用户名已存在"),
 
     /**
-     * 用户已被禁用
-     */
-    USER_DISABLED(13003, "用户已被禁用"),
-
-    /**
-     * 用户密码错误
-     */
-    USER_PASSWORD_ERROR(13004, "用户名或密码错误"),
-
-    /**
-     * 用户已被锁定
-     */
-    USER_LOCKED(13005, "用户已被锁定，请稍后重试"),
-
-    /**
      * 验证码错误
      */
     VERIFY_CODE_ERROR(13006, "验证码错误"),
@@ -77,11 +62,6 @@ public enum AuthorityErrorCode implements ErrorCode {
      * 角色不存在
      */
     ROLE_NOT_FOUND(13101, "角色不存在"),
-
-    /**
-     * 角色标识已存在
-     */
-    ROLE_AUTHORITY_EXISTS(13102, "角色标识已存在"),
 
     /**
      * 角色名称已存在
@@ -204,11 +184,6 @@ public enum AuthorityErrorCode implements ErrorCode {
     API_TOKEN_NOT_FOUND(13601, "API令牌不存在"),
 
     /**
-     * API令牌已过期
-     */
-    API_TOKEN_EXPIRED(13602, "API令牌已过期"),
-
-    /**
      * API令牌已被禁用
      */
     API_TOKEN_DISABLED(13603, "API令牌已被禁用"),
@@ -245,15 +220,6 @@ public enum AuthorityErrorCode implements ErrorCode {
      */
     AUTH_ACCOUNT_DISABLED(13802, "账户已被禁用"),
 
-    /**
-     * 认证令牌无效
-     */
-    AUTH_TOKEN_INVALID(13803, "认证令牌无效"),
-
-    /**
-     * 认证令牌已过期
-     */
-    AUTH_TOKEN_EXPIRED(13804, "认证令牌已过期"),
 
     /**
      * 无访问权限

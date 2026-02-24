@@ -83,35 +83,6 @@ public class AuthorityBusinessException extends BusinessException {
     }
 
     /**
-     * 便捷方法：用户已被禁用异常
-     *
-     * @param username 用户名
-     * @return AuthorityBusinessException
-     */
-    public static AuthorityBusinessException userDisabled(String username) {
-        return new AuthorityBusinessException(AuthorityErrorCode.USER_DISABLED, username);
-    }
-
-    /**
-     * 便捷方法：用户密码错误异常
-     *
-     * @return AuthorityBusinessException
-     */
-    public static AuthorityBusinessException userPasswordError() {
-        return new AuthorityBusinessException(AuthorityErrorCode.USER_PASSWORD_ERROR);
-    }
-
-    /**
-     * 便捷方法：用户已被锁定异常
-     *
-     * @param username 用户名
-     * @return AuthorityBusinessException
-     */
-    public static AuthorityBusinessException userLocked(String username) {
-        return new AuthorityBusinessException(AuthorityErrorCode.USER_LOCKED, username);
-    }
-
-    /**
      * 便捷方法：手机号不存在异常
      *
      * @param mobile 手机号
@@ -160,16 +131,6 @@ public class AuthorityBusinessException extends BusinessException {
      */
     public static AuthorityBusinessException roleNotFound(String roleId) {
         return new AuthorityBusinessException(AuthorityErrorCode.ROLE_NOT_FOUND, roleId);
-    }
-
-    /**
-     * 便捷方法：角色标识已存在异常
-     *
-     * @param authority 角色标识
-     * @return AuthorityBusinessException
-     */
-    public static AuthorityBusinessException roleAuthorityExists(String authority) {
-        return new AuthorityBusinessException(AuthorityErrorCode.ROLE_AUTHORITY_EXISTS, authority);
     }
 
     /**
@@ -264,7 +225,7 @@ public class AuthorityBusinessException extends BusinessException {
      * @param areaId 地区ID
      * @return AuthorityBusinessException
      */
-    public static AuthorityBusinessException areaNotFound(Long areaId) {
+    public static AuthorityBusinessException areaNotFound(String areaId) {
         return new AuthorityBusinessException(AuthorityErrorCode.AREA_NOT_FOUND, areaId);
     }
 
@@ -292,15 +253,6 @@ public class AuthorityBusinessException extends BusinessException {
         return new AuthorityBusinessException(AuthorityErrorCode.API_TOKEN_NOT_FOUND, tokenId);
     }
 
-    /**
-     * 便捷方法：API令牌已过期异常
-     *
-     * @return AuthorityBusinessException
-     */
-    public static AuthorityBusinessException apiTokenExpired() {
-        return new AuthorityBusinessException(AuthorityErrorCode.API_TOKEN_EXPIRED);
-    }
-
     // ========== 客户端相关便捷方法 ==========
 
     /**
@@ -324,23 +276,6 @@ public class AuthorityBusinessException extends BusinessException {
 
     // ========== 认证相关便捷方法 ==========
 
-    /**
-     * 便捷方法：认证令牌无效异常
-     *
-     * @return AuthorityBusinessException
-     */
-    public static AuthorityBusinessException authTokenInvalid() {
-        return new AuthorityBusinessException(AuthorityErrorCode.AUTH_TOKEN_INVALID);
-    }
-
-    /**
-     * 便捷方法：认证令牌已过期异常
-     *
-     * @return AuthorityBusinessException
-     */
-    public static AuthorityBusinessException authTokenExpired() {
-        return new AuthorityBusinessException(AuthorityErrorCode.AUTH_TOKEN_EXPIRED);
-    }
 
     /**
      * 便捷方法：无访问权限异常
