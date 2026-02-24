@@ -149,7 +149,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(rollbackFor = Exception.class)
     public Role updateRole(LoginUserDetails loginUserDetails, UpdateRole updateRole) {
         if (updateRole == null || updateRole.getAlias() == null) {
-            throw AuthorityBusinessException.systemError("别名不能为空！");
+            throw AuthorityBusinessException.invalidParameter("别名不能为空！");
         }
         RoleEntity roleEntity = updateRole.toEntity();
         roleMapper.updateById(roleEntity);
@@ -160,7 +160,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(rollbackFor = Exception.class)
     public Role saveRole(LoginUserDetails loginUserDetails, CreateRole createRole) {
         if (createRole == null || createRole.getAlias() == null) {
-            throw AuthorityBusinessException.invalidParameter("角色信息不能为空");
+            throw AuthorityBusinessException.invalidParameter("别名不能为空！");
         }
         String tenantId = loginUserDetails.getTenantId();
         String authority = UUID.fastUUID().toString();

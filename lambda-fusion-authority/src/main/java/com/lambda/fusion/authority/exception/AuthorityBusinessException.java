@@ -276,7 +276,6 @@ public class AuthorityBusinessException extends BusinessException {
 
     // ========== 认证相关便捷方法 ==========
 
-
     /**
      * 便捷方法：无访问权限异常
      *

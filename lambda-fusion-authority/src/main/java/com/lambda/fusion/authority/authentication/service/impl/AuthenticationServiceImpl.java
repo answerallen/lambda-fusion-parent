@@ -7,13 +7,13 @@ import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
 import com.lambda.fusion.authority.authentication.model.*;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.model.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.UserProfile;
@@ -47,10 +47,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
-        Assert.notNull(username, "parameter 'username' cannot be empty or null");
+        if (username == null) {
+            throw AuthorityBusinessException.invalidParameter("username不能为空");
+        }
         UserDetails authUserDetails = authenticationMapper.selectUserDetailByUsername(username);
         if (authUserDetails == null) {
-            throw new UsernameNotFoundException("用户不存！");
+            throw AuthorityBusinessException.userNotFound(username);
         }
         LoginUserDetails loginUserDetails = authUserDetails.toLoginUser();
         return prepareLoginUser(loginUserDetails);

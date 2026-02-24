@@ -220,7 +220,6 @@ public enum AuthorityErrorCode implements ErrorCode {
      */
     AUTH_ACCOUNT_DISABLED(13802, "账户已被禁用"),
 
-
     /**
      * 无访问权限
      */

@@ -1,9 +1,9 @@
 package com.lambda.fusion.authority.area.service.impl;
 
-import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.authority.area.mapper.AreaMapper;
 import com.lambda.fusion.authority.area.model.*;
 import com.lambda.fusion.authority.area.service.AreaService;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
@@ -46,7 +46,9 @@ public class AreaServiceImpl implements AreaService {
     @Transactional(rollbackFor = Exception.class)
     public Area addArea(CreateArea createArea) {
         // 检查区域编码是否已存在
-        Assert.isTrue(!areaMapper.hasExists(createArea.getAreaCode()), "区域编码已存在");
+        if (areaMapper.hasExists(createArea.getAreaCode())) {
+            throw AuthorityBusinessException.operationNotSupported("区域编码已存在");
+        }
         areaMapper.insert(createArea.toEntity());
         return areaMapper.selectByAreaCode(createArea.getAreaCode());
     }
@@ -56,7 +58,9 @@ public class AreaServiceImpl implements AreaService {
     public Area updateArea(UpdateArea updateArea) {
         // 检查区域是否存在
         Area existing = areaMapper.selectByAreaCode(updateArea.getAreaCode());
-        Assert.notNull(existing, "区域不存在");
+        if (existing == null) {
+            throw AuthorityBusinessException.areaNotFound(updateArea.getAreaCode());
+        }
         areaMapper.updateById(updateArea.toEntity());
         return areaMapper.selectByAreaCode(updateArea.getAreaCode());
     }
@@ -65,9 +69,13 @@ public class AreaServiceImpl implements AreaService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteArea(String areaCode) {
         // 检查区域是否存在
-        Assert.isTrue(areaMapper.hasExists(areaCode), "区域不存在");
+        if (!areaMapper.hasExists(areaCode)) {
+            throw AuthorityBusinessException.areaNotFound(areaCode);
+        }
         // 检查是否存在子区域
-        Assert.isTrue(!areaMapper.hasChildren(areaCode), "该区域下存在子区域，无法删除");
+        if (areaMapper.hasChildren(areaCode)) {
+            throw AuthorityBusinessException.operationNotSupported("该区域下存在子区域，无法删除");
+        }
 
         areaMapper.deleteByAreaCode(areaCode);
     }
