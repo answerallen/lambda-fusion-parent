@@ -9,7 +9,7 @@ import com.lambda.cloud.mvc.execption.BusinessException;
  * 继承自统一的BusinessException，用于Authority模块的业务异常处理
  * 提供便捷的构造方法，支持错误码和参数化消息
  *
- * @author fusion
+ * @author Jin
  */
 public class AuthorityBusinessException extends BusinessException {
 
@@ -119,6 +119,16 @@ public class AuthorityBusinessException extends BusinessException {
      */
     public static AuthorityBusinessException userLocked(String username) {
         return new AuthorityBusinessException(AuthorityErrorCode.USER_LOCKED, username);
+    }
+
+    /**
+     * 便捷方法：手机号不存在异常
+     *
+     * @param mobile 手机号
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException userMobileNotFound(String mobile) {
+        return new AuthorityBusinessException(AuthorityErrorCode.USER_MOBILE_NOT_FOUND, mobile);
     }
 
     // ========== 角色相关便捷方法 ==========
