@@ -1,5 +1,7 @@
 package com.lambda.fusion.config.service.impl;
 
+import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -14,19 +16,16 @@ import com.lambda.fusion.config.refresh.DatabaseContextRefresher;
 import com.lambda.fusion.config.service.ConfigChangedService;
 import com.lambda.fusion.config.service.ConfigService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.Serializable;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.io.Serializable;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 /**
  * 系统配置服务实现类
@@ -219,7 +218,6 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
         // 触发配置刷新
         configChangedService.execute();
         Thread.ofVirtual().start(contextRefresher::doRefresh);
-
     }
 
     /**
