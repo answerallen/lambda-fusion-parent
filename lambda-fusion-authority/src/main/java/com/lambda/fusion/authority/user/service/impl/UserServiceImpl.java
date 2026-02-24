@@ -12,11 +12,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.core.utils.StpLogicUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.authority.AuthorityConstants;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.domain.OrganizationEntity;
 import com.lambda.fusion.authority.organization.domain.SimpleOrganization;
 import com.lambda.fusion.authority.organization.domain.UserOrganizationEntity;
@@ -108,7 +108,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public User getByUsername(String username) {
-        Assert.notNull(username, "username is not empty");
+        if (username == null) {
+            throw AuthorityBusinessException.invalidParameter("username不能为空");
+        }
         User user = userMapper.selectUserByUsername(username);
         if (user != null) {
             user.setOnline(isOnline(username));
@@ -391,9 +393,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<Permission> getUserPermissions(String username, String mode) {
-        Assert.notNull(username, "username not empty");
+        if (username == null) {
+            throw AuthorityBusinessException.invalidParameter("username不能为空");
+        }
         User user = userMapper.selectUserByUsername(username);
-        Assert.notNull(user, "user not found");
+        if (user == null) {
+            throw AuthorityBusinessException.userNotFound(username);
+        }
         List<String> ids = Lists.newArrayList(username);
         List<SimpleRole> authorities = user.getAuthorities();
         if (CollectionUtils.isNotEmpty(authorities)) {
@@ -413,10 +419,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public void addUser(CreateUser createUser, LoginUserDetails operator) {
         UserEntity userEntity = createUser.toEntity();
-        Assert.notNull(userEntity, "user is not null");
+        if (userEntity == null) {
+            throw AuthorityBusinessException.invalidParameter("用户信息不能为空");
+        }
 
         boolean hasExists = userMapper.hasExists(userEntity.getUsername());
-        Assert.isFalse(hasExists, "该用户名已被使用");
+        if (hasExists) {
+            throw AuthorityBusinessException.userNameExists(userEntity.getUsername());
+        }
 
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
         String originPassword = userEntity.getPassword();
@@ -452,7 +462,10 @@ public class UserServiceImpl implements UserService {
                     .map(SimpleRole::getAuthority)
                     .filter(StrUtil::isNotEmpty)
                     .map(authority -> {
-                        Assert.notNull(authority, "role not found");
+                        // 检查角色是否存在
+                        if (!roleMapper.hasExists(authority)) {
+                            throw AuthorityBusinessException.roleNotFound(authority);
+                        }
                         if (authority.startsWith(FusionConstants.ROLE_TENANT)) {
                             authority = FusionConstants.ROLE_TENANT;
                         }
@@ -472,7 +485,9 @@ public class UserServiceImpl implements UserService {
     public void updateUser(UpdateUser updateUser, LoginUserDetails operator) {
         UserEntity userEntity = updateUser.toEntity();
         int updated = userMapper.updateById(userEntity);
-        Assert.isTrue(updated == 1, "用户更新失败！");
+        if (updated != 1) {
+            throw AuthorityBusinessException.systemError("用户更新失败");
+        }
         UserInfo updateUserProps = updateUser.getProps();
         if (updateUserProps != null) {
             UserInfoEntity userPropsEntity = updateUserProps.toEntity();
@@ -512,33 +527,44 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteUser(LoginUserDetails operator, String username) {
-        Assert.notNull(username, "username not empty");
-        Assert.isTrue(
-                !username.equals(operator.getName()), "操作失败：用户名 " + username + " 不能等于当前登录用户 " + operator.getName());
-        boolean exists = userMapper.hasExists(username);
-        if (exists) {
-            userMapper.deleteUser(username);
-            userRoleMapper.deleteUserRoles(username);
-            roleMapper.deleteResourceRoleByAuthority(username);
-            userOrganizationMapper.deleteUserOrganizationByUser(username);
-            userFieldsMapper.deleteByUsername(username);
-            // todo 删除用户数据权限
+        if (username == null) {
+            throw AuthorityBusinessException.invalidParameter("username不能为空");
         }
+        if (username.equals(operator.getName())) {
+            throw AuthorityBusinessException.operationNotSupported(
+                    "操作失败：用户名 " + username + " 不能等于当前登录用户 " + operator.getName());
+        }
+        boolean exists = userMapper.hasExists(username);
+        if (!exists) {
+            throw AuthorityBusinessException.userNotFound(username);
+        }
+        userMapper.deleteUser(username);
+        userRoleMapper.deleteUserRoles(username);
+        roleMapper.deleteResourceRoleByAuthority(username);
+        userOrganizationMapper.deleteUserOrganizationByUser(username);
+        userFieldsMapper.deleteByUsername(username);
+        // todo 删除用户数据权限
     }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<User> getUsersByKey(String key) {
-        Assert.notNull(key, "key not empty");
+        if (key == null) {
+            throw AuthorityBusinessException.invalidParameter("key不能为空");
+        }
         return userMapper.selectUsersByKey(key);
     }
 
     @Override
     public void updateUserPassword(String username, String oldPassword, String newPassword) {
         UserEntity userEntity = userMapper.selectById(username);
-        Assert.notNull(userEntity, "user not found");
+        if (userEntity == null) {
+            throw AuthorityBusinessException.userNotFound(username);
+        }
         boolean isChecked = passwordEncoder.matches(oldPassword, userEntity.getPassword());
-        Assert.isTrue(isChecked, "用户 " + userEntity.getUsername() + " 的旧密码校验失败，无法修改密码");
+        if (!isChecked) {
+            throw AuthorityBusinessException.originalPasswordError();
+        }
         String encoded = passwordEncoder.encode(newPassword);
         UserPasswordEntity userUpdatePwdLogEntity = new UserPasswordEntity();
         userUpdatePwdLogEntity.setPassword(encoded);
@@ -569,11 +595,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deactivateUser(LoginUserDetails operator, Integer type, String username) {
-        Assert.notNull(username, "username not null");
+        if (username == null) {
+            throw AuthorityBusinessException.invalidParameter("username不能为空");
+        }
         User user = userMapper.selectUserByUsername(username);
-        Assert.notNull(user, "user not found");
-        Assert.isTrue(
-                !operator.getName().equals(username), "操作失败：用户名 " + username + " 不能等于当前登录用户 " + operator.getName());
+        if (user == null) {
+            throw AuthorityBusinessException.userNotFound(username);
+        }
+        if (operator.getName().equals(username)) {
+            throw AuthorityBusinessException.operationNotSupported(
+                    "操作失败：用户名 " + username + " 不能等于当前登录用户 " + operator.getName());
+        }
         userMapper.deactivateUser(type, username);
     }
 
@@ -623,14 +655,18 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public void addUserFields(Map<String, Object> personal, String username) {
-        Assert.notNull(personal, "data must not be null");
+        if (personal == null) {
+            throw AuthorityBusinessException.invalidParameter("用户扩展信息不能为空");
+        }
         List<UserFieldsEntity> fieldsEntities = UserInfoHelper.buildUserFieldsFromMap(personal, username);
         userFieldsMapper.insert(fieldsEntities);
     }
 
     @Override
     public List<User> getUsersByTenantId(String tenantId) {
-        Assert.notNull(tenantId, "租户 id 不能为空");
+        if (tenantId == null) {
+            throw AuthorityBusinessException.invalidParameter("租户id不能为空");
+        }
         return userMapper.selectUsersByTenantId(tenantId);
     }
 
@@ -638,7 +674,9 @@ public class UserServiceImpl implements UserService {
     public void updateTenantUser(User source, LoginUserDetails operator) {
         String username = source.getUsername();
         User target = userMapper.selectUserByUsername(username);
-        Assert.notNull(target, "user not found");
+        if (target == null) {
+            throw AuthorityBusinessException.userNotFound(username);
+        }
         BeanUtils.copyProperties(source, target);
         userMapper.updateUser(target);
         userRoleMapper.deleteUserRoles(username);

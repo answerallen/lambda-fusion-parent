@@ -3,8 +3,8 @@ package com.lambda.fusion.authority.organization.controller;
 import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.domain.CreateOrganization;
 import com.lambda.fusion.authority.organization.domain.Organization;
 import com.lambda.fusion.authority.organization.domain.OrganizationQuery;
@@ -86,7 +86,9 @@ public class OrganizationController {
         if (StringUtils.isNotBlank(id)) {
             createOrganization.setParentId(id);
             Organization organization = organizationService.queryOrganizationById(id);
-            Assert.notNull(organization, "上级机构不存在！");
+            if (organization == null) {
+                throw AuthorityBusinessException.organizationNotFound(id);
+            }
         }
         return organizationService.addOrganization(createOrganization);
     }
@@ -98,7 +100,9 @@ public class OrganizationController {
             @Parameter(description = "组织信息", required = true) @Valid @RequestBody
                     UpdateOrganization updateOrganization) {
         Organization org = organizationService.queryOrganizationById(id);
-        Assert.notNull(org, "组织机构不存在！");
+        if (org == null) {
+            throw AuthorityBusinessException.organizationNotFound(id);
+        }
         updateOrganization.setId(id);
         return organizationService.updateOrganization(updateOrganization);
     }
@@ -107,7 +111,9 @@ public class OrganizationController {
     @Operation(summary = "删除组织机构信息", description = "根据编号删除指定的组织机构信息")
     public void delete(@Parameter(description = "组织编号", required = true) @PathVariable String id) {
         Organization org = organizationService.queryOrganizationById(id);
-        Assert.notNull(org, "组织机构不存在！");
+        if (org == null) {
+            throw AuthorityBusinessException.organizationNotFound(id);
+        }
         organizationService.deleteOrganization(id);
     }
 
@@ -149,7 +155,9 @@ public class OrganizationController {
     @Operation(summary = "启用组织机构")
     public void enabled(@PathVariable @Parameter(description = "机构Id", required = true) String id) {
         Organization org = organizationService.queryOrganizationById(id);
-        Assert.notNull(org, "组织机构不存在！");
+        if (org == null) {
+            throw AuthorityBusinessException.organizationNotFound(id);
+        }
         organizationService.prohibitOrganization(1, id);
     }
 
@@ -157,7 +165,9 @@ public class OrganizationController {
     @Operation(summary = "禁用组织机构")
     public void disabled(@PathVariable @Parameter(description = "机构Id", required = true) String id) {
         Organization org = organizationService.queryOrganizationById(id);
-        Assert.notNull(org, "组织机构不存在！");
+        if (org == null) {
+            throw AuthorityBusinessException.organizationNotFound(id);
+        }
         organizationService.prohibitOrganization(0, id);
     }
 

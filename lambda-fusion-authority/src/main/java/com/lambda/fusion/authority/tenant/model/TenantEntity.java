@@ -6,14 +6,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.lambda.fusion.core.entity.BaseEntity;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.apache.commons.lang.StringUtils;
 
 /**
  * 租户信息表
@@ -139,5 +133,4 @@ public class TenantEntity extends BaseEntity {
     @Schema(description = "租户配置")
     @TableField("CONFIG")
     private String config;
-
 }

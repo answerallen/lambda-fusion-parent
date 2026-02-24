@@ -8,8 +8,8 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.domain.*;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.mapper.UserOrganizationMapper;
@@ -206,7 +206,9 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         // 获取组织信息
         Organization organization = getOrganizationById(id);
-        Assert.notNull(organization, "组织不存在！");
+        if (organization == null) {
+            throw AuthorityBusinessException.organizationNotFound(id);
+        }
 
         // 检查删除前置条件
         validateDeleteConditions(id);
@@ -227,13 +229,17 @@ public class OrganizationServiceImpl implements OrganizationService {
      */
     private void validateDeleteConditions(String id) {
         List<String> childIds = getChildrenById0(id);
-        Assert.state(CollectionUtils.isEmpty(childIds), "存在子组织，无法删除");
+        if (CollectionUtils.isNotEmpty(childIds)) {
+            throw AuthorityBusinessException.organizationHasChildren(id);
+        }
 
         List<String> allIds = new ArrayList<>(childIds);
         allIds.add(id);
 
         boolean hasUser = organizationMapper.existUser(allIds);
-        Assert.state(!hasUser, "组织下存在用户，无法删除");
+        if (hasUser) {
+            throw AuthorityBusinessException.operationNotSupported("组织下存在用户，无法删除");
+        }
     }
 
     /**
@@ -272,12 +278,16 @@ public class OrganizationServiceImpl implements OrganizationService {
     public Organization updateOrganization(UpdateOrganization resource) {
         LoginUser operator = OperatorUtils.getOperator();
         hasOperation(operator, resource.getId());
-        Assert.notNull(resource.getId(), "机构ID不能为空");
+        if (resource.getId() == null) {
+            throw AuthorityBusinessException.invalidParameter("机构ID不能为空");
+        }
         List<OrganizationEntity> organizations =
                 organizationMapper.selectList(new LambdaQueryWrapper<OrganizationEntity>()
                         .eq(OrganizationEntity::getName, resource.getName())
                         .eq(OrganizationEntity::getOwner, operator.getTenantId()));
-        Assert.isTrue(CollectionUtils.isEmpty(organizations), "lambda.authority.organ.name.repeat");
+        if (CollectionUtils.isNotEmpty(organizations)) {
+            throw AuthorityBusinessException.organizationNameExists(resource.getName());
+        }
         OrganizationEntity organizationEntity = resource.toEntity();
         organizationMapper.updateById(organizationEntity);
         return getOrganizationById(resource.getId());
@@ -290,8 +300,12 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public UserOrganization queryUserOrganization(UserOrganizationChange resource) {
-        Assert.notNull(resource, "organ must not be null");
-        Assert.notNull(resource.getUsername(), "user id must not be null");
+        if (resource == null) {
+            throw AuthorityBusinessException.invalidParameter("参数不能为空");
+        }
+        if (resource.getUsername() == null) {
+            throw AuthorityBusinessException.invalidParameter("用户ID不能为空");
+        }
         UserOrganizationEntity userOrganizationEntity =
                 userOrganizationMapper.selectUserOrganization(resource.getUsername());
         return UserOrganization.fromEntity(UserOrganization.class, userOrganizationEntity);
@@ -300,13 +314,23 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public UserOrganization addUserOrganization(UserOrganizationChange userOrganizationDTO) {
-        Assert.notNull(userOrganizationDTO, "organ must not be null");
-        Assert.notNull(userOrganizationDTO.getUsername(), "user id must not be null");
-        Assert.notNull(userOrganizationDTO.getOrganizationId(), "organization id must not be null");
-        Assert.notNull(
-                userMapper.selectUserByUsername(userOrganizationDTO.getUsername()),
-                "lambda.authority.organ.user.notfound");
-        Assert.notNull(getOrganizationById(userOrganizationDTO.getOrganizationId()), "机构不存在！");
+        if (userOrganizationDTO == null) {
+            throw AuthorityBusinessException.invalidParameter("参数不能为空");
+        }
+        if (userOrganizationDTO.getUsername() == null) {
+            throw AuthorityBusinessException.invalidParameter("用户ID不能为空");
+        }
+        if (userOrganizationDTO.getOrganizationId() == null) {
+            throw AuthorityBusinessException.invalidParameter("组织ID不能为空");
+        }
+        User user = userMapper.selectUserByUsername(userOrganizationDTO.getUsername());
+        if (user == null) {
+            throw AuthorityBusinessException.userNotFound(userOrganizationDTO.getUsername());
+        }
+        Organization organization = getOrganizationById(userOrganizationDTO.getOrganizationId());
+        if (organization == null) {
+            throw AuthorityBusinessException.organizationNotFound(userOrganizationDTO.getOrganizationId());
+        }
         UserOrganizationEntity userOrganization = userOrganizationDTO.toEntity();
         userOrganizationMapper.insert(userOrganization);
         return UserOrganization.fromEntity(UserOrganization.class, userOrganization);
@@ -321,10 +345,16 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public UserOrganization updateUserOrganization(UserOrganizationChange resource) {
-        Assert.notNull(resource.getUsername(), "user id must not be null");
-        Assert.notNull(resource.getOrganizationId(), "organization id must not be null");
+        if (resource.getUsername() == null) {
+            throw AuthorityBusinessException.invalidParameter("用户ID不能为空");
+        }
+        if (resource.getOrganizationId() == null) {
+            throw AuthorityBusinessException.invalidParameter("组织ID不能为空");
+        }
         Organization organization = getOrganizationById(resource.getOrganizationId());
-        Assert.notNull(organization, "机构不存在！");
+        if (organization == null) {
+            throw AuthorityBusinessException.organizationNotFound(resource.getOrganizationId());
+        }
         UserOrganizationEntity userOrganization = resource.toEntity();
         userOrganizationMapper.updateById(userOrganization);
         return UserOrganization.fromEntity(UserOrganization.class, userOrganization);
@@ -332,7 +362,9 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<String> getParentsById(String id) {
-        Assert.notNull(id, "id must not be null");
+        if (id == null) {
+            throw AuthorityBusinessException.invalidParameter("ID不能为空");
+        }
         Organization organ = organizationMapper.selectOrganizationById(id);
         if (organ != null) {
             String parentKeys = organ.getParentKeys();
@@ -346,9 +378,13 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void prohibitOrganization(Integer enabled, String id) {
-        Assert.notNull(id, "id is not empty");
+        if (id == null) {
+            throw AuthorityBusinessException.invalidParameter("ID不能为空");
+        }
         Organization org = getOrganizationById(id);
-        Assert.notNull(org, "org is not null");
+        if (org == null) {
+            throw AuthorityBusinessException.organizationNotFound(id);
+        }
         LoginUser operator = OperatorUtils.getOperator();
         this.hasOperation(operator, id);
         final List<Organization> orgIds = getSubOrgIds(id);
@@ -380,9 +416,13 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     protected List<Organization> getSubOrgIds(String id) {
-        Assert.notNull(id, "id must not be null");
+        if (id == null) {
+            throw AuthorityBusinessException.invalidParameter("ID不能为空");
+        }
         Organization organ = organizationMapper.selectOrganizationById(id);
-        Assert.notNull(organ, "机构不存在！");
+        if (organ == null) {
+            throw AuthorityBusinessException.organizationNotFound(id);
+        }
         String keys = organ.getParentKeys();
         if (StringUtils.isNotBlank(keys)) {
             id = keys + JOINER + id;
@@ -409,8 +449,8 @@ public class OrganizationServiceImpl implements OrganizationService {
      */
     protected void hasOperation(LoginUser operator, String orgId) {
         String tenantId = operator.getTenantId();
-        if (StringUtils.isNotBlank(tenantId)) {
-            Assert.isTrue(!tenantId.equals(orgId), "no permission");
+        if (StringUtils.isNotBlank(tenantId) && tenantId.equals(orgId)) {
+            throw AuthorityBusinessException.authNoPermission();
         }
     }
 
@@ -467,10 +507,14 @@ public class OrganizationServiceImpl implements OrganizationService {
     public Organization addOrganization(CreateOrganization createOrganization) {
         LoginUser operator = OperatorUtils.getOperator();
         OrganizationEntity entity = createOrganization.toEntity();
-        Assert.notNull(entity.getName(), "组织机构名称不能为空");
+        if (entity.getName() == null) {
+            throw AuthorityBusinessException.invalidParameter("组织机构名称不能为空");
+        }
         String tenantId = operator.getTenantId();
         OrganizationEntity checked = queryByNameAndTenantId(createOrganization.getName(), tenantId);
-        Assert.isNull(checked, "组织机构名称重复！");
+        if (checked != null) {
+            throw AuthorityBusinessException.organizationNameExists(createOrganization.getName());
+        }
         String orgId;
         // 通过配置来确定组织id的来源
         if (authorityProperties.isUseOrgNameAsId()) {
@@ -484,7 +528,9 @@ public class OrganizationServiceImpl implements OrganizationService {
         entity.setCreatedAt(new Date());
         if (StringUtils.isNotBlank(createOrganization.getParentId())) {
             Organization parent = getOrganizationById(createOrganization.getParentId());
-            Assert.notNull(parent, "上级组织未查询到！");
+            if (parent == null) {
+                throw AuthorityBusinessException.organizationNotFound(createOrganization.getParentId());
+            }
             String parentKeys = parent.buildParentKeys();
             entity.setParentKeys(parentKeys);
             entity.setLevel(TreeNodeUtils.level(parentKeys));

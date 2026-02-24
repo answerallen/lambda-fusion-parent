@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.cloud.core.utils.Assert;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.domain.Organization;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.role.mapper.GroupMapper;
@@ -197,9 +197,15 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
     @SneakyThrows
     @Transactional(rollbackFor = Exception.class)
     public void updateConfig(LoginUser operator, String tenantId, Map<String, Object> configMap) {
-        Assert.notNull(tenantId, "租户ID不能为空！");
-        Assert.isTrue(tenantMapper.isExist(tenantId), "租户不存在！");
-        Assert.notNull(configMap, "lambda.authority.tenant.config.notempty");
+        if (tenantId == null) {
+            throw AuthorityBusinessException.invalidParameter("租户ID不能为空");
+        }
+        if (!tenantMapper.isExist(tenantId)) {
+            throw AuthorityBusinessException.tenantNotFound(tenantId);
+        }
+        if (configMap == null) {
+            throw AuthorityBusinessException.invalidParameter("配置不能为空");
+        }
         // 判断当前用户是否拥有操作权限
         this.hasOperation(operator, tenantId);
 
@@ -213,14 +219,18 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
 
     @Override
     public JsonNode getTenantConfigureById(LoginUser operator, String tenantId) {
-        Assert.notNull(tenantId, "租户ID不能为空！");
+        if (tenantId == null) {
+            throw AuthorityBusinessException.invalidParameter("租户ID不能为空");
+        }
         this.hasOperation(operator, tenantId);
         return getTenantConfigureById(tenantId);
     }
 
     @Override
     public Map<String, Object> getTenantConfigureMapById(String tenantId) {
-        Assert.notNull(tenantId, "租户ID不能为空！");
+        if (tenantId == null) {
+            throw AuthorityBusinessException.invalidParameter("租户ID不能为空");
+        }
         ObjectNode jsonNode = (ObjectNode) getTenantConfigureById(tenantId);
         Map<String, Object> map = new HashMap<>(jsonNode.size());
         jsonNode.properties().forEach(entry -> map.put(entry.getKey(), entry.getValue()));
@@ -242,7 +252,9 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
             return objectMapper.readValue(configJson, ObjectNode.class);
         }
         TenantEntity tenant = this.getById(tenantId);
-        Assert.notNull(tenant, "Tenant not found");
+        if (tenant == null) {
+            throw AuthorityBusinessException.tenantNotFound(tenantId);
+        }
         configJson = tenant.getConfig();
         if (StringUtils.isBlank(configJson)) {
             configJson = TENANT_CONFIG_EMPTY_MAP;
@@ -279,8 +291,8 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
      */
     protected void hasOperation(LoginUser operator, String tenantId) {
         String crrTenantId = operator.getTenantId();
-        if (StringUtils.isNotBlank(crrTenantId)) {
-            Assert.isTrue(crrTenantId.equals(tenantId), "当前租户ID与操作租户ID不一致");
+        if (StringUtils.isNotBlank(crrTenantId) && !crrTenantId.equals(tenantId)) {
+            throw AuthorityBusinessException.authNoPermission();
         }
     }
 
@@ -310,7 +322,9 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
     }
 
     protected List<Organization> queryOrganizationByTenantId(String tenantId) {
-        Assert.notNull(tenantId, "tenantId must not be null");
+        if (tenantId == null) {
+            throw AuthorityBusinessException.invalidParameter("租户ID不能为空");
+        }
         return organizationMapper.selectOrganizationByTenantId(tenantId);
     }
 

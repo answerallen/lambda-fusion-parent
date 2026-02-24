@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.user.service.impl;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.cloud.core.utils.Assert;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.user.mapper.UserOnlineLogMapper;
 import com.lambda.fusion.authority.user.model.OnlineLogEntity;
 import com.lambda.fusion.authority.user.service.UserOnlineLogService;
@@ -17,7 +17,9 @@ public class UserOnlineLogServiceImpl extends ServiceImpl<UserOnlineLogMapper, O
 
     @Override
     public Boolean isOnline(String username, String deviceType) {
-        Assert.notNull(username, "username not empty");
+        if (username == null) {
+            throw AuthorityBusinessException.invalidParameter("username不能为空");
+        }
         OnlineLogEntity entity = getOne(new LambdaQueryWrapper<OnlineLogEntity>()
                 .eq(OnlineLogEntity::getUsername, username)
                 .eq(

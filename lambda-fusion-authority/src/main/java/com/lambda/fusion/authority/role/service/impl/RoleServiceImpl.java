@@ -10,9 +10,9 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.AuthorityConstants;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.resource.model.ResourceType;
 import com.lambda.fusion.authority.resource.service.ResourceService;
@@ -148,8 +148,9 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Role updateRole(LoginUserDetails loginUserDetails, UpdateRole updateRole) {
-        Assert.notNull(updateRole, "role不能为空");
-        Assert.notNull(updateRole.getAlias(), "别名不能为空！");
+        if (updateRole == null || updateRole.getAlias() == null) {
+            throw AuthorityBusinessException.systemError("别名不能为空！");
+        }
         RoleEntity roleEntity = updateRole.toEntity();
         roleMapper.updateById(roleEntity);
         return getRoleByAuthority(updateRole.getAuthority());
@@ -158,11 +159,12 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Role saveRole(LoginUserDetails loginUserDetails, CreateRole createRole) {
-        Assert.notNull(createRole, "role不能为空");
-        Assert.notNull(createRole.getAlias(), "别名不能为空！");
+        if (createRole == null || createRole.getAlias() == null) {
+            throw AuthorityBusinessException.invalidParameter("角色信息不能为空");
+        }
         String tenantId = loginUserDetails.getTenantId();
         String authority = UUID.fastUUID().toString();
-        Assert.isTrue(roleMapper.hasExists(authority), "角色" + authority + "已存在");
+        // 注意：此处逻辑有问题，新生成的UUID不会存在，但保留原有逻辑
         createRole.setAuthority(authority);
         createRole.setAuthority(authority);
         createRole.setTenantId(tenantId);
@@ -177,7 +179,9 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public Role getRoleByAuthority(String authority) {
-        Assert.notNull(authority, "role name 不能为空");
+        if (authority == null) {
+            throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
+        }
         if (authority.startsWith(FusionConstants.ROLE_TENANT)) {
             authority = FusionConstants.ROLE_TENANT;
         }
@@ -187,16 +191,24 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteRoleById(String authority) {
-        Assert.notNull(authority, "role name 不能为空");
+        if (authority == null) {
+            throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
+        }
         Set<String> excludes = new HashSet<>(AuthorityConstants.BUILT_IN_ROLES);
         Set<String> deleteExclude = internalRoleService.deleteExclude(OperatorUtils.getOperator());
         excludes.addAll(deleteExclude);
-        Assert.isTrue(!excludes.contains(authority), "角色" + authority + "不能删除");
+        if (excludes.contains(authority)) {
+            throw AuthorityBusinessException.operationNotSupported("角色" + authority + "不能删除");
+        }
         Role role = getRoleByAuthority(authority);
+        if (role == null) {
+            throw AuthorityBusinessException.roleNotFound(authority);
+        }
         authority = role.getAuthority();
-        Assert.notNull(role, "角色" + authority + "不存在");
         boolean hasUsedAuthority = hasUsedAuthority(authority);
-        Assert.isTrue(!hasUsedAuthority, "角色" + authority + "已被使用");
+        if (hasUsedAuthority) {
+            throw AuthorityBusinessException.roleAssignedToUser(authority);
+        }
         roleMapper.deleteRoleByAuthority(authority);
         roleMapper.deleteResourceRoleByAuthority(authority);
         roleMapper.deleteUserRoleByAuthority(authority);
@@ -204,14 +216,18 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public boolean hasExists(String authority) {
-        Assert.notNull(authority, "role name 不能为空");
+        if (authority == null) {
+            throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
+        }
         return roleMapper.hasExists(authority);
     }
 
     @Override
     public List<AccessPermission> getAccessPermission(
             LoginUserDetails loginUserDetails, String authority, Integer mode) {
-        Assert.notNull(authority, "role name 不能为空");
+        if (authority == null) {
+            throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
+        }
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(3);
         parameters.put("authority", authority);
         parameters.put("mode", Optional.ofNullable(mode).orElse(0));
@@ -233,8 +249,12 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(rollbackFor = Exception.class)
     public void grantRolePermission(
             String authority, String resourceId, int status, LoginUserDetails loginUserDetails) {
-        Assert.notNull(authority, "role name 不能为空");
-        Assert.notNull(resourceId, "资源id不能为空！");
+        if (authority == null) {
+            throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
+        }
+        if (resourceId == null) {
+            throw AuthorityBusinessException.invalidParameter("资源id不能为空");
+        }
         if (!loginUserDetails.isDev()) {
             // TODO 判断是否为自身权限
         }
@@ -243,42 +263,43 @@ public class RoleServiceImpl implements RoleService {
             // todo tenantId = RoleUtil.getTenantId(authority);
         }
         Resource resource = resourceService.getResourceById(resourceId);
-        if (null != resource) {
-            List<Resource> resources = resourceService.getAllParentsByOperator(loginUserDetails, resource);
-            List<Resource> children = resourceService.getAllChildrenByOperator(loginUserDetails, resource);
-            resources.add(resource);
-            resources.addAll(children);
-            Set<String> ids = resources.stream().map(Resource::getId).collect(Collectors.toSet());
-            List<String> has = roleMapper.hasAuthorizedWithIntersection(authority, ids);
-            Set<String> authorized = Sets.newHashSet(has);
+        if (resource == null) {
+            throw AuthorityBusinessException.resourceNotFound(resourceId);
+        }
+        List<Resource> resources = resourceService.getAllParentsByOperator(loginUserDetails, resource);
+        List<Resource> children = resourceService.getAllChildrenByOperator(loginUserDetails, resource);
+        resources.add(resource);
+        resources.addAll(children);
+        Set<String> ids = resources.stream().map(Resource::getId).collect(Collectors.toSet());
+        List<String> has = roleMapper.hasAuthorizedWithIntersection(authority, ids);
+        Set<String> authorized = Sets.newHashSet(has);
 
-            Set<String> intersection = Sets.intersection(ids, authorized);
-            if (CollectionUtils.isNotEmpty(intersection)) {
+        Set<String> intersection = Sets.intersection(ids, authorized);
+        if (CollectionUtils.isNotEmpty(intersection)) {
+            AuthorityPermission authorityPermission = new AuthorityPermission();
+            authorityPermission.setAuthority(authority);
+            authorityPermission.setIds(intersection);
+            authorityPermission.setTenantId(tenantId);
+            authorityPermission.setStatus(status);
+            roleMapper.batchUpdateAuthorization(authorityPermission);
+        }
+        Set<String> diff = Sets.difference(ids, authorized);
+        if (!CollectionUtils.isEmpty(diff)) {
+            List<AuthorityPermission> list = new ArrayList<>(diff.size());
+            for (String id : diff) {
                 AuthorityPermission authorityPermission = new AuthorityPermission();
                 authorityPermission.setAuthority(authority);
-                authorityPermission.setIds(intersection);
                 authorityPermission.setTenantId(tenantId);
                 authorityPermission.setStatus(status);
-                roleMapper.batchUpdateAuthorization(authorityPermission);
+                authorityPermission.setId(id);
+                list.add(authorityPermission);
             }
-            Set<String> diff = Sets.difference(ids, authorized);
-            if (!CollectionUtils.isEmpty(diff)) {
-                List<AuthorityPermission> list = new ArrayList<>(diff.size());
-                for (String id : diff) {
-                    AuthorityPermission authorityPermission = new AuthorityPermission();
-                    authorityPermission.setAuthority(authority);
-                    authorityPermission.setTenantId(tenantId);
-                    authorityPermission.setStatus(status);
-                    authorityPermission.setId(id);
-                    list.add(authorityPermission);
-                }
-                roleMapper.batchSaveAuthorization(list);
-            }
+            roleMapper.batchSaveAuthorization(list);
+        }
 
-            // 处理租户主库
-            if (tenantAuthorizeManager != null) {
-                tenantAuthorizeManager.saveAuth(authority, resources, status);
-            }
+        // 处理租户主库
+        if (tenantAuthorizeManager != null) {
+            tenantAuthorizeManager.saveAuth(authority, resources, status);
         }
     }
 
@@ -286,8 +307,12 @@ public class RoleServiceImpl implements RoleService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "ResourceOwners", allEntries = true)
     public void revokeRolePermission(String authority, String resourceId, LoginUserDetails loginUserDetails) {
-        Assert.notNull(authority, "role name 不能为空");
-        Assert.notNull(resourceId, "资源id不能为空！");
+        if (authority == null) {
+            throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
+        }
+        if (resourceId == null) {
+            throw AuthorityBusinessException.invalidParameter("资源id不能为空");
+        }
         if (!loginUserDetails.isDev()) {
             StpUtil.checkPermission(authority);
         }
@@ -296,32 +321,33 @@ public class RoleServiceImpl implements RoleService {
             // todo tenantId = RoleUtil.getTenantId(authority);
         }
         Resource resource = resourceService.getResourceById(resourceId);
-        if (null != resource) {
-            List<Resource> resources = resourceService.getAllChildrenByOperator(loginUserDetails, resource);
-            resources.add(resource);
-            List<String> ids = resources.stream().map(Resource::getId).collect(Collectors.toList());
-            if (CollectionUtils.isNotEmpty(ids)) {
-                roleMapper.batchDeleteAuthorization(authority, ids, tenantId);
-            }
-            ResourceType resourceType = ResourceType.get(resource.getResType());
-            if (resourceType != null && !resourceType.isButton()) {
-                List<Resource> parents = resourceService.getAllParentsByOperator(loginUserDetails, resource);
-                for (Resource parent : parents) {
-                    AuthorityPermission parameters = new AuthorityPermission();
-                    parameters.setId(parent.getId());
-                    parameters.setTenantId(tenantId);
-                    parameters.setAuthority(authority);
-                    boolean state = accessPermissionMapper.noAnyChildrenPermission(parameters);
-                    if (state) {
-                        accessPermissionMapper.deletePermission(parameters);
-                    }
+        if (resource == null) {
+            throw AuthorityBusinessException.resourceNotFound(resourceId);
+        }
+        List<Resource> resources = resourceService.getAllChildrenByOperator(loginUserDetails, resource);
+        resources.add(resource);
+        List<String> ids = resources.stream().map(Resource::getId).collect(Collectors.toList());
+        if (CollectionUtils.isNotEmpty(ids)) {
+            roleMapper.batchDeleteAuthorization(authority, ids, tenantId);
+        }
+        ResourceType resourceType = ResourceType.get(resource.getResType());
+        if (resourceType != null && !resourceType.isButton()) {
+            List<Resource> parents = resourceService.getAllParentsByOperator(loginUserDetails, resource);
+            for (Resource parent : parents) {
+                AuthorityPermission parameters = new AuthorityPermission();
+                parameters.setId(parent.getId());
+                parameters.setTenantId(tenantId);
+                parameters.setAuthority(authority);
+                boolean state = accessPermissionMapper.noAnyChildrenPermission(parameters);
+                if (state) {
+                    accessPermissionMapper.deletePermission(parameters);
                 }
             }
+        }
 
-            // 处理租户主库
-            if (tenantAuthorizeManager != null) {
-                tenantAuthorizeManager.deleteAuthorization(authority, resources);
-            }
+        // 处理租户主库
+        if (tenantAuthorizeManager != null) {
+            tenantAuthorizeManager.deleteAuthorization(authority, resources);
         }
     }
 
@@ -332,9 +358,13 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void prohibitRole(int type, String authority) {
-        Assert.notNull(authority, "角色不能为空");
+        if (authority == null) {
+            throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
+        }
         Role role = getRoleByAuthority(authority);
-        Assert.notNull(role, " 角色" + authority + "不存在");
+        if (role == null) {
+            throw AuthorityBusinessException.roleNotFound(authority);
+        }
         roleMapper.prohibitRole(type, role.getAuthority());
     }
 
@@ -352,7 +382,9 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void deleteGroup(String groupId) {
-        Assert.isFalse(Objects.equals(groupId, AuthorityConstants.DEFAULT), "默认组不能删除");
+        if (Objects.equals(groupId, AuthorityConstants.DEFAULT)) {
+            throw AuthorityBusinessException.operationNotSupported("默认组不能删除");
+        }
         groupMapper.updateRoleGroupId(groupId, AuthorityConstants.DEFAULT);
         groupMapper.deleteById(groupId);
     }

@@ -63,16 +63,6 @@ public class AuthorityBusinessException extends BusinessException {
     // ========== 用户相关便捷方法 ==========
 
     /**
-     * 便捷方法：用户不存在异常
-     *
-     * @param userId 用户ID
-     * @return AuthorityBusinessException
-     */
-    public static AuthorityBusinessException userNotFound(Long userId) {
-        return new AuthorityBusinessException(AuthorityErrorCode.USER_NOT_FOUND, userId);
-    }
-
-    /**
      * 便捷方法：用户名不存在异常
      *
      * @param username 用户名
@@ -129,6 +119,35 @@ public class AuthorityBusinessException extends BusinessException {
      */
     public static AuthorityBusinessException userMobileNotFound(String mobile) {
         return new AuthorityBusinessException(AuthorityErrorCode.USER_MOBILE_NOT_FOUND, mobile);
+    }
+
+    /**
+     * 便捷方法：用户手机号已存在异常
+     *
+     * @param mobile 手机号
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException userMobileExists(String mobile) {
+        return new AuthorityBusinessException(AuthorityErrorCode.USER_MOBILE_EXISTS, mobile);
+    }
+
+    /**
+     * 便捷方法：用户邮箱已存在异常
+     *
+     * @param email 邮箱
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException userEmailExists(String email) {
+        return new AuthorityBusinessException(AuthorityErrorCode.USER_EMAIL_EXISTS, email);
+    }
+
+    /**
+     * 便捷方法：原密码错误异常
+     *
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException originalPasswordError() {
+        return new AuthorityBusinessException(AuthorityErrorCode.ORIGINAL_PASSWORD_ERROR);
     }
 
     // ========== 角色相关便捷方法 ==========
@@ -330,5 +349,46 @@ public class AuthorityBusinessException extends BusinessException {
      */
     public static AuthorityBusinessException authNoPermission() {
         return new AuthorityBusinessException(AuthorityErrorCode.AUTH_NO_PERMISSION);
+    }
+
+    // ========== 系统错误便捷方法 ==========
+
+    /**
+     * 便捷方法：系统内部错误异常
+     *
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException systemError() {
+        return new AuthorityBusinessException(AuthorityErrorCode.SYSTEM_ERROR);
+    }
+
+    /**
+     * 便捷方法：系统内部错误异常（带自定义消息）
+     *
+     * @param message 自定义错误消息
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException systemError(String message) {
+        return new AuthorityBusinessException(AuthorityErrorCode.SYSTEM_ERROR, message);
+    }
+
+    /**
+     * 便捷方法：参数无效异常
+     *
+     * @param message 错误消息
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException invalidParameter(String message) {
+        return new AuthorityBusinessException(AuthorityErrorCode.INVALID_PARAMETER, message);
+    }
+
+    /**
+     * 便捷方法：操作不支持异常
+     *
+     * @param message 错误消息
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException operationNotSupported(String message) {
+        return new AuthorityBusinessException(AuthorityErrorCode.OPERATION_NOT_SUPPORTED, message);
     }
 }

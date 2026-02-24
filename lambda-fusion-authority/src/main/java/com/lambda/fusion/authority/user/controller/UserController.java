@@ -4,8 +4,8 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.tenant.manager.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.helper.UserQueryHelper;
@@ -150,8 +150,12 @@ public class UserController {
         LoginUser operator = OperatorUtils.getOperator();
         String oldPassword = resetPassword.getOldPassword();
         String newPassword = resetPassword.getNewPassword();
-        Assert.notNull(oldPassword, "原密码不能为空！");
-        Assert.notNull(newPassword, "新密码不能为空！");
+        if (oldPassword == null) {
+            throw AuthorityBusinessException.invalidParameter("原密码不能为空");
+        }
+        if (newPassword == null) {
+            throw AuthorityBusinessException.invalidParameter("新密码不能为空");
+        }
         resetPassword.setUsername(operator.getName());
         userService.updateUserPassword(operator.getName(), oldPassword, newPassword);
     }
@@ -161,7 +165,9 @@ public class UserController {
     public String resetUserPassword(
             @Parameter(description = "重置密码参数", required = true) @RequestBody ResetPassword resetPassword) {
         String username = resetPassword.getUsername();
-        Assert.notNull(username, "username is not empty");
+        if (username == null) {
+            throw AuthorityBusinessException.invalidParameter("username不能为空");
+        }
         String password = userService.resetUserPassword(resetPassword);
         if (tenantAuthorizeManager != null) {
             resetPassword.setNewPassword(password);

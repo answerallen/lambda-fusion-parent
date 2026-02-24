@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.tenant.model.Tenant;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
 import com.lambda.fusion.authority.tenant.model.TenantOption;
@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -148,9 +147,13 @@ public class TenantController {
     @Operation(summary = "启用租户")
     public void enabled(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         LoginUser operator = OperatorUtils.getOperator();
-        Assert.notNull(id, "租户编号不能为空");
+        if (id == null) {
+            throw AuthorityBusinessException.invalidParameter("租户编号不能为空");
+        }
         TenantEntity tenant = tenantService.getById(id);
-        Assert.notNull(tenant, "租户不存在！");
+        if (tenant == null) {
+            throw AuthorityBusinessException.tenantNotFound(id);
+        }
         tenantService.prohibitTenant(operator, 1, id);
     }
 
@@ -158,9 +161,13 @@ public class TenantController {
     @Operation(summary = "禁用租户")
     public void disabled(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         LoginUser operator = OperatorUtils.getOperator();
-        Assert.notNull(id, "租户编号不能为空");
+        if (id == null) {
+            throw AuthorityBusinessException.invalidParameter("租户编号不能为空");
+        }
         TenantEntity tenant = tenantService.getById(id);
-        Assert.notNull(tenant, "租户不存在！");
+        if (tenant == null) {
+            throw AuthorityBusinessException.tenantNotFound(id);
+        }
         tenantService.prohibitTenant(operator, 0, id);
     }
 
@@ -168,9 +175,13 @@ public class TenantController {
     @Operation(summary = "停用租户")
     public void stop(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         LoginUser operator = OperatorUtils.getOperator();
-        Assert.notNull(id, "租户编号不能为空");
+        if (id == null) {
+            throw AuthorityBusinessException.invalidParameter("租户编号不能为空");
+        }
         TenantEntity tenant = tenantService.getById(id);
-        Assert.notNull(tenant, "租户不存在！");
+        if (tenant == null) {
+            throw AuthorityBusinessException.tenantNotFound(id);
+        }
         tenantService.prohibitTenant(operator, -1, id);
     }
 
@@ -178,9 +189,13 @@ public class TenantController {
     @Operation(summary = "审核租户")
     public void examine(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         LoginUser operator = OperatorUtils.getOperator();
-        Assert.notNull(id, "租户编号不能为空");
+        if (id == null) {
+            throw AuthorityBusinessException.invalidParameter("租户编号不能为空");
+        }
         TenantEntity tenant = tenantService.getById(id);
-        Assert.notNull(tenant, "租户不存在！");
+        if (tenant == null) {
+            throw AuthorityBusinessException.tenantNotFound(id);
+        }
         tenantService.examineTenant(operator, 1, id);
     }
 
@@ -190,9 +205,13 @@ public class TenantController {
             @PathVariable @Parameter(description = "租户编号", required = true) String id,
             @Parameter(description = "配置json字符串", required = true) @RequestBody Map<String, Object> configMap) {
         LoginUser operator = OperatorUtils.getOperator();
-        Assert.notNull(id, "租户编号不能为空");
+        if (id == null) {
+            throw AuthorityBusinessException.invalidParameter("租户编号不能为空");
+        }
         TenantEntity tenant = tenantService.getById(id);
-        Assert.notNull(tenant, "租户不存在！");
+        if (tenant == null) {
+            throw AuthorityBusinessException.tenantNotFound(id);
+        }
         log.debug("接收到参数：{}", configMap.toString());
         tenantService.updateConfig(operator, id, configMap);
     }

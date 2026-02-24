@@ -6,6 +6,7 @@ import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.utils.Assert;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.resource.mapper.ResourceMapper;
 import com.lambda.fusion.authority.resource.model.*;
@@ -121,9 +122,12 @@ public class ResourceServiceImpl implements ResourceService {
         int resLevel = 0;
         if (StringUtils.isNotBlank(resource.getParentId())) {
             parent = getResourceById(resource.getParentId());
-            Assert.notNull(parent, "父类不存在！");
-            Assert.isFalse(
-                    !parent.getResMode().equals(resource.getResMode()), "lambda.authority.resource.model.inconsistent");
+            if (parent == null) {
+                throw AuthorityBusinessException.resourceNotFound(resource.getParentId());
+            }
+            if (!parent.getResMode().equals(resource.getResMode())) {
+                throw AuthorityBusinessException.resourceTypeNotSupported();
+            }
             resLevel = parent.getResLevel() + 1;
             parentKeys = parent.getParentKeys();
             if (StringUtils.isNotBlank(parentKeys)) {
@@ -170,9 +174,13 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteResource(String id) {
-        Assert.notNull(id, "Resource id can't be null");
+        if (id == null) {
+            throw AuthorityBusinessException.invalidParameter("资源ID不能为空");
+        }
         Resource resource = getResourceById(id);
-        Assert.notNull(resource, "Resource not found");
+        if (resource == null) {
+            throw AuthorityBusinessException.resourceNotFound(id);
+        }
 
         List<Resource> children = queryAvailableChildren(resource);
         children.addFirst(resource);
@@ -187,13 +195,19 @@ public class ResourceServiceImpl implements ResourceService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Resource updateResource(Resource updateResource) {
-        Assert.notNull(updateResource, "Resource can't be null");
-        Assert.notNull(updateResource.getId(), "Resource id can't be null");
+        if (updateResource == null) {
+            throw AuthorityBusinessException.invalidParameter("资源信息不能为空");
+        }
+        if (updateResource.getId() == null) {
+            throw AuthorityBusinessException.invalidParameter("资源ID不能为空");
+        }
         Resource source = getResourceById(updateResource.getId());
+        if (source == null) {
+            throw AuthorityBusinessException.resourceNotFound(updateResource.getId());
+        }
         // 更新时只更新属性，不改变上下级关系，因此parentKeys也无须变化
         updateResource.setResLevel(source.getResLevel());
         updateResource.setParentKeys(source.getParentKeys());
-        Assert.notNull(source, "resource not found");
         // 更新时如果没有传顺序号,则不修改顺序值
         if (updateResource.getOrderNo() == 0) {
             updateResource.setOrderNo(source.getOrderNo());
@@ -209,7 +223,9 @@ public class ResourceServiceImpl implements ResourceService {
             Resource parent;
             if (StringUtils.isNotBlank(parentId)) {
                 parent = getResourceById(parentId);
-                Assert.notNull(parent, "lambda.authority.resource.parent.notfound");
+                if (parent == null) {
+                    throw AuthorityBusinessException.resourceNotFound(parentId);
+                }
             }
         }
         BeanUtil.copyProperties(updateResource, source);
@@ -230,7 +246,9 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public Resource getResourceById(String id) {
-        Assert.notNull(id, "Resource id can't be null");
+        if (id == null) {
+            throw AuthorityBusinessException.invalidParameter("资源ID不能为空");
+        }
         return resourceMapper.getResourceById(id);
     }
 
@@ -261,7 +279,9 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<Resource> queryAvailableChildren(@NotNull Resource target) {
-        Assert.notNull(target.getId(), "Resource id can't be null");
+        if (target.getId() == null) {
+            throw AuthorityBusinessException.invalidParameter("资源ID不能为空");
+        }
         String parentKeys = generateParentKeys(target.getParentKeys(), target.getId());
         List<ResourceTree> resourceTrees = resourceMapper.queryAllChildren(parentKeys);
         if (CollectionUtils.isNotEmpty(resourceTrees)) {
@@ -279,8 +299,12 @@ public class ResourceServiceImpl implements ResourceService {
         String id = parameter.getId();
         String tid = parameter.getTid();
         int type = parameter.getType();
-        Assert.notNull(id, "Resource id can't be null");
-        Assert.notNull(tid, "Resource id can't be null");
+        if (id == null) {
+            throw AuthorityBusinessException.invalidParameter("资源ID不能为空");
+        }
+        if (tid == null) {
+            throw AuthorityBusinessException.invalidParameter("目标资源ID不能为空");
+        }
         Resource resource = resourceMapper.getResourceById(id);
         Resource target = resourceMapper.getResourceById(tid);
         String pid0 = resource.getParentId();

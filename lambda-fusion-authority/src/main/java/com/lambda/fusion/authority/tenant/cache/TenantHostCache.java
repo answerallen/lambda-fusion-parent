@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.tenant.cache;
 
 import static com.lambda.fusion.core.FusionConstants.TENANT_HOST_REDIS_KEY;
 
-import com.lambda.cloud.core.utils.Assert;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -37,7 +37,9 @@ public class TenantHostCache {
             remove(tenantId);
             return;
         }
-        Assert.isTrue(!check(host), "host: " + host + " is already exist");
+        if (check(host)) {
+            throw AuthorityBusinessException.operationNotSupported("host: " + host + " 已存在");
+        }
         redisTemplate.opsForHash().put(TENANT_HOST_REDIS_KEY, host, tenantId);
     }
 

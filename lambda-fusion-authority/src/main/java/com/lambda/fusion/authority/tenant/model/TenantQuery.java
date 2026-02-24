@@ -120,7 +120,6 @@ public class TenantQuery extends Pagination<TenantEntity> {
         // 别名模糊查询
         wrapper.like(StringUtils.isNotBlank(alias), TenantEntity::getAlias, alias);
 
-
         // 默认按创建时间降序排序
         wrapper.orderByDesc(TenantEntity::getCreatedAt);
 

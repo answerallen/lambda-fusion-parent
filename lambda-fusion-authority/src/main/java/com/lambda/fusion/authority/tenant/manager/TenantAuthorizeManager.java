@@ -5,7 +5,7 @@ import static com.lambda.fusion.core.FusionConstants.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.cloud.core.utils.Assert;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.resource.mapper.ResourceMapper;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
@@ -173,8 +173,8 @@ public class TenantAuthorizeManager {
 
     private void hasOperation(LoginUser operator, String tenantId) {
         String crrTenantId = operator.getTenantId();
-        if (org.apache.commons.lang.StringUtils.isNotBlank(crrTenantId)) {
-            Assert.isTrue(crrTenantId.equals(tenantId), "tenant not match");
+        if (org.apache.commons.lang.StringUtils.isNotBlank(crrTenantId) && !crrTenantId.equals(tenantId)) {
+            throw AuthorityBusinessException.authNoPermission();
         }
     }
 
@@ -207,7 +207,7 @@ public class TenantAuthorizeManager {
         for (String dsKey : tenantDsKey) {
             try {
                 if (StringUtils.isNotBlank(dsKey)) {
-//                   DynamicDataSourceWrapper.wrap(dsKey, runnable);
+                    //                   DynamicDataSourceWrapper.wrap(dsKey, runnable);
                 }
             } catch (Exception e) {
                 log.error("租户主库执行异常，数据源id:{}", dsKey);

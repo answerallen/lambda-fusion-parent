@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.user.service.impl;
 
 import cn.hutool.json.JSONUtil;
-import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.sms.SmsMessageSender;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.user.helper.UserInfoHelper;
 import com.lambda.fusion.authority.user.mapper.UserFieldsMapper;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
@@ -37,20 +37,33 @@ public class UserCenterServiceImpl implements UserCenterService {
 
     @Override
     public void updateMobile(String username, String mobile, String verifyCode) {
-        Assert.notNull(username, "username must not be empty");
-        Assert.isFalse(userMapper.hasExists(username), "user not found");
-        Assert.notNull(mobile, "mobile must not be empty");
+        if (username == null) {
+            throw AuthorityBusinessException.invalidParameter("username不能为空");
+        }
+        User user = userMapper.selectUserByUsername(username);
+        if (user == null) {
+            throw AuthorityBusinessException.userNotFound(username);
+        }
+        if (mobile == null) {
+            throw AuthorityBusinessException.invalidParameter("手机号不能为空");
+        }
         userMapper.updateMobile(username, mobile);
     }
 
     @Override
     public void updateEmail(String username, String email, String verifyCode) {
         // 验证参数
-        Assert.notNull(username, "username must not be empty");
+        if (username == null) {
+            throw AuthorityBusinessException.invalidParameter("username不能为空");
+        }
         // 获取用户信息并验证用户是否存在
         User user = userMapper.selectUserByUsername(username);
-        Assert.notNull(user, "user not found");
-        Assert.notNull(email, "email not found");
+        if (user == null) {
+            throw AuthorityBusinessException.userNotFound(username);
+        }
+        if (email == null) {
+            throw AuthorityBusinessException.invalidParameter("邮箱不能为空");
+        }
         // 更新用户邮箱
         userMapper.updateEmail(username, email);
     }
@@ -59,7 +72,9 @@ public class UserCenterServiceImpl implements UserCenterService {
     public User updateInfo(RestUserInfo userInfoDTO) {
         String username = userInfoDTO.getUsername();
         User user = userMapper.selectUserByUsername(username);
-        Assert.notNull(user, "user not found");
+        if (user == null) {
+            throw AuthorityBusinessException.userNotFound(username);
+        }
         userMapper.updateInfo(username, userInfoDTO.getEmail(), userInfoDTO.getNickname());
         String avatar = userInfoDTO.getAvatar();
         if (StringUtils.isNotEmpty(avatar)) {
