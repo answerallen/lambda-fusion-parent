@@ -64,7 +64,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     private OssClient ossClient;
 
     @Autowired
-    public void setOssClient(OssClientManager ossClientManager){
+    public void setOssClient(OssClientManager ossClientManager) {
         this.ossClient = ossClientManager.get("zsk");
     }
 
@@ -139,7 +139,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
             documentProcessor.processDocument(entity.getId());
 
             return toVO(entity);
-            
+
         } catch (IOException e) {
             log.error("文件保存失败", e);
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "文件保存失败", e);

@@ -140,8 +140,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
                             chatMessageMapper.insert(aiMsg);
 
-                            atomicSessionUpdateService.updateSessionStatistics(
-                                    sessionId, 2, aiMsg.getTotalTokens());
+                            atomicSessionUpdateService.updateSessionStatistics(sessionId, 2, aiMsg.getTotalTokens());
 
                             sseEmitterManager.sendEvent(clientId, "finish", aiMsg.getMessageId());
                         }

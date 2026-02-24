@@ -19,16 +19,15 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 文档处理管道
@@ -100,7 +99,7 @@ public class DocumentProcessor {
                 if (embeddingResponse == null || embeddingResponse.content() == null) {
                     throw new RuntimeException("向量化失败: 返回结果为空");
                 }
-                
+
                 List<Double> vector = embeddingResponse.content().vectorAsList().stream()
                         .map(Float::doubleValue)
                         .collect(Collectors.toList());

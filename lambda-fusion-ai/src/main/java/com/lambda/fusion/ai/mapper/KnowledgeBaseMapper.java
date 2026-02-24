@@ -96,4 +96,3 @@ public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
      */
     List<KnowledgeBaseEntity> selectByOwnerUserId(@Param("ownerUserId") Long ownerUserId);
 }
-

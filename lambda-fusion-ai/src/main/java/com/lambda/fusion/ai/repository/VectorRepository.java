@@ -2,9 +2,8 @@ package com.lambda.fusion.ai.repository;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
 import com.lambda.fusion.ai.model.VectorSearchResult;
-import java.util.List;
-
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
@@ -108,9 +107,7 @@ public interface VectorRepository {
             @Param("dimension") Integer dimension);
 
     List<VectorSearchResult> searchKeywordUnified(
-            @Param("kbId") Long kbId,
-            @Param("keyword") String keyword,
-            @Param("topK") Integer topK);
+            @Param("kbId") Long kbId, @Param("keyword") String keyword, @Param("topK") Integer topK);
 
     void deleteVectorUnified(@Param("vectorId") String vectorId);
 

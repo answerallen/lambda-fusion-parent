@@ -101,9 +101,8 @@ public class KnowledgeBaseServiceImpl
 
         List<DocumentEntity> documents = documentMapper.listByKbId(id, null);
         if (!documents.isEmpty()) {
-            List<Long> documentIds = documents.stream()
-                    .map(DocumentEntity::getId)
-                    .collect(Collectors.toList());
+            List<Long> documentIds =
+                    documents.stream().map(DocumentEntity::getId).collect(Collectors.toList());
 
             vectorRepository.deleteByKbIdUnified(id);
 
@@ -132,6 +131,4 @@ public class KnowledgeBaseServiceImpl
     public IPage<KnowledgeBase> pageKnowledgeBases(KnowledgeBaseQuery knowledgeBaseQuery) {
         return pageForVO(knowledgeBaseQuery.getPage(), knowledgeBaseQuery.getLambdaQueryWrapper());
     }
-
 }
-

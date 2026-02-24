@@ -67,8 +67,7 @@ public class RagServiceImpl implements RagService {
 
         List<VectorSearchResult> vectorResults =
                 vectorRepository.searchSimilarUnified(kbId, queryVector, limit * 2, scoreThreshold, embeddingDimension);
-        List<VectorSearchResult> keywordResults =
-                vectorRepository.searchKeywordUnified(kbId, query, limit * 2);
+        List<VectorSearchResult> keywordResults = vectorRepository.searchKeywordUnified(kbId, query, limit * 2);
 
         return reciprocalRankFusion(vectorResults, keywordResults, limit);
     }

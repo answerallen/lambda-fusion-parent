@@ -12,13 +12,12 @@ import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 /**
  * ChatModel 工厂类
@@ -87,8 +86,8 @@ public class ChatModelFactory {
                 String apiKey = validAndGetDecryptApiKey(entity);
                 String baseUrl = entity.getBaseUrl();
                 if (!StringUtils.hasText(baseUrl)) {
-                    throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR,
-                            "OpenAI BaseURL未配置，模型ID: " + entity.getId());
+                    throw new AiBusinessException(
+                            AiErrorCode.SYSTEM_ERROR, "OpenAI BaseURL未配置，模型ID: " + entity.getId());
                 }
                 yield OpenAiChatModel.builder()
                         .apiKey(apiKey)
@@ -104,8 +103,8 @@ public class ChatModelFactory {
             case "OLLAMA" -> {
                 String baseUrl = entity.getBaseUrl();
                 if (!StringUtils.hasText(baseUrl)) {
-                    throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR,
-                            "Ollama BaseURL未配置，模型ID: " + entity.getId());
+                    throw new AiBusinessException(
+                            AiErrorCode.SYSTEM_ERROR, "Ollama BaseURL未配置，模型ID: " + entity.getId());
                 }
                 yield OllamaChatModel.builder()
                         .baseUrl(baseUrl)
@@ -117,8 +116,7 @@ public class ChatModelFactory {
                         .timeout(Duration.ofSeconds(60))
                         .build();
             }
-            default -> throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR,
-                    "不支持的LLM提供商: " + provider);
+            default -> throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "不支持的LLM提供商: " + provider);
         };
     }
 
@@ -131,8 +129,8 @@ public class ChatModelFactory {
                 String apiKey = validAndGetDecryptApiKey(entity);
                 String baseUrl = entity.getBaseUrl();
                 if (!StringUtils.hasText(baseUrl)) {
-                    throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR,
-                            "OpenAI BaseURL未配置，模型ID: " + entity.getId());
+                    throw new AiBusinessException(
+                            AiErrorCode.SYSTEM_ERROR, "OpenAI BaseURL未配置，模型ID: " + entity.getId());
                 }
                 yield OpenAiStreamingChatModel.builder()
                         .apiKey(apiKey)
@@ -148,8 +146,8 @@ public class ChatModelFactory {
             case "OLLAMA" -> {
                 String baseUrl = entity.getBaseUrl();
                 if (!StringUtils.hasText(baseUrl)) {
-                    throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR,
-                            "Ollama BaseURL未配置，模型ID: " + entity.getId());
+                    throw new AiBusinessException(
+                            AiErrorCode.SYSTEM_ERROR, "Ollama BaseURL未配置，模型ID: " + entity.getId());
                 }
                 yield OllamaStreamingChatModel.builder()
                         .baseUrl(baseUrl)
@@ -161,8 +159,7 @@ public class ChatModelFactory {
                         .timeout(Duration.ofSeconds(60))
                         .build();
             }
-            default -> throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR,
-                    "不支持的LLM提供商: " + provider);
+            default -> throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "不支持的LLM提供商: " + provider);
         };
     }
 
@@ -197,12 +194,10 @@ public class ChatModelFactory {
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "LLM模型配置为空");
         }
         if (!StringUtils.hasText(entity.getProvider())) {
-            throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR,
-                    "LLM模型提供商未配置，模型ID: " + entity.getId());
+            throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "LLM模型提供商未配置，模型ID: " + entity.getId());
         }
         if (!StringUtils.hasText(entity.getModelName())) {
-            throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR,
-                    "LLM模型名称未配置，模型ID: " + entity.getId());
+            throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "LLM模型名称未配置，模型ID: " + entity.getId());
         }
     }
 
@@ -214,8 +209,7 @@ public class ChatModelFactory {
      */
     private String validAndGetDecryptApiKey(LlmModelEntity entity) {
         if (!StringUtils.hasText(entity.getApiKeyEncrypted())) {
-            throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR,
-                    "OpenAI API密钥未配置或解密失败，模型ID: " + entity.getId());
+            throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "OpenAI API密钥未配置或解密失败，模型ID: " + entity.getId());
         }
         // TODO: 调用密钥解密服务
         // return keyDecryptionService.decrypt(encryptedKey);
