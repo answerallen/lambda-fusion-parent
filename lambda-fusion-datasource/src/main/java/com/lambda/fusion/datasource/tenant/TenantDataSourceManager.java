@@ -42,6 +42,7 @@ public class TenantDataSourceManager {
 
     @Lazy
     private final RemoteDataSourceService remoteDataSourceService;
+
     private final DatasourceProperties datasourceProperties;
 
     // 租户数据源缓存: cacheKey(prefix:tenantId) -> datasourceName

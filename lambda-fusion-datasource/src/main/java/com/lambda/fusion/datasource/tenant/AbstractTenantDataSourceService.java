@@ -16,27 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
  * 子类需要实现特定模块的配置和 Schema 初始化逻辑。
  * </p>
  *
- * <p>使用示例：</p>
- * <pre>
- * &#64;Service
- * public class AiTenantDataSourceService extends AbstractTenantDataSourceService {
- *
- *     private final AiSchemaInitializer aiSchemaInitializer;
- *     private final AiProperties aiProperties;
- *
- *     &#64;Override
- *     protected TenantSchemaInitializer getSchemaInitializer() {
- *         return aiSchemaInitializer;
- *     }
- *
- *     &#64;Override
- *     protected String getModule() {
- *         return "ai";
- *     }
- * }
- * </pre>
- *
- * @author Lambda
  */
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
@@ -79,10 +58,9 @@ public abstract class AbstractTenantDataSourceService {
      *
      * @param tenantId         租户ID
      * @param dataSourceConfig 数据源配置
-     * @throws Exception 如果创建或初始化失败
      */
     @Transactional(rollbackFor = Exception.class)
-    public void provisionTenant(String tenantId, RemoteDataSource dataSourceConfig) throws Exception {
+    public void provisionTenant(String tenantId, RemoteDataSource dataSourceConfig) {
         log.info("开始为租户 [{}] 配置数据源，前缀: {}", tenantId, getTenantPrefix());
 
         try {
