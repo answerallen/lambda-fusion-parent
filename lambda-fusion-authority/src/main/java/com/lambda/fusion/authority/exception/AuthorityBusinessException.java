@@ -325,4 +325,8 @@ public class AuthorityBusinessException extends BusinessException {
     public static AuthorityBusinessException operationNotSupported(String message) {
         return new AuthorityBusinessException(AuthorityErrorCode.OPERATION_NOT_SUPPORTED, message);
     }
+
+    public static AuthorityBusinessException resourceTypeNotSupported() {
+        return new AuthorityBusinessException(AuthorityErrorCode.RESOURCE_TYPE_NOT_SUPPORTED);
+    }
 }

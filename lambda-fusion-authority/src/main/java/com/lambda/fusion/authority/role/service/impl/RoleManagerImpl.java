@@ -31,9 +31,9 @@ public class RoleManagerImpl implements RoleManager {
         Set<String> authorities = Sets.newHashSetWithExpectedSize(results.size());
         results.forEach(item -> {
             String authority = item.getAuthority();
-            String orgid = item.getOrgid();
+            String orgId = item.getOrgId();
             if (FusionConstants.ROLE_TENANT.equals(item.getAuthority())) {
-                authority = FusionConstants.ROLE_TENANT + FusionConstants.AT + orgid;
+                authority = FusionConstants.ROLE_TENANT + FusionConstants.AT + orgId;
             }
             authorities.add(authority);
         });

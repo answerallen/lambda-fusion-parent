@@ -215,7 +215,7 @@
     <select id="getAuthoritiesByUser" resultType="com.lambda.fusion.authority.role.model.UserAuthority">
         SELECT
             T1.AUTHORITY,
-            T2.ORGANIZATION_ID AS orgid
+            T2.ORGANIZATION_ID AS orgId
         FROM
             LA_USER_ROLES T1
             LEFT JOIN LA_USER_ORGANIZATION T2 ON T2.USERNAME = T1.USERNAME

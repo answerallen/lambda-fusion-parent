@@ -1,5 +1,7 @@
 package com.lambda.fusion.authority;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.lambda.fusion.core.annotation.DictMapper;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -19,8 +21,9 @@ public interface AuthorityConstants {
     String DEFAULT = "default";
 
     String ADMIN = "admin";
+    String DEV = "dev";
+    String USERNAME = "username";
 
-    @SuppressWarnings("unused")
     interface Enums {
 
         @Getter
@@ -30,7 +33,24 @@ public interface AuthorityConstants {
             FUNC_ROLE(1, "功能角色"),
             DATA_ROLE(2, "数据角色");
 
+            @EnumValue
+            @JsonValue
             private final Integer val;
+
+            private final String key;
+        }
+
+        @Getter
+        @DictMapper(dictName = "ISOLATION_MODE", dictUsage = 0, dictDesc = "隔离模式")
+        @AllArgsConstructor
+        enum IsolationMode {
+            SHARED(1, "共享库"),
+            DEDICATED(2, "独立库");
+
+            @EnumValue
+            @JsonValue
+            private final Integer val;
+
             private final String key;
         }
 
@@ -44,7 +64,10 @@ public interface AuthorityConstants {
             INTERFACE(4, "接口"),
             EXTERNAL_LINK(5, "外部链接");
 
+            @EnumValue
+            @JsonValue
             private final Integer val;
+
             private final String key;
         }
     }

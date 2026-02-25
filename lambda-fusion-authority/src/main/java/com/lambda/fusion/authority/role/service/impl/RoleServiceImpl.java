@@ -69,9 +69,9 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public List<Role> getAllRoles(LoginUserDetails loginUserDetails) {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
-        parameters.put("dev", loginUserDetails.isDev());
+        parameters.put(AuthorityConstants.DEV, loginUserDetails.isDev());
         parameters.put(AuthorityConstants.ADMIN, loginUserDetails.isAdmin());
-        parameters.put("username", loginUserDetails.getUsername());
+        parameters.put(AuthorityConstants.USERNAME, loginUserDetails.getUsername());
         parameters.put(FusionConstants.TENANT_ID, loginUserDetails.getTenantId());
         return roleMapper.getAllRoles(parameters);
     }

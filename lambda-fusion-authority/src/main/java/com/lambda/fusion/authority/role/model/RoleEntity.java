@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lambda.fusion.authority.AuthorityConstants;
 import java.time.LocalDateTime;
 import lombok.Data;
 
@@ -36,7 +37,7 @@ public class RoleEntity {
     private Integer dataType;
 
     @TableField("ROLE_TYPE")
-    private Integer roleType;
+    private AuthorityConstants.Enums.RoleType roleType;
 
     @TableField("GROUP_ID")
     private String groupId;

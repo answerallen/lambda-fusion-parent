@@ -11,5 +11,5 @@ public class UserAuthority {
     /**
      * 组织编号
      */
-    private String orgid;
+    private String orgId;
 }

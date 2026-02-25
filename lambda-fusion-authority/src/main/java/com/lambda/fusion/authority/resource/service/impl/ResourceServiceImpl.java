@@ -213,7 +213,7 @@ public class ResourceServiceImpl implements ResourceService {
         }
         boolean orderChanged = !source.getOrderNo().equals(updateResource.getOrderNo());
         boolean typeChanged = !source.getResType().equals(updateResource.getResType());
-        boolean hiddenChanged = source.getHidden() != updateResource.getHidden();
+        boolean hiddenChanged = source.getHidden().equals(updateResource.getHidden());
         if (typeChanged) {
             if (updateResource.getResType() == ResourceType.BUTTON.ordinal()) {
                 updateResource.setResLevel(Integer.MAX_VALUE);
