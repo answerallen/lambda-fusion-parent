@@ -5,11 +5,13 @@ import com.lambda.fusion.autoconfig.DatasourceProperties;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -34,9 +36,11 @@ import org.springframework.util.StringUtils;
  */
 @Slf4j
 @Component
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
 public class TenantDataSourceManager {
 
+    @Lazy
     private final RemoteDataSourceService remoteDataSourceService;
     private final DatasourceProperties datasourceProperties;
 

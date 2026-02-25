@@ -2,6 +2,7 @@ package com.lambda.fusion.datasource.proxy;
 
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -28,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
  * Connection connection = proxy.getConnection();
  * </pre>
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
 @RequiredArgsConstructor
 public class TenantDataSourceProxy implements DataSource {
