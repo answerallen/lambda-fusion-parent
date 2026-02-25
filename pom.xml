@@ -20,7 +20,7 @@
         <module>lambda-fusion-core</module>
         <module>lambda-fusion-config</module>
         <module>lambda-fusion-authority</module>
-        <module>lambda-fusion-dict</module>
+        <module>lambda-fusion-dictionary</module>
         <module>lambda-fusion-message</module>
         <module>lambda-fusion-extension</module>
         <module>lambda-fusion-datasource</module>
