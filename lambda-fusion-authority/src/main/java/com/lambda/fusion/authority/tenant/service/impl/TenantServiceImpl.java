@@ -33,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)
-@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> implements TenantService {
 
     @Resource
