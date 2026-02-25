@@ -38,7 +38,6 @@ public enum DictValueType implements DictEnum<Integer> {
 
     private final String label;
 
-
     public static DictValueType of(Integer valueType) {
         if (valueType == null) {
             return null;

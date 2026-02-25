@@ -7,9 +7,9 @@
         <version>2025.1.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>lambda-fusion-dict</artifactId>
+    <artifactId>lambda-fusion-dictionary</artifactId>
 
-    <name>lambda-fusion-dict</name>
+    <name>lambda-fusion-dictionary</name>
 
     <dependencies>
         <dependency>
