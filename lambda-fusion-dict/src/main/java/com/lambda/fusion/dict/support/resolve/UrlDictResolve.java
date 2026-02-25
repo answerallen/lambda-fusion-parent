@@ -56,7 +56,7 @@ public class UrlDictResolve implements DictSourceResolver {
 
     @Override
     public boolean isSupport(Integer valueType) {
-        return DictValueType.URL_DICT.getValueType().equals(valueType);
+        return DictValueType.URL_DICT.getCode().equals(valueType);
     }
 
     @Override

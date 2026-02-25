@@ -1,15 +1,20 @@
 package com.lambda.fusion.dict.support;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.core.annotation.DictMapper;
+import com.lambda.fusion.core.enums.DictEnum;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
  * @author jin
  */
 @Getter
-@DictMapper(dictName = "DICT_DATA_TYPE", dictUsage = 0, dictDesc = "字典数据类型", key = "configKey", val = "valueType")
-public enum DictValueType {
+@AllArgsConstructor
+@DictMapper(dictName = "DICT_DATA_TYPE", dictUsage = 0, dictDesc = "字典数据类型")
+public enum DictValueType implements DictEnum<Integer> {
     /**
      * 静态字典
      */
@@ -27,20 +32,12 @@ public enum DictValueType {
      */
     ENUM_DICT(3, "枚举");
 
-    /**
-     * 字典值类型
-     */
-    private final Integer valueType;
+    @EnumValue
+    @JsonValue
+    private final Integer code;
 
-    /**
-     * 配置参数key
-     */
-    private final String configKey;
+    private final String label;
 
-    DictValueType(Integer valueType, String configKey) {
-        this.valueType = valueType;
-        this.configKey = configKey;
-    }
 
     public static DictValueType of(Integer valueType) {
         if (valueType == null) {
@@ -48,7 +45,7 @@ public enum DictValueType {
         }
         DictValueType type = null;
         for (DictValueType value : values()) {
-            if (value.getValueType().equals(valueType)) {
+            if (value.getCode().equals(valueType)) {
                 type = value;
                 break;
             }

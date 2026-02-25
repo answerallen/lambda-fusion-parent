@@ -53,7 +53,7 @@ public class DictRegistry {
         final DictTypeTree dictTypeTree = new DictTypeTree();
         dictTypeTree.setId(dictHolder.getDictName());
         dictTypeTree.setDictType(dictHolder.getDictName());
-        dictTypeTree.setDataType(DictValueType.ENUM_DICT.getValueType());
+        dictTypeTree.setDataType(DictValueType.ENUM_DICT.getCode());
         dictTypeTree.setDictName(dictHolder.getDictDesc());
         dictTypeTree.setDictUsage(dictHolder.getDictUsage());
         dictTypeTree.setLevel(1);

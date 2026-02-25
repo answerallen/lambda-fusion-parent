@@ -33,7 +33,7 @@ public class SqlDictResolve implements DictSourceResolver {
 
     @Override
     public boolean isSupport(Integer valueType) {
-        return DictValueType.SQL_DICT.getValueType().equals(valueType);
+        return DictValueType.SQL_DICT.getCode().equals(valueType);
     }
 
     @Override
