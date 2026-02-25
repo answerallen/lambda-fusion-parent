@@ -44,50 +44,6 @@ public class TenantController {
         return tenantService.page(queryDTO.getPage(), queryDTO.getLambdaQueryWrapper());
     }
 
-    /**
-     * 构建查询参数
-     *
-     * @param queryDTO 查询DTO
-     * @return 查询参数Map
-     */
-    private Map<String, Object> buildQueryParameters(TenantQuery queryDTO) {
-        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(10);
-        if (StringUtils.isNotBlank(queryDTO.getTenantName())) {
-            parameters.put("tenantName", queryDTO.getTenantName());
-        }
-        if (StringUtils.isNotBlank(queryDTO.getTenantAddress())) {
-            parameters.put("tenantAddress", queryDTO.getTenantAddress());
-        }
-        if (StringUtils.isNotBlank(queryDTO.getLegalPerson())) {
-            parameters.put("legalPerson", queryDTO.getLegalPerson());
-        }
-        if (StringUtils.isNotBlank(queryDTO.getTenantCode())) {
-            parameters.put("tenantCode", queryDTO.getTenantCode());
-        }
-        if (StringUtils.isNotBlank(queryDTO.getLiaisonMan())) {
-            parameters.put("liaisonMan", queryDTO.getLiaisonMan());
-        }
-        if (StringUtils.isNotBlank(queryDTO.getLiaisonPhone())) {
-            parameters.put("liaisonPhone", queryDTO.getLiaisonPhone());
-        }
-        if (queryDTO.getEnabled() != null) {
-            parameters.put("enabled", queryDTO.getEnabled());
-        }
-        if (queryDTO.getExamineState() != null) {
-            parameters.put("examineState", queryDTO.getExamineState());
-        }
-        if (StringUtils.isNotBlank(queryDTO.getOwner())) {
-            parameters.put("owner", queryDTO.getOwner());
-        }
-        if (StringUtils.isNotBlank(queryDTO.getAlias())) {
-            parameters.put("alias", queryDTO.getAlias());
-        }
-        if (StringUtils.isNotBlank(queryDTO.getPrefecture())) {
-            parameters.put("prefecture", queryDTO.getPrefecture());
-        }
-        return parameters;
-    }
-
     @GetMapping("/options")
     @Operation(summary = "获取租户下拉列表", description = "查询租户下拉列表")
     public List<TenantOption> tenantOptions() {
@@ -102,8 +58,7 @@ public class TenantController {
 
     @PostMapping
     @Operation(summary = "新增租户信息信息", description = "新增租户信息信息")
-    public TenantEntity save(
-            MultipartFile tenantLogo, @Parameter(description = "租户信息信息", required = true) @RequestBody Tenant entity) {
+    public TenantEntity save(@Parameter(description = "租户信息信息", required = true) @RequestBody Tenant entity) {
         LoginUser operator = OperatorUtils.getOperator();
         TenantEntity target = new TenantEntity();
         BeanUtils.copyProperties(entity, target);
@@ -111,9 +66,6 @@ public class TenantController {
         String tenantId = operator.getTenantId();
         target.setOwner(tenantId);
         target.setTenantId(id);
-        if (tenantLogo != null) {
-            log.info("file: {}", tenantLogo);
-        }
         tenantService.save(target);
         return tenantService.getById(target.getTenantId());
     }
@@ -121,7 +73,6 @@ public class TenantController {
     @PutMapping("/{id}")
     @Operation(summary = "更新租户信息信息", description = "更新租户信息信息")
     public TenantEntity update(
-            MultipartFile tenantLogo,
             @Parameter(description = "租户信息编号", required = true) @PathVariable String id,
             @Parameter(description = "租户信息信息", required = true) @RequestBody Tenant tenant) {
         LoginUser operator = OperatorUtils.getOperator();
@@ -129,9 +80,6 @@ public class TenantController {
         BeanUtils.copyProperties(tenant, target);
         target.setTenantId(id);
         target.setUpdatedBy(operator.getName());
-        if (tenantLogo != null) {
-            log.info("file: {}", tenantLogo);
-        }
         tenantService.updateById(target);
         return tenantService.getById(id);
     }
@@ -199,34 +147,4 @@ public class TenantController {
         tenantService.examineTenant(operator, 1, id);
     }
 
-    @PatchMapping("/{id}/config")
-    @Operation(summary = "修改租户配置")
-    public void updateConfig(
-            @PathVariable @Parameter(description = "租户编号", required = true) String id,
-            @Parameter(description = "配置json字符串", required = true) @RequestBody Map<String, Object> configMap) {
-        LoginUser operator = OperatorUtils.getOperator();
-        if (id == null) {
-            throw AuthorityBusinessException.invalidParameter("租户编号不能为空");
-        }
-        TenantEntity tenant = tenantService.getById(id);
-        if (tenant == null) {
-            throw AuthorityBusinessException.tenantNotFound(id);
-        }
-        log.debug("接收到参数：{}", configMap.toString());
-        tenantService.updateConfig(operator, id, configMap);
-    }
-
-    @GetMapping("/{id}/config")
-    @Operation(summary = "获取租户配置")
-    public JsonNode getConfig(@PathVariable String id) {
-        LoginUser operator = OperatorUtils.getOperator();
-        return tenantService.getTenantConfigureById(operator, id);
-    }
-
-    @Operation(summary = "初始化租户的主库，需要先设置租户主库映射")
-    @PostMapping("/{tenantId}/database/init")
-    public void initTenantMainDataBase(@PathVariable String tenantId) {
-        LoginUser operator = OperatorUtils.getOperator();
-        tenantService.initTenantMainDataBase(tenantId, operator);
-    }
 }

@@ -160,7 +160,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String url = node.getUrl();
 
-        if (type.equals(AuthorityConstants.Enums.MenuType.EXTERNAL_LINK.getVal())) {
+        if (type.equals(AuthorityConstants.MenuType.EXTERNAL_LINK.getCode())) {
             if (StrUtil.isNotBlank(url)) {
                 meta.putIfAbsent("link", url);
                 return "IFrameView";
@@ -168,7 +168,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             return null;
         }
 
-        if (type.equals(AuthorityConstants.Enums.MenuType.EMBEDDED_PAGE.getVal())) {
+        if (type.equals(AuthorityConstants.MenuType.EMBEDDED_PAGE.getCode())) {
             if (StrUtil.isNotBlank(url)) {
                 meta.putIfAbsent("iframeSrc", url);
                 return "IFrameView";

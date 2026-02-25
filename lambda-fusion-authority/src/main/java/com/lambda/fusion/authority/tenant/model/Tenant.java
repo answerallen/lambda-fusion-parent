@@ -1,15 +1,20 @@
 package com.lambda.fusion.authority.tenant.model;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
+import com.lambda.fusion.authority.AuthorityConstants;
+import com.lambda.fusion.core.FusionConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Date;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 租户信息表
  */
+@EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = Tenant.class)
 @Data
 @Schema(description = "租户信息表")
@@ -104,6 +109,13 @@ public class Tenant extends BaseDTO<TenantEntity> {
      */
     @Schema(description = "别名")
     private String alias;
+
+    /**
+     * 地区
+     */
+    @Schema(description = "隔离模式")
+    @TableField("isolation_mode")
+    private FusionConstants.IsolationMode isolationMode;
 
     /**
      * 地区

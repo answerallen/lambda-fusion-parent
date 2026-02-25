@@ -50,37 +50,4 @@ public interface TenantService extends IService<TenantEntity> {
      * @param tenantId  租户ID
      */
     void deleteTenant(LoginUser operator, String tenantId);
-
-    /**
-     * Update config.
-     *
-     * @param operator   the operator
-     * @param tenantId   the tenant id
-     * @param configMap the config map
-     */
-    void updateConfig(LoginUser operator, String tenantId, Map<String, Object> configMap);
-
-    /**
-     * 获取指定租户的配置信息
-     *
-     * @param operator       the user
-     * @param tenantId the tenant id
-     * @return the user tenant configure
-     */
-    JsonNode getTenantConfigureById(LoginUser operator, String tenantId);
-
-    /**
-     * Gets tenant configure map by id.
-     *
-     * @param tenantId the tenant id
-     * @return the tenant configure map by id
-     */
-    Map<String, Object> getTenantConfigureMapById(String tenantId);
-
-    /**
-     * 初始化租户的主库
-     * @param tenantId
-     * @param operator
-     */
-    void initTenantMainDataBase(String tenantId, LoginUser operator);
 }

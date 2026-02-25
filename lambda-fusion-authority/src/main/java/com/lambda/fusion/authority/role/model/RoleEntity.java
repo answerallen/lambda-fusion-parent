@@ -37,7 +37,7 @@ public class RoleEntity {
     private Integer dataType;
 
     @TableField("ROLE_TYPE")
-    private AuthorityConstants.Enums.RoleType roleType;
+    private AuthorityConstants.RoleType roleType;
 
     @TableField("GROUP_ID")
     private String groupId;

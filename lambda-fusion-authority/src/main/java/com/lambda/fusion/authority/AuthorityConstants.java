@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.lambda.fusion.core.annotation.DictMapper;
 import java.util.List;
+
+import com.lambda.fusion.core.enums.DictEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -24,51 +26,35 @@ public interface AuthorityConstants {
     String DEV = "dev";
     String USERNAME = "username";
 
-    interface Enums {
 
-        @Getter
-        @DictMapper(dictName = "ROLE_TYPE", dictUsage = 0, dictDesc = "角色类型")
-        @AllArgsConstructor
-        enum RoleType {
-            FUNC_ROLE(1, "功能角色"),
-            DATA_ROLE(2, "数据角色");
+    //==================== 枚举 ======================
 
-            @EnumValue
-            @JsonValue
-            private final Integer val;
+    @Getter
+    @DictMapper(dictName = "ROLE_TYPE", dictUsage = 0, dictDesc = "角色类型")
+    @AllArgsConstructor
+    enum RoleType implements DictEnum<Integer> {
+        FUNC_ROLE(1, "功能角色"),
+        DATA_ROLE(2, "数据角色");
 
-            private final String key;
-        }
+        @EnumValue
+        @JsonValue
+        private final Integer code;
+        private final String label;
+    }
 
-        @Getter
-        @DictMapper(dictName = "ISOLATION_MODE", dictUsage = 0, dictDesc = "隔离模式")
-        @AllArgsConstructor
-        enum IsolationMode {
-            SHARED(1, "共享库"),
-            DEDICATED(2, "独立库");
+    @Getter
+    @DictMapper(dictName = "MENU_TYPE", dictUsage = 0, dictDesc = "菜单类型")
+    @AllArgsConstructor
+    enum MenuType implements DictEnum<Integer>{
+        MENU(1, "菜单"),
+        EMBEDDED_PAGE(2, "内嵌页面"),
+        BUTTON(3, "按钮"),
+        INTERFACE(4, "接口"),
+        EXTERNAL_LINK(5, "外部链接");
 
-            @EnumValue
-            @JsonValue
-            private final Integer val;
-
-            private final String key;
-        }
-
-        @Getter
-        @DictMapper(dictName = "MENU_TYPE", dictUsage = 0, dictDesc = "菜单类型")
-        @AllArgsConstructor
-        enum MenuType {
-            MENU(1, "菜单"),
-            EMBEDDED_PAGE(2, "内嵌页面"),
-            BUTTON(3, "按钮"),
-            INTERFACE(4, "接口"),
-            EXTERNAL_LINK(5, "外部链接");
-
-            @EnumValue
-            @JsonValue
-            private final Integer val;
-
-            private final String key;
-        }
+        @EnumValue
+        @JsonValue
+        private final Integer code;
+        private final String label;
     }
 }

@@ -3,6 +3,8 @@ package com.lambda.fusion.authority.tenant.model;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lambda.fusion.authority.AuthorityConstants;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.entity.BaseEntity;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -126,6 +128,14 @@ public class TenantEntity extends BaseEntity {
     @Schema(description = "区域编码")
     @TableField("area_code")
     private String areaCode;
+
+    /**
+     * 地区
+     */
+    @Schema(description = "隔离模式")
+    @TableField("isolation_mode")
+    private FusionConstants.IsolationMode isolationMode;
+
 
     /**
      * 租户配置
