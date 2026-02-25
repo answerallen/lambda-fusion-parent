@@ -5,5 +5,4 @@ public interface DictEnum<T> {
     T getCode();
 
     String getLabel();
-
 }
