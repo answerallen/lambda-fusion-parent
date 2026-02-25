@@ -13,7 +13,6 @@ import com.lambda.fusion.authority.tenant.mapper.TenantMapper;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
 import com.lambda.fusion.authority.tenant.model.TenantOption;
 import com.lambda.fusion.authority.tenant.service.TenantService;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
