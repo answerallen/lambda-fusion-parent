@@ -2,7 +2,7 @@ package com.lambda.fusion.ai.datasource;
 
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.autoconfig.AiProperties;
-import com.lambda.fusion.datasource.tenant.AbstractTenantProvisioningService;
+import com.lambda.fusion.datasource.tenant.AbstractTenantDataSourceService;
 import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +40,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
-public class AiTenantProvisioningService extends AbstractTenantProvisioningService {
+public class AiTenantProvisioningService extends AbstractTenantDataSourceService {
 
     private final AiSchemaInitializer aiSchemaInitializer;
     private final AiProperties aiProperties;
