@@ -3,9 +3,8 @@ package com.lambda.fusion.authority;
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.lambda.fusion.core.annotation.DictMapper;
-import java.util.List;
-
 import com.lambda.fusion.core.enums.DictEnum;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -26,8 +25,7 @@ public interface AuthorityConstants {
     String DEV = "dev";
     String USERNAME = "username";
 
-
-    //==================== 枚举 ======================
+    // ==================== 枚举 ======================
 
     @Getter
     @DictMapper(dictName = "ROLE_TYPE", dictUsage = 0, dictDesc = "角色类型")
@@ -39,13 +37,14 @@ public interface AuthorityConstants {
         @EnumValue
         @JsonValue
         private final Integer code;
+
         private final String label;
     }
 
     @Getter
     @DictMapper(dictName = "MENU_TYPE", dictUsage = 0, dictDesc = "菜单类型")
     @AllArgsConstructor
-    enum MenuType implements DictEnum<Integer>{
+    enum MenuType implements DictEnum<Integer> {
         MENU(1, "菜单"),
         EMBEDDED_PAGE(2, "内嵌页面"),
         BUTTON(3, "按钮"),
@@ -55,6 +54,7 @@ public interface AuthorityConstants {
         @EnumValue
         @JsonValue
         private final Integer code;
+
         private final String label;
     }
 }

@@ -3,12 +3,10 @@ package com.lambda.fusion.authority.tenant.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
 import com.lambda.fusion.authority.tenant.model.TenantOption;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 租户信息表

@@ -15,7 +15,9 @@ import com.lambda.fusion.authority.tenant.model.TenantOption;
 import com.lambda.fusion.authority.tenant.service.TenantService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
-import lombok.SneakyThrows;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.BooleanUtils;
@@ -23,11 +25,6 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 租户信息表
@@ -37,8 +34,7 @@ import java.util.stream.Collectors;
 @Service
 @Transactional(rollbackFor = Exception.class)
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
-        implements TenantService {
+public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> implements TenantService {
 
     @Resource
     protected TenantMapper tenantMapper;
@@ -85,7 +81,6 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
         // 禁用/启用用户角色
         prohibitOrgUsersByTenantOrgan(enabled, tenants);
         prohibitOrgUsersByOrdinaryOrgan(enabled, ordinaries);
-
     }
 
     @Override
@@ -120,8 +115,6 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
         // 删除角色
         roleMapper.deleteRoleByTenantId(tenantIds);
     }
-
-
 
     /**
      * 判断当前用户是否拥有操作权限
@@ -178,5 +171,4 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity>
             return new ArrayList<>();
         }
     }
-
 }

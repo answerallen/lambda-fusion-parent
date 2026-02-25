@@ -3,7 +3,6 @@ package com.lambda.fusion.authority.tenant.model;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
-import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.core.FusionConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
