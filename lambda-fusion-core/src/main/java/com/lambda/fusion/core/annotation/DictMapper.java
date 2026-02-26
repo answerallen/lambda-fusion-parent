@@ -29,11 +29,11 @@ public @interface DictMapper {
      * 字典列表名称
      * @return 枚举类中对应列表键的字段
      */
-    String key() default "code";
+    String key() default "label";
 
     /**
      * 字典列表值
      * @return 枚举类中对应列表值的字段
      */
-    String val() default "label";
+    String val() default "code";
 }
