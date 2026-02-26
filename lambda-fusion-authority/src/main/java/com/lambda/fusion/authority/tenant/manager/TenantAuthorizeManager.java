@@ -18,6 +18,7 @@ import com.lambda.fusion.authority.user.model.ResetPassword;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.utils.LoginUserUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  *
  */
+@SuppressFBWarnings({"UUF_UNUSED_FIELD", "NP_UNWRITTEN_FIELD", "UPM_UNCALLED_PRIVATE_METHOD"})
 @Slf4j
 public class TenantAuthorizeManager {
 

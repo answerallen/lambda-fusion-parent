@@ -6,16 +6,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.authority.role.model.AccessPermission;
-import com.lambda.fusion.authority.role.model.BatchRoleUserAssignmentRequest;
-import com.lambda.fusion.authority.role.model.CreateRole;
-import com.lambda.fusion.authority.role.model.Group;
-import com.lambda.fusion.authority.role.model.GroupRole;
-import com.lambda.fusion.authority.role.model.Role;
-import com.lambda.fusion.authority.role.model.UpdateRole;
+import com.lambda.fusion.authority.role.model.*;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.RoleService;
-import com.lambda.fusion.authority.tenant.manager.TenantAuthorizeManager;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.LoginUserDetails;
@@ -47,13 +40,6 @@ public class RoleController {
     private final RoleService roleService;
     private final UserService userService;
     private final InternalRoleService internalRoleService;
-
-    private TenantAuthorizeManager tenantResourceManager;
-
-    @Autowired(required = false)
-    public void setTenantResourceManager(TenantAuthorizeManager tenantResourceManager) {
-        this.tenantResourceManager = tenantResourceManager;
-    }
 
     @GetMapping
     @SaCheckLogin

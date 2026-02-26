@@ -33,6 +33,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +42,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @Service
 @RequiredArgsConstructor
@@ -247,27 +249,28 @@ public class RoleServiceImpl implements RoleService {
     @CacheEvict(value = "ResourceOwners", allEntries = true)
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void grantRolePermission(
-            String authority, String resourceId, int status, LoginUserDetails loginUserDetails) {
+    public void grantRolePermission(String authority, String resourceId, int status, LoginUserDetails loginUser) {
         if (authority == null) {
             throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
         }
         if (resourceId == null) {
             throw AuthorityBusinessException.invalidParameter("资源id不能为空");
         }
-        if (!loginUserDetails.isDev()) {
+        if (!loginUser.isDev()) {
             // TODO 判断是否为自身权限
+            log.info("非开发者");
         }
-        String tenantId = loginUserDetails.getTenantId();
+        String tenantId = loginUser.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
             // todo tenantId = RoleUtil.getTenantId(authority);
+            log.info("无租户");
         }
         Resource resource = resourceService.getResourceById(resourceId);
         if (resource == null) {
             throw AuthorityBusinessException.resourceNotFound(resourceId);
         }
-        List<Resource> resources = resourceService.getAllParentsByOperator(loginUserDetails, resource);
-        List<Resource> children = resourceService.getAllChildrenByOperator(loginUserDetails, resource);
+        List<Resource> resources = resourceService.getAllParentsByOperator(loginUser, resource);
+        List<Resource> children = resourceService.getAllChildrenByOperator(loginUser, resource);
         resources.add(resource);
         resources.addAll(children);
         Set<String> ids = resources.stream().map(Resource::getId).collect(Collectors.toSet());
@@ -319,6 +322,7 @@ public class RoleServiceImpl implements RoleService {
         String tenantId = loginUserDetails.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
             // todo tenantId = RoleUtil.getTenantId(authority);
+            log.info("非租户");
         }
         Resource resource = resourceService.getResourceById(resourceId);
         if (resource == null) {
