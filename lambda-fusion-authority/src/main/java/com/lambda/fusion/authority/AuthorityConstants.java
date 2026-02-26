@@ -3,7 +3,7 @@ package com.lambda.fusion.authority;
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.lambda.fusion.core.annotation.DictMapper;
-import com.lambda.fusion.core.enums.DictEnum;
+import com.lambda.fusion.core.dict.DictEnum;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
