@@ -39,4 +39,30 @@ public interface DatasourceConstants {
      * Dubbo 服务版本
      */
     String DUBBO_VERSION = "1.0.0";
+
+    /**
+     * 变更类型
+     */
+    enum ChangeType {
+        /**
+         * 新增
+         */
+        ADD,
+        /**
+         * 更新
+         */
+        UPDATE,
+        /**
+         * 删除
+         */
+        DELETE,
+        /**
+         * 启用
+         */
+        ENABLE,
+        /**
+         * 禁用
+         */
+        DISABLE
+    }
 }

@@ -1,5 +1,6 @@
 package com.lambda.fusion.datasource.api;
 
+import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serial;
@@ -19,7 +20,7 @@ public class DataSourceChangeEvent implements Serializable {
     /**
      * 变更类型
      */
-    private ChangeType changeType;
+    private DatasourceConstants.ChangeType changeType;
 
     /**
      * 数据源ID
@@ -40,17 +41,4 @@ public class DataSourceChangeEvent implements Serializable {
      * 变更时间戳
      */
     private long timestamp;
-
-    public enum ChangeType {
-        /** 新增 */
-        ADD,
-        /** 更新 */
-        UPDATE,
-        /** 删除 */
-        DELETE,
-        /** 启用 */
-        ENABLE,
-        /** 禁用 */
-        DISABLE
-    }
 }

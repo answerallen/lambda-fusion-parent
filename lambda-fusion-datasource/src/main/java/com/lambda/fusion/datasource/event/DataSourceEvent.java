@@ -14,18 +14,6 @@ import org.springframework.context.ApplicationEvent;
 @SuppressFBWarnings("EI_EXPOSE_REP")
 public class DataSourceEvent extends ApplicationEvent {
 
-    /**
-     * 变更类型
-     */
-    public enum ChangeType {
-        /** 新增数据源 */
-        ADD,
-        /** 更新数据源（配置变更、启用）*/
-        UPDATE,
-        /** 删除或禁用数据源 */
-        REMOVE
-    }
-
     private final RemoteDataSource dataSource;
 
     /** 变更类型，用于 DataSourceListener 精确映射广播事件的 ChangeType */

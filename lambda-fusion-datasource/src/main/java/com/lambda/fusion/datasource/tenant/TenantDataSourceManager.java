@@ -122,6 +122,9 @@ public class TenantDataSourceManager {
      */
     public boolean createTenantDataSource(String tenantId, String tenantPrefix, RemoteDataSource dataSourceConfig) {
         String dataSourceName = getTenantDataSourceName(tenantId, tenantPrefix);
+        if (!StringUtils.hasText(dataSourceConfig.getId())) {
+            dataSourceConfig.setId(dataSourceName);
+        }
         dataSourceConfig.setDatasourceName(dataSourceName);
         dataSourceConfig.setTenantId(tenantId);
         dataSourceConfig.setEnabled(1);
