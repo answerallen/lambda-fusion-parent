@@ -1,7 +1,5 @@
 package com.lambda.fusion.autoconfig;
 
-import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
-
 import cn.dev33.satoken.listener.SaTokenListener;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.lambda.autoconfig.SecurityAutoConfiguration;
@@ -10,16 +8,12 @@ import com.lambda.cloud.sse.listener.SseEventListener;
 import com.lambda.fusion.authority.AuthorityConfigure;
 import com.lambda.fusion.authority.role.service.InternalRoleService;
 import com.lambda.fusion.authority.role.service.impl.InternalRoleServiceImpl;
-import com.lambda.fusion.authority.tenant.TenantProperties;
 import com.lambda.fusion.authority.user.listenner.UserOnlineLogListener;
 import com.lambda.fusion.authority.user.listenner.UserSeeEventListener;
 import com.lambda.fusion.authority.user.service.UserOnlineLogService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.LoginUserUtils;
-import java.time.LocalDateTime;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadPoolExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,10 +25,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.time.LocalDateTime;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
+
+import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
+
 @Slf4j
 @AutoConfiguration(before = SecurityAutoConfiguration.class)
 @Import(AuthorityConfigure.class)
-@EnableConfigurationProperties({AuthorityProperties.class, TenantProperties.class})
+@EnableConfigurationProperties({AuthorityProperties.class})
 public class AuthorityAutoConfiguration {
 
     public AuthorityAutoConfiguration() {
