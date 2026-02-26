@@ -1,5 +1,7 @@
 package com.lambda.fusion.datasource.client;
 
+import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
@@ -35,11 +37,11 @@ public class DataSourceChangeListenerImpl implements DataSourceChangeListener {
                 case ADD:
                 case ENABLE:
                 case UPDATE:
-                    handleAddOrUpdate(event.getDataSource());
+                    handleAddOrUpdate(event.getDataSourceId(), event.getDataSource());
                     break;
                 case DELETE:
                 case DISABLE:
-                    handleDeleteOrDisable(event.getDataSource());
+                    handleDeleteOrDisable(event.getDataSourceId(), event.getDataSource());
                     break;
                 default:
                     log.warn("Unknown change type: {}", event.getChangeType());
@@ -53,30 +55,38 @@ public class DataSourceChangeListenerImpl implements DataSourceChangeListener {
         }
     }
 
-    private void handleAddOrUpdate(RemoteDataSource dto) {
-        if (dto == null) {
+    private void handleAddOrUpdate(String dataSourceId, RemoteDataSource remoteDataSource) {
+        if (remoteDataSource == null) {
             log.warn("Received ADD/UPDATE/ENABLE event with null DTO");
             return;
         }
-        log.info("Adding/Updating datasource: {}", dto.getDatasourceName());
+        log.info("Adding/Updating datasource: {}", remoteDataSource.getDatasourceName());
         try {
-            DataSourceProperty property = DataSourcePropertyUtils.getDataSourceProperty(dto);
-            dynamicDataSourceService.addDataSource(property);
+            String id = ObjectUtil.defaultIfBlank(remoteDataSource.getId(), dataSourceId);
+            if (StrUtil.isEmpty(id)) {
+                log.warn("Received ADD/UPDATE/ENABLE event without datasource id");
+                return;
+            }
+            DataSourceProperty property = DataSourcePropertyUtils.getDataSourceProperty(remoteDataSource);
+            boolean updated = dynamicDataSourceService.updateDataSource(id, property);
+            if (!updated) {
+                dynamicDataSourceService.addDataSource(property);
+            }
         } catch (Exception e) {
-            log.error("Failed to add/update datasource: {}", dto.getDatasourceName(), e);
+            log.error("Failed to add/update datasource: {}", remoteDataSource.getDatasourceName(), e);
         }
     }
 
-    private void handleDeleteOrDisable(RemoteDataSource dto) {
-        if (dto != null) {
-            log.info("Removing/Disabling datasource: {}", dto.getDatasourceName());
-            try {
-                dynamicDataSourceService.removeDataSource(dto.getDatasourceName());
-            } catch (Exception e) {
-                log.error("Failed to remove datasource: {}", dto.getDatasourceName(), e);
-            }
-        } else {
-            log.warn("Received DELETE/DISABLE event without DTO info, cannot identify pool name to remove.");
+    private void handleDeleteOrDisable(String dataSourceId, RemoteDataSource remoteDataSource) {
+        String id = ObjectUtil.defaultIfBlank(remoteDataSource.getId(), dataSourceId);
+        if (StrUtil.isEmpty(id)) {
+            log.warn("Received DELETE/DISABLE event without datasource id");
+            return;
+        }
+        try {
+            dynamicDataSourceService.removeDataSource(id);
+        } catch (Exception e) {
+            log.error("Failed to remove datasource: {}", id, e);
         }
     }
 }
