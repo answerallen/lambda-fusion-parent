@@ -61,8 +61,8 @@ public class TenantDataSourceController {
     @OperationLog
     @PostMapping
     @Operation(summary = "新增数据源", description = "新增记录")
-    public void save(@RequestBody @Valid UpsertTenantDataSource input) {
-        tenantDataSourceService.save(input);
+    public void save(@RequestBody @Valid UpsertTenantDataSource upsertTenantDataSource) {
+        tenantDataSourceService.save(upsertTenantDataSource);
     }
 
     @OperationLog
@@ -70,8 +70,9 @@ public class TenantDataSourceController {
     @Operation(summary = "更新数据源", description = "更新记录")
     public void update(
             @Parameter(description = "数据源编号", required = true) @PathVariable String id,
-            @RequestBody @Valid UpsertTenantDataSource input) {
-        tenantDataSourceService.update(id, input);
+            @RequestBody @Valid UpsertTenantDataSource upsertTenantDataSource) {
+        upsertTenantDataSource.setId(null);
+        tenantDataSourceService.update(id, upsertTenantDataSource);
     }
 
     @OperationLog

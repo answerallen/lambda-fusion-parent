@@ -98,8 +98,8 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         Assert.hasText(id, "id is blank");
         TenantDataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        RemoteDataSource dto = ConvertUtils.convert(entity);
-        DataSourceProperty dataSourceProperty = DataSourcePropertyUtils.getDataSourceProperty(dto);
+        RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
+        DataSourceProperty dataSourceProperty = DataSourcePropertyUtils.getDataSourceProperty(remoteDataSource);
         return dynamicDataSourceService.test(dataSourceProperty);
     }
 
