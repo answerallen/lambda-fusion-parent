@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.core.annotation.DictMapper;
-import com.lambda.fusion.core.enums.DictEnum;
+import com.lambda.fusion.core.dict.DictEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
