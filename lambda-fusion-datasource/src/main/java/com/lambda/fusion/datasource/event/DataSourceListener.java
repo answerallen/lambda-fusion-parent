@@ -1,6 +1,7 @@
 package com.lambda.fusion.datasource.event;
 
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
+import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -42,7 +43,7 @@ public class DataSourceListener {
 
                 @Override
                 public Thread newThread(@NonNull Runnable runnable) {
-                    return new Thread(runnable, "ds-event-" + count.getAndIncrement());
+                    return new Thread(runnable, "lambda-fusion-ds-event-" + count.getAndIncrement());
                 }
             },
             new ThreadPoolExecutor.CallerRunsPolicy());
@@ -62,12 +63,13 @@ public class DataSourceListener {
                 apiEvent.setDataSource(event.getDataSource());
                 apiEvent.setTimestamp(System.currentTimeMillis());
 
-                // 根据 DataSourceEvent.ChangeType 精确映射广播类型，不再依赖 boolean isRemove
+                // 根据 DataSourceEvent.ChangeType 精确映射广播类型
                 switch (event.getChangeType()) {
-                    case ADD -> apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.ADD);
-                    case UPDATE -> apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.UPDATE);
-                    case REMOVE -> {
-                        apiEvent.setChangeType(DataSourceChangeEvent.ChangeType.DELETE);
+                    case ADD -> apiEvent.setChangeType(DatasourceConstants.ChangeType.ADD);
+                    case UPDATE ->
+                        apiEvent.setChangeType(DatasourceConstants.ChangeType.UPDATE);
+                    case DELETE -> {
+                        apiEvent.setChangeType(DatasourceConstants.ChangeType.DELETE);
                         // 在事务提交后（AFTER_COMMIT）移除本地连接池，避免在 Service 中出现副作用（无法回滚）
                         dynamicDataSourceService.removeDataSource(
                                 event.getDataSource().getId());

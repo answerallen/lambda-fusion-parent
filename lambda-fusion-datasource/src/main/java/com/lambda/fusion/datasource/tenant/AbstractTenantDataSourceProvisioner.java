@@ -4,10 +4,11 @@ import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.proxy.TenantDataSourceProxy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.sql.DataSource;
 
 /**
  * 租户数据源服务抽象基类
@@ -20,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
 @RequiredArgsConstructor
-public abstract class AbstractTenantDataSourceService {
+public abstract class AbstractTenantDataSourceProvisioner {
 
     private final TenantDataSourceManager tenantDataSourceManager;
     private final DynamicRoutingDataSource dynamicRoutingDataSource;
@@ -35,6 +36,30 @@ public abstract class AbstractTenantDataSourceService {
      * @return Schema 初始化器
      */
     protected abstract TenantSchemaInitializer getSchemaInitializer();
+
+
+    /**
+     * 判断当前 Provisioner 是否适用于指定数据源。
+     *
+     * <p>
+     * 用于在多 Provisioner 场景下进行匹配选择，
+     * 仅当返回 {@code true} 时才会触发对应的 Schema 初始化流程。
+     * </p>
+     *
+     * <p>
+     * 典型判断维度包括但不限于：
+     * <ul>
+     *   <li>数据源类型（如 MySQL / PostgreSQL）</li>
+     *   <li>模块标识</li>
+     *   <li>隔离模式</li>
+     *   <li>扩展标签</li>
+     * </ul>
+     * </p>
+     *
+     * @param remoteDataSource 租户数据源描述
+     * @return 是否支持该数据源
+     */
+    public abstract boolean supports(RemoteDataSource remoteDataSource);
 
     /**
      * 获取模块标识

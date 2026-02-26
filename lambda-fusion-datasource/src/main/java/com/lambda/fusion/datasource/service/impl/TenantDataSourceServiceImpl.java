@@ -15,15 +15,18 @@ import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
 import com.lambda.fusion.datasource.service.TenantDataSourceService;
+import com.lambda.fusion.datasource.tenant.AbstractTenantDataSourceProvisioner;
+import com.lambda.fusion.datasource.tenant.TenantIsolationModeResolver;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -34,6 +37,8 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
 
     private final ApplicationEventPublisher eventPublisher;
     private final DynamicDataSourceService dynamicDataSourceService;
+    private final TenantIsolationModeResolver tenantIsolationModeResolver;
+    private final List<AbstractTenantDataSourceProvisioner> tenantDataSourceProvisioners;
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
@@ -61,6 +66,7 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         Assert.isTrue(save(entity), "save failed");
         syncDynamicDataSource(entity);
         publishAdd(entity);
+        initializeTenantSchema(entity);
     }
 
     @Override
@@ -70,7 +76,6 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         Assert.notNull(input, "input is null");
         TenantDataSourceEntity existing = getById(id);
         Assert.notNull(existing, "entity not found");
-
         TenantDataSourceEntity entity = input.toEntity();
         entity.setId(id);
         Assert.isTrue(updateById(entity), "update failed");
@@ -109,14 +114,15 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         Assert.hasText(id, "id is blank");
         TenantDataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        if (FusionConstants.ENABLED.equals(entity.getEnabled())) {
+        if (entity.getEnabled().isEnabled()) {
             syncDynamicDataSource(entity);
             return;
         }
-        entity.setEnabled(FusionConstants.ENABLED);
+        entity.setEnabled(FusionConstants.ActiveStatus.ENABLED);
         Assert.isTrue(updateById(entity), "update failed");
         syncDynamicDataSource(entity);
         publishChange(entity);
+        initializeTenantSchema(entity);
     }
 
     @Override
@@ -125,9 +131,8 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         Assert.hasText(id, "id is blank");
         TenantDataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        entity.setEnabled(FusionConstants.DISABLED);
+        entity.setEnabled(FusionConstants.ActiveStatus.DISABLED);
         Assert.isTrue(updateById(entity), "update failed");
-
         RemoteDataSource remoteDataSource = new RemoteDataSource();
         remoteDataSource.setId(id);
         remoteDataSource.setTenantId(entity.getTenantId());
@@ -148,7 +153,7 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         if (entity == null) {
             return;
         }
-        if (!FusionConstants.ENABLED.equals(entity.getEnabled())) {
+        if (entity.getEnabled().isDisabled()) {
             dynamicDataSourceService.removeDataSource(entity.getId());
             return;
         }
@@ -164,5 +169,26 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
                 throw new RuntimeException("同步动态数据源失败，ID: " + entity.getId());
             }
         }
+    }
+
+    private void initializeTenantSchema(TenantDataSourceEntity entity) {
+        if (isProvisioningRequired(entity)) {
+            RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
+            for (AbstractTenantDataSourceProvisioner provisioner : tenantDataSourceProvisioners) {
+                if (provisioner.supports(remoteDataSource)) {
+                    provisioner.provisionTenant(entity.getTenantId(), remoteDataSource);
+                }
+            }
+        }
+    }
+
+    private boolean isProvisioningRequired(TenantDataSourceEntity entity) {
+        if (entity == null || entity.getTenantId() == null) {
+            return false;
+        }
+        if (tenantIsolationModeResolver.isShared(entity.getTenantId())) {
+            return false;
+        }
+        return tenantDataSourceProvisioners != null && !tenantDataSourceProvisioners.isEmpty();
     }
 }

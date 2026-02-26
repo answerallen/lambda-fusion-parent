@@ -282,29 +282,29 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     private RemoteDataSource toRemoteDataSource(TenantDataSourceEntity entity) {
-        RemoteDataSource dto = new RemoteDataSource();
-        dto.setId(entity.getId());
-        dto.setDatasourceName(entity.getDbName());
-        dto.setEnabled(entity.getEnabled());
-        dto.setTenantId(entity.getTenantId());
-        dto.setDbType(entity.getDbType());
-        dto.setVersion(System.currentTimeMillis());
+        RemoteDataSource remoteDataSource = new RemoteDataSource();
+        remoteDataSource.setId(entity.getId());
+        remoteDataSource.setDatasourceName(entity.getDbName());
+        remoteDataSource.setEnabled(entity.getEnabled().getCode());
+        remoteDataSource.setTenantId(entity.getTenantId());
+        remoteDataSource.setDbType(entity.getDbType());
+        remoteDataSource.setVersion(System.currentTimeMillis());
 
         try {
             if (StringUtils.hasText(entity.getConfiguration())) {
                 JsonNode node = objectMapper.readTree(entity.getConfiguration());
-                validAndSet(dto, node);
+                validAndSet(remoteDataSource, node);
             }
         } catch (Exception e) {
             log.error("Failed to parse tenant configuration", e);
         }
 
         // 由于 validAndSet 直接从 JSON 解析获取明文密码，此处再将其统一进行 Base64 编码
-        if (dto.getPassword() != null) {
-            dto.setPassword(Base64.encode(dto.getPassword()));
+        if (remoteDataSource.getPassword() != null) {
+            remoteDataSource.setPassword(Base64.encode(remoteDataSource.getPassword()));
         }
 
-        return dto;
+        return remoteDataSource;
     }
 
     public static void validAndSet(RemoteDataSource dto, JsonNode node) {

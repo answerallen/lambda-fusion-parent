@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.annotation.FieldMapping;
+import com.lambda.fusion.core.FusionConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Date;
 import lombok.Getter;
@@ -52,7 +53,7 @@ public class TenantDataSourceEntity {
 
     @TableField("ENABLED")
     @Schema(description = "是否启用 0禁用 1启用")
-    private Integer enabled;
+    private FusionConstants.ActiveStatus enabled;
 
     @TableField("TENANT_ID")
     @Schema(description = "租户id")
