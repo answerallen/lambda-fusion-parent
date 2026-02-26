@@ -42,7 +42,6 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 @Slf4j
-@SuppressFBWarnings("NP_UNWRITTEN_FIELD")
 public class TenantAuthorizeManager {
 
     private TenantService tenantService;
