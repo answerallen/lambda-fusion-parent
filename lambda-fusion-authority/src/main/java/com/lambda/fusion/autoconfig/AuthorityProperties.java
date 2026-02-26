@@ -1,14 +1,14 @@
 package com.lambda.fusion.autoconfig;
 
 import cn.hutool.core.collection.CollUtil;
-import com.lambda.fusion.authority.tenant.TenantProperties;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -81,8 +81,8 @@ public class AuthorityProperties {
     @Getter
     @Setter
     public static class DevRole {
-        private final String[] defaultWhiteArray = new String[] {
-            "/public/**", "**/dict/**", "/dict/**", "/monitor/**", "/error/**", "/error", "/v3/**",
+        private final String[] defaultWhiteArray = new String[]{
+                "/public/**", "**/dict/**", "/dict/**", "/monitor/**", "/error/**", "/error", "/v3/**",
         };
         private List<String> whiteList;
 
