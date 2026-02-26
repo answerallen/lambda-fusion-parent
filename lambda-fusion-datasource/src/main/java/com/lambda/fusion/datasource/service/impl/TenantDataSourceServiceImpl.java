@@ -92,6 +92,7 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
             RemoteDataSource remoteDataSource = new RemoteDataSource();
             remoteDataSource.setId(id);
             remoteDataSource.setTenantId(existing.getTenantId());
+            dorpTenantDatasource(existing);
             eventPublisher.publishEvent(DataSourceEvent.remove(this, remoteDataSource));
         }
         removeById(id);
@@ -120,9 +121,9 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         }
         entity.setEnabled(FusionConstants.ActiveStatus.ENABLED);
         Assert.isTrue(updateById(entity), "update failed");
+        initializeTenantSchema(entity);
         syncDynamicDataSource(entity);
         publishChange(entity);
-        initializeTenantSchema(entity);
     }
 
     @Override
@@ -177,6 +178,17 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
             for (AbstractTenantDataSourceProvisioner provisioner : tenantDataSourceProvisioners) {
                 if (provisioner.supports(remoteDataSource)) {
                     provisioner.provisionTenant(entity.getTenantId(), remoteDataSource);
+                }
+            }
+        }
+    }
+
+    private void dorpTenantDatasource(TenantDataSourceEntity entity) {
+        if (isProvisioningRequired(entity)) {
+            RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
+            for (AbstractTenantDataSourceProvisioner provisioner : tenantDataSourceProvisioners) {
+                if (provisioner.supports(remoteDataSource)) {
+                    provisioner.deprovisionTenant(entity.getTenantId());
                 }
             }
         }

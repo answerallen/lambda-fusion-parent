@@ -146,16 +146,15 @@ public abstract class AbstractTenantDataSourceProvisioner {
      * 删除租户数据源
      *
      * @param tenantId 租户ID
-     * @return true 如果删除成功
      */
-    public boolean deprovisionTenant(String tenantId) {
+    public void deprovisionTenant(String tenantId) {
         log.info("开始为租户 [{}] 注销数据源，前缀: {}", tenantId, getTenantPrefix());
 
         try {
             // 检查租户数据源是否存在
             if (!tenantDataSourceExists(tenantId)) {
                 log.warn("租户 [{}] 的数据源不存在", tenantId);
-                return false;
+                return;
             }
 
             // 删除租户数据源
@@ -167,11 +166,8 @@ public abstract class AbstractTenantDataSourceProvisioner {
                 log.warn("租户 [{}] 注销失败", tenantId);
             }
 
-            return deleted;
-
         } catch (Exception e) {
             log.error("租户 [{}] 注销失败", tenantId, e);
-            return false;
         }
     }
 

@@ -2,7 +2,8 @@ package com.lambda.fusion.ai.datasource;
 
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.autoconfig.AiProperties;
-import com.lambda.fusion.datasource.tenant.AbstractTenantDataSourceService;
+import com.lambda.fusion.datasource.model.RemoteDataSource;
+import com.lambda.fusion.datasource.tenant.AbstractTenantDataSourceProvisioner;
 import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
 import com.lambda.fusion.datasource.tenant.TenantIsolationModeResolver;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
@@ -41,7 +42,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
-public class AiTenantProvisioningService extends AbstractTenantDataSourceService {
+public class AiTenantProvisioningProvisioner extends AbstractTenantDataSourceProvisioner {
 
     private final AiSchemaInitializer aiSchemaInitializer;
     private final AiProperties aiProperties;
@@ -54,7 +55,7 @@ public class AiTenantProvisioningService extends AbstractTenantDataSourceService
      * @param aiSchemaInitializer AI Schema 初始化器
      * @param aiProperties AI 配置属性
      */
-    public AiTenantProvisioningService(
+    public AiTenantProvisioningProvisioner(
             TenantDataSourceManager tenantDataSourceManager,
             DynamicRoutingDataSource dynamicRoutingDataSource,
             TenantIsolationModeResolver tenantIsolationModeResolver,
@@ -83,5 +84,20 @@ public class AiTenantProvisioningService extends AbstractTenantDataSourceService
     @Override
     protected String getTenantPrefix() {
         return aiProperties.getDataSource().getTenantPrefix();
+    }
+
+    @Override
+    public boolean supports(RemoteDataSource remoteDataSource) {
+        if (remoteDataSource == null) {
+            return false;
+        }
+        if (remoteDataSource.getTenantId() == null) {
+            return false;
+        }
+        String datasourceName = remoteDataSource.getDatasourceName();
+        if (datasourceName == null) {
+            return false;
+        }
+        return datasourceName.startsWith(aiProperties.getDataSource().getTenantPrefix());
     }
 }
