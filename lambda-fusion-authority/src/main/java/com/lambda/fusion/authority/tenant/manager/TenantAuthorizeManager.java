@@ -17,6 +17,7 @@ import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.ResetPassword;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.service.UserService;
+import com.lambda.fusion.core.utils.LoginUserUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,25 +46,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class TenantAuthorizeManager {
 
     private TenantService tenantService;
-
     private UserService userService;
     private UserMapper userMapper;
     private UserInfoMapper userInfoMapper;
     private ResourceMapper resourceMapper;
     private PasswordEncoder passwordEncoder;
     private RoleMapper roleMapper;
-
-    /*
-     ------------------------------------------------------------
-     如果数据源切换失败，请参考以下措施：
-     如果从controller层调用，被调用方法上*不应该*加任何事务控制注解
-     如果从service层等已经有事务控制的方法中调用，被调用方法需要加上@Transactional(propagation = Propagation.NOT_SUPPORTED)注解来禁用事务
-     ------------------------------------------------------------
-    */
-
-    public void initTenantMainDataBase(String tenantId, LoginUser operator) {
-        System.out.println("initTenantMainDataBase " + tenantId + " " + operator);
-    }
 
     /**
      * 保存租户映射主库中的管理员角色权限
@@ -137,7 +125,7 @@ public class TenantAuthorizeManager {
         }
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
         String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
-        //        execute(tenantId, () -> userService.deleteUser(SystemUser.get(), username));
+        execute(tenantId, () -> userService.deleteUser(LoginUserUtils.getLoginUser(), username));
         System.out.println(tenantId);
     }
 
@@ -200,7 +188,7 @@ public class TenantAuthorizeManager {
     @SuppressWarnings("unused")
     private void execute(Runnable runnable) {
         List<String> tenantDsKey = getTenantDsKey();
-        if (tenantDsKey == null || tenantDsKey.isEmpty()) {
+        if (tenantDsKey.isEmpty()) {
             return;
         }
         // 依次操作租户库
@@ -210,8 +198,7 @@ public class TenantAuthorizeManager {
                     //                   DynamicDataSourceWrapper.wrap(dsKey, runnable);
                 }
             } catch (Exception e) {
-                log.error("租户主库执行异常，数据源id:{}", dsKey);
-                e.printStackTrace();
+                log.error("租户主库执行异常，数据源id:{}", dsKey,e);
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.lambda.fusion.autoconfig;
 
 import cn.hutool.core.collection.CollUtil;
+import com.lambda.fusion.authority.tenant.TenantProperties;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +33,7 @@ public class AuthorityProperties {
      * 开发者角色配置
      */
     private DevRole dev = new DevRole();
+
 
     /**
      * 密码策略
