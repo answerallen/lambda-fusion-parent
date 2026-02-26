@@ -2,13 +2,12 @@ package com.lambda.fusion.autoconfig;
 
 import cn.hutool.core.collection.CollUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Setter
@@ -33,7 +32,6 @@ public class AuthorityProperties {
      * 开发者角色配置
      */
     private DevRole dev = new DevRole();
-
 
     /**
      * 密码策略
@@ -81,8 +79,8 @@ public class AuthorityProperties {
     @Getter
     @Setter
     public static class DevRole {
-        private final String[] defaultWhiteArray = new String[]{
-                "/public/**", "**/dict/**", "/dict/**", "/monitor/**", "/error/**", "/error", "/v3/**",
+        private final String[] defaultWhiteArray = new String[] {
+            "/public/**", "**/dict/**", "/dict/**", "/monitor/**", "/error/**", "/error", "/v3/**",
         };
         private List<String> whiteList;
 

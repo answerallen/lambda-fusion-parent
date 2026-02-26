@@ -4,11 +4,10 @@ import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.proxy.TenantDataSourceProxy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.sql.DataSource;
 
 /**
  * 租户数据源服务抽象基类
@@ -36,7 +35,6 @@ public abstract class AbstractTenantDataSourceProvisioner {
      * @return Schema 初始化器
      */
     protected abstract TenantSchemaInitializer getSchemaInitializer();
-
 
     /**
      * 判断当前 Provisioner 是否适用于指定数据源。

@@ -66,8 +66,7 @@ public class DataSourceListener {
                 // 根据 DataSourceEvent.ChangeType 精确映射广播类型
                 switch (event.getChangeType()) {
                     case ADD -> apiEvent.setChangeType(DatasourceConstants.ChangeType.ADD);
-                    case UPDATE ->
-                        apiEvent.setChangeType(DatasourceConstants.ChangeType.UPDATE);
+                    case UPDATE -> apiEvent.setChangeType(DatasourceConstants.ChangeType.UPDATE);
                     case DELETE -> {
                         apiEvent.setChangeType(DatasourceConstants.ChangeType.DELETE);
                         // 在事务提交后（AFTER_COMMIT）移除本地连接池，避免在 Service 中出现副作用（无法回滚）

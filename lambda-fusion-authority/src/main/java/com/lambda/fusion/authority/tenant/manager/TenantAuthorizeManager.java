@@ -198,7 +198,7 @@ public class TenantAuthorizeManager {
                     //                   DynamicDataSourceWrapper.wrap(dsKey, runnable);
                 }
             } catch (Exception e) {
-                log.error("租户主库执行异常，数据源id:{}", dsKey,e);
+                log.error("租户主库执行异常，数据源id:{}", dsKey, e);
             }
         }
     }
