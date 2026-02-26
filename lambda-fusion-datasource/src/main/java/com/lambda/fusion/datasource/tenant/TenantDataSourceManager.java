@@ -3,18 +3,19 @@ package com.lambda.fusion.datasource.tenant;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.autoconfig.DatasourceProperties;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 /**
  * 租户数据源管理器（通用组件）
@@ -41,7 +42,6 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class TenantDataSourceManager {
 
-    @Lazy
     private final RemoteDataSourceService remoteDataSourceService;
 
     private final DatasourceProperties datasourceProperties;
@@ -65,7 +65,7 @@ public class TenantDataSourceManager {
      * 获取当前租户的数据源名称
      *
      * @param defaultDataSourceName 默认数据源名称（当租户ID为空或default时使用）
-     * @param tenantPrefix        租户数据源名称前缀
+     * @param tenantPrefix          租户数据源名称前缀
      * @return 数据源名称
      */
     public String getCurrentTenantDataSourceName(String defaultDataSourceName, String tenantPrefix) {
@@ -115,7 +115,7 @@ public class TenantDataSourceManager {
     /**
      * 创建租户数据源
      *
-     * @param tenantId          租户ID
+     * @param tenantId         租户ID
      * @param tenantPrefix     租户数据源名称前缀
      * @param dataSourceConfig 数据源配置（会自动设置 datasourceName、tenantId、enabled）
      * @return true 如果创建成功
@@ -127,7 +127,7 @@ public class TenantDataSourceManager {
         }
         dataSourceConfig.setDatasourceName(dataSourceName);
         dataSourceConfig.setTenantId(tenantId);
-        dataSourceConfig.setEnabled(1);
+        dataSourceConfig.setEnabled(FusionConstants.ENABLED);
 
         boolean success = remoteDataSourceService.add(dataSourceConfig);
         if (success) {
@@ -139,9 +139,41 @@ public class TenantDataSourceManager {
     }
 
     /**
+     * 初始化租户数据源Schema
+     *
+     * @param tenantId     租户ID
+     * @param tenantPrefix 租户数据源名称前缀
+     * @return true 如果初始化成功
+     */
+    public boolean initTenantDataSource(String tenantId, String tenantPrefix) {
+        String dataSourceName = getTenantDataSourceName(tenantId, tenantPrefix);
+        RemoteDataSource ds = remoteDataSourceService.get(dataSourceName);
+        if (ds == null) {
+            return false;
+        }
+        return remoteDataSourceService.initSchema(ds.getId());
+    }
+
+    /**
+     * 移除租户数据源Schema（物理销毁）
+     *
+     * @param tenantId     租户ID
+     * @param tenantPrefix 租户数据源名称前缀
+     * @return true 如果移除成功
+     */
+    public boolean destroyTenantDataSource(String tenantId, String tenantPrefix) {
+        String dataSourceName = getTenantDataSourceName(tenantId, tenantPrefix);
+        RemoteDataSource ds = remoteDataSourceService.get(dataSourceName);
+        if (ds == null) {
+            return false;
+        }
+        return remoteDataSourceService.removeSchema(ds.getId());
+    }
+
+    /**
      * 删除租户数据源
      *
-     * @param tenantId      租户ID
+     * @param tenantId     租户ID
      * @param tenantPrefix 租户数据源名称前缀
      * @return true 如果删除成功
      */
@@ -184,7 +216,7 @@ public class TenantDataSourceManager {
      * 编程式切换到租户数据源
      * 使用 try-with-resources 自动恢复
      *
-     * @param tenantId 租户ID
+     * @param tenantId     租户ID
      * @param tenantPrefix 租户数据源名称前缀
      * @return DataSourceSwitcher 实例，用于 try-with-resources
      */

@@ -65,7 +65,6 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         Assert.isTrue(save(entity), "save failed");
         syncDynamicDataSource(entity);
         publishAdd(entity);
-        initializeTenantSchema(entity);
     }
 
     @Override
@@ -91,7 +90,6 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
             RemoteDataSource remoteDataSource = new RemoteDataSource();
             remoteDataSource.setId(id);
             remoteDataSource.setTenantId(existing.getTenantId());
-            dorpTenantDatasource(existing);
             eventPublisher.publishEvent(DataSourceEvent.remove(this, remoteDataSource));
         }
         removeById(id);
@@ -139,6 +137,24 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         eventPublisher.publishEvent(DataSourceEvent.remove(this, remoteDataSource));
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void initSchema(String id) {
+        Assert.hasText(id, "id is blank");
+        TenantDataSourceEntity entity = getById(id);
+        Assert.notNull(entity, "entity not found");
+        initializeTenantSchema(entity);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeSchema(String id) {
+        Assert.hasText(id, "id is blank");
+        TenantDataSourceEntity entity = getById(id);
+        Assert.notNull(entity, "entity not found");
+        dropTenantDatasource(entity);
+    }
+
     private void publishAdd(TenantDataSourceEntity entity) {
         RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
         eventPublisher.publishEvent(DataSourceEvent.add(this, remoteDataSource));
@@ -182,7 +198,7 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         }
     }
 
-    private void dorpTenantDatasource(TenantDataSourceEntity entity) {
+    private void dropTenantDatasource(TenantDataSourceEntity entity) {
         if (isProvisioningRequired(entity)) {
             RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
             for (AbstractTenantDataSourceProvisioner provisioner : tenantDataSourceProvisioners) {

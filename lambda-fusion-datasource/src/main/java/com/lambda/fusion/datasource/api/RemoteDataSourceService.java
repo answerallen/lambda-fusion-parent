@@ -74,4 +74,20 @@ public interface RemoteDataSourceService {
      * @param clientId 客户端唯一标识
      */
     void unsubscribe(String clientId);
+
+    /**
+     * 初始化租户数据源Schema
+     *
+     * @param id 数据源ID
+     * @return true 如果初始化成功
+     */
+    boolean initSchema(String id);
+
+    /**
+     * 移除租户数据源Schema
+     *
+     * @param id 数据源ID
+     * @return true 如果移除成功
+     */
+    boolean removeSchema(String id);
 }

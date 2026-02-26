@@ -275,6 +275,38 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         callbackManager.removeSubscriber(clientId);
     }
 
+    @Override
+    public boolean initSchema(String id) {
+        try {
+            TenantDataSourceEntity tenant = tenantDataSourceService.get(id);
+            if (tenant != null) {
+                checkPermission(tenant.getTenantId());
+                tenantDataSourceService.initSchema(id);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("Failed to init schema: {}", id, e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean removeSchema(String id) {
+        try {
+            TenantDataSourceEntity tenant = tenantDataSourceService.get(id);
+            if (tenant != null) {
+                checkPermission(tenant.getTenantId());
+                tenantDataSourceService.removeSchema(id);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            log.error("Failed to remove schema: {}", id, e);
+            return false;
+        }
+    }
+
     private RemoteDataSource toRemoteDataSource(DataSourceEntity entity) {
         RemoteDataSource remoteDataSource = DataSourcePropertyUtils.buildDataSourceEntity(entity);
         remoteDataSource.setVersion(System.currentTimeMillis());

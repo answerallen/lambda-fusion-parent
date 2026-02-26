@@ -26,4 +26,8 @@ public interface TenantDataSourceService extends IService<TenantDataSourceEntity
     void enable(String id);
 
     void disable(String id);
+
+    void initSchema(String id);
+
+    void removeSchema(String id);
 }
