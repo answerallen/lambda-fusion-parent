@@ -1,4 +1,4 @@
-package com.lambda.fusion.core.enums;
+package com.lambda.fusion.core.dict;
 
 public interface DictEnum<T> {
 
