@@ -7,7 +7,7 @@ import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
 import java.util.List;
 
-public interface TenantDataSourceManageService extends IService<TenantDataSourceEntity> {
+public interface TenantDataSourceService extends IService<TenantDataSourceEntity> {
 
     List<TenantDataSourceEntity> listAll();
 

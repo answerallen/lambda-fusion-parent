@@ -14,7 +14,7 @@ import com.lambda.fusion.datasource.model.QueryTenantDataSource;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertTenantDataSource;
-import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
+import com.lambda.fusion.datasource.service.TenantDataSourceService;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
@@ -29,8 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-public class TenantDataSourceManageServiceImpl extends ServiceImpl<TenantDataSourceMapper, TenantDataSourceEntity>
-        implements TenantDataSourceManageService {
+public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMapper, TenantDataSourceEntity>
+        implements TenantDataSourceService {
 
     private final ApplicationEventPublisher eventPublisher;
     private final DynamicDataSourceService dynamicDataSourceService;

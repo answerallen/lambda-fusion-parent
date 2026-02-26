@@ -12,7 +12,8 @@ import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
-import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
+import com.lambda.fusion.datasource.service.TenantDataSourceService;
+import com.lambda.fusion.datasource.tenant.TenantIsolationModeResolver;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -44,11 +45,16 @@ public class DatasourceAutoConfiguration {
             matchIfMissing = true)
     public RemoteDataSourceService remoteDataSourceService(
             DataSourceManageService dataSourceManageService,
-            TenantDataSourceManageService tenantDataSourceManageService,
+            TenantDataSourceService tenantDataSourceService,
             DataSourceChangeDispatcher callbackManager,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            TenantIsolationModeResolver tenantIsolationModeResolver) {
         return new RemoteDataSourceServiceImpl(
-                dataSourceManageService, tenantDataSourceManageService, callbackManager, objectMapper);
+                dataSourceManageService,
+                tenantDataSourceService,
+                callbackManager,
+                objectMapper,
+                tenantIsolationModeResolver);
     }
 
     @Bean

@@ -24,6 +24,7 @@ public abstract class AbstractTenantDataSourceService {
 
     private final TenantDataSourceManager tenantDataSourceManager;
     private final DynamicRoutingDataSource dynamicRoutingDataSource;
+    private final TenantIsolationModeResolver tenantIsolationModeResolver;
 
     /**
      * 获取 Schema 初始化器
@@ -64,6 +65,10 @@ public abstract class AbstractTenantDataSourceService {
         log.info("开始为租户 [{}] 配置数据源，前缀: {}", tenantId, getTenantPrefix());
 
         try {
+            if (tenantIsolationModeResolver.isShared(tenantId)) {
+                throw new IllegalStateException("租户隔离模式为共享库，禁止执行独立库 Provisioning: " + tenantId);
+            }
+
             // 1. 检查租户数据源是否已存在
             if (tenantDataSourceExists(tenantId)) {
                 log.warn("租户 [{}] 的数据源已存在", tenantId);

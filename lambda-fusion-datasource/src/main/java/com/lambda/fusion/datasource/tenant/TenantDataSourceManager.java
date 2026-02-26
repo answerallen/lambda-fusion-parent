@@ -1,6 +1,7 @@
 package com.lambda.fusion.datasource.tenant;
 
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
+import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.autoconfig.DatasourceProperties;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
@@ -45,6 +46,8 @@ public class TenantDataSourceManager {
 
     private final DatasourceProperties datasourceProperties;
 
+    private final TenantIsolationModeResolver tenantIsolationModeResolver;
+
     // 租户数据源缓存: cacheKey(prefix:tenantId) -> datasourceName
     private final Map<String, String> tenantDataSourceCache = new ConcurrentHashMap<>();
 
@@ -62,16 +65,26 @@ public class TenantDataSourceManager {
      * 获取当前租户的数据源名称
      *
      * @param defaultDataSourceName 默认数据源名称（当租户ID为空或default时使用）
-     * @param module              模块标识（如 ai, auth 等）
+     * @param tenantPrefix        租户数据源名称前缀
      * @return 数据源名称
      */
-    public String getCurrentTenantDataSourceName(String defaultDataSourceName, String module) {
-        String tenantId = DubboContextHolder.getCurrentTenantId();
+    public String getCurrentTenantDataSourceName(String defaultDataSourceName, String tenantPrefix) {
+        String tenantId = resolveCurrentTenantId();
         if (!StringUtils.hasText(tenantId) || "default".equals(tenantId)) {
             return defaultDataSourceName;
         }
-        String prefix = getTenantPrefix(module);
-        return getTenantDataSourceName(tenantId, prefix);
+        if (tenantIsolationModeResolver.isShared(tenantId)) {
+            return defaultDataSourceName;
+        }
+        return getTenantDataSourceName(tenantId, tenantPrefix);
+    }
+
+    private String resolveCurrentTenantId() {
+        String tenantId = TenantContextHolder.getCurrentTenantId();
+        if (StringUtils.hasText(tenantId)) {
+            return tenantId;
+        }
+        return DubboContextHolder.getCurrentTenantId();
     }
 
     /**
@@ -169,12 +182,11 @@ public class TenantDataSourceManager {
      * 使用 try-with-resources 自动恢复
      *
      * @param tenantId 租户ID
-     * @param module  模块标识（如 ai, auth 等）
+     * @param tenantPrefix 租户数据源名称前缀
      * @return DataSourceSwitcher 实例，用于 try-with-resources
      */
-    public DataSourceSwitcher switchToTenantDataSource(String tenantId, String module) {
-        String prefix = getTenantPrefix(module);
-        String dataSourceName = getTenantDataSourceName(tenantId, prefix);
+    public DataSourceSwitcher switchToTenantDataSource(String tenantId, String tenantPrefix) {
+        String dataSourceName = getTenantDataSourceName(tenantId, tenantPrefix);
         return DataSourceSwitcher.switchTo(dataSourceName);
     }
 
@@ -182,11 +194,11 @@ public class TenantDataSourceManager {
      * 编程式切换到当前租户数据源
      *
      * @param defaultDataSourceName 默认数据源名称
-     * @param module                模块标识（如 ai, auth 等）
+     * @param tenantPrefix          租户数据源名称前缀
      * @return DataSourceSwitcher 实例，用于 try-with-resources
      */
-    public DataSourceSwitcher switchToCurrentTenantDataSource(String defaultDataSourceName, String module) {
-        String dataSourceName = getCurrentTenantDataSourceName(defaultDataSourceName, module);
+    public DataSourceSwitcher switchToCurrentTenantDataSource(String defaultDataSourceName, String tenantPrefix) {
+        String dataSourceName = getCurrentTenantDataSourceName(defaultDataSourceName, tenantPrefix);
         return DataSourceSwitcher.switchTo(dataSourceName);
     }
 }

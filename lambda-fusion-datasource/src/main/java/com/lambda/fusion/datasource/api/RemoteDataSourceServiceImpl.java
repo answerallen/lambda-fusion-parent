@@ -6,10 +6,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
+import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.model.*;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
-import com.lambda.fusion.datasource.service.TenantDataSourceManageService;
+import com.lambda.fusion.datasource.service.TenantDataSourceService;
+import com.lambda.fusion.datasource.tenant.TenantIsolationModeResolver;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
@@ -29,9 +31,10 @@ import org.springframework.util.StringUtils;
 public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
 
     private final DataSourceManageService dataSourceManageService;
-    private final TenantDataSourceManageService tenantDataSourceManageService;
+    private final TenantDataSourceService tenantDataSourceService;
     private final DataSourceChangeDispatcher callbackManager;
     private final ObjectMapper objectMapper;
+    private final TenantIsolationModeResolver tenantIsolationModeResolver;
 
     @Override
     public List<RemoteDataSource> listAll() {
@@ -41,9 +44,11 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 .collect(Collectors.toList());
 
         // 2. 当前租户数据源 (如果有上下文)
-        String currentTenantId = DubboContextHolder.getCurrentTenantId();
-        if (StringUtils.hasText(currentTenantId) && !"default".equals(currentTenantId)) {
-            List<RemoteDataSource> tenants = tenantDataSourceManageService
+        String currentTenantId = resolveCurrentTenantId();
+        if (StringUtils.hasText(currentTenantId)
+                && !"default".equals(currentTenantId)
+                && shouldIncludeTenantDataSources(currentTenantId)) {
+            List<RemoteDataSource> tenants = tenantDataSourceService
                     .list(Wrappers.<TenantDataSourceEntity>lambdaQuery()
                             .eq(TenantDataSourceEntity::getTenantId, currentTenantId))
                     .stream()
@@ -63,9 +68,11 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 .collect(Collectors.toList());
 
         // 2. 当前租户已启用数据源
-        String currentTenantId = DubboContextHolder.getCurrentTenantId();
-        if (StringUtils.hasText(currentTenantId) && !"default".equals(currentTenantId)) {
-            List<RemoteDataSource> tenants = tenantDataSourceManageService
+        String currentTenantId = resolveCurrentTenantId();
+        if (StringUtils.hasText(currentTenantId)
+                && !"default".equals(currentTenantId)
+                && shouldIncludeTenantDataSources(currentTenantId)) {
+            List<RemoteDataSource> tenants = tenantDataSourceService
                     .list(Wrappers.<TenantDataSourceEntity>lambdaQuery()
                             .eq(TenantDataSourceEntity::getTenantId, currentTenantId)
                             .eq(TenantDataSourceEntity::getEnabled, 1))
@@ -77,6 +84,18 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         return globals;
     }
 
+    private boolean shouldIncludeTenantDataSources(String tenantId) {
+        return !tenantIsolationModeResolver.isShared(tenantId);
+    }
+
+    private String resolveCurrentTenantId() {
+        String tenantId = TenantContextHolder.getCurrentTenantId();
+        if (StringUtils.hasText(tenantId)) {
+            return tenantId;
+        }
+        return DubboContextHolder.getCurrentTenantId();
+    }
+
     @Override
     public RemoteDataSource get(String id) {
         // 先查全局
@@ -85,10 +104,10 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
             return toRemoteDataSource(global);
         }
         // 再查租户
-        TenantDataSourceEntity tenant = tenantDataSourceManageService.get(id);
+        TenantDataSourceEntity tenant = tenantDataSourceService.get(id);
         if (tenant != null) {
             // 校验租户权限
-            String currentTenantId = DubboContextHolder.getCurrentTenantId();
+            String currentTenantId = resolveCurrentTenantId();
             if (!StringUtils.hasText(currentTenantId)
                     || "default".equals(currentTenantId)
                     || currentTenantId.equals(tenant.getTenantId())) {
@@ -104,7 +123,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
             if (StringUtils.hasText(remoteDataSource.getTenantId())) {
                 checkPermission(remoteDataSource.getTenantId());
                 UpsertTenantDataSource input = toUpsertTenantDataSource(remoteDataSource);
-                tenantDataSourceManageService.save(input);
+                tenantDataSourceService.save(input);
             } else {
                 checkPermission(null);
                 UpsertDataSource input = toUpsertDataSource(remoteDataSource);
@@ -124,7 +143,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 checkPermission(remoteDataSource.getTenantId());
                 UpsertTenantDataSource input = toUpsertTenantDataSource(remoteDataSource);
                 input.setId(id);
-                tenantDataSourceManageService.update(id, input);
+                tenantDataSourceService.update(id, input);
                 remoteDataSource.setId(id);
             } else {
                 checkPermission(null);
@@ -150,10 +169,10 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 return true;
             }
 
-            TenantDataSourceEntity tenant = tenantDataSourceManageService.get(id);
+            TenantDataSourceEntity tenant = tenantDataSourceService.get(id);
             if (tenant != null) {
                 checkPermission(tenant.getTenantId());
-                tenantDataSourceManageService.delete(id);
+                tenantDataSourceService.delete(id);
                 return true;
             }
             return false;
@@ -177,7 +196,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 dataSourceManageService.enable(id);
                 return true;
             }
-            TenantDataSourceEntity tenant = tenantDataSourceManageService.get(id);
+            TenantDataSourceEntity tenant = tenantDataSourceService.get(id);
             if (tenant != null) {
                 checkPermission(tenant.getTenantId());
                 UpsertTenantDataSource input = new UpsertTenantDataSource();
@@ -187,7 +206,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 input.setTenantId(tenant.getTenantId());
                 input.setDbType(tenant.getDbType());
                 input.setConfiguration(tenant.getConfiguration());
-                tenantDataSourceManageService.update(id, input);
+                tenantDataSourceService.update(id, input);
 
                 return true;
             }
@@ -207,7 +226,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 dataSourceManageService.disable(id);
                 return true;
             }
-            TenantDataSourceEntity tenant = tenantDataSourceManageService.get(id);
+            TenantDataSourceEntity tenant = tenantDataSourceService.get(id);
             if (tenant != null) {
                 checkPermission(tenant.getTenantId());
                 UpsertTenantDataSource upsertTenantDataSource = new UpsertTenantDataSource();
@@ -217,7 +236,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 upsertTenantDataSource.setTenantId(tenant.getTenantId());
                 upsertTenantDataSource.setDbType(tenant.getDbType());
                 upsertTenantDataSource.setConfiguration(tenant.getConfiguration());
-                tenantDataSourceManageService.update(id, upsertTenantDataSource);
+                tenantDataSourceService.update(id, upsertTenantDataSource);
 
                 return true;
             }
