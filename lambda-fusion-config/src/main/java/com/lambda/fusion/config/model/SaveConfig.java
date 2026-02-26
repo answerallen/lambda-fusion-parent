@@ -39,14 +39,14 @@ public class SaveConfig extends BaseDTO<ConfigEntity> {
     private Integer type;
 
     @Schema(description = "配置选项列表")
-    private List<ConfigOptionDTO> options;
+    private List<ConfigOption> options;
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "配置选项")
-    public static class ConfigOptionDTO {
+    public static class ConfigOption {
 
         @Schema(description = "选项标签")
         private String label;

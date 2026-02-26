@@ -37,5 +37,5 @@ public class UpdateConfig {
     private Integer type;
 
     @Schema(description = "配置选项列表")
-    private List<SaveConfig.ConfigOptionDTO> options;
+    private List<SaveConfig.ConfigOption> options;
 }

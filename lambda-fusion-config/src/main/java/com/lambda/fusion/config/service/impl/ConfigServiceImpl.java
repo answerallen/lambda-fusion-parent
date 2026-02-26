@@ -201,7 +201,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
             }
 
             // 创建新的选项
-            for (SaveConfig.ConfigOptionDTO optionDTO : updateConfig.getOptions()) {
+            for (SaveConfig.ConfigOption optionDTO : updateConfig.getOptions()) {
                 ConfigOptionEntity optionEntity = new ConfigOptionEntity();
                 optionEntity.setApplication(target.getApplication());
                 optionEntity.setPid(target.getId());
@@ -244,7 +244,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
 
         // 批量保存配置选项
         if (CollectionUtils.isNotEmpty(saveConfig.getOptions())) {
-            for (SaveConfig.ConfigOptionDTO optionDTO : saveConfig.getOptions()) {
+            for (SaveConfig.ConfigOption optionDTO : saveConfig.getOptions()) {
                 ConfigOptionEntity optionEntity = new ConfigOptionEntity();
                 optionEntity.setApplication(application);
                 optionEntity.setPid(target.getId());
