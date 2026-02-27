@@ -1,9 +1,12 @@
 package com.lambda.fusion.authority.tenant.controller;
 
+import cn.hutool.core.io.FileUtil;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.cloud.oss.manager.OssClientManager;
+import com.lambda.cloud.oss.model.UploadObjectResult;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.tenant.model.Tenant;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
@@ -14,11 +17,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * 租户信息表相关接口
@@ -32,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 public class TenantController {
 
     private final TenantService tenantService;
+    private final OssClientManager ossClientManager;
 
     @PostMapping("/page")
     @Operation(summary = "分页查询所有租户数据列表（V2版本）", description = "使用LambdaQueryWrapper进行分页查询，支持更灵活的排序和查询条件")
@@ -53,10 +58,9 @@ public class TenantController {
 
     @PostMapping
     @Operation(summary = "新增租户信息信息", description = "新增租户信息信息")
-    public TenantEntity save(@Parameter(description = "租户信息信息", required = true) @RequestBody Tenant entity) {
+    public TenantEntity save(@Parameter(description = "租户信息信息", required = true) @RequestBody Tenant tenant) {
         LoginUser operator = OperatorUtils.getOperator();
-        TenantEntity target = new TenantEntity();
-        BeanUtils.copyProperties(entity, target);
+        TenantEntity target = tenant.toEntity();
         String id = IdWorker.getIdStr();
         String tenantId = operator.getTenantId();
         target.setOwner(tenantId);
@@ -71,8 +75,7 @@ public class TenantController {
             @Parameter(description = "租户信息编号", required = true) @PathVariable String id,
             @Parameter(description = "租户信息信息", required = true) @RequestBody Tenant tenant) {
         LoginUser operator = OperatorUtils.getOperator();
-        TenantEntity target = new TenantEntity();
-        BeanUtils.copyProperties(tenant, target);
+        TenantEntity target = tenant.toEntity();
         target.setTenantId(id);
         target.setUpdatedBy(operator.getName());
         tenantService.updateById(target);
@@ -140,5 +143,23 @@ public class TenantController {
             throw AuthorityBusinessException.tenantNotFound(id);
         }
         tenantService.examineTenant(operator, 1, id);
+    }
+
+    @PostMapping("/logo")
+    @Operation(summary = "上传租户LOGO", description = "上传图片到对象存储，返回可用的URL与键")
+    public UploadObjectResult uploadTenantLogo(
+            @Parameter(description = "图片文件", required = true) @RequestParam("file") MultipartFile file,
+            @Parameter(description = "OSS客户端名称（可选）") @RequestParam(value = "client", required = false)
+            String clientName) {
+        try {
+            if (file == null || file.isEmpty()) {
+                throw AuthorityBusinessException.invalidParameter("文件不能为空");
+            }
+            String ext = FileUtil.extName(file.getOriginalFilename());
+            String objectKey = "tenant/logo/" + IdWorker.getIdStr() + ext;
+            return ossClientManager.get(clientName).upload(file.getInputStream(), objectKey, file.getContentType());
+        } catch (Exception e) {
+            throw AuthorityBusinessException.systemError("上传失败：" + e.getMessage());
+        }
     }
 }
