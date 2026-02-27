@@ -3,6 +3,7 @@ package com.lambda.fusion.authority.tenant.controller;
 import cn.hutool.core.io.FileUtil;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.oss.manager.OssClientManager;
@@ -17,12 +18,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 /**
  * 租户信息表相关接口
@@ -37,6 +38,7 @@ public class TenantController {
 
     private final TenantService tenantService;
     private final OssClientManager ossClientManager;
+    private final ObjectMapper objectMapper;
 
     @PostMapping("/page")
     @Operation(summary = "分页查询所有租户数据列表（V2版本）", description = "使用LambdaQueryWrapper进行分页查询，支持更灵活的排序和查询条件")
@@ -56,7 +58,7 @@ public class TenantController {
         return tenantService.getById(id);
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "新增租户信息信息", description = "新增租户信息信息")
     public TenantEntity save(@Parameter(description = "租户信息信息", required = true) @RequestBody Tenant tenant) {
         LoginUser operator = OperatorUtils.getOperator();
@@ -69,7 +71,28 @@ public class TenantController {
         return tenantService.getById(target.getTenantId());
     }
 
-    @PutMapping("/{id}")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "新增租户信息信息(含LOGO)", description = "新增租户信息信息，支持表单与LOGO同请求提交")
+    public TenantEntity saveWithLogo(
+            @Parameter(description = "租户信息信息", required = true) @RequestPart("tenant") String tenant,
+            @Parameter(description = "LOGO文件") @RequestPart(value = "logo", required = false) MultipartFile logo,
+            @Parameter(description = "OSS客户端名称（可选）") @RequestParam(value = "client", required = false)
+                    String clientName) {
+        LoginUser operator = OperatorUtils.getOperator();
+        Tenant input = readTenant(tenant);
+        TenantEntity target = input.toEntity();
+        String id = IdWorker.getIdStr();
+        String tenantId = operator.getTenantId();
+        target.setOwner(tenantId);
+        target.setTenantId(id);
+        if (logo != null && !logo.isEmpty()) {
+            target.setTenantLogo(uploadLogo(logo, clientName).getUrl());
+        }
+        tenantService.save(target);
+        return tenantService.getById(target.getTenantId());
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "更新租户信息信息", description = "更新租户信息信息")
     public TenantEntity update(
             @Parameter(description = "租户信息编号", required = true) @PathVariable String id,
@@ -78,6 +101,27 @@ public class TenantController {
         TenantEntity target = tenant.toEntity();
         target.setTenantId(id);
         target.setUpdatedBy(operator.getName());
+        tenantService.updateById(target);
+        return tenantService.getById(id);
+    }
+
+    @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "更新租户信息信息(含LOGO)", description = "更新租户信息信息，支持表单与LOGO同请求提交")
+    public TenantEntity updateWithLogo(
+            @Parameter(description = "租户信息编号", required = true) @PathVariable String id,
+            @Parameter(description = "租户信息信息", required = true) @RequestPart("tenant") String tenant,
+            @Parameter(description = "LOGO文件") @RequestPart(value = "logo", required = false) MultipartFile logo,
+            @Parameter(description = "OSS客户端名称（可选）")
+                    @RequestParam(value = "client", defaultValue = "default", required = false)
+                    String clientName) {
+        LoginUser operator = OperatorUtils.getOperator();
+        Tenant input = readTenant(tenant);
+        TenantEntity target = input.toEntity();
+        target.setTenantId(id);
+        target.setUpdatedBy(operator.getName());
+        if (logo != null && !logo.isEmpty()) {
+            target.setTenantLogo(uploadLogo(logo, clientName).getUrl());
+        }
         tenantService.updateById(target);
         return tenantService.getById(id);
     }
@@ -145,21 +189,25 @@ public class TenantController {
         tenantService.examineTenant(operator, 1, id);
     }
 
-    @PostMapping("/logo")
-    @Operation(summary = "上传租户LOGO", description = "上传图片到对象存储，返回可用的URL与键")
-    public UploadObjectResult uploadTenantLogo(
-            @Parameter(description = "图片文件", required = true) @RequestParam("file") MultipartFile file,
-            @Parameter(description = "OSS客户端名称（可选）") @RequestParam(value = "client", required = false)
-            String clientName) {
+    private UploadObjectResult uploadLogo(MultipartFile file, String clientName) {
         try {
             if (file == null || file.isEmpty()) {
                 throw AuthorityBusinessException.invalidParameter("文件不能为空");
             }
             String ext = FileUtil.extName(file.getOriginalFilename());
-            String objectKey = "tenant/logo/" + IdWorker.getIdStr() + ext;
+            String suffix = (ext != null && !ext.isBlank()) ? "." + ext : "";
+            String objectKey = "tenant/logo/" + IdWorker.getIdStr() + suffix;
             return ossClientManager.get(clientName).upload(file.getInputStream(), objectKey, file.getContentType());
         } catch (Exception e) {
             throw AuthorityBusinessException.systemError("上传失败：" + e.getMessage());
+        }
+    }
+
+    private Tenant readTenant(String payload) {
+        try {
+            return objectMapper.readValue(payload, Tenant.class);
+        } catch (Exception e) {
+            throw AuthorityBusinessException.invalidParameter("tenant解析失败：" + e.getMessage());
         }
     }
 }

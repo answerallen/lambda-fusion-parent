@@ -28,10 +28,16 @@ public class TenantQuery extends Pagination<TenantEntity> {
     private String tenantAddress;
 
     /**
-     * 法人
+     * 机构名称
      */
-    @Schema(description = "法人")
-    private String legalPerson;
+    @Schema(description = "机构名称")
+    private String enterpriseName;
+
+    /**
+     * 机构编码
+     */
+    @Schema(description = "机构编码")
+    private String enterpriseCode;
 
     /**
      * 租户编码
@@ -95,9 +101,6 @@ public class TenantQuery extends Pagination<TenantEntity> {
 
         // 租户地址模糊查询
         wrapper.like(StringUtils.isNotBlank(tenantAddress), TenantEntity::getTenantAddress, tenantAddress);
-
-        // 法人精确查询
-        wrapper.eq(StringUtils.isNotBlank(legalPerson), TenantEntity::getLegalPerson, legalPerson);
 
         // 租户编码精确查询
         wrapper.eq(StringUtils.isNotBlank(tenantCode), TenantEntity::getTenantCode, tenantCode);

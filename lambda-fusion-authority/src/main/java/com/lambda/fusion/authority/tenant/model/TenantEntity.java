@@ -76,11 +76,19 @@ public class TenantEntity extends BaseEntity {
     @TableField("LIAISON_PHONE")
     private String liaisonPhone;
     /**
-     * 法人
+     * 机构名称
      */
-    @Schema(description = "法人")
-    @TableField("LEGAL_PERSON")
-    private String legalPerson;
+    @Schema(description = "机构名称")
+    @TableField("enterprise_name")
+    private String enterpriseName;
+
+    /**
+     * 机构编码
+     */
+    @Schema(description = "机构编码")
+    @TableField("enterprise_code")
+    private String enterpriseCode;
+
     /**
      * ICP备案号
      */

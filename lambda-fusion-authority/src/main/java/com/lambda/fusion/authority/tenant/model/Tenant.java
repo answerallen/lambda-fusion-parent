@@ -14,7 +14,7 @@ import lombok.EqualsAndHashCode;
  * 租户信息表
  */
 @EqualsAndHashCode(callSuper = true)
-@AutoConverter(target = Tenant.class)
+@AutoConverter(target = TenantEntity.class)
 @Data
 @Schema(description = "租户信息表")
 @SuppressFBWarnings("EI_EXPOSE_REP")
@@ -62,10 +62,16 @@ public class Tenant extends BaseDTO<TenantEntity> {
     @Schema(description = "联系电话")
     private String liaisonPhone;
     /**
-     * 法人
+     * 机构名称
      */
-    @Schema(description = "法人")
-    private String legalPerson;
+    @Schema(description = "机构名称")
+    private String enterpriseName;
+
+    /**
+     * 机构编码
+     */
+    @Schema(description = "机构编码")
+    private String enterpriseCode;
     /**
      * ICP备案号
      */
