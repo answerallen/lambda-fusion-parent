@@ -46,5 +46,9 @@
             <artifactId>lambda-cloud-starter-liquibase</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-cloud-starter-oss</artifactId>
+        </dependency>
     </dependencies>
 </project>

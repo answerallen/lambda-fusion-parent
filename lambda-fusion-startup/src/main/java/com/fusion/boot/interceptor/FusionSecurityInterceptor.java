@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class FusionSecureInterceptor implements SecureInterceptor {
+public class FusionSecurityInterceptor implements SecureInterceptor {
 
-    public FusionSecureInterceptor() {
+    public FusionSecurityInterceptor() {
         log.trace("FusionSecureInterceptor init....");
     }
 
