@@ -152,7 +152,7 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         Assert.hasText(id, "id is blank");
         TenantDataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        dropTenantDatasource(entity);
+        removeTenantDatasource(entity);
     }
 
     private void publishAdd(TenantDataSourceEntity entity) {
@@ -198,7 +198,7 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         }
     }
 
-    private void dropTenantDatasource(TenantDataSourceEntity entity) {
+    private void removeTenantDatasource(TenantDataSourceEntity entity) {
         if (isProvisioningRequired(entity)) {
             RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
             for (AbstractTenantDataSourceProvisioner provisioner : tenantDataSourceProvisioners) {

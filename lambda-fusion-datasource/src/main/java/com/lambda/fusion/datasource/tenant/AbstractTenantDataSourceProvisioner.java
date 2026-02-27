@@ -17,9 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
  * </p>
  *
  */
-@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
 @RequiredArgsConstructor
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public abstract class AbstractTenantDataSourceProvisioner {
 
     private final TenantDataSourceManager tenantDataSourceManager;
