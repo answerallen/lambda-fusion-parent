@@ -23,6 +23,7 @@ public class TenantEntity extends BaseEntity {
     /**
      * 租户ID
      */
+     @TableId(value = "TENANT_CODE")
     @Schema(description = "租户ID")
     @TableField("TENANT_ID")
     private String tenantId;
@@ -30,7 +31,6 @@ public class TenantEntity extends BaseEntity {
      * 租户编码
      */
     @Schema(description = "租户编码")
-    @TableId(value = "TENANT_CODE")
     @TableField("TENANT_CODE")
     private String tenantCode;
     /**
@@ -137,7 +137,7 @@ public class TenantEntity extends BaseEntity {
     private String areaCode;
 
     /**
-     * 地区
+     * 隔离模式
      */
     @Schema(description = "隔离模式")
     @TableField("isolation_mode")
