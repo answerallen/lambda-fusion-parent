@@ -63,13 +63,8 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public Page<TenantEntity> page(Page<TenantEntity> pageable, LambdaQueryWrapper<TenantEntity> queryWrapper) {
+    public Page<TenantEntity> pageTenant(Page<TenantEntity> pageable, LambdaQueryWrapper<TenantEntity> queryWrapper) {
         return baseMapper.selectPage(pageable, queryWrapper);
-    }
-
-    @Override
-    public Page<TenantEntity> pageTenant(TenantQuery queryDTO) {
-        return page(queryDTO.getPage(), queryDTO.getLambdaQueryWrapper());
     }
 
     @Override
@@ -130,8 +125,8 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
         examineTenant(operator, 1, tenant.getTenantId());
     }
 
-    @Override
-    public void prohibitTenant(LoginUser operator, Integer enabled, String tenantId) {
+
+    private void prohibitTenant(LoginUser operator, Integer enabled, String tenantId) {
         // 判断当前用户是否有操作权限
         this.hasOperation(operator, tenantId);
         // 禁用/启用租户
@@ -152,16 +147,14 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
         prohibitOrgUsersByOrdinaryOrgan(normalizedEnabled, subOrganizationIds);
     }
 
-    @Override
-    public void examineTenant(LoginUser operator, Integer enabled, String tenantId) {
+    private void examineTenant(LoginUser operator, Integer enabled, String tenantId) {
         // 判断当前用户是否有操作权限
         this.hasOperation(operator, tenantId);
         // 审核租户信息
         tenantMapper.examineTenantByTenantId(enabled, tenantId);
     }
 
-    @Override
-    public void deleteTenant(LoginUser operator, String tenantId) {
+    private void deleteTenant(LoginUser operator, String tenantId) {
         // 判断当前用户是否拥有操作权限
         this.hasOperation(operator, tenantId);
         // 删除租户

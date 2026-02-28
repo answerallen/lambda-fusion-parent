@@ -122,8 +122,8 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         try {
             if (StringUtils.hasText(remoteDataSource.getTenantId())) {
                 checkPermission(remoteDataSource.getTenantId());
-                UpsertTenantDataSource input = toUpsertTenantDataSource(remoteDataSource);
-                tenantDataSourceService.save(input);
+                UpsertTenantDataSource upsertTenantDataSource = toUpsertTenantDataSource(remoteDataSource);
+                tenantDataSourceService.save(upsertTenantDataSource);
             } else {
                 checkPermission(null);
                 UpsertDataSource input = toUpsertDataSource(remoteDataSource);
@@ -141,9 +141,8 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         try {
             if (StringUtils.hasText(remoteDataSource.getTenantId())) {
                 checkPermission(remoteDataSource.getTenantId());
-                UpsertTenantDataSource input = toUpsertTenantDataSource(remoteDataSource);
-                input.setId(id);
-                tenantDataSourceService.update(id, input);
+                UpsertTenantDataSource upsertTenantDataSource = toUpsertTenantDataSource(remoteDataSource);
+                tenantDataSourceService.update(id, upsertTenantDataSource);
                 remoteDataSource.setId(id);
             } else {
                 checkPermission(null);

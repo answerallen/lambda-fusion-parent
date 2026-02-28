@@ -32,7 +32,7 @@ public class TenantController {
     @PostMapping("/page")
     @Operation(summary = "分页查询所有租户数据列表（V2版本）", description = "使用LambdaQueryWrapper进行分页查询，支持更灵活的排序和查询条件")
     public Page<TenantEntity> pageTenant(@RequestBody TenantQuery queryDTO) {
-        return tenantService.pageTenant(queryDTO);
+        return tenantService.pageTenant(queryDTO.getPage(), queryDTO.getLambdaQueryWrapper());
     }
 
     @GetMapping("/options")

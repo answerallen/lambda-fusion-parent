@@ -59,9 +59,9 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void save(UpsertTenantDataSource input) {
-        Assert.notNull(input, "input is null");
-        TenantDataSourceEntity entity = input.toEntity();
+    public void save(UpsertTenantDataSource upsertTenantDataSource) {
+        Assert.notNull(upsertTenantDataSource, "input is null");
+        TenantDataSourceEntity entity = upsertTenantDataSource.toEntity();
         Assert.isTrue(save(entity), "save failed");
         syncDynamicDataSource(entity);
         publishAdd(entity);
@@ -69,12 +69,12 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void update(String id, UpsertTenantDataSource input) {
+    public void update(String id, UpsertTenantDataSource upsertTenantDataSource) {
         Assert.hasText(id, "id is blank");
-        Assert.notNull(input, "input is null");
+        Assert.notNull(upsertTenantDataSource, "input is null");
         TenantDataSourceEntity existing = getById(id);
         Assert.notNull(existing, "entity not found");
-        TenantDataSourceEntity entity = input.toEntity();
+        TenantDataSourceEntity entity = upsertTenantDataSource.toEntity();
         entity.setId(id);
         Assert.isTrue(updateById(entity), "update failed");
         syncDynamicDataSource(entity);
