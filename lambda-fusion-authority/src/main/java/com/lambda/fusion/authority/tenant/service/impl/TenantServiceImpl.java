@@ -139,17 +139,17 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
         // 非启用状态下，都要禁用组织和角色
         Integer normalizedEnabled = normalizeEnabled(enabled);
         final List<Organization> orgIds = queryOrganizationByTenantId(tenantId);
-        final List<String> tenants = getSubOrgIdsByType(orgIds, true);
-        final List<String> ordinaries = getSubOrgIdsByType(orgIds, false);
+        final List<String> tenantSubOrganizationIds = getSubOrgIdsByType(orgIds, true);
+        final List<String> subOrganizationIds = getSubOrgIdsByType(orgIds, false);
         final List<String> ids = extractOrgIds(orgIds);
-        tenants.add(tenantId);
+        tenantSubOrganizationIds.add(tenantId);
         if (CollectionUtils.isNotEmpty(ids)) {
             // 禁用/启用组织
             organizationMapper.updateEnabledOrganizationByIds(normalizedEnabled, ids);
         }
         // 禁用/启用用户角色
-        prohibitOrgUsersByTenantOrgan(normalizedEnabled, tenants);
-        prohibitOrgUsersByOrdinaryOrgan(normalizedEnabled, ordinaries);
+        prohibitOrgUsersByTenantOrgan(normalizedEnabled, tenantSubOrganizationIds);
+        prohibitOrgUsersByOrdinaryOrgan(normalizedEnabled, subOrganizationIds);
     }
 
     @Override
