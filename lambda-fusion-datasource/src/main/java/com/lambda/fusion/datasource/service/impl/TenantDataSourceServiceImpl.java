@@ -118,7 +118,6 @@ public class TenantDataSourceServiceImpl extends ServiceImpl<TenantDataSourceMap
         }
         entity.setEnabled(FusionConstants.ActiveStatus.ENABLED);
         Assert.isTrue(updateById(entity), "update failed");
-        initializeTenantSchema(entity);
         syncDynamicDataSource(entity);
         publishChange(entity);
     }
