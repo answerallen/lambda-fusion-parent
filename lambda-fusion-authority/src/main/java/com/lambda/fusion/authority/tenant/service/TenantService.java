@@ -4,9 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.fusion.authority.tenant.model.Tenant;
 import com.lambda.fusion.authority.tenant.model.TenantEntity;
 import com.lambda.fusion.authority.tenant.model.TenantOption;
+import com.lambda.fusion.authority.tenant.model.TenantQuery;
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 租户信息表
@@ -20,11 +23,28 @@ public interface TenantService extends IService<TenantEntity> {
      */
     Page<TenantEntity> page(Page<TenantEntity> pageable, LambdaQueryWrapper<TenantEntity> queryWrapper);
 
+    Page<TenantEntity> pageTenant(TenantQuery queryDTO);
+
     /**
      * 查询租户下拉列表
      * @return  List<TenantQuery>
      */
     List<TenantOption> getTenantOptions();
+
+
+    TenantEntity createTenantWithLogo(String tenant, MultipartFile logo, String clientName);
+
+    TenantEntity updateTenantWithLogo(String id, String tenant, MultipartFile logo, String clientName);
+
+    void deleteTenant(String tenantId);
+
+    void enableTenant(String tenantId);
+
+    void disableTenant(String tenantId);
+
+    void stopTenant(String tenantId);
+
+    void examineTenant(String tenantId);
 
     /**
      * 禁用/启用租户信息
