@@ -20,7 +20,7 @@ import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.utils.LoginUserUtils;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -60,7 +60,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
-        return new ArrayList<>(LoginUserUtils.getLoginUser().getRoles());
+        return new ArrayList<>(SecurityUtils.getUser().getRoles());
     }
 
     @Override
@@ -186,7 +186,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public AuthenticatedUser getUserInfo() {
-        LoginUser loginUser = LoginUserUtils.getLoginUser();
+        LoginUser loginUser = SecurityUtils.getUser();
         UserDetails userDetails = authenticationMapper.selectUserDetailByUsername(loginUser.getName());
         if (userDetails == null) {
             throw new UsernameNotFoundException("user not found");

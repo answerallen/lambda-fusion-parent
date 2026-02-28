@@ -4,13 +4,13 @@ import com.lambda.fusion.authority.role.model.SimpleRole;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.LoginUserDetails;
-import com.lambda.fusion.core.utils.LoginUserUtils;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import org.apache.commons.lang.StringUtils;
 
 public class UserPermissionHelper {
 
     public static boolean isSelf(User user) {
-        LoginUserDetails loginUser = LoginUserUtils.getLoginUser();
+        LoginUserDetails loginUser = SecurityUtils.getUser();
         return loginUser.getUsername().equals(user.getUsername());
     }
 

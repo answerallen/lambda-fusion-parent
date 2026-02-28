@@ -20,7 +20,7 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.utils.LoginUserUtils;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.fusion.core.utils.SqlParamUtils;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
@@ -67,7 +67,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
 
     @Override
     public List<DictInfo> selectDictInfo(QueryDictInfo queryDTO) {
-        String tenantId = LoginUserUtils.getLoginUser().getTenantId();
+        String tenantId = SecurityUtils.getUser().getTenantId();
         List<DictInfo> dictInfos = dictInfoMapper.selectDictInfo(new LambdaQueryWrapper<DictInfo>()
                 .eq(DictInfo::getDictType, queryDTO.getDictType())
                 .eq(StrUtil.isNotEmpty(tenantId), DictInfo::getTenantId, tenantId)

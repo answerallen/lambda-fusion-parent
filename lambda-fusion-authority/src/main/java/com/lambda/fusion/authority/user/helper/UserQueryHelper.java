@@ -11,7 +11,7 @@ import com.lambda.fusion.authority.user.model.UserQueryContext;
 import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.LoginUserDetails;
-import com.lambda.fusion.core.utils.LoginUserUtils;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class UserQueryHelper {
 
     public UserQueryContext buildUserQueryContext(UserQuery userQuery) {
         UserQueryContext userQueryContext = new UserQueryContext();
-        LoginUserDetails loginUserDetails = LoginUserUtils.getLoginUser();
+        LoginUserDetails loginUserDetails = SecurityUtils.getUser();
         String tenantId = loginUserDetails.getTenantId();
 
         // 处理 username (支持逗号分隔)

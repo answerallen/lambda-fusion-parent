@@ -6,7 +6,7 @@ import com.lambda.fusion.authority.client.model.ClientQuery;
 import com.lambda.fusion.authority.client.model.UpsertClient;
 import com.lambda.fusion.authority.client.service.ClientService;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
-import com.lambda.fusion.core.utils.LoginUserUtils;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,7 +33,7 @@ public class ClientController {
         if (size != null) {
             clientQuery.setPageSize(size);
         }
-        clientQuery.setTenantId(LoginUserUtils.getTenantId());
+        clientQuery.setTenantId(SecurityUtils.getTenantId());
         return clientService.page(clientQuery.getPage(), clientQuery.getLambdaQueryWrapper());
     }
 

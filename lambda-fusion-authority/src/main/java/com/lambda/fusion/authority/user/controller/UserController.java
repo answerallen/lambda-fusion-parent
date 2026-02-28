@@ -16,7 +16,7 @@ import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.utils.LoginUserUtils;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -91,7 +91,7 @@ public class UserController {
     @GetMapping("/allUser")
     @Operation(summary = "查询用户下拉列表")
     public List<UserProfile> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
-        LoginUserDetails loginUser = LoginUserUtils.getLoginUser();
+        LoginUserDetails loginUser = SecurityUtils.getUser();
         List<String> orgIds =
                 isAll != null && isAll ? Collections.emptyList() : organizationService.getSubOrganizations(loginUser);
         return userService.getUserProfiles(loginUser, orgIds);
@@ -114,7 +114,7 @@ public class UserController {
     @PostMapping
     @Operation(summary = "新增用户信息")
     public User add(@Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateUser createUser) {
-        userService.addUser(createUser, LoginUserUtils.getLoginUser());
+        userService.addUser(createUser, SecurityUtils.getUser());
         if (MapUtils.isNotEmpty(createUser.getPersonal())) {
             userService.addUserFields(createUser.getPersonal(), createUser.getUsername());
         }
@@ -130,7 +130,7 @@ public class UserController {
             @PathVariable @Parameter(description = "用户名称", required = true) String username,
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody UpdateUser updateUser) {
         updateUser.setUsername(username);
-        userService.updateUser(updateUser, LoginUserUtils.getLoginUser());
+        userService.updateUser(updateUser, SecurityUtils.getUser());
         return userService.getByUsername(username);
     }
 
@@ -140,7 +140,7 @@ public class UserController {
         if (tenantAuthorizeManager != null) {
             tenantAuthorizeManager.deleteUser(username);
         }
-        userService.deleteUser(LoginUserUtils.getLoginUser(), username);
+        userService.deleteUser(SecurityUtils.getUser(), username);
     }
 
     @PutMapping("/password/edit")
@@ -179,7 +179,7 @@ public class UserController {
     @PatchMapping("/{username}/disabled")
     @Operation(summary = "禁用用户")
     public void disabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
-        userService.deactivateUser(LoginUserUtils.getLoginUser(), FusionConstants.DISABLED, username);
+        userService.deactivateUser(SecurityUtils.getUser(), FusionConstants.DISABLED, username);
 
         if (tenantAuthorizeManager != null) {
             tenantAuthorizeManager.prohibitUser(FusionConstants.DISABLED, username);
@@ -189,7 +189,7 @@ public class UserController {
     @PatchMapping("/{username}/enabled")
     @Operation(summary = "启用用户")
     public void enabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
-        userService.deactivateUser(LoginUserUtils.getLoginUser(), FusionConstants.ENABLED, username);
+        userService.deactivateUser(SecurityUtils.getUser(), FusionConstants.ENABLED, username);
 
         if (tenantAuthorizeManager != null) {
             tenantAuthorizeManager.prohibitUser(FusionConstants.ENABLED, username);
@@ -199,7 +199,7 @@ public class UserController {
     @PatchMapping("/{username}/unlock")
     @Operation(summary = "解锁用户")
     public void unlock(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
-        userService.unlockUser(username, LoginUserUtils.getLoginUser());
+        userService.unlockUser(username, SecurityUtils.getUser());
     }
 
     @GetMapping("/{username}/permission")
@@ -281,7 +281,7 @@ public class UserController {
             @PathVariable @Parameter(description = "用户名称", required = true) String username,
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody User user) {
         user.setUsername(username);
-        userService.updateTenantUser(user, LoginUserUtils.getLoginUser());
+        userService.updateTenantUser(user, SecurityUtils.getUser());
         User updated = userService.getByUsername(username);
         if (tenantAuthorizeManager != null) {
             User copy = BeanUtil.toBean(user, User.class);

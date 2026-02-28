@@ -15,7 +15,7 @@ import com.lambda.fusion.authority.user.listenner.UserSeeEventListener;
 import com.lambda.fusion.authority.user.service.UserOnlineLogService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
-import com.lambda.fusion.core.utils.LoginUserUtils;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import java.time.LocalDateTime;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -50,7 +50,7 @@ public class AuthorityAutoConfiguration {
                         metaObject,
                         "createdBy",
                         String.class,
-                        LoginUserUtils.getLoginUser().getUsername());
+                        SecurityUtils.getUser().getUsername());
             }
 
             @Override
@@ -60,7 +60,7 @@ public class AuthorityAutoConfiguration {
                         metaObject,
                         "updatedBy",
                         String.class,
-                        LoginUserUtils.getLoginUser().getUsername());
+                        SecurityUtils.getUser().getUsername());
             }
         };
     }

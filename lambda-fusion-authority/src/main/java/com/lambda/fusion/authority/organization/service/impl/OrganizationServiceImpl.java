@@ -27,7 +27,7 @@ import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
-import com.lambda.fusion.core.utils.LoginUserUtils;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -67,7 +67,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<Organization> treeList(OrganizationQuery organizationQuery) {
-        LoginUserDetails loginUserDetails = LoginUserUtils.getLoginUser();
+        LoginUserDetails loginUserDetails = SecurityUtils.getUser();
         List<Organization> organizations = queryOrganizations(loginUserDetails, organizationQuery);
         this.applyPermissionConstraints(organizations, loginUserDetails);
         return TreeBuilder.build(organizations);
@@ -112,7 +112,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Set<String> orgIds = new HashSet<>();
         for (Organization org : list) {
             this.addParentOrgIds(
-                    orgId, org, orgIds, LoginUserUtils.getLoginUser().isManager());
+                    orgId, org, orgIds, SecurityUtils.getUser().isManager());
             orgIds.addAll(getChildrenById(org.getId()));
         }
         return orgIds;
@@ -161,7 +161,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<Organization> getSubOrganizations(OrganizationQuery organizationQuery) {
-        List<String> orgIds = getSubOrganizations(LoginUserUtils.getLoginUser());
+        List<String> orgIds = getSubOrganizations(SecurityUtils.getUser());
         if (CollectionUtils.isNotEmpty(orgIds)) {
             organizationQuery.setIds(orgIds);
         }

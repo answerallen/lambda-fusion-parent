@@ -17,7 +17,7 @@ import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.model.ResetPassword;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.service.UserService;
-import com.lambda.fusion.core.utils.LoginUserUtils;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
@@ -125,7 +125,7 @@ public class TenantAuthorizeManager {
         }
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
         String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
-        execute(tenantId, () -> userService.deleteUser(LoginUserUtils.getLoginUser(), username));
+        execute(tenantId, () -> userService.deleteUser(SecurityUtils.getUser(), username));
         System.out.println(tenantId);
     }
 

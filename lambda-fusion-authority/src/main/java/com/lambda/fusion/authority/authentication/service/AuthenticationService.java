@@ -5,7 +5,7 @@ import com.lambda.fusion.authority.authentication.model.NavigationQuery;
 import com.lambda.fusion.authority.authentication.model.NavigationRoute;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.core.identity.LoginUserDetails;
-import com.lambda.fusion.core.utils.LoginUserUtils;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.security.service.UserDetailService;
 import java.util.List;
 
@@ -42,7 +42,7 @@ public interface AuthenticationService extends UserDetailService {
      * @return 导航菜单列表
      */
     default List<NavigationRoute> getNavigation(NavigationQuery query) {
-        return getNavigation(LoginUserUtils.getLoginUser(), query.getParentId(), query.getLevel());
+        return getNavigation(SecurityUtils.getUser(), query.getParentId(), query.getLevel());
     }
 
     /**
