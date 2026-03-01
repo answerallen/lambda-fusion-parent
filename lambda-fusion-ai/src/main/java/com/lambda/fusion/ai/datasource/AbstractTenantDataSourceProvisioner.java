@@ -1,8 +1,11 @@
-package com.lambda.fusion.datasource.tenant;
+package com.lambda.fusion.ai.datasource;
 
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.proxy.TenantDataSourceProxy;
+import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
+import com.lambda.fusion.datasource.tenant.TenantIsolationModeResolver;
+import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;

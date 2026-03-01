@@ -10,7 +10,6 @@ import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
-import com.lambda.fusion.datasource.service.TenantDataSourceService;
 import com.lambda.fusion.datasource.tenant.TenantIsolationModeResolver;
 import com.lambda.fusion.datasource.tenant.TenantSchemaCleaner;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
@@ -43,13 +42,11 @@ public class DatasourceConfigure {
             matchIfMissing = true)
     public RemoteDataSourceService remoteDataSourceService(
             DataSourceManageService dataSourceManageService,
-            TenantDataSourceService tenantDataSourceService,
             DataSourceChangeDispatcher callbackManager,
             ObjectMapper objectMapper,
             TenantIsolationModeResolver tenantIsolationModeResolver) {
         return new RemoteDataSourceServiceImpl(
                 dataSourceManageService,
-                tenantDataSourceService,
                 callbackManager,
                 objectMapper,
                 tenantIsolationModeResolver);

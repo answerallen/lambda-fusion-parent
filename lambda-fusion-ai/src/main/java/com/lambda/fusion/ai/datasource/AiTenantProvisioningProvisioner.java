@@ -3,7 +3,6 @@ package com.lambda.fusion.ai.datasource;
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
-import com.lambda.fusion.datasource.tenant.AbstractTenantDataSourceProvisioner;
 import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
 import com.lambda.fusion.datasource.tenant.TenantIsolationModeResolver;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
