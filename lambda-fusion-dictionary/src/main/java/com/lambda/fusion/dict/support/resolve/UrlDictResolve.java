@@ -4,8 +4,8 @@ import static com.lambda.cloud.mvc.WebHttpUtils.X_AUTHORIZED_BEARER;
 import static com.lambda.fusion.dict.DictConstants.*;
 
 import cn.hutool.core.text.CharSequenceUtil;
-import com.lambda.fusion.autoconfig.DictionaryProperties;
 import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.dict.DictProperties;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.support.DictValueType;
 import com.lambda.fusion.dict.support.model.DynamicDictSource;
@@ -52,7 +52,7 @@ public class UrlDictResolve implements DictSourceResolver {
     private String host;
 
     @Resource
-    private DictionaryProperties dictionaryProperties;
+    private DictProperties dictProperties;
 
     @Override
     public boolean isSupport(Integer valueType) {
@@ -79,7 +79,7 @@ public class UrlDictResolve implements DictSourceResolver {
     }
 
     protected String getLocalDictUrl(String url) {
-        String httpRemoteHostPrefix = dictionaryProperties.getHttpRemoteHostPrefix();
+        String httpRemoteHostPrefix = dictProperties.getHttpRemoteHostPrefix();
         if (CharSequenceUtil.isNotEmpty(httpRemoteHostPrefix)) {
             url = httpRemoteHostPrefix + url;
         } else {

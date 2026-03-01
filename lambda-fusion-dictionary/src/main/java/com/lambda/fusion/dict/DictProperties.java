@@ -1,4 +1,4 @@
-package com.lambda.fusion.autoconfig;
+package com.lambda.fusion.dict;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,7 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "lambda.fusion.dict")
-public class DictionaryProperties {
+public class DictProperties {
 
     /**
      * 是否允许级联删除字典

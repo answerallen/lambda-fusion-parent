@@ -11,10 +11,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.autoconfig.DictionaryProperties;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.SqlParamUtils;
+import com.lambda.fusion.dict.DictProperties;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
 import com.lambda.fusion.dict.model.DictInfo;
@@ -54,7 +54,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
 
     private final List<DictSourceResolver> dynamicDictResolves;
 
-    private final DictionaryProperties dictionaryProperties;
+    private final DictProperties dictProperties;
 
     @Override
     public DictTypeTree saveDictType(DictTypeTree source) {
@@ -190,7 +190,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
 
     @Override
     public void deleteDictType(String id) {
-        if (!dictionaryProperties.isAllowedCascadeDelete()) {
+        if (!dictProperties.isAllowedCascadeDelete()) {
             List<DictTypeTree> types = dictTypeMapper.selectList(
                     Wrappers.lambdaQuery(DictTypeTree.class).eq(DictTypeTree::getParentId, id));
             Assert.isTrue(types.isEmpty(), MSG_DICT_EXISTED_CHILD_TYPE);
