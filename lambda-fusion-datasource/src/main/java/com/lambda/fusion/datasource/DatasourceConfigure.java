@@ -42,14 +42,10 @@ public class DatasourceConfigure {
             matchIfMissing = true)
     public RemoteDataSourceService remoteDataSourceService(
             DataSourceManageService dataSourceManageService,
-            DataSourceChangeDispatcher callbackManager,
-            ObjectMapper objectMapper,
-            TenantIsolationModeResolver tenantIsolationModeResolver) {
+            DataSourceChangeDispatcher callbackManager) {
         return new RemoteDataSourceServiceImpl(
                 dataSourceManageService,
-                callbackManager,
-                objectMapper,
-                tenantIsolationModeResolver);
+                callbackManager);
     }
 
     @Bean
