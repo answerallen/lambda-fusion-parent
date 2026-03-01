@@ -86,14 +86,14 @@ public class DictInfoController {
     @Operation(summary = "设置可选择", description = "设置可选择")
     public void changeSelectable(@PathVariable @Parameter(required = true, description = "字典详细信息Id") String id) {
         dictInfoService.updateSelectableState(
-                OperationDictState.builder().id(id).state(SELECTABLE_DISABLED).build());
+                OperationDictState.builder().id(id).state(SELECTABLE_ENABLED).build());
     }
 
     @PutMapping("/{id}/unselectable")
     @Operation(summary = "设置不可选择", description = "设置不可选择")
     public void changeUnselectable(@PathVariable @Parameter(required = true, description = "字典详细信息Id") String id) {
         dictInfoService.updateSelectableState(
-                OperationDictState.builder().id(id).state(SELECTABLE_ENABLED).build());
+                OperationDictState.builder().id(id).state(SELECTABLE_DISABLED).build());
     }
 
     @GetMapping("/composite")
