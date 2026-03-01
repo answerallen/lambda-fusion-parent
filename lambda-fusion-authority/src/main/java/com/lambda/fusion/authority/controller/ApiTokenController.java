@@ -1,9 +1,9 @@
 package com.lambda.fusion.authority.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.domain.token.ApiTokenEntity;
-import com.lambda.fusion.authority.domain.token.ApiTokenQuery;
-import com.lambda.fusion.authority.domain.token.CreateApiToken;
+import com.lambda.fusion.authority.model.token.ApiTokenEntity;
+import com.lambda.fusion.authority.model.token.ApiTokenQuery;
+import com.lambda.fusion.authority.model.token.CreateApiToken;
 import com.lambda.fusion.authority.service.ApiTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

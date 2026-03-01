@@ -10,9 +10,9 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.AuthorityConstants;
-import com.lambda.fusion.authority.domain.authentication.*;
-import com.lambda.fusion.authority.domain.user.UserInfoEntity;
-import com.lambda.fusion.authority.domain.user.UserProfile;
+import com.lambda.fusion.authority.model.authentication.*;
+import com.lambda.fusion.authority.model.user.UserInfoEntity;
+import com.lambda.fusion.authority.model.user.UserProfile;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.AuthenticationMapper;
 import com.lambda.fusion.authority.mapper.UserInfoMapper;
@@ -42,7 +42,6 @@ import org.springframework.stereotype.Service;
 public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final AuthenticationMapper authenticationMapper;
-    private final ObjectMapper objectMapper;
     private final UserInfoMapper userInfoMapper;
 
     @Override
@@ -80,35 +79,35 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<NavigationRoute> getNavigation(LoginUserDetails loginUser, String parentId, Integer level) {
-        NavigationQuery query = new NavigationQuery();
+    public List<MenuRoute> getMenus(LoginUserDetails loginUser, String parentId, Integer level) {
+        MenuQuery query = new MenuQuery();
         query.setParentId(parentId);
         query.setLevel(level);
         query.setMode(0);
         if (!loginUser.isDev()) {
             query.setIds(new ArrayList<>(loginUser.getRoles()));
         }
-        return getNavigation(loginUser, query);
+        return getMenus(loginUser, query);
     }
 
     @Override
-    public List<NavigationRoute> getNavigation(LoginUserDetails loginUserDetails, NavigationQuery query) {
-        List<NavigationRoute> navigationRoutes = authenticationMapper.selectNavigation(query);
-        List<NavigationRoute> navigationRouteTree = TreeBuilder.build(navigationRoutes);
-        enrichNavigationRoutes(navigationRouteTree);
-        return navigationRouteTree;
+    public List<MenuRoute> getMenus(LoginUserDetails loginUserDetails, MenuQuery query) {
+        List<MenuRoute> menuRoutes = authenticationMapper.selectNavigation(query);
+        List<MenuRoute> menuRouteTree = TreeBuilder.build(menuRoutes);
+        enrichNavigationRoutes(menuRouteTree);
+        return menuRouteTree;
     }
 
-    private void enrichNavigationRoutes(List<NavigationRoute> navigationRouteTree) {
-        if (CollUtil.isEmpty(navigationRouteTree)) {
+    private void enrichNavigationRoutes(List<MenuRoute> menuRouteTree) {
+        if (CollUtil.isEmpty(menuRouteTree)) {
             return;
         }
-        for (NavigationRoute root : navigationRouteTree) {
+        for (MenuRoute root : menuRouteTree) {
             enrichNavigationNode(root);
         }
     }
 
-    private void enrichNavigationNode(NavigationRoute node) {
+    private void enrichNavigationNode(MenuRoute node) {
         if (node == null) {
             return;
         }
@@ -135,20 +134,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         if (StrUtil.isBlank(node.getRedirect()) && CollUtil.isNotEmpty(node.getChildren())) {
-            NavigationRoute firstChild = node.getChildren().getFirst();
+            MenuRoute firstChild = node.getChildren().getFirst();
             if (firstChild != null && StrUtil.isNotBlank(firstChild.path)) {
                 node.setRedirect(firstChild.getPath());
             }
         }
 
         if (CollUtil.isNotEmpty(node.getChildren())) {
-            for (NavigationRoute child : node.getChildren()) {
+            for (MenuRoute child : node.getChildren()) {
                 enrichNavigationNode(child);
             }
         }
     }
 
-    private String resolveComponent(NavigationRoute node, NavigationRouteMeta meta) {
+    private String resolveComponent(MenuRoute node, NavigationRouteMeta meta) {
         if (CollUtil.isNotEmpty(node.getChildren())) {
             return "BasicLayout";
         }
@@ -217,7 +216,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<String> getAuthorities() {
+    public List<String> getPermissions() {
         LoginUser operator = OperatorUtils.getOperator();
         return authenticationMapper.selectAuthoritiesByUsername(operator.getName());
     }

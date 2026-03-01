@@ -3,8 +3,8 @@ package com.lambda.fusion.authority.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.authority.domain.tenant.TenantEntity;
-import com.lambda.fusion.authority.domain.tenant.TenantOption;
+import com.lambda.fusion.authority.model.tenant.TenantEntity;
+import com.lambda.fusion.authority.model.tenant.TenantOption;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 

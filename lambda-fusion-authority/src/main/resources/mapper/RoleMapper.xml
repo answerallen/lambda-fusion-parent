@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.authority.mapper.RoleMapper">
 
-    <resultMap id="AccessPermission" type="com.lambda.fusion.authority.domain.role.AccessPermission">
+    <resultMap id="AccessPermission" type="com.lambda.fusion.authority.model.role.AccessPermission">
         <id column="id" property="id"/>
         <result column="res_name" property="name"/>
         <result column="PARENT_ID" property="parentId"/>
@@ -11,7 +11,7 @@
         <result column="checked" property="checked"/>
     </resultMap>
 
-    <select id="getAllRoles" resultType="com.lambda.fusion.authority.domain.role.Role">
+    <select id="getAllRoles" resultType="com.lambda.fusion.authority.model.role.Role">
         SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, (CASE WHEN T.GROUP_ID IS NULL THEN 'default' ELSE T.GROUP_ID END) AS groupId
         FROM LA_ROLES T WHERE ENABLED = 1
         <if test="excludes != null and excludes.size > 0">
@@ -28,7 +28,7 @@
         ORDER BY T.ALIAS
     </select>
 
-    <select id="getAllMutableRoles" resultType="com.lambda.fusion.authority.domain.role.Role">
+    <select id="getAllMutableRoles" resultType="com.lambda.fusion.authority.model.role.Role">
         SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, T.TENANT_ID AS tenantId, T.ENABLED AS enabled, T.ROLE_TYPE AS roleType, T.DATA_TYPE AS dataType, T.ICON AS icon, T.REMARKS AS remarks, T.created_at AS createdAt,
                CASE WHEN T.GROUP_ID IS NULL THEN 'default' ELSE T.GROUP_ID END AS groupId
         FROM LA_ROLES T
@@ -54,14 +54,14 @@
         ORDER BY T.ALIAS
     </select>
 
-    <insert id="insertRole" parameterType="com.lambda.fusion.authority.domain.role.Role">
+    <insert id="insertRole" parameterType="com.lambda.fusion.authority.model.role.Role">
         INSERT INTO LA_ROLES (AUTHORITY, ALIAS, ICON, REMARKS, created_at, TENANT_ID, OWNER, ROLE_TYPE, DATA_TYPE, ENABLED, GROUP_ID)
         VALUES(
         #{authority},
         #{alias}, #{icon,jdbcType=VARCHAR}, #{remarks,jdbcType=VARCHAR},
         #{createdAt}, #{tenantId,jdbcType=VARCHAR}, #{owner,jdbcType=VARCHAR}, #{roleType,jdbcType=INTEGER}, #{dataType,jdbcType=INTEGER}, 1, #{groupId})
     </insert>
-    <select id="getRoleByAuthority" parameterType="string" resultType="com.lambda.fusion.authority.domain.role.Role">
+    <select id="getRoleByAuthority" parameterType="string" resultType="com.lambda.fusion.authority.model.role.Role">
         SELECT AUTHORITY AS authority, ALIAS AS alias, ROLE_TYPE AS roleType, DATA_TYPE AS dataType, ENABLED AS enabled, ICON AS icon, REMARKS AS remarks, created_at AS createdAt,
                CASE WHEN GROUP_ID IS NULL THEN 'default' ELSE GROUP_ID END AS groupId
         FROM LA_ROLES WHERE AUTHORITY = #{authority}
@@ -72,7 +72,7 @@
     <delete id="deleteRoleByAuthority" parameterType="string">
         DELETE FROM LA_ROLES WHERE authority = #{authority}
     </delete>
-    <update id="updateRole" parameterType="com.lambda.fusion.authority.domain.role.Role">
+    <update id="updateRole" parameterType="com.lambda.fusion.authority.model.role.Role">
         UPDATE LA_ROLES SET
         ALIAS = #{alias,jdbcType=VARCHAR},
         REMARKS = #{remarks,jdbcType=VARCHAR},
@@ -140,7 +140,7 @@
 
 
     <!-- 查询组织权限 -->
-    <select id="getOrganizationAuthorization" parameterType="HashMap" resultType="com.lambda.fusion.authority.domain.role.RoleAuthority">
+    <select id="getOrganizationAuthorization" parameterType="HashMap" resultType="com.lambda.fusion.authority.model.role.RoleAuthority">
         SELECT T.id, T.name, T.PARENT_ID,
         MAX(CASE WHEN T4.RESOURCE_ID IS NOT NULL THEN 1 ELSE 0 END) AS checked,
         COUNT(T2.ID) AS counts,
@@ -180,7 +180,7 @@
     </update>
 
 
-    <select id="getTenantRolesByOwner" resultType="com.lambda.fusion.authority.domain.role.Role">
+    <select id="getTenantRolesByOwner" resultType="com.lambda.fusion.authority.model.role.Role">
         SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, T.ROLE_TYPE AS roleType, T.DATA_TYPE AS dataType FROM LA_ROLES T WHERE T.OWNER = #{owner}
     </select>
 
@@ -212,7 +212,7 @@
         SELECT RESOURCE_ID FROM LA_ROLE_RESOURCES WHERE AUTHORITY = #{authority} AND RESOURCE_ID IN
         <foreach collection="ids" item="item" separator="," open="(" close=")">#{item}</foreach>
     </select>
-    <select id="getAuthoritiesByUser" resultType="com.lambda.fusion.authority.domain.role.UserAuthority">
+    <select id="getAuthoritiesByUser" resultType="com.lambda.fusion.authority.model.role.UserAuthority">
         SELECT
             T1.AUTHORITY,
             T2.ORGANIZATION_ID AS orgId

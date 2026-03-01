@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.helper;
 
-import com.lambda.fusion.authority.domain.role.SimpleRole;
-import com.lambda.fusion.authority.domain.user.User;
+import com.lambda.fusion.authority.model.role.SimpleRole;
+import com.lambda.fusion.authority.model.user.User;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.utils.SecurityUtils;

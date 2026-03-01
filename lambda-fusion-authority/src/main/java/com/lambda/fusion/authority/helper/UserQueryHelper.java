@@ -4,9 +4,9 @@ import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 import cn.hutool.json.JSONUtil;
 import com.google.common.collect.Sets;
-import com.lambda.fusion.authority.domain.user.UserFieldsEntity;
-import com.lambda.fusion.authority.domain.user.UserQuery;
-import com.lambda.fusion.authority.domain.user.UserQueryContext;
+import com.lambda.fusion.authority.model.user.UserFieldsEntity;
+import com.lambda.fusion.authority.model.user.UserQuery;
+import com.lambda.fusion.authority.model.user.UserQueryContext;
 import com.lambda.fusion.authority.service.OrganizationService;
 import com.lambda.fusion.authority.service.UserService;
 import com.lambda.fusion.core.FusionConstants;

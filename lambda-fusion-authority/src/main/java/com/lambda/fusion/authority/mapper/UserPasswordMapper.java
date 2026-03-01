@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.domain.user.UserPasswordEntity;
+import com.lambda.fusion.authority.model.user.UserPasswordEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper

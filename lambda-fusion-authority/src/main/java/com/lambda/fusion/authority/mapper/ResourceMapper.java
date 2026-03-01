@@ -3,10 +3,10 @@ package com.lambda.fusion.authority.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
-import com.lambda.fusion.authority.domain.authentication.NavigationQuery;
-import com.lambda.fusion.authority.domain.resource.Resource;
-import com.lambda.fusion.authority.domain.resource.ResourceEntity;
-import com.lambda.fusion.authority.domain.resource.ResourceTree;
+import com.lambda.fusion.authority.model.authentication.MenuQuery;
+import com.lambda.fusion.authority.model.resource.Resource;
+import com.lambda.fusion.authority.model.resource.ResourceEntity;
+import com.lambda.fusion.authority.model.resource.ResourceTree;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -125,7 +125,7 @@ public interface ResourceMapper extends BaseMapper<ResourceEntity> {
      * 获取所有可用的资源
      * @param parameter 参数
      */
-    default List<Resource> queryAvailableResources(NavigationQuery parameter) {
+    default List<Resource> queryAvailableResources(MenuQuery parameter) {
         List<ResourceEntity> resourceEntities = selectList(new LambdaQueryWrapper<ResourceEntity>()
                 .eq(ResourceEntity::getResMode, parameter.getMode())
                 .ge(ResourceEntity::getResType, 0)

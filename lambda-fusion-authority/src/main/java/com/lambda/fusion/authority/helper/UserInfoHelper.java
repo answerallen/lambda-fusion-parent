@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.helper;
 
 import com.google.common.collect.Maps;
-import com.lambda.fusion.authority.domain.user.UserFieldsEntity;
+import com.lambda.fusion.authority.model.user.UserFieldsEntity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

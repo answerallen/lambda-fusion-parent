@@ -1,10 +1,10 @@
 package com.lambda.fusion.authority.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.domain.area.Area;
-import com.lambda.fusion.authority.domain.area.AreaEntity;
-import com.lambda.fusion.authority.domain.area.AreaQuery;
-import com.lambda.fusion.authority.domain.area.AreaTree;
+import com.lambda.fusion.authority.model.area.Area;
+import com.lambda.fusion.authority.model.area.AreaEntity;
+import com.lambda.fusion.authority.model.area.AreaQuery;
+import com.lambda.fusion.authority.model.area.AreaTree;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

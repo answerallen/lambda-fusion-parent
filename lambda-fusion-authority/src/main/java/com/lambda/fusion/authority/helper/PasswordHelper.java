@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.helper;
 
 import cn.hutool.core.lang.UUID;
 import com.lambda.fusion.authority.AuthorityProperties;
-import com.lambda.fusion.authority.domain.user.Password;
+import com.lambda.fusion.authority.model.user.Password;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
 

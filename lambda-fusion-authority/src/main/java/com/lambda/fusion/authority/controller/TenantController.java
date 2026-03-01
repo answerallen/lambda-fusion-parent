@@ -1,9 +1,9 @@
 package com.lambda.fusion.authority.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.domain.tenant.TenantEntity;
-import com.lambda.fusion.authority.domain.tenant.TenantOption;
-import com.lambda.fusion.authority.domain.tenant.TenantQuery;
+import com.lambda.fusion.authority.model.tenant.TenantEntity;
+import com.lambda.fusion.authority.model.tenant.TenantOption;
+import com.lambda.fusion.authority.model.tenant.TenantQuery;
 import com.lambda.fusion.authority.service.TenantService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;

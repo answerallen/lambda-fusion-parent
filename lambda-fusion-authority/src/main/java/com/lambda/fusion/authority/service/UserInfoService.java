@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.domain.user.UserInfoEntity;
+import com.lambda.fusion.authority.model.user.UserInfoEntity;
 
 public interface UserInfoService extends IService<UserInfoEntity> {
 

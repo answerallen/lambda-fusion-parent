@@ -1,10 +1,10 @@
 package com.lambda.fusion.authority.service;
 
-import com.lambda.fusion.authority.domain.authentication.NavigationQuery;
-import com.lambda.fusion.authority.domain.resource.CreateResource;
-import com.lambda.fusion.authority.domain.resource.MoveResource;
-import com.lambda.fusion.authority.domain.resource.Resource;
-import com.lambda.fusion.authority.domain.resource.ResourceTree;
+import com.lambda.fusion.authority.model.authentication.MenuQuery;
+import com.lambda.fusion.authority.model.resource.CreateResource;
+import com.lambda.fusion.authority.model.resource.MoveResource;
+import com.lambda.fusion.authority.model.resource.Resource;
+import com.lambda.fusion.authority.model.resource.ResourceTree;
 import com.lambda.fusion.core.identity.LoginUserDetails;
 import java.util.List;
 import org.springframework.lang.NonNull;
@@ -18,7 +18,7 @@ public interface ResourceService {
     /**
      * 获取系统资源
      */
-    default List<ResourceTree> getChildren(NavigationQuery parameter) {
+    default List<ResourceTree> getChildren(MenuQuery parameter) {
         return getChildren();
     }
 

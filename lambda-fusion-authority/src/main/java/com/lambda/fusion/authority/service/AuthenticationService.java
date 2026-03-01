@@ -1,9 +1,9 @@
 package com.lambda.fusion.authority.service;
 
-import com.lambda.fusion.authority.domain.authentication.AuthenticatedUser;
-import com.lambda.fusion.authority.domain.authentication.NavigationQuery;
-import com.lambda.fusion.authority.domain.authentication.NavigationRoute;
-import com.lambda.fusion.authority.domain.user.UserProfile;
+import com.lambda.fusion.authority.model.authentication.AuthenticatedUser;
+import com.lambda.fusion.authority.model.authentication.MenuQuery;
+import com.lambda.fusion.authority.model.authentication.MenuRoute;
+import com.lambda.fusion.authority.model.user.UserProfile;
 import com.lambda.fusion.core.identity.LoginUserDetails;
 import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.security.service.UserDetailService;
@@ -23,7 +23,7 @@ public interface AuthenticationService extends UserDetailService {
      * @param level    指定菜单层级
      * @return 导航菜单列表
      */
-    List<NavigationRoute> getNavigation(LoginUserDetails user, String parentId, Integer level);
+    List<MenuRoute> getMenus(LoginUserDetails user, String parentId, Integer level);
 
     /**
      * 获取用户的导航菜单
@@ -32,8 +32,8 @@ public interface AuthenticationService extends UserDetailService {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    default List<NavigationRoute> getNavigation(LoginUserDetails user, NavigationQuery query) {
-        return getNavigation(user, query.getParentId(), query.getLevel());
+    default List<MenuRoute> getMenus(LoginUserDetails user, MenuQuery query) {
+        return getMenus(user, query.getParentId(), query.getLevel());
     }
 
     /**
@@ -41,8 +41,8 @@ public interface AuthenticationService extends UserDetailService {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    default List<NavigationRoute> getNavigation(NavigationQuery query) {
-        return getNavigation(SecurityUtils.getUser(), query.getParentId(), query.getLevel());
+    default List<MenuRoute> getMenus(MenuQuery query) {
+        return getMenus(SecurityUtils.getUser(), query.getParentId(), query.getLevel());
     }
 
     /**
@@ -65,5 +65,5 @@ public interface AuthenticationService extends UserDetailService {
      *
      * @return 权限码列表
      */
-    List<String> getAuthorities();
+    List<String> getPermissions();
 }

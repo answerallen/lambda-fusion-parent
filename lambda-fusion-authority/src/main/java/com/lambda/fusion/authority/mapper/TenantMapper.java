@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.domain.tenant.TenantEntity;
-import com.lambda.fusion.authority.domain.tenant.TenantOption;
+import com.lambda.fusion.authority.model.tenant.TenantEntity;
+import com.lambda.fusion.authority.model.tenant.TenantOption;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.domain.user.*;
+import com.lambda.fusion.authority.model.user.*;
 import java.util.List;
 import java.util.Set;
 import org.apache.ibatis.annotations.Mapper;

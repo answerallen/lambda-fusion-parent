@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.domain.user.UserFieldsEntity;
+import com.lambda.fusion.authority.model.user.UserFieldsEntity;
 import java.util.List;
 import java.util.Set;
 import org.apache.ibatis.annotations.Mapper;

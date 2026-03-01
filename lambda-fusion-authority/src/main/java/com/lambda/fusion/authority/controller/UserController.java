@@ -5,7 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.authority.domain.user.*;
+import com.lambda.fusion.authority.model.user.*;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.helper.UserQueryHelper;
 import com.lambda.fusion.authority.manager.TenantAuthorizeManager;

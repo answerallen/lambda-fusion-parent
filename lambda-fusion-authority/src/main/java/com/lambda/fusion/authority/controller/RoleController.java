@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.authority.domain.role.*;
+import com.lambda.fusion.authority.model.role.*;
 import com.lambda.fusion.authority.service.InternalRoleService;
 import com.lambda.fusion.authority.service.RoleService;
 import com.lambda.fusion.authority.service.UserService;

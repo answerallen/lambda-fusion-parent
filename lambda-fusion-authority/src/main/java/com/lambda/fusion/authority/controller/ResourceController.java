@@ -2,11 +2,11 @@ package com.lambda.fusion.authority.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.annotation.SaMode;
-import com.lambda.fusion.authority.domain.authentication.NavigationQuery;
-import com.lambda.fusion.authority.domain.resource.CreateResource;
-import com.lambda.fusion.authority.domain.resource.MoveResource;
-import com.lambda.fusion.authority.domain.resource.Resource;
-import com.lambda.fusion.authority.domain.resource.ResourceTree;
+import com.lambda.fusion.authority.model.authentication.MenuQuery;
+import com.lambda.fusion.authority.model.resource.CreateResource;
+import com.lambda.fusion.authority.model.resource.MoveResource;
+import com.lambda.fusion.authority.model.resource.Resource;
+import com.lambda.fusion.authority.model.resource.ResourceTree;
 import com.lambda.fusion.authority.service.ResourceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,7 +42,7 @@ public class ResourceController {
                 @Parameter(name = "level", description = "菜单层级"),
                 @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
             })
-    public List<ResourceTree> tree(@Parameter NavigationQuery parameter) {
+    public List<ResourceTree> tree(@Parameter MenuQuery parameter) {
         return resourceService.getChildren(parameter);
     }
 

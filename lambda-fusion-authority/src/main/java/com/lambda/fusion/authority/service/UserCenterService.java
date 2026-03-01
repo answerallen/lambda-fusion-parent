@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.service;
 
-import com.lambda.fusion.authority.domain.user.RestUserInfo;
-import com.lambda.fusion.authority.domain.user.User;
-import com.lambda.fusion.authority.domain.user.VerifyCode;
+import com.lambda.fusion.authority.model.user.RestUserInfo;
+import com.lambda.fusion.authority.model.user.User;
+import com.lambda.fusion.authority.model.user.VerifyCode;
 import org.springframework.lang.NonNull;
 
 public interface UserCenterService {

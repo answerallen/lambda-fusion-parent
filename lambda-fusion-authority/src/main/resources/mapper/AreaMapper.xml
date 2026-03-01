@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.authority.mapper.AreaMapper">
 
-    <resultMap id="AreaResult" type="com.lambda.fusion.authority.domain.area.Area">
+    <resultMap id="AreaResult" type="com.lambda.fusion.authority.model.area.Area">
         <id column="id" property="id"/>
         <result column="parent_code" property="parentCode"/>
         <result column="area_code" property="areaCode"/>
@@ -13,7 +13,7 @@
         <result column="type" property="type"/>
     </resultMap>
 
-    <resultMap id="AreaTreeResult" type="com.lambda.fusion.authority.domain.area.AreaTree">
+    <resultMap id="AreaTreeResult" type="com.lambda.fusion.authority.model.area.AreaTree">
         <id column="id" property="dbId"/>
         <result column="area_code" property="areaCode"/>
         <result column="area_name" property="name"/>

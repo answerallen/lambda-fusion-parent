@@ -1,14 +1,14 @@
 package com.lambda.fusion.authority.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.domain.user.CreateUser;
-import com.lambda.fusion.authority.domain.user.Permission;
-import com.lambda.fusion.authority.domain.user.ResetPassword;
-import com.lambda.fusion.authority.domain.user.UpdateUser;
-import com.lambda.fusion.authority.domain.user.User;
-import com.lambda.fusion.authority.domain.user.UserInfoEntity;
-import com.lambda.fusion.authority.domain.user.UserProfile;
-import com.lambda.fusion.authority.domain.user.UserQueryContext;
+import com.lambda.fusion.authority.model.user.CreateUser;
+import com.lambda.fusion.authority.model.user.Permission;
+import com.lambda.fusion.authority.model.user.ResetPassword;
+import com.lambda.fusion.authority.model.user.UpdateUser;
+import com.lambda.fusion.authority.model.user.User;
+import com.lambda.fusion.authority.model.user.UserInfoEntity;
+import com.lambda.fusion.authority.model.user.UserProfile;
+import com.lambda.fusion.authority.model.user.UserQueryContext;
 import com.lambda.fusion.core.identity.LoginUserDetails;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;

@@ -1,9 +1,9 @@
 package com.lambda.fusion.authority.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.domain.client.ClientEntity;
-import com.lambda.fusion.authority.domain.client.ClientQuery;
-import com.lambda.fusion.authority.domain.client.UpsertClient;
+import com.lambda.fusion.authority.model.client.ClientEntity;
+import com.lambda.fusion.authority.model.client.ClientQuery;
+import com.lambda.fusion.authority.model.client.UpsertClient;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.service.ClientService;
 import com.lambda.fusion.core.utils.SecurityUtils;

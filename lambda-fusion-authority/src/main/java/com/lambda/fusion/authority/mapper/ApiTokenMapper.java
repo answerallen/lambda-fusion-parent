@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.domain.token.ApiTokenEntity;
+import com.lambda.fusion.authority.model.token.ApiTokenEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

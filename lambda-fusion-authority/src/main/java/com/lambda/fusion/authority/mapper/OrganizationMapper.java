@@ -2,12 +2,12 @@ package com.lambda.fusion.authority.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.domain.organization.Organization;
-import com.lambda.fusion.authority.domain.organization.OrganizationEntity;
-import com.lambda.fusion.authority.domain.organization.OrganizationQuery;
-import com.lambda.fusion.authority.domain.organization.OrganizationTree;
-import com.lambda.fusion.authority.domain.organization.OrganizationWithUser;
-import com.lambda.fusion.authority.domain.user.User;
+import com.lambda.fusion.authority.model.organization.Organization;
+import com.lambda.fusion.authority.model.organization.OrganizationEntity;
+import com.lambda.fusion.authority.model.organization.OrganizationQuery;
+import com.lambda.fusion.authority.model.organization.OrganizationTree;
+import com.lambda.fusion.authority.model.organization.OrganizationWithUser;
+import com.lambda.fusion.authority.model.user.User;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

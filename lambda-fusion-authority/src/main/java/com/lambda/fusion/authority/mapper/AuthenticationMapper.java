@@ -1,11 +1,11 @@
 package com.lambda.fusion.authority.mapper;
 
-import com.lambda.fusion.authority.domain.authentication.NavigationQuery;
-import com.lambda.fusion.authority.domain.authentication.NavigationRoute;
-import com.lambda.fusion.authority.domain.authentication.ResourceQuery;
-import com.lambda.fusion.authority.domain.authentication.UserDetails;
-import com.lambda.fusion.authority.domain.resource.ResourceTree;
-import com.lambda.fusion.authority.domain.user.UserProfile;
+import com.lambda.fusion.authority.model.authentication.MenuQuery;
+import com.lambda.fusion.authority.model.authentication.MenuRoute;
+import com.lambda.fusion.authority.model.authentication.ResourceQuery;
+import com.lambda.fusion.authority.model.authentication.UserDetails;
+import com.lambda.fusion.authority.model.resource.ResourceTree;
+import com.lambda.fusion.authority.model.user.UserProfile;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -39,7 +39,7 @@ public interface AuthenticationMapper {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    List<NavigationRoute> selectNavigation(@Param("query") NavigationQuery query);
+    List<MenuRoute> selectNavigation(@Param("query") MenuQuery query);
 
     /**
      * 根据查询条件获取简单资源列表

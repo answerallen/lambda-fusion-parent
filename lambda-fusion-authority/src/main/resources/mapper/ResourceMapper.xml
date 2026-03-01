@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.lambda.fusion.authority.mapper.ResourceMapper">
-    <select id="getAllChildren" resultType="com.lambda.fusion.authority.domain.resource.Resource">
+    <select id="getAllChildren" resultType="com.lambda.fusion.authority.model.resource.Resource">
         SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
         FROM LA_RESOURCES T
         WHERE T.IS_DEV = 0
@@ -17,7 +17,7 @@
         </if>
         ORDER BY T.RES_LEVEL, T.ORDER_NO
     </select>
-    <select id="getAllParents" resultType="com.lambda.fusion.authority.domain.resource.Resource">
+    <select id="getAllParents" resultType="com.lambda.fusion.authority.model.resource.Resource">
         SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
         FROM LA_RESOURCES T
         WHERE T.IS_DEV = 0
@@ -34,7 +34,7 @@
         ORDER BY T.RES_LEVEL, T.ORDER_NO
     </select>
     <!-- 递归查询所有资源 -->
-    <select id="getDirectChildren" resultType="com.lambda.fusion.authority.domain.resource.ResourceTree">
+    <select id="getDirectChildren" resultType="com.lambda.fusion.authority.model.resource.ResourceTree">
         SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
         FROM LA_RESOURCES T
         <where>
@@ -48,7 +48,7 @@
         ORDER BY T.ORDER_NO
     </select>
     <!-- 根据ID查询下级所有资源 -->
-    <select id="queryAllChildren" resultType="com.lambda.fusion.authority.domain.resource.ResourceTree">
+    <select id="queryAllChildren" resultType="com.lambda.fusion.authority.model.resource.ResourceTree">
         SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.PARENT_KEYS, T.RES_MODE
         FROM LA_RESOURCES T
         WHERE T.PARENT_KEYS LIKE CONCAT(#{parentKeys}, '%')
@@ -79,7 +79,7 @@
 
     <!-- 查询可用的所有资源 -->
     <select id="getAllResourcesByOrderNo"
-            resultType="com.lambda.fusion.authority.domain.resource.Resource">
+            resultType="com.lambda.fusion.authority.model.resource.Resource">
         SELECT ID, RES_NAME, RES_PATH, PARENTID, ICO, METHOD, RES_LEVEL, REMARK, ORDER_NO, RES_TYPE, RES_MODE, HIDDEN, PARENTKEYS FROM LA_RESOURCES ORDER BY ORDER_NO
     </select>
     <!-- 批量排序 -->
@@ -116,7 +116,7 @@
     </update>
 
     <select id="getAllResources"
-            resultType="com.lambda.fusion.authority.domain.resource.Resource">
+            resultType="com.lambda.fusion.authority.model.resource.Resource">
         SELECT
             T.ID, T.RES_NAME, T.RES_PATH, T.PARENT_ID, T.ICON, T.METHOD, T.RES_LEVEL, T.ORDER_NO, T.RES_TYPE, T.HIDDEN, T.PARENT_KEYS, T.RES_MODE
         FROM LA_RESOURCES T

@@ -5,8 +5,8 @@ import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Maps;
-import com.lambda.fusion.authority.domain.authentication.NavigationQuery;
-import com.lambda.fusion.authority.domain.resource.*;
+import com.lambda.fusion.authority.model.authentication.MenuQuery;
+import com.lambda.fusion.authority.model.resource.*;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.ResourceMapper;
 import com.lambda.fusion.authority.service.ResourceService;
@@ -44,11 +44,11 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public List<ResourceTree> getChildren() {
-        return getChildren(new NavigationQuery());
+        return getChildren(new MenuQuery());
     }
 
     @Override
-    public List<ResourceTree> getChildren(NavigationQuery parameter) {
+    public List<ResourceTree> getChildren(MenuQuery parameter) {
         List<Resource> resources = resourceMapper.queryAvailableResources(parameter);
         if (CollectionUtils.isEmpty(resources)) {
             return new ArrayList<>();

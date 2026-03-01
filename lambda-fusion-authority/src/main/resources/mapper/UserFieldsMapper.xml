@@ -3,13 +3,13 @@
 
 <mapper namespace="com.lambda.fusion.authority.mapper.UserFieldsMapper">
 
-    <select id="getPersonUser" resultType="com.lambda.fusion.authority.domain.user.UserFieldsEntity">
+    <select id="getPersonUser" resultType="com.lambda.fusion.authority.model.user.UserFieldsEntity">
         SELECT  t.USERNAME, t.FIELD_NAME, t.FIELD_VALUE
         FROM LA_USER_FIELDS t
         WHERE t.USERNAME IN <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
     </select>
 
-    <select id="getListByUsername" resultType="com.lambda.fusion.authority.domain.user.UserFieldsEntity">
+    <select id="getListByUsername" resultType="com.lambda.fusion.authority.model.user.UserFieldsEntity">
         SELECT  t.USERNAME, t.FIELD_NAME, t.FIELD_VALUE
         FROM LA_USER_FIELDS t
         WHERE t.USERNAME = #{username}

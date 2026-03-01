@@ -2,9 +2,9 @@ package com.lambda.fusion.authority.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.domain.client.AuthResource;
-import com.lambda.fusion.authority.domain.client.ClientEntity;
-import com.lambda.fusion.authority.domain.resource.UserPermission;
+import com.lambda.fusion.authority.model.client.AuthResource;
+import com.lambda.fusion.authority.model.client.ClientEntity;
+import com.lambda.fusion.authority.model.resource.UserPermission;
 import com.lambda.security.web.hmac.model.HmacClient;
 import java.util.List;
 import java.util.Map;

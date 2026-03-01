@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.domain.role.GroupEntity;
+import com.lambda.fusion.authority.model.role.GroupEntity;
 import java.util.List;
 import java.util.Map;
 import org.apache.ibatis.annotations.Delete;

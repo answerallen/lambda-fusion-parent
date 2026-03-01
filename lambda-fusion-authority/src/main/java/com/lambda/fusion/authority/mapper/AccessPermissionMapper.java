@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.mapper;
 
-import com.lambda.fusion.authority.domain.role.AuthorityPermission;
+import com.lambda.fusion.authority.model.role.AuthorityPermission;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

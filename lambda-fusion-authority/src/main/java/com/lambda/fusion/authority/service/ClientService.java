@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.authority.domain.client.ClientEntity;
-import com.lambda.fusion.authority.domain.resource.UserPermission;
+import com.lambda.fusion.authority.model.client.ClientEntity;
+import com.lambda.fusion.authority.model.resource.UserPermission;
 import java.util.List;
 
 public interface ClientService extends IService<ClientEntity> {

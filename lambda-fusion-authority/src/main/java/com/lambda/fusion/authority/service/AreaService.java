@@ -1,10 +1,10 @@
 package com.lambda.fusion.authority.service;
 
-import com.lambda.fusion.authority.domain.area.Area;
-import com.lambda.fusion.authority.domain.area.AreaQuery;
-import com.lambda.fusion.authority.domain.area.AreaTree;
-import com.lambda.fusion.authority.domain.area.CreateArea;
-import com.lambda.fusion.authority.domain.area.UpdateArea;
+import com.lambda.fusion.authority.model.area.Area;
+import com.lambda.fusion.authority.model.area.AreaQuery;
+import com.lambda.fusion.authority.model.area.AreaTree;
+import com.lambda.fusion.authority.model.area.CreateArea;
+import com.lambda.fusion.authority.model.area.UpdateArea;
 import java.util.List;
 
 /**

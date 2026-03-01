@@ -1,13 +1,13 @@
 package com.lambda.fusion.authority.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.domain.role.AccessPermission;
-import com.lambda.fusion.authority.domain.role.BatchRoleUserAssignmentRequest;
-import com.lambda.fusion.authority.domain.role.CreateRole;
-import com.lambda.fusion.authority.domain.role.Group;
-import com.lambda.fusion.authority.domain.role.GroupRole;
-import com.lambda.fusion.authority.domain.role.Role;
-import com.lambda.fusion.authority.domain.role.UpdateRole;
+import com.lambda.fusion.authority.model.role.AccessPermission;
+import com.lambda.fusion.authority.model.role.BatchRoleUserAssignmentRequest;
+import com.lambda.fusion.authority.model.role.CreateRole;
+import com.lambda.fusion.authority.model.role.Group;
+import com.lambda.fusion.authority.model.role.GroupRole;
+import com.lambda.fusion.authority.model.role.Role;
+import com.lambda.fusion.authority.model.role.UpdateRole;
 import com.lambda.fusion.core.identity.LoginUserDetails;
 import java.util.List;
 import java.util.Map;

@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.mapper;
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.domain.user.UserInfoEntity;
+import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper

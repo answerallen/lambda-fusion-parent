@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.service.impl;
 
 import cn.hutool.json.JSONUtil;
 import com.lambda.cloud.sms.SmsMessageSender;
-import com.lambda.fusion.authority.domain.user.*;
+import com.lambda.fusion.authority.model.user.*;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.helper.UserInfoHelper;
 import com.lambda.fusion.authority.mapper.UserFieldsMapper;
