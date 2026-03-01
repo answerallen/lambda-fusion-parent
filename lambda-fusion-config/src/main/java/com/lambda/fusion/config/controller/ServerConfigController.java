@@ -9,7 +9,7 @@ import cn.hutool.crypto.asymmetric.RSA;
 import cn.hutool.crypto.symmetric.AES;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.autoconfig.ConfigProperties;
+import com.lambda.fusion.config.ConfigProperties;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

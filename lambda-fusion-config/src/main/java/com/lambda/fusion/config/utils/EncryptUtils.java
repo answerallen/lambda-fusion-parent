@@ -6,7 +6,7 @@ import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.crypto.Mode;
 import cn.hutool.crypto.Padding;
 import cn.hutool.crypto.symmetric.AES;
-import com.lambda.fusion.autoconfig.ConfigProperties;
+import com.lambda.fusion.config.ConfigProperties;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
