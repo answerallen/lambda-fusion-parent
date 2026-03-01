@@ -1,6 +1,6 @@
 package com.lambda.fusion.ai.datasource;
 
-import com.lambda.fusion.autoconfig.AiProperties;
+import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;

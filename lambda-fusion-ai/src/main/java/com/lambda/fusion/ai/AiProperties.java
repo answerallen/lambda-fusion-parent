@@ -1,4 +1,4 @@
-package com.lambda.fusion.autoconfig;
+package com.lambda.fusion.ai;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.Max;
