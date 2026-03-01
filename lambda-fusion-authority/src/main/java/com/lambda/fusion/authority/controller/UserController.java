@@ -1,0 +1,292 @@
+package com.lambda.fusion.authority.controller;
+
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.authority.domain.user.*;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.helper.UserQueryHelper;
+import com.lambda.fusion.authority.manager.TenantAuthorizeManager;
+import com.lambda.fusion.authority.service.OrganizationService;
+import com.lambda.fusion.authority.service.UserCenterService;
+import com.lambda.fusion.authority.service.UserInfoService;
+import com.lambda.fusion.authority.service.UserService;
+import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.tree.builder.TreeBuilder;
+import com.lambda.fusion.core.utils.SecurityUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.Collections;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.MapUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+/**
+ * 用户信息Api
+ *
+ */
+@Slf4j
+@RestController
+@RequestMapping({"/authority/users"})
+@Tag(name = "用户管理")
+@RequiredArgsConstructor
+public class UserController {
+
+    private final OrganizationService organizationService;
+    private final UserService userService;
+    private final UserQueryHelper userQueryHelper;
+    private final UserCenterService userCenterService;
+    private final UserInfoService userInfoService;
+    private TenantAuthorizeManager tenantAuthorizeManager;
+
+    @Autowired(required = false)
+    public void setTenantAuthorizeManager(TenantAuthorizeManager tenantAuthorizeManager) {
+        this.tenantAuthorizeManager = tenantAuthorizeManager;
+    }
+
+    @GetMapping({"", "/page", "/page/{number:\\d+}/size/{size:\\d+}"})
+    @Operation(summary = "分页查询所有用户列表")
+    public Page<User> page(
+            @PathVariable(required = false) Integer number,
+            @PathVariable(required = false) Integer size,
+            @Valid UserQuery userQuery) {
+        if (number != null) {
+            userQuery.setPageNum(number);
+        }
+        if (size != null) {
+            userQuery.setPageSize(size);
+        }
+        UserQueryContext userQueryContext = userQueryHelper.buildUserQueryContext(userQuery);
+        return userService.getUsers(userQuery.getPage(), userQueryContext);
+    }
+
+    @GetMapping(value = "/{username}/check")
+    @Operation(summary = "检查用户名是否存在")
+    public Boolean checkName(@PathVariable @Parameter(description = "用户名", required = true) String username) {
+        return userService.checkUserName(StrUtil.trim(username));
+    }
+
+    @GetMapping(value = "/{username}")
+    @Operation(summary = "查询用户信息")
+    public User getUser(@PathVariable @Parameter(description = "用户名", required = true) String username) {
+        return userService.getByUsername(StrUtil.trim(username));
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "根据关键字模糊查询用户列表")
+    public List<User> search(@Parameter(description = "关键字", required = true) @RequestParam("key") String key) {
+        return userService.getUsersByKey(key);
+    }
+
+    @GetMapping("/allUser")
+    @Operation(summary = "查询用户下拉列表")
+    public List<UserProfile> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
+        LoginUserDetails loginUser = SecurityUtils.getUser();
+        List<String> orgIds =
+                isAll != null && isAll ? Collections.emptyList() : organizationService.getSubOrganizations(loginUser);
+        return userService.getUserProfiles(loginUser, orgIds);
+    }
+
+    @GetMapping("/current")
+    @Operation(summary = "查询当前用户的详细信息")
+    public User getCurrent() {
+        LoginUser operator = OperatorUtils.getOperator();
+        return userService.getByUsername(operator.getName());
+    }
+
+    @GetMapping("/authority/{authority}")
+    @Operation(summary = "根据角色查询用户名", description = "根据角色查询用户")
+    public List<String> getNamesByAuthority(@PathVariable String authority) {
+        LoginUser operator = OperatorUtils.getOperator();
+        return userService.getUserNamesByAuthority(operator.getOrgId(), authority);
+    }
+
+    @PostMapping
+    @Operation(summary = "新增用户信息")
+    public User add(@Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateUser createUser) {
+        userService.addUser(createUser, SecurityUtils.getUser());
+        if (MapUtils.isNotEmpty(createUser.getPersonal())) {
+            userService.addUserFields(createUser.getPersonal(), createUser.getUsername());
+        }
+        if (tenantAuthorizeManager != null) {
+            log.info("添加租户用户");
+        }
+        return userService.getByUsername(createUser.getUsername());
+    }
+
+    @PutMapping(value = "/{username}")
+    @Operation(summary = "更新用户信息")
+    public User update(
+            @PathVariable @Parameter(description = "用户名称", required = true) String username,
+            @Parameter(description = "用户信息", required = true) @Valid @RequestBody UpdateUser updateUser) {
+        updateUser.setUsername(username);
+        userService.updateUser(updateUser, SecurityUtils.getUser());
+        return userService.getByUsername(username);
+    }
+
+    @DeleteMapping(value = "/{username}")
+    @Operation(summary = "删除用户信息")
+    public void delete(@PathVariable @Parameter(description = "用户名", required = true) String username) {
+        if (tenantAuthorizeManager != null) {
+            tenantAuthorizeManager.deleteUser(username);
+        }
+        userService.deleteUser(SecurityUtils.getUser(), username);
+    }
+
+    @PutMapping("/password/edit")
+    @Operation(summary = "修改用户密码", description = "用于用户自己修改密码")
+    public void updateUserPassword(
+            @Parameter(description = "修改密码参数", required = true) @RequestBody ResetPassword resetPassword) {
+        LoginUser operator = OperatorUtils.getOperator();
+        String oldPassword = resetPassword.getOldPassword();
+        String newPassword = resetPassword.getNewPassword();
+        if (oldPassword == null) {
+            throw AuthorityBusinessException.invalidParameter("原密码不能为空");
+        }
+        if (newPassword == null) {
+            throw AuthorityBusinessException.invalidParameter("新密码不能为空");
+        }
+        resetPassword.setUsername(operator.getName());
+        userService.updateUserPassword(operator.getName(), oldPassword, newPassword);
+    }
+
+    @PutMapping("/password/reset")
+    @Operation(summary = "重置用户密码", description = "主要由用户管理员使用")
+    public String resetUserPassword(
+            @Parameter(description = "重置密码参数", required = true) @RequestBody ResetPassword resetPassword) {
+        String username = resetPassword.getUsername();
+        if (username == null) {
+            throw AuthorityBusinessException.invalidParameter("username不能为空");
+        }
+        String password = userService.resetUserPassword(resetPassword);
+        if (tenantAuthorizeManager != null) {
+            resetPassword.setNewPassword(password);
+            tenantAuthorizeManager.resetPassword(resetPassword);
+        }
+        return password;
+    }
+
+    @PatchMapping("/{username}/disabled")
+    @Operation(summary = "禁用用户")
+    public void disabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
+        userService.deactivateUser(SecurityUtils.getUser(), FusionConstants.DISABLED, username);
+
+        if (tenantAuthorizeManager != null) {
+            tenantAuthorizeManager.prohibitUser(FusionConstants.DISABLED, username);
+        }
+    }
+
+    @PatchMapping("/{username}/enabled")
+    @Operation(summary = "启用用户")
+    public void enabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
+        userService.deactivateUser(SecurityUtils.getUser(), FusionConstants.ENABLED, username);
+
+        if (tenantAuthorizeManager != null) {
+            tenantAuthorizeManager.prohibitUser(FusionConstants.ENABLED, username);
+        }
+    }
+
+    @PatchMapping("/{username}/unlock")
+    @Operation(summary = "解锁用户")
+    public void unlock(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
+        userService.unlockUser(username, SecurityUtils.getUser());
+    }
+
+    @GetMapping("/{username}/permission")
+    @Operation(summary = "查询用户所有权限")
+    public List<Permission> userPermissions(
+            @PathVariable @Parameter(description = "用户ID", required = true) String username,
+            @RequestParam(required = false) String mode) {
+        List<Permission> permissions = userService.getUserPermissions(username, mode);
+        return TreeBuilder.build(permissions);
+    }
+
+    @PatchMapping(value = "/unbind/{username}/{type}")
+    @Operation(summary = "解除第三方绑定")
+    public void unbind(
+            @PathVariable @Parameter(description = "用户编号", required = true) String username,
+            @PathVariable
+                    @Parameter(
+                            description = "第三方绑定类型(1、钉钉；2、微信)",
+                            required = true,
+                            schema = @Schema(defaultValue = "1"))
+                    String type) {
+        LoginUser operator = OperatorUtils.getOperator();
+        userInfoService.unbindUserInfo(operator, type, username);
+    }
+
+    @PutMapping(value = "/update/mobile")
+    @Operation(summary = "更新用户手机号")
+    public void updateMobile(
+            @Parameter(description = "手机号", required = true) @RequestParam("mobile") String mobile,
+            @Parameter(description = "验证码", required = true) @RequestParam("verifyCode") String verifyCode) {
+        LoginUser operator = OperatorUtils.getOperator();
+        userCenterService.updateMobile(operator.getName(), mobile, verifyCode);
+    }
+
+    @PutMapping(value = "/update/email")
+    @Operation(summary = "更新用户邮箱")
+    public void updateEmail(
+            @Parameter(description = "邮箱", required = true) @RequestParam("email") String email,
+            @Parameter(description = "验证码", required = true) @RequestParam("verifyCode") String verifyCode) {
+        LoginUser operator = OperatorUtils.getOperator();
+        userCenterService.updateEmail(operator.getName(), email, verifyCode);
+    }
+
+    @PostMapping(value = "/update/info")
+    @Operation(
+            summary = "更新个人信息",
+            parameters = {
+                @Parameter(name = "nickname", description = "昵称", required = true),
+                @Parameter(name = "email", description = "邮箱", required = true),
+                @Parameter(name = "personal", description = "新增字段")
+            })
+    public User updateInfo(MultipartFile avatar, RestUserInfo restUserInfo) {
+        LoginUser operator = OperatorUtils.getOperator();
+        restUserInfo.setUsername(operator.getName());
+        if (avatar != null) {
+            log.info("file: {}", avatar);
+        }
+        return userCenterService.updateInfo(restUserInfo);
+    }
+
+    @PostMapping(value = "/send/mobile/code")
+    @Operation(summary = "发送手机验证码")
+    public VerifyCode sendMobileVerifyCode(
+            @Parameter(description = "手机号", required = true) @RequestParam("mobile") String mobile) {
+        LoginUser operator = OperatorUtils.getOperator();
+        return userCenterService.sendMobileVerifyCode(operator.getName(), mobile);
+    }
+
+    @GetMapping("/tenant")
+    @Operation(summary = "根据租户ID 查询租户管理员")
+    public List<User> tenant(
+            @Parameter(description = "租户ID", required = true) @RequestParam("tenantId") String tenantId) {
+        return userService.getUsersByTenantId(tenantId);
+    }
+
+    @PutMapping(value = "/tenant/{username}")
+    @Operation(summary = "更新租户管理员用户信息")
+    public User updateTenantUser(
+            @PathVariable @Parameter(description = "用户名称", required = true) String username,
+            @Parameter(description = "用户信息", required = true) @Valid @RequestBody User user) {
+        user.setUsername(username);
+        userService.updateTenantUser(user, SecurityUtils.getUser());
+        User updated = userService.getByUsername(username);
+        if (tenantAuthorizeManager != null) {
+            User copy = BeanUtil.toBean(user, User.class);
+            tenantAuthorizeManager.updateUser(copy);
+        }
+        return updated;
+    }
+}

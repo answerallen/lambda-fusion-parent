@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.lambda.fusion.authority.client.mapper.ClientMapper">
+<mapper namespace="com.lambda.fusion.authority.mapper.ClientMapper">
 
-    <resultMap type="com.lambda.fusion.authority.client.model.ClientEntity" id="ClientEntity">
+    <resultMap type="com.lambda.fusion.authority.domain.client.ClientEntity" id="ClientEntity">
         <result property="id" column="id"/>
         <result property="name" column="name"/>
         <result property="secret" column="secret"/>
@@ -31,7 +31,7 @@
 <!--        </collection>-->
     </resultMap>
 
-    <select id="getAuthorization" resultType="com.lambda.fusion.authority.client.model.AuthResource">
+    <select id="getAuthorization" resultType="com.lambda.fusion.authority.domain.client.AuthResource">
         SELECT DISTINCT
             T.id,
             T.name,
@@ -85,7 +85,7 @@
         SELECT clientid FROM LA_CLIENT_RESOURCES WHERE resourceid = #{rid}
     </select>
 
-    <select id="getUserPermissions" resultType="com.lambda.fusion.authority.resource.model.UserPermission">
+    <select id="getUserPermissions" resultType="com.lambda.fusion.authority.domain.resource.UserPermission">
         SELECT CLIENTID AS username, RESOURCEID AS permissionId FROM LA_CLIENT_RESOURCES
         WHERE RESOURCEID IN
         <foreach collection="list" item="item" separator="," open="(" close=")">
