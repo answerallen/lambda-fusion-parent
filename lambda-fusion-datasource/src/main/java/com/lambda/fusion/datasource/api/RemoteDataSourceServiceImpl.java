@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
+import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.model.*;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
@@ -280,7 +281,13 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
             TenantDataSourceEntity tenant = tenantDataSourceService.get(id);
             if (tenant != null) {
                 checkPermission(tenant.getTenantId());
-                tenantDataSourceService.initSchema(id);
+                DataSourceChangeEvent event = new DataSourceChangeEvent();
+                event.setChangeType(DatasourceConstants.ChangeType.INIT_SCHEMA);
+                event.setDataSourceId(id);
+                event.setTenantId(tenant.getTenantId());
+                event.setDataSource(toRemoteDataSource(tenant));
+                event.setTimestamp(System.currentTimeMillis());
+                callbackManager.broadcast(event);
                 return true;
             }
             return false;
@@ -296,7 +303,13 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
             TenantDataSourceEntity tenant = tenantDataSourceService.get(id);
             if (tenant != null) {
                 checkPermission(tenant.getTenantId());
-                tenantDataSourceService.removeSchema(id);
+                DataSourceChangeEvent event = new DataSourceChangeEvent();
+                event.setChangeType(DatasourceConstants.ChangeType.REMOVE_SCHEMA);
+                event.setDataSourceId(id);
+                event.setTenantId(tenant.getTenantId());
+                event.setDataSource(toRemoteDataSource(tenant));
+                event.setTimestamp(System.currentTimeMillis());
+                callbackManager.broadcast(event);
                 return true;
             }
             return false;

@@ -63,6 +63,8 @@ public interface DatasourceConstants {
         /**
          * 禁用
          */
-        DISABLE
+        DISABLE,
+        INIT_SCHEMA,
+        REMOVE_SCHEMA
     }
 }
