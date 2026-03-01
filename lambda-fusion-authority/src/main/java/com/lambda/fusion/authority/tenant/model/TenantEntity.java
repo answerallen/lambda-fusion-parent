@@ -23,7 +23,7 @@ public class TenantEntity extends BaseEntity {
     /**
      * 租户ID
      */
-     @TableId(value = "TENANT_CODE")
+    @TableId(value = "TENANT_ID")
     @Schema(description = "租户ID")
     @TableField("TENANT_ID")
     private String tenantId;
