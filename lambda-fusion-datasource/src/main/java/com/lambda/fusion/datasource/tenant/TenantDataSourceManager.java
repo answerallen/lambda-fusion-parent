@@ -2,8 +2,8 @@ package com.lambda.fusion.datasource.tenant;
 
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
-import com.lambda.fusion.autoconfig.DatasourceProperties;
 import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.datasource.DatasourceProperties;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.RemoteDataSource;

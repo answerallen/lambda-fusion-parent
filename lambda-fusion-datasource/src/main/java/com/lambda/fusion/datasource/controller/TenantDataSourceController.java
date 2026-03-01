@@ -13,5 +13,4 @@ import org.springframework.web.bind.annotation.RestController;
 public class TenantDataSourceController {
 
     private final TenantDataSourceService tenantDataSourceService;
-
 }

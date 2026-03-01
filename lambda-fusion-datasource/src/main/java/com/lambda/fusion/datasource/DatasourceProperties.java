@@ -1,6 +1,5 @@
-package com.lambda.fusion.autoconfig;
+package com.lambda.fusion.datasource;
 
-import com.lambda.fusion.datasource.DatasourceConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.Map;
