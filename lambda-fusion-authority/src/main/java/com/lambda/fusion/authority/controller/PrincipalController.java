@@ -8,17 +8,13 @@ import com.lambda.fusion.authority.service.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
-@Tag(
-        name = "访问上下文接口",
-        description = "提供当前登录主体的身份信息、权限集合以及可访问的导航菜单"
-)
+@Tag(name = "访问上下文接口", description = "提供当前登录主体的身份信息、权限集合以及可访问的导航菜单")
 @SaCheckLogin
 @RestController
 @RequestMapping("/")

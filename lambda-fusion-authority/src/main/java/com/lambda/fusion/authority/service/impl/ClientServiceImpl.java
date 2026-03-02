@@ -2,9 +2,9 @@ package com.lambda.fusion.authority.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.fusion.authority.mapper.ClientMapper;
 import com.lambda.fusion.authority.model.client.ClientEntity;
 import com.lambda.fusion.authority.model.resource.UserPermission;
-import com.lambda.fusion.authority.mapper.ClientMapper;
 import com.lambda.fusion.authority.service.ClientService;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;

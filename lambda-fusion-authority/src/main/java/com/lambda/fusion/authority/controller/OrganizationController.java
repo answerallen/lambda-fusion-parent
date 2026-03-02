@@ -4,6 +4,7 @@ import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.model.organization.CreateOrganization;
 import com.lambda.fusion.authority.model.organization.Organization;
 import com.lambda.fusion.authority.model.organization.OrganizationQuery;
@@ -12,7 +13,6 @@ import com.lambda.fusion.authority.model.organization.UpdateOrganization;
 import com.lambda.fusion.authority.model.organization.UserOrganization;
 import com.lambda.fusion.authority.model.organization.UserOrganizationChange;
 import com.lambda.fusion.authority.model.resource.MoveResource;
-import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.service.OrganizationService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;

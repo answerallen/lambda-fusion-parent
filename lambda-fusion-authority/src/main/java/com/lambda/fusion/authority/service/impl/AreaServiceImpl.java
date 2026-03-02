@@ -1,8 +1,8 @@
 package com.lambda.fusion.authority.service.impl;
 
-import com.lambda.fusion.authority.model.area.*;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.AreaMapper;
+import com.lambda.fusion.authority.model.area.*;
 import com.lambda.fusion.authority.service.AreaService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

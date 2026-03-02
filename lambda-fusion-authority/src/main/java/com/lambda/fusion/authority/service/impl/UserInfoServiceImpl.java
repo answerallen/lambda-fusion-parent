@@ -2,8 +2,8 @@ package com.lambda.fusion.authority.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import com.lambda.fusion.authority.mapper.UserInfoMapper;
+import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import com.lambda.fusion.authority.service.UserInfoService;
 import org.springframework.stereotype.Service;
 
