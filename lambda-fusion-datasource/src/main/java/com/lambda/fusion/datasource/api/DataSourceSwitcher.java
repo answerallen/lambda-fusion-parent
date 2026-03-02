@@ -22,10 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DataSourceSwitcher implements AutoCloseable {
 
-    private final String previousDataSource;
-
     private DataSourceSwitcher(String targetDataSource) {
-        this.previousDataSource = DynamicDataSourceContextHolder.peek();
+        String previousDataSource = DynamicDataSourceContextHolder.peek();
         DynamicDataSourceContextHolder.push(targetDataSource);
         log.debug("Switched datasource from {} to {}", previousDataSource, targetDataSource);
     }

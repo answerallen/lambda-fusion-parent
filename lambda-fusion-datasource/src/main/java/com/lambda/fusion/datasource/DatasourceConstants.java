@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.lambda.fusion.core.annotation.DictMapper;
 import com.lambda.fusion.core.dict.DictEnum;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -50,9 +51,11 @@ public interface DatasourceConstants {
     @Getter
     @DictMapper(dictName = "DATASOURCE_STATUS", dictUsage = 0, dictDesc = "数据源状态")
     @AllArgsConstructor
+    @SuppressFBWarnings("UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD")
     enum DatasourceStatus implements DictEnum<Integer> {
         OFFLINE(0, "下线"),
         ONLINE(1, "在线"),
+        READONLY(2, "只读"),
         MAINTENANCE(3, "维护");
 
         @EnumValue
@@ -60,6 +63,18 @@ public interface DatasourceConstants {
         private final Integer code;
 
         private final String label;
+
+        public static DatasourceStatus fromCode(Integer code) {
+            if (code == null) {
+                return null;
+            }
+            for (DatasourceStatus status : DatasourceStatus.values()) {
+                if (status.code.equals(code)) {
+                    return status;
+                }
+            }
+            return null;
+        }
     }
 
     /**

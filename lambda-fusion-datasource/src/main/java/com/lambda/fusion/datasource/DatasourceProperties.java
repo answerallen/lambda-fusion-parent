@@ -31,30 +31,11 @@ public class DatasourceProperties {
      * 客户端初始化重试配置（仅 client 模式生效）
      */
     private Retry retry = new Retry();
-
-    /**
-     * 租户前缀配置
-     * <p>
-     * 用于定义不同模块的租户数据源前缀映射
-     * key: 模块标识（如 ai, auth, config 等）
-     * value: 租户数据源前缀（如 ai_tenant_, auth_tenant_ 等）
-     */
-    private Map<String, String> tenantPrefixes = new HashMap<>();
-
     /**
      * 默认租户前缀
      */
     private String defaultTenantPrefix = "tenant_";
 
-    /**
-     * 获取指定模块的租户前缀
-     *
-     * @param module 模块标识
-     * @return 租户前缀，如果未配置则返回默认值
-     */
-    public String getTenantPrefix(String module) {
-        return tenantPrefixes.getOrDefault(module, defaultTenantPrefix);
-    }
 
     @Data
     public static class Dubbo {

@@ -1,7 +1,9 @@
 package com.lambda.fusion.datasource.model;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
+import com.lambda.fusion.datasource.DatasourceConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -31,7 +33,7 @@ public class UpsertDataSource extends BaseDTO<DataSourceEntity> {
 
     @NotBlank
     @Schema(description = "用途")
-    private String purpose;
+    private String usageType;
 
     @NotBlank
     @Schema(description = "主机地址")
@@ -55,7 +57,7 @@ public class UpsertDataSource extends BaseDTO<DataSourceEntity> {
     private String nodeRole;
 
     @Schema(description = "状态")
-    private Integer status;
+    private DatasourceConstants.DatasourceStatus status;
 
     @Schema(description = "资源标签")
     private String tags;

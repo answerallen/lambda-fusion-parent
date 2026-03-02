@@ -14,7 +14,7 @@ import org.springframework.util.StringUtils;
 @Component
 @RequiredArgsConstructor
 @SuppressFBWarnings({"URF_UNREAD_FIELD", "UUF_UNUSED_FIELD"})
-public class TenantIsolationModeResolver {
+public class TenantIsolationResolver {
 
     private final TenantIsolationMapper tenantIsolationMapper;
 

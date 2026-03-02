@@ -7,6 +7,7 @@ import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.DynamicDataSourceProperty;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class DataSourcePropertyUtils {
 
@@ -36,13 +37,14 @@ public class DataSourcePropertyUtils {
         return property;
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     public static RemoteDataSource buildDataSourceEntity(DataSourceEntity entity) {
         RemoteDataSource remoteDataSource = new RemoteDataSource();
         remoteDataSource.setId(entity.getId());
         remoteDataSource.setDatasourceKey(entity.getDatasourceKey());
         remoteDataSource.setDatasourceName(entity.getDatasourceName());
         remoteDataSource.setDbType(entity.getDbType());
-        remoteDataSource.setPurpose(entity.getPurpose());
+        remoteDataSource.setUsageType(entity.getUsageType());
         remoteDataSource.setHost(entity.getHost());
         remoteDataSource.setPort(entity.getPort());
         remoteDataSource.setDbName(entity.getDbName());

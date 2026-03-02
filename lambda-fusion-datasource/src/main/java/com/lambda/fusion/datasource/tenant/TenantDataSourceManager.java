@@ -3,18 +3,18 @@ package com.lambda.fusion.datasource.tenant;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.datasource.DatasourceConstants;
-import com.lambda.fusion.datasource.DatasourceProperties;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 租户数据源管理器（通用组件）
@@ -43,22 +43,10 @@ public class TenantDataSourceManager {
 
     private final RemoteDataSourceService remoteDataSourceService;
 
-    private final DatasourceProperties datasourceProperties;
-
-    private final TenantIsolationModeResolver tenantIsolationModeResolver;
+    private final TenantIsolationResolver tenantIsolationResolver;
 
     // 租户数据源缓存: cacheKey(prefix:tenantId) -> datasourceName
     private final Map<String, String> tenantDataSourceCache = new ConcurrentHashMap<>();
-
-    /**
-     * 获取指定模块的租户前缀
-     *
-     * @param module 模块标识（如 ai, auth, config 等）
-     * @return 租户数据源前缀
-     */
-    public String getTenantPrefix(String module) {
-        return datasourceProperties.getTenantPrefix(module);
-    }
 
     /**
      * 获取当前租户的数据源名称
@@ -72,7 +60,7 @@ public class TenantDataSourceManager {
         if (!StringUtils.hasText(tenantId) || "default".equals(tenantId)) {
             return defaultDataSourceName;
         }
-        if (tenantIsolationModeResolver.isShared(tenantId)) {
+        if (tenantIsolationResolver.isShared(tenantId)) {
             return defaultDataSourceName;
         }
         return getTenantDataSourceName(tenantId, tenantPrefix);
@@ -108,8 +96,7 @@ public class TenantDataSourceManager {
     public boolean tenantDataSourceExists(String tenantId, String tenantPrefix) {
         String dataSourceName = getTenantDataSourceName(tenantId, tenantPrefix);
         RemoteDataSource ds = remoteDataSourceService.get(dataSourceName);
-        return ds != null
-                && DatasourceConstants.DatasourceStatus.ONLINE.getCode().equals(ds.getStatus());
+        return ds != null && DatasourceConstants.DatasourceStatus.ONLINE == ds.getStatus();
     }
 
     /**
@@ -127,7 +114,7 @@ public class TenantDataSourceManager {
         }
         dataSourceConfig.setDatasourceName(dataSourceName);
         dataSourceConfig.setTenantId(tenantId);
-        dataSourceConfig.setStatus(DatasourceConstants.DatasourceStatus.ONLINE.getCode());
+        dataSourceConfig.setStatus(DatasourceConstants.DatasourceStatus.ONLINE);
 
         boolean success = remoteDataSourceService.add(dataSourceConfig);
         if (success) {

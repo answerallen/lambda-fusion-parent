@@ -39,8 +39,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     @Override
     public List<RemoteDataSource> listEnabled() {
         return dataSourceManageService.listAll().stream()
-                .filter(e ->
-                        DatasourceConstants.DatasourceStatus.ONLINE.getCode().equals(e.getStatus()))
+                .filter(e -> DatasourceConstants.DatasourceStatus.ONLINE == e.getStatus())
                 .map(this::toRemoteDataSource)
                 .collect(Collectors.toList());
     }

@@ -1,6 +1,7 @@
 package com.lambda.fusion.datasource.model;
 
 import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.fusion.datasource.DatasourceConstants;
 import java.io.Serial;
 import java.io.Serializable;
 import lombok.Getter;
@@ -20,14 +21,14 @@ public class RemoteDataSource implements Serializable {
     private String datasourceKey;
     private String datasourceName;
     private String dbType;
-    private String purpose;
+    private String usageType;
     private String host;
     private Integer port;
     private String dbName;
     private String username;
     private String password;
     private String nodeRole;
-    private Integer status;
+    private DatasourceConstants.DatasourceStatus status;
     private String tags;
     private String extraConfig;
     private String tenantId; // 标识归属租户，null表示全局共享

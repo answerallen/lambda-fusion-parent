@@ -38,7 +38,7 @@ public class ServerDataSourceInitializer implements ApplicationRunner {
             Page<DataSourceEntity> page = dataSourceMapper.selectPage(
                     new Page<>(current, size),
                     Wrappers.lambdaQuery(DataSourceEntity.class)
-                            .eq(DataSourceEntity::getStatus, DatasourceConstants.DatasourceStatus.ONLINE.getCode())
+                            .eq(DataSourceEntity::getStatus, DatasourceConstants.DatasourceStatus.ONLINE)
                             .orderByAsc(DataSourceEntity::getId));
 
             List<DataSourceEntity> records = page.getRecords();

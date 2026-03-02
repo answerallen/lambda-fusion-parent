@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@SuppressFBWarnings("EI_EXPOSE_REP2")
+@SuppressFBWarnings({"EI_EXPOSE_REP2", "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"})
 public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, DataSourceEntity>
         implements DataSourceManageService {
 
@@ -55,7 +55,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.notNull(upsertDataSource, "input is null");
         DataSourceEntity entity = upsertDataSource.toEntity();
         if (entity.getStatus() == null) {
-            entity.setStatus(DatasourceConstants.DatasourceStatus.ONLINE.getCode());
+            entity.setStatus(DatasourceConstants.DatasourceStatus.ONLINE);
         }
         boolean saved = save(entity);
         Assert.isTrue(saved, "save failed");
@@ -106,11 +106,11 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        if (DatasourceConstants.DatasourceStatus.ONLINE.getCode().equals(entity.getStatus())) {
+        if (DatasourceConstants.DatasourceStatus.ONLINE == entity.getStatus()) {
             syncDynamicDataSource(entity);
             return;
         }
-        entity.setStatus(DatasourceConstants.DatasourceStatus.ONLINE.getCode());
+        entity.setStatus(DatasourceConstants.DatasourceStatus.ONLINE);
         Assert.isTrue(updateById(entity), "update failed");
         syncDynamicDataSource(entity);
         publishChange(entity);
@@ -122,7 +122,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        entity.setStatus(DatasourceConstants.DatasourceStatus.OFFLINE.getCode());
+        entity.setStatus(DatasourceConstants.DatasourceStatus.OFFLINE);
         entity.setUpdatedAt(LocalDateTime.now());
         Assert.isTrue(updateById(entity), "update failed");
         // 禁用需发 REMOVE 事件，Client 端才会调用 removeDataSource() 移除连接池
@@ -133,7 +133,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         if (entity == null) {
             return;
         }
-        if (!DatasourceConstants.DatasourceStatus.ONLINE.getCode().equals(entity.getStatus())) {
+        if (DatasourceConstants.DatasourceStatus.ONLINE != entity.getStatus()) {
             dynamicDataSourceService.removeDataSource(entity.getId());
             return;
         }

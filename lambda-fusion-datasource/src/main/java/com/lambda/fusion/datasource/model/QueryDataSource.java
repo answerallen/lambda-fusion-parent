@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.lambda.fusion.core.pagination.Pagination;
+import com.lambda.fusion.datasource.DatasourceConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,11 +27,12 @@ public class QueryDataSource extends Pagination<DataSourceEntity> {
     private Integer status;
 
     public LambdaQueryWrapper<DataSourceEntity> getLambdaQueryWrapper() {
+        DatasourceConstants.DatasourceStatus statusEnum = DatasourceConstants.DatasourceStatus.fromCode(status);
         return Wrappers.lambdaQuery(DataSourceEntity.class)
                 .like(StringUtils.isNotBlank(datasourceName), DataSourceEntity::getDatasourceName, datasourceName)
                 .like(StringUtils.isNotBlank(datasourceKey), DataSourceEntity::getDatasourceKey, datasourceKey)
                 .eq(StringUtils.isNotBlank(dbType), DataSourceEntity::getDbType, dbType)
-                .eq(status != null, DataSourceEntity::getStatus, status)
+                .eq(statusEnum != null, DataSourceEntity::getStatus, statusEnum)
                 .orderByDesc(DataSourceEntity::getId);
     }
 }
