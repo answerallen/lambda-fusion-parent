@@ -1,13 +1,12 @@
 package com.lambda.fusion.datasource.service.impl;
 
-import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.event.DataSourceEvent;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
@@ -51,40 +50,28 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     }
 
     @Override
-    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-    public DataSourceEntity get(String id) {
-        return getById(id);
-    }
-
-    @Override
     @Transactional(rollbackFor = Exception.class)
-    public void save(UpsertDataSource input) {
-        Assert.notNull(input, "input is null");
-        DataSourceEntity entity = input.toEntity();
-        entity.setId(IdUtil.getSnowflakeNextIdStr());
-        LocalDateTime now = LocalDateTime.now();
-        entity.setCreatedAt(now);
-        entity.setUpdatedAt(now);
-        Assert.isTrue(save(entity), "save failed");
+    public void save(UpsertDataSource upsertDataSource) {
+        Assert.notNull(upsertDataSource, "input is null");
+        DataSourceEntity entity = upsertDataSource.toEntity();
+        if (entity.getStatus() == null) {
+            entity.setStatus(DatasourceConstants.DatasourceStatus.ONLINE.getCode());
+        }
+        boolean saved = save(entity);
+        Assert.isTrue(saved, "save failed");
         syncDynamicDataSource(entity);
         publishAdd(entity);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void update(String id, UpsertDataSource input) {
+    public void update(String id, UpsertDataSource upsertDataSource) {
         Assert.hasText(id, "id is blank");
-        Assert.notNull(input, "input is null");
-
-        DataSourceEntity existing = getById(id);
-        Assert.notNull(existing, "entity not found");
-
-        DataSourceEntity entity = input.toEntity();
+        Assert.notNull(upsertDataSource, "input is null");
+        DataSourceEntity entity = upsertDataSource.toEntity();
         entity.setId(id);
-        if (entity.getPassword() == null || entity.getPassword().isEmpty()) {
-            entity.setPassword(existing.getPassword());
-        }
-        Assert.isTrue(updateById(entity), "update failed");
+        boolean updated = updateById(entity);
+        Assert.isTrue(updated, "update failed");
         syncDynamicDataSource(entity);
         publishChange(entity);
     }
@@ -95,7 +82,6 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity existing = getById(id);
         if (existing != null) {
-            // 构建用于删除的 DTO（包含 Name 以便客户端移除）
             RemoteDataSource dto = new RemoteDataSource();
             dto.setId(id);
             dto.setDatasourceName(existing.getDatasourceName());
@@ -120,11 +106,11 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        if (FusionConstants.ENABLED.equals(entity.getEnabled())) {
+        if (DatasourceConstants.DatasourceStatus.ONLINE.getCode().equals(entity.getStatus())) {
             syncDynamicDataSource(entity);
             return;
         }
-        entity.setEnabled(FusionConstants.ENABLED);
+        entity.setStatus(DatasourceConstants.DatasourceStatus.ONLINE.getCode());
         Assert.isTrue(updateById(entity), "update failed");
         syncDynamicDataSource(entity);
         publishChange(entity);
@@ -136,7 +122,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        entity.setEnabled(FusionConstants.DISABLED);
+        entity.setStatus(DatasourceConstants.DatasourceStatus.OFFLINE.getCode());
         entity.setUpdatedAt(LocalDateTime.now());
         Assert.isTrue(updateById(entity), "update failed");
         // 禁用需发 REMOVE 事件，Client 端才会调用 removeDataSource() 移除连接池
@@ -147,7 +133,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         if (entity == null) {
             return;
         }
-        if (!FusionConstants.ENABLED.equals(entity.getEnabled())) {
+        if (!DatasourceConstants.DatasourceStatus.ONLINE.getCode().equals(entity.getStatus())) {
             dynamicDataSourceService.removeDataSource(entity.getId());
             return;
         }
@@ -178,8 +164,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
 
     private RemoteDataSource buildRemoteDataSource(DataSourceEntity entity) {
         RemoteDataSource remoteDataSource = DataSourcePropertyUtils.buildDataSourceEntity(entity);
-        remoteDataSource.setTenantId(null); // 全局共享
-        // P2-9：利用 updatedAt 代替不稳定且计算耗时的哈希码作为 version
+        remoteDataSource.setTenantId(null);
         if (entity.getUpdatedAt() != null) {
             remoteDataSource.setVersion(entity.getUpdatedAt().toLocalTime().getSecond());
         } else {

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
@@ -38,7 +38,7 @@ public class ServerDataSourceInitializer implements ApplicationRunner {
             Page<DataSourceEntity> page = dataSourceMapper.selectPage(
                     new Page<>(current, size),
                     Wrappers.lambdaQuery(DataSourceEntity.class)
-                            .eq(DataSourceEntity::getEnabled, FusionConstants.ENABLED)
+                            .eq(DataSourceEntity::getStatus, DatasourceConstants.DatasourceStatus.ONLINE.getCode())
                             .orderByAsc(DataSourceEntity::getId));
 
             List<DataSourceEntity> records = page.getRecords();

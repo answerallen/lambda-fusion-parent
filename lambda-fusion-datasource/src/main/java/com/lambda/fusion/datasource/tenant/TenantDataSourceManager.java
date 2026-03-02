@@ -2,7 +2,7 @@ package com.lambda.fusion.datasource.tenant;
 
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
-import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.DatasourceProperties;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
@@ -108,7 +108,8 @@ public class TenantDataSourceManager {
     public boolean tenantDataSourceExists(String tenantId, String tenantPrefix) {
         String dataSourceName = getTenantDataSourceName(tenantId, tenantPrefix);
         RemoteDataSource ds = remoteDataSourceService.get(dataSourceName);
-        return ds != null && ds.getEnabled() != null && ds.getEnabled() == 1;
+        return ds != null
+                && DatasourceConstants.DatasourceStatus.ONLINE.getCode().equals(ds.getStatus());
     }
 
     /**
@@ -116,7 +117,7 @@ public class TenantDataSourceManager {
      *
      * @param tenantId         租户ID
      * @param tenantPrefix     租户数据源名称前缀
-     * @param dataSourceConfig 数据源配置（会自动设置 datasourceName、tenantId、enabled）
+     * @param dataSourceConfig 数据源配置（会自动设置 datasourceName、tenantId、status）
      * @return true 如果创建成功
      */
     public boolean createTenantDataSource(String tenantId, String tenantPrefix, RemoteDataSource dataSourceConfig) {
@@ -126,7 +127,7 @@ public class TenantDataSourceManager {
         }
         dataSourceConfig.setDatasourceName(dataSourceName);
         dataSourceConfig.setTenantId(tenantId);
-        dataSourceConfig.setEnabled(FusionConstants.ENABLED);
+        dataSourceConfig.setStatus(DatasourceConstants.DatasourceStatus.ONLINE.getCode());
 
         boolean success = remoteDataSourceService.add(dataSourceConfig);
         if (success) {

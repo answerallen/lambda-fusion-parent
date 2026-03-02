@@ -1,6 +1,5 @@
 package com.lambda.fusion.datasource;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
@@ -10,7 +9,6 @@ import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
-import com.lambda.fusion.datasource.tenant.TenantIsolationModeResolver;
 import com.lambda.fusion.datasource.tenant.TenantSchemaCleaner;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import java.util.List;
@@ -41,11 +39,8 @@ public class DatasourceConfigure {
             havingValue = DatasourceConstants.MODE_SERVER,
             matchIfMissing = true)
     public RemoteDataSourceService remoteDataSourceService(
-            DataSourceManageService dataSourceManageService,
-            DataSourceChangeDispatcher callbackManager) {
-        return new RemoteDataSourceServiceImpl(
-                dataSourceManageService,
-                callbackManager);
+            DataSourceManageService dataSourceManageService, DataSourceChangeDispatcher callbackManager) {
+        return new RemoteDataSourceServiceImpl(dataSourceManageService, callbackManager);
     }
 
     @Bean

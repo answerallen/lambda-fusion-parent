@@ -1,5 +1,12 @@
 package com.lambda.fusion.datasource;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.lambda.fusion.core.annotation.DictMapper;
+import com.lambda.fusion.core.dict.DictEnum;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 /**
  * 数据源常量定义
  */
@@ -39,6 +46,21 @@ public interface DatasourceConstants {
      * Dubbo 服务版本
      */
     String DUBBO_VERSION = "1.0.0";
+
+    @Getter
+    @DictMapper(dictName = "DATASOURCE_STATUS", dictUsage = 0, dictDesc = "数据源状态")
+    @AllArgsConstructor
+    enum DatasourceStatus implements DictEnum<Integer> {
+        OFFLINE(0, "下线"),
+        ONLINE(1, "在线"),
+        MAINTENANCE(3, "维护");
+
+        @EnumValue
+        @JsonValue
+        private final Integer code;
+
+        private final String label;
+    }
 
     /**
      * 变更类型

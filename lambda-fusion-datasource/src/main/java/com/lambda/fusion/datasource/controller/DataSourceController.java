@@ -39,7 +39,7 @@ public class DataSourceController {
     @GetMapping("/{id}")
     @Operation(summary = "查询数据源详情", description = "按ID查询记录")
     public DataSourceEntity get(@Parameter(description = "数据源编号", required = true) @PathVariable String id) {
-        return dataSourceManageService.get(id);
+        return dataSourceManageService.getById(id);
     }
 
     @OperationLog
@@ -72,13 +72,13 @@ public class DataSourceController {
     }
 
     @PutMapping("/{id}/enable")
-    @Operation(summary = "启用数据源", description = "更新 enabled=1 并同步到运行时动态数据源")
+    @Operation(summary = "启用数据源", description = "更新 status=1 并同步到运行时动态数据源")
     public void enable(@Parameter(description = "数据源编号", required = true) @PathVariable String id) {
         dataSourceManageService.enable(id);
     }
 
     @PutMapping("/{id}/disable")
-    @Operation(summary = "禁用数据源", description = "更新 enabled=0 并从运行时动态数据源移除")
+    @Operation(summary = "禁用数据源", description = "更新 status=0 并从运行时动态数据源移除")
     public void disable(@Parameter(description = "数据源编号", required = true) @PathVariable String id) {
         dataSourceManageService.disable(id);
     }

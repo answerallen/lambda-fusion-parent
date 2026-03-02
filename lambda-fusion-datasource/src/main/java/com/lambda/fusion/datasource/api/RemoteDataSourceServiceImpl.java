@@ -10,12 +10,11 @@ import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 远程数据源服务Server端实现
@@ -40,7 +39,8 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     @Override
     public List<RemoteDataSource> listEnabled() {
         return dataSourceManageService.listAll().stream()
-                .filter(e -> e.getEnabled() != null && e.getEnabled() == 1)
+                .filter(e ->
+                        DatasourceConstants.DatasourceStatus.ONLINE.getCode().equals(e.getStatus()))
                 .map(this::toRemoteDataSource)
                 .collect(Collectors.toList());
     }
@@ -48,7 +48,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     @Override
     public RemoteDataSource get(String id) {
         // 先查全局
-        DataSourceEntity global = dataSourceManageService.get(id);
+        DataSourceEntity global = dataSourceManageService.getById(id);
         if (global != null) {
             return toRemoteDataSource(global);
         }
@@ -84,7 +84,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     @Override
     public boolean delete(String id) {
         try {
-            DataSourceEntity global = dataSourceManageService.get(id);
+            DataSourceEntity global = dataSourceManageService.getById(id);
             if (global != null) {
                 checkPermission();
                 dataSourceManageService.delete(id);
@@ -105,7 +105,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     @Override
     public boolean enable(String id) {
         try {
-            DataSourceEntity global = dataSourceManageService.get(id);
+            DataSourceEntity global = dataSourceManageService.getById(id);
             if (global != null) {
                 checkPermission();
                 dataSourceManageService.enable(id);
@@ -121,7 +121,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     @Override
     public boolean disable(String id) {
         try {
-            DataSourceEntity global = dataSourceManageService.get(id);
+            DataSourceEntity global = dataSourceManageService.getById(id);
             if (global != null) {
                 checkPermission();
                 dataSourceManageService.disable(id);
@@ -143,7 +143,6 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
 
         // 普通租户试图操作全局数据源
         throw new SecurityException("Current tenant cannot operate on global datasource");
-
     }
 
     @Override
@@ -159,7 +158,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     @Override
     public boolean initSchema(String id) {
         try {
-            DataSourceEntity dataSourceEntity = dataSourceManageService.get(id);
+            DataSourceEntity dataSourceEntity = dataSourceManageService.getById(id);
             if (dataSourceEntity != null) {
                 DataSourceChangeEvent event = new DataSourceChangeEvent();
                 event.setChangeType(DatasourceConstants.ChangeType.INIT_SCHEMA);
@@ -179,7 +178,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     @Override
     public boolean removeSchema(String id) {
         try {
-            DataSourceEntity dataSourceEntity = dataSourceManageService.get(id);
+            DataSourceEntity dataSourceEntity = dataSourceManageService.getById(id);
             if (dataSourceEntity != null) {
                 DataSourceChangeEvent event = new DataSourceChangeEvent();
                 event.setChangeType(DatasourceConstants.ChangeType.REMOVE_SCHEMA);

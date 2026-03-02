@@ -16,9 +16,21 @@ public class QueryDataSource extends Pagination<DataSourceEntity> {
     @Schema(description = "数据源名称")
     private String datasourceName;
 
+    @Schema(description = "逻辑资源标识")
+    private String datasourceKey;
+
+    @Schema(description = "数据库类型")
+    private String dbType;
+
+    @Schema(description = "状态")
+    private Integer status;
+
     public LambdaQueryWrapper<DataSourceEntity> getLambdaQueryWrapper() {
         return Wrappers.lambdaQuery(DataSourceEntity.class)
                 .like(StringUtils.isNotBlank(datasourceName), DataSourceEntity::getDatasourceName, datasourceName)
+                .like(StringUtils.isNotBlank(datasourceKey), DataSourceEntity::getDatasourceKey, datasourceKey)
+                .eq(StringUtils.isNotBlank(dbType), DataSourceEntity::getDbType, dbType)
+                .eq(status != null, DataSourceEntity::getStatus, status)
                 .orderByDesc(DataSourceEntity::getId);
     }
 }

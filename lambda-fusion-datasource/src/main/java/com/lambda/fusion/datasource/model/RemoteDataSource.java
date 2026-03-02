@@ -17,13 +17,19 @@ public class RemoteDataSource implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String id;
+    private String datasourceKey;
     private String datasourceName;
-    private String driverClassName;
-    private String jdbcUrl;
+    private String dbType;
+    private String purpose;
+    private String host;
+    private Integer port;
+    private String dbName;
     private String username;
     private String password;
-    private Integer enabled;
+    private String nodeRole;
+    private Integer status;
+    private String tags;
+    private String extraConfig;
     private String tenantId; // 标识归属租户，null表示全局共享
-    private String dbType; // 数据库类型
     private long version; // 数据版本号(时间戳)，用于同步校验
 }

@@ -5,4 +5,3 @@ import javax.sql.DataSource;
 public interface TenantSchemaCleaner {
     void removeSchema(String tenantId, DataSource dataSource);
 }
-

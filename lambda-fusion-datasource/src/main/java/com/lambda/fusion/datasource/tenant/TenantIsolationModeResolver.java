@@ -2,6 +2,7 @@ package com.lambda.fusion.datasource.tenant;
 
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.mapper.TenantIsolationMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,6 +13,7 @@ import org.springframework.util.StringUtils;
 
 @Component
 @RequiredArgsConstructor
+@SuppressFBWarnings({"URF_UNREAD_FIELD", "UUF_UNUSED_FIELD"})
 public class TenantIsolationModeResolver {
 
     private final TenantIsolationMapper tenantIsolationMapper;

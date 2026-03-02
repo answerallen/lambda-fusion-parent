@@ -13,8 +13,6 @@ public interface DataSourceManageService extends IService<DataSourceEntity> {
 
     Page<DataSourceEntity> page(QueryDataSource queryDTO);
 
-    DataSourceEntity get(String id);
-
     void save(UpsertDataSource input);
 
     void update(String id, UpsertDataSource input);

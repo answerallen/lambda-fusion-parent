@@ -18,16 +18,32 @@ public class UpsertDataSource extends BaseDTO<DataSourceEntity> {
     private String id;
 
     @NotBlank
+    @Schema(description = "逻辑资源标识")
+    private String datasourceKey;
+
+    @NotBlank
     @Schema(description = "数据源名称")
     private String datasourceName;
 
     @NotBlank
-    @Schema(description = "驱动类名")
-    private String driverClassName;
+    @Schema(description = "数据库类型")
+    private String dbType;
 
     @NotBlank
-    @Schema(description = "连接地址")
-    private String jdbcUrl;
+    @Schema(description = "用途")
+    private String purpose;
+
+    @NotBlank
+    @Schema(description = "主机地址")
+    private String host;
+
+    @NotNull
+    @Schema(description = "端口")
+    private Integer port;
+
+    @NotBlank
+    @Schema(description = "数据库名称")
+    private String dbName;
 
     @Schema(description = "用户名")
     private String username;
@@ -35,7 +51,15 @@ public class UpsertDataSource extends BaseDTO<DataSourceEntity> {
     @Schema(description = "密码")
     private String password;
 
-    @NotNull
-    @Schema(description = "是否启用 0禁用 1启用")
-    private Integer enabled;
+    @Schema(description = "节点角色")
+    private String nodeRole;
+
+    @Schema(description = "状态")
+    private Integer status;
+
+    @Schema(description = "资源标签")
+    private String tags;
+
+    @Schema(description = "扩展配置")
+    private String extraConfig;
 }
