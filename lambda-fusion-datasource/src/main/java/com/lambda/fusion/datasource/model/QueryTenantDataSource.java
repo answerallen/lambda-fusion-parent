@@ -13,16 +13,20 @@ import lombok.Setter;
 @Schema(description = "租户数据源分页查询")
 public class QueryTenantDataSource extends Pagination<TenantDataSourceEntity> {
 
-    @Schema(description = "数据源名称")
-    private String dbName;
+    @Schema(description = "数据源标识")
+    private String datasourceKey;
 
     @Schema(description = "租户id")
     private String tenantId;
 
+    @Schema(description = "Schema 状态")
+    private Integer schemaStatus;
+
     public LambdaQueryWrapper<TenantDataSourceEntity> getLambdaQueryWrapper() {
         return Wrappers.lambdaQuery(TenantDataSourceEntity.class)
-                .like(StringUtils.isNotBlank(dbName), TenantDataSourceEntity::getDbName, dbName)
+                .like(StringUtils.isNotBlank(datasourceKey), TenantDataSourceEntity::getDatasourceKey, datasourceKey)
                 .eq(StringUtils.isNotBlank(tenantId), TenantDataSourceEntity::getTenantId, tenantId)
+                .eq(schemaStatus != null, TenantDataSourceEntity::getSchemaStatus, schemaStatus)
                 .orderByDesc(TenantDataSourceEntity::getId);
     }
 }

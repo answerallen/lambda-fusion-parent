@@ -1,8 +1,6 @@
 package com.lambda.fusion.datasource;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -35,7 +33,6 @@ public class DatasourceProperties {
      * 默认租户前缀
      */
     private String defaultTenantPrefix = "tenant_";
-
 
     @Data
     public static class Dubbo {

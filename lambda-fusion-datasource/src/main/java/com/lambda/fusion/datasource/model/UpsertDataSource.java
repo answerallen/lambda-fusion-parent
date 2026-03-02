@@ -1,6 +1,5 @@
 package com.lambda.fusion.datasource.model;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.datasource.DatasourceConstants;

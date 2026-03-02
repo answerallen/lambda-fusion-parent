@@ -1,5 +1,6 @@
 package com.lambda.fusion.datasource;
 
+import cn.hutool.core.collection.CollUtil;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
@@ -16,6 +17,7 @@ import javax.sql.DataSource;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
@@ -44,6 +46,7 @@ public class DatasourceConfigure {
     }
 
     @Bean
+    @ConditionalOnClass(ServiceBean.class)
     @ConditionalOnProperty(
             name = DatasourceConstants.MODE_PROPERTY,
             havingValue = DatasourceConstants.MODE_SERVER,
@@ -81,8 +84,8 @@ public class DatasourceConfigure {
         return new DataSourceChangeListenerImpl(
                 dynamicDataSourceService,
                 dataSource,
-                schemaInitializers == null ? List.of() : schemaInitializers,
-                schemaCleaners == null ? List.of() : schemaCleaners);
+                CollUtil.defaultIfEmpty(schemaInitializers, List.of()),
+                CollUtil.defaultIfEmpty(schemaCleaners, List.of()));
     }
 
     @Bean

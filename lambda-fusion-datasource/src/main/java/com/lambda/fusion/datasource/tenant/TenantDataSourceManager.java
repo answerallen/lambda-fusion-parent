@@ -7,14 +7,13 @@ import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 租户数据源管理器（通用组件）

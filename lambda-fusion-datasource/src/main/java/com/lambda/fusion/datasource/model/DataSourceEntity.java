@@ -20,7 +20,7 @@ import lombok.Setter;
   datasource_key   varchar(128) not null comment '逻辑资源标识（系统用）',
   datasource_name     varchar(128) not null comment '数据源名称（展示用）',
   db_type          varchar(32)  not null comment 'mysql pg oracle',
-  usage_type       varchar(32)  not null comment '用途：BUSINESS SYSTEM',
+  usage_type       varchar(32)  not null comment '用途：BUSINESS SYSTEM TENANT',
   host             varchar(256) not null,
   port             int          not null,
   db_name          varchar(128) not null,
