@@ -22,7 +22,6 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -34,7 +33,6 @@ import org.springframework.stereotype.Service;
  * 认证服务实现类
  * 负责用户认证、授权和导航菜单相关的业务逻辑实现
  */
-@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
 @Service
 @RequiredArgsConstructor

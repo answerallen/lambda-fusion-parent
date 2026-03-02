@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@SuppressFBWarnings({"EI_EXPOSE_REP2", "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"})
+@SuppressFBWarnings({"EI_EXPOSE_REP2"})
 public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, DataSourceEntity>
         implements DataSourceManageService {
 
