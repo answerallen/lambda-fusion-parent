@@ -4,7 +4,7 @@ import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.proxy.TenantDataSourceProxy;
 import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
-import com.lambda.fusion.datasource.tenant.TenantIsolationModeResolver;
+import com.lambda.fusion.datasource.tenant.TenantIsolationResolver;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.sql.DataSource;
@@ -27,7 +27,7 @@ public abstract class AbstractTenantDataSourceProvisioner {
 
     private final TenantDataSourceManager tenantDataSourceManager;
     private final DynamicRoutingDataSource dynamicRoutingDataSource;
-    private final TenantIsolationModeResolver tenantIsolationModeResolver;
+    private final TenantIsolationResolver tenantIsolationResolver;
 
     /**
      * 获取 Schema 初始化器
@@ -91,7 +91,7 @@ public abstract class AbstractTenantDataSourceProvisioner {
         log.info("开始为租户 [{}] 配置数据源，前缀: {}", tenantId, getTenantPrefix());
 
         try {
-            if (tenantIsolationModeResolver.isShared(tenantId)) {
+            if (tenantIsolationResolver.isShared(tenantId)) {
                 throw new IllegalStateException("租户隔离模式为共享库，禁止执行独立库 Provisioning: " + tenantId);
             }
 

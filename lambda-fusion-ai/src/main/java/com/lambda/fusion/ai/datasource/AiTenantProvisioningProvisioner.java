@@ -4,7 +4,7 @@ import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
-import com.lambda.fusion.datasource.tenant.TenantIsolationModeResolver;
+import com.lambda.fusion.datasource.tenant.TenantIsolationResolver;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -57,10 +57,10 @@ public class AiTenantProvisioningProvisioner extends AbstractTenantDataSourcePro
     public AiTenantProvisioningProvisioner(
             TenantDataSourceManager tenantDataSourceManager,
             DynamicRoutingDataSource dynamicRoutingDataSource,
-            TenantIsolationModeResolver tenantIsolationModeResolver,
+            TenantIsolationResolver tenantIsolationResolver,
             AiSchemaInitializer aiSchemaInitializer,
             AiProperties aiProperties) {
-        super(tenantDataSourceManager, dynamicRoutingDataSource, tenantIsolationModeResolver);
+        super(tenantDataSourceManager, dynamicRoutingDataSource, tenantIsolationResolver);
         this.aiSchemaInitializer = aiSchemaInitializer;
         this.aiProperties = aiProperties;
     }
