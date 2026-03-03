@@ -59,7 +59,6 @@ public class DataSourceListener {
 
                 DataSourceChangeEvent apiEvent = new DataSourceChangeEvent();
                 apiEvent.setDataSourceId(event.getDataSource().getId());
-                apiEvent.setTenantId(event.getDataSource().getTenantId());
                 apiEvent.setDataSource(event.getDataSource());
                 apiEvent.setTimestamp(System.currentTimeMillis());
 

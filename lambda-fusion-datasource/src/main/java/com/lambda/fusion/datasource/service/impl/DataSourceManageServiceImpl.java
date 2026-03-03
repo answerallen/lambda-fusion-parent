@@ -55,8 +55,8 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     public void save(UpsertDataSource upsertDataSource) {
         Assert.notNull(upsertDataSource, "input is null");
         DataSourceEntity entity = upsertDataSource.toEntity();
-        if (entity.getStatus() == null) {
-            entity.setStatus(DatasourceConstants.DatasourceStatus.ONLINE);
+        if (upsertDataSource.getStatus() == null) {
+            entity.setStatus(DatasourceConstants.DatasourceStatus.fromCode(1));
         }
         boolean saved = save(entity);
         Assert.isTrue(saved, "save failed");
@@ -107,11 +107,12 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.hasText(id, "id is blank");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        if (DatasourceConstants.DatasourceStatus.ONLINE == entity.getStatus()) {
+        if (entity.getStatus() != null
+                && Integer.valueOf(1).equals(entity.getStatus().getCode())) {
             syncDynamicDataSource(entity);
             return;
         }
-        entity.setStatus(DatasourceConstants.DatasourceStatus.ONLINE);
+        entity.setStatus(DatasourceConstants.DatasourceStatus.fromCode(1));
         Assert.isTrue(updateById(entity), "update failed");
         syncDynamicDataSource(entity);
         publishChange(entity);
@@ -134,7 +135,8 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         if (entity == null) {
             return;
         }
-        if (DatasourceConstants.DatasourceStatus.ONLINE != entity.getStatus()) {
+        if (entity.getStatus() == null
+                || !Integer.valueOf(1).equals(entity.getStatus().getCode())) {
             dynamicDataSourceService.removeDataSource(entity.getId());
             return;
         }

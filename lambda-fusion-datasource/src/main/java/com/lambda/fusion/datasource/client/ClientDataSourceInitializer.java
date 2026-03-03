@@ -1,8 +1,8 @@
 package com.lambda.fusion.datasource.client;
 
+import cn.hutool.core.util.IdUtil;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.fusion.datasource.DatasourceProperties;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
@@ -37,8 +38,11 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
     private RemoteDataSourceService remoteDataSourceService;
 
     private final DynamicDataSourceService dynamicDataSourceService;
-    private final DataSourceChangeListenerImpl callback;
+    private final ClientDataSourceChangeListener callback;
     private final RetryTemplate retryTemplate;
+
+    @Value("${spring.application.name:unknown-app}")
+    private String applicationName;
 
     /** 防止重复初始化（重试成功后无需再次执行） */
     private final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -52,7 +56,7 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
 
     public ClientDataSourceInitializer(
             DynamicDataSourceService dynamicDataSourceService,
-            DataSourceChangeListenerImpl callback,
+            ClientDataSourceChangeListener callback,
             DatasourceProperties datasourceProperties) {
         this.dynamicDataSourceService = dynamicDataSourceService;
         this.callback = callback;
@@ -112,9 +116,8 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
 
         // 2. 订阅变更推送
         String clientId = generateClientId();
-        String tenantId = DubboContextHolder.getCurrentTenantId();
-        remoteDataSourceService.subscribe(clientId, tenantId, callback);
-        log.info("Subscribed to remote datasource changes. ClientId: {}, TenantId: {}", clientId, tenantId);
+        remoteDataSourceService.subscribe(clientId, callback);
+        log.info("Subscribed to remote datasource changes. ClientId: {}", clientId);
 
         // 3. 注册 ShutdownHook 取消订阅
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -137,11 +140,9 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
 
     private String generateClientId() {
         try {
-            return InetAddress.getLocalHost().getHostAddress()
-                    + ":"
-                    + UUID.randomUUID().toString().substring(0, 8);
+            return applicationName + "@" + InetAddress.getLocalHost().getHostAddress() + ":" + IdUtil.nanoId(8);
         } catch (Exception e) {
-            return "unknown:" + UUID.randomUUID();
+            return applicationName + "@unknown:" + UUID.randomUUID();
         }
     }
 

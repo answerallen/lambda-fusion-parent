@@ -95,7 +95,9 @@ public class TenantDataSourceManager {
     public boolean tenantDataSourceExists(String tenantId, String tenantPrefix) {
         String dataSourceName = getTenantDataSourceName(tenantId, tenantPrefix);
         RemoteDataSource ds = remoteDataSourceService.get(dataSourceName);
-        return ds != null && DatasourceConstants.DatasourceStatus.ONLINE == ds.getStatus();
+        return ds != null
+                && ds.getStatus() != null
+                && Integer.valueOf(1).equals(ds.getStatus().getCode());
     }
 
     /**
@@ -113,7 +115,7 @@ public class TenantDataSourceManager {
         }
         dataSourceConfig.setDatasourceName(dataSourceName);
         dataSourceConfig.setTenantId(tenantId);
-        dataSourceConfig.setStatus(DatasourceConstants.DatasourceStatus.ONLINE);
+        dataSourceConfig.setStatus(DatasourceConstants.DatasourceStatus.fromCode(1));
 
         boolean success = remoteDataSourceService.add(dataSourceConfig);
         if (success) {

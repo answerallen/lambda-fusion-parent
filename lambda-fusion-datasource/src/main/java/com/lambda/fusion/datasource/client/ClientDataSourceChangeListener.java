@@ -6,13 +6,12 @@ import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.api.DataSourceChangeListener;
-import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.tenant.TenantSchemaCleaner;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.List;
+import java.util.Optional;
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,12 +25,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-public class DataSourceChangeListenerImpl implements DataSourceChangeListener {
+public class ClientDataSourceChangeListener implements DataSourceChangeListener {
 
     private final DynamicDataSourceService dynamicDataSourceService;
-    private final DataSource dataSource;
-    private final List<TenantSchemaInitializer> schemaInitializers;
-    private final List<TenantSchemaCleaner> schemaCleaners;
+    private final Optional<TenantSchemaInitializer> schemaInitializer;
+    private final Optional<TenantSchemaCleaner> schemaCleaner;
 
     @Override
     public void onDataSourceChanged(DataSourceChangeEvent event) {
@@ -105,40 +103,34 @@ public class DataSourceChangeListenerImpl implements DataSourceChangeListener {
     }
 
     private void handleInitSchema(DataSourceChangeEvent event) {
-        if (schemaInitializers == null || schemaInitializers.isEmpty()) {
-            log.warn("No TenantSchemaInitializer found, skip INIT_SCHEMA. datasourceId={}", event.getDataSourceId());
-            return;
-        }
-        String dataSourceId = event.getDataSourceId();
-        if (StrUtil.isEmpty(dataSourceId)) {
-            log.warn("Received INIT_SCHEMA event without datasource id");
-            return;
-        }
-        try (var ignored = DataSourceSwitcher.switchTo(dataSourceId)) {
-            for (TenantSchemaInitializer initializer : schemaInitializers) {
-                initializer.initializeSchema(event.getTenantId(), dataSource);
+        schemaInitializer.ifPresent((initializer) -> {
+            String dataSourceId = event.getDataSourceId();
+            if (StrUtil.isEmpty(dataSourceId)) {
+                log.warn("Received INIT_SCHEMA event without datasource id");
+                return;
             }
-        } catch (Exception e) {
-            log.error("Failed to init schema. datasourceId={}", dataSourceId, e);
-        }
+            try {
+                DataSource dataSource = dynamicDataSourceService.getDataSource(dataSourceId);
+                initializer.initializeSchema(event.getTenantId(), dataSource);
+            } catch (Exception e) {
+                log.error("Failed to init schema. datasourceId={}", dataSourceId, e);
+            }
+        });
     }
 
     private void handleRemoveSchema(DataSourceChangeEvent event) {
-        if (schemaCleaners == null || schemaCleaners.isEmpty()) {
-            log.warn("No TenantSchemaCleaner found, skip REMOVE_SCHEMA. datasourceId={}", event.getDataSourceId());
-            return;
-        }
-        String dataSourceId = event.getDataSourceId();
-        if (StrUtil.isEmpty(dataSourceId)) {
-            log.warn("Received REMOVE_SCHEMA event without datasource id");
-            return;
-        }
-        try (var ignored = DataSourceSwitcher.switchTo(dataSourceId)) {
-            for (TenantSchemaCleaner cleaner : schemaCleaners) {
-                cleaner.removeSchema(event.getTenantId(), dataSource);
+        schemaCleaner.ifPresent(tenantSchemaCleaner -> {
+            String dataSourceId = event.getDataSourceId();
+            if (StrUtil.isEmpty(dataSourceId)) {
+                log.warn("Received REMOVE_SCHEMA event without datasource id");
+                return;
             }
-        } catch (Exception e) {
-            log.error("Failed to remove schema. datasourceId={}", dataSourceId, e);
-        }
+            try {
+                DataSource dataSource = dynamicDataSourceService.getDataSource(dataSourceId);
+                tenantSchemaCleaner.removeSchema(event.getTenantId(), dataSource);
+            } catch (Exception e) {
+                log.error("Failed to remove schema. datasourceId={}", dataSourceId, e);
+            }
+        });
     }
 }

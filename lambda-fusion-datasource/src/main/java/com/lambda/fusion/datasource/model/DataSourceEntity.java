@@ -9,6 +9,7 @@ import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.fusion.core.entity.BaseEntity;
 import com.lambda.fusion.datasource.DatasourceConstants;
+import com.lambda.fusion.datasource.convert.DatasourceConvertFunctions;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -22,9 +23,7 @@ import lombok.Setter;
  * datasource_name     varchar(128) not null comment '数据源名称（展示用）',
  * db_type          varchar(32)  not null comment 'mysql pg oracle',
  * usage_type       varchar(32)  not null comment '用途：BUSINESS SYSTEM TENANT',
- * host             varchar(256) not null,
- * port             int          not null,
- * db_name          varchar(128) not null,
+ * jdbc_url         varchar(256) not null,
  * username         varchar(128) null,
  * password         varchar(512) null,
  * node_role        varchar(32)  default 'PRIMARY' comment 'PRIMARY 主库, REPLICA 从库',
@@ -40,7 +39,7 @@ import lombok.Setter;
  */
 @Setter
 @Getter
-@AutoConverter(target = RemoteDataSource.class)
+@AutoConverter(target = RemoteDataSource.class, uses = DatasourceConvertFunctions.class)
 @TableName("la_datasources")
 @Schema(description = "动态数据源")
 public class DataSourceEntity extends BaseEntity {
@@ -65,23 +64,15 @@ public class DataSourceEntity extends BaseEntity {
     @Schema(description = "用途")
     private String usageType;
 
-    @TableField("host")
-    @Schema(description = "主机地址")
-    private String host;
-
-    @TableField("port")
-    @Schema(description = "端口")
-    private Integer port;
-
-    @TableField("db_name")
-    @Schema(description = "数据库名称")
-    private String dbName;
+    @TableField("jdbc_url")
+    @Schema(description = "连接地址")
+    private String jdbcUrl;
 
     @TableField("username")
     @Schema(description = "用户名")
     private String username;
 
-    @FieldMapping(target = "password",qualifiedByName = "mapEncodePassword")
+    @FieldMapping(target = "password", qualifiedByName = "mapEncodePassword")
     @Hidden
     @JsonIgnore
     @TableField("password")

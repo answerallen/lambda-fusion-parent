@@ -2,7 +2,6 @@ package com.lambda.fusion.datasource.dispatcher;
 
 import com.lambda.fusion.datasource.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.api.DataSourceChangeListener;
-import com.lambda.fusion.datasource.model.SubscriberInfo;
 import jakarta.annotation.PreDestroy;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -18,9 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 public class DataSourceChangeDispatcher {
 
     /**
-     * 已注册的回调映射 (clientId -> SubscriberInfo)
+     * 已注册的回调映射 (clientId -> callback)
      */
-    private final Map<String, SubscriberInfo> subscribers = new ConcurrentHashMap<>();
+    private final Map<String, DataSourceChangeListener> subscribers = new ConcurrentHashMap<>();
 
     /**
      * 异步通知线程池
@@ -55,13 +54,12 @@ public class DataSourceChangeDispatcher {
     /**
      * 注册订阅
      *
-     * @param clientId 客户端ID
-     * @param tenantId 租户ID
+     * @param clientId       客户端ID
      * @param changeListener 回调接口
      */
-    public void addSubscriber(String clientId, String tenantId, DataSourceChangeListener changeListener) {
-        subscribers.put(clientId, new SubscriberInfo(tenantId, changeListener));
-        log.info("Client subscribed: {} (Tenant: {})", clientId, tenantId);
+    public void addSubscriber(String clientId, DataSourceChangeListener changeListener) {
+        subscribers.put(clientId, changeListener);
+        log.info("Client subscribed: {}", clientId);
     }
 
     /**
@@ -89,37 +87,13 @@ public class DataSourceChangeDispatcher {
                 event.getDataSourceId(),
                 subscribers.size());
 
-        subscribers.forEach((clientId, info) -> {
-            if (shouldNotify(info, event)) {
-                notifyExecutor.submit(() -> {
-                    try {
-                        info.getChangeListener().onDataSourceChanged(event);
-                        log.debug("Notified client: {}", clientId);
-                    } catch (Exception e) {
-                        log.warn("Failed to notify client: {}, error: {}", clientId, e.getMessage());
-                        // 通知失败时移除该客户端（可选策略，暂不移除以防网络抖动）
-                    }
-                });
+        subscribers.forEach((clientId, listener) -> notifyExecutor.submit(() -> {
+            try {
+                listener.onDataSourceChanged(event);
+                log.debug("Notified client: {}", clientId);
+            } catch (Exception e) {
+                log.warn("Failed to notify client: {}, error: {}", clientId, e.getMessage());
             }
-        });
-    }
-
-    private boolean shouldNotify(SubscriberInfo info, DataSourceChangeEvent event) {
-        // 事件中的租户ID
-        String eventTenantId = event.getTenantId();
-
-        // 1. 如果事件是全局数据源变更 (tenantId == null)，通知所有有权限的订阅者
-        if (eventTenantId == null) {
-            // 这里假设所有租户都能看到全局数据源，或者根据具体业务规则判断
-            return true;
-        }
-
-        // 2. 如果订阅者是全局/管理员 (info.tenantId == null or "default")，通知
-        if (info.getTenantId() == null || "default".equals(info.getTenantId())) {
-            return true;
-        }
-
-        // 3. 租户匹配
-        return info.getTenantId().equals(eventTenantId);
+        }));
     }
 }

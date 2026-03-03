@@ -8,7 +8,6 @@ import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
-import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,7 +38,8 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     @Override
     public List<RemoteDataSource> listEnabled() {
         return dataSourceManageService.listAll().stream()
-                .filter(e -> DatasourceConstants.DatasourceStatus.ONLINE == e.getStatus())
+                .filter(e -> e.getStatus() != null
+                        && Integer.valueOf(1).equals(e.getStatus().getCode()))
                 .map(this::toRemoteDataSource)
                 .collect(Collectors.toList());
     }
@@ -145,8 +145,8 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     @Override
-    public void subscribe(String clientId, String tenantId, DataSourceChangeListener callback) {
-        callbackManager.addSubscriber(clientId, tenantId, callback);
+    public void subscribe(String clientId, DataSourceChangeListener callback) {
+        callbackManager.addSubscriber(clientId, callback);
     }
 
     @Override
@@ -162,6 +162,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 DataSourceChangeEvent event = new DataSourceChangeEvent();
                 event.setChangeType(DatasourceConstants.ChangeType.INIT_SCHEMA);
                 event.setDataSourceId(id);
+                event.setTenantId(DubboContextHolder.getCurrentTenantId());
                 event.setDataSource(toRemoteDataSource(dataSourceEntity));
                 event.setTimestamp(System.currentTimeMillis());
                 callbackManager.broadcast(event);
@@ -182,6 +183,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 DataSourceChangeEvent event = new DataSourceChangeEvent();
                 event.setChangeType(DatasourceConstants.ChangeType.REMOVE_SCHEMA);
                 event.setDataSourceId(id);
+                event.setTenantId(DubboContextHolder.getCurrentTenantId());
                 event.setDataSource(toRemoteDataSource(dataSourceEntity));
                 event.setTimestamp(System.currentTimeMillis());
                 callbackManager.broadcast(event);

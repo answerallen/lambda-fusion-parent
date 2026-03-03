@@ -18,13 +18,12 @@ public class RemoteDataSource implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String id;
+    private String tenantId;
     private String datasourceKey;
     private String datasourceName;
     private String dbType;
     private String usageType;
-    private String host;
-    private Integer port;
-    private String dbName;
+    private String jdbcUrl;
     private String username;
     private String password;
     private String nodeRole;

@@ -1,19 +1,17 @@
 package com.lambda.fusion.datasource;
 
-import cn.hutool.core.collection.CollUtil;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
+import com.lambda.fusion.datasource.client.ClientDataSourceChangeListener;
 import com.lambda.fusion.datasource.client.ClientDataSourceInitializer;
-import com.lambda.fusion.datasource.client.DataSourceChangeListenerImpl;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.tenant.TenantSchemaCleaner;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
-import java.util.List;
-import javax.sql.DataSource;
+import java.util.Optional;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,23 +74,19 @@ public class DatasourceConfigure {
 
     @Bean
     @ConditionalOnProperty(name = DatasourceConstants.MODE_PROPERTY, havingValue = DatasourceConstants.MODE_CLIENT)
-    public DataSourceChangeListenerImpl dataSourceChangeListener(
+    public ClientDataSourceChangeListener dataSourceChangeListener(
             DynamicDataSourceService dynamicDataSourceService,
-            DataSource dataSource,
-            @Autowired(required = false) List<TenantSchemaInitializer> schemaInitializers,
-            @Autowired(required = false) List<TenantSchemaCleaner> schemaCleaners) {
-        return new DataSourceChangeListenerImpl(
-                dynamicDataSourceService,
-                dataSource,
-                CollUtil.defaultIfEmpty(schemaInitializers, List.of()),
-                CollUtil.defaultIfEmpty(schemaCleaners, List.of()));
+            @Autowired(required = false) TenantSchemaInitializer schemaInitializer,
+            @Autowired(required = false) TenantSchemaCleaner schemaCleaner) {
+        return new ClientDataSourceChangeListener(
+                dynamicDataSourceService, Optional.of(schemaInitializer), Optional.of(schemaCleaner));
     }
 
     @Bean
     @ConditionalOnProperty(name = DatasourceConstants.MODE_PROPERTY, havingValue = DatasourceConstants.MODE_CLIENT)
     public ClientDataSourceInitializer clientDataSourceInitializer(
             DynamicDataSourceService dynamicDataSourceService,
-            DataSourceChangeListenerImpl dataSourceChangeListener,
+            ClientDataSourceChangeListener dataSourceChangeListener,
             DatasourceProperties datasourceProperties) {
         return new ClientDataSourceInitializer(
                 dynamicDataSourceService, dataSourceChangeListener, datasourceProperties);

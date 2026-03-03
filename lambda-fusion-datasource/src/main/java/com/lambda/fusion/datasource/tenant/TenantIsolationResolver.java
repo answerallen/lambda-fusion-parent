@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -18,8 +17,7 @@ public class TenantIsolationResolver {
 
     private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
 
-    @Setter
-    private long ttlMillis = 30_000L;
+    private static final long TTL_MILLIS = 30_000L;
 
     public Optional<FusionConstants.IsolationMode> resolve(String tenantId) {
         if (!StringUtils.hasText(tenantId) || "default".equals(tenantId)) {
@@ -28,13 +26,13 @@ public class TenantIsolationResolver {
 
         long now = System.currentTimeMillis();
         CacheEntry cached = cache.get(tenantId);
-        if (cached != null && cached.expiresAt() > now) {
-            return Optional.ofNullable(cached.mode());
+        if (cached != null && cached.expiresAt > now) {
+            return Optional.ofNullable(cached.mode);
         }
 
         Integer code = tenantIsolationMapper.selectIsolationModeCode(tenantId);
         FusionConstants.IsolationMode mode = fromCode(code);
-        cache.put(tenantId, new CacheEntry(mode, now + ttlMillis));
+        cache.put(tenantId, new CacheEntry(mode, now + TTL_MILLIS));
         return Optional.ofNullable(mode);
     }
 
@@ -62,5 +60,13 @@ public class TenantIsolationResolver {
         return null;
     }
 
-    private record CacheEntry(FusionConstants.IsolationMode mode, long expiresAt) {}
+    private static final class CacheEntry {
+        private final FusionConstants.IsolationMode mode;
+        private final long expiresAt;
+
+        private CacheEntry(FusionConstants.IsolationMode mode, long expiresAt) {
+            this.mode = mode;
+            this.expiresAt = expiresAt;
+        }
+    }
 }

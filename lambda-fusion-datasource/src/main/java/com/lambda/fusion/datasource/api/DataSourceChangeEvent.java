@@ -28,7 +28,7 @@ public class DataSourceChangeEvent implements Serializable {
     private String dataSourceId;
 
     /**
-     * 租户ID（可选，用于租户级数据源）
+     * 租户ID（全局事件可为空）
      */
     private String tenantId;
 

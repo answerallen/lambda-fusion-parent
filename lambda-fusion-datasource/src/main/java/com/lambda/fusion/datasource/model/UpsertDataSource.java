@@ -5,7 +5,6 @@ import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.datasource.DatasourceConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -35,16 +34,8 @@ public class UpsertDataSource extends BaseDTO<DataSourceEntity> {
     private String usageType;
 
     @NotBlank
-    @Schema(description = "主机地址")
-    private String host;
-
-    @NotNull
-    @Schema(description = "端口")
-    private Integer port;
-
-    @NotBlank
-    @Schema(description = "数据库名称")
-    private String dbName;
+    @Schema(description = "连接地址")
+    private String jdbcUrl;
 
     @Schema(description = "用户名")
     private String username;
