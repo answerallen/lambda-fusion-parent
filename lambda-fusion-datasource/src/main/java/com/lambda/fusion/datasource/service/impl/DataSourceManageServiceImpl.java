@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.Assert;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.DatasourceConstants;
@@ -163,8 +164,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     }
 
     private RemoteDataSource buildRemoteDataSource(DataSourceEntity entity) {
-        RemoteDataSource remoteDataSource = DataSourcePropertyUtils.buildDataSourceEntity(entity);
-        remoteDataSource.setTenantId(null);
+        RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
         if (entity.getUpdatedAt() != null) {
             remoteDataSource.setVersion(entity.getUpdatedAt().toLocalTime().getSecond());
         } else {

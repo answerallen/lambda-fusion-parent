@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.fusion.core.entity.BaseEntity;
 import com.lambda.fusion.datasource.DatasourceConstants;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -80,6 +81,7 @@ public class DataSourceEntity extends BaseEntity {
     @Schema(description = "用户名")
     private String username;
 
+    @FieldMapping(target = "password",qualifiedByName = "mapEncodePassword")
     @Hidden
     @JsonIgnore
     @TableField("password")

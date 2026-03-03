@@ -195,7 +195,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     }
 
     private RemoteDataSource toRemoteDataSource(DataSourceEntity entity) {
-        RemoteDataSource remoteDataSource = DataSourcePropertyUtils.buildDataSourceEntity(entity);
+        RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
         remoteDataSource.setVersion(System.currentTimeMillis());
         return remoteDataSource;
     }

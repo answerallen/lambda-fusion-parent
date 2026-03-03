@@ -31,6 +31,5 @@ public class RemoteDataSource implements Serializable {
     private DatasourceConstants.DatasourceStatus status;
     private String tags;
     private String extraConfig;
-    private String tenantId; // 标识归属租户，null表示全局共享
-    private long version; // 数据版本号(时间戳)，用于同步校验
+    private long version;
 }
