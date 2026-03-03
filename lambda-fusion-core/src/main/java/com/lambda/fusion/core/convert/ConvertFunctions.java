@@ -1,6 +1,9 @@
 package com.lambda.fusion.core.convert;
 
 import java.time.LocalDateTime;
+
+import cn.hutool.core.codec.Base64;
+import org.apache.logging.log4j.util.Base64Util;
 import org.mapstruct.Named;
 
 @SuppressWarnings("unused")
@@ -22,5 +25,11 @@ public interface ConvertFunctions {
     @Named("mapAccountEnabled")
     static Integer mapAccountEnabled(boolean enabled) {
         return enabled ? 1 : 0;
+    }
+
+
+    @Named("mapEncodePassword")
+    static String mapAccountEnabled(String password) {
+        return Base64.encode(password);
     }
 }
