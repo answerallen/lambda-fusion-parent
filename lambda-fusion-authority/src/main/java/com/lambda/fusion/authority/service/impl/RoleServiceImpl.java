@@ -26,7 +26,7 @@ import com.lambda.fusion.authority.service.InternalRoleService;
 import com.lambda.fusion.authority.service.ResourceService;
 import com.lambda.fusion.authority.service.RoleService;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
@@ -69,32 +69,32 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<Role> getAllRoles(LoginUserDetails loginUserDetails) {
+    public List<Role> getAllRoles(UserDetails userDetails) {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
-        parameters.put(AuthorityConstants.DEV, loginUserDetails.isDev());
-        parameters.put(AuthorityConstants.ADMIN, loginUserDetails.isAdmin());
-        parameters.put(AuthorityConstants.USERNAME, loginUserDetails.getUsername());
-        parameters.put(FusionConstants.TENANT_ID, loginUserDetails.getTenantId());
+        parameters.put(AuthorityConstants.DEV, userDetails.isDev());
+        parameters.put(AuthorityConstants.ADMIN, userDetails.isAdmin());
+        parameters.put(AuthorityConstants.USERNAME, userDetails.getUsername());
+        parameters.put(FusionConstants.TENANT_ID, userDetails.getTenantId());
         return roleMapper.getAllRoles(parameters);
     }
 
     @Override
-    public List<GroupRole> grouped(LoginUserDetails loginUserDetails, String tenantId) {
-        if (StringUtils.isBlank(tenantId) || StringUtils.isNotBlank(loginUserDetails.getTenantId())) {
-            tenantId = loginUserDetails.getTenantId();
+    public List<GroupRole> grouped(UserDetails userDetails, String tenantId) {
+        if (StringUtils.isBlank(tenantId) || StringUtils.isNotBlank(userDetails.getTenantId())) {
+            tenantId = userDetails.getTenantId();
         }
         Set<String> excludes = Sets.newHashSet();
         excludes.add(FusionConstants.ROLE_USER);
         excludes.add(FusionConstants.ROLE_HMAC);
         excludes.add(FusionConstants.ROLE_SYSTEM);
         excludes.add(FusionConstants.ROLE_TENANT);
-        if (!loginUserDetails.isDev()) {
+        if (!userDetails.isDev()) {
             excludes.add(FusionConstants.ROLE_DEV);
-            if (!loginUserDetails.isAdmin()) {
+            if (!userDetails.isAdmin()) {
                 excludes.add(FusionConstants.ROLE_ADMIN);
             }
         }
-        Set<String> queryExclude = internalRoleService.queryExclude(loginUserDetails);
+        Set<String> queryExclude = internalRoleService.queryExclude(userDetails);
         excludes.addAll(queryExclude);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(2);
         parameters.put(FusionConstants.EXCLUDES, excludes);
@@ -108,7 +108,7 @@ public class RoleServiceImpl implements RoleService {
         // Jin 如果当前用户的角色是开发工程师 只返回ROLE_DEV和ROLE_ADMIN
         final Map<String, List<Role>> map = roles.stream()
                 .filter(mutableRole -> {
-                    if (loginUserDetails.isDev()) {
+                    if (userDetails.isDev()) {
                         return (mutableRole.getAuthority().equals(FusionConstants.ROLE_DEV)
                                 || mutableRole.getAuthority().equals(FusionConstants.ROLE_ADMIN));
                     } else {
@@ -149,7 +149,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Role updateRole(LoginUserDetails loginUserDetails, UpdateRole updateRole) {
+    public Role updateRole(UserDetails userDetails, UpdateRole updateRole) {
         if (updateRole == null || updateRole.getAlias() == null) {
             throw AuthorityBusinessException.invalidParameter("别名不能为空！");
         }
@@ -160,11 +160,11 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Role saveRole(LoginUserDetails loginUserDetails, CreateRole createRole) {
+    public Role saveRole(UserDetails userDetails, CreateRole createRole) {
         if (createRole == null || createRole.getAlias() == null) {
             throw AuthorityBusinessException.invalidParameter("别名不能为空！");
         }
-        String tenantId = loginUserDetails.getTenantId();
+        String tenantId = userDetails.getTenantId();
         String authority = UUID.fastUUID().toString();
         // 注意：此处逻辑有问题，新生成的UUID不会存在，但保留原有逻辑
         createRole.setAuthority(authority);
@@ -173,7 +173,7 @@ public class RoleServiceImpl implements RoleService {
         String groupId = Optional.ofNullable(createRole.getGroupId()).orElse(AuthorityConstants.DEFAULT);
         createRole.setGroupId(groupId);
         RoleEntity roleEntity = createRole.toEntity();
-        roleEntity.setCreatedBy(loginUserDetails.getName());
+        roleEntity.setCreatedBy(userDetails.getName());
         roleEntity.setCreatedAt(LocalDateTime.now());
         roleMapper.insert(roleEntity);
         return getRoleByAuthority(authority);
@@ -225,18 +225,17 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<AccessPermission> getAccessPermission(
-            LoginUserDetails loginUserDetails, String authority, Integer mode) {
+    public List<AccessPermission> getAccessPermission(UserDetails userDetails, String authority, Integer mode) {
         if (authority == null) {
             throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
         }
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(3);
         parameters.put("authority", authority);
         parameters.put("mode", Optional.ofNullable(mode).orElse(0));
-        if (!loginUserDetails.isDev()) {
+        if (!userDetails.isDev()) {
             StpUtil.checkPermission(authority);
-            Set<String> authorities = loginUserDetails.getRoles();
-            authorities.add(loginUserDetails.getUsername());
+            Set<String> authorities = userDetails.getRoles();
+            authorities.add(userDetails.getUsername());
             parameters.put("authorities", authorities);
         }
         List<AccessPermission> permissions = roleMapper.getAccessPermission(parameters);
@@ -249,7 +248,7 @@ public class RoleServiceImpl implements RoleService {
     @CacheEvict(value = "ResourceOwners", allEntries = true)
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void grantRolePermission(String authority, String resourceId, int status, LoginUserDetails loginUser) {
+    public void grantRolePermission(String authority, String resourceId, int status, UserDetails loginUser) {
         if (authority == null) {
             throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
         }
@@ -309,17 +308,17 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "ResourceOwners", allEntries = true)
-    public void revokeRolePermission(String authority, String resourceId, LoginUserDetails loginUserDetails) {
+    public void revokeRolePermission(String authority, String resourceId, UserDetails userDetails) {
         if (authority == null) {
             throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
         }
         if (resourceId == null) {
             throw AuthorityBusinessException.invalidParameter("资源id不能为空");
         }
-        if (!loginUserDetails.isDev()) {
+        if (!userDetails.isDev()) {
             StpUtil.checkPermission(authority);
         }
-        String tenantId = loginUserDetails.getTenantId();
+        String tenantId = userDetails.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
             // todo tenantId = RoleUtil.getTenantId(authority);
             log.info("非租户");
@@ -328,7 +327,7 @@ public class RoleServiceImpl implements RoleService {
         if (resource == null) {
             throw AuthorityBusinessException.resourceNotFound(resourceId);
         }
-        List<Resource> resources = resourceService.getAllChildrenByOperator(loginUserDetails, resource);
+        List<Resource> resources = resourceService.getAllChildrenByOperator(userDetails, resource);
         resources.add(resource);
         List<String> ids = resources.stream().map(Resource::getId).collect(Collectors.toList());
         if (CollectionUtils.isNotEmpty(ids)) {
@@ -336,7 +335,7 @@ public class RoleServiceImpl implements RoleService {
         }
         ResourceType resourceType = ResourceType.get(resource.getResType());
         if (resourceType != null && !resourceType.isButton()) {
-            List<Resource> parents = resourceService.getAllParentsByOperator(loginUserDetails, resource);
+            List<Resource> parents = resourceService.getAllParentsByOperator(userDetails, resource);
             for (Resource parent : parents) {
                 AuthorityPermission parameters = new AuthorityPermission();
                 parameters.setId(parent.getId());
@@ -411,8 +410,8 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<Group> listGroups(LoginUserDetails loginUserDetails) {
-        String tenantId = loginUserDetails.getTenantId();
+    public List<Group> listGroups(UserDetails userDetails) {
+        String tenantId = userDetails.getTenantId();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(1);
         parameters.put(FusionConstants.TENANT_ID, tenantId);
         GroupEntity defaultGroupEntity = newDefaultGroup(tenantId);
@@ -438,7 +437,7 @@ public class RoleServiceImpl implements RoleService {
 
     @CacheEvict(value = "ResourceOwners", allEntries = true)
     @Override
-    public void assignUsersToRole(LoginUserDetails loginUserDetails, BatchRoleUserAssignmentRequest req) {
+    public void assignUsersToRole(UserDetails userDetails, BatchRoleUserAssignmentRequest req) {
         final String authority = req.getRoleId();
         final List<String> usernames = req.getUsername();
         final List<UserRoleEntity> dbResult = userRoleMapper.selectList(
@@ -463,7 +462,7 @@ public class RoleServiceImpl implements RoleService {
 
         // 3. 执行添加
         if (CollectionUtils.isNotEmpty(toAdd)) {
-            final String tenantId = loginUserDetails.getTenantId();
+            final String tenantId = userDetails.getTenantId();
             final List<UserRoleEntity> saveList = new ArrayList<>(toAdd.size());
             toAdd.forEach(username -> saveList.add(new UserRoleEntity(username, authority, tenantId)));
             userRoleMapper.insert(saveList);

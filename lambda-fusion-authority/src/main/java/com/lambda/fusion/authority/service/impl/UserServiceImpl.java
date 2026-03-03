@@ -31,7 +31,7 @@ import com.lambda.fusion.authority.service.OrganizationService;
 import com.lambda.fusion.authority.service.UserOnlineLogService;
 import com.lambda.fusion.authority.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.security.web.form.FormLockingStrategy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotBlank;
@@ -129,20 +129,20 @@ public class UserServiceImpl implements UserService {
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @Override
-    public User getCurrentUser(LoginUserDetails loginUserDetails) {
-        User user = this.getByUsername(loginUserDetails.getName());
+    public User getCurrentUser(UserDetails userDetails) {
+        User user = this.getByUsername(userDetails.getName());
         UserInfo props = user.getProps();
         if (props != null && properties.getPasswordStrategy().getEnablePeriodChange()) {
-            boolean notMatched = !loginUserDetails.isDev()
-                    && !loginUserDetails.isAdmin()
-                    && !loginUserDetails.isManager()
-                    && !loginUserDetails.isTenantManager();
+            boolean notMatched = !userDetails.isDev()
+                    && !userDetails.isAdmin()
+                    && !userDetails.isManager()
+                    && !userDetails.isTenantManager();
             // 判断密码是否需要更新
             if (notMatched && ObjectUtil.equals(props.getPasswordResetRequired(), false)) {
                 List<UserPasswordEntity> userUpdatePwdLogEntities =
                         userUpdatePwdLogMapper.selectList(new LambdaQueryWrapper<UserPasswordEntity>()
                                 .select(UserPasswordEntity::getUpdateTime)
-                                .eq(UserPasswordEntity::getUsername, loginUserDetails.getName())
+                                .eq(UserPasswordEntity::getUsername, userDetails.getName())
                                 .isNotNull(UserPasswordEntity::getUpdateTime)
                                 .orderByDesc(UserPasswordEntity::getUpdateTime));
                 if (CollectionUtils.isNotEmpty(userUpdatePwdLogEntities)) {
@@ -370,12 +370,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Set<String> getPermissions(LoginUserDetails operator, String source) {
+    public Set<String> getPermissions(UserDetails operator, String source) {
         return userMapper.selectUserPermissions(source);
     }
 
     @Override
-    public void batchSavePermissions(LoginUserDetails operator, String username, Set<String> permissions) {
+    public void batchSavePermissions(UserDetails operator, String username, Set<String> permissions) {
         List<UserRoleEntity> userRoleEntities = permissions.stream()
                 .map(permission -> {
                     UserRoleEntity userRoleEntity = new UserRoleEntity();
@@ -414,7 +414,7 @@ public class UserServiceImpl implements UserService {
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true)
     @Override
-    public void addUser(CreateUser createUser, LoginUserDetails operator) {
+    public void addUser(CreateUser createUser, UserDetails operator) {
         UserEntity userEntity = createUser.toEntity();
         if (userEntity == null) {
             throw AuthorityBusinessException.invalidParameter("用户信息不能为空");
@@ -479,7 +479,7 @@ public class UserServiceImpl implements UserService {
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true)
     @Override
-    public void updateUser(UpdateUser updateUser, LoginUserDetails operator) {
+    public void updateUser(UpdateUser updateUser, UserDetails operator) {
         UserEntity userEntity = updateUser.toEntity();
         int updated = userMapper.updateById(userEntity);
         if (updated != 1) {
@@ -523,7 +523,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteUser(LoginUserDetails operator, String username) {
+    public void deleteUser(UserDetails operator, String username) {
         if (username == null) {
             throw AuthorityBusinessException.invalidParameter("username不能为空");
         }
@@ -591,7 +591,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deactivateUser(LoginUserDetails operator, Integer type, String username) {
+    public void deactivateUser(UserDetails operator, Integer type, String username) {
         if (username == null) {
             throw AuthorityBusinessException.invalidParameter("username不能为空");
         }
@@ -607,17 +607,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void unlockUser(String username, LoginUserDetails operator) {
+    public void unlockUser(String username, UserDetails operator) {
         formLockingStrategy.unlock(username);
     }
 
     @Override
-    public List<UserProfile> getUserProfiles(LoginUserDetails operator, List<String> orgIds) {
+    public List<UserProfile> getUserProfiles(UserDetails operator, List<String> orgIds) {
         return userMapper.selectUserProfiles(operator.getTenantId(), orgIds);
     }
 
     @Override
-    public Set<String> getSubOrganizationIds(String orgId, LoginUserDetails operator) {
+    public Set<String> getSubOrganizationIds(String orgId, UserDetails operator) {
         Set<String> orgIds = new HashSet<>();
         if (StringUtils.isNotBlank(orgId)) {
             orgIds.add(orgId);
@@ -668,7 +668,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateTenantUser(User source, LoginUserDetails operator) {
+    public void updateTenantUser(User source, UserDetails operator) {
         String username = source.getUsername();
         User target = userMapper.selectUserByUsername(username);
         if (target == null) {

@@ -3,14 +3,14 @@ package com.lambda.fusion.authority.helper;
 import com.lambda.fusion.authority.model.role.SimpleRole;
 import com.lambda.fusion.authority.model.user.User;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.SecurityUtils;
 import org.apache.commons.lang.StringUtils;
 
 public class UserPermissionHelper {
 
     public static boolean isSelf(User user) {
-        LoginUserDetails loginUser = SecurityUtils.getUser();
+        UserDetails loginUser = SecurityUtils.getUser();
         return loginUser.getUsername().equals(user.getUsername());
     }
 

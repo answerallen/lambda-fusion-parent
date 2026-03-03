@@ -23,7 +23,7 @@ import com.lambda.fusion.authority.model.user.User;
 import com.lambda.fusion.authority.service.OrganizationService;
 import com.lambda.fusion.authority.service.RoleService;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
@@ -67,24 +67,23 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public List<Organization> treeList(OrganizationQuery organizationQuery) {
-        LoginUserDetails loginUserDetails = SecurityUtils.getUser();
-        List<Organization> organizations = queryOrganizations(loginUserDetails, organizationQuery);
-        this.applyPermissionConstraints(organizations, loginUserDetails);
+        UserDetails userDetails = SecurityUtils.getUser();
+        List<Organization> organizations = queryOrganizations(userDetails, organizationQuery);
+        this.applyPermissionConstraints(organizations, userDetails);
         return TreeBuilder.build(organizations);
     }
 
     /**
      * 根据条件获取组织列表
      *
-     * @param loginUserDetails 操作用户
+     * @param userDetails 操作用户
      * @param organizationQuery    查询参数
      * @return 组织列表
      */
-    private List<Organization> queryOrganizations(
-            LoginUserDetails loginUserDetails, OrganizationQuery organizationQuery) {
+    private List<Organization> queryOrganizations(UserDetails userDetails, OrganizationQuery organizationQuery) {
         if (StringUtils.isNotBlank(organizationQuery.getAlias())
                 || StringUtils.isNotBlank(organizationQuery.getName())) {
-            return getOrganizations(loginUserDetails, organizationQuery);
+            return getOrganizations(userDetails, organizationQuery);
         } else {
             return getSubOrganizations(organizationQuery);
         }
@@ -93,7 +92,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     /**
      * 根据搜索条件获取组织列表
      */
-    private List<Organization> getOrganizations(LoginUserDetails principal, OrganizationQuery organizationQuery) {
+    private List<Organization> getOrganizations(UserDetails principal, OrganizationQuery organizationQuery) {
         List<Organization> list = getOrgByCondition(principal, organizationQuery);
         if (principal.isAdmin()) {
             Set<String> additionalOrgIds = collectAdditionalOrgIds(principal.getOrgId(), list);
@@ -141,12 +140,12 @@ public class OrganizationServiceImpl implements OrganizationService {
     /**
      * 应用权限约束
      */
-    private void applyPermissionConstraints(List<Organization> organizations, LoginUserDetails loginUserDetails) {
-        String operatorOrgId = loginUserDetails.getOrgId();
-        String operatorTenantId = loginUserDetails.getTenantId();
+    private void applyPermissionConstraints(List<Organization> organizations, UserDetails userDetails) {
+        String operatorOrgId = userDetails.getOrgId();
+        String operatorTenantId = userDetails.getTenantId();
         for (Organization organization : organizations) {
             // 设置操作权限
-            if (!loginUserDetails.isAdmin() && organization.getId().equals(operatorOrgId)) {
+            if (!userDetails.isAdmin() && organization.getId().equals(operatorOrgId)) {
                 organization.setHasPermission(true);
             }
 
@@ -544,9 +543,9 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     public List<String> getSubOrganizations(LoginUser operator) {
         List<String> orgIds = new ArrayList<>();
-        if (operator instanceof LoginUserDetails loginUserDetails) {
+        if (operator instanceof UserDetails userDetails) {
             // 根据用户类型增加组织机构权限
-            if (!loginUserDetails.isManager()) {
+            if (!userDetails.isManager()) {
                 String orgId = operator.getOrgId();
                 if (StringUtils.isNotBlank(orgId)) {
                     orgIds.add(orgId);

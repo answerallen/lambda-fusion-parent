@@ -10,7 +10,7 @@ import com.lambda.fusion.authority.model.user.UserQueryContext;
 import com.lambda.fusion.authority.service.OrganizationService;
 import com.lambda.fusion.authority.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.SecurityUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
@@ -30,8 +30,8 @@ public class UserQueryHelper {
 
     public UserQueryContext buildUserQueryContext(UserQuery userQuery) {
         UserQueryContext userQueryContext = new UserQueryContext();
-        LoginUserDetails loginUserDetails = SecurityUtils.getUser();
-        String tenantId = loginUserDetails.getTenantId();
+        UserDetails userDetails = SecurityUtils.getUser();
+        String tenantId = userDetails.getTenantId();
 
         // 处理 username (支持逗号分隔)
         if (StringUtils.isNotBlank(userQuery.getUsername())) {
@@ -39,9 +39,9 @@ public class UserQueryHelper {
             userQueryContext.setUsernames(Arrays.asList(split));
         }
 
-        userQueryContext.setDev(loginUserDetails.isDev());
-        userQueryContext.setAdmin(loginUserDetails.isAdmin());
-        userQueryContext.setUsername(loginUserDetails.getName());
+        userQueryContext.setDev(userDetails.isDev());
+        userQueryContext.setAdmin(userDetails.isAdmin());
+        userQueryContext.setUsername(userDetails.getName());
 
         if (StringUtils.isNotBlank(userQuery.getEmail())) {
             userQueryContext.setEmail(fuzzyQuery(userQuery.getEmail()));
@@ -52,7 +52,7 @@ public class UserQueryHelper {
         if (StringUtils.isNotBlank(userQuery.getMobile())) {
             userQueryContext.setMobile(fuzzyQuery(userQuery.getMobile()));
         }
-        if (StringUtils.isNotBlank(loginUserDetails.getTenantId())) {
+        if (StringUtils.isNotBlank(userDetails.getTenantId())) {
             userQueryContext.setTenantId(tenantId);
         }
         if (StringUtils.isNotBlank(userQuery.getAuthority())) {
@@ -61,8 +61,7 @@ public class UserQueryHelper {
 
         if (StringUtils.isNotBlank(userQuery.getPersonal())) {
             Map<String, Object> tempMap = JSONUtil.parseObj(userQuery.getPersonal());
-            List<UserFieldsEntity> fields =
-                    UserInfoHelper.buildUserFieldsFromMap(tempMap, loginUserDetails.getUsername());
+            List<UserFieldsEntity> fields = UserInfoHelper.buildUserFieldsFromMap(tempMap, userDetails.getUsername());
             userQueryContext.setUserFields(fields);
         }
 
@@ -74,14 +73,14 @@ public class UserQueryHelper {
                 userQuery.getOrganizationId(),
                 userQuery.getIncludeChildren(),
                 userQuery.getEnableDataPermission(),
-                loginUserDetails);
+                userDetails);
         userQueryContext.setOrgIds(orgIds);
 
         return userQueryContext;
     }
 
     private Set<String> resolveOrganizationIds(
-            String organizationId, boolean includeChild, boolean dataPermission, LoginUserDetails loginUserDetails) {
+            String organizationId, boolean includeChild, boolean dataPermission, UserDetails userDetails) {
         Set<String> orgIds = Sets.newHashSet();
         if (includeChild || StringUtils.isBlank(organizationId)) {
             if (!dataPermission) {
@@ -90,7 +89,7 @@ public class UserQueryHelper {
                     orgIds.addAll(subOrgIds);
                 }
             } else {
-                orgIds.addAll(userService.getSubOrganizationIds(organizationId, loginUserDetails));
+                orgIds.addAll(userService.getSubOrganizationIds(organizationId, userDetails));
             }
         } else {
             orgIds.add(organizationId);

@@ -3,8 +3,8 @@ package com.lambda.fusion.authority.model.authentication;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.cloud.core.utils.ConvertUtils;
-import com.lambda.fusion.core.convert.ConvertFunctions;
-import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.convert.FusionConvertFunctions;
+import com.lambda.fusion.core.identity.UserDetails;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serial;
 import java.io.Serializable;
@@ -17,8 +17,8 @@ import lombok.Data;
  * 用于封装用户的基本信息
  */
 @AutoConverter(
-        target = LoginUserDetails.class,
-        uses = ConvertFunctions.class,
+        target = UserDetails.class,
+        uses = FusionConvertFunctions.class,
         fieldMappings = {
             @FieldMapping(target = "accountExpired", source = "expiredTime", qualifiedByName = "mapAccountExpired"),
             @FieldMapping(target = "accountLocked", source = "enabled", qualifiedByName = "mapAccountLocked"),
@@ -26,7 +26,7 @@ import lombok.Data;
         })
 @Data
 @Schema(description = "简单用户信息")
-public class UserDetails implements Serializable {
+public class AuthUser implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -79,7 +79,7 @@ public class UserDetails implements Serializable {
     @Schema(description = "用户权限集合")
     private Set<String> authorities;
 
-    public LoginUserDetails toLoginUser() {
+    public UserDetails toLoginUser() {
         return ConvertUtils.convert(this);
     }
 }

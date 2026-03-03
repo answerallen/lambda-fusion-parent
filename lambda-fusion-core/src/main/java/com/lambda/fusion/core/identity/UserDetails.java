@@ -31,7 +31,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode
 @Schema(description = "用户身份主体")
-public class LoginUserDetails implements LoginUser {
+public class UserDetails implements LoginUser {
 
     /**
      * 用户名

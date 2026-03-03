@@ -17,7 +17,7 @@ import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.SecurityUtils;
@@ -221,8 +221,8 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         } else {
             ids.add(dictTypeTreeEntity.getId());
         }
-        LoginUserDetails loginUserDetails = ((LoginUserDetails) OperatorUtils.getOperator());
-        List<DictInfo> outcomes = dictInfoMapper.treeList(ids, loginUserDetails.getTenantId());
+        UserDetails userDetails = SecurityUtils.getUser();
+        List<DictInfo> outcomes = dictInfoMapper.treeList(ids, userDetails.getTenantId());
         return TreeBuilder.build(outcomes);
     }
 
@@ -230,7 +230,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
     public List<DictInfo> getSubTreeData(String dictType) {
         List<DictInfo> outcomes = new ArrayList<>();
         if (StringUtils.isNotBlank(dictType)) {
-            LoginUserDetails loginUserDetails = ((LoginUserDetails) OperatorUtils.getOperator());
+            UserDetails userDetails = SecurityUtils.getUser();
             LambdaQueryWrapper<DictTypeTree> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(DictTypeTree::getDictType, dictType);
             DictTypeTree dictTypeTreeEntity = dictTypeMapper.selectOne(wrapper);
@@ -240,7 +240,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
             List<DictTypeTree> dictTypeTrees = dictTypeMapper.selectList(conditions);
             if (CollectionUtils.isNotEmpty(dictTypeTrees)) {
                 List<String> ids = dictTypeTrees.stream().map(DictTypeTree::id).collect(Collectors.toList());
-                List<DictInfo> list = dictInfoMapper.treeList(ids, loginUserDetails.getTenantId());
+                List<DictInfo> list = dictInfoMapper.treeList(ids, userDetails.getTenantId());
                 list.forEach(info -> info.setParameters(
                         StringUtils.isNotBlank(info.getExtra()) ? convertMap(info.getExtra()) : null));
                 outcomes = TreeBuilder.build(list);
@@ -279,8 +279,8 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         }
         wrapper.setLevel(dictionaryEntry.getLevel());
         wrapper.setDictType(dictionaryEntry.getDictType());
-        LoginUserDetails loginUserDetails = ((LoginUserDetails) OperatorUtils.getOperator());
-        wrapper.setTenantId(loginUserDetails.getTenantId());
+        UserDetails userDetails = SecurityUtils.getUser();
+        wrapper.setTenantId(userDetails.getTenantId());
 
         List<DictInfo> target = dictInfoMapper.getDictInfoList(wrapper);
         target.forEach(info -> {

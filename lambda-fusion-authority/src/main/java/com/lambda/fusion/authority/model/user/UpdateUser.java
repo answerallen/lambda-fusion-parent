@@ -6,7 +6,7 @@ import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.authority.model.organization.SimpleOrganization;
 import com.lambda.fusion.authority.model.role.SimpleRole;
-import com.lambda.fusion.core.convert.ConvertFunctions;
+import com.lambda.fusion.core.convert.FusionConvertFunctions;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -19,7 +19,7 @@ import lombok.EqualsAndHashCode;
 import org.hibernate.validator.constraints.Length;
 
 @EqualsAndHashCode(callSuper = true)
-@AutoConverter(target = UserEntity.class, uses = ConvertFunctions.class)
+@AutoConverter(target = UserEntity.class, uses = FusionConvertFunctions.class)
 @Data
 @Schema(description = "用户信息")
 public class UpdateUser extends BaseDTO<UserEntity> {

@@ -9,7 +9,7 @@ import com.lambda.fusion.authority.model.user.User;
 import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import com.lambda.fusion.authority.model.user.UserProfile;
 import com.lambda.fusion.authority.model.user.UserQueryContext;
-import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.identity.UserDetails;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +55,7 @@ public interface UserService {
     /***
      * 获取当前用户得详情
      */
-    User getCurrentUser(LoginUserDetails loginUserDetails);
+    User getCurrentUser(UserDetails userDetails);
 
     /***
      * 查询注册用户列表
@@ -85,7 +85,7 @@ public interface UserService {
      * @param user     保存对象
      * @param operator 当前操作人
      */
-    void addUser(CreateUser user, LoginUserDetails operator);
+    void addUser(CreateUser user, UserDetails operator);
 
     /***
      * 更新用户
@@ -93,7 +93,7 @@ public interface UserService {
      * @param user     更新对象
      * @param operator 当前操作人
      */
-    void updateUser(UpdateUser user, LoginUserDetails operator);
+    void updateUser(UpdateUser user, UserDetails operator);
 
     /***
      * 根据用户名删除用户
@@ -101,7 +101,7 @@ public interface UserService {
      * @param operator
      * @param username 用户名
      */
-    void deleteUser(LoginUserDetails operator, String username);
+    void deleteUser(UserDetails operator, String username);
 
     /***
      * 检查用户名是否已经存在
@@ -135,7 +135,7 @@ public interface UserService {
      * @param type
      * @param username
      */
-    void deactivateUser(LoginUserDetails operator, Integer type, String username);
+    void deactivateUser(UserDetails operator, Integer type, String username);
 
     /**
      * 解锁用户
@@ -143,7 +143,7 @@ public interface UserService {
      * @param username
      * @param operator
      */
-    void unlockUser(String username, LoginUserDetails operator);
+    void unlockUser(String username, UserDetails operator);
 
     /**
      * 根据组织编号查询用户列表
@@ -160,7 +160,7 @@ public interface UserService {
      * @param operator
      * @param source
      */
-    Set<String> getPermissions(LoginUserDetails operator, String source);
+    Set<String> getPermissions(UserDetails operator, String source);
 
     /**
      * 批量保存用户的权限
@@ -170,7 +170,7 @@ public interface UserService {
      * @param permissions
      * @return void
      */
-    void batchSavePermissions(LoginUserDetails operator, String username, Set<String> permissions);
+    void batchSavePermissions(UserDetails operator, String username, Set<String> permissions);
 
     /**
      * 查询用户所有权限
@@ -187,7 +187,7 @@ public interface UserService {
      * @param orgIds
      * @return
      */
-    List<UserProfile> getUserProfiles(LoginUserDetails operator, List<String> orgIds);
+    List<UserProfile> getUserProfiles(UserDetails operator, List<String> orgIds);
 
     /**
      * 当前用户组织机构数据权限
@@ -196,7 +196,7 @@ public interface UserService {
      * @param operator operator
      * @return 返回组织机构集合
      */
-    Set<String> getSubOrganizationIds(String orgId, LoginUserDetails operator);
+    Set<String> getSubOrganizationIds(String orgId, UserDetails operator);
 
     /**
      * 根据用户名称列表查询用户的扩展属性
@@ -236,7 +236,7 @@ public interface UserService {
      * @param user     更新对象
      * @param operator 当前操作人
      */
-    void updateTenantUser(User user, LoginUserDetails operator);
+    void updateTenantUser(User user, UserDetails operator);
 
     /**
      * 导出用户列表

@@ -4,7 +4,7 @@ import com.lambda.fusion.authority.model.authentication.AuthenticatedUser;
 import com.lambda.fusion.authority.model.authentication.MenuQuery;
 import com.lambda.fusion.authority.model.authentication.MenuRoute;
 import com.lambda.fusion.authority.model.user.UserProfile;
-import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.security.service.UserDetailService;
 import java.util.List;
@@ -23,7 +23,7 @@ public interface AuthenticationService extends UserDetailService {
      * @param level    指定菜单层级
      * @return 导航菜单列表
      */
-    List<MenuRoute> getMenus(LoginUserDetails user, String parentId, Integer level);
+    List<MenuRoute> getMenus(UserDetails user, String parentId, Integer level);
 
     /**
      * 获取用户的导航菜单
@@ -32,7 +32,7 @@ public interface AuthenticationService extends UserDetailService {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    default List<MenuRoute> getMenus(LoginUserDetails user, MenuQuery query) {
+    default List<MenuRoute> getMenus(UserDetails user, MenuQuery query) {
         return getMenus(user, query.getParentId(), query.getLevel());
     }
 

@@ -17,7 +17,7 @@ import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import com.lambda.fusion.authority.model.user.UserProfile;
 import com.lambda.fusion.authority.service.AuthenticationService;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.identity.LoginUserDetails;
+import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.security.exception.AuthenticationException;
@@ -46,12 +46,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (username == null) {
             throw AuthorityBusinessException.invalidParameter("username不能为空");
         }
-        UserDetails authUserDetails = authenticationMapper.selectUserDetailByUsername(username);
-        if (authUserDetails == null) {
+        AuthUser authUser = authenticationMapper.selectUserDetailByUsername(username);
+        if (authUser == null) {
             throw AuthorityBusinessException.userNotFound(username);
         }
-        LoginUserDetails loginUserDetails = authUserDetails.toLoginUser();
-        return prepareLoginUser(loginUserDetails);
+        UserDetails userDetails = authUser.toLoginUser();
+        return prepareLoginUser(userDetails);
     }
 
     @Override
@@ -66,8 +66,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public LoginUser loginByMobile(String mobile, String loginType) throws AuthenticationException {
-        List<UserDetails> details = authenticationMapper.selectUserDetailsByMobile(mobile);
-        UserDetails user = Optional.ofNullable(details)
+        List<AuthUser> details = authenticationMapper.selectUserDetailsByMobile(mobile);
+        AuthUser user = Optional.ofNullable(details)
                 .filter(CollUtil::isNotEmpty)
                 .filter(d -> d.size() == 1)
                 .map(List::getFirst)
@@ -76,7 +76,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<MenuRoute> getMenus(LoginUserDetails loginUser, String parentId, Integer level) {
+    public List<MenuRoute> getMenus(UserDetails loginUser, String parentId, Integer level) {
         MenuQuery query = new MenuQuery();
         query.setParentId(parentId);
         query.setLevel(level);
@@ -88,7 +88,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<MenuRoute> getMenus(LoginUserDetails loginUserDetails, MenuQuery query) {
+    public List<MenuRoute> getMenus(UserDetails userDetails, MenuQuery query) {
         List<MenuRoute> menuRoutes = authenticationMapper.selectNavigation(query);
         List<MenuRoute> menuRouteTree = TreeBuilder.build(menuRoutes);
         enrichNavigationRoutes(menuRouteTree);
@@ -183,19 +183,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public AuthenticatedUser getUserInfo() {
         LoginUser loginUser = SecurityUtils.getUser();
-        UserDetails userDetails = authenticationMapper.selectUserDetailByUsername(loginUser.getName());
-        if (userDetails == null) {
+        AuthUser authUser = authenticationMapper.selectUserDetailByUsername(loginUser.getName());
+        if (authUser == null) {
             throw new UsernameNotFoundException("user not found");
         }
 
         AuthenticatedUser user = new AuthenticatedUser();
-        BeanUtil.copyProperties(userDetails, user);
+        BeanUtil.copyProperties(authUser, user);
 
-        user.setUserId(userDetails.getUsername());
-        user.setRealName(userDetails.getNickname());
+        user.setUserId(authUser.getUsername());
+        user.setRealName(authUser.getNickname());
 
-        if (CollUtil.isNotEmpty(userDetails.getAuthorities())) {
-            user.setRoles(new ArrayList<>(userDetails.getAuthorities()));
+        if (CollUtil.isNotEmpty(authUser.getAuthorities())) {
+            user.setRoles(new ArrayList<>(authUser.getAuthorities()));
         } else {
             user.setRoles(new ArrayList<>());
         }
@@ -218,14 +218,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return authenticationMapper.selectAuthoritiesByUsername(operator.getName());
     }
 
-    private LoginUser prepareLoginUser(LoginUserDetails loginUserDetails) {
-        if (CollUtil.isEmpty(loginUserDetails.getRoles())) {
-            loginUserDetails.setRoles(Sets.newHashSet(FusionConstants.ROLE_USER));
+    private LoginUser prepareLoginUser(UserDetails userDetails) {
+        if (CollUtil.isEmpty(userDetails.getRoles())) {
+            userDetails.setRoles(Sets.newHashSet(FusionConstants.ROLE_USER));
         }
         String tenantId = TenantHolder.getTenantId();
         if (StrUtil.isNotBlank(tenantId)) {
-            loginUserDetails.setTenantId(tenantId);
+            userDetails.setTenantId(tenantId);
         }
-        return loginUserDetails;
+        return userDetails;
     }
 }

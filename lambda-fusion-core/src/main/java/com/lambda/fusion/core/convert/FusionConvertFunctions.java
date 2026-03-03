@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import org.mapstruct.Named;
 
 @SuppressWarnings("unused")
-public interface ConvertFunctions {
+public interface FusionConvertFunctions {
 
     @Named("mapAccountExpired")
     static Boolean mapAccountExpired(LocalDateTime expiredTime) {
