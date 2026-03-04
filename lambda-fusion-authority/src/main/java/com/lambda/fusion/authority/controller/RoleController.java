@@ -9,7 +9,6 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.authority.model.role.*;
 import com.lambda.fusion.authority.service.InternalRoleService;
 import com.lambda.fusion.authority.service.RoleService;
-import com.lambda.fusion.authority.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.SecurityUtils;
@@ -38,7 +37,6 @@ import org.springframework.web.bind.annotation.*;
 public class RoleController {
 
     private final RoleService roleService;
-    private final UserService userService;
     private final InternalRoleService internalRoleService;
 
     @GetMapping

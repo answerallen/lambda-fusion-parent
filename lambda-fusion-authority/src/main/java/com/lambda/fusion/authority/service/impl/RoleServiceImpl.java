@@ -36,6 +36,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -68,21 +69,7 @@ public class RoleServiceImpl implements RoleService {
         this.tenantAuthorizeManager = tenantAuthorizeManager;
     }
 
-    @Override
-    public List<Role> getAllRoles(UserDetails userDetails) {
-        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
-        parameters.put(AuthorityConstants.DEV, userDetails.isDev());
-        parameters.put(AuthorityConstants.ADMIN, userDetails.isAdmin());
-        parameters.put(AuthorityConstants.USERNAME, userDetails.getUsername());
-        parameters.put(FusionConstants.TENANT_ID, userDetails.getTenantId());
-        return roleMapper.getAllRoles(parameters);
-    }
-
-    @Override
-    public List<GroupRole> grouped(UserDetails userDetails, String tenantId) {
-        if (StringUtils.isBlank(tenantId) || StringUtils.isNotBlank(userDetails.getTenantId())) {
-            tenantId = userDetails.getTenantId();
-        }
+    private @NonNull Set<String> getExcludes(UserDetails userDetails) {
         Set<String> excludes = Sets.newHashSet();
         excludes.add(FusionConstants.ROLE_USER);
         excludes.add(FusionConstants.ROLE_HMAC);
@@ -96,6 +83,24 @@ public class RoleServiceImpl implements RoleService {
         }
         Set<String> queryExclude = internalRoleService.queryExclude(userDetails);
         excludes.addAll(queryExclude);
+        return excludes;
+    }
+
+    @Override
+    public List<Role> getAllRoles(UserDetails userDetails) {
+        Set<String> excludes = getExcludes(userDetails);
+        Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(2);
+        parameters.put(FusionConstants.EXCLUDES, excludes);
+        parameters.put(FusionConstants.TENANT_ID, userDetails.getTenantId());
+        return roleMapper.getAllRoles(parameters);
+    }
+
+    @Override
+    public List<GroupRole> grouped(UserDetails userDetails, String tenantId) {
+        if (StringUtils.isBlank(tenantId) || StringUtils.isNotBlank(userDetails.getTenantId())) {
+            tenantId = userDetails.getTenantId();
+        }
+        Set<String> excludes = getExcludes(userDetails);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(2);
         parameters.put(FusionConstants.EXCLUDES, excludes);
         parameters.put(FusionConstants.TENANT_ID, tenantId);
@@ -136,12 +141,12 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public Page<Role> getAllRoles(Page<Role> pageable, Map<String, Object> parameters) {
-        pageable = roleMapper.getAllMutableRoles(pageable, parameters);
+        pageable = roleMapper.pageRoles(pageable, parameters);
         List<Role> roles = pageable.getRecords();
         if (CollectionUtils.isNotEmpty(roles)) {
             for (Role item : roles) {
                 String authority = item.getAuthority();
-                item.setBuiltIn(AuthorityConstants.BUILT_IN_ROLES.contains(authority));
+                item.setBuiltIn(AuthorityConstants.DEFAULT_ROLES.contains(authority));
             }
         }
         return pageable;
@@ -196,7 +201,7 @@ public class RoleServiceImpl implements RoleService {
         if (authority == null) {
             throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
         }
-        Set<String> excludes = new HashSet<>(AuthorityConstants.BUILT_IN_ROLES);
+        Set<String> excludes = new HashSet<>(AuthorityConstants.DEFAULT_ROLES);
         Set<String> deleteExclude = internalRoleService.deleteExclude(OperatorUtils.getOperator());
         excludes.addAll(deleteExclude);
         if (excludes.contains(authority)) {

@@ -1,7 +1,5 @@
 package com.lambda.fusion.authority;
 
-import static com.lambda.fusion.authority.AuthorityConstants.OPERATION_LOG_EXECUTOR;
-
 import cn.dev33.satoken.listener.SaTokenListener;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
@@ -75,7 +73,7 @@ public class AuthorityConfigure {
         // 任务队列的大小
         executor.setQueueCapacity(1000);
         // 线程前缀名
-        executor.setThreadNamePrefix(OPERATION_LOG_EXECUTOR + "-");
+        executor.setThreadNamePrefix("OperationLogExecutor-");
         // 线程存活时间
         executor.setKeepAliveSeconds(30);
         /*

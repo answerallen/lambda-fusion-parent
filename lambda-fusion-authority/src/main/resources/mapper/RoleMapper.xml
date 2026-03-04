@@ -28,7 +28,7 @@
         ORDER BY T.ALIAS
     </select>
 
-    <select id="getAllMutableRoles" resultType="com.lambda.fusion.authority.model.role.Role">
+    <select id="pageRoles" resultType="com.lambda.fusion.authority.model.role.Role">
         SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, T.TENANT_ID AS tenantId, T.ENABLED AS enabled, T.ROLE_TYPE AS roleType, T.DATA_TYPE AS dataType, T.ICON AS icon, T.REMARKS AS remarks, T.created_at AS createdAt,
                CASE WHEN T.GROUP_ID IS NULL THEN 'default' ELSE T.GROUP_ID END AS groupId
         FROM LA_ROLES T

@@ -15,7 +15,6 @@ import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.core.utils.StpLogicUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
-import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.helper.PasswordHelper;
@@ -84,11 +83,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<String> getUserNamesByAuthority(String orgid, @NotBlank String authority) {
-        if (!authority.equals(AuthorityConstants.ROLE_MANAGER)) {
-            orgid = null;
+    public List<String> getUserNamesByAuthority(String orgId, @NotBlank String authority) {
+        if (!authority.equals(FusionConstants.ROLE_MANAGER)) {
+            orgId = null;
         }
-        return userMapper.selectUsernamesByAuthority(orgid, authority);
+        return userMapper.selectUsernamesByAuthority(orgId, authority);
     }
 
     @Override
@@ -133,10 +132,7 @@ public class UserServiceImpl implements UserService {
         User user = this.getByUsername(userDetails.getName());
         UserInfo props = user.getProps();
         if (props != null && properties.getPasswordStrategy().getEnablePeriodChange()) {
-            boolean notMatched = !userDetails.isDev()
-                    && !userDetails.isAdmin()
-                    && !userDetails.isManager()
-                    && !userDetails.isTenantManager();
+            boolean notMatched = !userDetails.isDev() && !userDetails.isAdmin() && !userDetails.isTenantManager();
             // 判断密码是否需要更新
             if (notMatched && ObjectUtil.equals(props.getPasswordResetRequired(), false)) {
                 List<UserPasswordEntity> userUpdatePwdLogEntities =
@@ -430,6 +426,11 @@ public class UserServiceImpl implements UserService {
         Password encodePassword = PasswordHelper.obtainPassword(strategy, originPassword);
         userEntity.setPassword(passwordEncoder.encode(encodePassword.getEncrypted()));
 
+        if (UserPermissionHelper.isTenant(createUser.getAuthorities())) {
+            String orgId = createUser.getTenantId();
+            createUser.setOrganization(new SimpleOrganization(orgId));
+        }
+
         userEntity.setCreatedAt(new Date());
         userEntity.setTenantId(operator.getTenantId());
         userEntity.setCreatedBy(operator.getName());
@@ -479,7 +480,7 @@ public class UserServiceImpl implements UserService {
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true)
     @Override
-    public void updateUser(UpdateUser updateUser, UserDetails operator) {
+    public void updateUser(UpdateUser updateUser, UserDetails userDetails) {
         UserEntity userEntity = updateUser.toEntity();
         int updated = userMapper.updateById(userEntity);
         if (updated != 1) {
@@ -499,26 +500,28 @@ public class UserServiceImpl implements UserService {
             this.userFieldsMapper.insert(fields);
         }
 
-        SimpleOrganization simpleOrganization = updateUser.getOrganization();
-        if (simpleOrganization != null) {
-            UserOrganizationEntity organizationEntity =
-                    userOrganizationMapper.selectUserOrganization(userEntity.getUsername());
-            if (organizationEntity != null) {
-                if (!StrUtil.equals(organizationEntity.getTenantId(), simpleOrganization.getId())) {
-                    organizationEntity.setOrganizationId(simpleOrganization.getId());
-                    userOrganizationMapper.update(
-                            organizationEntity,
-                            new LambdaUpdateWrapper<UserOrganizationEntity>()
-                                    .eq(UserOrganizationEntity::getUsername, userEntity.getUsername()));
+        if (!UserPermissionHelper.isTenant(updateUser.getAuthorities())) {
+            SimpleOrganization simpleOrganization = updateUser.getOrganization();
+            if (simpleOrganization != null) {
+                UserOrganizationEntity organizationEntity =
+                        userOrganizationMapper.selectUserOrganization(userEntity.getUsername());
+                if (organizationEntity != null) {
+                    if (!StrUtil.equals(organizationEntity.getTenantId(), simpleOrganization.getId())) {
+                        organizationEntity.setOrganizationId(simpleOrganization.getId());
+                        userOrganizationMapper.update(
+                                organizationEntity,
+                                new LambdaUpdateWrapper<UserOrganizationEntity>()
+                                        .eq(UserOrganizationEntity::getUsername, userEntity.getUsername()));
+                    }
+                } else {
+                    userOrganizationMapper.insert(new UserOrganizationEntity(
+                            userEntity.getUsername(), simpleOrganization.getId(), userDetails.getTenantId()));
                 }
-            } else {
-                userOrganizationMapper.insert(new UserOrganizationEntity(
-                        userEntity.getUsername(), simpleOrganization.getId(), operator.getTenantId()));
             }
         }
 
         userRoleMapper.deleteUserRoles(userEntity.getUsername());
-        this.assignRolesToUser(operator.getTenantId(), userEntity.getUsername(), updateUser.getAuthorities());
+        this.assignRolesToUser(userDetails.getTenantId(), userEntity.getUsername(), updateUser.getAuthorities());
     }
 
     @Override

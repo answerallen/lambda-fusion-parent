@@ -2,6 +2,7 @@ package com.lambda.fusion.authority;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.annotation.DictMapper;
 import com.lambda.fusion.core.dict.DictEnum;
 import java.util.List;
@@ -10,20 +11,19 @@ import lombok.Getter;
 
 public interface AuthorityConstants {
 
-    String ROLE_MANAGER = "ROLE_MANAGER";
-
-    String OPERATION_LOG_EXECUTOR = "OperationLogExecutor";
+    // ==================== 常量相关 ======================
+    String DEFAULT = "default";
 
     String DEFAULT_GROUP_NAME = "默认分组";
 
-    List<String> BUILT_IN_ROLES =
-            List.of("ROLE_SYSTEM", "ROLE_ADMIN", "ROLE_DEV", "ROLE_USER", "ROLE_MANAGER", "ROLE_ORG");
-
-    String DEFAULT = "default";
-
-    String ADMIN = "admin";
-    String DEV = "dev";
-    String USERNAME = "username";
+    List<String> DEFAULT_ROLES = List.of(
+            FusionConstants.ROLE_SYSTEM,
+            FusionConstants.ROLE_ADMIN,
+            FusionConstants.ROLE_DEV,
+            FusionConstants.ROLE_USER,
+            FusionConstants.ROLE_MANAGER,
+            FusionConstants.ROLE_ORG,
+            FusionConstants.ROLE_TENANT_MANAGER);
 
     // ==================== 枚举 ======================
 

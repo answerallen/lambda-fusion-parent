@@ -34,7 +34,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @return
      */
     @InterceptorIgnore(tenantLine = "true")
-    Page<Role> getAllMutableRoles(Page<Role> page, @Param("parameters") Map<String, Object> parameters);
+    Page<Role> pageRoles(Page<Role> page, @Param("parameters") Map<String, Object> parameters);
 
     /**
      * 根据id查询角色信息
