@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.model.token.ApiTokenEntity;
 import com.lambda.fusion.authority.model.token.ApiTokenQuery;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
  * </p>
  *
  */
+@SaCheckPermission("AAAAAA")
 @Tag(name = "令牌管理")
 @RestController
 @RequestMapping("/authority/api-token")

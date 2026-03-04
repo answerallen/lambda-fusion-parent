@@ -6,12 +6,14 @@ import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 更新知识库DTO
  *
  * @author Jin
  */
+@EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = KnowledgeBaseEntity.class)
 @Data
 @Schema(description = "更新知识库DTO")

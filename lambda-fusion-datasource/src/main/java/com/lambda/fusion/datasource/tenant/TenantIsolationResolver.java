@@ -2,6 +2,7 @@ package com.lambda.fusion.datasource.tenant;
 
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.mapper.TenantIsolationMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,13 +61,6 @@ public class TenantIsolationResolver {
         return null;
     }
 
-    private static final class CacheEntry {
-        private final FusionConstants.IsolationMode mode;
-        private final long expiresAt;
-
-        private CacheEntry(FusionConstants.IsolationMode mode, long expiresAt) {
-            this.mode = mode;
-            this.expiresAt = expiresAt;
-        }
-    }
+    @SuppressFBWarnings("UUF_UNUSED_FIELD")
+    private record CacheEntry(FusionConstants.IsolationMode mode, long expiresAt) {}
 }
