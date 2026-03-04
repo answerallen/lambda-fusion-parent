@@ -224,6 +224,10 @@ public interface FusionConstants {
      */
     String ROLE_USER = ROLE_PREFIX + "USER";
     /**
+     * 机构角色
+     */
+    String ROLE_ORG = ROLE_PREFIX + "ORG";
+    /**
      * HMAC角色
      */
     String ROLE_HMAC = ROLE_PREFIX + "HMAC";
