@@ -24,6 +24,7 @@
         <module>lambda-fusion-message</module>
         <module>lambda-fusion-datasource</module>
         <module>lambda-fusion-startup</module>
+        <module>lambda-fusion-permission</module>
     </modules>
 
     <dependencyManagement>
