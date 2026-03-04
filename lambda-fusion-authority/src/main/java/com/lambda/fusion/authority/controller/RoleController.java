@@ -1,6 +1,5 @@
 package com.lambda.fusion.authority.controller;
 
-import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
@@ -40,7 +39,6 @@ public class RoleController {
     private final InternalRoleService internalRoleService;
 
     @GetMapping
-    @SaCheckLogin
     @Operation(description = "获取所有角色列表", summary = "获取所有角色列表")
     public List<Role> list() {
         UserDetails userDetails = SecurityUtils.getUser();
