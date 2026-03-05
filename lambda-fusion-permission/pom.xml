@@ -23,6 +23,7 @@
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-logger</artifactId>
         </dependency>
+
         <dependency>
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-datasource</artifactId>
@@ -35,9 +36,14 @@
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-redis</artifactId>
         </dependency>
+
         <dependency>
             <groupId>com.lambda.cloud</groupId>
-            <artifactId>lambda-cloud-starter-liquibase</artifactId>
+            <artifactId>lambda-cloud-starter-nacos</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-cloud-starter-oss</artifactId>
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
