@@ -43,13 +43,8 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<ResourceTree> getChildren() {
-        return getChildren(new MenuQuery());
-    }
-
-    @Override
-    public List<ResourceTree> getChildren(MenuQuery parameter) {
-        List<Resource> resources = resourceMapper.queryAvailableResources(parameter);
+    public List<ResourceTree> getResourceTree(MenuQuery menuQuery) {
+        List<Resource> resources = resourceMapper.queryAvailableResources(menuQuery);
         if (CollectionUtils.isEmpty(resources)) {
             return new ArrayList<>();
         }
@@ -61,7 +56,7 @@ public class ResourceServiceImpl implements ResourceService {
         });
         final List<ResourceTree> resourceTreeList = treeDataFilter.filter(
                 list,
-                parameter.getName(),
+                menuQuery.getName(),
                 ResourceTree::getResName,
                 ResourceTree::getId,
                 ResourceTree::getParentKeys,
@@ -72,11 +67,11 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<ResourceTree> getChildren(String id) {
+    public List<ResourceTree> getResourceTree(String id) {
         List<ResourceTree> resourceTrees = resourceMapper.getDirectChildren(id);
         if (CollectionUtils.isNotEmpty(resourceTrees)) {
             for (ResourceTree resourceTree : resourceTrees) {
-                List<ResourceTree> children = getChildren(resourceTree.getId());
+                List<ResourceTree> children = getResourceTree(resourceTree.getId());
                 if (CollectionUtils.isNotEmpty(children)) {
                     resourceTree.setChildren(children);
                 }

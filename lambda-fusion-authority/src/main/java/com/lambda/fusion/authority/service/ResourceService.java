@@ -18,21 +18,14 @@ public interface ResourceService {
     /**
      * 获取系统资源
      */
-    default List<ResourceTree> getChildren(MenuQuery parameter) {
-        return getChildren();
-    }
-
-    /**
-     * 获取系统资源
-     */
-    List<ResourceTree> getChildren();
+    List<ResourceTree> getResourceTree(MenuQuery menuQuery);
 
     /**
      * 获取系统资源
      *
      * @param id
      */
-    List<ResourceTree> getChildren(String id);
+    List<ResourceTree> getResourceTree(String id);
 
     /**
      * 根据编号查询上级的资源信息

@@ -42,8 +42,8 @@ public class ResourceController {
                 @Parameter(name = "level", description = "菜单层级"),
                 @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
             })
-    public List<ResourceTree> tree(@Parameter MenuQuery parameter) {
-        return resourceService.getChildren(parameter);
+    public List<ResourceTree> tree(@Parameter MenuQuery menuQuery) {
+        return resourceService.getResourceTree(menuQuery);
     }
 
     @GetMapping("/list")

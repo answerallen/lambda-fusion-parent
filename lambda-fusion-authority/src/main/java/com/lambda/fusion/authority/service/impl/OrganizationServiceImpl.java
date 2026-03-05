@@ -57,16 +57,10 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final GroupMapper groupMapper;
     private final AuthorityProperties authorityProperties;
 
-    @Override
-    public OrganizationQuery getOrganizationQuery() {
-        OrganizationQuery parameters = new OrganizationQuery();
-        String tenantId = OperatorUtils.getOperator().getTenantId();
-        parameters.setOwner(StringUtils.isNotBlank(tenantId) ? tenantId : null);
-        return parameters;
-    }
+
 
     @Override
-    public List<Organization> treeList(OrganizationQuery organizationQuery) {
+    public List<Organization> organizationTreeList(OrganizationQuery organizationQuery) {
         UserDetails userDetails = SecurityUtils.getUser();
         List<Organization> organizations = queryOrganizations(userDetails, organizationQuery);
         this.applyPermissionConstraints(organizations, userDetails);
@@ -417,11 +411,11 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (id == null) {
             throw AuthorityBusinessException.invalidParameter("ID不能为空");
         }
-        Organization organ = organizationMapper.selectOrganizationById(id);
-        if (organ == null) {
+        Organization organization = organizationMapper.selectOrganizationById(id);
+        if (organization == null) {
             throw AuthorityBusinessException.organizationNotFound(id);
         }
-        String keys = organ.getParentKeys();
+        String keys = organization.getParentKeys();
         if (StringUtils.isNotBlank(keys)) {
             id = keys + JOINER + id;
         }

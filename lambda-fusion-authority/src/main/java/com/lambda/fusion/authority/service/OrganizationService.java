@@ -19,19 +19,12 @@ import org.springframework.web.multipart.MultipartFile;
 public interface OrganizationService {
 
     /**
-     * 获取查询组织机构的参数
-     *
-     * @return
-     */
-    OrganizationQuery getOrganizationQuery();
-
-    /**
      * 以树形的方式获取组织权限列表
      *
      * @param parameters 查询参数
      * @return
      */
-    List<Organization> treeList(OrganizationQuery parameters);
+    List<Organization> organizationTreeList(OrganizationQuery parameters);
 
     /**
      * 获取当前用户所有子部门

@@ -5,6 +5,7 @@ import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.helper.OrganizationQueryHelper;
 import com.lambda.fusion.authority.model.organization.CreateOrganization;
 import com.lambda.fusion.authority.model.organization.Organization;
 import com.lambda.fusion.authority.model.organization.OrganizationQuery;
@@ -55,7 +56,7 @@ public class OrganizationController {
             @RequestParam(required = false) @Parameter(description = "组织别名") String alias,
             @RequestParam(required = false) Boolean enabled) {
         LoginUser operator = OperatorUtils.getOperator();
-        OrganizationQuery organizationQuery = organizationService.getOrganizationQuery();
+        OrganizationQuery organizationQuery = OrganizationQueryHelper.buildOrganizationQuery();
         if (BooleanUtils.isTrue(enabled)) {
             organizationQuery.setEnabled(true);
         }
@@ -66,13 +67,13 @@ public class OrganizationController {
             organizationQuery.setAlias(fuzzyQuery(alias));
         }
         organizationQuery.setTenantId(operator.getTenantId());
-        return organizationService.treeList(organizationQuery);
+        return organizationService.organizationTreeList(organizationQuery);
     }
 
     @GetMapping("/list")
     @Operation(summary = "获取组织机构树形下拉列表", description = "查询组织机构列表树形下拉列表")
     public List<OrganizationTree> list() {
-        OrganizationQuery parameters = organizationService.getOrganizationQuery();
+        OrganizationQuery parameters = OrganizationQueryHelper.buildOrganizationQuery();
         parameters.setEnabled(true);
         return organizationService.getOrganizationTree(parameters);
     }
