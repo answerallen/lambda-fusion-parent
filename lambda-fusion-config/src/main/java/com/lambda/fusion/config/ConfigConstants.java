@@ -1,6 +1,7 @@
 package com.lambda.fusion.config;
 
 import com.lambda.fusion.core.annotation.DictMapper;
+import com.lambda.fusion.core.dict.DictEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -9,6 +10,7 @@ import lombok.Getter;
  * 集中管理所有硬编码常量，提高代码可维护性
  *
  */
+@SuppressWarnings("unused")
 public interface ConfigConstants {
 
     /**
@@ -147,23 +149,19 @@ public interface ConfigConstants {
         String RSA_ENCRYPT_PRIVATE_KEY = "rsa.private-key";
     }
 
-    @SuppressWarnings("unused")
-    interface Enums {
+    @Getter
+    @DictMapper(dictName = "CONFIG_TYPE", dictUsage = 0, dictDesc = "配置类型")
+    @AllArgsConstructor
+    enum RoleType implements DictEnum<Integer> {
+        BOOLEAN(1, "布尔开关"),
 
-        @Getter
-        @DictMapper(dictName = "CONFIG_TYPE", dictUsage = 0, dictDesc = "配置类型")
-        @AllArgsConstructor
-        enum RoleType {
-            BOOLEAN(1, "布尔开关"),
+        ENUM(2, "枚举选择"),
 
-            ENUM(2, "枚举选择"),
+        STRING(3, "字符串"),
 
-            STRING(3, "字符串"),
+        NUMBER(4, "数值类型");
 
-            NUMBER(4, "数值类型");
-
-            private final Integer val;
-            private final String key;
-        }
+        private final Integer code;
+        private final String label;
     }
 }

@@ -7,7 +7,7 @@ import com.lambda.fusion.authority.model.user.User;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.SecurityUtils;
-import java.util.Collection;
+import java.util.*;
 import org.apache.commons.lang.StringUtils;
 
 public class UserRoleHelper {

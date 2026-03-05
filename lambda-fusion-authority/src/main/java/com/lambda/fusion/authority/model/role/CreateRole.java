@@ -43,5 +43,4 @@ public class CreateRole extends BaseDTO<RoleEntity> {
 
     @Schema(description = "拥有者")
     private String owner;
-
 }

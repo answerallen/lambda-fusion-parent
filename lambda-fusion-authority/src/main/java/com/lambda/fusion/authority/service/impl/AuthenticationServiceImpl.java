@@ -25,6 +25,7 @@ import com.lambda.security.exception.UsernameNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -219,13 +220,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     private LoginUser prepareLoginUser(UserDetails userDetails) {
-        if (CollUtil.isEmpty(userDetails.getRoles())) {
+        Set<String> roles = userDetails.getRoles();
+        if (CollUtil.isEmpty(roles)) {
             userDetails.setRoles(Sets.newHashSet(FusionConstants.ROLE_USER));
+        } else {
+            userDetails.getRoles().stream()
+                    .filter(role -> role.startsWith(FusionConstants.ROLE_TENANT))
+                    .findFirst()
+                    .ifPresent(role -> {
+                        String tenantAuthority =
+                                FusionConstants.ROLE_TENANT + FusionConstants.AT + userDetails.getOrgId();
+                        userDetails.setRoles(Sets.newHashSet(tenantAuthority));
+                    });
         }
-        String tenantId = TenantHolder.getTenantId();
-        if (StrUtil.isNotBlank(tenantId)) {
-            userDetails.setTenantId(tenantId);
-        }
+        Optional.ofNullable(TenantHolder.getTenantId())
+                .filter(StrUtil::isNotBlank)
+                .ifPresent(userDetails::setTenantId);
+
         return userDetails;
     }
 }
