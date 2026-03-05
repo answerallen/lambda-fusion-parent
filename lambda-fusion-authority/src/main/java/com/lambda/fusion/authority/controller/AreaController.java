@@ -1,6 +1,5 @@
 package com.lambda.fusion.authority.controller;
 
-import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.lambda.fusion.authority.model.area.*;
 import com.lambda.fusion.authority.service.AreaService;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,5 +1,7 @@
 package com.lambda.fusion.core.identity;
 
+import static com.lambda.fusion.core.FusionConstants.*;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.core.FusionConstants;
@@ -194,17 +196,20 @@ public class UserDetails implements LoginUser {
      */
     @JsonIgnore
     public boolean isTenantManager() {
-        return roles != null && roles.contains(FusionConstants.ROLE_TENANT_MANAGER);
+        return roles.stream().anyMatch(authority -> authority.startsWith(ROLE_TENANT + AT));
     }
 
     /**
-     * 判断用户是否为租户角色
+     * 判断用户是否为管理员角色
      *
-     * @return true 表示用户具有租户角色，false 表示不具有
+     * @return true 表示用户具有管理员角色，false 表示不具有
      */
     @JsonIgnore
-    public boolean isTenant() {
-        return roles != null && roles.contains(FusionConstants.ROLE_TENANT);
+    public boolean isAnyManager() {
+        return roles.stream()
+                .anyMatch(authority -> authority.equals(ROLE_DEV)
+                        || authority.equals(ROLE_ADMIN)
+                        || authority.startsWith(ROLE_TENANT + AT));
     }
 
     /**

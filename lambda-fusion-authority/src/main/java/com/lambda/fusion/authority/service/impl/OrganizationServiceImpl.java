@@ -11,11 +11,7 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
-import com.lambda.fusion.authority.mapper.GroupMapper;
-import com.lambda.fusion.authority.mapper.OrganizationMapper;
-import com.lambda.fusion.authority.mapper.RoleMapper;
-import com.lambda.fusion.authority.mapper.UserMapper;
-import com.lambda.fusion.authority.mapper.UserOrganizationMapper;
+import com.lambda.fusion.authority.mapper.*;
 import com.lambda.fusion.authority.model.organization.*;
 import com.lambda.fusion.authority.model.resource.MoveResource;
 import com.lambda.fusion.authority.model.role.Role;
@@ -57,8 +53,6 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final GroupMapper groupMapper;
     private final AuthorityProperties authorityProperties;
 
-
-
     @Override
     public List<Organization> organizationTreeList(OrganizationQuery organizationQuery) {
         UserDetails userDetails = SecurityUtils.getUser();
@@ -70,8 +64,8 @@ public class OrganizationServiceImpl implements OrganizationService {
     /**
      * 根据条件获取组织列表
      *
-     * @param userDetails 操作用户
-     * @param organizationQuery    查询参数
+     * @param userDetails       操作用户
+     * @param organizationQuery 查询参数
      * @return 组织列表
      */
     private List<Organization> queryOrganizations(UserDetails userDetails, OrganizationQuery organizationQuery) {
@@ -86,10 +80,10 @@ public class OrganizationServiceImpl implements OrganizationService {
     /**
      * 根据搜索条件获取组织列表
      */
-    private List<Organization> getOrganizations(UserDetails principal, OrganizationQuery organizationQuery) {
-        List<Organization> list = getOrgByCondition(principal, organizationQuery);
-        if (principal.isAdmin()) {
-            Set<String> additionalOrgIds = collectAdditionalOrgIds(principal.getOrgId(), list);
+    private List<Organization> getOrganizations(UserDetails userDetails, OrganizationQuery organizationQuery) {
+        List<Organization> list = getOrgByCondition(userDetails, organizationQuery);
+        if (userDetails.isAdmin()) {
+            Set<String> additionalOrgIds = collectAdditionalOrgIds(userDetails.getOrgId(), list);
             if (CollectionUtils.isNotEmpty(additionalOrgIds)) {
                 organizationQuery.setIds(new ArrayList<>(additionalOrgIds));
                 list.addAll(organizationMapper.selectOrganizations(organizationQuery));
@@ -160,7 +154,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         return organizationMapper.selectOrganizations(organizationQuery);
     }
 
-    public List<Organization> getOrgByCondition(LoginUser operator, OrganizationQuery organizationQuery) {
+    public List<Organization> getOrgByCondition(UserDetails operator, OrganizationQuery organizationQuery) {
         List<String> orgIds = getSubOrganizations(operator);
         if (CollectionUtils.isNotEmpty(orgIds)) {
             organizationQuery.setIds(orgIds);
@@ -535,19 +529,17 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public List<String> getSubOrganizations(LoginUser operator) {
+    public List<String> getSubOrganizations(UserDetails userDetails) {
         List<String> orgIds = new ArrayList<>();
-        if (operator instanceof UserDetails userDetails) {
-            // 根据用户类型增加组织机构权限
-            if (!userDetails.isManager()) {
-                String orgId = operator.getOrgId();
-                if (StringUtils.isNotBlank(orgId)) {
-                    orgIds.add(orgId);
-                    List<String> children = getChildrenById(orgId);
-                    orgIds.addAll(children);
-                } else {
-                    orgIds.add("undefined");
-                }
+        // 根据用户类型增加组织机构权限
+        if (!userDetails.isAnyManager()) {
+            String orgId = userDetails.getOrgId();
+            if (StringUtils.isNotBlank(orgId)) {
+                orgIds.add(orgId);
+                List<String> children = getChildrenById(orgId);
+                orgIds.addAll(children);
+            } else {
+                orgIds.add("undefined");
             }
         }
         return orgIds;

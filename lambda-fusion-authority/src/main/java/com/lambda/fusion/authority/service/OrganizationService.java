@@ -1,6 +1,5 @@
 package com.lambda.fusion.authority.service;
 
-import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.model.organization.CreateOrganization;
 import com.lambda.fusion.authority.model.organization.Organization;
 import com.lambda.fusion.authority.model.organization.OrganizationQuery;
@@ -11,6 +10,7 @@ import com.lambda.fusion.authority.model.organization.UserOrganization;
 import com.lambda.fusion.authority.model.organization.UserOrganizationChange;
 import com.lambda.fusion.authority.model.resource.MoveResource;
 import com.lambda.fusion.authority.model.user.User;
+import com.lambda.fusion.core.identity.UserDetails;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -146,7 +146,7 @@ public interface OrganizationService {
      *
      * @return
      */
-    List<String> getSubOrganizations(LoginUser operator);
+    List<String> getSubOrganizations(UserDetails userDetails);
 
     /**
      * 根据指定组织编号查询下级组织列表

@@ -1,13 +1,15 @@
 package com.lambda.fusion.authority.helper;
 
-import static com.lambda.fusion.core.FusionConstants.AT;
+import static com.lambda.fusion.core.FusionConstants.*;
 
+import com.alibaba.nacos.common.utils.CollectionUtils;
 import com.lambda.fusion.authority.model.role.SimpleRole;
 import com.lambda.fusion.authority.model.user.User;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.SecurityUtils;
-import java.util.*;
+import jakarta.validation.constraints.NotNull;
+import java.util.Collection;
 import org.apache.commons.lang.StringUtils;
 
 public class UserRoleHelper {
@@ -35,7 +37,7 @@ public class UserRoleHelper {
         return user.getAuthorities().stream()
                 .map(SimpleRole::getAuthority)
                 .filter(StringUtils::isNotBlank)
-                .anyMatch(role -> role.contains(FusionConstants.ROLE_ADMIN));
+                .anyMatch(role -> role.contains(ROLE_ADMIN));
     }
 
     public static boolean isSystem(User user) {
@@ -67,10 +69,7 @@ public class UserRoleHelper {
     }
 
     public static boolean isDev(Collection<SimpleRole> roles) {
-        return roles != null
-                && roles.stream()
-                        .map(SimpleRole::getAuthority)
-                        .anyMatch(role -> role.contains(FusionConstants.ROLE_DEV));
+        return roles != null && roles.stream().map(SimpleRole::getAuthority).anyMatch(role -> role.contains(ROLE_DEV));
     }
 
     public static boolean isSystem(Collection<SimpleRole> roles) {
@@ -82,9 +81,7 @@ public class UserRoleHelper {
 
     public static boolean isAdmin(Collection<SimpleRole> roles) {
         return roles != null
-                && roles.stream()
-                        .map(SimpleRole::getAuthority)
-                        .anyMatch(role -> role.contains(FusionConstants.ROLE_ADMIN));
+                && roles.stream().map(SimpleRole::getAuthority).anyMatch(role -> role.contains(ROLE_ADMIN));
     }
 
     public static boolean isManager(Collection<SimpleRole> roles) {
@@ -99,5 +96,20 @@ public class UserRoleHelper {
             return authority.substring(authority.indexOf(AT) + 1);
         }
         return null;
+    }
+
+    /**
+     * 是否包含任意一种管理角色(ROLE_DEV,ROLE_ADMIN,ROLE_TENANT)
+     */
+    public static boolean containsAnyManager(@NotNull User operator) {
+        if (CollectionUtils.isNotEmpty(operator.getAuthorities())) {
+            return operator.getAuthorities().stream().anyMatch(simpleRole -> {
+                String authority = simpleRole.getAuthority();
+                return authority.equals(ROLE_DEV)
+                        || authority.equals(ROLE_ADMIN)
+                        || authority.startsWith(ROLE_TENANT + AT);
+            });
+        }
+        return false;
     }
 }

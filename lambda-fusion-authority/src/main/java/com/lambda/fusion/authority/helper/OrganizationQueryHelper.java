@@ -17,5 +17,4 @@ public class OrganizationQueryHelper {
         parameters.setOwner(StringUtils.isNotBlank(tenantId) ? tenantId : null);
         return parameters;
     }
-
 }
