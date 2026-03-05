@@ -172,9 +172,12 @@ public class RoleServiceImpl implements RoleService {
         }
         String tenantId = userDetails.getTenantId();
         String authority = UUID.fastUUID().toString();
-        // 注意：此处逻辑有问题，新生成的UUID不会存在，但保留原有逻辑
+        boolean hasExists = hasExists(authority);
+        if (hasExists) {
+            throw AuthorityBusinessException.roleNotFound(authority);
+        }
         createRole.setAuthority(authority);
-        createRole.setAuthority(authority);
+        createRole.setOwner(tenantId);
         createRole.setTenantId(tenantId);
         String groupId = Optional.ofNullable(createRole.getGroupId()).orElse(AuthorityConstants.DEFAULT);
         createRole.setGroupId(groupId);

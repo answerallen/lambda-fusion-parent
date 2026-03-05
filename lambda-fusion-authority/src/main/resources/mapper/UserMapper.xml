@@ -223,7 +223,7 @@
             email = #{email, jdbcType=VARCHAR},
             EXPIRED_TIME = #{expiredTime, jdbcType=TIMESTAMP}
         <if test="tenantId != null and tenantId != ''">
-                ,TENANT_ID = #{tenant_id, jdbcType=VARCHAR}
+                ,TENANT_ID = #{tenantId, jdbcType=VARCHAR}
         </if>
         WHERE username = #{username}
     </update>
@@ -443,14 +443,14 @@
 
     <!-- 根据租户ID，查询租户管理员用户列表 -->
     <select id="selectUsersByTenantId" parameterType="String" resultMap="TenantUser">
-        SELECT T.username, T.nickname, T.mobile, T.email, T.created_at AS createdAt, T.enabled, T.TENANT_ID,
+        SELECT T.username, T.nickname, T.mobile, T.email, T.created_at, T.enabled, T.TENANT_ID,
         UR.AUTHORITY AS authority, UO.ORGANIZATION_ID AS orgId
         FROM LA_USERS T
         INNER JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
         INNER JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
         <where>
             <if test="tenantId != null and tenantId != ''">
-                AND UO.ORGANIZATION_ID = #{tenant_id}
+                AND UO.ORGANIZATION_ID = #{tenantId}
             </if>
             AND UR.AUTHORITY = 'ROLE_TENANT'
         </where>

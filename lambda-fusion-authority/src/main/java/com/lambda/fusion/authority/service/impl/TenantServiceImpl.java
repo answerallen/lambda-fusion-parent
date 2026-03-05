@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.cloud.oss.model.UploadObjectResult;
@@ -21,17 +22,19 @@ import com.lambda.fusion.authority.model.tenant.TenantEntity;
 import com.lambda.fusion.authority.model.tenant.TenantOption;
 import com.lambda.fusion.authority.service.TenantService;
 import jakarta.annotation.Resource;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 租户信息表
@@ -57,8 +60,14 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
     @Resource
     private OssClientManager ossClientManager;
 
-    @Resource
     private ObjectMapper objectMapper;
+
+    @Autowired
+    public void setObjectMapper(ObjectMapper objectMapper) {
+        ObjectMapper mapper = objectMapper.copy();
+        mapper.deactivateDefaultTyping();
+        this.objectMapper = mapper;
+    }
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -74,13 +83,13 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
     @Override
     public TenantEntity createTenantWithLogo(String tenant, MultipartFile logo, String clientName) {
         LoginUser operator = OperatorUtils.getOperator();
-        TenantEntity target = toEntity(tenant);
+        TenantEntity tenantEntity = toEntity(tenant);
         String tenantId = operator.getTenantId();
-        target.setOwner(tenantId);
-        target.setTenantId(IdWorker.getIdStr());
-        applyTenantLogo(target, logo, clientName);
-        save(target);
-        return getById(target.getTenantId());
+        tenantEntity.setOwner(tenantId);
+        tenantEntity.setTenantId(IdWorker.getIdStr());
+        applyTenantLogo(tenantEntity, logo, clientName);
+        save(tenantEntity);
+        return getById(tenantEntity.getTenantId());
     }
 
     @Override

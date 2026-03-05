@@ -3,6 +3,7 @@ package com.lambda.fusion.authority.service.impl;
 import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
 
 import cn.dev33.satoken.stp.StpLogic;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
@@ -44,7 +45,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -460,12 +460,10 @@ public class UserServiceImpl implements UserService {
                     .map(SimpleRole::getAuthority)
                     .filter(StrUtil::isNotEmpty)
                     .map(authority -> {
-                        // 检查角色是否存在
-                        if (!roleMapper.hasExists(authority)) {
-                            throw AuthorityBusinessException.roleNotFound(authority);
-                        }
                         if (authority.startsWith(FusionConstants.ROLE_TENANT)) {
                             authority = FusionConstants.ROLE_TENANT;
+                        } else if (!roleMapper.hasExists(authority)) {
+                            throw AuthorityBusinessException.roleNotFound(authority);
                         }
                         UserRoleEntity userRoleEntity = new UserRoleEntity();
                         userRoleEntity.setAuthority(authority);
@@ -671,16 +669,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateTenantUser(User source, UserDetails operator) {
-        String username = source.getUsername();
-        User target = userMapper.selectUserByUsername(username);
-        if (target == null) {
+    public void updateTenantUser(User user, UserDetails operator) {
+        String username = user.getUsername();
+        boolean hasExists = userMapper.hasExists(username);
+        if (!hasExists) {
             throw AuthorityBusinessException.userNotFound(username);
         }
-        BeanUtils.copyProperties(source, target);
-        userMapper.updateUser(target);
-        userRoleMapper.deleteUserRoles(username);
-        this.assignRolesToUser(target.getTenantId(), operator.getTenantId(), source.getAuthorities());
+        userMapper.updateUser(user);
+        if (CollUtil.isNotEmpty(user.getAuthorities())) {
+            userRoleMapper.deleteUserRoles(username);
+            this.assignRolesToUser(user.getTenantId(), operator.getTenantId(), user.getAuthorities());
+        }
     }
 
     @Override

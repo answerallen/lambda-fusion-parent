@@ -27,6 +27,9 @@ public class RoleEntity {
     @TableField("TENANT_ID")
     private String tenantId;
 
+    @TableField("OWNER")
+    private String owner;
+
     @TableField("HIDDEN")
     private Integer hidden;
 

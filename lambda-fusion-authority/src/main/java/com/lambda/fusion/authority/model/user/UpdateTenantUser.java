@@ -1,9 +1,11 @@
 package com.lambda.fusion.authority.model.user;
 
+import com.lambda.cloud.core.annotation.AutoConverter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 
+@AutoConverter(target = User.class)
 @Data
 public class UpdateTenantUser {
 

@@ -1,15 +1,9 @@
 package com.lambda.fusion.authority.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.model.user.CreateUser;
-import com.lambda.fusion.authority.model.user.Permission;
-import com.lambda.fusion.authority.model.user.ResetPassword;
-import com.lambda.fusion.authority.model.user.UpdateUser;
-import com.lambda.fusion.authority.model.user.User;
-import com.lambda.fusion.authority.model.user.UserInfoEntity;
-import com.lambda.fusion.authority.model.user.UserProfile;
-import com.lambda.fusion.authority.model.user.UserQueryContext;
+import com.lambda.fusion.authority.model.user.*;
 import com.lambda.fusion.core.identity.UserDetails;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Map;
@@ -236,7 +230,7 @@ public interface UserService {
      * @param user     更新对象
      * @param operator 当前操作人
      */
-    void updateTenantUser(User user, UserDetails operator);
+    void updateTenantUser(@Valid User user, UserDetails operator);
 
     /**
      * 导出用户列表

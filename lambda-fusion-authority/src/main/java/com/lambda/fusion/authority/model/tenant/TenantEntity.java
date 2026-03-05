@@ -105,7 +105,7 @@ public class TenantEntity extends BaseEntity {
      * 是否启用，未启用:0,已启用:1
      */
     @Schema(description = "状态，禁用:0,启用:1")
-    @TableField("ENABLED")
+    @TableField("status")
     private Integer status;
 
     /**

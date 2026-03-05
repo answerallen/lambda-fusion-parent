@@ -1,6 +1,7 @@
 package com.lambda.fusion.core;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.lambda.fusion.core.annotation.DictMapper;
 import com.lambda.fusion.core.dict.DictEnum;
@@ -271,6 +272,16 @@ public interface FusionConstants {
         private final Integer code;
 
         private final String label;
+
+        @JsonCreator
+        public static IsolationMode fromValue(Integer val) {
+            for (IsolationMode mode : values()) {
+                if (mode.code.equals(val)) {
+                    return mode;
+                }
+            }
+            throw new IllegalArgumentException("Invalid IsolationMode: " + val);
+        }
     }
 
     @Getter

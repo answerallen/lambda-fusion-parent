@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,13 +42,13 @@ public class TenantController {
 
     @GetMapping("/{id}")
     @Operation(summary = "根据编号查询租户信息信息", description = "根据id查询租户信息信息")
-    public TenantEntity get(@Parameter(description = "租户信息编号", required = true) @PathVariable String id) {
+    public TenantEntity getTenant(@Parameter(description = "租户信息编号", required = true) @PathVariable String id) {
         return tenantService.getById(id);
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping
     @Operation(summary = "新增租户信息信息(含LOGO)", description = "新增租户信息信息，支持表单与LOGO同请求提交")
-    public TenantEntity save(
+    public TenantEntity saveTenant(
             @Parameter(description = "租户信息信息", required = true) @RequestPart("tenant") String tenant,
             @Parameter(description = "LOGO文件") @RequestPart(value = "logo", required = false) MultipartFile logo,
             @Parameter(description = "OSS客户端名称（可选）") @RequestParam(value = "client", required = false)
@@ -57,9 +56,9 @@ public class TenantController {
         return tenantService.createTenantWithLogo(tenant, logo, clientName);
     }
 
-    @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{id}")
     @Operation(summary = "更新租户信息信息(含LOGO)", description = "更新租户信息信息，支持表单与LOGO同请求提交")
-    public TenantEntity update(
+    public TenantEntity updateTenant(
             @Parameter(description = "租户信息编号", required = true) @PathVariable String id,
             @Parameter(description = "租户信息信息", required = true) @RequestPart("tenant") String tenant,
             @Parameter(description = "LOGO文件") @RequestPart(value = "logo", required = false) MultipartFile logo,
@@ -71,19 +70,19 @@ public class TenantController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除租户信息信息", description = "删除租户信息信息")
-    public void delete(@Parameter(description = "租户编号", required = true) @PathVariable String id) {
+    public void deleteTenant(@Parameter(description = "租户编号", required = true) @PathVariable String id) {
         tenantService.deleteTenant(id);
     }
 
     @PatchMapping("/{id}/enabled")
     @Operation(summary = "启用租户")
-    public void enabled(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
+    public void enabledTenant(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         tenantService.enableTenant(id);
     }
 
     @PatchMapping("/{id}/disabled")
     @Operation(summary = "禁用租户")
-    public void disabled(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
+    public void disabledTenant(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         tenantService.disableTenant(id);
     }
 }
