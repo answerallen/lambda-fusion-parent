@@ -1,13 +1,18 @@
 package com.lambda.fusion.authority.controller;
 
+import static com.lambda.fusion.core.FusionConstants.AT;
+import static com.lambda.fusion.core.FusionConstants.ROLE_TENANT;
+
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.helper.UserQueryHelper;
 import com.lambda.fusion.authority.manager.TenantAuthorizeManager;
+import com.lambda.fusion.authority.model.role.SimpleRole;
 import com.lambda.fusion.authority.model.user.*;
 import com.lambda.fusion.authority.service.OrganizationService;
 import com.lambda.fusion.authority.service.UserCenterService;
@@ -268,23 +273,43 @@ public class UserController {
         return userCenterService.sendMobileVerifyCode(operator.getName(), mobile);
     }
 
-    @GetMapping("/tenant")
-    @Operation(summary = "根据租户ID 查询租户管理员")
-    public List<User> tenant(
-            @Parameter(description = "租户ID", required = true) @RequestParam("tenantId") String tenantId) {
-        return userService.getUsersByTenantId(tenantId);
+    @GetMapping("/tenant/{tenantId}/admins")
+    @Operation(summary = "查询租户管理员")
+    public List<User> tenantAdmins(@PathVariable @Parameter(description = "租户ID", required = true) String tenantId) {
+        return userService.queryTenantAdmins(tenantId);
     }
 
-    @PutMapping(value = "/tenant/{username}")
+    @PutMapping(value = "/tenant/{tenantId}/admins")
+    @Operation(summary = "添加租户管理员用户信息")
+    public User addTenantUser(
+            @PathVariable @Parameter(description = "租户ID", required = true) String tenantId,
+            @Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateTenantUser createTenantUser) {
+        CreateUser createUser = ConvertUtils.convert(createTenantUser);
+        createUser.setTenantId(tenantId);
+        SimpleRole simpleRole = new SimpleRole(ROLE_TENANT + AT + tenantId);
+        createUser.setAuthorities(List.of(simpleRole));
+        userService.addUser(createUser, SecurityUtils.getUser());
+        User updated = userService.getByUsername(createTenantUser.getUsername());
+        if (tenantAuthorizeManager != null) {
+            User copy = BeanUtil.toBean(updated, User.class);
+            tenantAuthorizeManager.addUser(copy);
+        }
+        return updated;
+    }
+
+    @PutMapping(value = "/tenant/{tenantId}/admins/{username}")
     @Operation(summary = "更新租户管理员用户信息")
     public User updateTenantUser(
+            @PathVariable @Parameter(description = "租户ID", required = true) String tenantId,
             @PathVariable @Parameter(description = "用户名称", required = true) String username,
-            @Parameter(description = "用户信息", required = true) @Valid @RequestBody User user) {
+            @Parameter(description = "用户信息", required = true) @Valid @RequestBody UpdateTenantUser updateTenantUser) {
+        User user = ConvertUtils.convert(updateTenantUser);
+        user.setTenantId(tenantId);
         user.setUsername(username);
         userService.updateTenantUser(user, SecurityUtils.getUser());
         User updated = userService.getByUsername(username);
         if (tenantAuthorizeManager != null) {
-            User copy = BeanUtil.toBean(user, User.class);
+            User copy = BeanUtil.toBean(updated, User.class);
             tenantAuthorizeManager.updateUser(copy);
         }
         return updated;

@@ -26,8 +26,4 @@ public interface TenantService extends IService<TenantEntity> {
     void enableTenant(String tenantId);
 
     void disableTenant(String tenantId);
-
-    void stopTenant(String tenantId);
-
-    void examineTenant(String tenantId);
 }

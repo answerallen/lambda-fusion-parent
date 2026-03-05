@@ -227,14 +227,6 @@
         </if>
         WHERE username = #{username}
     </update>
-
-    <!-- 保存用户角色 -->
-    <insert id="addUserRoles" parameterType="com.lambda.fusion.authority.model.user.User">
-        INSERT INTO LA_USER_ROLES (USERNAME, AUTHORITY) VALUES
-        <foreach collection="authorities" item="role" separator=",">
-            (#{username},#{role.authority})
-        </foreach>
-    </insert>
     <!-- 删除用户 -->
     <delete id="deleteUser" parameterType="HashMap">
         DELETE FROM LA_USERS WHERE username = #{username}
@@ -290,7 +282,7 @@
     <resultMap id="Permission" type="com.lambda.fusion.authority.model.user.Permission">
         <id column="id" property="id"/>
         <result column="res_name" property="name"/>
-        <result column="parentid" property="pid"/>
+        <result column="parent_id" property="pid"/>
     </resultMap>
     <select id="selectUserPermissionsByIdsAndMode" resultMap="Permission">
         SELECT

@@ -21,7 +21,6 @@ import com.lambda.fusion.core.utils.SecurityUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -218,8 +217,8 @@ public class TenantAuthorizeManager {
 
     private List<String> getTenantIds() {
         LambdaQueryWrapper<TenantEntity> wrapper = Wrappers.lambdaQuery(TenantEntity.class)
-                .eq(TenantEntity::getEnabled, Optional.of(1))
-                .eq(TenantEntity::getExamineState, Optional.of(1));
+                .eq(TenantEntity::getStatus, 1)
+                .apply("EXAMINE_STATE = {0}", 1);
         List<TenantEntity> tenants = tenantService.list(wrapper);
         if (tenants == null || tenants.isEmpty()) {
             return new ArrayList<>();

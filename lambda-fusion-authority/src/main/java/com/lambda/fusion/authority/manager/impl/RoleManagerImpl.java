@@ -1,9 +1,9 @@
-package com.lambda.fusion.authority.service.impl;
+package com.lambda.fusion.authority.manager.impl;
 
 import com.google.common.collect.Sets;
+import com.lambda.fusion.authority.manager.RoleManager;
 import com.lambda.fusion.authority.mapper.RoleMapper;
 import com.lambda.fusion.authority.model.role.UserAuthority;
-import com.lambda.fusion.authority.service.RoleManager;
 import com.lambda.fusion.core.FusionConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;

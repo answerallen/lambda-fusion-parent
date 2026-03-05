@@ -19,7 +19,7 @@ import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.helper.PasswordHelper;
 import com.lambda.fusion.authority.helper.UserInfoHelper;
-import com.lambda.fusion.authority.helper.UserPermissionHelper;
+import com.lambda.fusion.authority.helper.UserRoleHelper;
 import com.lambda.fusion.authority.mapper.*;
 import com.lambda.fusion.authority.model.organization.OrganizationEntity;
 import com.lambda.fusion.authority.model.organization.SimpleOrganization;
@@ -277,7 +277,7 @@ public class UserServiceImpl implements UserService {
      * 补充完善用户权限信息
      */
     private void assembleUserPermissionInfo(User user, String tenantId) {
-        if (UserPermissionHelper.isTenant(user)) {
+        if (UserRoleHelper.isTenant(user)) {
             user.setDisableAssignment(true);
         }
         if (StringUtils.isNotBlank(user.getTenantId()) && !Objects.equals(tenantId, user.getTenantId())) {
@@ -426,7 +426,7 @@ public class UserServiceImpl implements UserService {
         Password encodePassword = PasswordHelper.obtainPassword(strategy, originPassword);
         userEntity.setPassword(passwordEncoder.encode(encodePassword.getEncrypted()));
 
-        if (UserPermissionHelper.isTenant(createUser.getAuthorities())) {
+        if (UserRoleHelper.isTenant(createUser.getAuthorities())) {
             String orgId = createUser.getTenantId();
             createUser.setOrganization(new SimpleOrganization(orgId));
         }
@@ -500,7 +500,7 @@ public class UserServiceImpl implements UserService {
             this.userFieldsMapper.insert(fields);
         }
 
-        if (!UserPermissionHelper.isTenant(updateUser.getAuthorities())) {
+        if (!UserRoleHelper.isTenant(updateUser.getAuthorities())) {
             SimpleOrganization simpleOrganization = updateUser.getOrganization();
             if (simpleOrganization != null) {
                 UserOrganizationEntity organizationEntity =
@@ -663,7 +663,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> getUsersByTenantId(String tenantId) {
+    public List<User> queryTenantAdmins(String tenantId) {
         if (tenantId == null) {
             throw AuthorityBusinessException.invalidParameter("租户id不能为空");
         }

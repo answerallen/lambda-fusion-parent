@@ -14,39 +14,32 @@
         <result property="tenantLogo" column="TENANT_LOGO"/>
         <result property="liaisonMan" column="LIAISON_MAN"/>
         <result property="liaisonPhone" column="LIAISON_PHONE"/>
-        <result property="legalPerson" column="LEGAL_PERSON"/>
-        <result property="longitude" column="LONGITUDE"/>
-        <result property="latitude" column="LATITUDE"/>
+        <result property="enterpriseName" column="enterprise_name"/>
+        <result property="enterpriseCode" column="enterprise_code"/>
         <result property="icpPutOnRecord" column="ICP_PUT_ON_RECORD"/>
         <result property="networkPutOnRecord" column="NETWORK_PUT_ON_RECORD"/>
-        <result property="province" column="PROVINCE"/>
-        <result property="city" column="CITY"/>
-        <result property="district" column="DISTRICT"/>
-        <result property="enabled" column="ENABLED"/>
+        <result property="status" column="status"/>
+        <result property="owner" column="OWNER"/>
+        <result property="alias" column="ALIAS"/>
+        <result property="areaCode" column="area_code"/>
+        <result property="isolationMode" column="isolation_mode"/>
+        <result property="config" column="CONFIG"/>
         <result property="createdBy" column="CREATED_BY"/>
         <result property="createdAt" column="CREATED_AT"/>
         <result property="updatedBy" column="UPDATED_BY"/>
         <result property="updatedAt" column="UPDATED_AT"/>
-        <result property="examineState" column="EXAMINE_STATE"/>
-        <result property="owner" column="OWNER"/>
-        <result property="alias" column="ALIAS"/>
-        <result property="prefecture" column="PREFECTURE"/>
     </resultMap>
 
     <!--禁用/启用租户-->
     <update id="prohibitTenantByTenantId">
-        UPDATE LA_TENANT SET ENABLED = #{enabled} WHERE TENANT_ID = #{id}
-    </update>
-    <!--审核租户信息-->
-    <update id="examineTenantByTenantId">
-        UPDATE LA_TENANT SET EXAMINE_STATE = #{enabled} WHERE TENANT_ID = #{id}
+        UPDATE LA_TENANT SET status = #{status} WHERE TENANT_ID = #{id}
     </update>
     <update id="updateConfig">
         UPDATE LA_TENANT SET CONFIG = #{configJson} WHERE TENANT_ID = #{id}
     </update>
 
     <select id="queryTenantList" resultType="com.lambda.fusion.authority.model.tenant.TenantOption">
-        select TENANT_CODE,TENANT_NAME FROM LA_TENANT where ENABLED = 1 and EXAMINE_STATE = 1 ORDER BY CREATED_AT DESC
+        select TENANT_CODE,TENANT_NAME FROM LA_TENANT where status = 1  ORDER BY CREATED_AT DESC
     </select>
     <select id="isExist" resultType="java.lang.Boolean">
         SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_TENANT WHERE TENANT_ID = #{id})

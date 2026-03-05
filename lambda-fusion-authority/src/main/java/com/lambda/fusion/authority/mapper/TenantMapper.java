@@ -15,17 +15,10 @@ public interface TenantMapper extends BaseMapper<TenantEntity> {
 
     /**
      * 禁用/启用租户
-     * @param enabled   启用状态
+     * @param status   状态
      * @param id  租户编号
      */
-    void prohibitTenantByTenantId(@Param("enabled") Integer enabled, @Param("id") String id);
-
-    /**
-     * 审核租户信息
-     * @param enabled   审核状态
-     * @param id  租户编号
-     */
-    void examineTenantByTenantId(@Param("enabled") Integer enabled, @Param("id") String id);
+    void prohibitTenantByTenantId(@Param("status") Integer status, @Param("id") String id);
 
     /**
      * 查询租户信息列表

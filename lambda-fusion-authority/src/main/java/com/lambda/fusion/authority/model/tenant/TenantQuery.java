@@ -58,10 +58,10 @@ public class TenantQuery extends Pagination<TenantEntity> {
     private String liaisonPhone;
 
     /**
-     * 是否启用，未启用:0,已启用:1,已停用:99
+     * 是否启用，未启用:0,已启用:1
      */
-    @Schema(description = "是否启用，未启用:0,已启用:1,已停用:99")
-    private Integer enabled;
+    @Schema(description = "状态，禁用:0,启用:1")
+    private Integer status;
 
     /**
      * 审核状态，未审核:0,审核通过:1
@@ -112,10 +112,10 @@ public class TenantQuery extends Pagination<TenantEntity> {
         wrapper.eq(StringUtils.isNotBlank(liaisonPhone), TenantEntity::getLiaisonPhone, liaisonPhone);
 
         // 启用状态精确查询
-        wrapper.eq(enabled != null, TenantEntity::getEnabled, enabled);
+        wrapper.eq(status != null, TenantEntity::getStatus, status);
 
         // 审核状态精确查询
-        wrapper.eq(examineState != null, TenantEntity::getExamineState, examineState);
+        wrapper.apply(examineState != null, "EXAMINE_STATE = {0}", examineState);
 
         // 拥有者精确查询
         wrapper.eq(StringUtils.isNotBlank(owner), TenantEntity::getOwner, owner);

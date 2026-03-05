@@ -1,5 +1,7 @@
 package com.lambda.fusion.authority.helper;
 
+import static com.lambda.fusion.core.FusionConstants.AT;
+
 import com.lambda.fusion.authority.model.role.SimpleRole;
 import com.lambda.fusion.authority.model.user.User;
 import com.lambda.fusion.core.FusionConstants;
@@ -8,7 +10,7 @@ import com.lambda.fusion.core.utils.SecurityUtils;
 import java.util.Collection;
 import org.apache.commons.lang.StringUtils;
 
-public class UserPermissionHelper {
+public class UserRoleHelper {
 
     public static boolean isSelf(User user) {
         UserDetails loginUser = SecurityUtils.getUser();
@@ -54,7 +56,7 @@ public class UserPermissionHelper {
         return roles != null
                 && roles.stream()
                         .map(SimpleRole::getAuthority)
-                        .anyMatch(role -> role.contains(FusionConstants.ROLE_TENANT));
+                        .anyMatch(role -> role.startsWith(FusionConstants.ROLE_TENANT));
     }
 
     public static boolean isTenantManager(Collection<SimpleRole> roles) {
@@ -90,5 +92,12 @@ public class UserPermissionHelper {
                 && roles.stream()
                         .map(SimpleRole::getAuthority)
                         .anyMatch(role -> role.contains(FusionConstants.ROLE_MANAGER));
+    }
+
+    public static String getTenantId(String authority) {
+        if (StringUtils.isNotBlank(authority) && authority.contains(AT)) {
+            return authority.substring(authority.indexOf(AT) + 1);
+        }
+        return null;
     }
 }

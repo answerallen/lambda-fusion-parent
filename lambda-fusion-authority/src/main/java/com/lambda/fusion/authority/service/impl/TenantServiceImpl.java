@@ -75,10 +75,9 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
     public TenantEntity createTenantWithLogo(String tenant, MultipartFile logo, String clientName) {
         LoginUser operator = OperatorUtils.getOperator();
         TenantEntity target = toEntity(tenant);
-        String id = IdWorker.getIdStr();
         String tenantId = operator.getTenantId();
         target.setOwner(tenantId);
-        target.setTenantId(id);
+        target.setTenantId(IdWorker.getIdStr());
         applyTenantLogo(target, logo, clientName);
         save(target);
         return getById(target.getTenantId());
@@ -111,25 +110,13 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
         handleTenantStatus(tenantId, 0);
     }
 
-    @Override
-    public void stopTenant(String tenantId) {
-        handleTenantStatus(tenantId, -1);
-    }
-
-    @Override
-    public void examineTenant(String tenantId) {
-        LoginUser operator = OperatorUtils.getOperator();
-        TenantEntity tenant = assertTenantExists(tenantId);
-        examineTenant(operator, 1, tenant.getTenantId());
-    }
-
-    private void prohibitTenant(LoginUser operator, Integer enabled, String tenantId) {
+    private void prohibitTenant(LoginUser operator, Integer status, String tenantId) {
         // 判断当前用户是否有操作权限
         this.hasOperation(operator, tenantId);
         // 禁用/启用租户
-        tenantMapper.prohibitTenantByTenantId(enabled, tenantId);
+        tenantMapper.prohibitTenantByTenantId(status, tenantId);
         // 非启用状态下，都要禁用组织和角色
-        Integer normalizedEnabled = normalizeEnabled(enabled);
+        Integer normalizedEnabled = normalizeEnabled(status);
         final List<Organization> orgIds = queryOrganizationByTenantId(tenantId);
         final List<String> tenantSubOrganizationIds = getSubOrgIdsByType(orgIds, true);
         final List<String> subOrganizationIds = getSubOrgIdsByType(orgIds, false);
@@ -142,13 +129,6 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
         // 禁用/启用用户角色
         prohibitOrgUsersByTenantOrgan(normalizedEnabled, tenantSubOrganizationIds);
         prohibitOrgUsersByOrdinaryOrgan(normalizedEnabled, subOrganizationIds);
-    }
-
-    private void examineTenant(LoginUser operator, Integer enabled, String tenantId) {
-        // 判断当前用户是否有操作权限
-        this.hasOperation(operator, tenantId);
-        // 审核租户信息
-        tenantMapper.examineTenantByTenantId(enabled, tenantId);
     }
 
     private void deleteTenant(LoginUser operator, String tenantId) {
@@ -234,10 +214,10 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
         }
     }
 
-    private void handleTenantStatus(String tenantId, Integer enabled) {
+    private void handleTenantStatus(String tenantId, Integer status) {
         LoginUser operator = OperatorUtils.getOperator();
         TenantEntity tenant = assertTenantExists(tenantId);
-        prohibitTenant(operator, enabled, tenant.getTenantId());
+        prohibitTenant(operator, status, tenant.getTenantId());
     }
 
     private TenantEntity assertTenantExists(String tenantId) {

@@ -86,16 +86,4 @@ public class TenantController {
     public void disabled(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         tenantService.disableTenant(id);
     }
-
-    @PatchMapping("/{id}/stop")
-    @Operation(summary = "停用租户")
-    public void stop(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
-        tenantService.stopTenant(id);
-    }
-
-    @PatchMapping("/{id}/examine")
-    @Operation(summary = "审核租户")
-    public void examine(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
-        tenantService.examineTenant(id);
-    }
 }

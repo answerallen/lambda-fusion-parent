@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.service;
+package com.lambda.fusion.authority.manager;
 
 import java.util.Set;
 import org.springframework.lang.NonNull;

@@ -13,6 +13,7 @@ import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.helper.UserRoleHelper;
 import com.lambda.fusion.authority.manager.TenantAuthorizeManager;
 import com.lambda.fusion.authority.mapper.AccessPermissionMapper;
 import com.lambda.fusion.authority.mapper.GroupMapper;
@@ -253,28 +254,16 @@ public class RoleServiceImpl implements RoleService {
     @CacheEvict(value = "ResourceOwners", allEntries = true)
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void grantRolePermission(String authority, String resourceId, int status, UserDetails loginUser) {
-        if (authority == null) {
-            throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
-        }
-        if (resourceId == null) {
-            throw AuthorityBusinessException.invalidParameter("资源id不能为空");
-        }
-        if (!loginUser.isDev()) {
-            // TODO 判断是否为自身权限
-            log.info("非开发者");
-        }
-        String tenantId = loginUser.getTenantId();
+    public void grantRolePermission(String authority, String resourceId, int status, UserDetails userDetails) {
+        Resource resource = getResource(authority, resourceId, userDetails);
+
+        String tenantId = userDetails.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
-            // todo tenantId = RoleUtil.getTenantId(authority);
-            log.info("无租户");
+            tenantId = UserRoleHelper.getTenantId(authority);
         }
-        Resource resource = resourceService.getResourceById(resourceId);
-        if (resource == null) {
-            throw AuthorityBusinessException.resourceNotFound(resourceId);
-        }
-        List<Resource> resources = resourceService.getAllParentsByOperator(loginUser, resource);
-        List<Resource> children = resourceService.getAllChildrenByOperator(loginUser, resource);
+
+        List<Resource> resources = resourceService.getAllParentsByOperator(userDetails, resource);
+        List<Resource> children = resourceService.getAllChildrenByOperator(userDetails, resource);
         resources.add(resource);
         resources.addAll(children);
         Set<String> ids = resources.stream().map(Resource::getId).collect(Collectors.toSet());
@@ -310,28 +299,43 @@ public class RoleServiceImpl implements RoleService {
         }
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "ResourceOwners", allEntries = true)
-    public void revokeRolePermission(String authority, String resourceId, UserDetails userDetails) {
+    private @NonNull Resource getResource(String authority, String resourceId, UserDetails userDetails) {
+        validateAuthorityOperation(authority, resourceId, userDetails);
+        Resource resource = resourceService.getResourceById(resourceId);
+        if (resource == null) {
+            throw AuthorityBusinessException.resourceNotFound(resourceId);
+        }
+        return resource;
+    }
+
+    private static void validateAuthorityOperation(String authority, String resourceId, UserDetails userDetails) {
         if (authority == null) {
             throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
         }
         if (resourceId == null) {
             throw AuthorityBusinessException.invalidParameter("资源id不能为空");
         }
-        if (!userDetails.isDev()) {
-            StpUtil.checkPermission(authority);
+
+        if (userDetails.isDev()) {
+            return;
         }
+
+        if (StpUtil.hasPermission(authority)) {
+            throw AuthorityBusinessException.operationNotSupported("禁止修改当前用户所属角色的访问权限!");
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "ResourceOwners", allEntries = true)
+    public void revokeRolePermission(String authority, String resourceId, UserDetails userDetails) {
+        Resource resource = getResource(authority, resourceId, userDetails);
+
         String tenantId = userDetails.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
-            // todo tenantId = RoleUtil.getTenantId(authority);
-            log.info("非租户");
+            tenantId = UserRoleHelper.getTenantId(authority);
         }
-        Resource resource = resourceService.getResourceById(resourceId);
-        if (resource == null) {
-            throw AuthorityBusinessException.resourceNotFound(resourceId);
-        }
+
         List<Resource> resources = resourceService.getAllChildrenByOperator(userDetails, resource);
         resources.add(resource);
         List<String> ids = resources.stream().map(Resource::getId).collect(Collectors.toList());

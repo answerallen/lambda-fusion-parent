@@ -104,16 +104,9 @@ public class TenantEntity extends BaseEntity {
     /**
      * 是否启用，未启用:0,已启用:1
      */
-    @Schema(description = "是否启用，未启用:0,已启用:1, 已停用:99")
+    @Schema(description = "状态，禁用:0,启用:1")
     @TableField("ENABLED")
-    private Integer enabled;
-
-    /**
-     * 审核状态，未审核:0,审核通过:1
-     */
-    @Schema(description = "审核状态，未审核:0,审核通过:1")
-    @TableField("EXAMINE_STATE")
-    private Integer examineState;
+    private Integer status;
 
     /**
      * 拥有者

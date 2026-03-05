@@ -228,7 +228,7 @@ public interface UserService {
      *
      * @param tenantId 租户ID
      */
-    List<User> getUsersByTenantId(String tenantId);
+    List<User> queryTenantAdmins(String tenantId);
 
     /***
      * 更新租户管理员用户
