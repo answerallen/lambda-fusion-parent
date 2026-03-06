@@ -5,11 +5,10 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.annotation.DictMapper;
 import com.lambda.fusion.core.dict.DictEnum;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.util.Arrays;
 import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 public interface AuthorityConstants {
 
@@ -65,7 +64,10 @@ public interface AuthorityConstants {
 
         public static MenuType of(int i) {
             MenuType[] values = MenuType.values();
-            return Arrays.stream(values).filter(menuType -> menuType.code == i).findFirst().orElse(null);
+            return Arrays.stream(values)
+                    .filter(menuType -> menuType.code == i)
+                    .findFirst()
+                    .orElse(null);
         }
 
         public Boolean isButton() {
