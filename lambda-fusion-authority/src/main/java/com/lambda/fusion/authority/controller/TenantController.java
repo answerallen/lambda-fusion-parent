@@ -1,10 +1,13 @@
 package com.lambda.fusion.authority.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.model.tenant.TenantEntity;
 import com.lambda.fusion.authority.model.tenant.TenantOption;
 import com.lambda.fusion.authority.model.tenant.TenantQuery;
 import com.lambda.fusion.authority.service.TenantService;
+import com.lambda.fusion.core.FusionConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,6 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * 租户信息表相关接口
  */
+@SaCheckRole(
+        value = {FusionConstants.ROLE_ADMIN, FusionConstants.ROLE_SYSTEM,FusionConstants.ROLE_DEV},
+        mode = SaMode.OR)
 @Slf4j
 @RestController
 @RequestMapping("/authority/tenant")

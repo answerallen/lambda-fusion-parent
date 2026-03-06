@@ -13,6 +13,10 @@ public interface AuthorityConstants {
 
     // ==================== 常量相关 ======================
     String DEFAULT = "default";
+    String GROUP_ID = "groupId";
+    String ALIAS = "alias";
+    String TENANT_ID = "tenantId";
+    String EXCLUDES = "excludes";
 
     String DEFAULT_GROUP_NAME = "默认分组";
 

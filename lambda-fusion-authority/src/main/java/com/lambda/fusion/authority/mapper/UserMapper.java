@@ -50,6 +50,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param users
      * @return
      */
+    @InterceptorIgnore(tenantLine = "true")
     List<User> selectUsers(List<User> users);
 
     /**
@@ -59,6 +60,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param userQueryContext
      * @return
      */
+    @InterceptorIgnore(tenantLine = "true")
     Page<User> selectUserPage(Page<User> page, @Param("parameters") UserQueryContext userQueryContext);
 
     /**
@@ -83,6 +85,7 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      * @param newPassword newPassword
      *
      */
+    @InterceptorIgnore(tenantLine = "true")
     default void updatePassword(String username, String newPassword) {
         update(new LambdaUpdateWrapper<UserEntity>()
                 .eq(UserEntity::getUsername, username)

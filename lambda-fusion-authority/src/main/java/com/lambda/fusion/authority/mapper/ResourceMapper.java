@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.mapper;
 
+import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
@@ -125,6 +126,7 @@ public interface ResourceMapper extends BaseMapper<ResourceEntity> {
      * 获取所有可用的资源
      * @param parameter 参数
      */
+    @InterceptorIgnore(tenantLine = "true")
     default List<Resource> queryAvailableResources(MenuQuery parameter) {
         List<ResourceEntity> resourceEntities = selectList(new LambdaQueryWrapper<ResourceEntity>()
                 .eq(ResourceEntity::getResMode, parameter.getMode())

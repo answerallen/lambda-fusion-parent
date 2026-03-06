@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.Assert;
+import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.model.role.*;
 import com.lambda.fusion.authority.service.InternalRoleService;
 import com.lambda.fusion.authority.service.RoleService;
@@ -25,6 +26,9 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import static com.lambda.fusion.core.FusionConstants.EXCLUDES;
+import static com.lambda.fusion.core.FusionConstants.TENANT_ID;
 
 /**
  * 用户角色API
@@ -65,10 +69,10 @@ public class RoleController {
         UserDetails userDetails = SecurityUtils.getUser();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
         if (ObjectUtil.isNotNull(groupId)) {
-            parameters.put("groupId", groupId);
+            parameters.put(AuthorityConstants.GROUP_ID, groupId);
         }
         if (StringUtils.isNotBlank(alias)) {
-            parameters.put("alias", SqlParamUtils.fuzzyQuery(alias));
+            parameters.put(AuthorityConstants.ALIAS, SqlParamUtils.fuzzyQuery(alias));
         }
         Set<String> excludes = Sets.newHashSet();
         excludes.add(FusionConstants.ROLE_USER);
@@ -81,10 +85,10 @@ public class RoleController {
         }
         Set<String> queryExclude = internalRoleService.queryExclude(userDetails);
         excludes.addAll(queryExclude);
-        parameters.put("excludes", excludes);
+        parameters.put(AuthorityConstants.EXCLUDES, excludes);
         String tenantId = userDetails.getTenantId();
         if (StringUtils.isNotBlank(tenantId)) {
-            parameters.put("tenant_id", tenantId);
+            parameters.put(AuthorityConstants.TENANT_ID, tenantId);
         }
         return roleService.getAllRoles(new Page<>(number, size), parameters);
     }

@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.mapper;
 
+import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.lambda.fusion.authority.model.authentication.AuthUser;
 import com.lambda.fusion.authority.model.authentication.MenuQuery;
 import com.lambda.fusion.authority.model.authentication.MenuRoute;
@@ -23,6 +24,7 @@ public interface AuthenticationMapper {
      * @param username 用户名
      * @return 用户详细信息
      */
+    @InterceptorIgnore(tenantLine = "true")
     AuthUser selectUserDetailByUsername(@Param("username") String username);
 
     /**
@@ -31,6 +33,7 @@ public interface AuthenticationMapper {
      * @param mobile 手机号
      * @return 用户详细信息列表
      */
+    @InterceptorIgnore(tenantLine = "true")
     List<AuthUser> selectUserDetailsByMobile(@Param("mobile") String mobile);
 
     /**
@@ -39,6 +42,7 @@ public interface AuthenticationMapper {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
+    @InterceptorIgnore(tenantLine = "true")
     List<MenuRoute> selectNavigation(@Param("query") MenuQuery query);
 
     /**
@@ -63,5 +67,6 @@ public interface AuthenticationMapper {
      * @param username 用户名
      * @return 权限码列表
      */
+    @InterceptorIgnore(tenantLine = "true")
     List<String> selectAuthoritiesByUsername(@Param("username") String username);
 }

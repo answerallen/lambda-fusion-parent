@@ -39,7 +39,7 @@ public interface FusionConstants {
     /**
      * 租户ID 字段名
      */
-    String TENANT_ID = "tenant_id";
+    String TENANT_ID = "tenantId";
     /**
      * 租户域名 Redis Key
      */

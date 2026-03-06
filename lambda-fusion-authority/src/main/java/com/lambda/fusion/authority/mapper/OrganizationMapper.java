@@ -29,6 +29,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param parameters 查询参数
      * @return 组织列表
      */
+    @InterceptorIgnore(tenantLine = "true")
     List<Organization> selectOrganizations(@Param("parameters") OrganizationQuery parameters);
 
     /**

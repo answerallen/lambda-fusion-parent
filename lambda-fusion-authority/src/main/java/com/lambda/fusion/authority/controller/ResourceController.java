@@ -8,6 +8,7 @@ import com.lambda.fusion.authority.model.resource.MoveResource;
 import com.lambda.fusion.authority.model.resource.Resource;
 import com.lambda.fusion.authority.model.resource.ResourceTree;
 import com.lambda.fusion.authority.service.ResourceService;
+import com.lambda.fusion.core.FusionConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @SaCheckRole(
-        value = {"ROLE_DEV", "ROLE_SYSTEM", "ROLE_ADMIN"},
+        value = {FusionConstants.ROLE_ADMIN, FusionConstants.ROLE_SYSTEM,FusionConstants.ROLE_DEV},
         mode = SaMode.OR)
 @RequestMapping({"/authority/resources"})
 @Tag(name = "资源管理")

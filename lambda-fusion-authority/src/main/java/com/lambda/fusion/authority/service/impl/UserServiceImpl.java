@@ -267,10 +267,10 @@ public class UserServiceImpl implements UserService {
                 orgIds.add(item.getOrganization().getId());
             }
         }
-        PopulateUserInfo parameters = new PopulateUserInfo();
-        parameters.setUsernames(usernames);
-        parameters.setOrgIds(orgIds);
-        return parameters;
+        PopulateUserInfo populateUserInfo = new PopulateUserInfo();
+        populateUserInfo.setUsernames(usernames);
+        populateUserInfo.setOrgIds(orgIds);
+        return populateUserInfo;
     }
 
     /**
