@@ -1,10 +1,8 @@
 package com.lambda.fusion.authority.service.impl;
 
-import static com.lambda.fusion.authority.AuthorityConstants.DEFAULT_GROUP_NAME;
-
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.lang.UUID;
+import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -20,7 +18,6 @@ import com.lambda.fusion.authority.mapper.GroupMapper;
 import com.lambda.fusion.authority.mapper.RoleMapper;
 import com.lambda.fusion.authority.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.model.resource.Resource;
-import com.lambda.fusion.authority.model.resource.ResourceType;
 import com.lambda.fusion.authority.model.role.*;
 import com.lambda.fusion.authority.model.user.UserRoleEntity;
 import com.lambda.fusion.authority.service.InternalRoleService;
@@ -30,9 +27,6 @@ import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -43,6 +37,12 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.authority.AuthorityConstants.DEFAULT_GROUP_NAME;
 
 @Slf4j
 @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -171,11 +171,7 @@ public class RoleServiceImpl implements RoleService {
             throw AuthorityBusinessException.invalidParameter("别名不能为空！");
         }
         String tenantId = userDetails.getTenantId();
-        String authority = UUID.fastUUID().toString();
-        boolean hasExists = hasExists(authority);
-        if (hasExists) {
-            throw AuthorityBusinessException.roleNotFound(authority);
-        }
+        String authority = IdUtil.fastSimpleUUID();
         createRole.setAuthority(authority);
         createRole.setOwner(tenantId);
         createRole.setTenantId(tenantId);
@@ -345,8 +341,8 @@ public class RoleServiceImpl implements RoleService {
         if (CollectionUtils.isNotEmpty(ids)) {
             roleMapper.batchDeleteAuthorization(authority, ids, tenantId);
         }
-        ResourceType resourceType = ResourceType.get(resource.getResType());
-        if (resourceType != null && !resourceType.isButton()) {
+        AuthorityConstants.MenuType menuType = AuthorityConstants.MenuType.of(resource.getResType());
+        if (menuType != null && !menuType.isButton()) {
             List<Resource> parents = resourceService.getAllParentsByOperator(userDetails, resource);
             for (Resource parent : parents) {
                 AuthorityPermission parameters = new AuthorityPermission();
@@ -449,7 +445,7 @@ public class RoleServiceImpl implements RoleService {
 
     @CacheEvict(value = "ResourceOwners", allEntries = true)
     @Override
-    public void assignUsersToRole(UserDetails userDetails, BatchRoleUserAssignmentRequest req) {
+    public void assignUsersToRole(UserDetails userDetails, BatchAssignUserRole req) {
         final String authority = req.getRoleId();
         final List<String> usernames = req.getUsername();
         final List<UserRoleEntity> dbResult = userRoleMapper.selectList(

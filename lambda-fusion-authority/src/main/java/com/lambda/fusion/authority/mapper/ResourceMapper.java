@@ -26,6 +26,7 @@ public interface ResourceMapper extends BaseMapper<ResourceEntity> {
      * @param parameters
      * @return
      */
+    @InterceptorIgnore(tenantLine = "true")
     List<Resource> getAllChildren(Map<String, Object> parameters);
 
     /**

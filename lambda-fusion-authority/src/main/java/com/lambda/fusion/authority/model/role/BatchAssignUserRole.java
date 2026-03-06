@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 @Schema(description = "批量添加角色用户")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class BatchRoleUserAssignmentRequest {
+public class BatchAssignUserRole {
     @Schema(description = "角色")
     private String roleId;
 

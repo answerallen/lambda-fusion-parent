@@ -87,6 +87,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @param authority
      * @return
      */
+    @InterceptorIgnore(tenantLine = "true")
     boolean hasExists(String authority);
 
     /**
@@ -224,6 +225,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @param ids
      * @return java.util.List<java.lang.String>
      */
+    @InterceptorIgnore(tenantLine = "true")
     List<String> hasAuthorizedWithIntersection(String authority, Set<String> ids);
 
     /**

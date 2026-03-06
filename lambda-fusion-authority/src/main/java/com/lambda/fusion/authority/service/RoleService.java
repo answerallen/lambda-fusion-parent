@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.model.role.AccessPermission;
-import com.lambda.fusion.authority.model.role.BatchRoleUserAssignmentRequest;
+import com.lambda.fusion.authority.model.role.BatchAssignUserRole;
 import com.lambda.fusion.authority.model.role.CreateRole;
 import com.lambda.fusion.authority.model.role.Group;
 import com.lambda.fusion.authority.model.role.GroupRole;
@@ -171,7 +171,7 @@ public interface RoleService {
      * @param userDetails 当前操作用户
      * @param req  请求
      */
-    void assignUsersToRole(UserDetails userDetails, BatchRoleUserAssignmentRequest req);
+    void assignUsersToRole(UserDetails userDetails, BatchAssignUserRole req);
 
     /**
      * 分组列表查询

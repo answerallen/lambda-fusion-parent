@@ -23,8 +23,8 @@ public class RoleManagerImpl implements RoleManager {
 
     @Nonnull
     @Override
-    public Set<String> getAuthoritiesByUser(String uid) {
-        List<UserAuthority> results = roleMapper.getAuthoritiesByUser(uid);
+    public Set<String> getAuthoritiesByUser(String username) {
+        List<UserAuthority> results = roleMapper.getAuthoritiesByUser(username);
         if (CollectionUtils.isEmpty(results)) {
             return Sets.newHashSet();
         }

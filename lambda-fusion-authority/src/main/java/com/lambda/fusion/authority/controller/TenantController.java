@@ -22,7 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
  * 租户信息表相关接口
  */
 @SaCheckRole(
-        value = {FusionConstants.ROLE_ADMIN, FusionConstants.ROLE_SYSTEM,FusionConstants.ROLE_DEV},
+        value = {FusionConstants.ROLE_ADMIN, FusionConstants.ROLE_SYSTEM, FusionConstants.ROLE_DEV},
         mode = SaMode.OR)
 @Slf4j
 @RestController

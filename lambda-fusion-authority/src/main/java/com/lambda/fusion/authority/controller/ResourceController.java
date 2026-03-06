@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @SaCheckRole(
-        value = {FusionConstants.ROLE_ADMIN, FusionConstants.ROLE_SYSTEM,FusionConstants.ROLE_DEV},
+        value = {FusionConstants.ROLE_ADMIN, FusionConstants.ROLE_SYSTEM, FusionConstants.ROLE_DEV},
         mode = SaMode.OR)
 @RequestMapping({"/authority/resources"})
 @Tag(name = "资源管理")

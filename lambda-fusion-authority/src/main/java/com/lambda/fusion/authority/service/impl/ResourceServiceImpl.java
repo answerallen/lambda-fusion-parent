@@ -5,6 +5,7 @@ import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Maps;
+import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.manager.RoleManager;
 import com.lambda.fusion.authority.mapper.ResourceMapper;
@@ -130,7 +131,7 @@ public class ResourceServiceImpl implements ResourceService {
                 parentKeys = parent.getId();
             }
         }
-        if (resource.getResType() == ResourceType.BUTTON.ordinal()) {
+        if (Objects.equals(resource.getResType(), AuthorityConstants.MenuType.BUTTON.getCode())) {
             resLevel = Integer.MAX_VALUE;
         }
         resource.setResLevel(resLevel);
@@ -155,7 +156,7 @@ public class ResourceServiceImpl implements ResourceService {
                 button.setParentId(resource.getId());
                 button.setParentKeys(resource.getParentKeys() + FusionConstants.SEPARATOR0 + resource.getId());
                 button.setOrderNo(i + 1);
-                button.setResType(ResourceType.BUTTON.ordinal());
+                button.setResType(AuthorityConstants.MenuType.BUTTON.getCode());
                 button.setResLevel(resLevel + 1);
                 resourceMapper.addResource(button);
             }
@@ -210,7 +211,7 @@ public class ResourceServiceImpl implements ResourceService {
         boolean typeChanged = !source.getResType().equals(updateResource.getResType());
         boolean hiddenChanged = source.getHidden().equals(updateResource.getHidden());
         if (typeChanged) {
-            if (updateResource.getResType() == ResourceType.BUTTON.ordinal()) {
+            if (Objects.equals(updateResource.getResType(), AuthorityConstants.MenuType.BUTTON.getCode())) {
                 updateResource.setResLevel(Integer.MAX_VALUE);
             }
             String parentId = source.getParentId();

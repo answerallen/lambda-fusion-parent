@@ -27,9 +27,6 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import static com.lambda.fusion.core.FusionConstants.EXCLUDES;
-import static com.lambda.fusion.core.FusionConstants.TENANT_ID;
-
 /**
  * 用户角色API
  */
@@ -176,7 +173,7 @@ public class RoleController {
 
     @Operation(description = "角色批量分配用户", summary = "角色批量分配用户")
     @PostMapping("/assignUsers")
-    public void assignUsersToRole(@Valid @RequestBody BatchRoleUserAssignmentRequest req) {
+    public void assignUsersToRole(@Valid @RequestBody BatchAssignUserRole req) {
         UserDetails userDetails = SecurityUtils.getUser();
         roleService.assignUsersToRole(userDetails, req);
     }
