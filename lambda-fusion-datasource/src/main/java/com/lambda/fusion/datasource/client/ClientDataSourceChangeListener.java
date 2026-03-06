@@ -11,10 +11,10 @@ import com.lambda.fusion.datasource.tenant.TenantSchemaCleaner;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Optional;
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 
 /**
  * 数据源变更回调实现
@@ -28,8 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ClientDataSourceChangeListener implements DataSourceChangeListener {
 
     private final DynamicDataSourceService dynamicDataSourceService;
-    private final Optional<TenantSchemaInitializer> schemaInitializer;
-    private final Optional<TenantSchemaCleaner> schemaCleaner;
+    private final ObjectProvider<TenantSchemaInitializer> schemaInitializer;
+    private final ObjectProvider<TenantSchemaCleaner> schemaCleaner;
 
     @Override
     public void onDataSourceChanged(DataSourceChangeEvent event) {
@@ -103,7 +103,7 @@ public class ClientDataSourceChangeListener implements DataSourceChangeListener 
     }
 
     private void handleInitSchema(DataSourceChangeEvent event) {
-        schemaInitializer.ifPresent((initializer) -> {
+        schemaInitializer.ifAvailable((initializer) -> {
             String dataSourceId = event.getDataSourceId();
             if (StrUtil.isEmpty(dataSourceId)) {
                 log.warn("Received INIT_SCHEMA event without datasource id");
@@ -119,7 +119,7 @@ public class ClientDataSourceChangeListener implements DataSourceChangeListener 
     }
 
     private void handleRemoveSchema(DataSourceChangeEvent event) {
-        schemaCleaner.ifPresent(tenantSchemaCleaner -> {
+        schemaCleaner.ifAvailable(tenantSchemaCleaner -> {
             String dataSourceId = event.getDataSourceId();
             if (StrUtil.isEmpty(dataSourceId)) {
                 log.warn("Received REMOVE_SCHEMA event without datasource id");

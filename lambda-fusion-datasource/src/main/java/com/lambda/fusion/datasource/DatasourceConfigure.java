@@ -11,9 +11,9 @@ import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.tenant.TenantSchemaCleaner;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
-import java.util.Optional;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -76,10 +76,10 @@ public class DatasourceConfigure {
     @ConditionalOnProperty(name = DatasourceConstants.MODE_PROPERTY, havingValue = DatasourceConstants.MODE_CLIENT)
     public ClientDataSourceChangeListener dataSourceChangeListener(
             DynamicDataSourceService dynamicDataSourceService,
-            @Autowired(required = false) TenantSchemaInitializer schemaInitializer,
-            @Autowired(required = false) TenantSchemaCleaner schemaCleaner) {
+            ObjectProvider<TenantSchemaInitializer> initializerObjectProvider,
+            ObjectProvider<TenantSchemaCleaner> cleanerObjectProvider) {
         return new ClientDataSourceChangeListener(
-                dynamicDataSourceService, Optional.of(schemaInitializer), Optional.of(schemaCleaner));
+                dynamicDataSourceService, initializerObjectProvider, cleanerObjectProvider);
     }
 
     @Bean
