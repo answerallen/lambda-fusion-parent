@@ -23,7 +23,7 @@ public interface RoleService {
      * @param userDetails
      * @return
      */
-    List<Role> getAllRoles(UserDetails userDetails);
+    List<Role> queryRoles(UserDetails userDetails);
 
     /**
      * 获取角色分组
@@ -32,7 +32,7 @@ public interface RoleService {
      * @param tenantId the tenantId
      * @return ig all group roles
      */
-    List<GroupRole> grouped(UserDetails userDetails, String tenantId);
+    List<GroupRole> groupedRoles(UserDetails userDetails, String tenantId);
 
     /***
      * 根据条件分页查询角色列表
@@ -41,7 +41,7 @@ public interface RoleService {
      * @param parameters
      * @return Page<MutableRole>
      */
-    Page<Role> getAllRoles(Page<Role> pageable, Map<String, Object> parameters);
+    Page<Role> queryRoles(Page<Role> pageable, Map<String, Object> parameters);
 
     /**
      * 修改角色

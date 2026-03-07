@@ -6,7 +6,6 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
@@ -22,13 +21,14 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 /**
  * 认证服务实现类
@@ -215,8 +215,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public List<String> getPermissions() {
-        LoginUser operator = OperatorUtils.getOperator();
-        return authenticationMapper.selectAuthoritiesByUsername(operator.getName());
+        return authenticationMapper.selectAuthoritiesByUsername(SecurityUtils.getUser().getName());
     }
 
     private LoginUser prepareLoginUser(UserDetails userDetails) {

@@ -88,9 +88,9 @@ public interface UserMapper extends BaseMapper<UserEntity> {
      */
     @InterceptorIgnore(tenantLine = "true")
     default void updatePassword(String username, String newPassword) {
-//        update(new LambdaUpdateWrapper<UserEntity>()
-//                .eq(UserEntity::getUsername, username)
-//                .set(UserEntity::getPassword, newPassword));
+        update(new LambdaUpdateWrapper<UserEntity>()
+                .eq(UserEntity::getUsername, username)
+                .set(UserEntity::getPassword, newPassword));
     }
 
     /**

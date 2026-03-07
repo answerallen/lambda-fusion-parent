@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.mapper;
 
+import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.lambda.fusion.authority.model.role.AuthorityPermission;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -8,22 +9,19 @@ import org.apache.ibatis.annotations.Mapper;
  *
  */
 @Mapper
+@InterceptorIgnore(tenantLine = "true")
 public interface AccessPermissionMapper {
 
     /**
      * 是否没有任意的权限
      * 用于在移除某一权限时，判断上级节点是否也应该被移除
      *
-     * @param parameters
-     * @return boolean
      */
-    boolean noAnyChildrenPermission(AuthorityPermission parameters);
+    boolean noAnyChildrenPermission(AuthorityPermission authorityPermission);
 
     /**
      * 删除单一的访问权限
      *
-     * @param parameters
-     * @return void
      */
-    void deletePermission(AuthorityPermission parameters);
+    void deletePermission(AuthorityPermission authorityPermission);
 }

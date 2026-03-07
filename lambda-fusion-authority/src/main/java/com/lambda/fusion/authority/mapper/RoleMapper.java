@@ -17,6 +17,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
+@InterceptorIgnore(tenantLine = "true")
 public interface RoleMapper extends BaseMapper<RoleEntity> {
     /**
      * 获取所有角色
@@ -24,7 +25,7 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @param parameters
      * @return
      */
-    List<Role> getAllRoles(Map<String, Object> parameters);
+    List<Role> queryRoles(Map<String, Object> parameters);
 
     /**
      * 根据条件分页查询用户角色记录

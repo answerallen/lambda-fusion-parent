@@ -11,7 +11,7 @@
         <result column="checked" property="checked"/>
     </resultMap>
 
-    <select id="getAllRoles" resultType="com.lambda.fusion.authority.model.role.Role">
+    <select id="queryRoles" resultType="com.lambda.fusion.authority.model.role.Role">
         SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, (CASE WHEN T.GROUP_ID IS NULL THEN 'default' ELSE T.GROUP_ID END) AS groupId
         FROM LA_ROLES T WHERE ENABLED = 1
         <if test="excludes != null and excludes.size > 0">

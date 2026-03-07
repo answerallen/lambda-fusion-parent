@@ -19,6 +19,7 @@ import org.apache.ibatis.annotations.Param;
  *
  */
 @Mapper
+@InterceptorIgnore(tenantLine = "true")
 public interface ResourceMapper extends BaseMapper<ResourceEntity> {
     /**
      * 根据操作用户查询所有下级(直接下级和间接下级)的信息
@@ -26,7 +27,6 @@ public interface ResourceMapper extends BaseMapper<ResourceEntity> {
      * @param parameters
      * @return
      */
-    @InterceptorIgnore(tenantLine = "true")
     List<Resource> getAllChildren(Map<String, Object> parameters);
 
     /**
@@ -77,7 +77,6 @@ public interface ResourceMapper extends BaseMapper<ResourceEntity> {
     /**
      * 修改资源
      *
-     * @param resource
      */
     default void updateResource(Resource resource) {
         ResourceEntity resourceEntity = ConvertUtils.convert(resource);
@@ -127,7 +126,6 @@ public interface ResourceMapper extends BaseMapper<ResourceEntity> {
      * 获取所有可用的资源
      * @param parameter 参数
      */
-    @InterceptorIgnore(tenantLine = "true")
     default List<Resource> queryAvailableResources(MenuQuery parameter) {
         List<ResourceEntity> resourceEntities = selectList(new LambdaQueryWrapper<ResourceEntity>()
                 .eq(ResourceEntity::getResMode, parameter.getMode())

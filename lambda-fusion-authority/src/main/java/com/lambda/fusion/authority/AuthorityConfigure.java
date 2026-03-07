@@ -6,9 +6,7 @@ import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
 import com.lambda.cloud.sse.listener.SseEventListener;
 import com.lambda.fusion.authority.listenner.UserOnlineLogListener;
 import com.lambda.fusion.authority.listenner.UserSeeEventListener;
-import com.lambda.fusion.authority.service.InternalRoleService;
 import com.lambda.fusion.authority.service.UserOnlineLogService;
-import com.lambda.fusion.authority.service.impl.InternalRoleServiceImpl;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.SecurityUtils;
@@ -99,12 +97,6 @@ public class AuthorityConfigure {
     public SseEventListener userSeeEventListener(
             @Autowired(required = false) UserOnlineLogService userOnlineLogService) {
         return new UserSeeEventListener(userOnlineLogService);
-    }
-
-    @ConditionalOnMissingBean
-    @Bean
-    public InternalRoleService internalRoleService() {
-        return new InternalRoleServiceImpl();
     }
 
     @ConditionalOnMissingBean

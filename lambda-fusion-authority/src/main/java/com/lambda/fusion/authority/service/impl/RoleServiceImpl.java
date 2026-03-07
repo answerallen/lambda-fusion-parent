@@ -1,7 +1,5 @@
 package com.lambda.fusion.authority.service.impl;
 
-import static com.lambda.fusion.authority.AuthorityConstants.DEFAULT_GROUP_NAME;
-
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.IdUtil;
@@ -10,7 +8,6 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.helper.UserRoleHelper;
@@ -22,16 +19,12 @@ import com.lambda.fusion.authority.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.model.resource.Resource;
 import com.lambda.fusion.authority.model.role.*;
 import com.lambda.fusion.authority.model.user.UserRoleEntity;
-import com.lambda.fusion.authority.service.InternalRoleService;
 import com.lambda.fusion.authority.service.ResourceService;
 import com.lambda.fusion.authority.service.RoleService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -42,6 +35,12 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.authority.AuthorityConstants.DEFAULT_GROUP_NAME;
 
 @Slf4j
 @SuppressFBWarnings("EI_EXPOSE_REP2")
@@ -59,8 +58,6 @@ public class RoleServiceImpl implements RoleService {
     private final UserRoleMapper userRoleMapper;
 
     private final AccessPermissionMapper accessPermissionMapper;
-
-    private final InternalRoleService internalRoleService;
 
     private TenantAuthorizeManager tenantAuthorizeManager;
 
@@ -81,22 +78,20 @@ public class RoleServiceImpl implements RoleService {
                 excludes.add(FusionConstants.ROLE_ADMIN);
             }
         }
-        Set<String> queryExclude = internalRoleService.queryExclude(userDetails);
-        excludes.addAll(queryExclude);
         return excludes;
     }
 
     @Override
-    public List<Role> getAllRoles(UserDetails userDetails) {
+    public List<Role> queryRoles(UserDetails userDetails) {
         Set<String> excludes = getExcludes(userDetails);
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(2);
         parameters.put(FusionConstants.EXCLUDES, excludes);
         parameters.put(FusionConstants.TENANT_ID, userDetails.getTenantId());
-        return roleMapper.getAllRoles(parameters);
+        return roleMapper.queryRoles(parameters);
     }
 
     @Override
-    public List<GroupRole> grouped(UserDetails userDetails, String tenantId) {
+    public List<GroupRole> groupedRoles(UserDetails userDetails, String tenantId) {
         if (StringUtils.isBlank(tenantId) || StringUtils.isNotBlank(userDetails.getTenantId())) {
             tenantId = userDetails.getTenantId();
         }
@@ -104,7 +99,7 @@ public class RoleServiceImpl implements RoleService {
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(2);
         parameters.put(FusionConstants.EXCLUDES, excludes);
         parameters.put(FusionConstants.TENANT_ID, tenantId);
-        List<Role> roles = roleMapper.getAllRoles(parameters);
+        List<Role> roles = roleMapper.queryRoles(parameters);
         List<RoleGroupEntity> groupEntities = roleGroupMapper.getAllGroup(parameters);
         RoleGroupEntity defaultRoleGroupEntity = newDefaultGroup(tenantId);
         if (notContains(groupEntities, defaultRoleGroupEntity)) {
@@ -140,7 +135,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public Page<Role> getAllRoles(Page<Role> pageable, Map<String, Object> parameters) {
+    public Page<Role> queryRoles(Page<Role> pageable, Map<String, Object> parameters) {
         pageable = roleMapper.pageRoles(pageable, parameters);
         List<Role> roles = pageable.getRecords();
         if (CollectionUtils.isNotEmpty(roles)) {
@@ -201,8 +196,6 @@ public class RoleServiceImpl implements RoleService {
             throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
         }
         Set<String> excludes = new HashSet<>(AuthorityConstants.DEFAULT_ROLES);
-        Set<String> deleteExclude = internalRoleService.deleteExclude(OperatorUtils.getOperator());
-        excludes.addAll(deleteExclude);
         if (excludes.contains(authority)) {
             throw AuthorityBusinessException.operationNotSupported("角色" + authority + "不能删除");
         }
@@ -237,7 +230,6 @@ public class RoleServiceImpl implements RoleService {
         parameters.put("authority", authority);
         parameters.put("mode", Optional.ofNullable(mode).orElse(0));
         if (!userDetails.isDev()) {
-            StpUtil.checkPermission(authority);
             Set<String> authorities = userDetails.getRoles();
             authorities.add(userDetails.getUsername());
             parameters.put("authorities", authorities);

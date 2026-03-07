@@ -7,7 +7,6 @@ import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.model.role.*;
-import com.lambda.fusion.authority.service.InternalRoleService;
 import com.lambda.fusion.authority.service.RoleService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
@@ -37,13 +36,12 @@ import org.springframework.web.bind.annotation.*;
 public class RoleController {
 
     private final RoleService roleService;
-    private final InternalRoleService internalRoleService;
 
     @GetMapping
     @Operation(description = "获取所有角色列表", summary = "获取所有角色列表")
     public List<Role> list() {
         UserDetails userDetails = SecurityUtils.getUser();
-        return roleService.getAllRoles(userDetails);
+        return roleService.queryRoles(userDetails);
     }
 
     @GetMapping("/grouped")
@@ -53,7 +51,7 @@ public class RoleController {
             parameters = {@Parameter(name = "tenant_id", description = "租户id")})
     public List<GroupRole> grouped() {
         UserDetails userDetails = SecurityUtils.getUser();
-        return roleService.grouped(userDetails, userDetails.getTenantId());
+        return roleService.groupedRoles(userDetails, userDetails.getTenantId());
     }
 
     @GetMapping({"/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
@@ -80,14 +78,12 @@ public class RoleController {
         if (!userDetails.isDev()) {
             excludes.add(FusionConstants.ROLE_ADMIN);
         }
-        Set<String> queryExclude = internalRoleService.queryExclude(userDetails);
-        excludes.addAll(queryExclude);
         parameters.put(AuthorityConstants.EXCLUDES, excludes);
         String tenantId = userDetails.getTenantId();
         if (StringUtils.isNotBlank(tenantId)) {
             parameters.put(AuthorityConstants.TENANT_ID, tenantId);
         }
-        return roleService.getAllRoles(new Page<>(number, size), parameters);
+        return roleService.queryRoles(new Page<>(number, size), parameters);
     }
 
     @GetMapping("/check/{authority}")
