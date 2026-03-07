@@ -1,7 +1,5 @@
 package com.lambda.fusion.authority.service.impl;
 
-import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
-
 import cn.dev33.satoken.stp.StpLogic;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
@@ -35,11 +33,6 @@ import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.security.web.form.FormLockingStrategy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotBlank;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -51,6 +44,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
 
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
@@ -68,7 +69,6 @@ public class UserServiceImpl implements UserService {
     private final UserOrganizationMapper userOrganizationMapper;
     private final UserPasswordMapper userUpdatePwdLogMapper;
     private final OrganizationService organizationService;
-    private final OrganizationMapper organizationMapper;
     private final SseEmitterManager sseEmitterManager;
     private final UserOnlineLogService userOnlineLogService;
     private final FormLockingStrategy formLockingStrategy;
@@ -325,7 +325,7 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(orgIds)) {
             return Collections.emptyMap();
         }
-        List<OrganizationEntity> organizations = organizationMapper.selectByIds(orgIds);
+        List<OrganizationEntity> organizations = organizationService.listByIds(orgIds);
         if (CollectionUtils.isEmpty(organizations)) {
             return Collections.emptyMap();
         }
@@ -344,7 +344,7 @@ public class UserServiceImpl implements UserService {
         if (CollectionUtils.isEmpty(parentOrgIds)) {
             return result;
         }
-        List<OrganizationEntity> parents = organizationMapper.selectByIds(parentOrgIds);
+        List<OrganizationEntity> parents = organizationService.listByIds(parentOrgIds);
         Map<String, String> parentNameMap =
                 parents.stream().collect(Collectors.toMap(OrganizationEntity::getId, OrganizationEntity::getName));
         orgNameMap.forEach((key, value) -> {
@@ -683,5 +683,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportUsers(Page<User> pageable, UserQueryContext parameters) {}
+    public void exportUsers(Page<User> pageable, UserQueryContext parameters) {
+    }
 }

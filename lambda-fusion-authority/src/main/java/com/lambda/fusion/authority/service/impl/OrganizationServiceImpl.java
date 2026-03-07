@@ -20,6 +20,7 @@ import com.lambda.fusion.authority.service.OrganizationService;
 import com.lambda.fusion.authority.service.RoleService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
+import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
@@ -43,14 +44,14 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @RequiredArgsConstructor
 @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-public class OrganizationServiceImpl implements OrganizationService {
+public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEntity,Organization,OrganizationMapper> implements OrganizationService {
 
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
     private final RoleService roleService;
     private final OrganizationMapper organizationMapper;
     private final UserOrganizationMapper userOrganizationMapper;
-    private final GroupMapper groupMapper;
+    private final RoleGroupMapper roleGroupMapper;
     private final AuthorityProperties authorityProperties;
 
     @Override
@@ -237,7 +238,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
 
         List<String> ids = Collections.singletonList(id);
-        groupMapper.deleteByOrgIds(ids);
+        roleGroupMapper.deleteByOrgIds(ids);
         organizationMapper.deleteById(id);
         userOrganizationMapper.deleteUserOrganizationByOrg(id);
     }

@@ -7,14 +7,14 @@ import com.lambda.fusion.authority.model.organization.UserOrganizationEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
+@InterceptorIgnore(tenantLine = "true")
 public interface UserOrganizationMapper extends BaseMapper<UserOrganizationEntity> {
 
     default UserOrganizationEntity selectUserOrganization(String username) {
         return selectOne(
                 new LambdaQueryWrapper<UserOrganizationEntity>().eq(UserOrganizationEntity::getUsername, username));
     }
-
-    @InterceptorIgnore(tenantLine = "true")
+    
     default void deleteUserOrganizationByOrg(String orgId) {
         delete(new LambdaQueryWrapper<UserOrganizationEntity>().eq(UserOrganizationEntity::getOrganizationId, orgId));
     }

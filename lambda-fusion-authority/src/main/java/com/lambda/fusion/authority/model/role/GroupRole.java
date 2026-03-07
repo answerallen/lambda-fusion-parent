@@ -10,10 +10,10 @@ import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-@AutoConverter(target = GroupEntity.class, isReverse = true)
+@AutoConverter(target = RoleGroupEntity.class, isReverse = true)
 @Schema(description = "角色分组信息")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class GroupRole extends BaseVO<GroupEntity> {
+public class GroupRole extends BaseVO<RoleGroupEntity> {
     @Schema(description = "分组ID")
     private String groupId;
 

@@ -2,17 +2,15 @@ package com.lambda.fusion.authority.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.model.organization.Organization;
-import com.lambda.fusion.authority.model.organization.OrganizationEntity;
-import com.lambda.fusion.authority.model.organization.OrganizationQuery;
-import com.lambda.fusion.authority.model.organization.OrganizationTree;
-import com.lambda.fusion.authority.model.organization.OrganizationWithUser;
+import com.lambda.fusion.authority.model.organization.*;
 import com.lambda.fusion.authority.model.user.User;
-import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 @Mapper
+@InterceptorIgnore(tenantLine = "true")
 public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
 
     /**
@@ -29,7 +27,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param parameters 查询参数
      * @return 组织列表
      */
-    @InterceptorIgnore(tenantLine = "true")
     List<Organization> selectOrganizations(@Param("parameters") OrganizationQuery parameters);
 
     /**
@@ -52,14 +49,12 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * 根据编号查询组织详情
      * @param id 组织id
      */
-    @InterceptorIgnore(tenantLine = "true")
     Organization selectOrganizationById(String id);
 
     /***
      * 根据租户编号查询组织详情
      * @param id 租户id
      */
-    @InterceptorIgnore(tenantLine = "true")
     List<Organization> selectOrganizationByTenantId(String id);
 
     /**
@@ -68,7 +63,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param id 组织id
      * @return 是否存在上级组织
      */
-    @InterceptorIgnore(tenantLine = "true")
     boolean existParent(@Param("id") String id);
 
     /**
@@ -77,7 +71,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param id 组织id
      * @return 子组织id列表
      */
-    @InterceptorIgnore(tenantLine = "true")
     List<String> selectChildrenByOrganizationId(String id);
 
     /**
@@ -86,7 +79,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param id 组织id
      * @return 子组织列表
      */
-    @InterceptorIgnore(tenantLine = "true")
     List<Organization> selectSubOrganizationsById(String id);
 
     /**
@@ -95,7 +87,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param enabled 启用/禁用
      * @param ids     组织id列表
      **/
-    @InterceptorIgnore(tenantLine = "true")
     void updateEnabledOrganizationByIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
     /**
@@ -104,7 +95,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param enabled 禁用/启用
      * @param ids     组织id列表
      **/
-    @InterceptorIgnore(tenantLine = "true")
+
     void updateEnabledOrganizationUsersByTenantIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
     /**
@@ -113,7 +104,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param enabled 禁用/启用
      * @param ids     组织id列表
      */
-    @InterceptorIgnore(tenantLine = "true")
+
     void updateEnabledOrganizationUsersByOrgIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
     /**
@@ -122,7 +113,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param enabled 禁用/启用
      * @param ids     组织id列表
      **/
-    @InterceptorIgnore(tenantLine = "true")
+
     void updateEnabledRoleByOrganizationByIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
     /**
@@ -131,7 +122,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param ids 组织编码列表
      * @return {@link boolean}
      **/
-    @InterceptorIgnore(tenantLine = "true")
+
     boolean existUser(@Param("ids") List<String> ids);
 
     /***
@@ -139,7 +130,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param orgId 组织id
      * @return {@link boolean}
      **/
-    @InterceptorIgnore(tenantLine = "true")
+
     boolean existTenantOrganization(@Param("orgId") String orgId);
 
     /**
@@ -155,7 +146,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      *
      * @param ids 组织编号
      */
-    @InterceptorIgnore(tenantLine = "true")
+
     void deleteOrgByIdList(@Param("ids") List<String> ids);
 
     /**
@@ -163,7 +154,7 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      *
      * @param ids 组织编号
      */
-    @InterceptorIgnore(tenantLine = "true")
+
     void deleteUserOrgByIdList(@Param("ids") List<String> ids);
 
     /**

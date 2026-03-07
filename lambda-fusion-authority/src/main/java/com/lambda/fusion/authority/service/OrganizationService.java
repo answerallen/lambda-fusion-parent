@@ -1,22 +1,17 @@
 package com.lambda.fusion.authority.service;
 
-import com.lambda.fusion.authority.model.organization.CreateOrganization;
-import com.lambda.fusion.authority.model.organization.Organization;
-import com.lambda.fusion.authority.model.organization.OrganizationQuery;
-import com.lambda.fusion.authority.model.organization.OrganizationTree;
-import com.lambda.fusion.authority.model.organization.OrganizationWithUser;
-import com.lambda.fusion.authority.model.organization.UpdateOrganization;
-import com.lambda.fusion.authority.model.organization.UserOrganization;
-import com.lambda.fusion.authority.model.organization.UserOrganizationChange;
+import com.baomidou.mybatisplus.extension.repository.IRepository;
+import com.lambda.fusion.authority.model.organization.*;
 import com.lambda.fusion.authority.model.resource.MoveResource;
 import com.lambda.fusion.authority.model.user.User;
 import com.lambda.fusion.core.identity.UserDetails;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.springframework.web.multipart.MultipartFile;
 
-public interface OrganizationService {
+public interface OrganizationService extends IRepository<OrganizationEntity> {
 
     /**
      * 以树形的方式获取组织权限列表
@@ -159,7 +154,7 @@ public interface OrganizationService {
     /**
      * 通过excel来增加组织
      *
-     * @param file     excel文件
+     * @param file excel文件
      * @return 导入失败的数据
      */
     void addOrganizationByImport(MultipartFile file);

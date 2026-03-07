@@ -9,7 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("la_role_groups")
-public class GroupEntity {
+public class RoleGroupEntity {
     @TableId
     private String groupId;
 
@@ -21,8 +21,8 @@ public class GroupEntity {
 
     @Override
     public boolean equals(Object group) {
-        if (group instanceof GroupEntity) {
-            return this.groupId.equals(((GroupEntity) group).getGroupId());
+        if (group instanceof RoleGroupEntity) {
+            return this.groupId.equals(((RoleGroupEntity) group).getGroupId());
         }
         return false;
     }

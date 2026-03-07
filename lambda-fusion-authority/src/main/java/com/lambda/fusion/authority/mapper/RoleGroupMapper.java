@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.mapper;
 
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.authority.model.role.GroupEntity;
+import com.lambda.fusion.authority.model.role.RoleGroupEntity;
 import java.util.List;
 import java.util.Map;
 import org.apache.ibatis.annotations.Delete;
@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
-public interface GroupMapper extends BaseMapper<GroupEntity> {
+public interface RoleGroupMapper extends BaseMapper<RoleGroupEntity> {
 
     /**
      * 更新角色分组
@@ -38,7 +38,7 @@ public interface GroupMapper extends BaseMapper<GroupEntity> {
      * @return  角色分组列表
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<GroupEntity> getAllGroup(Map<String, Object> parameters);
+    List<RoleGroupEntity> getAllGroup(Map<String, Object> parameters);
 
     /**
      * 根据租户ID，删除分组

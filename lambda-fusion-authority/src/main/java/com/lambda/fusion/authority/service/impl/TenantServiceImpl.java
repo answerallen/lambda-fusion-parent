@@ -11,7 +11,7 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.cloud.oss.model.UploadObjectResult;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
-import com.lambda.fusion.authority.mapper.GroupMapper;
+import com.lambda.fusion.authority.mapper.RoleGroupMapper;
 import com.lambda.fusion.authority.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.mapper.RoleMapper;
 import com.lambda.fusion.authority.mapper.TenantMapper;
@@ -50,7 +50,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
     protected RoleMapper roleMapper;
 
     @Resource
-    private GroupMapper groupMapper;
+    private RoleGroupMapper roleGroupMapper;
 
     @Resource
     protected OrganizationMapper organizationMapper;
@@ -154,7 +154,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
         }
         // 删除分组
         List<String> tenantIds = List.of(tenantId);
-        groupMapper.deleteGroupByTenantId(tenantIds);
+        roleGroupMapper.deleteGroupByTenantId(tenantIds);
         // 删除角色权限
         roleMapper.deleteRoleAuthorizeByTenantId(tenantIds);
         // 删除角色

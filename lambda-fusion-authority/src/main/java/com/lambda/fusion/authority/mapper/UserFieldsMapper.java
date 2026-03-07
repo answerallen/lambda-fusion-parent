@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.mapper;
 
+import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.model.user.UserFieldsEntity;
@@ -11,6 +12,7 @@ import org.apache.ibatis.annotations.Mapper;
  * 个人中心扩展字段
  */
 @Mapper
+@InterceptorIgnore(tenantLine = "true")
 public interface UserFieldsMapper extends BaseMapper<UserFieldsEntity> {
 
     /**

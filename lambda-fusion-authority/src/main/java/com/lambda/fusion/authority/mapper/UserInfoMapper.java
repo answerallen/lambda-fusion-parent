@@ -7,6 +7,7 @@ import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
+@InterceptorIgnore(tenantLine = "true")
 public interface UserInfoMapper extends BaseMapper<UserInfoEntity> {
 
     /**

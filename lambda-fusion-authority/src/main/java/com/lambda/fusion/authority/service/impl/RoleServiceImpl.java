@@ -16,7 +16,7 @@ import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.helper.UserRoleHelper;
 import com.lambda.fusion.authority.manager.TenantAuthorizeManager;
 import com.lambda.fusion.authority.mapper.AccessPermissionMapper;
-import com.lambda.fusion.authority.mapper.GroupMapper;
+import com.lambda.fusion.authority.mapper.RoleGroupMapper;
 import com.lambda.fusion.authority.mapper.RoleMapper;
 import com.lambda.fusion.authority.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.model.resource.Resource;
@@ -54,7 +54,7 @@ public class RoleServiceImpl implements RoleService {
 
     private final ResourceService resourceService;
 
-    private final GroupMapper groupMapper;
+    private final RoleGroupMapper roleGroupMapper;
 
     private final UserRoleMapper userRoleMapper;
 
@@ -105,10 +105,10 @@ public class RoleServiceImpl implements RoleService {
         parameters.put(FusionConstants.EXCLUDES, excludes);
         parameters.put(FusionConstants.TENANT_ID, tenantId);
         List<Role> roles = roleMapper.getAllRoles(parameters);
-        List<GroupEntity> groupEntities = groupMapper.getAllGroup(parameters);
-        GroupEntity defaultGroupEntity = newDefaultGroup(tenantId);
-        if (notContains(groupEntities, defaultGroupEntity)) {
-            groupEntities.add(defaultGroupEntity);
+        List<RoleGroupEntity> groupEntities = roleGroupMapper.getAllGroup(parameters);
+        RoleGroupEntity defaultRoleGroupEntity = newDefaultGroup(tenantId);
+        if (notContains(groupEntities, defaultRoleGroupEntity)) {
+            groupEntities.add(defaultRoleGroupEntity);
         }
         // Jin 如果当前用户的角色是开发工程师 只返回ROLE_DEV和ROLE_ADMIN
         final Map<String, List<Role>> map = roles.stream()
@@ -386,7 +386,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public Group addGroup(Group group) {
         group.setGroupId(IdWorker.getIdStr());
-        groupMapper.insert(BeanUtil.copyProperties(group, GroupEntity.class));
+        roleGroupMapper.insert(BeanUtil.copyProperties(group, RoleGroupEntity.class));
         return group;
     }
 
@@ -395,22 +395,22 @@ public class RoleServiceImpl implements RoleService {
         if (Objects.equals(groupId, AuthorityConstants.DEFAULT)) {
             throw AuthorityBusinessException.operationNotSupported("默认组不能删除");
         }
-        groupMapper.updateRoleGroupId(groupId, AuthorityConstants.DEFAULT);
-        groupMapper.deleteById(groupId);
+        roleGroupMapper.updateRoleGroupId(groupId, AuthorityConstants.DEFAULT);
+        roleGroupMapper.deleteById(groupId);
     }
 
     @Override
     public Group updateGroup(Group group) {
-        groupMapper.updateById(BeanUtil.copyProperties(group, GroupEntity.class));
+        roleGroupMapper.updateById(BeanUtil.copyProperties(group, RoleGroupEntity.class));
         return group;
     }
 
     @Override
     public Group getGroupById(String id) {
-        GroupEntity groupEntity = groupMapper.selectById(id);
-        if (groupEntity != null) {
+        RoleGroupEntity roleGroupEntity = roleGroupMapper.selectById(id);
+        if (roleGroupEntity != null) {
             Group target = new Group();
-            BeanUtil.copyProperties(groupEntity, target);
+            BeanUtil.copyProperties(roleGroupEntity, target);
             return target;
         }
         return null;
@@ -421,25 +421,25 @@ public class RoleServiceImpl implements RoleService {
         String tenantId = userDetails.getTenantId();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(1);
         parameters.put(FusionConstants.TENANT_ID, tenantId);
-        GroupEntity defaultGroupEntity = newDefaultGroup(tenantId);
-        List<GroupEntity> groupEntities = groupMapper.getAllGroup(parameters);
-        if (notContains(groupEntities, defaultGroupEntity)) {
-            groupEntities.add(defaultGroupEntity);
+        RoleGroupEntity defaultRoleGroupEntity = newDefaultGroup(tenantId);
+        List<RoleGroupEntity> groupEntities = roleGroupMapper.getAllGroup(parameters);
+        if (notContains(groupEntities, defaultRoleGroupEntity)) {
+            groupEntities.add(defaultRoleGroupEntity);
         }
         return BeanUtil.copyToList(groupEntities, Group.class);
     }
 
-    private boolean notContains(List<GroupEntity> groupEntities, GroupEntity defaultGroupEntity) {
+    private boolean notContains(List<RoleGroupEntity> groupEntities, RoleGroupEntity defaultRoleGroupEntity) {
         return CollectionUtils.isEmpty(groupEntities)
-                || (CollectionUtils.isNotEmpty(groupEntities) && !groupEntities.contains(defaultGroupEntity));
+                || (CollectionUtils.isNotEmpty(groupEntities) && !groupEntities.contains(defaultRoleGroupEntity));
     }
 
-    private GroupEntity newDefaultGroup(String tenantId) {
-        GroupEntity defaultGroupEntity = new GroupEntity();
-        defaultGroupEntity.setGroupId(AuthorityConstants.DEFAULT);
-        defaultGroupEntity.setGroupName(DEFAULT_GROUP_NAME);
-        defaultGroupEntity.setTenantId(tenantId);
-        return defaultGroupEntity;
+    private RoleGroupEntity newDefaultGroup(String tenantId) {
+        RoleGroupEntity defaultRoleGroupEntity = new RoleGroupEntity();
+        defaultRoleGroupEntity.setGroupId(AuthorityConstants.DEFAULT);
+        defaultRoleGroupEntity.setGroupName(DEFAULT_GROUP_NAME);
+        defaultRoleGroupEntity.setTenantId(tenantId);
+        return defaultRoleGroupEntity;
     }
 
     @CacheEvict(value = "ResourceOwners", allEntries = true)
