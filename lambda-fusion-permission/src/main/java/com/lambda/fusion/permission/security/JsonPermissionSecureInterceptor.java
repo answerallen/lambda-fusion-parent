@@ -1,0 +1,51 @@
+package com.lambda.fusion.permission.security;
+
+import cn.dev33.satoken.stp.StpLogic;
+import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.fusion.permission.PermissionProperties;
+import com.lambda.fusion.permission.model.ApiPermissionMetadata;
+import com.lambda.fusion.permission.service.PermissionMatchService;
+import com.lambda.fusion.permission.service.PermissionRegistry;
+import com.lambda.security.inteceptor.SecureInterceptor;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+@RequiredArgsConstructor
+public class JsonPermissionSecureInterceptor implements SecureInterceptor {
+    private final PermissionProperties properties;
+    private final PermissionRegistry permissionRegistry;
+    private final PermissionMatchService permissionMatchService;
+
+    @Override
+    public void handle(Object handler, StpLogic stpLogic, LoginUser operator) {
+        stpLogic.checkLogin();
+        if (!properties.getClient().isCheckEnabled()) {
+            return;
+        }
+        ServletRequestAttributes requestAttributes =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (requestAttributes == null) {
+            return;
+        }
+        HttpServletRequest request = requestAttributes.getRequest();
+        Optional<ApiPermissionMetadata> matched = permissionMatchService.match(
+                permissionRegistry.getLocalApis(), request.getMethod(), request.getRequestURI());
+        if (matched.isEmpty()) {
+            return;
+        }
+        List<String> permissions = matched.get().getPermissions();
+        if (permissions == null || permissions.isEmpty()) {
+            return;
+        }
+        for (String permission : permissions) {
+            if (permission == null || permission.isBlank()) {
+                continue;
+            }
+            stpLogic.checkPermission(permission);
+        }
+    }
+}

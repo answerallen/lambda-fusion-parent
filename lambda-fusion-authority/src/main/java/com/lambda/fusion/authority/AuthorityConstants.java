@@ -36,8 +36,8 @@ public interface AuthorityConstants {
     @DictMapper(dictName = "ROLE_TYPE", dictUsage = 0, dictDesc = "角色类型")
     @AllArgsConstructor
     enum RoleType implements DictEnum<Integer> {
-        FUNC_ROLE(1, "功能角色"),
-        DATA_ROLE(2, "数据角色");
+        FUNC_ROLE(0, "功能角色"),
+        DATA_ROLE(1, "数据角色");
 
         @EnumValue
         @JsonValue
