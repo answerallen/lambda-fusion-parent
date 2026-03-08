@@ -4,8 +4,10 @@ import com.lambda.fusion.permission.PermissionProperties;
 import com.lambda.fusion.permission.api.PermissionSyncApi;
 import com.lambda.fusion.permission.model.PermissionPushRequest;
 import com.lambda.fusion.permission.service.ApiPermissionRegistry;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
 public class PermissionSyncApiImpl implements PermissionSyncApi {
     private final ApiPermissionRegistry apiPermissionRegistry;

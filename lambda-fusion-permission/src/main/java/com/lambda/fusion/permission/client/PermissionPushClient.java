@@ -4,9 +4,11 @@ import com.lambda.fusion.permission.PermissionConstants;
 import com.lambda.fusion.permission.PermissionProperties;
 import com.lambda.fusion.permission.api.PermissionSyncApi;
 import com.lambda.fusion.permission.model.PermissionPushRequest;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboReference;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
 public class PermissionPushClient {
     private final PermissionProperties properties;

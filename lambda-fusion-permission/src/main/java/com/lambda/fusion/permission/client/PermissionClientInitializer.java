@@ -1,10 +1,12 @@
 package com.lambda.fusion.permission.client;
 
+import cn.hutool.core.collection.CollUtil;
 import com.lambda.fusion.permission.PermissionProperties;
 import com.lambda.fusion.permission.loader.LocalPermissionLoader;
 import com.lambda.fusion.permission.model.PermissionFileMetadata;
 import com.lambda.fusion.permission.model.PermissionPushRequest;
 import com.lambda.fusion.permission.service.ApiPermissionRegistry;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +23,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 
 @Slf4j
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
 public class PermissionClientInitializer implements ApplicationRunner, DisposableBean {
     private final PermissionProperties properties;
@@ -41,7 +44,11 @@ public class PermissionClientInitializer implements ApplicationRunner, Disposabl
     @Override
     public void run(ApplicationArguments args) {
         List<PermissionFileMetadata> files = localPermissionLoader.load();
-        List<PermissionFileMetadata> safeFiles = files == null ? List.of() : List.copyOf(files);
+        if (CollUtil.isEmpty(files)) {
+            log.warn("no permission json files found, app={}", applicationName);
+            return;
+        }
+        List<PermissionFileMetadata> safeFiles = List.copyOf(files);
         loadedFiles.set(safeFiles);
         apiPermissionRegistry.replaceLocal(files);
         log.info("loaded {} permission json files", safeFiles.size());
@@ -50,16 +57,16 @@ public class PermissionClientInitializer implements ApplicationRunner, Disposabl
         }
         String instanceId = buildInstanceId();
         pushOnce(safeFiles, instanceId, properties.getClient().isFailFast());
-        long repushIntervalSeconds = properties.getClient().getRepushIntervalSeconds();
-        if (repushIntervalSeconds > 0 && schedulerStarted.compareAndSet(false, true)) {
+        long pushIntervalSeconds = properties.getClient().getPushIntervalSeconds();
+        if (pushIntervalSeconds > 0 && schedulerStarted.compareAndSet(false, true)) {
             pushExecutor.scheduleWithFixedDelay(
                     () -> pushOnce(loadedFiles.get(), instanceId, false),
-                    repushIntervalSeconds,
-                    repushIntervalSeconds,
+                    pushIntervalSeconds,
+                    pushIntervalSeconds,
                     TimeUnit.SECONDS);
             log.info(
                     "permission metadata repush scheduled every {} seconds, app={}",
-                    repushIntervalSeconds,
+                    pushIntervalSeconds,
                     applicationName);
         }
     }
