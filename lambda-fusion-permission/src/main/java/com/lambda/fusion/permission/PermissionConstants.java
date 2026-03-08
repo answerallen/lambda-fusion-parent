@@ -6,4 +6,6 @@ public interface PermissionConstants {
     String MODE_SERVER = "server";
     String MODE_CLIENT = "client";
     String DEFAULT_MODE = MODE_CLIENT;
+    String DUBBO_GROUP = "permission";
+    String DUBBO_VERSION = "1.0.0";
 }

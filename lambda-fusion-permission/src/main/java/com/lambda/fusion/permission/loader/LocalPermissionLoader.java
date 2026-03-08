@@ -1,4 +1,4 @@
-package com.lambda.fusion.permission.service;
+package com.lambda.fusion.permission.loader;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.permission.PermissionProperties;

@@ -1,22 +1,26 @@
 package com.lambda.fusion.permission;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lambda.fusion.permission.api.RemotePermissionReportService;
 import com.lambda.fusion.permission.client.PermissionClientInitializer;
 import com.lambda.fusion.permission.client.PermissionPushClient;
-import com.lambda.fusion.permission.security.JsonPermissionSecureInterceptor;
+import com.lambda.fusion.permission.interceptor.JsonPermissionSecureInterceptor;
 import com.lambda.fusion.permission.server.PermissionReportController;
-import com.lambda.fusion.permission.service.LocalPermissionLoader;
+import com.lambda.fusion.permission.server.RemotePermissionReportServiceImpl;
+import com.lambda.fusion.permission.loader.LocalPermissionLoader;
 import com.lambda.fusion.permission.service.PermissionMatchService;
 import com.lambda.fusion.permission.service.PermissionRegistry;
 import com.lambda.security.inteceptor.SecureInterceptor;
+import org.apache.dubbo.config.spring.ServiceBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.web.client.RestTemplate;
 
 @Configuration
 @EnableConfigurationProperties(PermissionProperties.class)
@@ -43,7 +47,7 @@ public class PermissionConfigure {
     @Bean
     @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_CLIENT, matchIfMissing = true)
     public PermissionPushClient permissionPushClient(PermissionProperties properties) {
-        return new PermissionPushClient(properties, new RestTemplate());
+        return new PermissionPushClient(properties);
     }
 
     @Bean
@@ -77,5 +81,27 @@ public class PermissionConfigure {
             PermissionRegistry permissionRegistry,
             PermissionProperties properties) {
         return new PermissionReportController(permissionRegistry, properties);
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
+    public RemotePermissionReportService permissionReportService(
+            PermissionRegistry permissionRegistry,
+            PermissionProperties properties) {
+        return new RemotePermissionReportServiceImpl(permissionRegistry, properties);
+    }
+
+    @Bean
+    @ConditionalOnClass(ServiceBean.class)
+    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
+    public ServiceBean<RemotePermissionReportService> remotePermissionReportServiceBean(
+            RemotePermissionReportService permissionReportService,
+            ApplicationContext applicationContext) {
+        ServiceBean<RemotePermissionReportService> serviceBean = new ServiceBean<>(applicationContext);
+        serviceBean.setInterface(RemotePermissionReportService.class);
+        serviceBean.setRef(permissionReportService);
+        serviceBean.setGroup(PermissionConstants.DUBBO_GROUP);
+        serviceBean.setVersion(PermissionConstants.DUBBO_VERSION);
+        return serviceBean;
     }
 }

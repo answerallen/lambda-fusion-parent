@@ -24,20 +24,24 @@ public class PermissionRegistry {
         localFiles.set(safeFiles);
         List<ApiPermissionMetadata> merged = new ArrayList<>();
         for (PermissionFileMetadata file : safeFiles) {
-            if (file == null || file.getApis() == null) {
-                continue;
-            }
-            for (ApiPermissionMetadata api : file.getApis()) {
-                if (api == null) {
-                    continue;
-                }
-                if (api.getModule() == null || api.getModule().isBlank()) {
-                    api.setModule(file.getModule());
-                }
-                merged.add(api);
-            }
+            checkAndMerged(merged, file);
         }
         localApis.set(Collections.unmodifiableList(merged));
+    }
+
+    private void checkAndMerged(List<ApiPermissionMetadata> merged, PermissionFileMetadata file) {
+        if (file == null || file.getApis() == null) {
+            return;
+        }
+        for (ApiPermissionMetadata api : file.getApis()) {
+            if (api == null) {
+                continue;
+            }
+            if (api.getModule() == null || api.getModule().isBlank()) {
+                api.setModule(file.getModule());
+            }
+            merged.add(api);
+        }
     }
 
     public List<PermissionFileMetadata> getLocalFiles() {
@@ -62,18 +66,7 @@ public class PermissionRegistry {
         }
         List<ApiPermissionMetadata> result = new ArrayList<>();
         for (PermissionFileMetadata file : request.getFiles()) {
-            if (file == null || file.getApis() == null) {
-                continue;
-            }
-            for (ApiPermissionMetadata api : file.getApis()) {
-                if (api == null) {
-                    continue;
-                }
-                if (api.getModule() == null || api.getModule().isBlank()) {
-                    api.setModule(file.getModule());
-                }
-                result.add(api);
-            }
+            checkAndMerged(result, file);
         }
         return result;
     }

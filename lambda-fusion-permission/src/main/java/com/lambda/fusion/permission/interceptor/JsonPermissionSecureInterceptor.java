@@ -1,4 +1,4 @@
-package com.lambda.fusion.permission.security;
+package com.lambda.fusion.permission.interceptor;
 
 import cn.dev33.satoken.stp.StpLogic;
 import com.lambda.cloud.core.principal.LoginUser;
