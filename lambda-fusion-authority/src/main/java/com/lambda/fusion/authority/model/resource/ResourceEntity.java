@@ -41,8 +41,6 @@ public class ResourceEntity {
 
     private String remark;
 
-    private String keyName;
-
     private Boolean keepAlive;
 
     private String expand;
