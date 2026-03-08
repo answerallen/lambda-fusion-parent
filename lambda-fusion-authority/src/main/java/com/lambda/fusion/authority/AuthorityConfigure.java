@@ -12,6 +12,9 @@ import com.lambda.fusion.core.api.RemoteAuthenticationService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.SecurityUtils;
+import java.time.LocalDateTime;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.apache.ibatis.reflection.MetaObject;
@@ -25,10 +28,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-
-import java.time.LocalDateTime;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadPoolExecutor;
 
 @Slf4j
 @Configuration
@@ -44,8 +43,7 @@ public class AuthorityConfigure {
     @Bean
     @ConditionalOnClass(ServiceBean.class)
     public ServiceBean<RemoteAuthenticationService> remoteAuthenticationServiceBean(
-            AuthenticationService authenticationService,
-            ApplicationContext applicationContext) {
+            AuthenticationService authenticationService, ApplicationContext applicationContext) {
         ServiceBean<RemoteAuthenticationService> serviceBean = new ServiceBean<>(applicationContext);
         serviceBean.setInterface(RemoteAuthenticationService.class);
         serviceBean.setRef(authenticationService);

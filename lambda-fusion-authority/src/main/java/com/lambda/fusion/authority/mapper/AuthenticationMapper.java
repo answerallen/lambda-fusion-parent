@@ -7,10 +7,9 @@ import com.lambda.fusion.authority.model.authentication.MenuRoute;
 import com.lambda.fusion.authority.model.authentication.ResourceQuery;
 import com.lambda.fusion.authority.model.resource.ResourceTree;
 import com.lambda.fusion.authority.model.user.UserProfile;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 /**
  * 认证数据访问层接口

@@ -4,10 +4,9 @@ import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.model.organization.*;
 import com.lambda.fusion.authority.model.user.User;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 @Mapper
 @InterceptorIgnore(tenantLine = "true")
@@ -95,7 +94,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param enabled 禁用/启用
      * @param ids     组织id列表
      **/
-
     void updateEnabledOrganizationUsersByTenantIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
     /**
@@ -104,7 +102,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param enabled 禁用/启用
      * @param ids     组织id列表
      */
-
     void updateEnabledOrganizationUsersByOrgIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
     /**
@@ -113,7 +110,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param enabled 禁用/启用
      * @param ids     组织id列表
      **/
-
     void updateEnabledRoleByOrganizationByIds(@Param("enabled") Integer enabled, @Param("ids") List<String> ids);
 
     /**
@@ -122,7 +118,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param ids 组织编码列表
      * @return {@link boolean}
      **/
-
     boolean existUser(@Param("ids") List<String> ids);
 
     /***
@@ -130,7 +125,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      * @param orgId 组织id
      * @return {@link boolean}
      **/
-
     boolean existTenantOrganization(@Param("orgId") String orgId);
 
     /**
@@ -146,7 +140,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      *
      * @param ids 组织编号
      */
-
     void deleteOrgByIdList(@Param("ids") List<String> ids);
 
     /**
@@ -154,7 +147,6 @@ public interface OrganizationMapper extends BaseMapper<OrganizationEntity> {
      *
      * @param ids 组织编号
      */
-
     void deleteUserOrgByIdList(@Param("ids") List<String> ids);
 
     /**

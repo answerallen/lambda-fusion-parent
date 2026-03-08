@@ -7,7 +7,6 @@ import com.lambda.fusion.authority.model.user.UserProfile;
 import com.lambda.fusion.core.api.RemoteAuthenticationService;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.SecurityUtils;
-
 import java.util.List;
 
 /**

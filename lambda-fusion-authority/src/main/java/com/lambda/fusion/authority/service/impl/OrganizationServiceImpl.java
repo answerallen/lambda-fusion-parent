@@ -44,7 +44,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @RequiredArgsConstructor
 @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEntity,Organization,OrganizationMapper> implements OrganizationService {
+public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEntity, Organization, OrganizationMapper>
+        implements OrganizationService {
 
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;

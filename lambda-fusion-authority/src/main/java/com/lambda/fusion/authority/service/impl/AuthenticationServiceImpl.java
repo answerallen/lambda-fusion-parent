@@ -21,14 +21,13 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 /**
  * 认证服务实现类
@@ -215,7 +214,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public List<String> getUserPermissions() {
-        return authenticationMapper.selectAuthoritiesByUsername(SecurityUtils.getUser().getName());
+        return authenticationMapper.selectAuthoritiesByUsername(
+                SecurityUtils.getUser().getName());
     }
 
     private LoginUser prepareLoginUser(UserDetails userDetails) {

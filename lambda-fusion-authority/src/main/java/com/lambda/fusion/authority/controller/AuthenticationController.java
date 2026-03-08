@@ -8,12 +8,11 @@ import com.lambda.fusion.authority.service.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @Tag(name = "访问上下文接口", description = "提供当前登录主体的身份信息、权限集合以及可访问的导航菜单")
 @SaCheckLogin
@@ -29,9 +28,9 @@ public class AuthenticationController {
             summary = "获取当前登录用户的导航菜单列表",
             description = "根据当前登录用户的权限获取可访问的导航菜单列表",
             parameters = {
-                    @Parameter(name = "parentId", description = "父菜单ID"),
-                    @Parameter(name = "level", description = "菜单层级"),
-                    @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
+                @Parameter(name = "parentId", description = "父菜单ID"),
+                @Parameter(name = "level", description = "菜单层级"),
+                @Parameter(name = "mode", description = "资源模式(0:系统资源,1:App资源)")
             })
     public List<MenuRoute> getUserMenus(@Parameter MenuQuery query) {
         return authenticationService.getUserMenus(query);

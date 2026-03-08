@@ -14,7 +14,7 @@ public interface UserOrganizationMapper extends BaseMapper<UserOrganizationEntit
         return selectOne(
                 new LambdaQueryWrapper<UserOrganizationEntity>().eq(UserOrganizationEntity::getUsername, username));
     }
-    
+
     default void deleteUserOrganizationByOrg(String orgId) {
         delete(new LambdaQueryWrapper<UserOrganizationEntity>().eq(UserOrganizationEntity::getOrganizationId, orgId));
     }

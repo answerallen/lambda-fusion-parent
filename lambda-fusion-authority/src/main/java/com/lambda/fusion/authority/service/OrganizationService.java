@@ -5,11 +5,10 @@ import com.lambda.fusion.authority.model.organization.*;
 import com.lambda.fusion.authority.model.resource.MoveResource;
 import com.lambda.fusion.authority.model.user.User;
 import com.lambda.fusion.core.identity.UserDetails;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface OrganizationService extends IRepository<OrganizationEntity> {
 

@@ -3,13 +3,12 @@ package com.lambda.fusion.authority.mapper;
 import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.model.role.RoleGroupEntity;
+import java.util.List;
+import java.util.Map;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
-
-import java.util.List;
-import java.util.Map;
 
 @Mapper
 @InterceptorIgnore(tenantLine = "true")
