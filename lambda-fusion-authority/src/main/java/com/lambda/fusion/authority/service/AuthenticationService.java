@@ -4,16 +4,17 @@ import com.lambda.fusion.authority.model.authentication.AuthenticatedUser;
 import com.lambda.fusion.authority.model.authentication.MenuQuery;
 import com.lambda.fusion.authority.model.authentication.MenuRoute;
 import com.lambda.fusion.authority.model.user.UserProfile;
+import com.lambda.fusion.core.api.RemoteAuthenticationService;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.SecurityUtils;
-import com.lambda.security.service.UserDetailService;
+
 import java.util.List;
 
 /**
  * 认证服务接口
  * 负责用户认证、授权和导航菜单相关的业务逻辑
  */
-public interface AuthenticationService extends UserDetailService {
+public interface AuthenticationService extends RemoteAuthenticationService {
 
     /**
      * 获取用户的导航菜单
@@ -23,7 +24,7 @@ public interface AuthenticationService extends UserDetailService {
      * @param level    指定菜单层级
      * @return 导航菜单列表
      */
-    List<MenuRoute> getMenus(UserDetails user, String parentId, Integer level);
+    List<MenuRoute> getUserMenus(UserDetails user, String parentId, Integer level);
 
     /**
      * 获取用户的导航菜单
@@ -32,8 +33,8 @@ public interface AuthenticationService extends UserDetailService {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    default List<MenuRoute> getMenus(UserDetails user, MenuQuery query) {
-        return getMenus(user, query.getParentId(), query.getLevel());
+    default List<MenuRoute> getUserMenus(UserDetails user, MenuQuery query) {
+        return getUserMenus(user, query.getParentId(), query.getLevel());
     }
 
     /**
@@ -41,8 +42,8 @@ public interface AuthenticationService extends UserDetailService {
      * @param query 导航查询参数
      * @return 导航菜单列表
      */
-    default List<MenuRoute> getMenus(MenuQuery query) {
-        return getMenus(SecurityUtils.getUser(), query.getParentId(), query.getLevel());
+    default List<MenuRoute> getUserMenus(MenuQuery query) {
+        return getUserMenus(SecurityUtils.getUser(), query.getParentId(), query.getLevel());
     }
 
     /**
@@ -65,5 +66,5 @@ public interface AuthenticationService extends UserDetailService {
      *
      * @return 权限码列表
      */
-    List<String> getPermissions();
+    List<String> getUserPermissions();
 }

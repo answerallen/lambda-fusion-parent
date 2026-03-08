@@ -77,7 +77,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<MenuRoute> getMenus(UserDetails loginUser, String parentId, Integer level) {
+    public List<MenuRoute> getUserMenus(UserDetails loginUser, String parentId, Integer level) {
         MenuQuery query = new MenuQuery();
         query.setParentId(parentId);
         query.setLevel(level);
@@ -85,11 +85,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (!loginUser.isDev()) {
             query.setIds(new ArrayList<>(loginUser.getRoles()));
         }
-        return getMenus(loginUser, query);
+        return getUserMenus(loginUser, query);
     }
 
     @Override
-    public List<MenuRoute> getMenus(UserDetails userDetails, MenuQuery query) {
+    public List<MenuRoute> getUserMenus(UserDetails userDetails, MenuQuery query) {
         List<MenuRoute> menuRoutes = authenticationMapper.selectNavigation(query);
         List<MenuRoute> menuRouteTree = TreeBuilder.build(menuRoutes);
         enrichNavigationRoutes(menuRouteTree);
@@ -214,7 +214,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public List<String> getPermissions() {
+    public List<String> getUserPermissions() {
         return authenticationMapper.selectAuthoritiesByUsername(SecurityUtils.getUser().getName());
     }
 
