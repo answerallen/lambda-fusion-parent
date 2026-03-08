@@ -1,9 +1,9 @@
 package com.lambda.fusion.permission.client;
 
 import com.lambda.fusion.permission.PermissionProperties;
+import com.lambda.fusion.permission.loader.LocalPermissionLoader;
 import com.lambda.fusion.permission.model.PermissionFileMetadata;
 import com.lambda.fusion.permission.model.PermissionPushRequest;
-import com.lambda.fusion.permission.loader.LocalPermissionLoader;
 import com.lambda.fusion.permission.service.PermissionRegistry;
 import java.net.InetAddress;
 import java.util.List;

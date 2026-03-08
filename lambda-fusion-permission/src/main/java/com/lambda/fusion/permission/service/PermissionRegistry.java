@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class PermissionRegistry {
     private final AtomicReference<List<PermissionFileMetadata>> localFiles = new AtomicReference<>(List.of());
     private final AtomicReference<List<ApiPermissionMetadata>> localApis = new AtomicReference<>(List.of());
+
     @Getter
     private final Map<String, PermissionPushRequest> reports = new ConcurrentHashMap<>();
 
@@ -53,7 +54,9 @@ public class PermissionRegistry {
     }
 
     public void updateReport(PermissionPushRequest request) {
-        if (request == null || request.getApplication() == null || request.getApplication().isBlank()) {
+        if (request == null
+                || request.getApplication() == null
+                || request.getApplication().isBlank()) {
             return;
         }
         reports.put(request.getApplication(), request);

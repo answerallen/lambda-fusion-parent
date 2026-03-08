@@ -4,16 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.permission.api.RemotePermissionReportService;
 import com.lambda.fusion.permission.client.PermissionClientInitializer;
 import com.lambda.fusion.permission.client.PermissionPushClient;
-import com.lambda.fusion.permission.interceptor.JsonPermissionSecureInterceptor;
-import com.lambda.fusion.permission.server.PermissionReportController;
-import com.lambda.fusion.permission.server.RemotePermissionReportServiceImpl;
+import com.lambda.fusion.permission.interceptor.PermissionSecureInterceptor;
 import com.lambda.fusion.permission.loader.LocalPermissionLoader;
+import com.lambda.fusion.permission.server.RemotePermissionReportServiceImpl;
 import com.lambda.fusion.permission.service.PermissionMatchService;
 import com.lambda.fusion.permission.service.PermissionRegistry;
 import com.lambda.security.inteceptor.SecureInterceptor;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -45,49 +43,45 @@ public class PermissionConfigure {
     }
 
     @Bean
-    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_CLIENT, matchIfMissing = true)
+    @ConditionalOnProperty(
+            name = PermissionConstants.MODE_PROPERTY,
+            havingValue = PermissionConstants.MODE_CLIENT,
+            matchIfMissing = true)
     public PermissionPushClient permissionPushClient(PermissionProperties properties) {
         return new PermissionPushClient(properties);
     }
 
     @Bean
-    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_CLIENT, matchIfMissing = true)
+    @ConditionalOnProperty(
+            name = PermissionConstants.MODE_PROPERTY,
+            havingValue = PermissionConstants.MODE_CLIENT,
+            matchIfMissing = true)
     public PermissionClientInitializer permissionClientInitializer(
             PermissionProperties properties,
             LocalPermissionLoader localPermissionLoader,
             PermissionRegistry permissionRegistry,
             PermissionPushClient permissionPushClient) {
-        return new PermissionClientInitializer(properties, localPermissionLoader, permissionRegistry, permissionPushClient);
+        return new PermissionClientInitializer(
+                properties, localPermissionLoader, permissionRegistry, permissionPushClient);
     }
 
     @Bean
     @Primary
-    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_CLIENT, matchIfMissing = true)
+    @ConditionalOnProperty(
+            name = PermissionConstants.MODE_PROPERTY,
+            havingValue = PermissionConstants.MODE_CLIENT,
+            matchIfMissing = true)
     public SecureInterceptor secureInterceptor(
             PermissionProperties properties,
             PermissionRegistry permissionRegistry,
             PermissionMatchService permissionMatchService) {
-        return new JsonPermissionSecureInterceptor(properties, permissionRegistry, permissionMatchService);
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
-    @ConditionalOnProperty(
-            name = PermissionConstants.PREFIX + ".server.expose-api",
-            havingValue = "true",
-            matchIfMissing = true)
-    @ConditionalOnBean(PermissionRegistry.class)
-    public PermissionReportController permissionReportController(
-            PermissionRegistry permissionRegistry,
-            PermissionProperties properties) {
-        return new PermissionReportController(permissionRegistry, properties);
+        return new PermissionSecureInterceptor(properties, permissionRegistry, permissionMatchService);
     }
 
     @Bean
     @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
     public RemotePermissionReportService permissionReportService(
-            PermissionRegistry permissionRegistry,
-            PermissionProperties properties) {
+            PermissionRegistry permissionRegistry, PermissionProperties properties) {
         return new RemotePermissionReportServiceImpl(permissionRegistry, properties);
     }
 
@@ -95,8 +89,7 @@ public class PermissionConfigure {
     @ConditionalOnClass(ServiceBean.class)
     @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
     public ServiceBean<RemotePermissionReportService> remotePermissionReportServiceBean(
-            RemotePermissionReportService permissionReportService,
-            ApplicationContext applicationContext) {
+            RemotePermissionReportService permissionReportService, ApplicationContext applicationContext) {
         ServiceBean<RemotePermissionReportService> serviceBean = new ServiceBean<>(applicationContext);
         serviceBean.setInterface(RemotePermissionReportService.class);
         serviceBean.setRef(permissionReportService);

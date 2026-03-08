@@ -15,7 +15,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 @RequiredArgsConstructor
-public class JsonPermissionSecureInterceptor implements SecureInterceptor {
+public class PermissionSecureInterceptor implements SecureInterceptor {
     private final PermissionProperties properties;
     private final PermissionRegistry permissionRegistry;
     private final PermissionMatchService permissionMatchService;
@@ -40,8 +40,8 @@ public class JsonPermissionSecureInterceptor implements SecureInterceptor {
         if (path == null || path.isBlank()) {
             path = "/";
         }
-        Optional<ApiPermissionMetadata> matched = permissionMatchService.match(
-                permissionRegistry.getLocalApis(), request.getMethod(), path);
+        Optional<ApiPermissionMetadata> matched =
+                permissionMatchService.match(permissionRegistry.getLocalApis(), request.getMethod(), path);
         if (matched.isEmpty()) {
             if (properties.getClient().isDenyUnmatched()) {
                 throw new SecurityException("permission metadata not matched: " + request.getMethod() + " " + path);
