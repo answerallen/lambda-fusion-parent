@@ -1,14 +1,14 @@
 package com.lambda.fusion.permission;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lambda.fusion.permission.api.RemotePermissionReportService;
+import com.lambda.fusion.permission.api.PermissionSyncApi;
 import com.lambda.fusion.permission.client.PermissionClientInitializer;
 import com.lambda.fusion.permission.client.PermissionPushClient;
 import com.lambda.fusion.permission.interceptor.PermissionSecureInterceptor;
 import com.lambda.fusion.permission.loader.LocalPermissionLoader;
-import com.lambda.fusion.permission.server.RemotePermissionReportServiceImpl;
-import com.lambda.fusion.permission.service.PermissionMatchService;
-import com.lambda.fusion.permission.service.PermissionRegistry;
+import com.lambda.fusion.permission.server.PermissionSyncApiImpl;
+import com.lambda.fusion.permission.service.ApiPermissionMatcher;
+import com.lambda.fusion.permission.service.ApiPermissionRegistry;
 import com.lambda.security.inteceptor.SecureInterceptor;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -26,14 +26,14 @@ import org.springframework.context.annotation.Primary;
 public class PermissionConfigure {
     @Bean
     @ConditionalOnMissingBean
-    public PermissionRegistry permissionRegistry() {
-        return new PermissionRegistry();
+    public ApiPermissionRegistry permissionRegistry() {
+        return new ApiPermissionRegistry();
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public PermissionMatchService permissionMatchService() {
-        return new PermissionMatchService();
+    public ApiPermissionMatcher permissionMatchService() {
+        return new ApiPermissionMatcher();
     }
 
     @Bean
@@ -59,10 +59,10 @@ public class PermissionConfigure {
     public PermissionClientInitializer permissionClientInitializer(
             PermissionProperties properties,
             LocalPermissionLoader localPermissionLoader,
-            PermissionRegistry permissionRegistry,
+            ApiPermissionRegistry apiPermissionRegistry,
             PermissionPushClient permissionPushClient) {
         return new PermissionClientInitializer(
-                properties, localPermissionLoader, permissionRegistry, permissionPushClient);
+                properties, localPermissionLoader, apiPermissionRegistry, permissionPushClient);
     }
 
     @Bean
@@ -73,25 +73,25 @@ public class PermissionConfigure {
             matchIfMissing = true)
     public SecureInterceptor secureInterceptor(
             PermissionProperties properties,
-            PermissionRegistry permissionRegistry,
-            PermissionMatchService permissionMatchService) {
-        return new PermissionSecureInterceptor(properties, permissionRegistry, permissionMatchService);
+            ApiPermissionRegistry apiPermissionRegistry,
+            ApiPermissionMatcher apiPermissionMatcher) {
+        return new PermissionSecureInterceptor(properties, apiPermissionRegistry, apiPermissionMatcher);
     }
 
     @Bean
     @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
-    public RemotePermissionReportService permissionReportService(
-            PermissionRegistry permissionRegistry, PermissionProperties properties) {
-        return new RemotePermissionReportServiceImpl(permissionRegistry, properties);
+    public PermissionSyncApi permissionReportService(
+            ApiPermissionRegistry apiPermissionRegistry, PermissionProperties properties) {
+        return new PermissionSyncApiImpl(apiPermissionRegistry, properties);
     }
 
     @Bean
     @ConditionalOnClass(ServiceBean.class)
     @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
-    public ServiceBean<RemotePermissionReportService> remotePermissionReportServiceBean(
-            RemotePermissionReportService permissionReportService, ApplicationContext applicationContext) {
-        ServiceBean<RemotePermissionReportService> serviceBean = new ServiceBean<>(applicationContext);
-        serviceBean.setInterface(RemotePermissionReportService.class);
+    public ServiceBean<PermissionSyncApi> remotePermissionReportServiceBean(
+            PermissionSyncApi permissionReportService, ApplicationContext applicationContext) {
+        ServiceBean<PermissionSyncApi> serviceBean = new ServiceBean<>(applicationContext);
+        serviceBean.setInterface(PermissionSyncApi.class);
         serviceBean.setRef(permissionReportService);
         serviceBean.setGroup(PermissionConstants.DUBBO_GROUP);
         serviceBean.setVersion(PermissionConstants.DUBBO_VERSION);

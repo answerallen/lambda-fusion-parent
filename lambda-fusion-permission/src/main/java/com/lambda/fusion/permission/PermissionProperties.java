@@ -19,6 +19,7 @@ public class PermissionProperties {
         private boolean denyUnmatched = false;
         private boolean pushEnabled = true;
         private boolean failFast = false;
+        private long repushIntervalSeconds = 300;
         private String resourcePath = "META-INF/permissions/api-permissions.json";
         private String reportPath = "/permission/apis/report";
         private String serverBaseUrl;

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 
 @Component
-public class PermissionMatchService {
+public class ApiPermissionMatcher {
     private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
     public Optional<ApiPermissionMetadata> match(List<ApiPermissionMetadata> apis, String method, String path) {

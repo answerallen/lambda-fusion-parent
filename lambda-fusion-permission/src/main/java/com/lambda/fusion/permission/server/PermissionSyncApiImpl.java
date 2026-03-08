@@ -1,20 +1,20 @@
 package com.lambda.fusion.permission.server;
 
 import com.lambda.fusion.permission.PermissionProperties;
-import com.lambda.fusion.permission.api.RemotePermissionReportService;
+import com.lambda.fusion.permission.api.PermissionSyncApi;
 import com.lambda.fusion.permission.model.PermissionPushRequest;
-import com.lambda.fusion.permission.service.PermissionRegistry;
+import com.lambda.fusion.permission.service.ApiPermissionRegistry;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class RemotePermissionReportServiceImpl implements RemotePermissionReportService {
-    private final PermissionRegistry permissionRegistry;
+public class PermissionSyncApiImpl implements PermissionSyncApi {
+    private final ApiPermissionRegistry apiPermissionRegistry;
     private final PermissionProperties permissionProperties;
 
     @Override
-    public void report(PermissionPushRequest request, String token) {
+    public void syncPermissions(PermissionPushRequest request, String token) {
         verifyToken(token);
-        permissionRegistry.updateReport(request);
+        apiPermissionRegistry.updateReport(request);
     }
 
     private void verifyToken(String token) {

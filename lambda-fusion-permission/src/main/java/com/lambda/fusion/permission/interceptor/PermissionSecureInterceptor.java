@@ -4,8 +4,8 @@ import cn.dev33.satoken.stp.StpLogic;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.permission.PermissionProperties;
 import com.lambda.fusion.permission.model.ApiPermissionMetadata;
-import com.lambda.fusion.permission.service.PermissionMatchService;
-import com.lambda.fusion.permission.service.PermissionRegistry;
+import com.lambda.fusion.permission.service.ApiPermissionMatcher;
+import com.lambda.fusion.permission.service.ApiPermissionRegistry;
 import com.lambda.security.inteceptor.SecureInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -17,8 +17,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @RequiredArgsConstructor
 public class PermissionSecureInterceptor implements SecureInterceptor {
     private final PermissionProperties properties;
-    private final PermissionRegistry permissionRegistry;
-    private final PermissionMatchService permissionMatchService;
+    private final ApiPermissionRegistry apiPermissionRegistry;
+    private final ApiPermissionMatcher apiPermissionMatcher;
 
     @Override
     public void handle(Object handler, StpLogic stpLogic, LoginUser operator) {
@@ -41,7 +41,7 @@ public class PermissionSecureInterceptor implements SecureInterceptor {
             path = "/";
         }
         Optional<ApiPermissionMetadata> matched =
-                permissionMatchService.match(permissionRegistry.getLocalApis(), request.getMethod(), path);
+                apiPermissionMatcher.match(apiPermissionRegistry.getLocalApis(), request.getMethod(), path);
         if (matched.isEmpty()) {
             if (properties.getClient().isDenyUnmatched()) {
                 throw new SecurityException("permission metadata not matched: " + request.getMethod() + " " + path);

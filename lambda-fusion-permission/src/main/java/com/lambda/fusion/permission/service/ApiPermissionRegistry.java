@@ -9,25 +9,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
-import lombok.Getter;
 import org.springframework.stereotype.Component;
 
 @Component
-public class PermissionRegistry {
-    private final AtomicReference<List<PermissionFileMetadata>> localFiles = new AtomicReference<>(List.of());
+public class ApiPermissionRegistry {
     private final AtomicReference<List<ApiPermissionMetadata>> localApis = new AtomicReference<>(List.of());
 
-    @Getter
-    private final Map<String, PermissionPushRequest> reports = new ConcurrentHashMap<>();
+    private final Map<String, List<ApiPermissionMetadata>> reportedApis = new ConcurrentHashMap<>();
 
     public void replaceLocal(List<PermissionFileMetadata> files) {
         List<PermissionFileMetadata> safeFiles = files == null ? List.of() : List.copyOf(files);
-        localFiles.set(safeFiles);
-        List<ApiPermissionMetadata> merged = new ArrayList<>();
-        for (PermissionFileMetadata file : safeFiles) {
-            checkAndMerged(merged, file);
-        }
-        localApis.set(Collections.unmodifiableList(merged));
+        localApis.set(mergeFiles(safeFiles));
     }
 
     private void checkAndMerged(List<ApiPermissionMetadata> merged, PermissionFileMetadata file) {
@@ -45,10 +37,6 @@ public class PermissionRegistry {
         }
     }
 
-    public List<PermissionFileMetadata> getLocalFiles() {
-        return localFiles.get();
-    }
-
     public List<ApiPermissionMetadata> getLocalApis() {
         return localApis.get();
     }
@@ -59,18 +47,24 @@ public class PermissionRegistry {
                 || request.getApplication().isBlank()) {
             return;
         }
-        reports.put(request.getApplication(), request);
+        reportedApis.put(request.getApplication(), mergeFiles(request.getFiles()));
     }
 
     public List<ApiPermissionMetadata> getReportedApis(String application) {
-        PermissionPushRequest request = reports.get(application);
-        if (request == null || request.getFiles() == null) {
+        if (application == null || application.isBlank()) {
             return List.of();
         }
-        List<ApiPermissionMetadata> result = new ArrayList<>();
-        for (PermissionFileMetadata file : request.getFiles()) {
-            checkAndMerged(result, file);
+        return reportedApis.getOrDefault(application, List.of());
+    }
+
+    private List<ApiPermissionMetadata> mergeFiles(List<PermissionFileMetadata> files) {
+        if (files == null || files.isEmpty()) {
+            return List.of();
         }
-        return result;
+        List<ApiPermissionMetadata> merged = new ArrayList<>();
+        for (PermissionFileMetadata file : files) {
+            checkAndMerged(merged, file);
+        }
+        return Collections.unmodifiableList(merged);
     }
 }
