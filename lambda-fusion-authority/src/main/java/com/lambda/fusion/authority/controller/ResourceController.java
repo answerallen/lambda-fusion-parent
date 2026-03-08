@@ -3,10 +3,12 @@ package com.lambda.fusion.authority.controller;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.annotation.SaMode;
 import com.lambda.fusion.authority.model.authentication.MenuQuery;
+import com.lambda.fusion.authority.model.resource.ApiPermissionTreeNode;
 import com.lambda.fusion.authority.model.resource.CreateResource;
 import com.lambda.fusion.authority.model.resource.MoveResource;
 import com.lambda.fusion.authority.model.resource.Resource;
 import com.lambda.fusion.authority.model.resource.ResourceTree;
+import com.lambda.fusion.authority.service.ApiPermissionService;
 import com.lambda.fusion.authority.service.ResourceService;
 import com.lambda.fusion.core.FusionConstants;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 public class ResourceController {
 
     private final ResourceService resourceService;
+    private final ApiPermissionService apiPermissionService;
 
     @GetMapping("/tree")
     @Operation(
@@ -93,5 +96,30 @@ public class ResourceController {
             @RequestBody MoveResource parameter) {
         parameter.setId(id);
         resourceService.move(parameter);
+    }
+
+    @GetMapping("/{id}/api-permissions")
+    @Operation(summary = "查询接口权限树", description = "按应用与分组返回接口权限树，支持按应用和接口名称过滤")
+    public List<ApiPermissionTreeNode> listApiPermissions(
+            @PathVariable @Parameter(description = "资源编号", required = true) String id,
+            @RequestParam(required = false) @Parameter(description = "应用名称") String application,
+            @RequestParam(required = false) @Parameter(description = "接口名称") String name) {
+        return apiPermissionService.listPermissionTree(id, application, name);
+    }
+
+    @PutMapping("/{id}/api-permissions/{permissionId}")
+    @Operation(summary = "绑定接口权限", description = "将指定接口权限绑定到菜单资源")
+    public void bindApiPermission(
+            @PathVariable @Parameter(description = "资源编号", required = true) String id,
+            @PathVariable @Parameter(description = "接口权限ID", required = true) String permissionId) {
+        apiPermissionService.bind(id, permissionId);
+    }
+
+    @DeleteMapping("/{id}/api-permissions/{permissionId}")
+    @Operation(summary = "解绑接口权限", description = "将指定接口权限从菜单资源解绑")
+    public void unbindApiPermission(
+            @PathVariable @Parameter(description = "资源编号", required = true) String id,
+            @PathVariable @Parameter(description = "接口权限ID", required = true) String permissionId) {
+        apiPermissionService.unbind(id, permissionId);
     }
 }

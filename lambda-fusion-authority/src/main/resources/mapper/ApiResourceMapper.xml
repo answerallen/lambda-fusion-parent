@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.lambda.fusion.authority.mapper.ApiResourceMapper">
+
+    <select id="getBoundPermissionIds" resultType="String">
+        SELECT PERMISSION_ID FROM LA_API_RESOURCES WHERE RESOURCE_ID = #{resourceId}
+    </select>
+
+    <select id="hasBound" resultType="boolean">
+        SELECT COUNT(1) FROM DUAL
+        WHERE EXISTS(
+            SELECT 1 FROM LA_API_RESOURCES
+            WHERE RESOURCE_ID = #{resourceId}
+              AND PERMISSION_ID = #{permissionId}
+        )
+    </select>
+
+    <insert id="bind">
+        INSERT INTO LA_API_RESOURCES (RESOURCE_ID, PERMISSION_ID)
+        VALUES (#{resourceId}, #{permissionId})
+    </insert>
+
+    <delete id="unbind">
+        DELETE FROM LA_API_RESOURCES
+        WHERE RESOURCE_ID = #{resourceId}
+          AND PERMISSION_ID = #{permissionId}
+    </delete>
+
+</mapper>
