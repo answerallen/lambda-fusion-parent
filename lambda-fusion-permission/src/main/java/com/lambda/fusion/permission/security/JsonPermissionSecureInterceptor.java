@@ -32,9 +32,20 @@ public class JsonPermissionSecureInterceptor implements SecureInterceptor {
             return;
         }
         HttpServletRequest request = requestAttributes.getRequest();
+        String path = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isBlank() && path.startsWith(contextPath)) {
+            path = path.substring(contextPath.length());
+        }
+        if (path == null || path.isBlank()) {
+            path = "/";
+        }
         Optional<ApiPermissionMetadata> matched = permissionMatchService.match(
-                permissionRegistry.getLocalApis(), request.getMethod(), request.getRequestURI());
+                permissionRegistry.getLocalApis(), request.getMethod(), path);
         if (matched.isEmpty()) {
+            if (properties.getClient().isDenyUnmatched()) {
+                throw new SecurityException("permission metadata not matched: " + request.getMethod() + " " + path);
+            }
             return;
         }
         List<String> permissions = matched.get().getPermissions();

@@ -17,6 +17,8 @@ public class PermissionMatchService {
         }
         String methodUpper = method.toUpperCase(Locale.ROOT);
         String normalizedPath = normalize(path);
+        ApiPermissionMetadata bestMatch = null;
+        int bestScore = Integer.MIN_VALUE;
         for (ApiPermissionMetadata api : apis) {
             if (api == null || api.getPath() == null || api.getMethod() == null) {
                 continue;
@@ -24,17 +26,35 @@ public class PermissionMatchService {
             if (!methodUpper.equals(api.getMethod().toUpperCase(Locale.ROOT))) {
                 continue;
             }
-            String pattern = toAntPattern(api.getPath());
+            String normalizedApiPath = normalize(api.getPath());
+            String pattern = toAntPattern(normalizedApiPath);
             if (antPathMatcher.match(pattern, normalizedPath)) {
-                return Optional.of(api);
+                int score = calculateSpecificityScore(normalizedApiPath);
+                if (score > bestScore) {
+                    bestMatch = api;
+                    bestScore = score;
+                }
             }
         }
-        return Optional.empty();
+        return Optional.ofNullable(bestMatch);
     }
 
     private String toAntPattern(String path) {
-        String normalized = normalize(path);
-        return normalized.replaceAll("\\{[^/]+}", "*");
+        return path.replaceAll("\\{[^/]+}", "*");
+    }
+
+    private int calculateSpecificityScore(String path) {
+        int wildcardCount = 0;
+        int variableCount = 0;
+        for (int i = 0; i < path.length(); i++) {
+            char current = path.charAt(i);
+            if (current == '*') {
+                wildcardCount++;
+            } else if (current == '{') {
+                variableCount++;
+            }
+        }
+        return path.length() * 100 - wildcardCount * 10 - variableCount;
     }
 
     private String normalize(String path) {

@@ -28,6 +28,9 @@ public class PermissionPushClient {
     }
 
     private String buildUrl(String baseUrl, String reportPath) {
+        if (reportPath == null || reportPath.isBlank()) {
+            throw new IllegalStateException("permission client reportPath is required when pushEnabled=true");
+        }
         String left = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         String right = reportPath.startsWith("/") ? reportPath : "/" + reportPath;
         return left + right;

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.permission.PermissionProperties;
 import com.lambda.fusion.permission.model.PermissionFileMetadata;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,9 @@ public class LocalPermissionLoader {
     public List<PermissionFileMetadata> load() {
         ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
         String path = properties.getClient().getResourcePath();
+        if (path == null || path.isBlank()) {
+            throw new IllegalStateException("permission client resourcePath is required");
+        }
         String pattern = path.startsWith("classpath*:") ? path : "classpath*:" + path;
         try {
             Resource[] resources = resolver.getResources(pattern);
@@ -31,7 +35,10 @@ public class LocalPermissionLoader {
                 if (!resource.exists()) {
                     continue;
                 }
-                PermissionFileMetadata metadata = objectMapper.readValue(resource.getInputStream(), PermissionFileMetadata.class);
+                PermissionFileMetadata metadata;
+                try (InputStream inputStream = resource.getInputStream()) {
+                    metadata = objectMapper.readValue(inputStream, PermissionFileMetadata.class);
+                }
                 files.add(metadata);
             }
             return files;

@@ -36,12 +36,16 @@ public class PermissionReportController {
     }
 
     @GetMapping("/applications")
-    public List<String> applications() {
+    public List<String> applications(@RequestHeader(value = "X-Permission-Token", required = false) String token) {
+        verifyToken(token);
         return new ArrayList<>(permissionRegistry.getReports().keySet());
     }
 
     @GetMapping("/applications/{application}")
-    public PermissionPushRequest application(@PathVariable String application) {
+    public PermissionPushRequest application(
+            @PathVariable String application,
+            @RequestHeader(value = "X-Permission-Token", required = false) String token) {
+        verifyToken(token);
         PermissionPushRequest request = permissionRegistry.getReports().get(application);
         if (request == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "application not found");
@@ -50,12 +54,17 @@ public class PermissionReportController {
     }
 
     @GetMapping("/applications/{application}/apis")
-    public List<ApiPermissionMetadata> apis(@PathVariable String application) {
+    public List<ApiPermissionMetadata> apis(
+            @PathVariable String application,
+            @RequestHeader(value = "X-Permission-Token", required = false) String token) {
+        verifyToken(token);
         return permissionRegistry.getReportedApis(application);
     }
 
     @GetMapping("/reported")
-    public Map<String, PermissionPushRequest> reported() {
+    public Map<String, PermissionPushRequest> reported(
+            @RequestHeader(value = "X-Permission-Token", required = false) String token) {
+        verifyToken(token);
         return permissionRegistry.getReports();
     }
 
