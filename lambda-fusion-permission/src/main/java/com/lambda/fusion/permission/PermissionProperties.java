@@ -15,7 +15,7 @@ public class PermissionProperties {
 
     @Data
     public static class Client {
-        private boolean checkEnabled = true;
+        private boolean checkEnabled = false;
         private boolean denyUnmatched = false;
         private boolean pushEnabled = false;
         private boolean failFast = false;

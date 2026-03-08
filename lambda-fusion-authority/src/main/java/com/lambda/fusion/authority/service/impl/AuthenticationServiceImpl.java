@@ -61,7 +61,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
-        return authenticationMapper.selectAuthoritiesByUsername(loginId.toString());
+        List<String> permissions = authenticationMapper.selectAuthoritiesByUsername(loginId.toString());
+
+        return permissions;
     }
 
     @Override

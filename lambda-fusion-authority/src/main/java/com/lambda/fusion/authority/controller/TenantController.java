@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.annotation.SaMode;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -34,24 +35,28 @@ public class TenantController {
 
     private final TenantService tenantService;
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000058")
     @PostMapping("/page")
     @Operation(summary = "分页查询所有租户数据列表（V2版本）", description = "使用LambdaQueryWrapper进行分页查询，支持更灵活的排序和查询条件")
     public Page<TenantEntity> pageTenant(@RequestBody TenantQuery queryDTO) {
         return tenantService.pageTenant(queryDTO.getPage(), queryDTO.getLambdaQueryWrapper());
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000059")
     @GetMapping("/options")
     @Operation(summary = "获取租户下拉列表", description = "查询租户下拉列表")
     public List<TenantOption> tenantOptions() {
         return tenantService.getTenantOptions();
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000060")
     @GetMapping("/{id}")
     @Operation(summary = "根据编号查询租户信息信息", description = "根据id查询租户信息信息")
     public TenantEntity getTenant(@Parameter(description = "租户信息编号", required = true) @PathVariable String id) {
         return tenantService.getById(id);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000061")
     @PostMapping
     @Operation(summary = "新增租户信息信息(含LOGO)", description = "新增租户信息信息，支持表单与LOGO同请求提交")
     public TenantEntity saveTenant(
@@ -62,6 +67,7 @@ public class TenantController {
         return tenantService.createTenantWithLogo(tenant, logo, clientName);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000062")
     @PostMapping(value = "/{id}")
     @Operation(summary = "更新租户信息信息(含LOGO)", description = "更新租户信息信息，支持表单与LOGO同请求提交")
     public TenantEntity updateTenant(
@@ -74,18 +80,21 @@ public class TenantController {
         return tenantService.updateTenantWithLogo(id, tenant, logo, clientName);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000063")
     @DeleteMapping("/{id}")
     @Operation(summary = "删除租户信息信息", description = "删除租户信息信息")
     public void deleteTenant(@Parameter(description = "租户编号", required = true) @PathVariable String id) {
         tenantService.deleteTenant(id);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000064")
     @PatchMapping("/{id}/enabled")
     @Operation(summary = "启用租户")
     public void enabledTenant(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         tenantService.enableTenant(id);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000065")
     @PatchMapping("/{id}/disabled")
     @Operation(summary = "禁用租户")
     public void disabledTenant(@PathVariable @Parameter(description = "租户编号", required = true) String id) {

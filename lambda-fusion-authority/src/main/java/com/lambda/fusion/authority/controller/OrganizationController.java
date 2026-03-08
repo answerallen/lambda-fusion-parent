@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.controller;
 
 import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
@@ -15,6 +16,7 @@ import com.lambda.fusion.authority.model.organization.UserOrganization;
 import com.lambda.fusion.authority.model.organization.UserOrganizationChange;
 import com.lambda.fusion.authority.model.resource.MoveResource;
 import com.lambda.fusion.authority.service.OrganizationService;
+import com.lambda.fusion.core.FusionConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -49,6 +51,7 @@ public class OrganizationController {
 
     private final OrganizationService organizationService;
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000018")
     @GetMapping("/tree")
     @Operation(summary = "以树形的方式获取组织机构列表", description = "以树形的方式获取组织机构列表")
     public List<Organization> tree(
@@ -70,6 +73,7 @@ public class OrganizationController {
         return organizationService.organizationTreeList(organizationQuery);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000019")
     @GetMapping("/list")
     @Operation(summary = "获取组织机构树形下拉列表", description = "查询组织机构列表树形下拉列表")
     public List<OrganizationTree> list() {
@@ -78,6 +82,7 @@ public class OrganizationController {
         return organizationService.getOrganizationTree(parameters);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000020")
     @PostMapping({"", "/{id}"})
     @Operation(summary = "新增组织机构信息", description = "当id为非空时新增其子组织机构信息")
     public Organization addOrganization(
@@ -94,6 +99,7 @@ public class OrganizationController {
         return organizationService.addOrganization(createOrganization);
     }
 
+
     @PutMapping("/{id}")
     @Operation(summary = "更新组织机构信息", description = "根据编号更新指定的组织机构信息")
     public Organization updateOrganization(
@@ -108,6 +114,7 @@ public class OrganizationController {
         return organizationService.updateOrganization(updateOrganization);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000021")
     @DeleteMapping("/{id}")
     @Operation(summary = "删除组织机构信息", description = "根据编号删除指定的组织机构信息")
     public void delete(@Parameter(description = "组织编号", required = true) @PathVariable String id) {
@@ -118,6 +125,7 @@ public class OrganizationController {
         organizationService.deleteOrganization(id);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000022")
     @GetMapping("/user/{username}")
     @Operation(summary = "查询用户组织信息", description = "查询用户组织信息")
     public UserOrganization queryUserOrganization(
@@ -127,6 +135,7 @@ public class OrganizationController {
         return organizationService.queryUserOrganization(resource);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000023")
     @PostMapping("/user/{username}")
     @Operation(summary = "添加用户组织信息", description = "添加用户组织信息")
     public UserOrganization addUserOrganization(
@@ -136,6 +145,7 @@ public class OrganizationController {
         return organizationService.addUserOrganization(resource);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000024")
     @DeleteMapping("/user/{username}")
     @Operation(summary = "删除用户组织信息", description = "删除用户添加组织信息")
     public void deleteUserOrganization(
@@ -143,6 +153,7 @@ public class OrganizationController {
         organizationService.deleteUserOrganization(username);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000025")
     @PutMapping("/user/{username}")
     @Operation(summary = "更新用户组织关系", description = "更新用户组织关系")
     public UserOrganization updateUserOrganization(
@@ -152,6 +163,7 @@ public class OrganizationController {
         return organizationService.updateUserOrganization(resource);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000026")
     @PatchMapping("/{id}/enabled")
     @Operation(summary = "启用组织机构")
     public void enabled(@PathVariable @Parameter(description = "机构Id", required = true) String id) {
@@ -162,6 +174,7 @@ public class OrganizationController {
         organizationService.prohibitOrganization(1, id);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000027")
     @PatchMapping("/{id}/disabled")
     @Operation(summary = "禁用组织机构")
     public void disabled(@PathVariable @Parameter(description = "机构Id", required = true) String id) {
@@ -172,12 +185,14 @@ public class OrganizationController {
         organizationService.prohibitOrganization(0, id);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000028")
     @Operation(summary = "导入excel批量增加组织")
     @PostMapping({"/import"})
     public void importExcel(@RequestParam("file") MultipartFile file) {
         organizationService.addOrganizationByImport(file);
     }
 
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000029")
     @PatchMapping("/{id}")
     @Operation(
             summary = "移动组织",
