@@ -1,42 +1,31 @@
 package com.lambda.fusion.upload.controller;
 
-import cn.dev33.satoken.annotation.SaCheckRole;
-import cn.dev33.satoken.annotation.SaMode;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.upload.model.AttachmentBatchGroupChange;
-import com.lambda.fusion.upload.model.AttachmentBatchIds;
-import com.lambda.fusion.upload.model.AttachmentGroupEntity;
-import com.lambda.fusion.upload.model.AttachmentGroupView;
-import com.lambda.fusion.upload.model.AttachmentQuery;
-import com.lambda.fusion.upload.model.AttachmentView;
-import com.lambda.fusion.upload.model.UpsertAttachmentGroup;
+import com.lambda.fusion.upload.model.*;
 import com.lambda.fusion.upload.service.AttachmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @Tag(name = "附件管理")
 @RequestMapping("/upload/attachments")
-@SaCheckRole(
-        value = {FusionConstants.ROLE_ADMIN, FusionConstants.ROLE_SYSTEM, FusionConstants.ROLE_DEV},
-        mode = SaMode.OR)
 @RequiredArgsConstructor
 public class AttachmentController {
     private final AttachmentService attachmentService;
 
-    @PostMapping
+    @PostMapping("/{groupId}/upload")
     @Operation(summary = "上传附件")
     public AttachmentView upload(
             @RequestPart("file") MultipartFile file,
-            @RequestParam(required = false) @Parameter(description = "分组编号") String groupId,
-            @RequestParam(required = false) @Parameter(description = "OSS客户端名称") String clientName) {
+            @PathVariable @Parameter(description = "分组编号") String groupId,
+            @RequestParam(defaultValue = "default") @Parameter(description = "OSS客户端名称") String clientName) {
         return attachmentService.upload(file, groupId, clientName);
     }
 
@@ -75,30 +64,6 @@ public class AttachmentController {
         return attachmentService.page(number, size, query);
     }
 
-    @PatchMapping("/{id}/group/{groupId}")
-    @Operation(summary = "变更附件分组")
-    public void changeGroup(
-            @PathVariable @Parameter(description = "附件编号") String id,
-            @PathVariable @Parameter(description = "分组编号") String groupId) {
-        attachmentService.changeGroup(id, groupId);
-    }
-
-    @PatchMapping("/{id}/group")
-    @Operation(summary = "按请求参数变更附件分组")
-    public void changeGroupByParam(
-            @PathVariable @Parameter(description = "附件编号") String id,
-            @RequestParam(required = false) @Parameter(description = "分组编号，留空则取消分组") String groupId) {
-        attachmentService.changeGroup(id, groupId);
-    }
-
-    @PatchMapping("/group")
-    @Operation(summary = "批量变更附件分组")
-    public void changeGroupBatch(@RequestBody AttachmentBatchGroupChange source) {
-        attachmentService.changeGroupBatch(
-                source == null ? null : source.getIds(),
-                source == null ? null : source.getGroupId());
-    }
-
     @GetMapping("/clients")
     @Operation(summary = "查询可用OSS客户端")
     public List<String> listClients() {
@@ -109,12 +74,6 @@ public class AttachmentController {
     @Operation(summary = "查询分组列表")
     public List<AttachmentGroupEntity> listGroups() {
         return attachmentService.listGroups();
-    }
-
-    @GetMapping("/groups/overview")
-    @Operation(summary = "查询分组统计")
-    public List<AttachmentGroupView> listGroupOverview() {
-        return attachmentService.listGroupViews();
     }
 
     @PostMapping("/groups")

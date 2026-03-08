@@ -1,36 +1,27 @@
 package com.lambda.fusion.upload.service.impl;
 
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.oss.client.OssClient;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.cloud.oss.model.UploadObjectResult;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.fusion.upload.mapper.AttachmentGroupMapper;
 import com.lambda.fusion.upload.mapper.AttachmentMapper;
-import com.lambda.fusion.upload.model.AttachmentEntity;
-import com.lambda.fusion.upload.model.AttachmentGroupEntity;
-import com.lambda.fusion.upload.model.AttachmentGroupView;
-import com.lambda.fusion.upload.model.AttachmentQuery;
-import com.lambda.fusion.upload.model.AttachmentView;
-import com.lambda.fusion.upload.model.UpsertAttachmentGroup;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.upload.model.*;
 import com.lambda.fusion.upload.service.AttachmentService;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -49,15 +40,15 @@ public class AttachmentServiceImpl implements AttachmentService {
             throw new IllegalArgumentException("上传文件不能为空");
         }
         ensureGroupExists(groupId);
-        String resolvedClientName = StringUtils.isBlank(clientName) ? "default" : clientName.trim();
-        OssClient ossClient = ossClientManager.get(resolvedClientName);
+        clientName = StrUtil.emptyToDefault(clientName, "default");
+        OssClient ossClient = ossClientManager.get(clientName);
         String fileName = normalizeFileName(file.getOriginalFilename());
         String objectKey = buildObjectKey(fileName);
         try {
             UploadObjectResult uploadObjectResult = ossClient.upload(
                     file.getInputStream(),
                     objectKey,
-                    StringUtils.defaultIfBlank(file.getContentType(), DEFAULT_CONTENT_TYPE));
+                    StrUtil.emptyToDefault(file.getContentType(), DEFAULT_CONTENT_TYPE));
             AttachmentEntity entity = new AttachmentEntity();
             entity.setId(IdUtil.getSnowflakeNextIdStr());
             entity.setFileName(fileName);
@@ -66,7 +57,7 @@ public class AttachmentServiceImpl implements AttachmentService {
             entity.setObjectKey(uploadObjectResult.getKey());
             entity.setFileUrl(uploadObjectResult.getUrl());
             entity.setGroupId(StringUtils.trimToNull(groupId));
-            entity.setClientName(resolvedClientName);
+            entity.setClientName(clientName);
             entity.setOwner(currentOwner());
             entity.setTenantId(currentTenantId());
             entity.setCreatedAt(LocalDateTime.now());
@@ -246,26 +237,6 @@ public class AttachmentServiceImpl implements AttachmentService {
         return ossClientManager.getClientNames().stream().sorted(Comparator.naturalOrder()).toList();
     }
 
-    @Override
-    public List<AttachmentGroupView> listGroupViews() {
-        List<AttachmentGroupEntity> groups = listGroups();
-        Map<String, Long> countMap = loadGroupAttachmentCountMap();
-        List<AttachmentGroupView> views = new ArrayList<>(groups.size());
-        for (AttachmentGroupEntity group : groups) {
-            AttachmentGroupView view = new AttachmentGroupView();
-            view.setId(group.getId());
-            view.setGroupName(group.getGroupName());
-            view.setGroupCode(group.getGroupCode());
-            view.setSortNo(group.getSortNo());
-            view.setOwner(group.getOwner());
-            view.setTenantId(group.getTenantId());
-            view.setCreatedAt(group.getCreatedAt());
-            view.setAttachmentCount(Objects.requireNonNullElse(countMap.get(group.getId()), 0L));
-            views.add(view);
-        }
-        return views;
-    }
-
     private void ensureGroupExists(String groupId) {
         String normalized = StringUtils.trimToNull(groupId);
         if (normalized == null) {
@@ -317,24 +288,6 @@ public class AttachmentServiceImpl implements AttachmentService {
         return map;
     }
 
-    private Map<String, Long> loadGroupAttachmentCountMap() {
-        LambdaQueryWrapper<AttachmentEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.select(AttachmentEntity::getGroupId);
-        String tenantId = currentTenantId();
-        if (StringUtils.isNotBlank(tenantId)) {
-            wrapper.eq(AttachmentEntity::getTenantId, tenantId);
-        }
-        List<AttachmentEntity> attachments = attachmentMapper.selectList(wrapper);
-        Map<String, Long> countMap = new HashMap<>();
-        for (AttachmentEntity attachment : attachments) {
-            String groupId = StringUtils.trimToNull(attachment.getGroupId());
-            if (groupId == null) {
-                continue;
-            }
-            countMap.put(groupId, countMap.getOrDefault(groupId, 0L) + 1);
-        }
-        return countMap;
-    }
 
     private AttachmentView toView(AttachmentEntity entity, Map<String, String> groupNameMap) {
         AttachmentView view = new AttachmentView();
@@ -349,7 +302,6 @@ public class AttachmentServiceImpl implements AttachmentService {
         view.setOwner(entity.getOwner());
         view.setTenantId(entity.getTenantId());
         view.setCreatedAt(entity.getCreatedAt());
-        view.setGroupName(Objects.requireNonNullElse(groupNameMap.get(entity.getGroupId()), null));
         return view;
     }
 

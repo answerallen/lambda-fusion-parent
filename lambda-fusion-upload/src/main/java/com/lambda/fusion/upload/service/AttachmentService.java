@@ -35,6 +35,4 @@ public interface AttachmentService {
     void changeGroupBatch(List<String> ids, String groupId);
 
     List<String> listClientNames();
-
-    List<AttachmentGroupView> listGroupViews();
 }
