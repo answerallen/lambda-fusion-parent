@@ -50,7 +50,7 @@ public class PermissionClientInitializer implements ApplicationRunner, Disposabl
         }
         List<PermissionFileMetadata> safeFiles = List.copyOf(files);
         loadedFiles.set(safeFiles);
-        apiPermissionRegistry.replaceLocal(files);
+        apiPermissionRegistry.replaceLocal(safeFiles, applicationName);
         log.info("loaded {} permission json files", safeFiles.size());
         if (!properties.getClient().isPushEnabled()) {
             return;

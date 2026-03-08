@@ -22,5 +22,6 @@ public class ApiPermissionMetadata implements Serializable {
     private String methodName;
     private boolean deprecated = false;
     private List<String> tags = new ArrayList<>();
+    private String application;
     private String module;
 }
