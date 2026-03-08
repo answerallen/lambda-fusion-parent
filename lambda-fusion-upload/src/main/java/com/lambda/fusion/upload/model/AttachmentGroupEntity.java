@@ -27,6 +27,14 @@ public class AttachmentGroupEntity {
     @Schema(description = "排序号")
     private Integer sortNo;
 
+    @TableField("OWNER")
+    @Schema(description = "拥有者")
+    private String owner;
+
+    @TableField("TENANT_ID")
+    @Schema(description = "租户ID")
+    private String tenantId;
+
     @TableField("CREATED_AT")
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;

@@ -34,6 +34,12 @@ public class AttachmentView {
     @Schema(description = "OSS客户端名称")
     private String clientName;
 
+    @Schema(description = "拥有者")
+    private String owner;
+
+    @Schema(description = "租户ID")
+    private String tenantId;
+
     @Schema(description = "预签名访问地址")
     private String previewUrl;
 

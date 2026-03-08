@@ -3,6 +3,7 @@ package com.lambda.fusion.upload.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.upload.model.AttachmentGroupEntity;
 import com.lambda.fusion.upload.model.AttachmentQuery;
+import com.lambda.fusion.upload.model.AttachmentGroupView;
 import com.lambda.fusion.upload.model.AttachmentView;
 import com.lambda.fusion.upload.model.UpsertAttachmentGroup;
 import java.util.List;
@@ -12,6 +13,8 @@ public interface AttachmentService {
     AttachmentView upload(MultipartFile file, String groupId, String clientName);
 
     void delete(String id);
+
+    void deleteBatch(List<String> ids);
 
     AttachmentView getById(String id);
 
@@ -28,4 +31,10 @@ public interface AttachmentService {
     void deleteGroup(String id);
 
     void changeGroup(String id, String groupId);
+
+    void changeGroupBatch(List<String> ids, String groupId);
+
+    List<String> listClientNames();
+
+    List<AttachmentGroupView> listGroupViews();
 }

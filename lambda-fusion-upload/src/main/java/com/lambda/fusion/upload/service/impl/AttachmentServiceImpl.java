@@ -10,17 +10,22 @@ import com.lambda.fusion.upload.mapper.AttachmentGroupMapper;
 import com.lambda.fusion.upload.mapper.AttachmentMapper;
 import com.lambda.fusion.upload.model.AttachmentEntity;
 import com.lambda.fusion.upload.model.AttachmentGroupEntity;
+import com.lambda.fusion.upload.model.AttachmentGroupView;
 import com.lambda.fusion.upload.model.AttachmentQuery;
 import com.lambda.fusion.upload.model.AttachmentView;
 import com.lambda.fusion.upload.model.UpsertAttachmentGroup;
+import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.fusion.upload.service.AttachmentService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
@@ -62,6 +67,8 @@ public class AttachmentServiceImpl implements AttachmentService {
             entity.setFileUrl(uploadObjectResult.getUrl());
             entity.setGroupId(StringUtils.trimToNull(groupId));
             entity.setClientName(resolvedClientName);
+            entity.setOwner(currentOwner());
+            entity.setTenantId(currentTenantId());
             entity.setCreatedAt(LocalDateTime.now());
             attachmentMapper.insert(entity);
             return toView(entity, loadGroupNameMap());
@@ -82,9 +89,23 @@ public class AttachmentServiceImpl implements AttachmentService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteBatch(List<String> ids) {
+        Set<String> normalizedIds = normalizeIds(ids);
+        if (normalizedIds.isEmpty()) {
+            throw new IllegalArgumentException("附件编号不能为空");
+        }
+        for (String id : normalizedIds) {
+            delete(id);
+        }
+    }
+
+    @Override
     public AttachmentView getById(String id) {
         AttachmentEntity entity = requireAttachment(id);
-        return toView(entity, loadGroupNameMap());
+        AttachmentView view = toView(entity, loadGroupNameMap());
+        view.setPreviewUrl(previewUrl(entity.getId(), DEFAULT_EXPIRE_SECONDS));
+        return view;
     }
 
     @Override
@@ -110,17 +131,34 @@ public class AttachmentServiceImpl implements AttachmentService {
                 wrapper.eq(AttachmentEntity::getClientName, query.getClientName().trim());
             }
         }
+        String tenantId = currentTenantId();
+        if (StringUtils.isNotBlank(tenantId)) {
+            wrapper.eq(AttachmentEntity::getTenantId, tenantId);
+        }
         wrapper.orderByDesc(AttachmentEntity::getCreatedAt);
         Page<AttachmentEntity> entityPage = attachmentMapper.selectPage(new Page<>(current, size), wrapper);
         Map<String, String> groupNameMap = loadGroupNameMap();
+        boolean withPreviewUrl = query != null && Boolean.TRUE.equals(query.getWithPreviewUrl());
         Page<AttachmentView> result = new Page<>(entityPage.getCurrent(), entityPage.getSize(), entityPage.getTotal());
-        result.setRecords(entityPage.getRecords().stream().map(v -> toView(v, groupNameMap)).toList());
+        List<AttachmentView> records = new ArrayList<>(entityPage.getRecords().size());
+        for (AttachmentEntity record : entityPage.getRecords()) {
+            AttachmentView view = toView(record, groupNameMap);
+            if (withPreviewUrl) {
+                view.setPreviewUrl(previewUrl(record.getId(), DEFAULT_EXPIRE_SECONDS));
+            }
+            records.add(view);
+        }
+        result.setRecords(records);
         return result;
     }
 
     @Override
     public List<AttachmentGroupEntity> listGroups() {
         LambdaQueryWrapper<AttachmentGroupEntity> wrapper = new LambdaQueryWrapper<>();
+        String tenantId = currentTenantId();
+        if (StringUtils.isNotBlank(tenantId)) {
+            wrapper.eq(AttachmentGroupEntity::getTenantId, tenantId);
+        }
         wrapper.orderByAsc(AttachmentGroupEntity::getSortNo).orderByAsc(AttachmentGroupEntity::getCreatedAt);
         return attachmentGroupMapper.selectList(wrapper);
     }
@@ -134,6 +172,8 @@ public class AttachmentServiceImpl implements AttachmentService {
         entity.setGroupName(group.getGroupName().trim());
         entity.setGroupCode(StringUtils.trimToNull(group.getGroupCode()));
         entity.setSortNo(group.getSortNo() == null ? 0 : group.getSortNo());
+        entity.setOwner(currentOwner());
+        entity.setTenantId(currentTenantId());
         entity.setCreatedAt(LocalDateTime.now());
         attachmentGroupMapper.insert(entity);
         return entity;
@@ -165,6 +205,10 @@ public class AttachmentServiceImpl implements AttachmentService {
         }
         LambdaQueryWrapper<AttachmentEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AttachmentEntity::getGroupId, id);
+        String tenantId = currentTenantId();
+        if (StringUtils.isNotBlank(tenantId)) {
+            wrapper.eq(AttachmentEntity::getTenantId, tenantId);
+        }
         Long count = attachmentMapper.selectCount(wrapper);
         if (count != null && count > 0) {
             throw new IllegalStateException("分组下存在附件，无法删除");
@@ -181,6 +225,47 @@ public class AttachmentServiceImpl implements AttachmentService {
         attachmentMapper.updateById(entity);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void changeGroupBatch(List<String> ids, String groupId) {
+        Set<String> normalizedIds = normalizeIds(ids);
+        if (normalizedIds.isEmpty()) {
+            throw new IllegalArgumentException("附件编号不能为空");
+        }
+        ensureGroupExists(groupId);
+        String normalizedGroupId = StringUtils.trimToNull(groupId);
+        for (String id : normalizedIds) {
+            AttachmentEntity entity = requireAttachment(id);
+            entity.setGroupId(normalizedGroupId);
+            attachmentMapper.updateById(entity);
+        }
+    }
+
+    @Override
+    public List<String> listClientNames() {
+        return ossClientManager.getClientNames().stream().sorted(Comparator.naturalOrder()).toList();
+    }
+
+    @Override
+    public List<AttachmentGroupView> listGroupViews() {
+        List<AttachmentGroupEntity> groups = listGroups();
+        Map<String, Long> countMap = loadGroupAttachmentCountMap();
+        List<AttachmentGroupView> views = new ArrayList<>(groups.size());
+        for (AttachmentGroupEntity group : groups) {
+            AttachmentGroupView view = new AttachmentGroupView();
+            view.setId(group.getId());
+            view.setGroupName(group.getGroupName());
+            view.setGroupCode(group.getGroupCode());
+            view.setSortNo(group.getSortNo());
+            view.setOwner(group.getOwner());
+            view.setTenantId(group.getTenantId());
+            view.setCreatedAt(group.getCreatedAt());
+            view.setAttachmentCount(Objects.requireNonNullElse(countMap.get(group.getId()), 0L));
+            views.add(view);
+        }
+        return views;
+    }
+
     private void ensureGroupExists(String groupId) {
         String normalized = StringUtils.trimToNull(groupId);
         if (normalized == null) {
@@ -188,6 +273,10 @@ public class AttachmentServiceImpl implements AttachmentService {
         }
         AttachmentGroupEntity group = attachmentGroupMapper.selectById(normalized);
         if (group == null) {
+            throw new IllegalArgumentException("附件分组不存在: " + normalized);
+        }
+        String tenantId = currentTenantId();
+        if (StringUtils.isNotBlank(tenantId) && !tenantId.equals(group.getTenantId())) {
             throw new IllegalArgumentException("附件分组不存在: " + normalized);
         }
     }
@@ -198,6 +287,10 @@ public class AttachmentServiceImpl implements AttachmentService {
         }
         AttachmentEntity entity = attachmentMapper.selectById(id);
         if (entity == null) {
+            throw new IllegalArgumentException("附件不存在: " + id);
+        }
+        String tenantId = currentTenantId();
+        if (StringUtils.isNotBlank(tenantId) && !tenantId.equals(entity.getTenantId())) {
             throw new IllegalArgumentException("附件不存在: " + id);
         }
         return entity;
@@ -224,6 +317,25 @@ public class AttachmentServiceImpl implements AttachmentService {
         return map;
     }
 
+    private Map<String, Long> loadGroupAttachmentCountMap() {
+        LambdaQueryWrapper<AttachmentEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(AttachmentEntity::getGroupId);
+        String tenantId = currentTenantId();
+        if (StringUtils.isNotBlank(tenantId)) {
+            wrapper.eq(AttachmentEntity::getTenantId, tenantId);
+        }
+        List<AttachmentEntity> attachments = attachmentMapper.selectList(wrapper);
+        Map<String, Long> countMap = new HashMap<>();
+        for (AttachmentEntity attachment : attachments) {
+            String groupId = StringUtils.trimToNull(attachment.getGroupId());
+            if (groupId == null) {
+                continue;
+            }
+            countMap.put(groupId, countMap.getOrDefault(groupId, 0L) + 1);
+        }
+        return countMap;
+    }
+
     private AttachmentView toView(AttachmentEntity entity, Map<String, String> groupNameMap) {
         AttachmentView view = new AttachmentView();
         view.setId(entity.getId());
@@ -234,6 +346,8 @@ public class AttachmentServiceImpl implements AttachmentService {
         view.setFileUrl(entity.getFileUrl());
         view.setGroupId(entity.getGroupId());
         view.setClientName(entity.getClientName());
+        view.setOwner(entity.getOwner());
+        view.setTenantId(entity.getTenantId());
         view.setCreatedAt(entity.getCreatedAt());
         view.setGroupName(Objects.requireNonNullElse(groupNameMap.get(entity.getGroupId()), null));
         return view;
@@ -243,5 +357,37 @@ public class AttachmentServiceImpl implements AttachmentService {
         if (group == null || StringUtils.isBlank(group.getGroupName())) {
             throw new IllegalArgumentException("分组名称不能为空");
         }
+    }
+
+    private Set<String> normalizeIds(List<String> ids) {
+        Set<String> normalized = new java.util.LinkedHashSet<>();
+        if (ids == null) {
+            return normalized;
+        }
+        for (String id : ids) {
+            String trimmed = StringUtils.trimToNull(id);
+            if (trimmed != null) {
+                normalized.add(trimmed);
+            }
+        }
+        return normalized;
+    }
+
+    private String currentOwner() {
+        try {
+            return SecurityUtils.getUser().getName();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String currentTenantId() {
+        String tenantId;
+        try {
+            tenantId = SecurityUtils.getTenantId();
+        } catch (Exception e) {
+            return null;
+        }
+        return StringUtils.trimToNull(tenantId);
     }
 }

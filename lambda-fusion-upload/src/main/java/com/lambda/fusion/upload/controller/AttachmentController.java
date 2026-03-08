@@ -4,7 +4,10 @@ import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.annotation.SaMode;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.upload.model.AttachmentBatchGroupChange;
+import com.lambda.fusion.upload.model.AttachmentBatchIds;
 import com.lambda.fusion.upload.model.AttachmentGroupEntity;
+import com.lambda.fusion.upload.model.AttachmentGroupView;
 import com.lambda.fusion.upload.model.AttachmentQuery;
 import com.lambda.fusion.upload.model.AttachmentView;
 import com.lambda.fusion.upload.model.UpsertAttachmentGroup;
@@ -43,6 +46,12 @@ public class AttachmentController {
         attachmentService.delete(id);
     }
 
+    @DeleteMapping("/batch")
+    @Operation(summary = "批量删除附件")
+    public void deleteBatch(@RequestBody AttachmentBatchIds source) {
+        attachmentService.deleteBatch(source == null ? null : source.getIds());
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "查询附件")
     public AttachmentView detail(@PathVariable @Parameter(description = "附件编号") String id) {
@@ -74,10 +83,38 @@ public class AttachmentController {
         attachmentService.changeGroup(id, groupId);
     }
 
+    @PatchMapping("/{id}/group")
+    @Operation(summary = "按请求参数变更附件分组")
+    public void changeGroupByParam(
+            @PathVariable @Parameter(description = "附件编号") String id,
+            @RequestParam(required = false) @Parameter(description = "分组编号，留空则取消分组") String groupId) {
+        attachmentService.changeGroup(id, groupId);
+    }
+
+    @PatchMapping("/group")
+    @Operation(summary = "批量变更附件分组")
+    public void changeGroupBatch(@RequestBody AttachmentBatchGroupChange source) {
+        attachmentService.changeGroupBatch(
+                source == null ? null : source.getIds(),
+                source == null ? null : source.getGroupId());
+    }
+
+    @GetMapping("/clients")
+    @Operation(summary = "查询可用OSS客户端")
+    public List<String> listClients() {
+        return attachmentService.listClientNames();
+    }
+
     @GetMapping("/groups")
     @Operation(summary = "查询分组列表")
     public List<AttachmentGroupEntity> listGroups() {
         return attachmentService.listGroups();
+    }
+
+    @GetMapping("/groups/overview")
+    @Operation(summary = "查询分组统计")
+    public List<AttachmentGroupView> listGroupOverview() {
+        return attachmentService.listGroupViews();
     }
 
     @PostMapping("/groups")

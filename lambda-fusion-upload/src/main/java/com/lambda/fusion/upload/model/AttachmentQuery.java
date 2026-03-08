@@ -14,4 +14,7 @@ public class AttachmentQuery {
 
     @Schema(description = "OSS客户端名称")
     private String clientName;
+
+    @Schema(description = "是否返回预签名地址")
+    private Boolean withPreviewUrl;
 }
