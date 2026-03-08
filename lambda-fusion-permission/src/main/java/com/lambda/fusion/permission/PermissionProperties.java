@@ -17,7 +17,7 @@ public class PermissionProperties {
     public static class Client {
         private boolean checkEnabled = true;
         private boolean denyUnmatched = false;
-        private boolean pushEnabled = true;
+        private boolean pushEnabled = false;
         private boolean failFast = false;
         private long pushIntervalSeconds = 300;
         private String resourcePath = "META-INF/permissions/api-permissions.json";
@@ -28,7 +28,6 @@ public class PermissionProperties {
 
     @Data
     public static class Server {
-        private boolean exposeApi = true;
         private String authToken;
     }
 }

@@ -80,7 +80,7 @@ public class PermissionConfigure {
 
     @Bean
     @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
-    public PermissionSyncApi permissionReportService(
+    public PermissionSyncApi permissionSyncApiImpl(
             ApiPermissionRegistry apiPermissionRegistry, PermissionProperties properties) {
         return new PermissionSyncApiImpl(apiPermissionRegistry, properties);
     }
@@ -88,11 +88,11 @@ public class PermissionConfigure {
     @Bean
     @ConditionalOnClass(ServiceBean.class)
     @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
-    public ServiceBean<PermissionSyncApi> remotePermissionReportServiceBean(
-            PermissionSyncApi permissionReportService, ApplicationContext applicationContext) {
+    public ServiceBean<PermissionSyncApi> permissionSyncApiBean(
+            PermissionSyncApi permissionSyncApi, ApplicationContext applicationContext) {
         ServiceBean<PermissionSyncApi> serviceBean = new ServiceBean<>(applicationContext);
         serviceBean.setInterface(PermissionSyncApi.class);
-        serviceBean.setRef(permissionReportService);
+        serviceBean.setRef(permissionSyncApi);
         serviceBean.setGroup(PermissionConstants.DUBBO_GROUP);
         serviceBean.setVersion(PermissionConstants.DUBBO_VERSION);
         return serviceBean;
