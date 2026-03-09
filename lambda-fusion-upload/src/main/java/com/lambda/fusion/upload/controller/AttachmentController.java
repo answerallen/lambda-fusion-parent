@@ -1,7 +1,10 @@
 package com.lambda.fusion.upload.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.upload.model.*;
+import com.lambda.fusion.upload.model.AttachmentGroupEntity;
+import com.lambda.fusion.upload.model.AttachmentQuery;
+import com.lambda.fusion.upload.model.AttachmentView;
+import com.lambda.fusion.upload.model.UpsertAttachmentGroup;
 import com.lambda.fusion.upload.service.AttachmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,12 +36,6 @@ public class AttachmentController {
     @Operation(summary = "删除附件")
     public void delete(@PathVariable @Parameter(description = "附件编号") String id) {
         attachmentService.delete(id);
-    }
-
-    @DeleteMapping("/batch")
-    @Operation(summary = "批量删除附件")
-    public void deleteBatch(@RequestBody AttachmentBatchIds source) {
-        attachmentService.deleteBatch(source == null ? null : source.getIds());
     }
 
     @GetMapping("/{id}")

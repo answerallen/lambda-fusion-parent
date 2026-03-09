@@ -208,31 +208,6 @@ public class AttachmentServiceImpl implements AttachmentService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void changeGroup(String id, String groupId) {
-        AttachmentEntity entity = requireAttachment(id);
-        ensureGroupExists(groupId);
-        entity.setGroupId(StringUtils.trimToNull(groupId));
-        attachmentMapper.updateById(entity);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void changeGroupBatch(List<String> ids, String groupId) {
-        Set<String> normalizedIds = normalizeIds(ids);
-        if (normalizedIds.isEmpty()) {
-            throw new IllegalArgumentException("附件编号不能为空");
-        }
-        ensureGroupExists(groupId);
-        String normalizedGroupId = StringUtils.trimToNull(groupId);
-        for (String id : normalizedIds) {
-            AttachmentEntity entity = requireAttachment(id);
-            entity.setGroupId(normalizedGroupId);
-            attachmentMapper.updateById(entity);
-        }
-    }
-
-    @Override
     public List<String> listClientNames() {
         return ossClientManager.getClientNames().stream().sorted(Comparator.naturalOrder()).toList();
     }
