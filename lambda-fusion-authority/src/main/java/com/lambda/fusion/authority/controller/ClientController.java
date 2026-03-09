@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class ClientController {
     private final ClientService clientService;
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000013")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000013")
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询客户端列表", description = "分页查询客户端列表")
     public Page<ClientEntity> page(
@@ -40,14 +40,14 @@ public class ClientController {
         return clientService.page(clientQuery.getPage(), clientQuery.getLambdaQueryWrapper());
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000014")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000014")
     @GetMapping("/{id}")
     @Operation(summary = "根据编号查询客户端信息", description = "根据id查询客户端信息")
     public ClientEntity get(@Parameter(description = "编号", required = true) @PathVariable String id) {
         return clientService.getById(id);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000015")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000015")
     @PostMapping
     @Operation(summary = "新增客户端信息", description = "新增客户端信息")
     public void save(@Parameter(description = "客户端信息", required = true) @Valid @RequestBody UpsertClient upsertClient) {
@@ -55,7 +55,7 @@ public class ClientController {
         clientService.save(clientEntity);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000016")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000016")
     @PutMapping("/{id}")
     @Operation(summary = "更新客户端信息", description = "更新客户端信息")
     public void update(
@@ -72,7 +72,7 @@ public class ClientController {
         clientService.updateById(clientEntity);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000017")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000017")
     @DeleteMapping("/{id}")
     @Operation(summary = "删除客户端信息", description = "根据编号删除客户端信息")
     public void delete(@Parameter(description = "编号", required = true) @PathVariable String id) {

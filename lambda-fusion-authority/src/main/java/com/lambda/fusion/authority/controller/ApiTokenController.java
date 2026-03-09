@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class ApiTokenController {
     private final ApiTokenService apiTokenService;
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000001")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000001")
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询令牌", description = "分页查询令牌")
     public Page<ApiTokenEntity> page(
@@ -43,7 +43,7 @@ public class ApiTokenController {
         return apiTokenService.page(apiTokenQuery.getPage(), apiTokenQuery.getLambdaQueryWrapper());
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000002")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000002")
     @PostMapping
     @Operation(description = "新增AipToken", summary = "新增令牌")
     public void save(@RequestBody @Valid CreateApiToken tokenInputDTO) {
@@ -52,14 +52,14 @@ public class ApiTokenController {
         apiTokenService.save(apiTokenEntity);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000003")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000003")
     @DeleteMapping
     @Operation(description = "删除AipToken", summary = "删除令牌")
     public void delete(String id) {
         apiTokenService.removeById(id);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000004")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000004")
     @PutMapping("/{id}")
     @Operation(description = "修改AipToken", summary = "修改令牌")
     public void update(@PathVariable String id, @RequestBody @Valid CreateApiToken tokenInputDTO) {

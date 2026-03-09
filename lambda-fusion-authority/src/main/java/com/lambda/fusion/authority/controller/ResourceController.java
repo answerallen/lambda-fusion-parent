@@ -38,7 +38,7 @@ public class ResourceController {
     private final ResourceService resourceService;
     private final ApiPermissionService apiPermissionService;
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000030")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000030")
     @GetMapping("/tree")
     @Operation(
             summary = "以树形的方式获取资源权限列表",
@@ -52,14 +52,14 @@ public class ResourceController {
         return resourceService.getResourceTree(menuQuery);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000031")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000031")
     @GetMapping("/list")
     @Operation(summary = "以平铺的方式获取资源权限列表", description = "以平铺的方式获取资源权限列表")
     public List<Resource> list() {
         return resourceService.getAllResources();
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000032")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000032")
     @PostMapping({"/{id}", "/"})
     @Operation(summary = "新增资源信息", description = "当id为非空时新增其子资源信息")
     public Resource add(
@@ -70,7 +70,7 @@ public class ResourceController {
         return resourceService.addResource(createResource);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000033")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000033")
     @PutMapping("/{id}")
     @Operation(summary = "更新资源信息", description = "根据编号更新指定的资源信息")
     public Resource update(
@@ -79,14 +79,14 @@ public class ResourceController {
         return resourceService.updateResource(resource);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000034")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000034")
     @DeleteMapping("/{id}")
     @Operation(summary = "删除资源信息", description = "根据编号删除指定的资源信息")
     public void delete(@PathVariable @Parameter(description = "资源编号", required = true) String id) {
         resourceService.deleteResource(id);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000035")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000035")
     @PatchMapping("/{id}")
     @Operation(
             summary = "移动资源",
@@ -105,7 +105,7 @@ public class ResourceController {
         resourceService.move(parameter);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000036")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000036")
     @GetMapping("/{id}/api-permissions")
     @Operation(summary = "查询接口权限树", description = "按应用与分组返回接口权限树，支持按应用和接口名称过滤")
     public List<ApiPermissionTreeNode> listApiPermissions(
@@ -115,7 +115,7 @@ public class ResourceController {
         return apiPermissionService.listPermissionTree(id, application, name);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000037")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000037")
     @PutMapping("/{id}/api-permissions/{permissionId}")
     @Operation(summary = "绑定接口权限", description = "将指定接口权限绑定到菜单资源")
     public void bindApiPermission(
@@ -124,7 +124,7 @@ public class ResourceController {
         apiPermissionService.bind(id, permissionId);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value="T1000000038")
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000038")
     @DeleteMapping("/{id}/api-permissions/{permissionId}")
     @Operation(summary = "解绑接口权限", description = "将指定接口权限从菜单资源解绑")
     public void unbindApiPermission(
