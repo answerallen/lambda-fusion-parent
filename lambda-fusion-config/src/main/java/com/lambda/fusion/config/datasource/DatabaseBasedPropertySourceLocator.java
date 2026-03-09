@@ -57,7 +57,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         DataSourceProperty property = getDataSourceProperty(environment);
         if (property == null) {
             log.warn("Could not find dataSource configuration, ignored.");
-            throw new ConfigLoadException("Could not find dataSource configuration, ignored.");
+            throw ConfigLoadException.dataSourceConfigNotFound();
         }
 
         String url = property.getUrl();
@@ -81,7 +81,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         try {
             return DataSourcePropertyUtils.getProperty(environment);
         } catch (Exception e) {
-            throw new ConfigLoadException("Failed to get DataSourceProperty from environment", e);
+            throw ConfigLoadException.dataSourcePropertyReadFailed(e);
         }
     }
 
@@ -117,11 +117,11 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
             log.debug("DataBaseBasedPropertySource has been initialized. {}", url);
             return propertySource;
         } catch (HikariPool.PoolInitializationException e) {
-            throw new ConfigLoadException("Failed to initialize connection pool from [" + url + "]", e);
+            throw ConfigLoadException.dataSourcePoolInitFailed(e);
         } catch (SQLException e) {
-            throw new ConfigLoadException("Failed to get database connection from [" + url + "]", e);
+            throw ConfigLoadException.dataSourceConnectionFailed(e);
         } catch (Exception e) {
-            throw new ConfigLoadException("Unexpected error while creating property source from [" + url + "]", e);
+            throw ConfigLoadException.propertySourceCreateFailed(e);
         }
     }
 
@@ -159,7 +159,7 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
         try {
             return DataSourcePropertyUtils.getProperty(environment);
         } catch (Exception e) {
-            throw new ConfigLoadException("Failed to get DataSourceProperty for change detection", e);
+            throw ConfigLoadException.dataSourcePropertyReadFailed(e);
         }
     }
 
