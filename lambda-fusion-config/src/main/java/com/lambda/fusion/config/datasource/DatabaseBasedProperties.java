@@ -1,10 +1,9 @@
 package com.lambda.fusion.config.datasource;
 
-import static com.lambda.fusion.config.ConfigConstants.Database.*;
+import static com.lambda.fusion.config.ConfigConstants.PUBLIC_APPLICATION;
 
 import com.google.common.collect.Maps;
 import com.lambda.fusion.config.ConfigProperties;
-import com.lambda.fusion.config.utils.EncryptUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serial;
 import java.sql.Connection;
@@ -43,7 +42,7 @@ public class DatabaseBasedProperties extends Properties {
                     }
                 }
                 publiced.putAll(privated);
-                publiced.forEach((key, value) -> super.setProperty(key, EncryptUtils.decrypt(value, configProperties)));
+                publiced.forEach(super::setProperty);
             }
         }
     }

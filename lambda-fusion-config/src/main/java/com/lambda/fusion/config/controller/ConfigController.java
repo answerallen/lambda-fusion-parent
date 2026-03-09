@@ -14,16 +14,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * 系统配置管理控制器
@@ -129,7 +128,6 @@ public class ConfigController {
      * @see SaveConfig 保存参数详细说明
      */
     @OperationLog
-    
     @PostMapping
     @Operation(summary = "新增配置信息", description = "创建新的系统配置项，支持配置选项，需要开发者权限")
     public void save(@RequestBody @Valid SaveConfig source) {
@@ -151,7 +149,6 @@ public class ConfigController {
      * @see UpdateConfig 更新参数详细说明
      */
     @OperationLog
-    
     @PutMapping("/{id}")
     @Operation(summary = "更新配置信息", description = "支持增量更新配置基本信息和选项，需要开发者权限")
     public void updateConfig(
@@ -170,7 +167,6 @@ public class ConfigController {
      * <p>需要 ROLE_DEV 角色权限。
      */
     @OperationLog
-
     @DeleteMapping("/{id}")
     @Operation(summary = "删除配置信息", description = "根据ID删除配置及其所有选项，操作不可逆，需要开发者权限")
     public void delete(@Parameter(description = "配置ID", required = true) @PathVariable String id) {
@@ -208,7 +204,6 @@ public class ConfigController {
      * <h3>权限要求：</h3>
      * <p>需要 ROLE_DEV 角色权限。
      */
-    
     @GetMapping("/{id}")
     @Operation(summary = "查询配置详情", description = "根据ID获取配置完整信息，包括选项")
     public ConfigEntity getById(@Parameter(description = "配置ID", required = true) @PathVariable String id) {
@@ -223,7 +218,6 @@ public class ConfigController {
      * <h3>权限要求：</h3>
      * <p>需要 ROLE_DEV 角色权限。
      */
-    
     @GetMapping("/{id}/options")
     @Operation(summary = "查询配置选项列表", description = "获取指定配置的所有选项信息")
     public List<ConfigOptionEntity> getOptionsByConfigId(

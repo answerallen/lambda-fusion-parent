@@ -1,7 +1,6 @@
 package com.lambda.fusion.config.utils;
 
-import static com.lambda.fusion.config.ConfigConstants.DataSource.*;
-import static com.lambda.fusion.config.ConfigConstants.Nacos.*;
+import static com.lambda.fusion.config.ConfigConstants.*;
 
 import com.alibaba.cloud.nacos.NacosPropertySourceRepository;
 import com.google.common.collect.Lists;
