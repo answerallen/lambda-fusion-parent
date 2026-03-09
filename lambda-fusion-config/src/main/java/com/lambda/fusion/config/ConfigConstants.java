@@ -40,7 +40,7 @@ public interface ConfigConstants {
         String REFRESH_ARGS_PROPERTY_SOURCE = "refreshArgs";
 
         /**
-         * Spring应用名称属性键
+         * Spring 应用名称属性键
          */
         String SPRING_APPLICATION_NAME = "spring.application.name";
     }
@@ -71,7 +71,7 @@ public interface ConfigConstants {
         String POOL_NAME = "DatabaseBasedPropertySource-Pool";
 
         /**
-         * 独立数据源配置URL属性键
+         * 独立数据源配置 URL 属性键
          */
         String CONFIG_DATASOURCE_URL = "lambda.fusion.config.datasource.url";
 
@@ -82,12 +82,12 @@ public interface ConfigConstants {
     }
 
     /**
-     * Nacos相关常量
+     * Nacos 相关常量
      */
     interface Nacos {
 
         /**
-         * Nacos属性源仓库类名
+         * Nacos 属性源仓库类名
          */
         String PROPERTY_SOURCE_REPOSITORY_CLASS = "com.alibaba.cloud.nacos.NacosPropertySourceRepository";
     }
@@ -129,7 +129,7 @@ public interface ConfigConstants {
     interface Encryption {
 
         /**
-         * AES加密填充方式
+         * AES 加密填充方式
          */
         String AES_PADDING = "PKCS7Padding";
     }
@@ -139,12 +139,12 @@ public interface ConfigConstants {
      */
     interface SystemConfig {
         /**
-         * RSA加密公钥配置键
+         * RSA 加密公钥配置键
          */
         String RSA_ENCRYPT_PUBLIC_KEY = "rsa.public-key";
 
         /**
-         * RSA加密私钥配置键
+         * RSA 加密私钥配置键
          */
         String RSA_ENCRYPT_PRIVATE_KEY = "rsa.private-key";
     }
