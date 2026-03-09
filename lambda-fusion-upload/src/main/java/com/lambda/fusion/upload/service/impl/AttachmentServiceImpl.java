@@ -12,16 +12,15 @@ import com.lambda.fusion.upload.mapper.AttachmentGroupMapper;
 import com.lambda.fusion.upload.mapper.AttachmentMapper;
 import com.lambda.fusion.upload.model.*;
 import com.lambda.fusion.upload.service.AttachmentService;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -119,7 +118,8 @@ public class AttachmentServiceImpl implements AttachmentService {
                 wrapper.eq(AttachmentEntity::getGroupId, query.getGroupId().trim());
             }
             if (StringUtils.isNotBlank(query.getClientName())) {
-                wrapper.eq(AttachmentEntity::getClientName, query.getClientName().trim());
+                wrapper.eq(
+                        AttachmentEntity::getClientName, query.getClientName().trim());
             }
         }
         String tenantId = currentTenantId();
@@ -209,7 +209,9 @@ public class AttachmentServiceImpl implements AttachmentService {
 
     @Override
     public List<String> listClientNames() {
-        return ossClientManager.getClientNames().stream().sorted(Comparator.naturalOrder()).toList();
+        return ossClientManager.getClientNames().stream()
+                .sorted(Comparator.naturalOrder())
+                .toList();
     }
 
     private void ensureGroupExists(String groupId) {
@@ -262,7 +264,6 @@ public class AttachmentServiceImpl implements AttachmentService {
         }
         return map;
     }
-
 
     private AttachmentView toView(AttachmentEntity entity, Map<String, String> groupNameMap) {
         AttachmentView view = new AttachmentView();

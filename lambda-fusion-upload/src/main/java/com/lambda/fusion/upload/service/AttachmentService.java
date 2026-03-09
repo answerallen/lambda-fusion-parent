@@ -5,9 +5,8 @@ import com.lambda.fusion.upload.model.AttachmentGroupEntity;
 import com.lambda.fusion.upload.model.AttachmentQuery;
 import com.lambda.fusion.upload.model.AttachmentView;
 import com.lambda.fusion.upload.model.UpsertAttachmentGroup;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface AttachmentService {
     AttachmentView upload(MultipartFile file, String groupId, String clientName);
