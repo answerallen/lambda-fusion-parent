@@ -12,6 +12,7 @@ import com.lambda.fusion.upload.mapper.AttachmentGroupMapper;
 import com.lambda.fusion.upload.mapper.AttachmentMapper;
 import com.lambda.fusion.upload.model.*;
 import com.lambda.fusion.upload.service.AttachmentService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -20,8 +21,10 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.Assert;
 import org.springframework.web.multipart.MultipartFile;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Service
 @RequiredArgsConstructor
 public class AttachmentServiceImpl implements AttachmentService {
@@ -178,9 +181,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         }
         validateGroup(group);
         AttachmentGroupEntity entity = attachmentGroupMapper.selectById(id);
-        if (entity == null) {
-            throw new IllegalArgumentException("附件分组不存在: " + id);
-        }
+        Assert.notNull(entity, "附件分组不存在: " + id);
         entity.setGroupName(group.getGroupName().trim());
         entity.setGroupCode(StringUtils.trimToNull(group.getGroupCode()));
         entity.setSortNo(group.getSortNo() == null ? 0 : group.getSortNo());

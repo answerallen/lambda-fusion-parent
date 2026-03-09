@@ -6,6 +6,7 @@ import com.lambda.fusion.upload.model.AttachmentQuery;
 import com.lambda.fusion.upload.model.AttachmentView;
 import com.lambda.fusion.upload.model.UpsertAttachmentGroup;
 import com.lambda.fusion.upload.service.AttachmentService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @RestController
 @Tag(name = "附件管理")
 @RequestMapping("/upload/attachments")
