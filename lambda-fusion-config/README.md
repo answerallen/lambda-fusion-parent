@@ -1,4 +1,4 @@
-# Lambda Fusion Config
+ # Lambda Fusion Config
 
 Lambda Fusion Config 是 Lambda Fusion 框架中的动态配置管理模块，基于 Lambda Cloud 构建，提供企业级配置管理能力，支持数据库驱动的配置存储、热刷新机制和多租户配置隔离。
 

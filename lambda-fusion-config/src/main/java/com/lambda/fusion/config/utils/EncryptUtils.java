@@ -7,23 +7,22 @@ import cn.hutool.crypto.Mode;
 import cn.hutool.crypto.Padding;
 import cn.hutool.crypto.symmetric.AES;
 import com.lambda.fusion.config.ConfigProperties;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@UtilityClass
 public class EncryptUtils {
-
-    private EncryptUtils() {
-        // Utility class
-    }
 
     /**
      * 解密配置值
-     * @param encryptedValue 待解密的字符串
+     *
+     * @param encryptedValue   待解密的字符串
      * @param configProperties 配置属性，用于判断是否启用加密以及获取密钥
      * @return 解密后的字符串，如果未启用加密或解密失败则返回原字符串
      */
     public static String decrypt(String encryptedValue, ConfigProperties configProperties) {
-        if (configProperties == null || !configProperties.getSecurity().isConfigEncryptEnabled()) {
+        if (configProperties == null) {
             return encryptedValue;
         }
 

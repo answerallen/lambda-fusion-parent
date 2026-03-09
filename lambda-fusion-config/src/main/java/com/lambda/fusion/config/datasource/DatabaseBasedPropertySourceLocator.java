@@ -1,8 +1,5 @@
 package com.lambda.fusion.config.datasource;
 
-import static com.lambda.fusion.config.ConfigConstants.DataSource.*;
-import static com.lambda.fusion.config.ConfigConstants.PropertySource.*;
-
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.config.ConfigProperties;
 import com.lambda.fusion.config.exception.ConfigLoadException;
@@ -12,24 +9,33 @@ import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PreDestroy;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Objects;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import javax.annotation.Nonnull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.config.ConfigData;
+import org.springframework.boot.context.config.ConfigDataLoader;
+import org.springframework.boot.context.config.ConfigDataLoaderContext;
+import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.cloud.bootstrap.config.BootstrapPropertySource;
 import org.springframework.cloud.bootstrap.config.PropertySourceLocator;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.*;
 import org.springframework.util.ClassUtils;
 
+import javax.annotation.Nonnull;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Objects;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static com.lambda.fusion.config.ConfigConstants.DataSource.*;
+import static com.lambda.fusion.config.ConfigConstants.PropertySource.*;
+
 @Slf4j
 @Order(100)
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator {
+public class DatabaseBasedPropertySourceLocator implements ConfigDataLoader<Environment> {
     private volatile HikariDataSource dataSource;
     private final ReentrantReadWriteLock dataSourceLock = new ReentrantReadWriteLock();
 
@@ -38,15 +44,15 @@ public class DatabaseBasedPropertySourceLocator implements PropertySourceLocator
 
     private volatile String application;
 
-    private final ConfigProperties configProperties;
+    private ConfigProperties configProperties;
 
     @Autowired
-    public DatabaseBasedPropertySourceLocator(ConfigProperties configProperties) {
+    public void setConfigProperties(ConfigProperties configProperties) {
         this.configProperties = configProperties;
     }
 
     @Override
-    public PropertySource<?> locate(Environment environment) {
+    public ConfigData load(ConfigDataLoaderContext context, Environment environment) throws ConfigDataResourceNotFoundException {
         if (ignoreRefreshProcessing(environment)) {
             log.debug(
                     "Ignoring refresh processing for environment: {}",

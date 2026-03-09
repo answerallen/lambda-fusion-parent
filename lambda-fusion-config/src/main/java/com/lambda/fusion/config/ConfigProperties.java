@@ -7,20 +7,14 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.util.ProxyUtils;
-import org.springframework.core.env.Environment;
 
 import java.io.IOException;
-
-import static com.lambda.fusion.config.ConfigConstants.SystemConfig.RSA_ENCRYPT_PRIVATE_KEY;
-import static com.lambda.fusion.config.ConfigConstants.SystemConfig.RSA_ENCRYPT_PUBLIC_KEY;
 
 @Slf4j
 @Setter
@@ -28,7 +22,7 @@ import static com.lambda.fusion.config.ConfigConstants.SystemConfig.RSA_ENCRYPT_
 @SuppressFBWarnings("EI_EXPOSE_REP")
 @ConfigurationProperties(prefix = "lambda.fusion.config")
 @JsonPropertyOrder(alphabetic = true)
-public class ConfigProperties implements InitializingBean {
+public class ConfigProperties {
 
     private String title = "快速开发平台";
 
@@ -49,19 +43,8 @@ public class ConfigProperties implements InitializingBean {
     @JsonSerialize(using = Customize.Serialize.class)
     private Customize customize;
 
-    @Getter(AccessLevel.NONE)
-    @Setter(AccessLevel.NONE)
-    private final transient Environment environment;
-
-    public ConfigProperties(Environment environment, Customize customize) {
+    public ConfigProperties(Customize customize) {
         this.customize = customize;
-        this.environment = environment;
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        this.security.setPublicKey(environment.getProperty(RSA_ENCRYPT_PUBLIC_KEY));
-        this.security.setPrivateKey(environment.getProperty(RSA_ENCRYPT_PRIVATE_KEY));
     }
 
 
@@ -82,7 +65,6 @@ public class ConfigProperties implements InitializingBean {
         private transient String privateKey;
 
         private transient String publicKey;
-
     }
 
     @Getter

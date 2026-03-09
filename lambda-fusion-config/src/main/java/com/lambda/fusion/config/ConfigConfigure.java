@@ -56,9 +56,4 @@ public class ConfigConfigure {
             return new NacosConfigService(configService, properties.getGroup());
         }
     }
-
-    @Bean
-    public DatabaseBasedPropertySourceLocator databaseBasedPropertySourceLocator(ConfigProperties configProperties) {
-        return new DatabaseBasedPropertySourceLocator(configProperties);
-    }
 }

@@ -17,6 +17,7 @@ import com.lambda.fusion.config.service.ConfigChangedService;
 import com.lambda.fusion.config.service.ConfigService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -187,6 +188,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
             target.setType(updateConfig.getType());
         }
 
+        target.setUpdateTime(LocalDateTime.now());
         // 更新配置基本信息
         configMapper.updateById(target);
 
@@ -238,7 +240,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
 
         // 构建并保存配置实体
         ConfigEntity target = saveConfig.toEntity();
-
+        target.setUpdateTime(LocalDateTime.now());
         // 保存配置主体信息
         configMapper.insert(target);
 
