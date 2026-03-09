@@ -66,4 +66,12 @@ public interface AuthenticationMapper {
      * @return 权限码列表
      */
     List<String> selectAuthoritiesByUsername(@Param("username") String username);
+
+    /**
+     * 根据用户名获取用户的所有权限
+     *
+     * @param username 用户名
+     * @return 权限列表
+     */
+    List<String> selectPermissionsByUsername(@Param("username") String username);
 }

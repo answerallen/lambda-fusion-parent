@@ -5,9 +5,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.authority.model.client.ClientEntity;
 import com.lambda.fusion.authority.model.resource.UserPermission;
 import com.lambda.security.web.hmac.model.HmacClient;
-import org.apache.ibatis.annotations.Mapper;
-
 import java.util.List;
+import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 @InterceptorIgnore(tenantLine = "true")
@@ -17,7 +16,6 @@ public interface ClientMapper extends BaseMapper<ClientEntity> {
      *
      * @param appid
      */
-
     HmacClient getClientById(String appid);
 
     /**

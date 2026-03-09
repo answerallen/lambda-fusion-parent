@@ -61,9 +61,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
-        List<String> permissions = authenticationMapper.selectAuthoritiesByUsername(loginId.toString());
-
-        return permissions;
+        List<String> authorities = authenticationMapper.selectAuthoritiesByUsername(loginId.toString());
+        List<String> permissions = authenticationMapper.selectPermissionsByUsername(loginId.toString());
+        if (CollUtil.isNotEmpty(permissions)) {
+            authorities.addAll(permissions);
+        }
+        return authorities;
     }
 
     @Override
