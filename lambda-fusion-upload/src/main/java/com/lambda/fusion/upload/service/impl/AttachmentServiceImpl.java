@@ -165,7 +165,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         entity.setId(IdUtil.getSnowflakeNextIdStr());
         entity.setGroupName(group.getGroupName().trim());
         entity.setGroupCode(StringUtils.trimToNull(group.getGroupCode()));
-        entity.setSortNo(group.getSortNo() == null ? 0 : group.getSortNo());
+        entity.setSortNo(group.getSortNo());
         entity.setOwner(currentOwner());
         entity.setTenantId(currentTenantId());
         entity.setCreatedAt(LocalDateTime.now());
@@ -184,7 +184,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         Assert.notNull(entity, "附件分组不存在: " + id);
         entity.setGroupName(group.getGroupName().trim());
         entity.setGroupCode(StringUtils.trimToNull(group.getGroupCode()));
-        entity.setSortNo(group.getSortNo() == null ? 0 : group.getSortNo());
+        entity.setSortNo(group.getSortNo());
         attachmentGroupMapper.updateById(entity);
         return entity;
     }

@@ -10,12 +10,13 @@ import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
 import com.lambda.security.service.HmacClientService;
 import com.lambda.security.web.hmac.model.HmacClient;
-import java.util.List;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -26,12 +27,6 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, ClientEntity>
     @CacheEvict(value = "Clients", key = "#entity.id")
     public boolean updateById(ClientEntity entity) {
         return super.updateById(entity);
-    }
-
-    @Override
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public List<String> getUsersByResourceId(String rid) {
-        return this.baseMapper.getUsersByRid(rid);
     }
 
     @Override
@@ -51,7 +46,7 @@ public class ClientServiceImpl extends ServiceImpl<ClientMapper, ClientEntity>
     }
 
     @Override
-    public List<UserPermission> getUserPermissions(List<String> permissionIds) {
-        return this.baseMapper.getUserPermissions(permissionIds);
+    public List<UserPermission> getClientPermissions(List<String> permissionIds) {
+        return this.baseMapper.getClientPermissions(permissionIds);
     }
 }

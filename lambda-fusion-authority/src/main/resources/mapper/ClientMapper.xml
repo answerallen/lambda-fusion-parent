@@ -3,89 +3,36 @@
 
 <mapper namespace="com.lambda.fusion.authority.mapper.ClientMapper">
 
-    <resultMap type="com.lambda.fusion.authority.model.client.ClientEntity" id="ClientEntity">
-        <result property="id" column="id"/>
-        <result property="name" column="name"/>
-        <result property="secret" column="secret"/>
-        <result property="hosts" column="hosts"/>
-        <result property="expired" column="expired"/>
-        <result property="enabled" column="enabled"/>
-        <result property="tenantId" column="tenant_id"/>
-        <result property="remarks" column="remarks"/>
-        <result property="createdBy" column="created_by"/>
-        <result property="createdAt" column="CREATED_AT"/>
-        <result property="updatedBy" column="updated_by"/>
-        <result property="updatedAt" column="UPDATED_AT"/>
-    </resultMap>
-
-    <resultMap id="HmacUser" type="com.lambda.security.web.hmac.model.HmacClient">
+    <resultMap id="HmacUser" type="com.lambda.fusion.authority.model.client.HmacUser">
         <id column="appid" property="appid" javaType="String"/>
         <result column="secret" property="secret" javaType="String"/>
         <result column="name" property="nickname" javaType="String"/>
         <result column="expired" property="expired" javaType="java.util.Date"/>
         <result column="hosts" property="hosts" javaType="String"/>
-        <result column="enabled" property="enabled" javaType="Boolean" />
+        <result column="enabled" property="enabled" javaType="Boolean"/>
         <result column="TENANT_ID" property="tenantId" javaType="String"/>
-<!--        <collection property="authorities"  ofType="java.lang.String">-->
-<!--            <result column="authority" />-->
-<!--        </collection>-->
+        <collection property="authorities" ofType="java.lang.String">
+            <result column="authority"/>
+        </collection>
     </resultMap>
 
-    <select id="getAuthorization" resultType="com.lambda.fusion.authority.model.client.AuthResource">
-        SELECT DISTINCT
-            T.id,
-            T.name,
-            T.PARENT_ID,T.RANK,
-            (CASE WHEN T3.RESOURCEID IS NOT NULL THEN 1 ELSE 0 END ) AS checked,
-            T.ORDER_NO
-        FROM LA_RESOURCES T
-        LEFT JOIN LA_CLIENT_RESOURCES T3 ON T3.RESOURCEID = T.ID AND T3.CLIENTID = #{parameters.clientid}
-        WHERE T.IS_DEV = 0 AND T.TYPE = 0 And T.HIDDEN = 0
-        ORDER BY T.RANK, T.PARENT_ID, T.ORDER_NO
-    </select>
-    <delete id="batchDeleteAuthResources">
-        DELETE FROM LA_CLIENT_RESOURCES WHERE clientid = #{clientid}
-        AND resourceid IN
-        <foreach collection="ids" item="item" open="(" close=")" separator=",">
-            #{item}
-        </foreach>
-    </delete>
-    <insert id="batchSaveAuthResources" databaseId="mysql">
-        INSERT INTO LA_CLIENT_RESOURCES (resourceid, clientid) VALUES
-        <foreach collection="ids" item="item" separator=",">
-            (#{item},#{clientid})
-        </foreach>
-    </insert>
-    <insert id="batchSaveAuthResources" databaseId="oracle">
-        INSERT ALL
-        <foreach collection="ids" item="item">
-            INTO LA_CLIENT_RESOURCES (resourceid,clientid) VALUES (#{item},#{clientid})
-        </foreach>
-        SELECT 1 FROM DUAL
-    </insert>
 
-    <!--postgresql-->
-    <insert id="batchSaveAuthResources" databaseId="postgresql">
-        INSERT INTO LA_CLIENT_RESOURCES (resourceid, clientid) VALUES
-        <foreach collection="ids" item="item" separator=",">
-            (#{item},#{clientid})
-        </foreach>
-    </insert>
-
-    <select id="hasAuthorized" resultType="String">
-        SELECT resourceid FROM LA_CLIENT_RESOURCES WHERE clientid = #{clientid}
-    </select>
     <select id="getClientById" resultMap="HmacUser">
-        SELECT T.id AS appid, T.secret, T.name, T.expired, T.hosts, T.enabled, T.TENANT_ID, R.AUTHORITY FROM LA_CLIENTS T
-        LEFT JOIN LA_USER_ROLES UR ON UR.userid = T.id
-        LEFT JOIN LA_ROLES R ON R.authority = UR.authority
+        SELECT T.id AS appid,
+               T.secret,
+               T.name,
+               T.expired,
+               T.hosts,
+               T.enabled,
+               T.TENANT_ID,
+               R.AUTHORITY
+        FROM LA_CLIENTS T
+                 LEFT JOIN LA_USER_ROLES UR ON UR.userid = T.id
+                 LEFT JOIN LA_ROLES R ON R.authority = UR.authority
         WHERE T.id = #{appid}
     </select>
-    <select id="getUsersByRid" resultType="String">
-        SELECT clientid FROM LA_CLIENT_RESOURCES WHERE resourceid = #{rid}
-    </select>
 
-    <select id="getUserPermissions" resultType="com.lambda.fusion.authority.model.resource.UserPermission">
+    <select id="getClientPermissions" resultType="com.lambda.fusion.authority.model.resource.UserPermission">
         SELECT CLIENTID AS username, RESOURCEID AS permissionId FROM LA_CLIENT_RESOURCES
         WHERE RESOURCEID IN
         <foreach collection="list" item="item" separator="," open="(" close=")">
