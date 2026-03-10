@@ -19,6 +19,7 @@ import com.lambda.fusion.authority.model.tenant.Tenant;
 import com.lambda.fusion.authority.model.tenant.TenantEntity;
 import com.lambda.fusion.authority.model.tenant.TenantOption;
 import com.lambda.fusion.authority.service.TenantService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,7 @@ import tools.jackson.databind.ObjectMapper;
  * 租户信息表
  *
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
 @Service
 @Transactional(rollbackFor = Exception.class)
