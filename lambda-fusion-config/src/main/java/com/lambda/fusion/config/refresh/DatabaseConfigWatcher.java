@@ -49,6 +49,10 @@ public class DatabaseConfigWatcher {
         }
 
         ensureDataSource(property);
+        if (!hasDatabasePropertySource()) {
+            refreshPropertySource();
+            return true;
+        }
 
         if (isDataSourceChanged(property, dataSource)) {
             rebuildDataSource(property);
@@ -61,6 +65,13 @@ public class DatabaseConfigWatcher {
             refreshPropertySource();
         }
         return changed;
+    }
+
+    private boolean hasDatabasePropertySource() {
+        if (configurableEnvironment == null) {
+            return false;
+        }
+        return configurableEnvironment.getPropertySources().contains(DATABASE_PROPERTY_SOURCE_NAME);
     }
 
     private void ensureDataSource(DataSourceProperty property) {
