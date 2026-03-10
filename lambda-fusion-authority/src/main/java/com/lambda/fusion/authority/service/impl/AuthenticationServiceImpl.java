@@ -1,5 +1,8 @@
 package com.lambda.fusion.authority.service.impl;
 
+import static com.lambda.fusion.core.FusionConstants.AT;
+import static com.lambda.fusion.core.FusionConstants.ROLE_TENANT;
+
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
@@ -65,6 +68,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         List<String> permissions = authenticationMapper.selectPermissionsByUsername(loginId.toString());
         if (CollUtil.isNotEmpty(permissions)) {
             authorities.addAll(permissions);
+        }
+        UserDetails user = SecurityUtils.getUser();
+        if (user.isTenantManager()) {
+            List<String> tenantAdminPermissions =
+                    authenticationMapper.selectTenantAdminPermissions(ROLE_TENANT + AT + user.getTenantId());
+            if (CollUtil.isNotEmpty(tenantAdminPermissions)) {
+                authorities.addAll(tenantAdminPermissions);
+            }
+            List<String> tenantAdminAuthorities =
+                    authenticationMapper.selectTenantAdminAuthorities(ROLE_TENANT + AT + user.getTenantId());
+            if (CollUtil.isNotEmpty(tenantAdminAuthorities)) {
+                authorities.addAll(tenantAdminAuthorities);
+            }
         }
         return authorities;
     }
@@ -229,11 +245,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             userDetails.setRoles(Sets.newHashSet(FusionConstants.ROLE_USER));
         } else {
             userDetails.getRoles().stream()
-                    .filter(role -> role.startsWith(FusionConstants.ROLE_TENANT))
+                    .filter(role -> role.startsWith(ROLE_TENANT))
                     .findFirst()
                     .ifPresent(role -> {
-                        String tenantAuthority =
-                                FusionConstants.ROLE_TENANT + FusionConstants.AT + userDetails.getOrgId();
+                        String tenantAuthority = ROLE_TENANT + AT + userDetails.getOrgId();
                         userDetails.setRoles(Sets.newHashSet(tenantAuthority));
                     });
         }

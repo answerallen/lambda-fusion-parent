@@ -74,4 +74,8 @@ public interface AuthenticationMapper {
      * @return 权限列表
      */
     List<String> selectPermissionsByUsername(@Param("username") String username);
+
+    List<String> selectTenantAdminPermissions(@Param("username") String username);
+
+    List<String> selectTenantAdminAuthorities(@Param("username") String username);
 }

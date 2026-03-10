@@ -144,8 +144,21 @@
                                                ON ORG_RES.ORGANIZATION_ID = UO.ORGANIZATION_ID
                            WHERE ORG_RES.RESOURCE_ID = R.ID
                              AND UO.USERNAME = #{username})
+                OR EXISTS (SELECT 1
+                           FROM LA_ROLE_RESOURCES RR
+                           WHERE RR.RESOURCE_ID = R.ID
+                             AND RR.AUTHORITY IN (SELECT AUTHORITY
+                                                  FROM LA_USER_ROLES
+                                                  WHERE USERNAME = #{username}
+                                                  UNION
+                                                  SELECT ORG_R.AUTHORITY
+                                                  FROM LA_ORGANIZATION_ROLES ORG_R
+                                                           INNER JOIN LA_USER_ORGANIZATION UO
+                                                                      ON ORG_R.ORGANIZATION_ID = UO.ORGANIZATION_ID
+                                                  WHERE UO.USERNAME = #{username}))
             )
     </select>
+
     <select id="selectPermissionsByUsername" resultType="java.lang.String">
         SELECT distinct lar.PERMISSION_ID
         FROM LA_RESOURCES R
@@ -168,5 +181,27 @@
                                           ON ORG_RES.ORGANIZATION_ID = UO.ORGANIZATION_ID
                       WHERE ORG_RES.RESOURCE_ID = R.ID
                         AND UO.USERNAME = #{username})
+    </select>
+
+    <select id="selectTenantAdminPermissions" resultType="java.lang.String">
+        SELECT distinct lar.PERMISSION_ID
+        FROM LA_RESOURCES R
+                 JOIN la_api_resources lar on R.ID = lar.RESOURCE_ID
+        WHERE EXISTS (SELECT 1
+                      FROM LA_ROLE_RESOURCES RR
+                      WHERE RR.RESOURCE_ID = R.ID
+                        AND RR.AUTHORITY IN (#{username}))
+    </select>
+
+    <select id="selectTenantAdminAuthorities" resultType="java.lang.String">
+        SELECT R.ID
+        FROM LA_RESOURCES R
+        WHERE R.RES_TYPE = 3
+          AND (
+            EXISTS (SELECT 1
+                    FROM LA_ROLE_RESOURCES RR
+                    WHERE RR.RESOURCE_ID = R.ID
+                      AND RR.AUTHORITY IN (#{username}))
+            )
     </select>
 </mapper>
