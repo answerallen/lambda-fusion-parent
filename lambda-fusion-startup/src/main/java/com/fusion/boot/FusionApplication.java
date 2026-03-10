@@ -9,5 +9,4 @@ public class FusionApplication {
     public static void main(String[] args) {
         SpringApplication.run(FusionApplication.class, args);
     }
-
 }
