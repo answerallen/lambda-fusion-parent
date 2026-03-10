@@ -219,7 +219,7 @@ SELECT * FROM pg_extension WHERE extname IN ('vector', 'uuid-ossp', 'pg_trgm');
 <dependency>
     <groupId>com.lambda.cloud</groupId>
     <artifactId>lambda-fusion-ai</artifactId>
-    <version>2025.1.1-SNAPSHOT</version>
+    <version>2026.1.1-SNAPSHOT</version>
 </dependency>
 ```
 

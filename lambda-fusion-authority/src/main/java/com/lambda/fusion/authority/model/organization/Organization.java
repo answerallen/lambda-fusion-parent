@@ -7,13 +7,13 @@ import com.lambda.fusion.core.tree.TreeNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.Date;
 import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang.BooleanUtils;
-import org.hibernate.validator.constraints.Length;
 
 /**
  * 组织机构实体类
@@ -38,8 +38,8 @@ import org.hibernate.validator.constraints.Length;
  * </ul>
  *
  * @author Lambda Fusion Team
- * @since 1.0.0
  * @see TreeNode 树形数据接口
+ * @since 1.0.0
  */
 @EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = OrganizationEntity.class)
@@ -53,18 +53,18 @@ public class Organization extends BaseVO<OrganizationEntity> implements TreeNode
 
     @Schema(description = "组织名")
     @NotBlank
-    @Length(max = 40)
+    @Size(max = 40)
     private String name;
 
     @Schema(description = "组织别名")
     @NotBlank
-    @Length(max = 40)
+    @Size(max = 40)
     private String alias;
 
     @Schema(description = "父ID")
     private String parentId;
 
-    @Length(max = 200)
+    @Size(max = 200)
     @Schema(description = "备注")
     private String remarks;
 

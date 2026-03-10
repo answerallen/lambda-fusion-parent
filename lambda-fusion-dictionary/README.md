@@ -291,7 +291,7 @@ CREATE TABLE la_dict_info (
 <dependency>
     <groupId>com.lambda.cloud</groupId>
     <artifactId>lambda-fusion-dict</artifactId>
-    <version>2025.1.1-SNAPSHOT</version>
+    <version>2026.1.1-SNAPSHOT</version>
 </dependency>
 ```
 

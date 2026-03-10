@@ -294,7 +294,7 @@ CREATE TABLE la_tenant_datasource (
 <dependency>
     <groupId>com.lambda.cloud</groupId>
     <artifactId>lambda-fusion-datasource</artifactId>
-    <version>2025.1.1-SNAPSHOT</version>
+    <version>2026.1.1-SNAPSHOT</version>
 </dependency>
 ```
 

@@ -11,12 +11,12 @@ import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.hibernate.validator.constraints.Length;
 
 @EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = UserEntity.class, uses = FusionConvertFunctions.class)
@@ -31,7 +31,7 @@ public class UpdateUser extends BaseDTO<UserEntity> {
     @Hidden
     private String password;
 
-    @Length(max = 16, message = "用户昵称长度不能超过16个字符")
+    @Size(max = 16, message = "用户昵称长度不能超过16个字符")
     @Schema(description = "用户昵称")
     private String nickname;
 

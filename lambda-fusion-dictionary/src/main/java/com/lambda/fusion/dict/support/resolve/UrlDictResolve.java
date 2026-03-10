@@ -9,7 +9,6 @@ import com.lambda.fusion.dict.DictProperties;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.support.DictValueType;
 import com.lambda.fusion.dict.support.model.DynamicDictSource;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,7 +33,6 @@ import org.springframework.web.util.WebUtils;
  */
 @Slf4j
 @Service
-@SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
 public class UrlDictResolve implements DictSourceResolver {
 
     protected RestTemplate restTemplate = new RestTemplate();

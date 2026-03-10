@@ -7,12 +7,12 @@ import com.lambda.fusion.authority.model.role.SimpleRole;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Data;
-import org.hibernate.validator.constraints.Length;
 
 @Data
 @Schema(description = "用户信息")
@@ -24,7 +24,7 @@ public class User {
     @Hidden
     private String password;
 
-    @Length(max = 16, message = "用户昵称长度不能超过16个字符")
+    @Size(max = 16, message = "用户昵称长度不能超过16个字符")
     @Schema(description = "用户昵称")
     private String nickname;
 

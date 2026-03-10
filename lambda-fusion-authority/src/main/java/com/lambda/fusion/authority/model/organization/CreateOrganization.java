@@ -6,10 +6,10 @@ import com.lambda.cloud.core.shared.BaseDTO;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import org.hibernate.validator.constraints.Length;
 
 /**
  * 组织机构实体类
@@ -47,18 +47,18 @@ public class CreateOrganization extends BaseDTO<OrganizationEntity> {
 
     @Schema(description = "组织名")
     @NotBlank
-    @Length(max = 40)
+    @Size(max = 40)
     private String name;
 
     @Schema(description = "组织别名")
     @NotBlank
-    @Length(max = 40)
+    @Size(max = 40)
     private String alias;
 
     @Schema(description = "父ID")
     private String parentId;
 
-    @Length(max = 200)
+    @Size(max = 200)
     @Schema(description = "备注")
     private String remarks;
 

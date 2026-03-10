@@ -6,11 +6,11 @@ import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.Date;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.apache.commons.lang.StringUtils;
-import org.hibernate.validator.constraints.Length;
 
 @AutoConverter(target = ClientEntity.class)
 @EqualsAndHashCode(callSuper = true)
@@ -22,7 +22,7 @@ public class UpsertClient extends BaseDTO<ClientEntity> {
      */
     @Schema(description = "客户端名称")
     @NotBlank
-    @Length(max = 30)
+    @Size(max = 30)
     private String name;
     /**
      * 绑定IP地址
@@ -42,7 +42,7 @@ public class UpsertClient extends BaseDTO<ClientEntity> {
     /**
      * 备注
      */
-    @Length(max = 200)
+    @Size(max = 200)
     @Schema(description = "备注")
     private String remarks;
 

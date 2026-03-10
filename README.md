@@ -230,7 +230,7 @@ com/lambda/fusion/module/
 
 ## 版本信息
 
-- **当前版本**: 2025.1.1-SNAPSHOT
+- **当前版本**: 2026.1.1-SNAPSHOT
 - **父项目**: lambda-cloud-parent
 
 ## 许可证

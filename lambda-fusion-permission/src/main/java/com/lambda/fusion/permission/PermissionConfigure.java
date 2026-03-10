@@ -1,6 +1,5 @@
 package com.lambda.fusion.permission;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.permission.api.PermissionSyncApi;
 import com.lambda.fusion.permission.client.PermissionClientInitializer;
 import com.lambda.fusion.permission.client.PermissionPushClient;
@@ -19,6 +18,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @EnableConfigurationProperties(PermissionProperties.class)

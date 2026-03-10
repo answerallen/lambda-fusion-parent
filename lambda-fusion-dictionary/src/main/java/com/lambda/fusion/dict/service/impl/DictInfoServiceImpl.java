@@ -10,9 +10,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
@@ -34,6 +31,8 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 多级数据字典详细信息
@@ -291,21 +290,12 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
     }
 
     private String convertJson(Map<String, Object> map) {
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (JsonProcessingException e) {
-            log.error(e.getMessage(), e);
-            return "";
-        }
+        return objectMapper.writeValueAsString(map);
     }
 
     private Map<String, Object> convertMap(String extra) {
         if (StringUtils.isNotBlank(extra)) {
-            try {
-                return objectMapper.readValue(extra, new TypeReference<>() {});
-            } catch (JsonProcessingException e) {
-                log.error(e.getMessage(), e);
-            }
+            return objectMapper.readValue(extra, new TypeReference<>() {});
         }
         return null;
     }

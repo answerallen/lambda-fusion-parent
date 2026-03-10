@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.oss.manager.OssClientManager;
@@ -33,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 租户信息表
@@ -62,9 +62,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
 
     @Autowired
     public void setObjectMapper(ObjectMapper objectMapper) {
-        ObjectMapper mapper = objectMapper.copy();
-        mapper.deactivateDefaultTyping();
-        this.objectMapper = mapper;
+        this.objectMapper = objectMapper;
     }
 
     @Override

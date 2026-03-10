@@ -1,6 +1,5 @@
 package com.lambda.fusion.permission.loader;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.permission.PermissionProperties;
 import com.lambda.fusion.permission.model.PermissionFileMetadata;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -14,6 +13,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j

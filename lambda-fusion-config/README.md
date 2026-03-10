@@ -186,7 +186,7 @@ lambda:
       # 系统信息配置
       title: "快速开发平台"
       copyright: "版权 © Lambda Fusion"
-      version: "2025.1.1-SNAPSHOT"
+      version: "2026.1.1-SNAPSHOT"
       
       # 数据库查询 SQL 配置
       database:
@@ -270,7 +270,7 @@ CREATE TABLE LA_CONFIG_OPTIONS (
 <dependency>
     <groupId>com.lambda.cloud</groupId>
     <artifactId>lambda-fusion-config</artifactId>
-    <version>2025.1.1-SNAPSHOT</version>
+    <version>2026.1.1-SNAPSHOT</version>
 </dependency>
 ```
 

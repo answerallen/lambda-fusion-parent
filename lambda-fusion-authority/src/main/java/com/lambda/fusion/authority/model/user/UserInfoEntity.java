@@ -6,10 +6,10 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.hibernate.validator.constraints.Length;
 
 @AutoConverter(target = UserInfo.class)
 @Getter
@@ -28,7 +28,7 @@ public class UserInfoEntity {
 
     @TableField("REMARK")
     @Schema(description = "用户备注")
-    @Length(max = 255)
+    @Size(max = 255)
     private String remark;
 
     @Schema(description = "身份证号")
