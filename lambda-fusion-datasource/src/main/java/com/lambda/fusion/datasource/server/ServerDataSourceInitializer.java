@@ -11,6 +11,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 
@@ -26,7 +27,7 @@ public class ServerDataSourceInitializer implements ApplicationRunner {
     private final DynamicDataSourceService dynamicDataSourceService;
 
     @Override
-    public void run(ApplicationArguments args) {
+    public void run(@NonNull ApplicationArguments args) {
         log.info("Starting dynamic datasource initialization (Server Mode)...");
         long current = 1;
         long size = 50;
