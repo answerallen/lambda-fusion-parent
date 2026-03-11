@@ -1,25 +1,19 @@
-package com.lambda.fusion.config.service.impl;
+package com.lambda.fusion.config.nacos;
 
 import com.alibaba.nacos.api.config.ConfigService;
 import com.alibaba.nacos.api.exception.NacosException;
-import com.lambda.cloud.core.exception.NotSupportedException;
+import com.lambda.cloud.nacos.Nacos;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.StringUtils;
 
 @Slf4j
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-public class NacosConfigService {
+public class NacosConfigPublisher {
 
-    private static final String YML = "yml";
-    private static final String YAML = "yaml";
-    private static final String[] TYPES = {YML, YAML, "properties"};
     private final ConfigService configService;
     private final String groupid;
 
-    public NacosConfigService(ConfigService configService, String groupid) {
+    public NacosConfigPublisher(ConfigService configService, String groupid) {
         this.groupid = groupid;
         this.configService = configService;
     }
@@ -56,7 +50,7 @@ public class NacosConfigService {
     public void publishConfig(String dataid, String groupid, String content) {
         String type = getType(dataid);
         try {
-            configService.publishConfig(dataid, groupid, content, type);
+            configService.publishConfig(dataid, Nacos.resolveGroup(groupid), content, type);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
@@ -69,16 +63,6 @@ public class NacosConfigService {
      * @return java.lang.String
      */
     private String getType(String dataid) {
-        String type = FilenameUtils.getExtension(dataid);
-        if (StringUtils.isBlank(type)) {
-            type = "properties";
-        }
-        if (!ArrayUtils.contains(TYPES, type)) {
-            throw new NotSupportedException("暂不支持该类型的配置文件!, type: " + type);
-        }
-        if (YML.equals(type)) {
-            type = YAML;
-        }
-        return type;
+        return Nacos.resolveConfigType(dataid);
     }
 }

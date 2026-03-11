@@ -15,7 +15,9 @@ public class ConfigProperties {
 
     private AutoRefresh autoRefresh = new AutoRefresh();
 
-    private Database database = new Database();
+    private ConfigSql configSql = new ConfigSql();
+
+    private DataSource dataSource = new DataSource();
 
     @Getter
     @Setter
@@ -41,13 +43,26 @@ public class ConfigProperties {
 
     @Getter
     @Setter
-    public static class Database {
+    public static class DataSource {
 
         private int maxPoolSize = 1;
 
         private int minIdle = 1;
 
         private long connectionTimeout = 3000L;
+
+        private String driverClassName;
+
+        private String url;
+
+        private String username;
+
+        private String password;
+    }
+
+    @Getter
+    @Setter
+    public static class ConfigSql {
 
         private String selectConfigsSql =
                 "SELECT property_key, property_value, application FROM la_configs WHERE application = ? OR application = 'public'";

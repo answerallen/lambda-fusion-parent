@@ -22,10 +22,10 @@ public class DatabaseBasedProperties extends Properties {
     @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
     public DatabaseBasedProperties(Connection connection, String application, ConfigProperties configProperties)
             throws SQLException {
-        ConfigProperties.Database database = configProperties.getDatabase();
-        Map<String, String> privated = Maps.newHashMap();
-        Map<String, String> publiced = Maps.newHashMap();
-        try (PreparedStatement preparedStatement = connection.prepareStatement(database.getSelectConfigsSql())) {
+        ConfigProperties.ConfigSql configSql = configProperties.getConfigSql();
+        Map<String, String> publicConfigs = Maps.newHashMap();
+        Map<String, String> privateConfigs = Maps.newHashMap();
+        try (PreparedStatement preparedStatement = connection.prepareStatement(configSql.getSelectConfigsSql())) {
             preparedStatement.setString(1, application);
             try (ResultSet rs = preparedStatement.executeQuery()) {
                 while (rs.next()) {
@@ -36,13 +36,13 @@ public class DatabaseBasedProperties extends Properties {
                         continue;
                     }
                     if (PUBLIC_APPLICATION.equals(module)) {
-                        publiced.put(name, value);
+                        privateConfigs.put(name, value);
                     } else {
-                        privated.put(name, value);
+                        publicConfigs.put(name, value);
                     }
                 }
-                publiced.putAll(privated);
-                publiced.forEach(super::setProperty);
+                privateConfigs.putAll(publicConfigs);
+                privateConfigs.forEach(super::setProperty);
             }
         }
     }
@@ -53,8 +53,8 @@ public class DatabaseBasedProperties extends Properties {
 
     public static String getCheckSum(Connection connection, String application, ConfigProperties configProperties)
             throws SQLException {
-        ConfigProperties.Database database = configProperties.getDatabase();
-        try (PreparedStatement preparedStatement = connection.prepareStatement(database.getCheckConfigsChangedSql())) {
+        ConfigProperties.ConfigSql configSql = configProperties.getConfigSql();
+        try (PreparedStatement preparedStatement = connection.prepareStatement(configSql.getCheckConfigsChangedSql())) {
             preparedStatement.setString(1, application);
             try (ResultSet rs = preparedStatement.executeQuery()) {
                 if (rs.next()) {

@@ -9,15 +9,16 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Lists;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.logger.context.LogContext;
+import com.lambda.fusion.config.handler.ConfigChangeHandler;
 import com.lambda.fusion.config.mapper.ConfigMapper;
 import com.lambda.fusion.config.mapper.ConfigOptionMapper;
 import com.lambda.fusion.config.model.*;
 import com.lambda.fusion.config.refresh.DatabaseContextRefresher;
-import com.lambda.fusion.config.service.ConfigChangedService;
 import com.lambda.fusion.config.service.ConfigService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -54,7 +55,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
     /**
      * 配置变更服务
      */
-    private final ConfigChangedService configChangedService;
+    private final ConfigChangeHandler configChangeHandler;
 
     /**
      * 分页查询配置列表的具体实现
@@ -120,6 +121,34 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
     public ConfigEntity getById(Serializable id) {
         return configMapper.selectConfigById((String) id);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
+    public ConfigOptionEntity getConfigOptionById(String id) {
+        return configOptionMapper.selectById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateConfigOption(ConfigOptionEntity configOption) {
+        Assert.notNull(configOption, "配置选项不能为空！");
+        Assert.notNull(configOption.getId(), "配置选项ID不能为空！");
+        configOptionMapper.updateById(configOption);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeConfigOptionById(String id) {
+        configOptionMapper.deleteById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeConfigOptionsByIds(Collection<String> ids) {
+        if (CollectionUtils.isNotEmpty(ids)) {
+            configOptionMapper.deleteByIds(ids);
+        }
     }
 
     /**
@@ -218,7 +247,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
         LogContext.setDetail("UPDATE: " + target.getKey() + "=" + target.getValue());
 
         // 触发配置刷新
-        configChangedService.execute();
+        configChangeHandler.handle();
         Thread.ofVirtual().start(contextRefresher::doRefresh);
     }
 

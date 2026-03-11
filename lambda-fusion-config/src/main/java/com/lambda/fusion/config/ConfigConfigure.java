@@ -3,10 +3,10 @@ package com.lambda.fusion.config;
 import com.alibaba.cloud.nacos.NacosConfigAutoConfiguration;
 import com.alibaba.cloud.nacos.NacosConfigProperties;
 import com.alibaba.nacos.api.config.ConfigService;
+import com.lambda.fusion.config.handler.ConfigChangeHandler;
+import com.lambda.fusion.config.nacos.NacosConfigPublisher;
 import com.lambda.fusion.config.refresh.DatabaseConfigWatcher;
 import com.lambda.fusion.config.refresh.DatabaseContextRefresher;
-import com.lambda.fusion.config.service.ConfigChangedService;
-import com.lambda.fusion.config.service.impl.NacosConfigService;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -25,7 +25,7 @@ import org.springframework.core.env.Environment;
 public class ConfigConfigure {
     @Bean
     @ConditionalOnMissingBean
-    public ConfigChangedService configChangedService() {
+    public ConfigChangeHandler configChangedService() {
         return () -> {};
     }
 
@@ -48,10 +48,10 @@ public class ConfigConfigure {
     public static class NacosSupportConfigure {
 
         @Bean
-        public NacosConfigService nacosConfigService(
+        public NacosConfigPublisher nacosConfigService(
                 @Autowired(required = false) ConfigService configService,
                 @Autowired(required = false) NacosConfigProperties properties) {
-            return new NacosConfigService(configService, properties.getGroup());
+            return new NacosConfigPublisher(configService, properties.getGroup());
         }
     }
 }

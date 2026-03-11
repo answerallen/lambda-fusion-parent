@@ -1,13 +1,13 @@
 package com.lambda.fusion.config.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.cloud.logger.context.LogContext;
+import com.lambda.fusion.config.handler.ConfigChangeHandler;
 import com.lambda.fusion.config.model.*;
 import com.lambda.fusion.config.refresh.DatabaseContextRefresher;
-import com.lambda.fusion.config.service.ConfigChangedService;
-import com.lambda.fusion.config.service.ConfigOptionService;
 import com.lambda.fusion.config.service.ConfigService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
@@ -68,14 +68,9 @@ public class ConfigController {
     private final ConfigService configService;
 
     /**
-     * 配置选项服务
-     */
-    private final ConfigOptionService configOptionService;
-
-    /**
      * 配置变更服务
      */
-    private final ConfigChangedService configChangedService;
+    private final ConfigChangeHandler configChangeHandler;
 
     /**
      * 分页查询配置列表
@@ -177,7 +172,7 @@ public class ConfigController {
         if (CollectionUtils.isNotEmpty(target.getOptions())) {
             Set<String> ids =
                     target.getOptions().stream().map(ConfigOptionEntity::getId).collect(Collectors.toSet());
-            configOptionService.removeByIds(ids);
+            configService.removeConfigOptionsByIds(ids);
         }
     }
 
@@ -262,8 +257,45 @@ public class ConfigController {
     public void batchUpdateConfigs(@RequestBody @Valid BatchUpdateConfig batchUpdateDTO) {
         configService.batchUpdateConfigs(batchUpdateDTO);
         // 执行配置变更后续处理
-        configChangedService.execute();
+        configChangeHandler.handle();
         // 触发动态配置刷新
         contextRefresher.doRefresh();
+    }
+
+    /**
+     * 更新配置选项信息
+     *
+     * <p>根据配置选项ID更新选项的详细信息，支持增量更新，保护关键字段不被修改。
+     */
+    @OperationLog
+    @SaCheckRole("ROLE_DEV")
+    @PutMapping("/options/{id}")
+    @Operation(summary = "根据编号更新选项信息", description = "支持增量更新配置选项，保护关键字段，需要开发者权限")
+    public ConfigOptionEntity updateOptions(
+            @Parameter(description = "配置编号", required = true) @PathVariable String id,
+            @Parameter(description = "配置信息", required = true) @RequestBody @Valid ConfigOption source) {
+        ConfigOptionEntity target = configService.getConfigOptionById(id);
+        BeanUtil.copyProperties(source, target);
+        target.setPid(null);
+        target.setApplication(null);
+        configService.updateConfigOption(target);
+        LogContext.setDetail("UPDATE: " + target.getName() + "=" + target.getValue());
+        return target;
+    }
+
+    /**
+     * 删除配置选项信息
+     *
+     * <p>根据配置选项ID删除指定的配置选项，操作不可逆，删除前会记录选项信息用于审计。
+     *
+     */
+    @OperationLog
+    @SaCheckRole("ROLE_DEV")
+    @DeleteMapping("/options/{id}")
+    @Operation(summary = "根据编号删除选项信息", description = "物理删除配置选项，操作不可逆，需要开发者权限")
+    public void deleteOptions(@Parameter(description = "编号", required = true) @PathVariable String id) {
+        ConfigOptionEntity target = configService.getConfigOptionById(id);
+        LogContext.setDetail("DELETE: " + target.getName());
+        configService.removeConfigOptionById(id);
     }
 }

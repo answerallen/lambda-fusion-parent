@@ -34,8 +34,6 @@ import org.springframework.context.event.SmartApplicationListener;
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class DatabaseContextRefresher implements ApplicationRunner, BeanFactoryAware, SmartApplicationListener {
 
-    // 使用常量类中定义的刷新相关常量
-
     /**
      * 刷新锁，防止并发刷新
      */

@@ -95,10 +95,10 @@ public class DatabaseConfigWatcher {
         configuration.setUsername(property.getUsername());
         configuration.setPassword(property.getPassword());
         configuration.setDriverClassName(property.getDriverClassName());
-        ConfigProperties.Database databaseConfig = configProperties.getDatabase();
-        configuration.setMaximumPoolSize(databaseConfig.getMaxPoolSize());
-        configuration.setMinimumIdle(databaseConfig.getMinIdle());
-        configuration.setConnectionTimeout(databaseConfig.getConnectionTimeout());
+        ConfigProperties.DataSource dataSourceConfig = configProperties.getDataSource();
+        configuration.setMaximumPoolSize(dataSourceConfig.getMaxPoolSize());
+        configuration.setMinimumIdle(dataSourceConfig.getMinIdle());
+        configuration.setConnectionTimeout(dataSourceConfig.getConnectionTimeout());
         configuration.setPoolName(POOL_NAME + "-Watcher");
         return new HikariDataSource(configuration);
     }
