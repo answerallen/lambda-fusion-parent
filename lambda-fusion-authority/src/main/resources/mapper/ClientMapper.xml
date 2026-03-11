@@ -16,7 +16,6 @@
         </collection>
     </resultMap>
 
-
     <select id="getClientById" resultMap="HmacUser">
         SELECT T.id AS appid,
                T.secret,
@@ -33,11 +32,35 @@
     </select>
 
     <select id="getClientPermissions" resultType="com.lambda.fusion.authority.model.resource.UserPermission">
-        SELECT CLIENTID AS username, RESOURCEID AS permissionId FROM LA_CLIENT_RESOURCES
-        WHERE RESOURCEID IN
+        SELECT CLIENT_ID AS username, RESOURCE_ID AS permissionId FROM LA_CLIENT_RESOURCES
+        WHERE RESOURCE_ID IN
         <foreach collection="list" item="item" separator="," open="(" close=")">
             #{item}
         </foreach>
     </select>
+
+    <select id="getBoundPermissionIds" resultType="String">
+        SELECT RESOURCE_ID FROM LA_CLIENT_RESOURCES WHERE CLIENT_ID = #{clientId}
+    </select>
+
+    <select id="hasBound" resultType="boolean">
+        SELECT COUNT(1) FROM DUAL
+        WHERE EXISTS(
+            SELECT 1 FROM LA_CLIENT_RESOURCES
+            WHERE CLIENT_ID = #{clientId}
+              AND RESOURCE_ID = #{permissionId}
+        )
+    </select>
+
+    <insert id="bind">
+        INSERT INTO LA_CLIENT_RESOURCES (CLIENT_ID, RESOURCE_ID)
+        VALUES (#{clientId}, #{permissionId})
+    </insert>
+
+    <delete id="unbind">
+        DELETE FROM LA_CLIENT_RESOURCES
+        WHERE CLIENT_ID = #{clientId}
+          AND RESOURCE_ID = #{permissionId}
+    </delete>
 
 </mapper>

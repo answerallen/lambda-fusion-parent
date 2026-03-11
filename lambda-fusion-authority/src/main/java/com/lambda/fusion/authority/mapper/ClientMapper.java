@@ -7,22 +7,21 @@ import com.lambda.fusion.authority.model.resource.UserPermission;
 import com.lambda.security.web.hmac.model.HmacClient;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 @InterceptorIgnore(tenantLine = "true")
 public interface ClientMapper extends BaseMapper<ClientEntity> {
-    /**
-     * 根据appid查询客户端信息
-     *
-     * @param appid
-     */
+
     HmacClient getClientById(String appid);
 
-    /**
-     * 批量查询用户权限数据
-     *
-     * @param permissionIds
-     * @return
-     */
     List<UserPermission> getClientPermissions(List<String> permissionIds);
+
+    List<String> getBoundPermissionIds(@Param("clientId") String clientId);
+
+    boolean hasBound(@Param("clientId") String clientId, @Param("permissionId") String permissionId);
+
+    void bind(@Param("clientId") String clientId, @Param("permissionId") String permissionId);
+
+    void unbind(@Param("clientId") String clientId, @Param("permissionId") String permissionId);
 }
