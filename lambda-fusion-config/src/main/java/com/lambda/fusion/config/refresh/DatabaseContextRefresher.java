@@ -44,7 +44,7 @@ public class DatabaseContextRefresher implements ApplicationRunner, BeanFactoryA
      */
     private final ScheduledExecutorService executorService;
 
-    private final ConfigProperties.AutoRefresh autoRefresh;
+    private final ConfigProperties.AutoRefreshConfig autoRefresh;
 
     /**
      * Spring Bean工厂

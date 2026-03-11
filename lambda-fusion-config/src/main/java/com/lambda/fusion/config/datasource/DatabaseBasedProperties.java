@@ -22,7 +22,7 @@ public class DatabaseBasedProperties extends Properties {
     @SuppressFBWarnings("CT_CONSTRUCTOR_THROW")
     public DatabaseBasedProperties(Connection connection, String application, ConfigProperties configProperties)
             throws SQLException {
-        ConfigProperties.ConfigSql configSql = configProperties.getConfigSql();
+        ConfigProperties.QueryConfig configSql = configProperties.getQueryConfig();
         Map<String, String> publicConfigs = Maps.newHashMap();
         Map<String, String> privateConfigs = Maps.newHashMap();
         try (PreparedStatement preparedStatement = connection.prepareStatement(configSql.getSelectConfigsSql())) {
@@ -53,7 +53,7 @@ public class DatabaseBasedProperties extends Properties {
 
     public static String getCheckSum(Connection connection, String application, ConfigProperties configProperties)
             throws SQLException {
-        ConfigProperties.ConfigSql configSql = configProperties.getConfigSql();
+        ConfigProperties.QueryConfig configSql = configProperties.getQueryConfig();
         try (PreparedStatement preparedStatement = connection.prepareStatement(configSql.getCheckConfigsChangedSql())) {
             preparedStatement.setString(1, application);
             try (ResultSet rs = preparedStatement.executeQuery()) {

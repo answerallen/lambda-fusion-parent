@@ -10,6 +10,7 @@ import com.zaxxer.hikari.pool.HikariPool;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.context.config.ConfigData;
 import org.springframework.boot.context.config.ConfigDataLoader;
 import org.springframework.boot.context.config.ConfigDataLoaderContext;
@@ -19,7 +20,7 @@ import org.springframework.core.env.PropertySource;
 public class DatabaseBasedConfigDataLoader implements ConfigDataLoader<DatabaseBasedConfigDataResource> {
 
     @Override
-    public ConfigData load(ConfigDataLoaderContext context, DatabaseBasedConfigDataResource resource)
+    public ConfigData load(@NonNull ConfigDataLoaderContext context, DatabaseBasedConfigDataResource resource)
             throws ConfigDataResourceNotFoundException {
         if (resource == null || resource.getDataSourceProperty() == null) {
             return null;

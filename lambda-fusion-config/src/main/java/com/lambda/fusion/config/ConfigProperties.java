@@ -13,15 +13,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "lambda.fusion.config")
 public class ConfigProperties {
 
-    private AutoRefresh autoRefresh = new AutoRefresh();
+    private AutoRefreshConfig autoRefresh = new AutoRefreshConfig();
 
-    private ConfigSql configSql = new ConfigSql();
+    private QueryConfig queryConfig = new QueryConfig();
 
-    private DataSource dataSource = new DataSource();
+    private DataSourceConfig datasource = new DataSourceConfig();
 
     @Getter
     @Setter
-    public static class AutoRefresh {
+    public static class AutoRefreshConfig {
 
         private boolean enabled = true;
 
@@ -43,7 +43,7 @@ public class ConfigProperties {
 
     @Getter
     @Setter
-    public static class DataSource {
+    public static class DataSourceConfig {
 
         private int maxPoolSize = 1;
 
@@ -62,7 +62,7 @@ public class ConfigProperties {
 
     @Getter
     @Setter
-    public static class ConfigSql {
+    public static class QueryConfig {
 
         private String selectConfigsSql =
                 "SELECT property_key, property_value, application FROM la_configs WHERE application = ? OR application = 'public'";

@@ -95,7 +95,7 @@ public class DatabaseConfigWatcher {
         configuration.setUsername(property.getUsername());
         configuration.setPassword(property.getPassword());
         configuration.setDriverClassName(property.getDriverClassName());
-        ConfigProperties.DataSource dataSourceConfig = configProperties.getDataSource();
+        ConfigProperties.DataSourceConfig dataSourceConfig = configProperties.getDatasource();
         configuration.setMaximumPoolSize(dataSourceConfig.getMaxPoolSize());
         configuration.setMinimumIdle(dataSourceConfig.getMinIdle());
         configuration.setConnectionTimeout(dataSourceConfig.getConnectionTimeout());

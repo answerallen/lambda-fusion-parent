@@ -5,6 +5,7 @@ import com.lambda.fusion.config.ConfigProperties;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.context.config.ConfigDataLocation;
 import org.springframework.boot.context.config.ConfigDataLocationResolver;
 import org.springframework.boot.context.config.ConfigDataLocationResolverContext;
@@ -18,19 +19,21 @@ public class DatabaseBasedConfigDataLocationResolver
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("^\\$\\{([^:}]+)(?::([^}]*))?}$");
 
     @Override
-    public boolean isResolvable(ConfigDataLocationResolverContext context, ConfigDataLocation location) {
+    public boolean isResolvable(@NonNull ConfigDataLocationResolverContext context, ConfigDataLocation location) {
         return location.hasPrefix(LOCATION_PREFIX);
     }
 
     @Override
     public List<DatabaseBasedConfigDataResource> resolve(
-            ConfigDataLocationResolverContext context, ConfigDataLocation location) {
+            @NonNull ConfigDataLocationResolverContext context, @NonNull ConfigDataLocation location) {
         return resolveResources(context);
     }
 
     @Override
     public List<DatabaseBasedConfigDataResource> resolveProfileSpecific(
-            ConfigDataLocationResolverContext context, ConfigDataLocation location, Profiles profiles) {
+            @NonNull ConfigDataLocationResolverContext context,
+            @NonNull ConfigDataLocation location,
+            @NonNull Profiles profiles) {
         return resolveResources(context);
     }
 
