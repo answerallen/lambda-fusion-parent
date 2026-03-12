@@ -57,4 +57,38 @@
         </createTable>
     </changeSet>
 
+    <changeSet id="lambda-config-202603120106" author="gpt">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_settings_layout"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_settings_layout" remarks="系统设置页面布局">
+            <column name="LAYOUT_ID" type="varchar(20)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_la_settings_layout_id" nullable="false"/>
+            </column>
+            <column name="APPLICATION" type="varchar(60)" remarks="应用程序">
+                <constraints nullable="false"/>
+            </column>
+            <column name="LAYOUT_JSON" type="text" remarks="布局JSON"/>
+            <column name="LAYOUT_VERSION" type="int" defaultValueNumeric="1" remarks="布局版本"/>
+            <column name="UPDATED_AT" type="datetime" remarks="更新时间"/>
+        </createTable>
+        <createIndex tableName="la_settings_layout" indexName="uk_la_settings_layout_app" unique="true">
+            <column name="APPLICATION"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="lambda-config-202603120107" author="gpt">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="la_configs"/>
+            <sqlCheck expectedResult="1">
+                SELECT 1
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            DELETE FROM la_configs WHERE PROPERTY_KEY = 'SYSTEM_SETTINGS_LAYOUT';
+        </sql>
+    </changeSet>
+
 </databaseChangeLog>

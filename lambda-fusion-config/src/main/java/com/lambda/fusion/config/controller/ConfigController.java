@@ -2,10 +2,12 @@ package com.lambda.fusion.config.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.cloud.logger.context.LogContext;
 import com.lambda.fusion.config.handler.ConfigChangeHandler;
+import com.lambda.fusion.config.mapper.SettingsLayoutMapper;
 import com.lambda.fusion.config.model.*;
 import com.lambda.fusion.config.refresh.DatabaseContextRefresher;
 import com.lambda.fusion.config.service.ConfigService;
@@ -14,15 +16,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 系统配置管理控制器
@@ -71,6 +73,10 @@ public class ConfigController {
      * 配置变更服务
      */
     private final ConfigChangeHandler configChangeHandler;
+
+    private final SettingsLayoutMapper settingsLayoutMapper;
+
+    private final ObjectMapper objectMapper;
 
     /**
      * 分页查询配置列表
@@ -256,10 +262,53 @@ public class ConfigController {
     @Operation(summary = "批量更新系统配置", description = "批量更新配置值并触发动态刷新，用于运维人员和管理员")
     public void batchUpdateConfigs(@RequestBody @Valid BatchUpdateConfig batchUpdateDTO) {
         configService.batchUpdateConfigs(batchUpdateDTO);
-        // 执行配置变更后续处理
-        configChangeHandler.handle();
-        // 触发动态配置刷新
-        contextRefresher.doRefresh();
+    }
+
+    @GetMapping("/settings/layout")
+    @Operation(summary = "查询系统设置布局", description = "读取系统设置页面布局JSON")
+    public SettingsLayout getSettingsLayout(@RequestParam(required = false) String application) {
+        String currentApplication = resolveApplication(application);
+        return readSettingsLayout(currentApplication);
+    }
+
+    @PutMapping("/settings/layout")
+    @Operation(summary = "保存系统设置布局", description = "保存系统设置页面布局JSON")
+    public void saveSettingsLayout(@RequestBody @Valid SaveSettingsLayout source) {
+        String currentApplication = resolveApplication(source.getApplication());
+        SettingsLayout layout = normalizeLayout(source.getLayout(), currentApplication);
+        SettingsLayoutEntity entity = findLayoutRecord(currentApplication);
+        if (entity == null) {
+            entity = new SettingsLayoutEntity();
+            entity.setApplication(currentApplication);
+        }
+        entity.setLayoutVersion(layout.getVersion());
+        entity.setLayoutJson(toJson(layout));
+        entity.setUpdatedAt(LocalDateTime.now());
+        if (StringUtils.isBlank(entity.getId())) {
+            settingsLayoutMapper.insert(entity);
+            return;
+        }
+        settingsLayoutMapper.updateById(entity);
+    }
+
+    @GetMapping("/settings/runtime")
+    @Operation(summary = "查询系统设置运行时数据", description = "返回系统设置布局与配置定义")
+    public SettingsRuntime getSettingsRuntime(@RequestParam(required = false) String application) {
+        String currentApplication = resolveApplication(application);
+        List<ConfigEntity> configs = querySettingsConfigs(currentApplication);
+        SettingsLayout layout = readSettingsLayout(currentApplication);
+        layout = trimLayout(layout, configs, currentApplication);
+        return SettingsRuntime.builder()
+                .application(currentApplication)
+                .layout(layout)
+                .configs(configs)
+                .build();
+    }
+
+    @PutMapping("/settings/runtime")
+    @Operation(summary = "保存系统设置运行时数据", description = "批量保存系统设置值并触发刷新")
+    public void saveSettingsRuntime(@RequestBody @Valid BatchUpdateConfig source) {
+        configService.batchUpdateConfigs(source);
     }
 
     /**
@@ -297,5 +346,95 @@ public class ConfigController {
         ConfigOptionEntity target = configService.getConfigOptionById(id);
         LogContext.setDetail("DELETE: " + target.getName());
         configService.removeConfigOptionById(id);
+    }
+
+    private String resolveApplication(String source) {
+        return StringUtils.isBlank(source) ? this.application : source;
+    }
+
+    private SettingsLayoutEntity findLayoutRecord(String application) {
+        return settingsLayoutMapper.selectOne(Wrappers.<SettingsLayoutEntity>lambdaQuery()
+                .eq(SettingsLayoutEntity::getApplication, application)
+                .last("limit 1"));
+    }
+
+    private SettingsLayout readSettingsLayout(String application) {
+        SettingsLayoutEntity entity = findLayoutRecord(application);
+        if (entity == null || StringUtils.isBlank(entity.getLayoutJson())) {
+            return buildDefaultLayout(application, querySettingsConfigs(application));
+        }
+        SettingsLayout parsed = objectMapper.readValue(entity.getLayoutJson(), SettingsLayout.class);
+        return normalizeLayout(parsed, application);
+    }
+
+    private SettingsLayout normalizeLayout(SettingsLayout source, String application) {
+        SettingsLayout layout = source == null ? new SettingsLayout() : source;
+        layout.setApplication(application);
+        layout.setVersion(layout.getVersion() == null ? 1 : layout.getVersion());
+        if (CollectionUtils.isEmpty(layout.getTabs())) {
+            layout.setTabs(List.of(SettingsLayoutTab.builder()
+                    .id("basic")
+                    .title("系统设置")
+                    .items(new ArrayList<>())
+                    .build()));
+            return layout;
+        }
+
+        layout.setTabs(layout.getTabs().stream()
+                .filter(Objects::nonNull)
+                .peek(tab -> {
+                    tab.setId(StringUtils.isBlank(tab.getId()) ? "tab_" + System.nanoTime() : tab.getId());
+                    tab.setTitle(StringUtils.isBlank(tab.getTitle()) ? "未命名分组" : tab.getTitle());
+                    if (tab.getItems() == null) {
+                        tab.setItems(new ArrayList<>());
+                    }
+                })
+                .collect(Collectors.toList()));
+        return layout;
+    }
+
+    private List<ConfigEntity> querySettingsConfigs(String application) {
+        QueryConfig query = new QueryConfig();
+        query.setApplication(application);
+        List<ConfigEntity> list = configService.batchQueryConfigs(query);
+        return list.stream()
+                .sorted(Comparator.comparing(ConfigEntity::getKey, Comparator.nullsLast(String::compareTo)))
+                .collect(Collectors.toList());
+    }
+
+    private SettingsLayout buildDefaultLayout(String application, List<ConfigEntity> configs) {
+        List<SettingsLayoutWidget> items = configs.stream()
+                .map(item ->
+                        SettingsLayoutWidget.builder().configId(item.getId()).build())
+                .collect(Collectors.toList());
+        return SettingsLayout.builder()
+                .application(application)
+                .version(1)
+                .tabs(List.of(SettingsLayoutTab.builder()
+                        .id("basic")
+                        .title("系统设置")
+                        .items(items)
+                        .build()))
+                .build();
+    }
+
+    private SettingsLayout trimLayout(SettingsLayout source, List<ConfigEntity> configs, String application) {
+        Set<String> ids = configs.stream().map(ConfigEntity::getId).collect(Collectors.toSet());
+        SettingsLayout layout = normalizeLayout(source, application);
+        layout.setTabs(layout.getTabs().stream()
+                .peek(tab -> {
+                    List<SettingsLayoutWidget> items = tab.getItems().stream()
+                            .filter(Objects::nonNull)
+                            .filter(item -> StringUtils.isNotBlank(item.getConfigId()))
+                            .filter(item -> ids.contains(item.getConfigId()))
+                            .collect(Collectors.toList());
+                    tab.setItems(items);
+                })
+                .collect(Collectors.toList()));
+        return layout;
+    }
+
+    private String toJson(SettingsLayout layout) {
+        return objectMapper.writeValueAsString(layout);
     }
 }

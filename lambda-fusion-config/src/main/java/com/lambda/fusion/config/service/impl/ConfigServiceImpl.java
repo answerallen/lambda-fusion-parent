@@ -1,7 +1,5 @@
 package com.lambda.fusion.config.service.impl;
 
-import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -16,18 +14,21 @@ import com.lambda.fusion.config.model.*;
 import com.lambda.fusion.config.refresh.DatabaseContextRefresher;
 import com.lambda.fusion.config.service.ConfigService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 /**
  * 系统配置服务实现类
@@ -159,27 +160,30 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void batchUpdateConfigs(BatchUpdateConfig updateDTO) {
-        try {
-            if (CollectionUtils.isNotEmpty(updateDTO.getConfigs())) {
-                List<ConfigEntity> updatedConfigs = Lists.newArrayList();
-                // 遍历更新项，构建实体对象
-                for (BatchUpdateConfig.ConfigUpdateItem item : updateDTO.getConfigs()) {
-                    ConfigEntity entity = new ConfigEntity();
-                    entity.setId(item.getId());
-                    entity.setValue(item.getValue());
-                    entity.setApplication(updateDTO.getApplication());
-                    // 描述字段的增量更新
-                    if (StringUtils.isNotBlank(item.getDescription())) {
-                        entity.setDescription(item.getDescription());
-                    }
-                    updatedConfigs.add(entity);
+    public void batchUpdateConfigs(BatchUpdateConfig batchUpdateConfig) {
+        if (CollectionUtils.isNotEmpty(batchUpdateConfig.getConfigs())) {
+            List<ConfigEntity> updatedConfigs = Lists.newArrayList();
+            // 遍历更新项，构建实体对象
+            for (UpdateConfig updateConfig : batchUpdateConfig.getConfigs()) {
+                ConfigEntity entity = new ConfigEntity();
+                entity.setId(updateConfig.getId());
+                entity.setValue(updateConfig.getValue());
+                entity.setApplication(batchUpdateConfig.getApplication());
+                // 描述字段的增量更新
+                if (StringUtils.isNotBlank(updateConfig.getDescription())) {
+                    entity.setDescription(updateConfig.getDescription());
                 }
-                // 执行批量更新
-                saveOrUpdateBatch(updatedConfigs);
+                entity.setUpdateTime(LocalDateTime.now());
+                updatedConfigs.add(entity);
             }
-        } catch (Exception e) {
-            // 异常处理，返回失败状态
+            // 执行批量更新
+            saveOrUpdateBatch(updatedConfigs);
+
+
+            // 记录操作日志
+            LogContext.setDetail("UPDATE: " + batchUpdateConfig);
+
+            Thread.ofVirtual().start(contextRefresher::doRefresh);
         }
     }
 
