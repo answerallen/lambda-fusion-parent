@@ -4,12 +4,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 @Data
 @Builder
@@ -26,5 +25,4 @@ public class BatchUpdateConfig {
     @NotEmpty(message = "更新配置列表不能为空")
     @Schema(description = "待更新的配置项列表")
     private List<UpdateConfig> configs;
-
 }
