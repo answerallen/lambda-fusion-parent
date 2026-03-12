@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
+import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import java.util.List;
 
@@ -24,4 +25,14 @@ public interface DataSourceManageService extends IService<DataSourceEntity> {
     void enable(String id);
 
     void disable(String id);
+
+    DataSourceEntity getByDatasourceKey(String datasourceKey);
+
+    TenantDataSourceEntity getTenantDataSource(String tenantId);
+
+    List<TenantDataSourceEntity> listTenantDataSources(List<String> tenantIds);
+
+    void bindTenantDataSource(String tenantId, String datasourceKey);
+
+    void markTenantDataSourceInitialized(String tenantId);
 }

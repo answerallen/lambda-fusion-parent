@@ -1,9 +1,12 @@
 package com.lambda.fusion.datasource.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.logger.annotation.OperationLog;
+import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
+import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,9 +22,12 @@ import org.springframework.web.bind.annotation.*;
 public class DataSourceController {
 
     private final DataSourceManageService dataSourceManageService;
+    private final RemoteDataSourceService remoteDataSourceService;
 
-    public DataSourceController(DataSourceManageService dataSourceManageService) {
+    public DataSourceController(
+            DataSourceManageService dataSourceManageService, RemoteDataSourceService remoteDataSourceService) {
         this.dataSourceManageService = dataSourceManageService;
+        this.remoteDataSourceService = remoteDataSourceService;
     }
 
     @GetMapping("/page")
@@ -81,5 +87,42 @@ public class DataSourceController {
     @Operation(summary = "禁用数据源", description = "更新 status=0 并从运行时动态数据源移除")
     public void disable(@Parameter(description = "数据源编号", required = true) @PathVariable String id) {
         dataSourceManageService.disable(id);
+    }
+
+    @GetMapping("/tenant/status")
+    @Operation(summary = "查询租户数据源绑定状态", description = "按租户ID集合查询绑定及初始化状态")
+    public List<TenantDataSourceEntity> tenantStatuses(
+            @Parameter(description = "租户ID集合", required = true) @RequestParam("tenantIds") List<String> tenantIds) {
+        return dataSourceManageService.listTenantDataSources(tenantIds);
+    }
+
+    @GetMapping("/tenant/{tenantId}")
+    @Operation(summary = "查询租户数据源绑定", description = "按租户ID查询绑定详情")
+    public TenantDataSourceEntity tenantStatus(
+            @Parameter(description = "租户ID", required = true) @PathVariable String tenantId) {
+        return dataSourceManageService.getTenantDataSource(tenantId);
+    }
+
+    @OperationLog
+    @PutMapping("/tenant/{tenantId}/bind")
+    @Operation(summary = "绑定租户数据源", description = "独立库租户绑定一个主数据源并重置初始化状态")
+    public void bindTenantDatasource(
+            @Parameter(description = "租户ID", required = true) @PathVariable String tenantId,
+            @Parameter(description = "数据源标识", required = true) @RequestParam("datasourceKey") String datasourceKey) {
+        dataSourceManageService.bindTenantDataSource(tenantId, datasourceKey);
+    }
+
+    @OperationLog
+    @PostMapping("/tenant/{tenantId}/init")
+    @Operation(summary = "初始化租户主库", description = "仅独立库租户可执行，要求先完成数据源绑定")
+    public void initTenantDatasource(@Parameter(description = "租户ID", required = true) @PathVariable String tenantId) {
+        TenantDataSourceEntity binding = dataSourceManageService.getTenantDataSource(tenantId);
+        Assert.notNull(binding, "租户未配置数据源");
+        Assert.hasText(binding.getDatasourceKey(), "租户数据源标识为空");
+        DataSourceEntity dataSourceEntity = dataSourceManageService.getByDatasourceKey(binding.getDatasourceKey());
+        Assert.notNull(dataSourceEntity, "绑定的数据源不存在");
+        boolean initialized = remoteDataSourceService.initSchema(dataSourceEntity.getId());
+        Assert.isTrue(initialized, "租户主库初始化失败");
+        dataSourceManageService.markTenantDataSourceInitialized(tenantId);
     }
 }

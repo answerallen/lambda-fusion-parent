@@ -28,6 +28,9 @@ import lombok.Setter;
 @Schema(description = "动态数据源")
 public class TenantDataSourceEntity extends BaseEntity {
 
+    public static final int SCHEMA_UNINITIALIZED = 0;
+    public static final int SCHEMA_INITIALIZED = 1;
+
     @TableId("id")
     @Schema(description = "绑定ID")
     private String id;
@@ -43,4 +46,8 @@ public class TenantDataSourceEntity extends BaseEntity {
     @TableField("schema_status")
     @Schema(description = "Schema 状态")
     private Integer schemaStatus;
+
+    public boolean isSchemaInitialized() {
+        return Integer.valueOf(SCHEMA_INITIALIZED).equals(schemaStatus);
+    }
 }

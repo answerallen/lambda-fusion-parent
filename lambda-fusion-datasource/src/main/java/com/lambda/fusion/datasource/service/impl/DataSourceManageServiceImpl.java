@@ -1,5 +1,6 @@
 package com.lambda.fusion.datasource.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -10,19 +11,24 @@ import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.event.DataSourceEvent;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
+import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
+import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
+import com.lambda.fusion.datasource.tenant.TenantIsolationResolver;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 @Service
 @SuppressFBWarnings({"EI_EXPOSE_REP2"})
@@ -31,11 +37,18 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
 
     private final DynamicDataSourceService dynamicDataSourceService;
     private final ApplicationEventPublisher eventPublisher;
+    private final TenantDataSourceMapper tenantDataSourceMapper;
+    private final TenantIsolationResolver tenantIsolationResolver;
 
     public DataSourceManageServiceImpl(
-            DynamicDataSourceService dynamicDataSourceService, ApplicationEventPublisher eventPublisher) {
+            DynamicDataSourceService dynamicDataSourceService,
+            ApplicationEventPublisher eventPublisher,
+            TenantDataSourceMapper tenantDataSourceMapper,
+            TenantIsolationResolver tenantIsolationResolver) {
         this.dynamicDataSourceService = dynamicDataSourceService;
         this.eventPublisher = eventPublisher;
+        this.tenantDataSourceMapper = tenantDataSourceMapper;
+        this.tenantIsolationResolver = tenantIsolationResolver;
     }
 
     @Override
@@ -129,6 +142,70 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.isTrue(updateById(entity), "update failed");
         // 禁用需发 REMOVE 事件，Client 端才会调用 removeDataSource() 移除连接池
         publishRemove(entity);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
+    public DataSourceEntity getByDatasourceKey(String datasourceKey) {
+        Assert.hasText(datasourceKey, "datasourceKey is blank");
+        return getOne(Wrappers.lambdaQuery(DataSourceEntity.class)
+                .eq(DataSourceEntity::getDatasourceKey, datasourceKey)
+                .last("limit 1"));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
+    public TenantDataSourceEntity getTenantDataSource(String tenantId) {
+        Assert.hasText(tenantId, "tenantId is blank");
+        return tenantDataSourceMapper.selectOne(Wrappers.lambdaQuery(TenantDataSourceEntity.class)
+                .eq(TenantDataSourceEntity::getTenantId, tenantId)
+                .last("limit 1"));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
+    public List<TenantDataSourceEntity> listTenantDataSources(List<String> tenantIds) {
+        if (CollectionUtils.isEmpty(tenantIds)) {
+            return Collections.emptyList();
+        }
+        return tenantDataSourceMapper.selectList(
+                Wrappers.lambdaQuery(TenantDataSourceEntity.class).in(TenantDataSourceEntity::getTenantId, tenantIds));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void bindTenantDataSource(String tenantId, String datasourceKey) {
+        Assert.hasText(tenantId, "tenantId is blank");
+        Assert.hasText(datasourceKey, "datasourceKey is blank");
+        Assert.isTrue(tenantIsolationResolver.isDedicated(tenantId), "仅独立库租户允许配置数据源");
+        DataSourceEntity dataSourceEntity = getByDatasourceKey(datasourceKey);
+        Assert.notNull(dataSourceEntity, "datasource not found");
+
+        TenantDataSourceEntity binding = getTenantDataSource(tenantId);
+        if (binding == null) {
+            TenantDataSourceEntity entity = new TenantDataSourceEntity();
+            entity.setId(IdWorker.getIdStr());
+            entity.setTenantId(tenantId);
+            entity.setDatasourceKey(datasourceKey);
+            entity.setSchemaStatus(TenantDataSourceEntity.SCHEMA_UNINITIALIZED);
+            Assert.isTrue(tenantDataSourceMapper.insert(entity) > 0, "save tenant datasource failed");
+            return;
+        }
+
+        binding.setDatasourceKey(datasourceKey);
+        binding.setSchemaStatus(TenantDataSourceEntity.SCHEMA_UNINITIALIZED);
+        Assert.isTrue(tenantDataSourceMapper.updateById(binding) > 0, "update tenant datasource failed");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markTenantDataSourceInitialized(String tenantId) {
+        Assert.hasText(tenantId, "tenantId is blank");
+        Assert.isTrue(tenantIsolationResolver.isDedicated(tenantId), "仅独立库租户允许初始化主库");
+        TenantDataSourceEntity binding = getTenantDataSource(tenantId);
+        Assert.notNull(binding, "tenant datasource binding not found");
+        binding.setSchemaStatus(TenantDataSourceEntity.SCHEMA_INITIALIZED);
+        Assert.isTrue(tenantDataSourceMapper.updateById(binding) > 0, "update tenant datasource schema status failed");
     }
 
     private void syncDynamicDataSource(DataSourceEntity entity) {
