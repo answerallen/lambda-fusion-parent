@@ -1,8 +1,5 @@
 package com.lambda.fusion.authority.service.impl;
 
-import static com.lambda.fusion.core.FusionConstants.AT;
-import static com.lambda.fusion.core.FusionConstants.ROLE_TENANT;
-
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
@@ -24,13 +21,17 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+
+import static com.lambda.fusion.core.FusionConstants.AT;
+import static com.lambda.fusion.core.FusionConstants.ROLE_TENANT;
 
 /**
  * 认证服务实现类
@@ -147,7 +148,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             if (StrUtil.isNotBlank(component)) {
                 node.setComponent(component);
             } else {
-                node.setComponent(StrUtil.removePrefix(node.getPath(), "/") + "/index");
+                String path = StrUtil.removePrefix(node.getPath(), "/");
+                if (StrUtil.endWith(path, "/")) {
+                    path = StrUtil.removeSuffix(path, "/");
+                    path = path + "/index";
+                }
+                node.setComponent(path);
             }
         }
 
