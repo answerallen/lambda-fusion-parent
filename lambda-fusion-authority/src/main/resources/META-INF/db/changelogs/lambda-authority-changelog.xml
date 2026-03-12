@@ -1,0 +1,559 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="lambda-authority-202603120001" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_api_token"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_api_token" remarks="Api Token授权信息">
+            <column name="ID" type="varchar(20)" remarks="ID">
+                <constraints primaryKey="true" primaryKeyName="pk_la_api_token_id" nullable="false"/>
+            </column>
+            <column name="API_TOKEN" type="varchar(32)" remarks="Api Token">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DESCRIPTION" type="varchar(255)" remarks="描述"/>
+            <column name="IP_WHITE_LIST" type="varchar(256)" remarks="IP白名单，多个用','分割"/>
+            <column name="ENABLED" type="int" defaultValueNumeric="1" remarks="是否可用 1 启用">
+                <constraints nullable="false"/>
+            </column>
+            <column name="CREATE_TIME" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="创建日期">
+                <constraints nullable="false"/>
+            </column>
+            <column name="EXPIRATION_TIME" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="失效日期">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120002" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_area"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_area" remarks="行政区划表">
+            <column name="ID" type="bigint" remarks="编号">
+                <constraints primaryKey="true" primaryKeyName="pk_la_area_id" nullable="false"/>
+            </column>
+            <column name="AREA_CODE" type="varchar(24)" remarks="区域编码"/>
+            <column name="AREA_NAME" type="varchar(64)"/>
+            <column name="LEVEL" type="int" remarks="层级"/>
+            <column name="DEPTH" type="int" remarks="深度"/>
+            <column name="TYPE" type="varchar(12)" remarks="类型"/>
+            <column name="PARENT_CODE" type="varchar(64)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120003" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_clients"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_clients" remarks="第三方客户端">
+            <column name="ID" type="varchar(32)">
+                <constraints primaryKey="true" primaryKeyName="pk_la_clients_id" nullable="false"/>
+            </column>
+            <column name="NAME" type="varchar(255)" remarks="客户端名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="SECRET" type="varchar(255)" remarks="客户端密钥">
+                <constraints nullable="false"/>
+            </column>
+            <column name="HOSTS" type="varchar(255)" remarks="绑定IP地址"/>
+            <column name="CREATED_AT" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="创建日期">
+                <constraints nullable="false"/>
+            </column>
+            <column name="UPDATED_AT" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="更新时间">
+                <constraints nullable="false"/>
+            </column>
+            <column name="EXPIRED" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="过期时间">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ENABLED" type="int" remarks="是否可用"/>
+            <column name="REMARKS" type="varchar(400)"/>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户id"/>
+            <column name="CREATED_BY" type="varchar(64)"/>
+            <column name="UPDATED_BY" type="varchar(64)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120004" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_organization"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_organization" remarks="组织机构">
+            <column name="ID" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_la_organization_id" nullable="false"/>
+            </column>
+            <column name="ORG_NAME" type="varchar(64)"/>
+            <column name="ALIAS" type="varchar(64)"/>
+            <column name="ORG_OWNER" type="varchar(32)" remarks="组织拥有者"/>
+            <column name="ORG_CATEGORY" type="int" remarks="组织类别"/>
+            <column name="ORG_RANK" type="int" remarks="组织级别"/>
+            <column name="ORG_TYPE" type="int" remarks="组织类型"/>
+            <column name="PARENT_ID" type="varchar(32)" remarks="父ID，NULL 代表顶级"/>
+            <column name="PARENT_KEYS" type="varchar(1000)" remarks="父节点关键字"/>
+            <column name="CREATED_AT" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="创建日期">
+                <constraints nullable="false"/>
+            </column>
+            <column name="REMARKS" type="varchar(280)" remarks="备注"/>
+            <column name="ENABLED" type="int" defaultValueNumeric="1" remarks="是否启用，未启用:0,已启用:1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户"/>
+            <column name="ORDER_NO" type="int" defaultValueNumeric="1" remarks="组织排序号">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120005" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_resources"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_resources" remarks="资源信息表">
+            <column name="ID" type="varchar(64)">
+                <constraints primaryKey="true" primaryKeyName="pk_la_resources_id" nullable="false"/>
+            </column>
+            <column name="PARENT_ID" type="varchar(64)"/>
+            <column name="RES_NAME" type="varchar(128)" remarks="资源名称"/>
+            <column name="RES_PATH" type="varchar(200)" remarks="访问路径"/>
+            <column name="RES_LEVEL" type="int" remarks="资源级别"/>
+            <column name="RES_TYPE" type="int" remarks="资源类型"/>
+            <column name="RES_URL" type="varchar(510)"/>
+            <column name="RES_MODE" type="int" defaultValueNumeric="0" remarks="资源模式 0:后台资源,1:APP资源"/>
+            <column name="METHOD" type="varchar(255)" remarks="对应后台方法函数"/>
+            <column name="ICON" type="varchar(128)"/>
+            <column name="HIDDEN" type="int" defaultValueNumeric="0" remarks="是否隐藏">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PARENT_KEYS" type="varchar(1000)" remarks="上级节点集"/>
+            <column name="IS_DEV" type="int" defaultValueNumeric="0" remarks="是否是开发者功能, 0:否,1:是">
+                <constraints nullable="false"/>
+            </column>
+            <column name="REMARK" type="varchar(2000)"/>
+            <column name="URL" type="varchar(255)" remarks="资源路径"/>
+            <column name="KEY_NAME" type="varchar(64)" remarks="国际化KEY"/>
+            <column name="KEEP_ALIVE" type="int" defaultValueNumeric="0" remarks="是否缓存"/>
+            <column name="EXPAND" type="varchar(1024)" remarks="扩展字段"/>
+            <column name="BUSINESS_EXPAND" type="varchar(1024)" remarks="业务扩展字段"/>
+            <column name="ORDER_NO" type="int" remarks="排序">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120006" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_role_groups"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_role_groups" remarks="角色分组">
+            <column name="GROUP_ID" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_la_role_groups_group_id" nullable="false"/>
+            </column>
+            <column name="GROUP_NAME" type="varchar(64)" remarks="分组名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户ID"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120007" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_roles"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_roles" remarks="角色信息表">
+            <column name="AUTHORITY" type="varchar(32)" remarks="角色名称">
+                <constraints primaryKey="true" primaryKeyName="pk_la_roles_authority" nullable="false"/>
+            </column>
+            <column name="ALIAS" type="varchar(128)" remarks="角色别名">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ICON" type="varchar(32)" remarks="用户图标"/>
+            <column name="REMARKS" type="varchar(280)" remarks="角色描述"/>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户"/>
+            <column name="HIDDEN" type="int" defaultValueNumeric="0" remarks="是否隐藏">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ENABLED" type="int" defaultValueNumeric="1" remarks="是否启用，未启用:0,已启用:1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DATA_TYPE" type="int" defaultValueNumeric="0" remarks="数据层级与数据权限视图层级相同">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ROLE_TYPE" type="int" defaultValueNumeric="0" remarks="角色类型,功能角色:0,数据角色:1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="GROUP_ID" type="varchar(32)" remarks="分组ID"/>
+            <column name="CREATED_BY" type="varchar(32)" remarks="created_by"/>
+            <column name="CREATED_AT" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="创建日期">
+                <constraints nullable="false"/>
+            </column>
+            <column name="OWNER" type="varchar(32)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120008" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_tenant"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_tenant" remarks="租户信息">
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户ID"/>
+            <column name="TENANT_CODE" type="varchar(32)" remarks="租户编码">
+                <constraints primaryKey="true" primaryKeyName="pk_la_tenant_tenant_code" nullable="false"/>
+            </column>
+            <column name="TENANT_NAME" type="varchar(100)" remarks="租户名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TENANT_ADDRESS" type="varchar(500)" remarks="租户地址"/>
+            <column name="TENANT_WEBSITE" type="varchar(255)" remarks="网站地址"/>
+            <column name="TENANT_DESC" type="varchar(500)" remarks="租户描述"/>
+            <column name="TENANT_LOGO" type="varchar(255)" remarks="LOGO地址"/>
+            <column name="LIAISON_MAN" type="varchar(20)" remarks="联系人"/>
+            <column name="LIAISON_PHONE" type="varchar(20)" remarks="联系电话">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ENTERPRISE_CODE" type="varchar(20)" remarks="企业代码">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ENTERPRISE_NAME" type="varchar(32)"/>
+            <column name="ICP_PUT_ON_RECORD" type="varchar(50)" remarks="ICP备案号"/>
+            <column name="NETWORK_PUT_ON_RECORD" type="varchar(50)" remarks="联网备案号"/>
+            <column name="STATUS" type="int" defaultValueNumeric="1" remarks="是否启用，未启用:0,已启用:1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="EXAMINE_STATE" type="int" defaultValueNumeric="0" remarks="审核状态，未审核:0,审核通过:1"/>
+            <column name="OWNER" type="varchar(32)" remarks="拥有者"/>
+            <column name="ALIAS" type="varchar(64)" remarks="别名"/>
+            <column name="ISOLATION_MODE" type="int" remarks="隔离类型"/>
+            <column name="AREA_CODE" type="varchar(64)" remarks="区域编码"/>
+            <column name="CONFIG" type="longtext" remarks="租户配置"/>
+            <column name="CREATED_BY" type="varchar(20)" remarks="创建人"/>
+            <column name="CREATED_AT" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="创建时间"/>
+            <column name="UPDATED_BY" type="varchar(20)" remarks="最后修改人"/>
+            <column name="UPDATED_AT" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="创建时间"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120009" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_user_fields"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_user_fields" remarks="用户扩展字段信息表">
+            <column name="USERNAME" type="varchar(30)" remarks="员工编号">
+                <constraints nullable="false"/>
+            </column>
+            <column name="FIELD_NAME" type="varchar(30)" remarks="字段名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="FIELD_VALUE" type="varchar(200)" remarks="字段值"/>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户"/>
+        </createTable>
+        <addPrimaryKey tableName="la_user_fields"
+                       columnNames="USERNAME,FIELD_NAME"
+                       constraintName="pk_la_user_fields"/>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120010" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_user_info"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_user_info" remarks="用户扩展信息">
+            <column name="USERNAME" type="varchar(32)" remarks="用户编号">
+                <constraints primaryKey="true" primaryKeyName="pk_la_user_info_username" nullable="false"/>
+            </column>
+            <column name="AVATAR" type="varchar(255)" remarks="头像"/>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户"/>
+            <column name="REMARK" type="varchar(255)" remarks="备注信息"/>
+            <column name="IDENTITY_ID" type="varchar(18)" remarks="身份证号"/>
+            <column name="POSITION" type="varchar(10)" remarks="岗位编号"/>
+            <column name="STATUS" type="varchar(2)" remarks="职工状态"/>
+            <column name="EMP_NO" type="varchar(20)" remarks="员工工号"/>
+            <column name="DD_NO" type="varchar(50)"/>
+            <column name="WECHAT_NO" type="varchar(20)" remarks="微信账户"/>
+            <column name="EXTEND_PARAM" type="varchar(512)" remarks="扩展参数"/>
+            <column name="PASSWORD_RESET_REQUIRED" type="int" defaultValueNumeric="1" remarks="是否需要修改密码,1代表需要;0代表不需要"/>
+            <column name="DD_NICK" type="varchar(20)"/>
+            <column name="WECHAT_NAME" type="varchar(50)" remarks="企业微信名称"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120011" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_user_online_logs"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_user_online_logs" remarks="用户在线记录表">
+            <column name="USERNAME" type="varchar(32)" remarks="用户帐号">
+                <constraints nullable="false"/>
+            </column>
+            <column name="IP" type="varchar(64)"/>
+            <column name="DEVICE_TYPE" type="varchar(32)" remarks="终端类型：0-PC_WEB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="IS_ONLINE" type="tinyint(1)"/>
+            <column name="ONLINE_TIME" type="datetime" remarks="最后一次上线时间"/>
+            <column name="OFFLINE_TIME" type="datetime" remarks="最后一次下线时间"/>
+        </createTable>
+        <addPrimaryKey tableName="la_user_online_logs"
+                       columnNames="USERNAME,DEVICE_TYPE"
+                       constraintName="pk_la_user_online_logs"/>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120012" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_user_organization"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_user_organization" remarks="用户组织关系">
+            <column name="USERNAME" type="varchar(32)" remarks="用户帐号">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ORGANIZATION_ID" type="varchar(32)" remarks="组织编号">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户"/>
+        </createTable>
+        <addPrimaryKey tableName="la_user_organization"
+                       columnNames="USERNAME,ORGANIZATION_ID"
+                       constraintName="pk_la_user_organization"/>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120013" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_user_password_logs"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_user_password_logs" remarks="用户修改密码记录表">
+            <column name="ID" type="varchar(32)" remarks="日志ID">
+                <constraints primaryKey="true" primaryKeyName="pk_la_user_password_logs_id" nullable="false"/>
+            </column>
+            <column name="USERNAME" type="varchar(32)" remarks="用户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PASSWORD" type="varchar(128)" remarks="用户密码">
+                <constraints nullable="false"/>
+            </column>
+            <column name="UPDATE_TIME" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="修改密码的日期">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120014" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_user_roles"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_user_roles" remarks="用户角色关系">
+            <column name="USERNAME" type="varchar(32)" remarks="用户帐号">
+                <constraints nullable="false"/>
+            </column>
+            <column name="AUTHORITY" type="varchar(32)" remarks="角色名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户"/>
+        </createTable>
+        <addPrimaryKey tableName="la_user_roles"
+                       columnNames="USERNAME,AUTHORITY"
+                       constraintName="pk_la_user_roles"/>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120015" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_users"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_users" remarks="用户信息表">
+            <column name="USERNAME" type="varchar(32)" remarks="用户帐号">
+                <constraints primaryKey="true" primaryKeyName="pk_la_users_username" nullable="false"/>
+            </column>
+            <column name="PASSWORD" type="varchar(128)" remarks="用户密码">
+                <constraints nullable="false"/>
+            </column>
+            <column name="NICKNAME" type="varchar(32)" remarks="用户昵称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="MOBILE" type="varchar(32)" remarks="手机号码"/>
+            <column name="EMAIL" type="varchar(280)" remarks="电子邮箱"/>
+            <column name="ENABLED" type="int" remarks="是否可用"/>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户"/>
+            <column name="CREATED_BY" type="varchar(32)"/>
+            <column name="CREATED_AT" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="创建日期">
+                <constraints nullable="false"/>
+            </column>
+            <column name="EXPIRED_TIME" type="datetime" remarks="过期时间"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120016" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_client_resources"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_client_resources" remarks="客户端资源关系表">
+            <column name="CLIENT_ID" type="char(19)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="RESOURCE_ID" type="varchar(32)" remarks="资源编号">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="la_client_resources"
+                       columnNames="CLIENT_ID,RESOURCE_ID"
+                       constraintName="pk_la_client_resources"/>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120017" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_organization_resources"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_organization_resources" remarks="机构资源关系表">
+            <column name="ORGANIZATION_ID" type="varchar(32)" remarks="机构编号">
+                <constraints nullable="false"/>
+            </column>
+            <column name="RESOURCE_ID" type="varchar(32)" remarks="资源编号">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="la_organization_resources"
+                       columnNames="ORGANIZATION_ID,RESOURCE_ID"
+                       constraintName="pk_la_organization_resources"/>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120018" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_organization_roles"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_organization_roles" remarks="组织角色关系表">
+            <column name="AUTHORITY" type="varchar(32)" remarks="角色名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ORGANIZATION_ID" type="varchar(32)" remarks="机构编号">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="la_organization_roles"
+                       columnNames="AUTHORITY,ORGANIZATION_ID"
+                       constraintName="pk_la_organization_roles"/>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120019" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_role_resources"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_role_resources" remarks="角色资源关系">
+            <column name="AUTHORITY" type="varchar(32)" remarks="角色名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="RESOURCE_ID" type="varchar(32)" remarks="资源编号">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户"/>
+        </createTable>
+        <addPrimaryKey tableName="la_role_resources"
+                       columnNames="AUTHORITY,RESOURCE_ID"
+                       constraintName="pk_la_role_resources"/>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120101" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_api_resources"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_api_resources" remarks="接口资源关联表">
+            <column name="RESOURCE_ID" type="varchar(32)" remarks="资源编号">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PERMISSION_ID" type="varchar(19)" remarks="接口权限ID">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="la_api_resources"
+                       columnNames="RESOURCE_ID,PERMISSION_ID"
+                       constraintName="pk_la_api_resources"/>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120110" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_operation_logs"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_operation_logs" remarks="操作日志">
+            <column name="ID" type="varchar(20)">
+                <constraints primaryKey="true" primaryKeyName="pk_la_operation_logs_id" nullable="false"/>
+            </column>
+            <column name="METHOD" type="varchar(255)" remarks="方法"/>
+            <column name="DESCRIPTION" type="varchar(255)" remarks="描述"/>
+            <column name="OPERATOR" type="varchar(255)" remarks="操作人员"/>
+            <column name="OPERATION" type="varchar(255)" remarks="操作方式"/>
+            <column name="CREATE_DATE" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="操作时间">
+                <constraints nullable="false"/>
+            </column>
+            <column name="COST" type="int" remarks="处理耗时"/>
+            <column name="DETAIL" type="varchar(4000)" remarks="详情"/>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户"/>
+            <column name="MODULE" type="varchar(32)" remarks="模块名"/>
+            <column name="OPERATOR_ID" type="varchar(32)" remarks="用户ID"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120113" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_user_info_thirdpart"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_user_info_thirdpart">
+            <column name="USERNAME" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="LOGIN_TYPE" type="varchar(11)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="OPEN_ID" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="la_user_info_thirdpart"
+                       columnNames="LOGIN_TYPE,OPEN_ID"
+                       constraintName="pk_la_user_info_thirdpart"/>
+    </changeSet>
+
+    <include file="lambda-authority-data-init-changelog.xml" relativeToChangelogFile="true"/>
+
+</databaseChangeLog>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="lambda-authority-202603120106" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_datasources"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_datasources" remarks="数据库资源池">
+            <column name="ID" type="varchar(32)" remarks="资源ID">
+                <constraints primaryKey="true" primaryKeyName="pk_la_datasources_id" nullable="false"/>
+            </column>
+            <column name="DATASOURCE_KEY" type="varchar(128)" remarks="逻辑资源标识（系统用）">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DATASOURCE_NAME" type="varchar(128)" remarks="数据源名称（展示用）">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DB_TYPE" type="varchar(32)" remarks="mysql pg oracle">
+                <constraints nullable="false"/>
+            </column>
+            <column name="USAGE_TYPE" type="varchar(32)" remarks="用途：BUSINESS SYSTEM TENANT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="JDBC_URL" type="varchar(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="USERNAME" type="varchar(128)"/>
+            <column name="PASSWORD" type="varchar(512)"/>
+            <column name="NODE_ROLE" type="varchar(32)" defaultValue="PRIMARY" remarks="PRIMARY 主库, REPLICA 从库"/>
+            <column name="STATUS" type="tinyint" defaultValueNumeric="1" remarks="0下线 1在线"/>
+            <column name="TAGS" type="json" remarks="资源标签"/>
+            <column name="EXTRA_CONFIG" type="json" remarks="扩展配置"/>
+            <column name="CREATED_BY" type="varchar(32)"/>
+            <column name="CREATED_AT" type="datetime"/>
+            <column name="UPDATED_BY" type="varchar(32)"/>
+            <column name="UPDATED_AT" type="datetime"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120111" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_tenant_datasource"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_tenant_datasource" remarks="租户数据源绑定表">
+            <column name="ID" type="varchar(50)" remarks="绑定ID">
+                <constraints primaryKey="true" primaryKeyName="pk_la_tenant_datasource_id" nullable="false"/>
+            </column>
+            <column name="TENANT_ID" type="varchar(32)" remarks="租户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DATASOURCE_KEY" type="varchar(50)" remarks="数据源标识"/>
+            <column name="SCHEMA_STATUS" type="tinyint" defaultValueNumeric="0" remarks="0未初始化 1已初始化"/>
+            <column name="CREATED_AT" type="datetime"/>
+            <column name="CREATED_BY" type="varchar(50)"/>
+            <column name="UPDATED_AT" type="datetime"/>
+            <column name="UPDATED_BY" type="varchar(50)"/>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

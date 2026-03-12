@@ -11,52 +11,32 @@
             </not>
         </preConditions>
         <createTable tableName="la_dict_info" remarks="字典表">
-            <column name="id" type="varchar(32)" remarks="主键">
-                <constraints primaryKey="true"/>
+            <column name="ID" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_la_dict_info_id" nullable="false"/>
             </column>
-            <column name="code" type="varchar(20)" remarks="字典编码">
+            <column name="REMARKS" type="varchar(100)" remarks="备注"/>
+            <column name="PARENT_KEYS" type="varchar(64)"/>
+            <column name="SORT_NO" type="varchar(20)" remarks="排序编码">
                 <constraints nullable="false"/>
             </column>
-            <column name="type" type="int" remarks="字典类型 1：系统参数 2：业务参数">
+            <column name="CREATED_AT" type="datetime" remarks="创建时间"/>
+            <column name="UPDATED_AT" type="datetime" remarks="更新时间"/>
+            <column name="CREATED_BY" type="varchar(32)" remarks="创建人ID"/>
+            <column name="UPDATED_BY" type="varchar(32)" remarks="修改人ID"/>
+            <column name="DEL_FLAG" type="tinyint(1)" defaultValueNumeric="0" remarks="删除状态（0 正常 1删除）">
                 <constraints nullable="false"/>
             </column>
-            <column name="dict_type" type="varchar(20)" remarks="字典编码">
+            <column name="ENABLE_STATE" type="int" defaultValueNumeric="1" remarks="状态 0禁用 1启用">
                 <constraints nullable="false"/>
             </column>
-            <column name="dict_name" type="varchar(40)" remarks="字典名称">
-                <constraints nullable="false"/>
-            </column>
-            <column name="value" type="int" remarks="字典值">
-                <constraints nullable="false"/>
-            </column>
-            <column name="field_type" type="varchar(100)" remarks="字段类型"/>
-            <column name="field_name" type="varchar(100)" remarks="字段名称"/>
-            <column name="parent_keys" type="varchar(100)" remarks="父字段"/>
-            <column name="notes" type="varchar(100)" remarks="备注"/>
-            <column name="sort" type="varchar(20)" remarks="排序编码">
-                <constraints nullable="false"/>
-            </column>
-            <column name="CREATED_AT" type="datetime" remarks="创建时间">
-                <constraints nullable="false"/>
-            </column>
-            <column name="UPDATED_AT" type="datetime" remarks="更新时间">
-                <constraints nullable="true"/>
-            </column>
-            <column name="created_by" type="varchar(32)" remarks="创建人ID">
-                <constraints nullable="false"/>
-            </column>
-            <column name="updated_by" type="varchar(32)" remarks="修改人ID">
-                <constraints nullable="true"/>
-            </column>
-            <column name="del_flag" type="tinyint(1)" remarks="删除状态（0 正常 1删除）" defaultValue="0">
-                <constraints nullable="false"/>
-            </column>
-            <column name="enable_state" type="int" remarks="状态 0禁用 1启用" defaultValue="1">
-                <constraints nullable="false"/>
-            </column>
-            <column name="select_able" type="int" remarks="状态 0禁用 1启用" defaultValue="1">
-                <constraints nullable="false"/>
-            </column>
+            <column name="DICT_TYPE" type="varchar(64)"/>
+            <column name="FIELD_TYPE" type="varchar(64)"/>
+            <column name="FIELD_NAME" type="varchar(64)"/>
+            <column name="SELECT_ABLE" type="int"/>
+            <column name="LEVEL" type="int"/>
+            <column name="PARENT_ID" type="varchar(128)"/>
+            <column name="TENANT_ID" type="varchar(64)"/>
+            <column name="EXTRA" type="int"/>
         </createTable>
     </changeSet>
 
@@ -67,38 +47,34 @@
             </not>
         </preConditions>
         <createTable tableName="la_dict_type" remarks="字典表注释表">
-            <column name="id" type="varchar(32)" remarks="主键">
-                <constraints primaryKey="true"/>
+            <column name="ID" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_la_dict_type_id" nullable="false"/>
             </column>
-            <column name="parent_id" type="varchar(32)" remarks="父id，0代表顶级" defaultValue="0"/>
-            <column name="dict_type" type="varchar(20)" remarks="字典编码">
+            <column name="PARENT_ID" type="varchar(32)" defaultValue="0" remarks="父id，0代表顶级"/>
+            <column name="DICT_TYPE" type="varchar(20)" remarks="字典编码">
                 <constraints nullable="false"/>
             </column>
-            <column name="dict_name" type="varchar(64)" remarks="编码名称">
+            <column name="DICT_NAME" type="varchar(64)" remarks="编码名称">
                 <constraints nullable="false"/>
             </column>
-            <column name="dict_usage" type="int(1)" remarks="字典用途" defaultValue="0" />
-            <column name="level" type="int(1)" remarks="字典层级" defaultValue="0" />
-            <column name="data_type" type="varchar(64)" remarks="数据类型 0/null 静态类型 1 url  2 sql 3 enum"/>
-            <column name="data_type_value" type="varchar(1024)" remarks=" 类型参数, 最大长度512"/>
-            <column name="parent_keys" type="varchar(100)" remarks="父字段"/>
-            <column name="notes" type="varchar(100)" remarks="备注"/>
-            <column name="sort" type="int(11)" remarks="排序编码" defaultValue="0" />
+            <column name="DATA_TYPE" type="varchar(64)" remarks="数据类型 0/null 静态类型 1 url  2 sql 3 enum"/>
+            <column name="DATA_TYPE_VALUE" type="varchar(1024)" remarks=" 类型参数, 最大长度512"/>
+            <column name="NOTES" type="varchar(100)" remarks="备注"/>
+            <column name="SORT" type="int" defaultValueNumeric="0" remarks="排序编码"/>
             <column name="CREATED_AT" type="datetime" remarks="创建时间">
                 <constraints nullable="false"/>
             </column>
-            <column name="UPDATED_AT" type="datetime" remarks="更新时间">
-                <constraints nullable="true"/>
-            </column>
-            <column name="created_byuser" type="varchar(32)" remarks="创建人ID">
+            <column name="UPDATED_AT" type="datetime" remarks="更新时间"/>
+            <column name="CREATED_BY" type="varchar(32)" remarks="创建人ID">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_by" type="varchar(32)" remarks="修改人ID">
-                <constraints nullable="true"/>
-            </column>
-            <column name="del_flag" type="tinyint(1)" remarks="删除状态（0 正常 1删除）" defaultValue="0">
+            <column name="UPDATED_BY" type="varchar(32)" remarks="修改人ID"/>
+            <column name="DEL_FLAG" type="tinyint(1)" defaultValueNumeric="0" remarks="删除状态（0 正常 1删除）">
                 <constraints nullable="false"/>
             </column>
+            <column name="DICT_USAGE" type="int"/>
+            <column name="LEVEL" type="int"/>
+            <column name="PARENT_KEYS" type="varchar(128)"/>
         </createTable>
     </changeSet>
 

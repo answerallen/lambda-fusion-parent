@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="lambda-authority-202603120104" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_config_options"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_config_options" remarks="系统属性选项">
+            <column name="OPTION_ID" type="varchar(20)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_la_config_options_option_id" nullable="false"/>
+            </column>
+            <column name="PROPERTY_ID" type="varchar(20)" remarks="所属属性">
+                <constraints nullable="false"/>
+            </column>
+            <column name="OPTION_NAME" type="varchar(120)" remarks="选项名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="OPTION_VALUE" type="varchar(120)" remarks="选项值">
+                <constraints nullable="false"/>
+            </column>
+            <column name="OPTION_DESC" type="text" remarks="选项描述"/>
+            <column name="APPLICATION" type="varchar(60)" remarks="应用程序">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603120105" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_configs"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_configs" remarks="系统属性参数">
+            <column name="PROPERTY_ID" type="varchar(20)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_la_configs_property_id" nullable="false"/>
+            </column>
+            <column name="PROPERTY_KEY" type="varchar(720)" remarks="配置属性项">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PROPERTY_VALUE" type="text" remarks="配置属性值"/>
+            <column name="PROPERTY_NAME" type="varchar(64)" remarks="配置属性名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PROPERTY_TYPE" type="int" remarks="配置属性类型, 0:开关量,1:枚举值,2:字符串,3:数值">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PROPERTY_DESC" type="text" remarks="配置属性描述"/>
+            <column name="APPLICATION" type="varchar(60)" remarks="应用程序">
+                <constraints nullable="false"/>
+            </column>
+            <column name="UPDATE_TIME" type="datetime" remarks="更新日期"/>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
