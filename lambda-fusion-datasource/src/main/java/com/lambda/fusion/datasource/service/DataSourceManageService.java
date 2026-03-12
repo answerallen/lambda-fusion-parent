@@ -2,6 +2,7 @@ package com.lambda.fusion.datasource.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
@@ -28,11 +29,13 @@ public interface DataSourceManageService extends IService<DataSourceEntity> {
 
     DataSourceEntity getByDatasourceKey(String datasourceKey);
 
-    TenantDataSourceEntity getTenantDataSource(String tenantId);
+    TenantDataSourceEntity getTenantDataSource(String tenantId, FusionConstants.DatabaseUsageType usageType);
+
+    List<TenantDataSourceEntity> getTenantDataSources(String tenantId);
 
     List<TenantDataSourceEntity> listTenantDataSources(List<String> tenantIds);
 
-    void bindTenantDataSource(String tenantId, String datasourceKey);
+    void bindTenantDataSource(String tenantId, String datasourceKey, FusionConstants.DatabaseUsageType usageType);
 
     void markTenantDataSourceInitialized(String tenantId);
 }

@@ -3,6 +3,7 @@ package com.lambda.fusion.datasource.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.logger.annotation.OperationLog;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
@@ -98,25 +99,28 @@ public class DataSourceController {
 
     @GetMapping("/tenant/{tenantId}")
     @Operation(summary = "查询租户数据源绑定", description = "按租户ID查询绑定详情")
-    public TenantDataSourceEntity tenantStatus(
+    public List<TenantDataSourceEntity> tenantStatus(
             @Parameter(description = "租户ID", required = true) @PathVariable String tenantId) {
-        return dataSourceManageService.getTenantDataSource(tenantId);
+        return dataSourceManageService.getTenantDataSources(tenantId);
     }
 
     @OperationLog
     @PutMapping("/tenant/{tenantId}/bind")
-    @Operation(summary = "绑定租户数据源", description = "独立库租户绑定一个主数据源并重置初始化状态")
+    @Operation(summary = "绑定租户数据源", description = "独立库租户按用途绑定数据源，租户库绑定会重置初始化状态")
     public void bindTenantDatasource(
             @Parameter(description = "租户ID", required = true) @PathVariable String tenantId,
-            @Parameter(description = "数据源标识", required = true) @RequestParam("datasourceKey") String datasourceKey) {
-        dataSourceManageService.bindTenantDataSource(tenantId, datasourceKey);
+            @Parameter(description = "数据源标识", required = true) @RequestParam("datasourceKey") String datasourceKey,
+            @Parameter(description = "数据库用途", required = true) @RequestParam("usageType")
+                    Integer usageType) {
+        dataSourceManageService.bindTenantDataSource(tenantId, datasourceKey, FusionConstants.DatabaseUsageType.fromValue(usageType));
     }
 
     @OperationLog
     @PostMapping("/tenant/{tenantId}/init")
     @Operation(summary = "初始化租户主库", description = "仅独立库租户可执行，要求先完成数据源绑定")
     public void initTenantDatasource(@Parameter(description = "租户ID", required = true) @PathVariable String tenantId) {
-        TenantDataSourceEntity binding = dataSourceManageService.getTenantDataSource(tenantId);
+        TenantDataSourceEntity binding =
+                dataSourceManageService.getTenantDataSource(tenantId, FusionConstants.DatabaseUsageType.TENANT);
         Assert.notNull(binding, "租户未配置数据源");
         Assert.hasText(binding.getDatasourceKey(), "租户数据源标识为空");
         DataSourceEntity dataSourceEntity = dataSourceManageService.getByDatasourceKey(binding.getDatasourceKey());

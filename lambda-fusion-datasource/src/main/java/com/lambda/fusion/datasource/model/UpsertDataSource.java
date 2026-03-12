@@ -6,6 +6,7 @@ import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.DatasourceConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -30,7 +31,7 @@ public class UpsertDataSource extends BaseDTO<DataSourceEntity> {
     @Schema(description = "数据库类型")
     private String dbType;
 
-    @NotBlank
+    @NotNull
     @Schema(description = "用途")
     private FusionConstants.DatabaseUsageType usageType;
 

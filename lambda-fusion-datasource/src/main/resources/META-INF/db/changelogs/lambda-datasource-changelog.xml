@@ -63,4 +63,19 @@
         </createTable>
     </changeSet>
 
+    <changeSet id="lambda-authority-202603120121" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="la_tenant_datasource"/>
+                <not>
+                    <columnExists tableName="la_tenant_datasource" columnName="USAGE_TYPE"/>
+                </not>
+            </and>
+        </preConditions>
+        <addColumn tableName="la_tenant_datasource">
+            <column name="USAGE_TYPE" type="varchar(32)" remarks="数据库用途（DATABASE_USAGE_TYPE）"/>
+        </addColumn>
+        <sql>UPDATE la_tenant_datasource SET usage_type = '2' WHERE usage_type IS NULL;</sql>
+    </changeSet>
+
 </databaseChangeLog>

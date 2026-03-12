@@ -8,6 +8,7 @@ import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.event.DataSourceEvent;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
@@ -155,11 +156,29 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-    public TenantDataSourceEntity getTenantDataSource(String tenantId) {
+    public TenantDataSourceEntity getTenantDataSource(String tenantId, FusionConstants.DatabaseUsageType usageType) {
         Assert.hasText(tenantId, "tenantId is blank");
+        Assert.notNull(usageType, "usageType is null");
+        if (FusionConstants.DatabaseUsageType.TENANT.equals(usageType)) {
+            return tenantDataSourceMapper.selectOne(Wrappers.lambdaQuery(TenantDataSourceEntity.class)
+                    .eq(TenantDataSourceEntity::getTenantId, tenantId)
+                    .and(wrapper -> wrapper.eq(TenantDataSourceEntity::getUsageType, usageType)
+                            .or()
+                            .isNull(TenantDataSourceEntity::getUsageType))
+                    .last("limit 1"));
+        }
         return tenantDataSourceMapper.selectOne(Wrappers.lambdaQuery(TenantDataSourceEntity.class)
                 .eq(TenantDataSourceEntity::getTenantId, tenantId)
+                .eq(TenantDataSourceEntity::getUsageType, usageType)
                 .last("limit 1"));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
+    public List<TenantDataSourceEntity> getTenantDataSources(String tenantId) {
+        Assert.hasText(tenantId, "tenantId is blank");
+        return tenantDataSourceMapper.selectList(
+                Wrappers.lambdaQuery(TenantDataSourceEntity.class).eq(TenantDataSourceEntity::getTenantId, tenantId));
     }
 
     @Override
@@ -174,26 +193,38 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void bindTenantDataSource(String tenantId, String datasourceKey) {
+    public void bindTenantDataSource(
+            String tenantId, String datasourceKey, FusionConstants.DatabaseUsageType usageType) {
         Assert.hasText(tenantId, "tenantId is blank");
         Assert.hasText(datasourceKey, "datasourceKey is blank");
+        Assert.notNull(usageType, "usageType is null");
         Assert.isTrue(tenantIsolationResolver.isDedicated(tenantId), "仅独立库租户允许配置数据源");
         DataSourceEntity dataSourceEntity = getByDatasourceKey(datasourceKey);
         Assert.notNull(dataSourceEntity, "datasource not found");
+        Assert.notNull(dataSourceEntity.getUsageType(), "datasource usageType is null");
+        Assert.isTrue(
+                usageType.equals(dataSourceEntity.getUsageType()),
+                "datasource usageType mismatch, expected: " + usageType.name());
 
-        TenantDataSourceEntity binding = getTenantDataSource(tenantId);
+        TenantDataSourceEntity binding = getTenantDataSource(tenantId, usageType);
         if (binding == null) {
             TenantDataSourceEntity entity = new TenantDataSourceEntity();
             entity.setId(IdWorker.getIdStr());
             entity.setTenantId(tenantId);
             entity.setDatasourceKey(datasourceKey);
-            entity.setSchemaStatus(TenantDataSourceEntity.SCHEMA_UNINITIALIZED);
+            entity.setUsageType(usageType);
+            if (FusionConstants.DatabaseUsageType.TENANT.equals(usageType)) {
+                entity.setSchemaStatus(TenantDataSourceEntity.SCHEMA_UNINITIALIZED);
+            }
             Assert.isTrue(tenantDataSourceMapper.insert(entity) > 0, "save tenant datasource failed");
             return;
         }
 
         binding.setDatasourceKey(datasourceKey);
-        binding.setSchemaStatus(TenantDataSourceEntity.SCHEMA_UNINITIALIZED);
+        binding.setUsageType(usageType);
+        if (FusionConstants.DatabaseUsageType.TENANT.equals(usageType)) {
+            binding.setSchemaStatus(TenantDataSourceEntity.SCHEMA_UNINITIALIZED);
+        }
         Assert.isTrue(tenantDataSourceMapper.updateById(binding) > 0, "update tenant datasource failed");
     }
 
@@ -202,7 +233,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     public void markTenantDataSourceInitialized(String tenantId) {
         Assert.hasText(tenantId, "tenantId is blank");
         Assert.isTrue(tenantIsolationResolver.isDedicated(tenantId), "仅独立库租户允许初始化主库");
-        TenantDataSourceEntity binding = getTenantDataSource(tenantId);
+        TenantDataSourceEntity binding = getTenantDataSource(tenantId, FusionConstants.DatabaseUsageType.TENANT);
         Assert.notNull(binding, "tenant datasource binding not found");
         binding.setSchemaStatus(TenantDataSourceEntity.SCHEMA_INITIALIZED);
         Assert.isTrue(tenantDataSourceMapper.updateById(binding) > 0, "update tenant datasource schema status failed");
