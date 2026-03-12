@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
  *
  * @author Jin
  */
+@SuppressWarnings("unused")
 public interface FusionConstants {
 
     // ========== 系统基础常量 ==========
@@ -281,6 +282,31 @@ public interface FusionConstants {
                 }
             }
             throw new IllegalArgumentException("Invalid IsolationMode: " + val);
+        }
+    }
+
+    @Getter
+    @DictMapper(dictName = "DATABASE_USAGE_TYPE", dictUsage = 0, dictDesc = "数据库用途")
+    @AllArgsConstructor
+    enum DatabaseUsageType implements DictEnum<Integer> {
+        AI(1, "AI库"),
+        TENANT(2, "租户库"),
+        BUSINESS(3, "业务库");
+
+        @EnumValue
+        @JsonValue
+        private final Integer code;
+
+        private final String label;
+
+        @JsonCreator
+        public static DatabaseUsageType fromValue(Integer val) {
+            for (DatabaseUsageType usageType : values()) {
+                if (usageType.code.equals(val)) {
+                    return usageType;
+                }
+            }
+            throw new IllegalArgumentException("Invalid DatabaseUsageType: " + val);
         }
     }
 

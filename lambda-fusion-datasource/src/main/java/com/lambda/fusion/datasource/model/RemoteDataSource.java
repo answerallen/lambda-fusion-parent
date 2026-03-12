@@ -1,6 +1,7 @@
 package com.lambda.fusion.datasource.model;
 
 import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.DatasourceConstants;
 import java.io.Serial;
 import java.io.Serializable;
@@ -22,7 +23,7 @@ public class RemoteDataSource implements Serializable {
     private String datasourceKey;
     private String datasourceName;
     private String dbType;
-    private String usageType;
+    private FusionConstants.DatabaseUsageType usageType;
     private String jdbcUrl;
     private String username;
     private String password;

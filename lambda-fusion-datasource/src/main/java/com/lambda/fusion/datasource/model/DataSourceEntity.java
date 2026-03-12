@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.annotation.FieldMapping;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.convert.FusionConvertFunctions;
 import com.lambda.fusion.core.entity.BaseEntity;
 import com.lambda.fusion.datasource.DatasourceConstants;
@@ -61,8 +62,8 @@ public class DataSourceEntity extends BaseEntity {
     private String dbType;
 
     @TableField("usage_type")
-    @Schema(description = "用途")
-    private String usageType;
+    @Schema(description = "用途（DATABASE_USAGE_TYPE 字典值）")
+    private FusionConstants.DatabaseUsageType usageType;
 
     @TableField("jdbc_url")
     @Schema(description = "连接地址")

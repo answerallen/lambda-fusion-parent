@@ -2,6 +2,7 @@ package com.lambda.fusion.datasource.model;
 
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.DatasourceConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -31,7 +32,7 @@ public class UpsertDataSource extends BaseDTO<DataSourceEntity> {
 
     @NotBlank
     @Schema(description = "用途")
-    private String usageType;
+    private FusionConstants.DatabaseUsageType usageType;
 
     @NotBlank
     @Schema(description = "连接地址")

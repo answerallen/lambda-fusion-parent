@@ -98,6 +98,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
         return target != null && !target.getId().equals(dictTypeTree.getId());
     }
 
+    @SuppressWarnings("unused")
     public List<DictTypeTree> staticTreeList(QueryDictTree queryDictTree) {
         String type = queryDictTree.getType();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(3);
@@ -186,6 +187,7 @@ public class DictTypeServiceImpl extends ServiceImpl<DictTypeMapper, DictTypeTre
         parameters.put(FIELD_PARENT_KEYS, SqlParamUtils.fuzzyQuery(key));
     }
 
+    @SuppressWarnings("unused")
     private void getEnumDict(QueryDictTree queryDictTree, String name, List<DictTypeTree> result) {}
 
     @Override

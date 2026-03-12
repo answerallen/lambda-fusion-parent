@@ -3,6 +3,7 @@ package com.lambda.fusion.datasource.model;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
@@ -42,6 +43,10 @@ public class TenantDataSourceEntity extends BaseEntity {
     @TableField("datasource_key")
     @Schema(description = "数据源标识")
     private String datasourceKey;
+
+    @TableField("usage_type")
+    @Schema(description = "数据库用途")
+    private FusionConstants.DatabaseUsageType usageType;
 
     @TableField("schema_status")
     @Schema(description = "Schema 状态")
