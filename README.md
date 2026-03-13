@@ -2,7 +2,7 @@
 
 ## 项目简介
 
-Lambda Fusion 是一个基于 Lambda Cloud 的业务开发框架，专注于权限管理、配置管理、数据字典、日志记录等核心业务功能的实现。
+Lambda Fusion 是一个基于 [**lamuda-cloud-parent**](https://gitee.com/lamuda-cloud/lamuda-cloud-parent) 的业务开发框架，专注于权限管理、配置管理、数据字典、日志记录等核心业务功能的实现。
 
 ## 项目架构
 
@@ -47,7 +47,6 @@ lambda-fusion-parent/
 
 - **AbstractCrudService**: 通用 CRUD 服务基类，支持实体与 VO 自动转换
 - **TreeBuilder**: 树形结构构建工具
-- **@LambdaFusionApplication**: 框架启动注解
 - **分页支持**: 统一的分页查询封装
 - **类型转换**: 基于 MapStruct 的对象转换
 
