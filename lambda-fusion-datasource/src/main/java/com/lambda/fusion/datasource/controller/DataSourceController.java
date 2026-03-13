@@ -110,9 +110,9 @@ public class DataSourceController {
     public void bindTenantDatasource(
             @Parameter(description = "租户ID", required = true) @PathVariable String tenantId,
             @Parameter(description = "数据源标识", required = true) @RequestParam("datasourceKey") String datasourceKey,
-            @Parameter(description = "数据库用途", required = true) @RequestParam("usageType")
-                    Integer usageType) {
-        dataSourceManageService.bindTenantDataSource(tenantId, datasourceKey, FusionConstants.DatabaseUsageType.fromValue(usageType));
+            @Parameter(description = "数据库用途", required = true) @RequestParam("usageType") Integer usageType) {
+        dataSourceManageService.bindTenantDataSource(
+                tenantId, datasourceKey, FusionConstants.DatabaseUsageType.fromValue(usageType));
     }
 
     @OperationLog

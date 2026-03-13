@@ -40,10 +40,10 @@
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-redis</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-nacos</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud</groupId>

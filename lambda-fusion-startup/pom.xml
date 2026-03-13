@@ -55,6 +55,7 @@
         <dependency>
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-oss</artifactId>
+            <version>${project.parent.version}</version>
         </dependency>
     </dependencies>
 </project>

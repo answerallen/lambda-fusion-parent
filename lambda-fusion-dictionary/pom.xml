@@ -14,11 +14,17 @@
     <dependencies>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-fusion-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-security</artifactId>
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-dubbo</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
@@ -39,12 +45,6 @@
         <dependency>
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-liquibase</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.lambda.cloud</groupId>
-            <artifactId>lambda-fusion-core</artifactId>
-            <version>2026.1.1-SNAPSHOT</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

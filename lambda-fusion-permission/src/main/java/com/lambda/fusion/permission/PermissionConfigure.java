@@ -9,6 +9,7 @@ import com.lambda.fusion.permission.server.PermissionSyncApiImpl;
 import com.lambda.fusion.permission.service.ApiPermissionMatcher;
 import com.lambda.fusion.permission.service.ApiPermissionRegistry;
 import com.lambda.security.inteceptor.SecureInterceptor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -85,16 +86,22 @@ public class PermissionConfigure {
         return new PermissionSyncApiImpl(apiPermissionRegistry, properties);
     }
 
-    @Bean
-    @ConditionalOnClass(ServiceBean.class)
-    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
-    public ServiceBean<PermissionSyncApi> permissionSyncApiBean(
-            PermissionSyncApi permissionSyncApi, ApplicationContext applicationContext) {
-        ServiceBean<PermissionSyncApi> serviceBean = new ServiceBean<>(applicationContext);
-        serviceBean.setInterface(PermissionSyncApi.class);
-        serviceBean.setRef(permissionSyncApi);
-        serviceBean.setGroup(PermissionConstants.DUBBO_GROUP);
-        serviceBean.setVersion(PermissionConstants.DUBBO_VERSION);
-        return serviceBean;
+    @Slf4j
+    @Configuration
+    @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ServiceBean")
+    public static class DubboServiceConfiguration {
+
+        @Bean
+        @ConditionalOnClass(ServiceBean.class)
+        @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
+        public ServiceBean<PermissionSyncApi> permissionSyncApiBean(
+                PermissionSyncApi permissionSyncApi, ApplicationContext applicationContext) {
+            ServiceBean<PermissionSyncApi> serviceBean = new ServiceBean<>(applicationContext);
+            serviceBean.setInterface(PermissionSyncApi.class);
+            serviceBean.setRef(permissionSyncApi);
+            serviceBean.setGroup(PermissionConstants.DUBBO_GROUP);
+            serviceBean.setVersion(PermissionConstants.DUBBO_VERSION);
+            return serviceBean;
+        }
     }
 }

@@ -11,6 +11,7 @@ import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.tenant.TenantSchemaCleaner;
 import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.ObjectProvider;
@@ -43,22 +44,28 @@ public class DatasourceConfigure {
         return new RemoteDataSourceServiceImpl(dataSourceManageService, callbackManager);
     }
 
-    @Bean
-    @ConditionalOnClass(ServiceBean.class)
-    @ConditionalOnProperty(
-            name = DatasourceConstants.MODE_PROPERTY,
-            havingValue = DatasourceConstants.MODE_SERVER,
-            matchIfMissing = true)
-    public ServiceBean<RemoteDataSourceService> remoteDataSourceServiceBean(
-            RemoteDataSourceService remoteDataSourceService,
-            DatasourceProperties datasourceProperties,
-            ApplicationContext applicationContext) {
-        ServiceBean<RemoteDataSourceService> serviceBean = new ServiceBean<>(applicationContext);
-        serviceBean.setInterface(RemoteDataSourceService.class);
-        serviceBean.setRef(remoteDataSourceService);
-        serviceBean.setGroup(datasourceProperties.getDubbo().getGroup());
-        serviceBean.setVersion(datasourceProperties.getDubbo().getVersion());
-        return serviceBean;
+    @Slf4j
+    @Configuration
+    @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ServiceBean")
+    public static class DubboServiceConfiguration {
+
+        @Bean
+        @ConditionalOnClass(ServiceBean.class)
+        @ConditionalOnProperty(
+                name = DatasourceConstants.MODE_PROPERTY,
+                havingValue = DatasourceConstants.MODE_SERVER,
+                matchIfMissing = true)
+        public ServiceBean<RemoteDataSourceService> remoteDataSourceServiceBean(
+                RemoteDataSourceService remoteDataSourceService,
+                DatasourceProperties datasourceProperties,
+                ApplicationContext applicationContext) {
+            ServiceBean<RemoteDataSourceService> serviceBean = new ServiceBean<>(applicationContext);
+            serviceBean.setInterface(RemoteDataSourceService.class);
+            serviceBean.setRef(remoteDataSourceService);
+            serviceBean.setGroup(datasourceProperties.getDubbo().getGroup());
+            serviceBean.setVersion(datasourceProperties.getDubbo().getVersion());
+            return serviceBean;
+        }
     }
 
     @Bean

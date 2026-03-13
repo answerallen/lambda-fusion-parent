@@ -40,14 +40,19 @@ public class AuthorityConfigure {
         log.trace("Authority Configuration init");
     }
 
-    @Bean
-    @ConditionalOnClass(ServiceBean.class)
-    public ServiceBean<RemoteAuthenticationService> remoteAuthenticationServiceBean(
-            AuthenticationService authenticationService, ApplicationContext applicationContext) {
-        ServiceBean<RemoteAuthenticationService> serviceBean = new ServiceBean<>(applicationContext);
-        serviceBean.setInterface(RemoteAuthenticationService.class);
-        serviceBean.setRef(authenticationService);
-        return serviceBean;
+    @Slf4j
+    @Configuration
+    @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ServiceBean")
+    public static class DubboServiceConfiguration {
+
+        @Bean
+        public ServiceBean<RemoteAuthenticationService> remoteAuthenticationServiceBean(
+                AuthenticationService authenticationService, ApplicationContext applicationContext) {
+            ServiceBean<RemoteAuthenticationService> serviceBean = new ServiceBean<>(applicationContext);
+            serviceBean.setInterface(RemoteAuthenticationService.class);
+            serviceBean.setRef(authenticationService);
+            return serviceBean;
+        }
     }
 
     @Bean
@@ -108,8 +113,8 @@ public class AuthorityConfigure {
         return new UserSeeEventListener(userOnlineLogService);
     }
 
-    @ConditionalOnMissingBean
     @Bean
+    @ConditionalOnMissingBean
     public TreeDataFilter defaultTreeDataFilter() {
         return new DefaultTreeDataFilter();
     }
