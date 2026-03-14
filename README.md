@@ -80,7 +80,7 @@ lambda-fusion-parent/
 
 - **Java**: JDK 21+
 - **Spring Boot**: 微服务框架
-- **Spring Security**: 安全框架
+- **Sa-Token**: 安全框架
 - **MyBatis Plus**: ORM 框架
 - **Spring Cloud**: 微服务生态
 
