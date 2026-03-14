@@ -10,6 +10,7 @@ Lambda Fusion 是一个基于 [**lamuda-cloud-parent**](https://gitee.com/lamuda
 
 ```
 lambda-fusion-parent/
+├── lambda-fusion-AI/           # AI知识库管理
 ├── lambda-fusion-bom/          # BOM 依赖管理
 ├── lambda-fusion-core/         # 核心框架
 ├── lambda-fusion-authority/    # 权限管理模块
