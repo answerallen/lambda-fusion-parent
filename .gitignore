@@ -33,7 +33,8 @@ build/
 
 ### VS Code ###
 .vscode/
-
+## Evn
+.evn
 ### Mac OS ###
 .DS_Store
 /.idea/misc.xml

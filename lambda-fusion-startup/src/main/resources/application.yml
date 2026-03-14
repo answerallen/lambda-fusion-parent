@@ -1,0 +1,119 @@
+################################# Server 配置 #################################
+server:
+  port: 20005
+  tomcat:
+    max-connections: 2000
+    keep-alive-timeout: 300000
+################################# Springboot 配置 #################################
+spring:
+  application:
+    name: lambda-fusion-admin
+  datasource:
+    dynamic:
+      primary: master
+      datasource:
+        master:
+          #### Mysql 环境变量 ####
+          driver-class-name: ${MAIN_DB_DRIVER_CLASS_NAME}
+          url: ${MAIN_DB_URL}
+          username: ${MAIN_DB_USERNAME}
+          password: ${MAIN_DB_PASSWORD}
+  data:
+    redis:
+      #### Redis 环境变量 ####
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      database: ${REDIS_DATABASE}
+logging:
+  level:
+    io:
+      lettuce: error
+    com:
+      zaxxer: error
+    root: info
+################################# Mybatis-plus 配置 #################################
+mybatis-plus:
+  tenant:
+    enabled: true
+  configuration:
+    default-enum-type-handler: org.apache.ibatis.type.EnumOrdinalTypeHandler
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+################################# Lambda 配置 #################################
+lambda:
+  fusion:
+    config:
+      auto-refresh:
+        enabled: true
+      datasource:
+        #### Mysql 环境变量 ####
+        driver-class-name: ${MAIN_DB_DRIVER_CLASS_NAME}
+        url: ${MAIN_DB_URL}
+        username: ${MAIN_DB_USERNAME}
+        password: ${MAIN_DB_PASSWORD}
+  oss:
+    clients:
+      #### Redis 环境变量 ####
+      - name: default
+        type: QINIU
+        cdn: ${QINIU_CDN}
+        endpoint: s3.cn-north-1.qiniucs.com
+        accessKey: ${QINIU_ACCESS_KEY}
+        secretKey: ${QINIU_SECRET_KEY}
+        bucket: ${QINIU_BUCKET}
+        region: ${QINIU_REGION}
+        accessPolicy: public
+  liquibase:
+    enabled: true
+    #### Mysql 环境变量 ####
+    driver-class-name: ${MAIN_DB_DRIVER_CLASS_NAME}
+    url: ${MAIN_DB_URL}
+    username: ${MAIN_DB_USERNAME}
+    password: ${MAIN_DB_PASSWORD}
+  api-docs:
+    enabled: true
+    title: ${spring.application.name}
+  security:
+    verify:
+      dev-mode: true
+      url: /auth/jcaptcha
+    hmac:
+      enabled: true
+      clients:
+        - appid: 123
+          secret: 123456
+    sa-token:
+      ignored: /open/**,/ws/**
+      check-same-token: false
+      max-login-count: 5
+      is-concurrent: true
+    xss-protected:
+      enabled: false
+      trusted: /test/**
+    form:
+      enabled: true
+      login-processing-url: /auth/login
+      captcha-trigger:
+        enabled: true
+        failure-trigger-times: 2
+      lock-strategy:
+        failure-max-times: 10
+      logout:
+        logout-url: /auth/logout
+    sms:
+      enabled: true
+      enable-verify: true
+  sms:
+    aliyun:
+      enabled: true
+      #### 阿里云短信 环境变量 ####
+      accessKeyId: ${ALIYUN_SMS_ACCESS_KEY_ID:10000000}
+      accessKeySecret: ${ALIYUN_SMS_ACCESS_KEY_SECRET:10000000}
+  sse:
+    enable-endpoint: true
+    timeout: 300000
+  cache:
+    type: caffeine
+    enabled: true
+
+

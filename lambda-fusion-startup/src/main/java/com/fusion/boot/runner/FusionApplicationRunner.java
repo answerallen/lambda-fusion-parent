@@ -29,11 +29,9 @@ public class FusionApplicationRunner implements ApplicationRunner {
         log.info("smsProperties:  aliyun.enabled={}", smsProperties.getAliyun().isEnabled());
         ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
         scheduledExecutorService.scheduleAtFixedRate(
-                () -> {
-                    log.info(
-                            "检测配置刷新 smsProperties:  aliyun.enabled={}",
-                            smsProperties.getAliyun().isEnabled());
-                },
+                () -> log.info(
+                        "检测配置刷新 smsProperties:  aliyun.enabled={}",
+                        smsProperties.getAliyun().isEnabled()),
                 0,
                 10,
                 TimeUnit.SECONDS);
