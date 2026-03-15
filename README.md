@@ -8,7 +8,7 @@
 [![JDK](https://img.shields.io/badge/JDK-21+-orange.svg)](https://www.oracle.com/java/technologies/javase-downloads.html)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
-[📖 文档](https://gitee.com/westboy/lambda-fusion-admin) | [🎯 实战项目](https://gitee.com/westboy/lambda-fusion-admin) | [🔧 基础框架](https://gitee.com/westboy/lamuda-cloud-parent)
+ [🎯 示例项目](https://gitee.com/westboy/lambda-fusion-admin) | [🔧 开发组件](https://gitee.com/westboy/lamuda-cloud-parent)
 
 </div>
 
@@ -26,7 +26,6 @@ Lambda Fusion 是一个基于 [**lamuda-cloud-parent**](https://gitee.com/westbo
 - 🤖 **AI 知识库集成** - 智能化业务支持
 - 🎯 **开箱即用** - 预置常用业务模块，快速启动项目
 
----
 
 ## 🏗️ 项目架构
 
@@ -44,8 +43,6 @@ lambda-fusion-parent/
 ├── 🛡️ lambda-fusion-permission/   # API 权限控制（接口级权限）
 └── 🤖 lambda-fusion-AI/           # AI 知识库管理
 ```
-
----
 
 ## 🎯 核心功能
 
@@ -73,7 +70,6 @@ lambda-fusion-parent/
 - ✅ 异步操作日志记录，不影响业务性能
 - ✅ 动态权限验证，支持运行时权限变更
 
----
 
 ### 🎯 Core 模块 (lambda-fusion-core)
 
@@ -101,7 +97,6 @@ lambda-fusion-parent/
   - 高性能零反射
   - 支持复杂对象映射
 
----
 
 ### ⚙️ 配置管理 (lambda-fusion-config)
 
@@ -117,7 +112,6 @@ lambda-fusion-parent/
 | 📝 **版本管理** | 配置变更历史追踪，支持回滚 |
 | 🔔 **变更通知** | 配置变更事件通知，支持自定义监听器 |
 
----
 
 ### 📚 数据字典 (lambda-fusion-dictionary)
 
@@ -139,7 +133,6 @@ lambda-fusion-parent/
 - ✅ 字典数据缓存优化
 - ✅ 国际化支持
 
----
 
 ## 🛠️ 技术栈
 
@@ -171,7 +164,6 @@ lambda-fusion-parent/
 | ☕ **Caffeine** | 高性能本地缓存 |
 | 🔧 **Hutool** | Java 工具类库 |
 
----
 
 ## 🚀 快速开始
 
@@ -224,7 +216,6 @@ lambda-fusion-parent/
 </dependency>
 ```
 
----
 
 ## 📚 相关资源
 
@@ -232,7 +223,6 @@ lambda-fusion-parent/
 - 🔧 [基础框架 lamuda-cloud-parent](https://gitee.com/westboy/lamuda-cloud-parent)
 - 📖 [在线文档](https://gitee.com/westboy/lambda-fusion-admin)
 
----
 
 ## 📄 开源协议
 
@@ -242,8 +232,7 @@ lambda-fusion-parent/
 
 <div align="center">
 
-**⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！**
+**⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！**❤️
 
-Made with ❤️ by WestBoy
 
 </div>
