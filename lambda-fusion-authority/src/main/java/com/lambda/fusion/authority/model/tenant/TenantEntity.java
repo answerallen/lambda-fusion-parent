@@ -52,6 +52,12 @@ public class TenantEntity extends BaseEntity {
     @TableField("TENANT_WEBSITE")
     private String tenantWebsite;
     /**
+     * 绑定域名
+     */
+    @Schema(description = "绑定域名")
+    @TableField("TENANT_DOMAIN")
+    private String tenantDomain;
+    /**
      * 租户描述
      */
     @Schema(description = "租户描述")

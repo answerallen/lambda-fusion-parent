@@ -82,6 +82,12 @@ public class TenantQuery extends Pagination<TenantEntity> {
     private String alias;
 
     /**
+     * 绑定域名
+     */
+    @Schema(description = "绑定域名")
+    private String tenantDomain;
+
+    /**
      * 地区
      */
     @Schema(description = "地区")
@@ -122,6 +128,9 @@ public class TenantQuery extends Pagination<TenantEntity> {
 
         // 别名模糊查询
         wrapper.like(StringUtils.isNotBlank(alias), TenantEntity::getAlias, alias);
+
+        // 绑定域名精确查询
+        wrapper.eq(StringUtils.isNotBlank(tenantDomain), TenantEntity::getTenantDomain, tenantDomain);
 
         // 默认按创建时间降序排序
         wrapper.orderByDesc(TenantEntity::getCreatedAt);

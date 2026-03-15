@@ -23,6 +23,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -44,6 +45,12 @@ import tools.jackson.databind.ObjectMapper;
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> implements TenantService {
+
+    /**
+     * 域名格式校验正则
+     */
+    private static final Pattern DOMAIN_PATTERN = Pattern.compile(
+            "^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\\.[a-zA-Z]{2,}$");
 
     @Resource
     protected TenantMapper tenantMapper;
@@ -115,6 +122,45 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
     @Override
     public void disableTenant(String tenantId) {
         handleTenantStatus(tenantId, 0);
+    }
+
+    @Override
+    public void bindDomain(String tenantId, String domain) {
+        // 校验域名格式
+        if (StringUtils.isBlank(domain) || !DOMAIN_PATTERN.matcher(domain).matches()) {
+            throw AuthorityBusinessException.tenantDomainInvalid(domain);
+        }
+        // 确认租户存在
+        TenantEntity tenant = assertTenantExists(tenantId);
+        // 域名转小写标准化
+        String normalizedDomain = domain.toLowerCase();
+        // 检查域名唯一性（排除当前租户）
+        if (tenantMapper.isDomainBound(normalizedDomain, tenant.getTenantId())) {
+            throw AuthorityBusinessException.tenantDomainAlreadyBound(normalizedDomain);
+        }
+        // 更新域名
+        tenant.setTenantDomain(normalizedDomain);
+        updateById(tenant);
+    }
+
+    @Override
+    public void unbindDomain(String tenantId) {
+        TenantEntity tenant = assertTenantExists(tenantId);
+        tenant.setTenantDomain(null);
+        updateById(tenant);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public TenantEntity resolveByDomain(String domain) {
+        if (StringUtils.isBlank(domain)) {
+            throw AuthorityBusinessException.invalidParameter("域名不能为空");
+        }
+        TenantEntity tenant = tenantMapper.selectByDomain(domain.toLowerCase());
+        if (tenant == null) {
+            throw AuthorityBusinessException.tenantNotFound(domain);
+        }
+        return tenant;
     }
 
     private void prohibitTenant(LoginUser operator, Integer status, String tenantId) {

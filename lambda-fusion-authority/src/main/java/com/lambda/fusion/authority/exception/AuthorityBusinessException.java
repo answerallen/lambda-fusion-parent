@@ -175,6 +175,26 @@ public class AuthorityBusinessException extends BusinessException {
         return new AuthorityBusinessException(AuthorityErrorCode.TENANT_DISABLED, tenantId);
     }
 
+    /**
+     * 便捷方法：域名已被绑定异常
+     *
+     * @param domain 域名
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException tenantDomainAlreadyBound(String domain) {
+        return new AuthorityBusinessException(AuthorityErrorCode.TENANT_DOMAIN_ALREADY_BOUND, domain);
+    }
+
+    /**
+     * 便捷方法：域名格式无效异常
+     *
+     * @param domain 域名
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException tenantDomainInvalid(String domain) {
+        return new AuthorityBusinessException(AuthorityErrorCode.TENANT_DOMAIN_INVALID, domain);
+    }
+
     // ========== 组织相关便捷方法 ==========
 
     /**

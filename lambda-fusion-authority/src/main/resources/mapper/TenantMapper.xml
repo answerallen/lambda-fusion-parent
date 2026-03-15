@@ -10,6 +10,7 @@
         <result property="tenantName" column="TENANT_NAME"/>
         <result property="tenantAddress" column="TENANT_ADDRESS"/>
         <result property="tenantWebsite" column="TENANT_WEBSITE"/>
+        <result property="tenantDomain" column="TENANT_DOMAIN"/>
         <result property="tenantDesc" column="TENANT_DESC"/>
         <result property="tenantLogo" column="TENANT_LOGO"/>
         <result property="liaisonMan" column="LIAISON_MAN"/>
@@ -48,5 +49,16 @@
         SELECT CONFIG FROM LA_TENANT WHERE TENANT_ID = #{id}
     </select>
 
+    <select id="selectByDomain" resultMap="TenantEntity">
+        SELECT * FROM LA_TENANT WHERE TENANT_DOMAIN = #{domain} AND status = 1 LIMIT 1
+    </select>
+
+    <select id="isDomainBound" resultType="java.lang.Boolean">
+        SELECT COUNT(1) > 0 FROM LA_TENANT
+        WHERE TENANT_DOMAIN = #{domain}
+        <if test="excludeTenantId != null and excludeTenantId != ''">
+            AND TENANT_ID != #{excludeTenantId}
+        </if>
+    </select>
 
 </mapper>

@@ -119,6 +119,16 @@ public enum AuthorityErrorCode implements ErrorCode {
      */
     TENANT_NAME_EXISTS(13206, "租户名称已存在"),
 
+    /**
+     * 域名已被绑定
+     */
+    TENANT_DOMAIN_ALREADY_BOUND(13207, "域名已被其他租户绑定"),
+
+    /**
+     * 域名格式无效
+     */
+    TENANT_DOMAIN_INVALID(13208, "域名格式无效"),
+
     // ========== 组织相关错误 (13300-13399) ==========
     /**
      * 组织不存在

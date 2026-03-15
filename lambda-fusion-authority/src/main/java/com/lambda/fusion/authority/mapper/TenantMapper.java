@@ -48,4 +48,21 @@ public interface TenantMapper extends BaseMapper<TenantEntity> {
      * @return the config json
      */
     String getConfigJson(@Param("id") String id);
+
+    /**
+     * 根据域名查询租户
+     *
+     * @param domain 域名
+     * @return 租户实体
+     */
+    TenantEntity selectByDomain(@Param("domain") String domain);
+
+    /**
+     * 检查域名是否已被绑定（排除指定租户）
+     *
+     * @param domain          域名
+     * @param excludeTenantId 排除的租户ID
+     * @return 是否已被绑定
+     */
+    boolean isDomainBound(@Param("domain") String domain, @Param("excludeTenantId") String excludeTenantId);
 }

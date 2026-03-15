@@ -6,6 +6,7 @@ create table la_tenant
     TENANT_NAME           varchar(100)                       not null comment '租户名称',
     TENANT_ADDRESS        varchar(500)                       null comment '租户地址',
     TENANT_WEBSITE        varchar(255)                       null comment '网站地址',
+    TENANT_DOMAIN         varchar(255)                       null comment '绑定域名',
     TENANT_DESC           varchar(500)                       null comment '租户描述',
     TENANT_LOGO           varchar(255)                       null comment 'LOGO地址',
     LIAISON_MAN           varchar(20)                        null comment '联系人',

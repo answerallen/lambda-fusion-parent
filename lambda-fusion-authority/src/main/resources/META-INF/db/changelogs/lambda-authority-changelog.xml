@@ -554,6 +554,24 @@
                        constraintName="pk_la_user_info_thirdpart"/>
     </changeSet>
 
+    <changeSet id="lambda-authority-202603150001" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="la_tenant" columnName="TENANT_DOMAIN"/></not>
+        </preConditions>
+        <addColumn tableName="la_tenant">
+            <column name="TENANT_DOMAIN" type="varchar(255)" remarks="绑定域名"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202603150002" author="westboy">
+        <preConditions onFail="MARK_RAN">
+            <not><indexExists tableName="la_tenant" indexName="uk_tenant_domain"/></not>
+        </preConditions>
+        <createIndex tableName="la_tenant" indexName="uk_tenant_domain" unique="true">
+            <column name="TENANT_DOMAIN"/>
+        </createIndex>
+    </changeSet>
+
     <include file="lambda-authority-data-init-changelog.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

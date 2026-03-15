@@ -2,8 +2,10 @@ package com.lambda.fusion.authority.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaIgnore;
 import cn.dev33.satoken.annotation.SaMode;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.fusion.authority.model.tenant.TenantDomainInfo;
 import com.lambda.fusion.authority.model.tenant.TenantEntity;
 import com.lambda.fusion.authority.model.tenant.TenantOption;
 import com.lambda.fusion.authority.model.tenant.TenantQuery;
@@ -99,5 +101,30 @@ public class TenantController {
     @Operation(summary = "禁用租户")
     public void disabledTenant(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         tenantService.disableTenant(id);
+    }
+
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000066")
+    @PutMapping("/{id}/domain")
+    @Operation(summary = "绑定租户域名", description = "为指定租户绑定自定义域名，域名全局唯一")
+    public void bindDomain(
+            @PathVariable @Parameter(description = "租户编号", required = true) String id,
+            @RequestParam @Parameter(description = "域名", required = true) String domain) {
+        tenantService.bindDomain(id, domain);
+    }
+
+    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000067")
+    @DeleteMapping("/{id}/domain")
+    @Operation(summary = "解绑租户域名", description = "解除指定租户的域名绑定")
+    public void unbindDomain(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
+        tenantService.unbindDomain(id);
+    }
+
+    @SaIgnore
+    @GetMapping("/resolve")
+    @Operation(summary = "根据域名解析租户信息", description = "公开接口，根据域名获取租户展示信息（Logo、名称、备案号等）")
+    public TenantDomainInfo resolveByDomain(
+            @RequestParam @Parameter(description = "域名", required = true) String domain) {
+        TenantEntity entity = tenantService.resolveByDomain(domain);
+        return TenantDomainInfo.fromEntity(entity);
     }
 }

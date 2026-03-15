@@ -26,4 +26,27 @@ public interface TenantService extends IService<TenantEntity> {
     void enableTenant(String tenantId);
 
     void disableTenant(String tenantId);
+
+    /**
+     * 绑定域名
+     *
+     * @param tenantId 租户ID
+     * @param domain   域名
+     */
+    void bindDomain(String tenantId, String domain);
+
+    /**
+     * 解绑域名
+     *
+     * @param tenantId 租户ID
+     */
+    void unbindDomain(String tenantId);
+
+    /**
+     * 根据域名解析租户
+     *
+     * @param domain 域名
+     * @return 租户实体
+     */
+    TenantEntity resolveByDomain(String domain);
 }

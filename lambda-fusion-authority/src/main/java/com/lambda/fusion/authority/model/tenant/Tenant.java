@@ -42,6 +42,11 @@ public class Tenant extends BaseDTO<TenantEntity> {
     @Schema(description = "网站地址")
     private String tenantWebsite;
     /**
+     * 绑定域名
+     */
+    @Schema(description = "绑定域名")
+    private String tenantDomain;
+    /**
      * 租户描述
      */
     @Schema(description = "租户描述")
