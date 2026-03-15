@@ -4,6 +4,7 @@ import cn.dev33.satoken.listener.SaTokenListener;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
 import com.lambda.cloud.sse.listener.SseEventListener;
+import com.lambda.fusion.authority.inteceptor.TenantContextInterceptor;
 import com.lambda.fusion.authority.listenner.UserOnlineLogListener;
 import com.lambda.fusion.authority.listenner.UserSeeEventListener;
 import com.lambda.fusion.authority.service.AuthenticationService;
@@ -28,23 +29,31 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Slf4j
 @Configuration
 @MapperScan(basePackages = {"com.lambda.fusion.authority.**.mapper"})
 @EnableConfigurationProperties({AuthorityProperties.class})
 @ComponentScan(basePackageClasses = AuthorityConfigure.class)
-public class AuthorityConfigure {
+public class AuthorityConfigure implements WebMvcConfigurer {
 
     public AuthorityConfigure() {
         log.trace("Authority Configuration init");
+    }
+
+    private TenantContextInterceptor tenantContextInterceptor;
+
+    @Autowired
+    public void setTenantContextInterceptor(TenantContextInterceptor tenantContextInterceptor) {
+        this.tenantContextInterceptor = tenantContextInterceptor;
     }
 
     @Slf4j
     @Configuration
     @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ServiceBean")
     public static class DubboServiceConfiguration {
-
         @Bean
         public ServiceBean<RemoteAuthenticationService> remoteAuthenticationServiceBean(
                 AuthenticationService authenticationService, ApplicationContext applicationContext) {
@@ -117,5 +126,12 @@ public class AuthorityConfigure {
     @ConditionalOnMissingBean
     public TreeDataFilter defaultTreeDataFilter() {
         return new DefaultTreeDataFilter();
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(tenantContextInterceptor)
+                .addPathPatterns("/**")
+                .order(Integer.MIN_VALUE + 100); // 较高优先级执行，确保上下文尽早设置
     }
 }

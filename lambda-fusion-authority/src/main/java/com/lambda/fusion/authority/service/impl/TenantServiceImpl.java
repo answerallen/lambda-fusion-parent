@@ -19,6 +19,7 @@ import com.lambda.fusion.authority.model.tenant.Tenant;
 import com.lambda.fusion.authority.model.tenant.TenantEntity;
 import com.lambda.fusion.authority.model.tenant.TenantOption;
 import com.lambda.fusion.authority.service.TenantService;
+import com.lambda.fusion.core.FusionConstants;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.Resource;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,6 +68,9 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
 
     @Resource
     private OssClientManager ossClientManager;
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     private ObjectMapper objectMapper;
 
@@ -132,6 +137,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
         }
         // 确认租户存在
         TenantEntity tenant = assertTenantExists(tenantId);
+        String oldDomain = tenant.getTenantDomain();
         // 域名转小写标准化
         String normalizedDomain = domain.toLowerCase();
         // 检查域名唯一性（排除当前租户）
@@ -141,13 +147,25 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
         // 更新域名
         tenant.setTenantDomain(normalizedDomain);
         updateById(tenant);
+
+        // 同步 Redis
+        if (StringUtils.isNotBlank(oldDomain) && !oldDomain.equals(normalizedDomain)) {
+            redisTemplate.opsForHash().delete(FusionConstants.TENANT_HOST_REDIS_KEY, oldDomain);
+        }
+        redisTemplate.opsForHash().put(FusionConstants.TENANT_HOST_REDIS_KEY, normalizedDomain, tenantId);
     }
 
     @Override
     public void unbindDomain(String tenantId) {
         TenantEntity tenant = assertTenantExists(tenantId);
+        String oldDomain = tenant.getTenantDomain();
         tenant.setTenantDomain(null);
         updateById(tenant);
+
+        // 同步 Redis
+        if (StringUtils.isNotBlank(oldDomain)) {
+            redisTemplate.opsForHash().delete(FusionConstants.TENANT_HOST_REDIS_KEY, oldDomain);
+        }
     }
 
     @Override
@@ -187,6 +205,12 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
     private void deleteTenant(LoginUser operator, String tenantId) {
         // 判断当前用户是否拥有操作权限
         this.hasOperation(operator, tenantId);
+
+        TenantEntity tenant = getById(tenantId);
+        if (tenant != null && StringUtils.isNotBlank(tenant.getTenantDomain())) {
+            redisTemplate.opsForHash().delete(FusionConstants.TENANT_HOST_REDIS_KEY, tenant.getTenantDomain());
+        }
+
         // 删除租户
         tenantMapper.deleteById(tenantId);
         // 通过租户编号查询组织，删除组织

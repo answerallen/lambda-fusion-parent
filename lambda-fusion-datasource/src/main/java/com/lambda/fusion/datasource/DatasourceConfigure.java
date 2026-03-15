@@ -6,6 +6,7 @@ import com.lambda.fusion.datasource.api.RemoteDataSourceServiceImpl;
 import com.lambda.fusion.datasource.client.ClientDataSourceChangeListener;
 import com.lambda.fusion.datasource.client.ClientDataSourceInitializer;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
+import com.lambda.fusion.datasource.interceptor.TenantDataSourceInterceptor;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
@@ -23,12 +24,22 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @MapperScan(basePackages = {"com.lambda.fusion.datasource.**.mapper"})
 @ComponentScan(basePackageClasses = DatasourceConfigure.class)
 @EnableConfigurationProperties(DatasourceProperties.class)
-public class DatasourceConfigure {
+public class DatasourceConfigure implements WebMvcConfigurer {
+
+    private TenantDataSourceInterceptor tenantDataSourceInterceptor;
+
+    @Autowired
+    public void setTenantDataSourceInterceptor(TenantDataSourceInterceptor tenantDataSourceInterceptor) {
+        this.tenantDataSourceInterceptor = tenantDataSourceInterceptor;
+    }
+
     @Bean
     public DataSourceChangeDispatcher dataSourceCallbackManager() {
         return new DataSourceChangeDispatcher();
@@ -97,5 +108,13 @@ public class DatasourceConfigure {
             DatasourceProperties datasourceProperties) {
         return new ClientDataSourceInitializer(
                 dynamicDataSourceService, dataSourceChangeListener, datasourceProperties);
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(tenantDataSourceInterceptor)
+                .addPathPatterns("/**")
+                // 确保执行顺序在 Core 层的 TenantContextInterceptor 之后
+                .order(Integer.MIN_VALUE + 200);
     }
 }
