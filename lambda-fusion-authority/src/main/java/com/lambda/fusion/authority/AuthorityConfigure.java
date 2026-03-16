@@ -13,6 +13,7 @@ import com.lambda.fusion.core.api.RemoteAuthenticationService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.SecurityUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -28,10 +29,12 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
 @Configuration
 @MapperScan(basePackages = {"com.lambda.fusion.authority.**.mapper"})
@@ -46,7 +49,7 @@ public class AuthorityConfigure implements WebMvcConfigurer {
     private TenantContextInterceptor tenantContextInterceptor;
 
     @Autowired
-    public void setTenantContextInterceptor(TenantContextInterceptor tenantContextInterceptor) {
+    public void setTenantContextInterceptor(@Lazy TenantContextInterceptor tenantContextInterceptor) {
         this.tenantContextInterceptor = tenantContextInterceptor;
     }
 

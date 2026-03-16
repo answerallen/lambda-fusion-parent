@@ -24,6 +24,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -36,7 +37,7 @@ public class DatasourceConfigure implements WebMvcConfigurer {
     private TenantDataSourceInterceptor tenantDataSourceInterceptor;
 
     @Autowired
-    public void setTenantDataSourceInterceptor(TenantDataSourceInterceptor tenantDataSourceInterceptor) {
+    public void setTenantDataSourceInterceptor(@Lazy TenantDataSourceInterceptor tenantDataSourceInterceptor) {
         this.tenantDataSourceInterceptor = tenantDataSourceInterceptor;
     }
 

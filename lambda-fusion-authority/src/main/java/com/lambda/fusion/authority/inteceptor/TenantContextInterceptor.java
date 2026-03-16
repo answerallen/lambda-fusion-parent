@@ -3,6 +3,7 @@ package com.lambda.fusion.authority.inteceptor;
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.cloud.redis.helper.RedisHelper;
 import com.lambda.fusion.core.FusionConstants;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * 核心租户请求拦截器
  * 用于解析 HTTP 请求头中的租户信息（如 X-Tenant-Id），并放入 TenantContextHolder 中，
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
 @Component
 public class TenantContextInterceptor implements HandlerInterceptor {

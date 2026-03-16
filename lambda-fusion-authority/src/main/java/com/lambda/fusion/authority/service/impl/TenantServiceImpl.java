@@ -159,7 +159,7 @@ public class TenantServiceImpl extends ServiceImpl<TenantMapper, TenantEntity> i
     public void unbindDomain(String tenantId) {
         TenantEntity tenant = assertTenantExists(tenantId);
         String oldDomain = tenant.getTenantDomain();
-        tenant.setTenantDomain(null);
+        tenant.setTenantDomain("");
         updateById(tenant);
 
         // 同步 Redis

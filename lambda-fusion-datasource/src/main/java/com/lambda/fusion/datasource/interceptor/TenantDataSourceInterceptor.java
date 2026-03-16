@@ -5,6 +5,7 @@ import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
 import com.lambda.fusion.datasource.tenant.TenantIsolationResolver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * 2. 根据解析到的租户 ID，检查隔离模式（IsolationMode）
  * 3. 如果是 DEDICATED（独立库）模式，自动切换数据源
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
 @Component
 @RequiredArgsConstructor
