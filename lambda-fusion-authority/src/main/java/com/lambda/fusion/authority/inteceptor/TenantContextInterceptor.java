@@ -20,8 +20,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class TenantContextInterceptor implements HandlerInterceptor {
 
-    private static final String TENANT_ID_HEADER = "X-Tenant-Id";
-
     private RedisHelper redisHelper;
 
     @Autowired
@@ -32,7 +30,7 @@ public class TenantContextInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(
             HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull Object handler) {
-        String tenantId = request.getHeader(TENANT_ID_HEADER);
+        String tenantId = request.getHeader(FusionConstants.TENANT_ID_HEADER);
         if (StringUtils.hasText(tenantId)) {
             TenantContextHolder.getInstance().setTenantId(tenantId);
             log.debug("Extracted Tenant ID [{}] from header", tenantId);

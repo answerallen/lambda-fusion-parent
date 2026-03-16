@@ -260,6 +260,16 @@ public interface FusionConstants {
      */
     String TREE_SPLIT = "-";
 
+    /**
+     * 前端租户表示
+     */
+    String TENANT_ID_HEADER = "X-Tenant-Id";
+
+    /**
+     * 租户切换标识
+     */
+    String SWITCHER_ATTR = "TENANT_DS_SWITCHER";
+
     // ========== 租户相关信息 ==========
     @Getter
     @DictMapper(dictName = "ISOLATION_MODE", dictUsage = 0, dictDesc = "隔离模式")
