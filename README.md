@@ -8,7 +8,7 @@
 [![JDK](https://img.shields.io/badge/JDK-21+-orange.svg)](https://www.oracle.com/java/technologies/javase-downloads.html)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
- [🎯 示例项目](https://gitee.com/westboy/lambda-fusion-admin) | [🔧 开发组件](https://gitee.com/westboy/lamuda-cloud-parent)
+ [🎯 示例项目：https://gitee.com/westboy/lambda-fusion-admin](https://gitee.com/westboy/lambda-fusion-admin) | [🔧 开发组件：https://gitee.com/westboy/lamuda-cloud-parent](https://gitee.com/westboy/lamuda-cloud-parent)
 
 </div>
 
@@ -34,14 +34,15 @@ Lambda Fusion 是一个基于 [**lamuda-cloud-parent**](https://gitee.com/westbo
 ```
 lambda-fusion-parent/
 ├── 📦 lambda-fusion-bom/          # BOM 依赖管理
+├── 🤖 lambda-fusion-ai/           # AI 知识库管理
 ├── 🎯 lambda-fusion-core/         # 核心框架（CRUD、树形结构、分页等）
 ├── 🔐 lambda-fusion-authority/    # 权限管理（用户、角色、组织、资源）
 ├── ⚙️ lambda-fusion-config/       # 配置管理（动态配置、热更新）
 ├── 📚 lambda-fusion-dictionary/   # 数据字典（静态/动态字典）
 ├── 📤 lambda-fusion-upload/       # 文件上传（OSS、本地存储）
 ├── 🗄️ lambda-fusion-datasource/   # 数据源管理（多数据源支持）
-├── 🛡️ lambda-fusion-permission/   # API 权限控制（接口级权限）
-└── 🤖 lambda-fusion-AI/           # AI 知识库管理
+└── 🛡️ lambda-fusion-permission/   # API 权限控制（接口级权限）
+
 ```
 
 ## 🎯 核心功能
@@ -220,19 +221,10 @@ lambda-fusion-parent/
 ## 📚 相关资源
 
 - 🎯 [实战项目示例](https://gitee.com/westboy/lambda-fusion-admin)
-- 🔧 [基础框架 lamuda-cloud-parent](https://gitee.com/westboy/lamuda-cloud-parent)
-- 📖 [在线文档](https://gitee.com/westboy/lambda-fusion-admin)
 
 
 ## 📄 开源协议
 
 本项目基于 [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) 开源协议。
 
----
-
-<div align="center">
-
 **⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！**❤️
-
-
-</div>
