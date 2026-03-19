@@ -12,7 +12,6 @@ import com.lambda.fusion.authority.mapper.UserMapper;
 import com.lambda.fusion.authority.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.model.resource.Resource;
 import com.lambda.fusion.authority.model.role.AuthorityPermission;
-import com.lambda.fusion.authority.model.role.SimpleRole;
 import com.lambda.fusion.authority.model.role.UserAuthority;
 import com.lambda.fusion.authority.model.tenant.TenantEntity;
 import com.lambda.fusion.authority.model.user.ResetPassword;
@@ -227,7 +226,6 @@ public class TenantManager {
             throw AuthorityBusinessException.authNoPermission();
         }
     }
-
 
     private boolean isNotTenantAdmin(String username) {
         if (StringUtils.isBlank(username)) {
