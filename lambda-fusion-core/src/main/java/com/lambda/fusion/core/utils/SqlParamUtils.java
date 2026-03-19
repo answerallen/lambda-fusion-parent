@@ -30,5 +30,4 @@ public final class SqlParamUtils {
 
         return FusionConstants.FUZZY + escaped + FusionConstants.FUZZY;
     }
-
 }

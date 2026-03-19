@@ -4,12 +4,12 @@ import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 import cn.hutool.json.JSONUtil;
 import com.google.common.collect.Sets;
-import com.lambda.fusion.authority.support.UserInfoConverter;
 import com.lambda.fusion.authority.model.user.UserFieldsEntity;
 import com.lambda.fusion.authority.model.user.UserQuery;
 import com.lambda.fusion.authority.model.user.UserQueryContext;
 import com.lambda.fusion.authority.service.OrganizationService;
 import com.lambda.fusion.authority.service.UserService;
+import com.lambda.fusion.authority.support.UserInfoConverter;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.AuthUtils;
@@ -62,7 +62,8 @@ public class UserQueryAssembler {
 
         if (StringUtils.isNotBlank(userQuery.getPersonal())) {
             Map<String, Object> tempMap = JSONUtil.parseObj(userQuery.getPersonal());
-            List<UserFieldsEntity> fields = UserInfoConverter.buildUserFieldsFromMap(tempMap, userDetails.getUsername());
+            List<UserFieldsEntity> fields =
+                    UserInfoConverter.buildUserFieldsFromMap(tempMap, userDetails.getUsername());
             userQueryContext.setUserFields(fields);
         }
 
