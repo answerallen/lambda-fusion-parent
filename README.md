@@ -36,13 +36,13 @@ Lambda Fusion 是一个基于 [**lamuda-cloud-parent**](https://gitee.com/westbo
 lambda-fusion-parent/
 ├── 📦 lambda-fusion-bom/          # BOM 依赖管理
 ├── 🤖 lambda-fusion-ai/           # AI 知识库管理
-├── 🎯 lambda-fusion-core/         # 核心框架（CRUD、树形结构、分页等）
+├── 🎯 lambda-fusion-core/         # 核心组件
 ├── 🔐 lambda-fusion-authority/    # 权限管理（用户、角色、组织、资源）
 ├── ⚙️ lambda-fusion-config/       # 配置管理（动态配置、热更新）
 ├── 📚 lambda-fusion-dictionary/   # 数据字典（静态/动态字典）
 ├── 📤 lambda-fusion-upload/       # 文件上传（OSS、本地存储）
 ├── 🗄️ lambda-fusion-datasource/   # 数据源管理（多数据源支持）
-└── 🛡️ lambda-fusion-permission/   # API 权限控制（接口级权限）
+└── 🛡️ lambda-fusion-permission/   # 权限控制（API接口级权限、数据权限）
 
 ```
 
