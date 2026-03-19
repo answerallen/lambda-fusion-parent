@@ -7,12 +7,20 @@ import com.lambda.cloud.sse.listener.SseEventListener;
 import com.lambda.fusion.authority.inteceptor.TenantContextInterceptor;
 import com.lambda.fusion.authority.listenner.UserOnlineLogListener;
 import com.lambda.fusion.authority.listenner.UserSeeEventListener;
+import com.lambda.fusion.authority.manager.TenantManager;
+import com.lambda.fusion.authority.mapper.RoleMapper;
+import com.lambda.fusion.authority.mapper.UserInfoMapper;
+import com.lambda.fusion.authority.mapper.UserMapper;
+import com.lambda.fusion.authority.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.service.AuthenticationService;
+import com.lambda.fusion.authority.service.TenantService;
 import com.lambda.fusion.authority.service.UserOnlineLogService;
+import com.lambda.fusion.authority.service.UserService;
 import com.lambda.fusion.core.api.RemoteAuthenticationService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.datasource.service.DataSourceManageService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import java.util.concurrent.Executor;
@@ -22,6 +30,7 @@ import org.apache.dubbo.config.spring.ServiceBean;
 import org.apache.ibatis.reflection.MetaObject;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -31,6 +40,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -129,6 +139,28 @@ public class AuthorityConfigure implements WebMvcConfigurer {
     @ConditionalOnMissingBean
     public TreeDataFilter defaultTreeDataFilter() {
         return new DefaultTreeDataFilter();
+    }
+
+    @Bean
+    @ConditionalOnBean(DataSourceManageService.class)
+    public TenantManager tenantManager(
+            TenantService tenantService,
+            UserService userService,
+            UserMapper userMapper,
+            UserInfoMapper userInfoMapper,
+            UserRoleMapper userRoleMapper,
+            PasswordEncoder passwordEncoder,
+            RoleMapper roleMapper,
+            DataSourceManageService dataSourceManageService) {
+        return new TenantManager(
+                tenantService,
+                userService,
+                userMapper,
+                userInfoMapper,
+                userRoleMapper,
+                passwordEncoder,
+                roleMapper,
+                dataSourceManageService);
     }
 
     @Override

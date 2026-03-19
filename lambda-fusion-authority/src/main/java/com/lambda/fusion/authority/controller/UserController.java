@@ -132,10 +132,11 @@ public class UserController {
         if (MapUtils.isNotEmpty(createUser.getPersonal())) {
             userService.addUserFields(createUser.getPersonal(), createUser.getUsername());
         }
+        User created = userService.getByUsername(createUser.getUsername());
         if (tenantManager != null) {
-            log.info("添加租户用户");
+            tenantManager.addUser(BeanUtil.toBean(created, User.class));
         }
-        return userService.getByUsername(createUser.getUsername());
+        return created;
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000074")
@@ -146,7 +147,11 @@ public class UserController {
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody UpdateUser updateUser) {
         updateUser.setUsername(username);
         userService.updateUser(updateUser, SecurityUtils.getUser());
-        return userService.getByUsername(username);
+        User updated = userService.getByUsername(username);
+        if (tenantManager != null) {
+            tenantManager.updateUser(BeanUtil.toBean(updated, User.class));
+        }
+        return updated;
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000075")

@@ -1,33 +1,44 @@
 package com.lambda.fusion.authority.manager;
 
+import static com.lambda.fusion.core.FusionConstants.*;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
-import com.lambda.fusion.authority.mapper.ResourceMapper;
+import com.lambda.fusion.authority.helper.UserRoleHelper;
 import com.lambda.fusion.authority.mapper.RoleMapper;
 import com.lambda.fusion.authority.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.mapper.UserMapper;
+import com.lambda.fusion.authority.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.model.resource.Resource;
+import com.lambda.fusion.authority.model.role.AuthorityPermission;
 import com.lambda.fusion.authority.model.role.SimpleRole;
 import com.lambda.fusion.authority.model.tenant.TenantEntity;
 import com.lambda.fusion.authority.model.user.ResetPassword;
 import com.lambda.fusion.authority.model.user.User;
+import com.lambda.fusion.authority.model.user.UserEntity;
+import com.lambda.fusion.authority.model.user.UserInfoEntity;
+import com.lambda.fusion.authority.model.user.UserRoleEntity;
 import com.lambda.fusion.authority.service.TenantService;
 import com.lambda.fusion.authority.service.UserService;
 import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.datasource.api.DataSourceSwitcher;
+import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
+import com.lambda.fusion.datasource.service.DataSourceManageService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.core.FusionConstants.*;
 
 /**
  * 租户授权数据管理器
@@ -41,17 +52,19 @@ import static com.lambda.fusion.core.FusionConstants.*;
  *
  *
  */
-@SuppressFBWarnings({"UUF_UNUSED_FIELD", "NP_UNWRITTEN_FIELD", "UPM_UNCALLED_PRIVATE_METHOD"})
 @Slf4j
+@RequiredArgsConstructor
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TenantManager {
 
-    private TenantService tenantService;
-    private UserService userService;
-    private UserMapper userMapper;
-    private UserInfoMapper userInfoMapper;
-    private ResourceMapper resourceMapper;
-    private PasswordEncoder passwordEncoder;
-    private RoleMapper roleMapper;
+    private final TenantService tenantService;
+    private final UserService userService;
+    private final UserMapper userMapper;
+    private final UserInfoMapper userInfoMapper;
+    private final UserRoleMapper userRoleMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final RoleMapper roleMapper;
+    private final DataSourceManageService dataSourceManageService;
 
     /**
      * 保存租户映射主库中的管理员角色权限
@@ -67,13 +80,46 @@ public class TenantManager {
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void grantRolePermission(String authority, List<Resource> resources, int status) {
-        // 只处理租户管理员角色
-        if (!isTenantAdmin(authority)) {
+        if (!isTenantAdmin(authority) || resources == null || resources.isEmpty()) {
             return;
         }
-
-        // 租户管理员的authority格式是ROLE_TENANT@tenantId
-
+        Set<String> resourceIds = resources.stream()
+                .map(Resource::getId)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
+        if (resourceIds.isEmpty()) {
+            return;
+        }
+        for (String tenantId : resolveTenantIds(authority)) {
+            executeInTenantDataSource(tenantId, () -> {
+                List<String> exists = roleMapper.hasAuthorizedWithIntersection(ROLE_ADMIN, resourceIds);
+                Set<String> authorized = exists == null ? Set.of() : Set.copyOf(exists);
+                Set<String> intersection =
+                        resourceIds.stream().filter(authorized::contains).collect(Collectors.toSet());
+                if (!intersection.isEmpty()) {
+                    AuthorityPermission updatePayload = new AuthorityPermission();
+                    updatePayload.setAuthority(ROLE_ADMIN);
+                    updatePayload.setIds(intersection);
+                    updatePayload.setTenantId(null);
+                    updatePayload.setStatus(status);
+                    roleMapper.batchUpdateAuthorization(updatePayload);
+                }
+                List<AuthorityPermission> toInsert = resourceIds.stream()
+                        .filter(id -> !authorized.contains(id))
+                        .map(id -> {
+                            AuthorityPermission permission = new AuthorityPermission();
+                            permission.setAuthority(ROLE_ADMIN);
+                            permission.setId(id);
+                            permission.setStatus(status);
+                            permission.setTenantId(null);
+                            return permission;
+                        })
+                        .collect(Collectors.toList());
+                if (!toInsert.isEmpty()) {
+                    roleMapper.batchSaveAuthorization(toInsert);
+                }
+            });
+        }
     }
 
     /**
@@ -83,38 +129,41 @@ public class TenantManager {
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void revokeRolePermission(String authority, List<Resource> resources) {
-        // 只处理租户管理员角色
-        if (!isTenantAdmin(authority)) {
+        if (!isTenantAdmin(authority) || resources == null || resources.isEmpty()) {
             return;
         }
-        // 租户管理员的authority格式是ROLE_TENANT@tenantId
-
+        List<String> resourceIds = resources.stream()
+                .map(Resource::getId)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .collect(Collectors.toList());
+        if (resourceIds.isEmpty()) {
+            return;
+        }
+        for (String tenantId : resolveTenantIds(authority)) {
+            executeInTenantDataSource(
+                    tenantId, () -> roleMapper.batchDeleteAuthorization(ROLE_ADMIN, resourceIds, null));
+        }
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void addUser(User user) {
-        if (!isTenantAdmin(user)) {
+        String tenantId = resolveTenantIdForTenantAdmin(user);
+        if (StringUtils.isBlank(tenantId)) {
             return;
         }
-        // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
-        // 在租户库中视作管理员，不能有租户id
-        user.setTenantId(null);
-        List<SimpleRole> roles = new ArrayList<>();
-        roles.add(new SimpleRole(ROLE_ADMIN));
-        user.setAuthorities(roles);
-        // todo 添加用户
-        System.out.println(tenantId);
+        UserInfoEntity sourceUserInfo = userInfoMapper.selectById(user.getUsername());
+        executeInTenantDataSource(tenantId, () -> syncTenantAdminUser(user, sourceUserInfo));
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void updateUser(User user) {
-        // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
-        // 在租户库中视作管理员，不能有租户id
-        user.setTenantId(null);
-        // todo 添加用户
-        System.out.println(tenantId);
+        String tenantId = resolveTenantIdForTenantAdmin(user);
+        if (StringUtils.isBlank(tenantId)) {
+            return;
+        }
+        UserInfoEntity sourceUserInfo = userInfoMapper.selectById(user.getUsername());
+        executeInTenantDataSource(tenantId, () -> syncTenantAdminUser(user, sourceUserInfo));
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -123,10 +172,15 @@ public class TenantManager {
         if (!isTenantAdmin(user)) {
             return;
         }
-        // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
-        userService.deleteUser(SecurityUtils.getUser(), username);
-        System.out.println(tenantId);
+        String tenantId = userMapper.selectTenantIdByUsername(username);
+        if (StringUtils.isBlank(tenantId)) {
+            return;
+        }
+        executeInTenantDataSource(tenantId, () -> {
+            userRoleMapper.deleteUserRoles(username);
+            userInfoMapper.deleteById(username);
+            userMapper.deleteById(username);
+        });
     }
 
     public void resetPassword(ResetPassword resetPassword) {
@@ -139,14 +193,20 @@ public class TenantManager {
         if (!isTenantAdmin(user)) {
             return;
         }
-
-        // 租户管理员的tenantId属性为null，其所属组织id才是租户id
-        String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
+        String tenantId = userMapper.selectTenantIdByUsername(username);
         if (StringUtils.isBlank(tenantId)) {
             return;
         }
-        // 租户主库的密码要和主库的租户管理员密码同步
-        System.out.println(tenantId);
+        executeInTenantDataSource(tenantId, () -> {
+            userMapper.updatePassword(username, passwordEncoder.encode(newPassword));
+            int count = userInfoMapper.updateStatus(username, true);
+            if (count == 0) {
+                UserInfoEntity userInfoEntity = new UserInfoEntity();
+                userInfoEntity.setUsername(username);
+                userInfoEntity.setUpdatePwd(true);
+                userInfoMapper.insert(userInfoEntity);
+            }
+        });
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -155,8 +215,11 @@ public class TenantManager {
         if (!isTenantAdmin(user)) {
             return;
         }
-        String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
-        System.out.println(tenantId);
+        String tenantId = userMapper.selectTenantIdByUsername(username);
+        if (StringUtils.isBlank(tenantId)) {
+            return;
+        }
+        executeInTenantDataSource(tenantId, () -> userMapper.deactivateUser(type, username));
     }
 
     private void hasOperation(LoginUser operator, String tenantId) {
@@ -171,23 +234,130 @@ public class TenantManager {
     }
 
     private boolean isTenantAdmin(User user) {
-        boolean isTenantAdmin = false;
-        List<SimpleRole> roles = user.getAuthorities();
-        if (roles != null && !roles.isEmpty()) {
-            // 判断是否为租户管理员
-            isTenantAdmin = roles.stream().anyMatch(role -> isTenantAdmin(role.getAuthority()));
-        }
-        return isTenantAdmin;
+        List<SimpleRole> roles = user == null ? null : user.getAuthorities();
+        return roles != null
+                && !roles.isEmpty()
+                && roles.stream().map(SimpleRole::getAuthority).anyMatch(this::isTenantAdmin);
     }
 
+    private String resolveTenantIdForTenantAdmin(User user) {
+        if (!isTenantAdmin(user) || StringUtils.isBlank(user.getUsername())) {
+            return null;
+        }
+        return userMapper.selectTenantIdByUsername(user.getUsername());
+    }
 
     private List<String> getTenantIds() {
-        LambdaQueryWrapper<TenantEntity> wrapper = Wrappers.lambdaQuery(TenantEntity.class)
-                .eq(TenantEntity::getStatus, 1);
+        LambdaQueryWrapper<TenantEntity> wrapper =
+                Wrappers.lambdaQuery(TenantEntity.class).eq(TenantEntity::getStatus, 1);
         List<TenantEntity> tenants = tenantService.list(wrapper);
         if (tenants == null || tenants.isEmpty()) {
             return new ArrayList<>();
         }
         return tenants.stream().map(TenantEntity::getTenantId).collect(Collectors.toList());
+    }
+
+    private List<String> resolveTenantIds(String authority) {
+        if (ROLE_TENANT.equals(authority)) {
+            return getTenantIds();
+        }
+        String tenantId = UserRoleHelper.getTenantId(authority);
+        if (StringUtils.isBlank(tenantId)) {
+            return new ArrayList<>();
+        }
+        return List.of(tenantId);
+    }
+
+    private void executeInTenantDataSource(String tenantId, Runnable command) {
+        if (StringUtils.isBlank(tenantId) || command == null) {
+            return;
+        }
+        LoginUser operator = SecurityUtils.getUser();
+        if (operator != null) {
+            hasOperation(operator, tenantId);
+        }
+        String datasourceId = resolveTenantDatasourceId(tenantId);
+        if (StringUtils.isBlank(datasourceId)) {
+            return;
+        }
+        try (DataSourceSwitcher ignored = DataSourceSwitcher.switchTo(datasourceId)) {
+            command.run();
+        } catch (Exception exception) {
+            log.error("租户主库同步失败 tenantId={} datasourceId={}", tenantId, datasourceId, exception);
+            throw exception;
+        }
+    }
+
+    private String resolveTenantDatasourceId(String tenantId) {
+        TenantDataSourceEntity binding =
+                dataSourceManageService.getTenantDataSource(tenantId, DatabaseUsageType.TENANT);
+        if (binding == null || StringUtils.isBlank(binding.getDatasourceId())) {
+            log.warn("租户主库映射缺失 tenantId={}", tenantId);
+            return null;
+        }
+        return binding.getDatasourceId();
+    }
+
+    private void syncTenantAdminUser(User source, UserInfoEntity sourceUserInfo) {
+        String username = source.getUsername();
+        UserEntity entity = userMapper.selectById(username);
+        if (entity == null) {
+            entity = new UserEntity();
+            entity.setUsername(username);
+            entity.setCreatedAt(source.getCreatedAt() == null ? new Date() : source.getCreatedAt());
+            entity.setCreatedBy(source.getCreatedBy());
+        }
+        entity.setPassword(source.getPassword());
+        entity.setNickname(source.getNickname());
+        entity.setMobile(source.getMobile());
+        entity.setEmail(source.getEmail());
+        entity.setEnabled(source.isEnabled() ? ENABLED : DISABLED);
+        entity.setTenantId(null);
+        entity.setExpiredTime(source.getExpiredTime());
+        if (userMapper.selectById(username) == null) {
+            try {
+                userMapper.insert(entity);
+            } catch (DuplicateKeyException duplicateKeyException) {
+                userMapper.updateById(entity);
+            }
+        } else {
+            userMapper.updateById(entity);
+        }
+        userRoleMapper.deleteUserRoles(username);
+        userRoleMapper.insert(new UserRoleEntity(username, ROLE_ADMIN, null));
+        syncUserInfo(username, sourceUserInfo);
+    }
+
+    private void syncUserInfo(String username, UserInfoEntity source) {
+        if (source == null) {
+            UserInfoEntity exists = userInfoMapper.selectById(username);
+            if (exists == null) {
+                UserInfoEntity userInfoEntity = new UserInfoEntity();
+                userInfoEntity.setUsername(username);
+                userInfoMapper.insert(userInfoEntity);
+            }
+            return;
+        }
+        UserInfoEntity target = userInfoMapper.selectById(username);
+        if (target == null) {
+            target = new UserInfoEntity();
+            target.setUsername(username);
+            userInfoMapper.insert(target);
+            target = userInfoMapper.selectById(username);
+        }
+        target.setAvatar(source.getAvatar());
+        target.setRemark(source.getRemark());
+        target.setIdentityId(source.getIdentityId());
+        target.setPosition(source.getPosition());
+        target.setStatus(source.getStatus());
+        target.setEmpNo(source.getEmpNo());
+        target.setDdNo(source.getDdNo());
+        target.setDdNick(source.getDdNick());
+        target.setWechatNo(source.getWechatNo());
+        target.setUpdatePwd(source.getUpdatePwd());
+        target.setExtendParam(source.getExtendParam());
+        target.setWechatName(source.getWechatName());
+        target.setTenantId(null);
+        userInfoMapper.updateById(target);
     }
 }
