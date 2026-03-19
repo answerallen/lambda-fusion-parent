@@ -1,357 +1,148 @@
-# Lambda Fusion Authority
+# lambda-fusion-authority
 
-Lambda Fusion Authority 是 Lambda Fusion 框架中的企业级权限管理模块，基于 Lambda Cloud 构建，提供完整的 RBAC（基于角色的访问控制）解决方案，支持多租户、用户管理、角色管理、资源授权和身份认证服务。
+`lambda-fusion-authority` 是 Lambda Fusion 的权限与身份域模块，提供用户、角色、资源、组织、租户、客户端与令牌管理，并通过 Sa-Token 实现登录态与权限校验。
 
-## 项目概述
+## 模块定位
 
-本项目是 Lambda Fusion 框架的核心权限管理模块，专为企业级微服务应用设计，提供统一的权限管理、用户认证、角色授权等功能。作为 Lambda Cloud 生态的一部分，与其他模块无缝集成。
+- 提供 RBAC 领域模型与管理 API。
+- 提供登录上下文接口（菜单、权限、用户信息）。
+- 提供租户上下文拦截与多租户访问隔离入口。
+- 提供 Dubbo 形式的远程认证服务暴露能力。
 
-### 核心特性
+## 目录结构（核心）
 
-- **RBAC 权限模型**：基于角色的访问控制，支持层级权限管理
-- **多租户支持**：完整的租户隔离，独立的数据和配置
-- **用户管理**：用户增删改查、密码管理、在线状态跟踪
-- **角色管理**：角色分组、权限分配、批量用户分配
-- **资源管理**：菜单、按钮、API 接口的层级化权限控制
-- **组织架构**：多级组织结构管理
-- **缓存策略**：多级缓存（Redis + Caffeine）提升性能
-- **审计日志**：操作日志和用户活动跟踪
-- **国际化支持**：多语言资源支持
-- **Sa-Token 集成**：基于 Sa-Token 的轻量级认证授权
-- **动态权限验证**：实时权限校验和菜单生成
+```text
+src/main/java/com/lambda/fusion/
+├─ autoconfig/AuthorityAutoConfiguration.java
+└─ authority/
+   ├─ AuthorityConfigure.java
+   ├─ AuthorityProperties.java
+   ├─ AuthorityConstants.java
+   ├─ controller/ (Authentication/User/Role/Resource/Organization/Tenant/Client/ApiToken/Area)
+   ├─ service/ + service/impl/
+   ├─ mapper/ + resources/mapper/*.xml
+   ├─ model/ (user/role/resource/tenant/organization/...)
+   ├─ manager/
+   ├─ helper/
+   ├─ inteceptor/TenantContextInterceptor.java
+   └─ listenner/(UserOnlineLogListener, UserSeeEventListener)
 
-## 技术栈
-
-### 核心技术
-- **Java 21+**
-- **Spring Boot 3.x**
-- **Sa-Token** - 轻量级认证授权框架
-- **MyBatis Plus** - ORM 框架
-- **Lambda Cloud** - 基础框架依赖
-
-### 数据存储
-- **MySQL/PostgreSQL** - 关系型数据库
-- **Redis** - 缓存和会话存储
-- **Liquibase** - 数据库版本管理
-
-### Lambda Cloud Starter 集成
-- **lambda-cloud-starter-security** - 安全框架（包含 Sa-Token）
-- **lambda-cloud-starter-mybatis** - MyBatis 集成
-- **lambda-cloud-starter-redis** - Redis 集成
-- **lambda-cloud-starter-cache** - 缓存管理（Caffeine）
-- **lambda-cloud-starter-datasource** - 数据源管理
-- **lambda-cloud-starter-logger** - 日志框架
-- **lambda-cloud-starter-sms** - 短信服务
-- **lambda-cloud-starter-sse** - 服务端推送
-- **lambda-cloud-starter-liquibase** - 数据库版本管理
-- **lambda-cloud-starter-nacos** - 配置中心
-
-### 工具库
-- **MapStruct** - 对象映射
-- **Lombok** - 代码生成
-- **Hutool** - 工具库
-- **Caffeine** - 本地缓存
-
-## 项目结构
-
-```
-lambda-fusion-authority/
-├── src/main/java/com/lambda/fusion/authority/
-│   ├── user/              # 用户管理模块
-│   │   ├── controller/    # 用户相关 API 控制器
-│   │   ├── service/       # 用户业务逻辑服务
-│   │   ├── mapper/        # 用户数据访问层
-│   │   ├── model/         # 用户数据模型
-│   │   └── helper/        # 用户辅助工具类
-│   ├── role/              # 角色管理模块
-│   │   ├── controller/    # 角色相关 API 控制器
-│   │   ├── service/       # 角色业务逻辑服务
-│   │   ├── mapper/        # 角色数据访问层
-│   │   └── model/         # 角色数据模型
-│   ├── resource/          # 资源权限管理模块
-│   │   ├── controller/    # 资源相关 API 控制器
-│   │   ├── service/       # 资源业务逻辑服务
-│   │   ├── mapper/        # 资源数据访问层
-│   │   └── model/         # 资源数据模型
-│   ├── organization/      # 组织架构管理模块
-│   │   ├── controller/    # 组织相关 API 控制器
-│   │   ├── service/       # 组织业务逻辑服务
-│   │   ├── mapper/        # 组织数据访问层
-│   │   └── domain/        # 组织领域模型
-│   ├── tenant/            # 多租户支持模块
-│   │   ├── controller/    # 租户相关 API 控制器
-│   │   ├── service/       # 租户业务逻辑服务
-│   │   ├── mapper/        # 租户数据访问层
-│   │   ├── model/         # 租户数据模型
-│   │   ├── manager/       # 租户管理器
-│   │   ├── event/         # 租户事件处理
-│   │   └── cache/         # 租户缓存
-│   ├── authentication/    # 认证授权模块
-│   │   ├── controller/    # 认证相关 API 控制器
-│   │   ├── service/       # 认证业务逻辑服务
-│   │   ├── mapper/        # 认证数据访问层
-│   │   └── model/         # 认证数据模型
-│   ├── client/            # API 客户端管理模块
-│   ├── token/             # 令牌管理模块
-│   ├── area/              # 区域管理模块
-│   ├── AuthorityConfigure.java    # 权限模块配置类
-│   └── AuthorityConstants.java    # 权限常量定义
-├── src/main/resources/
-│   ├── mapper/            # MyBatis XML 映射文件
-│   └── templates/         # HTML 模板文件
-└── pom.xml
+src/main/resources/META-INF/
+├─ spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+└─ db/changelogs/lambda-authority-*.xml
 ```
 
-## 核心模块详解
+自动装配注册项：
 
-### 1. 用户管理模块 (User Management)
+```text
+com.lambda.fusion.autoconfig.AuthorityAutoConfiguration
+```
 
-**主要功能：**
-- 用户 CRUD 操作
-- 密码管理（修改、重置，支持可配置策略）
-- 用户在线状态跟踪
-- 用户资料和扩展字段管理
-- 组织绑定
-- 多租户用户隔离
-- 用户锁定/解锁功能
-- 批量用户操作
+## 自动装配机制
 
-**核心类：**
-- `UserService` - 用户业务逻辑服务
-- `UserController` - 用户 API 控制器
-- `User` - 用户数据模型
-- `UserServiceImpl` - 用户服务实现
+### AuthorityAutoConfiguration
 
-### 2. 角色管理模块 (Role Management)
+- `@AutoConfiguration(before = SecurityAutoConfiguration.class)`
+- `@Import(AuthorityConfigure.class)`
 
-**主要功能：**
-- 角色 CRUD 操作
-- 角色分组和组织
-- 权限授予/撤销
-- 内置角色支持（ROLE_SYSTEM, ROLE_ADMIN, ROLE_DEV, ROLE_USER, ROLE_MANAGER, ROLE_ORG）
-- 角色禁用/启用
-- 批量用户角色分配
-- 角色组管理
+### AuthorityConfigure
 
-**核心类：**
-- `RoleService` - 角色业务逻辑服务
-- `RoleController` - 角色 API 控制器
-- `Role` - 角色数据模型
-- `RoleServiceImpl` - 角色服务实现
+核心装配点：
 
-### 3. 资源管理模块 (Resource Management)
+- `@MapperScan("com.lambda.fusion.authority.**.mapper")`
+- `@EnableConfigurationProperties(AuthorityProperties.class)`
+- 注册 `TenantContextInterceptor` 到 `/**`（高优先级）
+- 注册 `EntityMetaFiller`（createdAt/createdBy/updatedAt/updatedBy）
+- 注册 `operationLogExecutor` 线程池
+- 条件注册：
+  - `SaTokenListener` -> `UserOnlineLogListener`
+  - `SseEventListener` -> `UserSeeEventListener`
+  - `ServiceBean<RemoteAuthenticationService>`（Dubbo 存在时）
 
-**资源类型：**
-- **Interface** - API 接口
-- **Menu** - UI 菜单
-- **Button** - UI 按钮
-- **External Link** - 外部链接
-- **Embedded Page** - 内嵌页面
+## 配置模型
 
-**主要功能：**
-- 层级化资源组织
-- 资源权限分配
-- 资源模式支持（后台/应用资源）
-- 国际化支持
+配置前缀：`lambda.fusion.authorize`
 
-### 4. 认证授权模块 (Authentication & Authorization)
+- `use-org-name-as-id` 默认 `false`
+- `password-strategy.mode` 默认 `RANDOM`（`FIXED/RANDOM/CIPHERTEXT`）
+- `password-strategy.customize` 默认 `123456`
+- `password-strategy.enable-period-change` 默认 `false`
+- `password-strategy.period-change-days` 默认 `90`
 
-**主要功能：**
-- 用户名/手机号登录
-- 基于 Sa-Token 的会话管理
-- 基于角色的导航菜单生成
-- 用户资料获取
-- 权限列表管理
-- 用户详情丰富化
-- 登录状态监听和处理
-
-**核心类：**
-- `AuthenticationService` - 认证业务逻辑服务
-- `AuthenticationServiceImpl` - 认证服务实现
-- `AuthenticationController` - 认证 API 控制器
-
-**Sa-Token 集成：**
-- 使用 `@SaCheckLogin` 进行登录校验
-- 使用 `@SaCheckRole` 进行角色权限校验
-- 通过 `StpUtil` 进行会话管理
-- 实现 `SaTokenListener` 监听登录事件
-
-### 5. 组织管理模块 (Organization Management)
-
-**主要功能：**
-- 多级组织结构
-- 父子关系管理
-- 组织所有权
-- 用户-组织绑定
-- 基于组织的权限过滤
-
-### 6. 多租户模块 (Tenant Management)
-
-**主要功能：**
-- 租户特定数据隔离
-- 租户数据库初始化
-- 租户授权管理
-- 基于域名的租户识别
-- 租户用户管理
-
-## API 接口
-
-### 用户管理 API (`/authority/users`)
-
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/` | 分页查询用户列表 |
-| GET | `/{username}` | 获取用户详情 |
-| GET | `/{username}/check` | 检查用户名是否存在 |
-| POST | `/` | 创建用户 |
-| PUT | `/{username}` | 更新用户信息 |
-| DELETE | `/{username}` | 删除用户 |
-| PUT | `/password/edit` | 修改密码 |
-| PUT | `/password/reset` | 重置密码 |
-| PATCH | `/{username}/disabled` | 禁用用户 |
-| PATCH | `/{username}/enabled` | 启用用户 |
-| PATCH | `/{username}/unlock` | 解锁用户 |
-| GET | `/{username}/permission` | 获取用户权限 |
-
-### 角色管理 API (`/authority/roles`)
-
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/` | 获取所有角色列表 |
-| GET | `/grouped` | 获取分组角色列表 |
-| GET | `/page/{number}/size/{size}` | 分页查询角色 |
-| POST | `/` | 创建角色 |
-| PUT | `/{authority}` | 更新角色 |
-| DELETE | `/{authority}` | 删除角色 |
-| PATCH | `/{authority}/disabled` | 禁用角色 |
-| PATCH | `/{authority}/enabled` | 启用角色 |
-| GET | `/{authority}/permissions` | 获取角色权限 |
-| PUT | `/{authority}/grant/{resourceId}` | 授予权限 |
-| DELETE | `/{authority}/grant/{resourceId}` | 撤销权限 |
-| POST | `/assignUsers` | 批量分配用户到角色 |
-
-## 配置说明
-
-### 权限配置 (`lambda.fusion.authorize`)
+示例：
 
 ```yaml
 lambda:
   fusion:
     authorize:
-      # 是否启用数据级角色控制
-      enabledDataRole: false
-      # 使用组织名称作为 ID
-      useOrgNameAsId: false
-      # 密码策略配置
-      passwordStrategy:
-        # 密码策略模式：RANDOM(随机), FIXED(固定), CIPHERTEXT(密文)
+      use-org-name-as-id: false
+      password-strategy:
         mode: RANDOM
-        # 固定密码值（当模式为 FIXED 时生效）
         customize: "123456"
-        # 是否启用密码定期更换
-        enablePeriodChange: false
-        # 密码有效期（天）
-        periodChangeDays: 90
-      # 开发者角色配置
-      dev:
-        # 开发者角色白名单
-        whiteList: []
+        enable-period-change: false
+        period-change-days: 90
 ```
 
-## 依赖集成
+## 核心领域与 API 边界
 
-本项目基于 Lambda Cloud 框架构建，集成了以下 Lambda Cloud Starter 库：
+主要控制器分组：
 
-- `lambda-fusion-core` - 框架核心库
-- `lambda-cloud-starter-security` - 安全框架（集成 Sa-Token）
-- `lambda-cloud-starter-logger` - 日志框架
-- `lambda-cloud-starter-sms` - 短信服务
-- `lambda-cloud-starter-datasource` - 数据源管理
-- `lambda-cloud-starter-mybatis` - MyBatis 集成
-- `lambda-cloud-starter-redis` - Redis 集成
-- `lambda-cloud-starter-liquibase` - 数据库版本管理
-- `lambda-cloud-starter-nacos` - 配置中心
-- `lambda-cloud-starter-sse` - 服务端推送
-- `lambda-cloud-starter-cache` - 缓存管理
+- `/`：认证上下文（`/menus`、`/userinfo`、`/permissions`）
+- `/authority/users`：用户管理
+- `/authority/roles`：角色管理
+- `/authority/tenant`：租户管理
+- `/authority/areas`：区域管理
+- `/authority/api-token`：令牌管理
 
-### 外部依赖
-- `caffeine` - 本地缓存实现
+领域常量与枚举：
 
-## 开发指南
+- 默认角色集合：`ROLE_SYSTEM/ROLE_ADMIN/ROLE_DEV/ROLE_USER/ROLE_MANAGER/ROLE_ORG/ROLE_TENANT_MANAGER`
+- `RoleType`：功能角色 / 数据角色
+- `MenuType`：菜单 / 内嵌页 / 按钮 / 接口 / 外链
 
-### 权限注解使用
+## 认证与授权链路
 
-使用 Sa-Token 提供的权限注解进行接口保护：
+`AuthenticationServiceImpl` 关键行为：
 
-```java
-@RestController
-public class UserController {
-    
-    // 登录校验
-    @SaCheckLogin
-    @GetMapping("/users")
-    public List<User> getUsers() {
-        return userService.getAllUsers();
-    }
-    
-    // 角色校验
-    @SaCheckRole("ROLE_ADMIN")
-    @PostMapping("/users")
-    public User createUser(@RequestBody User user) {
-        return userService.createUser(user);
-    }
-}
-```
+1. 按用户名/手机号查询用户认证信息。
+2. 聚合角色权限与接口权限。
+3. 根据角色生成导航菜单树并填充路由元数据。
+4. 输出当前登录用户信息（含 token、角色、头像等）。
 
-### 扩展用户字段
+租户角色处理特点：
 
-可以通过 `UserFields` 机制扩展用户属性：
+- 存在 `ROLE_TENANT@orgId` 的角色重写逻辑。
+- 会尝试从 `TenantHolder` 注入当前租户上下文。
 
-```java
-// 在用户创建时添加自定义字段
-Map<String, Object> customFields = new HashMap<>();
-customFields.put("department", "技术部");
-customFields.put("position", "高级工程师");
-user.setPersonal(customFields);
-```
+## 租户上下文拦截
 
-### 继承 AbstractCrudService
+`TenantContextInterceptor` 顺序：
 
-利用框架提供的通用 CRUD 服务：
+1. 优先读取请求头 `TENANT_ID_HEADER`。
+2. 若缺失，按 `serverName` 从 Redis 映射表回查租户。
+3. 请求结束后清理 `TenantContextHolder`。
 
-```java
-@Service
-public class CustomUserService extends AbstractCrudService<UserEntity, UserVO, UserMapper> {
-    
-    // 获取用户 VO 分页数据
-    public IPage<UserVO> getUserPage(IPage<UserEntity> page, QueryWrapper<UserEntity> wrapper) {
-        return pageForVO(page, wrapper);
-    }
-}
-```
+## 事件监听与在线状态
 
-### 多租户数据隔离
+- `UserOnlineLogListener`：监听 Sa-Token 登录/登出事件，记录在线状态。
+- `UserSeeEventListener`：监听 SSE 连接事件并回调在线服务。
 
-系统自动根据当前用户的租户 ID 进行数据隔离，无需额外配置。
+## 依赖说明
 
-### 监听用户登录事件
+关键依赖（见 `pom.xml`）：
 
-实现 Sa-Token 监听器处理用户登录事件：
+- `com.lambda.cloud:lambda-fusion-core`
+- `com.lambda.cloud:lambda-fusion-permission`
+- `com.lambda.cloud:lambda-cloud-starter-security`
+- `com.lambda.cloud:lambda-cloud-starter-mybatis`
+- `com.lambda.cloud:lambda-cloud-starter-redis`
+- `com.lambda.cloud:lambda-cloud-starter-liquibase`
+- `com.lambda.cloud:lambda-cloud-starter-cache`
+- `com.lambda.cloud:lambda-cloud-starter-sse`
+- `com.lambda.cloud:lambda-cloud-starter-dubbo`（optional）
 
-```java
-@Component
-public class UserLoginListener extends SaTokenListenerForSimple {
-    
-    @Override
-    public void doLogin(String loginType, Object loginId, String tokenValue, SaLoginModel loginModel) {
-        // 处理用户登录逻辑
-        log.info("用户登录: {}", loginId);
-    }
-    
-    @Override
-    public void doLogout(String loginType, Object loginId, String tokenValue) {
-        // 处理用户登出逻辑
-        log.info("用户登出: {}", loginId);
-    }
-}
-```
+## 当前实现约束
+
+- `TenantContextInterceptor` 强依赖 `RedisHelper` 进行域名到租户映射回查。
+- `EntityMetaFiller` 依赖 `SecurityUtils.getUser()`，匿名上下文下需关注填充行为。
+- `UserSeeEventListener` 的在线/离线回调语义与方法名相反，接入时需按源码行为验证。

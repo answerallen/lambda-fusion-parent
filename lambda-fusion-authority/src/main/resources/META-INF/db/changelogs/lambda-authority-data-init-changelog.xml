@@ -3,7 +3,7 @@
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <changeSet id="lambda-authority-202603120021" author="westboy">
+    <changeSet id="lambda-authority-2026031200211" author="westboy">
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="la_role_groups"/>
             <sqlCheck expectedResult="0">
@@ -16,7 +16,7 @@
         </insert>
     </changeSet>
 
-    <changeSet id="lambda-authority-202603120022" author="westboy">
+    <changeSet id="lambda-authority-2026031200221" author="westboy">
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="la_roles"/>
             <sqlCheck expectedResult="0">
@@ -60,7 +60,7 @@
         </insert>
     </changeSet>
 
-    <changeSet id="lambda-authority-202603120025" author="westboy">
+    <changeSet id="lambda-authority-2026031200251" author="westboy">
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="la_users"/>
             <sqlCheck expectedResult="0">
@@ -79,7 +79,7 @@
         </insert>
     </changeSet>
 
-    <changeSet id="lambda-authority-202603120026" author="westboy">
+    <changeSet id="lambda-authority-2026031200261" author="westboy">
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="la_user_info"/>
             <sqlCheck expectedResult="0">
@@ -88,12 +88,12 @@
         </preConditions>
         <insert tableName="la_user_info">
             <column name="USERNAME" value="13303820660"/>
-            <column name="REMARK" value="456789***000"/>
+            <column name="REMARK" value=""/>
             <column name="PASSWORD_RESET_REQUIRED" valueNumeric="1"/>
         </insert>
     </changeSet>
 
-    <changeSet id="lambda-authority-202603120027" author="westboy">
+    <changeSet id="lambda-authority-2026031200271" author="westboy">
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="la_user_roles"/>
             <sqlCheck expectedResult="0">
@@ -106,7 +106,7 @@
         </insert>
     </changeSet>
 
-    <changeSet id="lambda-authority-202603120029" author="westboy">
+    <changeSet id="lambda-authority-2026031200291" author="westboy">
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="la_resources"/>
             <sqlCheck expectedResult="0">
@@ -114,55 +114,57 @@
             </sqlCheck>
         </preConditions>
         <sql><![CDATA[
-            INSERT INTO la_resources (ID, PARENT_ID, RES_NAME, RES_PATH, RES_LEVEL, RES_TYPE, RES_URL, RES_MODE, METHOD, ICON, HIDDEN, PARENT_KEYS, IS_DEV, REMARK, URL, KEY_NAME, KEEP_ALIVE, EXPAND, BUSINESS_EXPAND, ORDER_NO) VALUES
-            ('jw1MUnwu',NULL,'系统管理','/system',0,1,NULL,0,NULL,'ion:settings-outline',0,NULL,0,NULL,NULL,NULL,0,NULL,NULL,1),
-            ('2022298020778496002','jw1MUnwu','区域管理','/system/area',0,1,NULL,0,NULL,'carbon:chart-area',0,'jw1MUnwu',0,NULL,NULL,NULL,0,NULL,NULL,12),
-            ('1uYLUsrN','jw1MUnwu','资源管理','/system/menu',1,1,NULL,0,NULL,'lucide:menu',0,'jw1MUnwu',1,NULL,NULL,NULL,0,NULL,NULL,1),
-            ('7U9hMmAv','jw1MUnwu','租户管理','/system/tenant',1,1,NULL,0,'','lucide:building',0,'jw1MUnwu',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false,\"cacheIframe\":null}',NULL,3),
-            ('9e4sWAdn','jw1MUnwu','角色管理','/system/role',1,1,NULL,0,NULL,'carbon:ibm-quantum-safe-explorer',0,'jw1MUnwu',0,NULL,NULL,NULL,0,NULL,NULL,4),
-            ('HbkspYqi','jw1MUnwu','用户管理','/system/user',1,1,NULL,0,NULL,'lucide:users',0,'jw1MUnwu',0,NULL,NULL,NULL,0,NULL,NULL,5),
-            ('SBctwOO4','jw1MUnwu','组织管理','/system/organization',1,1,NULL,0,NULL,'carbon:group-presentation',0,'jw1MUnwu',0,NULL,NULL,NULL,0,NULL,NULL,6),
-            ('4y3O6666','jw1MUnwu','客户端管理','/system/client',1,1,NULL,0,'','carbon:application-web',0,'jw1MUnwu',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false,\"cacheIframe\":true}',NULL,7),
-            ('4y3OpJFy','jw1MUnwu','字典管理','/system/dict',1,1,NULL,0,NULL,'lucide:book-open',0,'jw1MUnwu',0,NULL,NULL,NULL,0,NULL,NULL,8),
-            ('ORvXmJpF','jw1MUnwu','系统日志','/system/logs',1,1,NULL,0,NULL,'carbon:catalog-publish',1,'jw1MUnwu',0,NULL,NULL,NULL,0,NULL,NULL,9),
-            ('OaiclMMf','jw1MUnwu','系统配置','/system/config',1,1,'https://hlcxcx.hua001.net/?id=1812000000118401',0,NULL,'carbon:document-configuration',0,'jw1MUnwu',1,NULL,'',NULL,0,NULL,NULL,10),
-            ('YZELcKaI','jw1MUnwu','文件管理','/system/upload',1,1,NULL,0,NULL,'carbon:ibm-cloud-vpc-file-storage',0,'jw1MUnwu',0,NULL,NULL,NULL,0,NULL,NULL,11),
-            ('2663836d','jw1MUnwu','数据源管理','/system/datasource',1,1,NULL,0,NULL,'carbon:database-messaging',0,'jw1MUnwu',0,NULL,NULL,NULL,0,NULL,NULL,12),
-            ('9ThLkx7r','1uYLUsrN','新增资源','resource_add',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-1uYLUsrN',1,NULL,NULL,NULL,0,NULL,NULL,1),
-            ('dKS0HiMX','SBctwOO4','新增组织','org_add',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-SBctwOO4',0,NULL,NULL,NULL,0,NULL,NULL,1),
-            ('LoRUXWNx','HbkspYqi','新增用户','user_add',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-HbkspYqi',0,NULL,NULL,NULL,0,NULL,NULL,1),
-            ('SGA8j7Hw','4y3OpJFy','新增','dict_add',2147483647,3,NULL,0,'','',0,'jw1MUnwu-4y3OpJFy',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false}\"',NULL,1),
-            ('SXY72GTE','9e4sWAdn','权限设置','role_permission',2147483647,3,NULL,0,NULL,NULL,0,'jw1MUnwu-9e4sWAdn',0,NULL,NULL,NULL,0,NULL,NULL,1),
-            ('9ATivEP1','SBctwOO4','修改组织','org_update',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-SBctwOO4',0,NULL,NULL,NULL,0,NULL,NULL,2),
-            ('LEpQx7uf','HbkspYqi','更新用户','user_edit',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-HbkspYqi',0,NULL,NULL,NULL,0,NULL,NULL,2),
-            ('O4HbLPnb','1uYLUsrN','更新资源','resource_edit',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-1uYLUsrN',1,NULL,NULL,NULL,0,NULL,NULL,2),
-            ('SEweDODm','9e4sWAdn','新增角色','role_add',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-9e4sWAdn',0,NULL,NULL,NULL,0,NULL,NULL,2),
-            ('VxFZl4Zf','4y3OpJFy','编辑','dict_edit',2147483647,3,NULL,0,'','',0,'jw1MUnwu-4y3OpJFy',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false}\"',NULL,2),
-            ('gYWs1nx8','4y3OpJFy','删除','dict_delete',2147483647,3,NULL,0,'','',0,'jw1MUnwu-4y3OpJFy',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false}\"',NULL,3),
-            ('sr0Cjp0o','1uYLUsrN','删除资源','resource_delete',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-1uYLUsrN',1,NULL,NULL,NULL,0,NULL,NULL,3),
-            ('UFW4x4OQ','HbkspYqi','删除用户','user_delete',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-HbkspYqi',0,NULL,NULL,NULL,0,NULL,NULL,3),
-            ('xUmLnLQy','9e4sWAdn','更新角色','role_edit',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-9e4sWAdn',0,NULL,NULL,NULL,0,NULL,NULL,3),
-            ('y3hanied','SBctwOO4','删除组织','org_delete',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-SBctwOO4',0,NULL,NULL,NULL,0,NULL,NULL,3),
-            ('02qO2Uxa','4y3OpJFy','管理键值','dict_manage',2147483647,3,NULL,0,'','',0,'jw1MUnwu-4y3OpJFy',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false}\"',NULL,4),
-            ('2HflHpka','9e4sWAdn','删除角色','role_delete',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-9e4sWAdn',0,NULL,NULL,NULL,0,NULL,NULL,4),
-            ('PjHaWJx2','HbkspYqi','查看菜单权限','user_menu_view',2147483647,3,NULL,0,'','',0,'jw1MUnwu-HbkspYqi',0,NULL,NULL,NULL,0,NULL,NULL,4),
-            ('qfyqs8ON','SBctwOO4','创建根组织','org_top_add',2147483647,3,NULL,0,NULL,NULL,0,'jw1MUnwu-SBctwOO4',0,NULL,NULL,NULL,0,NULL,NULL,4),
-            ('WohiuT0I','1uYLUsrN','移动资源','resource_move',2147483647,3,NULL,0,'',NULL,0,'jw1MUnwu-1uYLUsrN',1,NULL,NULL,NULL,0,NULL,NULL,4),
-            ('2016432791681531905','4y3OpJFy','字典删除','/',2147483647,3,'/',0,NULL,NULL,0,'jw1MUnwu-4y3OpJFy',0,NULL,NULL,NULL,0,NULL,NULL,5),
-            ('3XqeIyvx','9e4sWAdn','角色设置','role_settings',2147483647,3,NULL,0,'','',0,'jw1MUnwu-9e4sWAdn',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false}\"',NULL,5),
-            ('5QLeOz8j','1uYLUsrN','接口权限设置','resource_api_permission',2147483647,3,NULL,0,NULL,NULL,0,'jw1MUnwu-1uYLUsrN',1,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false,\"cacheIframe\":null}',NULL,5),
-            ('7VSFrGbK','HbkspYqi','菜单权限设置','user_menu_set',2147483647,3,NULL,0,'','',0,'jw1MUnwu-HbkspYqi',0,NULL,NULL,NULL,0,NULL,NULL,5),
-            ('Y8VMO5MS','SBctwOO4','组织禁用','org_disable',2147483647,3,NULL,0,'','',0,'jw1MUnwu-SBctwOO4',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false}\"',NULL,5),
-            ('8xKLkmLg','HbkspYqi','查看数据权限','user_data_view',2147483647,3,NULL,0,'','',0,'jw1MUnwu-HbkspYqi',0,NULL,NULL,NULL,0,NULL,NULL,6),
-            ('TiO5ZiKz','SBctwOO4','组织启用','org_enable',2147483647,3,NULL,0,'','',0,'jw1MUnwu-SBctwOO4',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false}\"',NULL,6),
-            ('zipushcB','9e4sWAdn','角色禁用启用','role_enable_disable',2147483647,3,NULL,0,'','',0,'jw1MUnwu-9e4sWAdn',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false}\"',NULL,6),
-            ('0saIaeyh','9e4sWAdn','角色分配用户','role_set_users',2147483647,3,NULL,0,'','',0,'jw1MUnwu-9e4sWAdn',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false}\"',NULL,7),
-            ('l7ixBSOA','HbkspYqi','数据权限设置','user_data_set',2147483647,3,NULL,0,'','',0,'jw1MUnwu-HbkspYqi',0,NULL,NULL,NULL,0,NULL,NULL,7),
-            ('XAhoKjZM','SBctwOO4','数据权限设置','org_data_permission',2147483647,3,NULL,0,'','',0,'jw1MUnwu-SBctwOO4',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false}\"',NULL,7),
-            ('RqF8NqkW','HbkspYqi','权限复制','user_permission_copy',2147483647,3,NULL,0,'','',0,'jw1MUnwu-HbkspYqi',0,NULL,NULL,NULL,0,NULL,NULL,8),
-            ('MI11NxXp','HbkspYqi','用户在线配置','user_settings',2147483647,3,NULL,0,'','',0,'jw1MUnwu-HbkspYqi',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false}\"',NULL,9),
-            ('2kjRp1vy','HbkspYqi','禁用/启用','user_disable',2147483647,3,NULL,0,NULL,NULL,0,'jw1MUnwu-HbkspYqi',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false,\"cacheIframe\":false}',NULL,10),
-            ('szZb5mA7','HbkspYqi','解锁','user_unlock',2147483647,3,NULL,0,NULL,NULL,0,'jw1MUnwu-HbkspYqi',0,NULL,NULL,NULL,0,'{\"strWindowName\":\"_blank\",\"token\":false,\"cacheIframe\":null}',NULL,11);
+insert into lambda_cloud.la_resources (ID, PARENT_ID, RES_NAME, RES_PATH, RES_LEVEL, RES_TYPE, RES_URL, RES_MODE, METHOD, ICON, HIDDEN, PARENT_KEYS, IS_DEV, REMARK, URL, KEY_NAME, KEEP_ALIVE, EXPAND, BUSINESS_EXPAND, ORDER_NO)
+values  ('02qO2Uxa', '4y3OpJFy', '管理键值', 'dict_manage', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-4y3OpJFy', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 4),
+        ('0saIaeyh', '9e4sWAdn', '角色分配用户', 'role_set_users', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-9e4sWAdn', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 7),
+        ('1uYLUsrN', 'jw1MUnwu', '资源管理', '/system/menu/', 1, 1, null, 0, null, 'lucide:menu', 0, 'jw1MUnwu', 1, null, null, null, 0, null, null, 1),
+        ('2016432791681531905', '4y3OpJFy', '字典删除', '/', 2147483647, 3, 'dict_info_delect', 0, null, null, 0, 'jw1MUnwu-4y3OpJFy', 0, null, null, null, 1, null, null, 5),
+        ('2022298020778496002', 'jw1MUnwu', '区域管理', '/system/area/', 0, 1, null, 0, null, 'carbon:chart-area', 0, 'jw1MUnwu', 0, null, null, null, 0, null, null, 11),
+        ('2031979512438812672', 'jw1MUnwu', '系统设置', '/system/config/settings', 1, 1, null, 0, null, 'carbon:cloud-satellite-config', 0, 'jw1MUnwu', 0, null, null, null, 0, null, null, 10),
+        ('2032013239035969536', 'jw1MUnwu', '配置编排', '/system/config/settings-designer', 1, 1, null, 0, null, 'carbon:apps', 1, 'jw1MUnwu', 0, null, null, null, 0, null, null, 14),
+        ('2663836d', 'jw1MUnwu', '数据源管理', '/system/datasource/', 1, 1, null, 0, null, 'carbon:database-messaging', 0, 'jw1MUnwu', 0, null, null, null, 0, null, null, 12),
+        ('2HflHpka', '9e4sWAdn', '删除角色', 'role_delete', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-9e4sWAdn', 0, null, null, null, 0, null, null, 4),
+        ('2kjRp1vy', 'HbkspYqi', '禁用/启用', 'user_disable', 2147483647, 3, null, 0, null, null, 0, 'jw1MUnwu-HbkspYqi', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false,"cacheIframe":false}', null, 10),
+        ('3XqeIyvx', '9e4sWAdn', '角色设置', 'role_settings', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-9e4sWAdn', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 5),
+        ('4y3O6666', 'jw1MUnwu', '客户端管理', '/system/client/', 1, 1, null, 0, '', 'carbon:application-web', 0, 'jw1MUnwu', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false,"cacheIframe":true}', null, 6),
+        ('4y3OpJFy', 'jw1MUnwu', '字典管理', '/system/dict/', 1, 1, null, 0, null, 'lucide:book-open', 0, 'jw1MUnwu', 0, null, null, null, 0, null, null, 7),
+        ('5QLeOz8j', '1uYLUsrN', '接口权限设置', 'resource_api_permission', 2147483647, 3, null, 0, null, null, 0, 'jw1MUnwu-1uYLUsrN', 1, null, null, null, 0, '{"strWindowName":"_blank","token":false,"cacheIframe":null}', null, 5),
+        ('7U9hMmAv', 'jw1MUnwu', '租户管理', '/system/tenant/', 1, 1, null, 0, '', 'lucide:building', 0, 'jw1MUnwu', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false,"cacheIframe":null}', null, 2),
+        ('7VSFrGbK', 'HbkspYqi', '菜单权限设置', 'user_menu_set', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-HbkspYqi', 0, null, null, null, 0, null, null, 5),
+        ('8xKLkmLg', 'HbkspYqi', '查看数据权限', 'user_data_view', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-HbkspYqi', 0, null, null, null, 0, null, null, 6),
+        ('9ATivEP1', 'SBctwOO4', '修改组织', 'org_update', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-SBctwOO4', 0, null, null, null, 0, null, null, 2),
+        ('9e4sWAdn', 'jw1MUnwu', '角色管理', '/system/role/', 1, 1, null, 0, null, 'carbon:ibm-quantum-safe-explorer', 0, 'jw1MUnwu', 0, null, null, null, 0, null, null, 3),
+        ('9ThLkx7r', '1uYLUsrN', '新增资源', 'resource_add', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-1uYLUsrN', 1, null, null, null, 0, null, null, 1),
+        ('dKS0HiMX', 'SBctwOO4', '新增组织', 'org_add', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-SBctwOO4', 0, null, null, null, 0, null, null, 1),
+        ('gYWs1nx8', '4y3OpJFy', '删除', 'dict_delete', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-4y3OpJFy', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 3),
+        ('HbkspYqi', 'jw1MUnwu', '用户管理', '/system/user/', 1, 1, null, 0, null, 'lucide:users', 0, 'jw1MUnwu', 0, null, null, null, 0, null, null, 4),
+        ('jw1MUnwu', null, '系统管理', '/system', 0, 1, null, 0, null, 'ion:settings-outline', 0, null, 0, null, null, null, 0, null, null, 1),
+        ('l7ixBSOA', 'HbkspYqi', '数据权限设置', 'user_data_set', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-HbkspYqi', 0, null, null, null, 0, null, null, 7),
+        ('LEpQx7uf', 'HbkspYqi', '更新用户', 'user_edit', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-HbkspYqi', 0, null, null, null, 0, null, null, 2),
+        ('LoRUXWNx', 'HbkspYqi', '新增用户', 'user_add', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-HbkspYqi', 0, null, null, null, 0, null, null, 1),
+        ('MI11NxXp', 'HbkspYqi', '用户在线配置', 'user_settings', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-HbkspYqi', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 9),
+        ('O4HbLPnb', '1uYLUsrN', '更新资源', 'resource_edit', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-1uYLUsrN', 1, null, null, null, 0, null, null, 2),
+        ('OaiclMMf', 'jw1MUnwu', '系统配置', '/system/config/', 1, 1, 'https://hlcxcx.hua001.net/?id=1812000000118401', 0, null, 'carbon:document-configuration', 0, 'jw1MUnwu', 1, null, '', null, 0, null, null, 9),
+        ('ORvXmJpF', 'jw1MUnwu', '系统日志', '/system/logs/', 1, 1, null, 0, null, 'carbon:catalog-publish', 1, 'jw1MUnwu', 0, null, null, null, 0, null, null, 8),
+        ('PjHaWJx2', 'HbkspYqi', '查看菜单权限', 'user_menu_view', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-HbkspYqi', 0, null, null, null, 0, null, null, 4),
+        ('qfyqs8ON', 'SBctwOO4', '创建根组织', 'org_top_add', 2147483647, 3, null, 0, null, null, 0, 'jw1MUnwu-SBctwOO4', 0, null, null, null, 0, null, null, 4),
+        ('RqF8NqkW', 'HbkspYqi', '权限复制', 'user_permission_copy', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-HbkspYqi', 0, null, null, null, 0, null, null, 8),
+        ('SBctwOO4', 'jw1MUnwu', '组织管理', '/system/organization/', 1, 1, null, 0, null, 'carbon:group-presentation', 0, 'jw1MUnwu', 0, null, null, null, 0, null, null, 5),
+        ('SEweDODm', '9e4sWAdn', '新增角色', 'role_add', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-9e4sWAdn', 0, null, null, null, 0, null, null, 2),
+        ('SGA8j7Hw', '4y3OpJFy', '新增', 'dict_add', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-4y3OpJFy', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 1),
+        ('sr0Cjp0o', '1uYLUsrN', '删除资源', 'resource_delete', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-1uYLUsrN', 1, null, null, null, 0, null, null, 3),
+        ('SXY72GTE', '9e4sWAdn', '权限设置', 'role_permission', 2147483647, 3, null, 0, null, null, 0, 'jw1MUnwu-9e4sWAdn', 0, null, null, null, 0, null, null, 1),
+        ('szZb5mA7', 'HbkspYqi', '解锁', 'user_unlock', 2147483647, 3, null, 0, null, null, 0, 'jw1MUnwu-HbkspYqi', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false,"cacheIframe":null}', null, 11),
+        ('TiO5ZiKz', 'SBctwOO4', '组织启用', 'org_enable', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-SBctwOO4', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 6),
+        ('UFW4x4OQ', 'HbkspYqi', '删除用户', 'user_delete', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-HbkspYqi', 0, null, null, null, 0, null, null, 3),
+        ('VxFZl4Zf', '4y3OpJFy', '编辑', 'dict_edit', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-4y3OpJFy', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 2),
+        ('WohiuT0I', '1uYLUsrN', '移动资源', 'resource_move', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-1uYLUsrN', 1, null, null, null, 0, null, null, 4),
+        ('XAhoKjZM', 'SBctwOO4', '数据权限设置', 'org_data_permission', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-SBctwOO4', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 7),
+        ('xUmLnLQy', '9e4sWAdn', '更新角色', 'role_edit', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-9e4sWAdn', 0, null, null, null, 0, null, null, 3),
+        ('y3hanied', 'SBctwOO4', '删除组织', 'org_delete', 2147483647, 3, null, 0, '', null, 0, 'jw1MUnwu-SBctwOO4', 0, null, null, null, 0, null, null, 3),
+        ('Y8VMO5MS', 'SBctwOO4', '组织禁用', 'org_disable', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-SBctwOO4', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 5),
+        ('YZELcKaI', 'jw1MUnwu', '文件管理', '/system/upload/', 1, 1, null, 0, null, 'carbon:ibm-cloud-vpc-file-storage', 0, 'jw1MUnwu', 0, null, null, null, 0, null, null, 10),
+        ('zipushcB', '9e4sWAdn', '角色禁用启用', 'role_enable_disable', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-9e4sWAdn', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 6);
         ]]></sql>
     </changeSet>
 
