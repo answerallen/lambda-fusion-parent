@@ -7,7 +7,7 @@ import com.lambda.fusion.authority.model.role.SimpleRole;
 import com.lambda.fusion.authority.model.user.User;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import jakarta.validation.constraints.NotNull;
 import java.util.Collection;
 import org.apache.commons.lang.StringUtils;
@@ -15,7 +15,7 @@ import org.apache.commons.lang.StringUtils;
 public class AuthorityHelper {
 
     public static boolean isSelf(User user) {
-        UserDetails loginUser = SecurityUtils.getUser();
+        UserDetails loginUser = AuthUtils.getUser();
         return loginUser.getUsername().equals(user.getUsername());
     }
 

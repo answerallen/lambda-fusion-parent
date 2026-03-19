@@ -17,7 +17,7 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.core.utils.SqlParamUtils;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;
 import com.lambda.fusion.dict.mapper.DictTypeMapper;
@@ -66,7 +66,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
 
     @Override
     public List<DictInfo> selectDictInfo(QueryDictInfo queryDTO) {
-        String tenantId = SecurityUtils.getUser().getTenantId();
+        String tenantId = AuthUtils.getUser().getTenantId();
         List<DictInfo> dictInfos = dictInfoMapper.selectDictInfo(new LambdaQueryWrapper<DictInfo>()
                 .eq(DictInfo::getDictType, queryDTO.getDictType())
                 .eq(StrUtil.isNotEmpty(tenantId), DictInfo::getTenantId, tenantId)
@@ -220,7 +220,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         } else {
             ids.add(dictTypeTreeEntity.getId());
         }
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         List<DictInfo> outcomes = dictInfoMapper.treeList(ids, userDetails.getTenantId());
         return TreeBuilder.build(outcomes);
     }
@@ -229,7 +229,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
     public List<DictInfo> getSubTreeData(String dictType) {
         List<DictInfo> outcomes = new ArrayList<>();
         if (StringUtils.isNotBlank(dictType)) {
-            UserDetails userDetails = SecurityUtils.getUser();
+            UserDetails userDetails = AuthUtils.getUser();
             LambdaQueryWrapper<DictTypeTree> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(DictTypeTree::getDictType, dictType);
             DictTypeTree dictTypeTreeEntity = dictTypeMapper.selectOne(wrapper);
@@ -278,7 +278,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         }
         wrapper.setLevel(dictionaryEntry.getLevel());
         wrapper.setDictType(dictionaryEntry.getDictType());
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         wrapper.setTenantId(userDetails.getTenantId());
 
         List<DictInfo> target = dictInfoMapper.getDictInfoList(wrapper);

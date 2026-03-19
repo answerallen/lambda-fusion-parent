@@ -4,7 +4,7 @@ import static com.lambda.fusion.dict.DictConstants.*;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.fusion.core.identity.UserDetails;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.dict.model.*;
 import com.lambda.fusion.dict.service.DictInfoService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -49,7 +49,7 @@ public class DictInfoController {
     @PostMapping
     @Operation(summary = "添加字典详细信息", description = "添加字典详细信息")
     public DictInfo saveDictInfo(@Valid @RequestBody DictInfo dictInfo) {
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         if (StringUtils.isNotBlank(userDetails.getTenantId())) {
             dictInfo.setTenantId(userDetails.getTenantId());
         }

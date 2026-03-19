@@ -6,7 +6,7 @@ import com.lambda.fusion.authority.model.authentication.MenuRoute;
 import com.lambda.fusion.authority.model.user.UserProfile;
 import com.lambda.fusion.core.api.RemoteAuthenticationService;
 import com.lambda.fusion.core.identity.UserDetails;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import java.util.List;
 
 /**
@@ -42,7 +42,7 @@ public interface AuthenticationService extends RemoteAuthenticationService {
      * @return 导航菜单列表
      */
     default List<MenuRoute> getUserMenus(MenuQuery query) {
-        return getUserMenus(SecurityUtils.getUser(), query.getParentId(), query.getLevel());
+        return getUserMenus(AuthUtils.getUser(), query.getParentId(), query.getLevel());
     }
 
     /**

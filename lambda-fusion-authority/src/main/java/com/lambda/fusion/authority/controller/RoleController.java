@@ -11,7 +11,7 @@ import com.lambda.fusion.authority.model.role.*;
 import com.lambda.fusion.authority.service.RoleService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.core.utils.SqlParamUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,7 +42,7 @@ public class RoleController {
     @GetMapping
     @Operation(description = "获取所有角色列表", summary = "获取所有角色列表")
     public List<Role> list() {
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         return roleService.queryRoles(userDetails);
     }
 
@@ -53,7 +53,7 @@ public class RoleController {
             summary = "获取所有角色分组列表",
             parameters = {@Parameter(name = "tenant_id", description = "租户id")})
     public List<GroupRole> grouped() {
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         return roleService.groupedRoles(userDetails, userDetails.getTenantId());
     }
 
@@ -65,7 +65,7 @@ public class RoleController {
             @PathVariable(required = false) Integer size,
             String alias,
             String groupId) {
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         Map<String, Object> parameters = Maps.newHashMapWithExpectedSize(4);
         if (ObjectUtil.isNotNull(groupId)) {
             parameters.put(AuthorityConstants.GROUP_ID, groupId);
@@ -111,7 +111,7 @@ public class RoleController {
     @PostMapping
     @Operation(description = "新增角色信息", summary = "新增角色信息")
     public Role add(@Parameter(description = "角色信息", required = true) @RequestBody CreateRole createRole) {
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         return roleService.saveRole(userDetails, createRole);
     }
 
@@ -123,7 +123,7 @@ public class RoleController {
             @Parameter(description = "角色信息", required = true) @RequestBody UpdateRole updateRole) {
         Assert.notNull(authority, "角色名称不能为空！");
         updateRole.setAuthority(authority);
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         return roleService.updateRole(userDetails, updateRole);
     }
 
@@ -157,7 +157,7 @@ public class RoleController {
     public List<AccessPermission> getAccessPermission(
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "模式-0:后台资源,1:APP资源") Integer mode) {
-        return roleService.getAccessPermission(SecurityUtils.getUser(), authority, mode);
+        return roleService.getAccessPermission(AuthUtils.getUser(), authority, mode);
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000051")
@@ -169,7 +169,7 @@ public class RoleController {
             @Parameter(description = "授权模式.-0:仅使用,1:可管理", schema = @Schema(defaultValue = "1"))
                     @RequestParam(defaultValue = "1")
                     Integer status) {
-        roleService.grantRolePermission(authority, resourceId, status, SecurityUtils.getUser());
+        roleService.grantRolePermission(authority, resourceId, status, AuthUtils.getUser());
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000052")
@@ -178,14 +178,14 @@ public class RoleController {
     public void revokeRolePermission(
             @Parameter(description = "角色名称", required = true) @PathVariable String authority,
             @Parameter(description = "资源编号", required = true) @PathVariable String resourceId) {
-        roleService.revokeRolePermission(authority, resourceId, SecurityUtils.getUser());
+        roleService.revokeRolePermission(authority, resourceId, AuthUtils.getUser());
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000053")
     @Operation(description = "角色批量分配用户", summary = "角色批量分配用户")
     @PostMapping("/assignUsers")
     public void assignUsersToRole(@Valid @RequestBody BatchAssignUserRole req) {
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         roleService.assignUsersToRole(userDetails, req);
     }
 
@@ -193,7 +193,7 @@ public class RoleController {
     @Operation(description = "分组列表", summary = "分组列表")
     @GetMapping("/group")
     public List<Group> listGroups() {
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         return roleService.listGroups(userDetails);
     }
 

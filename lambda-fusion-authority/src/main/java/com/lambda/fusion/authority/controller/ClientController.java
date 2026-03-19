@@ -9,7 +9,7 @@ import com.lambda.fusion.authority.model.client.UpsertClient;
 import com.lambda.fusion.authority.model.resource.ApiPermissionTreeNode;
 import com.lambda.fusion.authority.service.ClientService;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,7 +38,7 @@ public class ClientController {
         if (size != null) {
             clientQuery.setPageSize(size);
         }
-        clientQuery.setTenantId(SecurityUtils.getTenantId());
+        clientQuery.setTenantId(AuthUtils.getTenantId());
         return clientService.page(clientQuery.getPage(), clientQuery.getLambdaQueryWrapper());
     }
 
@@ -54,7 +54,7 @@ public class ClientController {
     @Operation(summary = "新增客户端信息", description = "新增客户端信息")
     public void save(@Parameter(description = "客户端信息", required = true) @Valid @RequestBody UpsertClient upsertClient) {
         ClientEntity clientEntity = upsertClient.toEntity();
-        clientEntity.setTenantId(SecurityUtils.getTenantId());
+        clientEntity.setTenantId(AuthUtils.getTenantId());
         clientService.save(clientEntity);
     }
 
@@ -91,7 +91,7 @@ public class ClientController {
     public void bindApiPermission(
             @PathVariable @Parameter(description = "客户端编号", required = true) String id,
             @PathVariable @Parameter(description = "接口权限ID", required = true) String permissionId) {
-        clientService.bindApiPermission(SecurityUtils.getUser(), id, permissionId);
+        clientService.bindApiPermission(AuthUtils.getUser(), id, permissionId);
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000016")
@@ -100,7 +100,7 @@ public class ClientController {
     public void unbindApiPermission(
             @PathVariable @Parameter(description = "客户端编号", required = true) String id,
             @PathVariable @Parameter(description = "接口权限ID", required = true) String permissionId) {
-        clientService.unbindApiPermission(SecurityUtils.getUser(), id, permissionId);
+        clientService.unbindApiPermission(AuthUtils.getUser(), id, permissionId);
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000017")

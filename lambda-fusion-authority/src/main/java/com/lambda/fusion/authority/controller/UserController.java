@@ -22,7 +22,7 @@ import com.lambda.fusion.authority.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -102,7 +102,7 @@ public class UserController {
     @GetMapping("/allUser")
     @Operation(summary = "查询用户下拉列表")
     public List<UserProfile> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
-        UserDetails loginUser = SecurityUtils.getUser();
+        UserDetails loginUser = AuthUtils.getUser();
         List<String> orgIds =
                 isAll != null && isAll ? Collections.emptyList() : organizationService.getSubOrganizations(loginUser);
         return userService.getUserProfiles(loginUser, orgIds);
@@ -128,7 +128,7 @@ public class UserController {
     @PostMapping
     @Operation(summary = "新增用户信息")
     public User add(@Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateUser createUser) {
-        userService.addUser(createUser, SecurityUtils.getUser());
+        userService.addUser(createUser, AuthUtils.getUser());
         if (MapUtils.isNotEmpty(createUser.getPersonal())) {
             userService.addUserFields(createUser.getPersonal(), createUser.getUsername());
         }
@@ -146,7 +146,7 @@ public class UserController {
             @PathVariable @Parameter(description = "用户名称", required = true) String username,
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody UpdateUser updateUser) {
         updateUser.setUsername(username);
-        userService.updateUser(updateUser, SecurityUtils.getUser());
+        userService.updateUser(updateUser, AuthUtils.getUser());
         User updated = userService.getByUsername(username);
         if (tenantManager != null) {
             tenantManager.updateUser(BeanUtil.toBean(updated, User.class));
@@ -161,7 +161,7 @@ public class UserController {
         if (tenantManager != null) {
             tenantManager.deleteUser(username);
         }
-        userService.deleteUser(SecurityUtils.getUser(), username);
+        userService.deleteUser(AuthUtils.getUser(), username);
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000076")
@@ -203,7 +203,7 @@ public class UserController {
     @PatchMapping("/{username}/disabled")
     @Operation(summary = "禁用用户")
     public void disabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
-        userService.deactivateUser(SecurityUtils.getUser(), FusionConstants.DISABLED, username);
+        userService.deactivateUser(AuthUtils.getUser(), FusionConstants.DISABLED, username);
 
         if (tenantManager != null) {
             tenantManager.prohibitUser(FusionConstants.DISABLED, username);
@@ -214,7 +214,7 @@ public class UserController {
     @PatchMapping("/{username}/enabled")
     @Operation(summary = "启用用户")
     public void enabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
-        userService.deactivateUser(SecurityUtils.getUser(), FusionConstants.ENABLED, username);
+        userService.deactivateUser(AuthUtils.getUser(), FusionConstants.ENABLED, username);
 
         if (tenantManager != null) {
             tenantManager.prohibitUser(FusionConstants.ENABLED, username);
@@ -225,7 +225,7 @@ public class UserController {
     @PatchMapping("/{username}/unlock")
     @Operation(summary = "解锁用户")
     public void unlock(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
-        userService.unlockUser(username, SecurityUtils.getUser());
+        userService.unlockUser(username, AuthUtils.getUser());
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000081")
@@ -317,7 +317,7 @@ public class UserController {
         createUser.setTenantId(tenantId);
         SimpleRole simpleRole = new SimpleRole(ROLE_TENANT + AT + tenantId);
         createUser.setAuthorities(List.of(simpleRole));
-        userService.addUser(createUser, SecurityUtils.getUser());
+        userService.addUser(createUser, AuthUtils.getUser());
         User updated = userService.getByUsername(createTenantUser.getUsername());
         if (tenantManager != null) {
             User copy = BeanUtil.toBean(updated, User.class);
@@ -336,7 +336,7 @@ public class UserController {
         User user = ConvertUtils.convert(updateTenantUser);
         user.setTenantId(tenantId);
         user.setUsername(username);
-        userService.updateTenantUser(user, SecurityUtils.getUser());
+        userService.updateTenantUser(user, AuthUtils.getUser());
         User updated = userService.getByUsername(username);
         if (tenantManager != null) {
             User copy = BeanUtil.toBean(updated, User.class);

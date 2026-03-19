@@ -24,7 +24,7 @@ import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -57,7 +57,7 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
 
     @Override
     public List<Organization> organizationTreeList(OrganizationQuery organizationQuery) {
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         List<Organization> organizations = queryOrganizations(userDetails, organizationQuery);
         this.applyPermissionConstraints(organizations, userDetails);
         return TreeBuilder.build(organizations);
@@ -100,7 +100,7 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
     private Set<String> collectAdditionalOrgIds(String orgId, List<Organization> list) {
         Set<String> orgIds = new HashSet<>();
         for (Organization org : list) {
-            this.addParentOrgIds(orgId, org, orgIds, SecurityUtils.getUser().isManager());
+            this.addParentOrgIds(orgId, org, orgIds, AuthUtils.getUser().isManager());
             orgIds.addAll(getChildrenById(org.getId()));
         }
         return orgIds;
@@ -149,7 +149,7 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
 
     @Override
     public List<Organization> getSubOrganizations(OrganizationQuery organizationQuery) {
-        List<String> orgIds = getSubOrganizations(SecurityUtils.getUser());
+        List<String> orgIds = getSubOrganizations(AuthUtils.getUser());
         if (CollectionUtils.isNotEmpty(orgIds)) {
             organizationQuery.setIds(orgIds);
         }

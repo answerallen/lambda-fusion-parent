@@ -6,7 +6,7 @@ import com.lambda.fusion.core.identity.UserDetails;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class SecurityUtils {
+public class AuthUtils {
 
     public static UserDetails getUser() {
         return OperatorUtils.getLoginUser(UserDetails.class);

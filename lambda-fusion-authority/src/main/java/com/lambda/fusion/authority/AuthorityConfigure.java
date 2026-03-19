@@ -18,7 +18,7 @@ import com.lambda.fusion.authority.service.UserOnlineLogService;
 import com.lambda.fusion.core.api.RemoteAuthenticationService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
@@ -86,7 +86,7 @@ public class AuthorityConfigure implements WebMvcConfigurer {
                         metaObject,
                         "createdBy",
                         String.class,
-                        SecurityUtils.getUser().getUsername());
+                        AuthUtils.getUser().getUsername());
             }
 
             @Override
@@ -96,7 +96,7 @@ public class AuthorityConfigure implements WebMvcConfigurer {
                         metaObject,
                         "updatedBy",
                         String.class,
-                        SecurityUtils.getUser().getUsername());
+                        AuthUtils.getUser().getUsername());
             }
         };
     }

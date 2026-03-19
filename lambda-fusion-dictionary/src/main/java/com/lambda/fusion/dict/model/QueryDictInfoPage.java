@@ -3,7 +3,7 @@ package com.lambda.fusion.dict.model;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.fusion.core.pagination.Pagination;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
@@ -84,7 +84,7 @@ public class QueryDictInfoPage extends Pagination<DictInfo> {
     @Override
     public LambdaQueryWrapper<DictInfo> getLambdaQueryWrapper() {
         LambdaQueryWrapper<DictInfo> lambdaQuery = super.getLambdaQueryWrapper();
-        String tenantId = SecurityUtils.getTenantId();
+        String tenantId = AuthUtils.getTenantId();
         lambdaQuery.eq(StrUtil.isNotEmpty(tenantId), DictInfo::getTenantId, tenantId);
         lambdaQuery.eq(DictInfo::getDictType, getDictType());
         lambdaQuery.like(StrUtil.isNotEmpty(getFieldType()), DictInfo::getFieldType, getFieldType());

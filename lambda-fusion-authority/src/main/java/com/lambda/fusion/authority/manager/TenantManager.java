@@ -22,7 +22,7 @@ import com.lambda.fusion.authority.model.user.UserEntity;
 import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import com.lambda.fusion.authority.model.user.UserRoleEntity;
 import com.lambda.fusion.authority.service.TenantService;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
@@ -280,7 +280,7 @@ public class TenantManager {
         if (StringUtils.isBlank(tenantId) || command == null) {
             return;
         }
-        LoginUser operator = SecurityUtils.getUser();
+        LoginUser operator = AuthUtils.getUser();
         if (operator != null) {
             hasOperation(operator, tenantId);
         }

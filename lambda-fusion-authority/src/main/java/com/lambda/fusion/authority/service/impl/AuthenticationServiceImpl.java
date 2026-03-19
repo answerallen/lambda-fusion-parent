@@ -21,7 +21,7 @@ import com.lambda.fusion.authority.service.AuthenticationService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
 import java.util.ArrayList;
@@ -59,7 +59,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
-        return new ArrayList<>(SecurityUtils.getUser().getRoles());
+        return new ArrayList<>(AuthUtils.getUser().getRoles());
     }
 
     @Override
@@ -69,7 +69,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (CollUtil.isNotEmpty(permissions)) {
             authorities.addAll(permissions);
         }
-        UserDetails user = SecurityUtils.getUser();
+        UserDetails user = AuthUtils.getUser();
         if (user.isTenantManager()) {
             List<String> tenantAdminPermissions =
                     authenticationMapper.selectTenantAdminPermissions(ROLE_TENANT + AT + user.getTenantId());
@@ -208,7 +208,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public AuthenticatedUser getUserInfo() {
-        LoginUser loginUser = SecurityUtils.getUser();
+        LoginUser loginUser = AuthUtils.getUser();
         AuthUser authUser = authenticationMapper.selectUserDetailByUsername(loginUser.getName());
         if (authUser == null) {
             throw new UsernameNotFoundException("user not found");
@@ -241,7 +241,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public List<String> getUserPermissions() {
         return authenticationMapper.selectAuthoritiesByUsername(
-                SecurityUtils.getUser().getName());
+                AuthUtils.getUser().getName());
     }
 
     private LoginUser prepareLoginUser(UserDetails userDetails) {

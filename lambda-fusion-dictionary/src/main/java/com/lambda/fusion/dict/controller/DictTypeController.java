@@ -2,7 +2,7 @@ package com.lambda.fusion.dict.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.core.identity.UserDetails;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.model.QueryDictTree;
 import com.lambda.fusion.dict.model.QueryDictTypePage;
@@ -46,7 +46,7 @@ public class DictTypeController {
     public DictTypeTree saveDictType(
             @Valid @Parameter(description = "字典类型数据", required = true) @RequestBody DictTypeTree dictTypeTree) {
         // 只有开发者才能指定字典用途，其他用户只能添加用户字典
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         if (userDetails.isDev()) {
             if (dictTypeTree.getDictUsage() == null) {
                 dictTypeTree.setDictUsage(DictUsage.SYSTEM.getValue());
@@ -67,7 +67,7 @@ public class DictTypeController {
             })
     public DictTypeTree updateDictType(@Valid DictTypeTree dictTypeTree) {
         // 非开发者不能修改系统字典用途
-        UserDetails userDetails = SecurityUtils.getUser();
+        UserDetails userDetails = AuthUtils.getUser();
         if (!userDetails.isDev()) {
             DictTypeTree source = dictTypeService.getById(dictTypeTree.getId());
             if (source != null) {

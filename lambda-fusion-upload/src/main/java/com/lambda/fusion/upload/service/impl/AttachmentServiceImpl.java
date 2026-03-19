@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.oss.client.OssClient;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.cloud.oss.model.UploadObjectResult;
-import com.lambda.fusion.core.utils.SecurityUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.upload.mapper.AttachmentGroupMapper;
 import com.lambda.fusion.upload.mapper.AttachmentMapper;
 import com.lambda.fusion.upload.model.*;
@@ -304,7 +304,7 @@ public class AttachmentServiceImpl implements AttachmentService {
 
     private String currentOwner() {
         try {
-            return SecurityUtils.getUser().getName();
+            return AuthUtils.getUser().getName();
         } catch (Exception e) {
             return null;
         }
@@ -313,7 +313,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     private String currentTenantId() {
         String tenantId;
         try {
-            tenantId = SecurityUtils.getTenantId();
+            tenantId = AuthUtils.getTenantId();
         } catch (Exception e) {
             return null;
         }
