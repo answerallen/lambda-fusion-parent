@@ -10,7 +10,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 [>>> 实战示例项目：https://gitee.com/westboy/lambda-fusion-admin <<<](https://gitee.com/westboy/lambda-fusion-admin) 
-
+   
 </div>
 
 ---
