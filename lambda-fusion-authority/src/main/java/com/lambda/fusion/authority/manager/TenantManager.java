@@ -14,6 +14,7 @@ import com.lambda.fusion.authority.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.model.resource.Resource;
 import com.lambda.fusion.authority.model.role.AuthorityPermission;
 import com.lambda.fusion.authority.model.role.SimpleRole;
+import com.lambda.fusion.authority.model.role.UserAuthority;
 import com.lambda.fusion.authority.model.tenant.TenantEntity;
 import com.lambda.fusion.authority.model.user.ResetPassword;
 import com.lambda.fusion.authority.model.user.User;
@@ -21,7 +22,6 @@ import com.lambda.fusion.authority.model.user.UserEntity;
 import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import com.lambda.fusion.authority.model.user.UserRoleEntity;
 import com.lambda.fusion.authority.service.TenantService;
-import com.lambda.fusion.authority.service.UserService;
 import com.lambda.fusion.core.utils.SecurityUtils;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
@@ -58,7 +58,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class TenantManager {
 
     private final TenantService tenantService;
-    private final UserService userService;
     private final UserMapper userMapper;
     private final UserInfoMapper userInfoMapper;
     private final UserRoleMapper userRoleMapper;
@@ -80,7 +79,7 @@ public class TenantManager {
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void grantRolePermission(String authority, List<Resource> resources, int status) {
-        if (!isTenantAdmin(authority) || resources == null || resources.isEmpty()) {
+        if (noneTenantAdmin(authority) || resources == null || resources.isEmpty()) {
             return;
         }
         Set<String> resourceIds = resources.stream()
@@ -91,34 +90,38 @@ public class TenantManager {
             return;
         }
         for (String tenantId : resolveTenantIds(authority)) {
-            executeInTenantDataSource(tenantId, () -> {
-                List<String> exists = roleMapper.hasAuthorizedWithIntersection(ROLE_ADMIN, resourceIds);
-                Set<String> authorized = exists == null ? Set.of() : Set.copyOf(exists);
-                Set<String> intersection =
-                        resourceIds.stream().filter(authorized::contains).collect(Collectors.toSet());
-                if (!intersection.isEmpty()) {
-                    AuthorityPermission updatePayload = new AuthorityPermission();
-                    updatePayload.setAuthority(ROLE_ADMIN);
-                    updatePayload.setIds(intersection);
-                    updatePayload.setTenantId(null);
-                    updatePayload.setStatus(status);
-                    roleMapper.batchUpdateAuthorization(updatePayload);
-                }
-                List<AuthorityPermission> toInsert = resourceIds.stream()
-                        .filter(id -> !authorized.contains(id))
-                        .map(id -> {
-                            AuthorityPermission permission = new AuthorityPermission();
-                            permission.setAuthority(ROLE_ADMIN);
-                            permission.setId(id);
-                            permission.setStatus(status);
-                            permission.setTenantId(null);
-                            return permission;
-                        })
-                        .collect(Collectors.toList());
-                if (!toInsert.isEmpty()) {
-                    roleMapper.batchSaveAuthorization(toInsert);
-                }
-            });
+            executeInTenantDataSource(tenantId, () -> processRolePermissionGrant(resourceIds, status));
+        }
+    }
+
+    private void processRolePermissionGrant(Set<String> resourceIds, int status) {
+        List<String> exists = roleMapper.hasAuthorizedWithIntersection(ROLE_ADMIN, resourceIds);
+        Set<String> authorized = exists == null ? Set.of() : Set.copyOf(exists);
+
+        Set<String> intersection =
+                resourceIds.stream().filter(authorized::contains).collect(Collectors.toSet());
+        if (!intersection.isEmpty()) {
+            AuthorityPermission updatePayload = new AuthorityPermission();
+            updatePayload.setAuthority(ROLE_ADMIN);
+            updatePayload.setIds(intersection);
+            updatePayload.setTenantId(null);
+            updatePayload.setStatus(status);
+            roleMapper.batchUpdateAuthorization(updatePayload);
+        }
+
+        List<AuthorityPermission> toInsert = resourceIds.stream()
+                .filter(id -> !authorized.contains(id))
+                .map(id -> {
+                    AuthorityPermission permission = new AuthorityPermission();
+                    permission.setAuthority(ROLE_ADMIN);
+                    permission.setId(id);
+                    permission.setStatus(status);
+                    permission.setTenantId(null);
+                    return permission;
+                })
+                .collect(Collectors.toList());
+        if (!toInsert.isEmpty()) {
+            roleMapper.batchSaveAuthorization(toInsert);
         }
     }
 
@@ -129,7 +132,7 @@ public class TenantManager {
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void revokeRolePermission(String authority, List<Resource> resources) {
-        if (!isTenantAdmin(authority) || resources == null || resources.isEmpty()) {
+        if (noneTenantAdmin(authority) || resources == null || resources.isEmpty()) {
             return;
         }
         List<String> resourceIds = resources.stream()
@@ -168,11 +171,7 @@ public class TenantManager {
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void deleteUser(String username) {
-        User user = userService.getByUsername(username);
-        if (!isTenantAdmin(user)) {
-            return;
-        }
-        String tenantId = userMapper.selectTenantIdByUsername(username);
+        String tenantId = getTenantIdIfAdmin(username);
         if (StringUtils.isBlank(tenantId)) {
             return;
         }
@@ -189,11 +188,7 @@ public class TenantManager {
         if (StringUtils.isBlank(newPassword)) {
             return;
         }
-        User user = userService.getByUsername(username);
-        if (!isTenantAdmin(user)) {
-            return;
-        }
-        String tenantId = userMapper.selectTenantIdByUsername(username);
+        String tenantId = getTenantIdIfAdmin(username);
         if (StringUtils.isBlank(tenantId)) {
             return;
         }
@@ -211,15 +206,18 @@ public class TenantManager {
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void prohibitUser(Integer type, String username) {
-        User user = userService.getByUsername(username);
-        if (!isTenantAdmin(user)) {
-            return;
-        }
-        String tenantId = userMapper.selectTenantIdByUsername(username);
+        String tenantId = getTenantIdIfAdmin(username);
         if (StringUtils.isBlank(tenantId)) {
             return;
         }
         executeInTenantDataSource(tenantId, () -> userMapper.deactivateUser(type, username));
+    }
+
+    private String getTenantIdIfAdmin(String username) {
+        if (noneTenantAdmin(username)) {
+            return null;
+        }
+        return userMapper.selectTenantIdByUsername(username);
     }
 
     private void hasOperation(LoginUser operator, String tenantId) {
@@ -229,7 +227,7 @@ public class TenantManager {
         }
     }
 
-    private boolean isTenantAdmin(String authority) {
+    private boolean validTenantAdmin(String authority) {
         return ROLE_TENANT.equals(authority) || authority.startsWith(ROLE_TENANT + AT);
     }
 
@@ -237,7 +235,17 @@ public class TenantManager {
         List<SimpleRole> roles = user == null ? null : user.getAuthorities();
         return roles != null
                 && !roles.isEmpty()
-                && roles.stream().map(SimpleRole::getAuthority).anyMatch(this::isTenantAdmin);
+                && roles.stream().map(SimpleRole::getAuthority).anyMatch(this::validTenantAdmin);
+    }
+
+    private boolean noneTenantAdmin(String username) {
+        if (StringUtils.isBlank(username)) {
+            return true;
+        }
+        return roleMapper.getAuthoritiesByUser(username).stream()
+                .map(UserAuthority::getAuthority)
+                .filter(StringUtils::isNotBlank)
+                .noneMatch(this::validTenantAdmin);
     }
 
     private String resolveTenantIdForTenantAdmin(User user) {
@@ -329,35 +337,33 @@ public class TenantManager {
     }
 
     private void syncUserInfo(String username, UserInfoEntity source) {
-        if (source == null) {
-            UserInfoEntity exists = userInfoMapper.selectById(username);
-            if (exists == null) {
-                UserInfoEntity userInfoEntity = new UserInfoEntity();
-                userInfoEntity.setUsername(username);
-                userInfoMapper.insert(userInfoEntity);
-            }
-            return;
-        }
         UserInfoEntity target = userInfoMapper.selectById(username);
-        if (target == null) {
+        boolean isNew = target == null;
+        if (isNew) {
             target = new UserInfoEntity();
             target.setUsername(username);
-            userInfoMapper.insert(target);
-            target = userInfoMapper.selectById(username);
         }
-        target.setAvatar(source.getAvatar());
-        target.setRemark(source.getRemark());
-        target.setIdentityId(source.getIdentityId());
-        target.setPosition(source.getPosition());
-        target.setStatus(source.getStatus());
-        target.setEmpNo(source.getEmpNo());
-        target.setDdNo(source.getDdNo());
-        target.setDdNick(source.getDdNick());
-        target.setWechatNo(source.getWechatNo());
-        target.setUpdatePwd(source.getUpdatePwd());
-        target.setExtendParam(source.getExtendParam());
-        target.setWechatName(source.getWechatName());
+
+        if (source != null) {
+            target.setAvatar(source.getAvatar());
+            target.setRemark(source.getRemark());
+            target.setIdentityId(source.getIdentityId());
+            target.setPosition(source.getPosition());
+            target.setStatus(source.getStatus());
+            target.setEmpNo(source.getEmpNo());
+            target.setDdNo(source.getDdNo());
+            target.setDdNick(source.getDdNick());
+            target.setWechatNo(source.getWechatNo());
+            target.setUpdatePwd(source.getUpdatePwd());
+            target.setExtendParam(source.getExtendParam());
+            target.setWechatName(source.getWechatName());
+        }
         target.setTenantId(null);
-        userInfoMapper.updateById(target);
+
+        if (isNew) {
+            userInfoMapper.insert(target);
+        } else {
+            userInfoMapper.updateById(target);
+        }
     }
 }

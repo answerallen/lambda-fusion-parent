@@ -15,7 +15,6 @@ import com.lambda.fusion.authority.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.service.AuthenticationService;
 import com.lambda.fusion.authority.service.TenantService;
 import com.lambda.fusion.authority.service.UserOnlineLogService;
-import com.lambda.fusion.authority.service.UserService;
 import com.lambda.fusion.core.api.RemoteAuthenticationService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
@@ -145,7 +144,6 @@ public class AuthorityConfigure implements WebMvcConfigurer {
     @ConditionalOnBean(DataSourceManageService.class)
     public TenantManager tenantManager(
             TenantService tenantService,
-            UserService userService,
             UserMapper userMapper,
             UserInfoMapper userInfoMapper,
             UserRoleMapper userRoleMapper,
@@ -154,7 +152,6 @@ public class AuthorityConfigure implements WebMvcConfigurer {
             DataSourceManageService dataSourceManageService) {
         return new TenantManager(
                 tenantService,
-                userService,
                 userMapper,
                 userInfoMapper,
                 userRoleMapper,
