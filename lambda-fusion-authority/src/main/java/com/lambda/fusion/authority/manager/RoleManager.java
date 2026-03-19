@@ -23,7 +23,7 @@ public class RoleManager {
     private final RoleMapper roleMapper;
 
     @Nonnull
-    public Set<String> getAuthoritiesByUser(String username) {
+    public Set<String> getAuthoritiesByUsername(String username) {
         List<UserAuthority> results = roleMapper.getAuthoritiesByUser(username);
         if (CollectionUtils.isEmpty(results)) {
             return Sets.newHashSet();

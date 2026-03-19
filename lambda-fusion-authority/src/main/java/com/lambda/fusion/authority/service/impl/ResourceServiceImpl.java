@@ -465,7 +465,7 @@ public class ResourceServiceImpl implements ResourceService {
         Map<String, Object> parameters = Maps.newHashMap();
         parameters.put("parentKeys", parentKeys);
         if (!userDetails.isDev()) {
-            Set<String> authorities = roleManager.getAuthoritiesByUser(userDetails.getUsername());
+            Set<String> authorities = roleManager.getAuthoritiesByUsername(userDetails.getUsername());
             authorities.add(userDetails.getUsername());
             parameters.put("authorities", authorities);
         }

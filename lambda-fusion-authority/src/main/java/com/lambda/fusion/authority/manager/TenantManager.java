@@ -79,7 +79,7 @@ public class TenantManager {
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void grantRolePermission(String authority, List<Resource> resources, int status) {
-        if (noneTenantAdmin(authority) || resources == null || resources.isEmpty()) {
+        if (isNotTenantAdmin(authority) || resources == null || resources.isEmpty()) {
             return;
         }
         Set<String> resourceIds = resources.stream()
@@ -132,7 +132,7 @@ public class TenantManager {
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void revokeRolePermission(String authority, List<Resource> resources) {
-        if (noneTenantAdmin(authority) || resources == null || resources.isEmpty()) {
+        if (isNotTenantAdmin(authority) || resources == null || resources.isEmpty()) {
             return;
         }
         List<String> resourceIds = resources.stream()
@@ -182,6 +182,7 @@ public class TenantManager {
         });
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void resetPassword(ResetPassword resetPassword) {
         String username = resetPassword.getUsername();
         String newPassword = resetPassword.getNewPassword();
@@ -214,7 +215,7 @@ public class TenantManager {
     }
 
     private String getTenantIdIfAdmin(String username) {
-        if (noneTenantAdmin(username)) {
+        if (isNotTenantAdmin(username)) {
             return null;
         }
         return userMapper.selectTenantIdByUsername(username);
@@ -227,29 +228,19 @@ public class TenantManager {
         }
     }
 
-    private boolean validTenantAdmin(String authority) {
-        return ROLE_TENANT.equals(authority) || authority.startsWith(ROLE_TENANT + AT);
-    }
 
-    private boolean isTenantAdmin(User user) {
-        List<SimpleRole> roles = user == null ? null : user.getAuthorities();
-        return roles != null
-                && !roles.isEmpty()
-                && roles.stream().map(SimpleRole::getAuthority).anyMatch(this::validTenantAdmin);
-    }
-
-    private boolean noneTenantAdmin(String username) {
+    private boolean isNotTenantAdmin(String username) {
         if (StringUtils.isBlank(username)) {
             return true;
         }
         return roleMapper.getAuthoritiesByUser(username).stream()
                 .map(UserAuthority::getAuthority)
                 .filter(StringUtils::isNotBlank)
-                .noneMatch(this::validTenantAdmin);
+                .noneMatch(AuthorityHelper::isTenantAdminRole);
     }
 
     private String resolveTenantIdForTenantAdmin(User user) {
-        if (!isTenantAdmin(user) || StringUtils.isBlank(user.getUsername())) {
+        if (!AuthorityHelper.hasTenantAdminRole(user) || StringUtils.isBlank(user.getUsername())) {
             return null;
         }
         return userMapper.selectTenantIdByUsername(user.getUsername());

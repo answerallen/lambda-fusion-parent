@@ -10,6 +10,8 @@ import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.AuthUtils;
 import jakarta.validation.constraints.NotNull;
 import java.util.Collection;
+import java.util.List;
+
 import org.apache.commons.lang.StringUtils;
 
 public class AuthorityHelper {
@@ -111,5 +113,16 @@ public class AuthorityHelper {
             });
         }
         return false;
+    }
+
+    public static boolean isTenantAdminRole(String authority) {
+        return ROLE_TENANT.equals(authority) || authority.startsWith(ROLE_TENANT + AT);
+    }
+
+    public static boolean hasTenantAdminRole(User user) {
+        List<SimpleRole> roles = user == null ? null : user.getAuthorities();
+        return roles != null
+                && !roles.isEmpty()
+                && roles.stream().map(SimpleRole::getAuthority).anyMatch(AuthorityHelper::isTenantAdminRole);
     }
 }
