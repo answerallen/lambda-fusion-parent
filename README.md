@@ -66,9 +66,10 @@ lambda-fusion-parent/
 |------|--------|------|
 | ☕ **Java** | 21+    | 最新 LTS 版本，性能优异 |
 | 🍃 **Spring Boot** | 4.0.2  | 微服务开发框架 |
+| ☁️ **Spring Cloud** | Latest | 微服务生态组件 |
 | 🔐 **Sa-Token** | Latest | 轻量级权限认证框架 |
 | 💾 **MyBatis Plus** | Latest | 增强版 ORM 框架 |
-| ☁️ **Spring Cloud** | Latest | 微服务生态组件 |
+
 
 ### 数据存储
 
