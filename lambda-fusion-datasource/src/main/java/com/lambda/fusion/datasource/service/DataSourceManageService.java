@@ -27,15 +27,13 @@ public interface DataSourceManageService extends IService<DataSourceEntity> {
 
     void disable(String id);
 
-    DataSourceEntity getByDatasourceKey(String datasourceKey);
-
     TenantDataSourceEntity getTenantDataSource(String tenantId, FusionConstants.DatabaseUsageType usageType);
 
     List<TenantDataSourceEntity> getTenantDataSources(String tenantId);
 
     List<TenantDataSourceEntity> listTenantDataSources(List<String> tenantIds);
 
-    void bindTenantDataSource(String tenantId, String datasourceKey, FusionConstants.DatabaseUsageType usageType);
+    void bindTenantDataSource(String tenantId, String datasourceId, FusionConstants.DatabaseUsageType usageType);
 
     void markTenantDataSourceInitialized(String tenantId);
 }

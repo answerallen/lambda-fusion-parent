@@ -15,8 +15,8 @@ import lombok.Setter;
 @Schema(description = "租户数据源分页查询")
 public class QueryTenantDataSource extends Pagination<TenantDataSourceEntity> {
 
-    @Schema(description = "数据源标识")
-    private String datasourceKey;
+    @Schema(description = "数据源ID")
+    private String datasourceId;
 
     @Schema(description = "租户id")
     private String tenantId;
@@ -29,7 +29,7 @@ public class QueryTenantDataSource extends Pagination<TenantDataSourceEntity> {
 
     public LambdaQueryWrapper<TenantDataSourceEntity> getLambdaQueryWrapper() {
         return Wrappers.lambdaQuery(TenantDataSourceEntity.class)
-                .like(StringUtils.isNotBlank(datasourceKey), TenantDataSourceEntity::getDatasourceKey, datasourceKey)
+                .like(StringUtils.isNotBlank(datasourceId), TenantDataSourceEntity::getDatasourceId, datasourceId)
                 .eq(StringUtils.isNotBlank(tenantId), TenantDataSourceEntity::getTenantId, tenantId)
                 .in(CollectionUtils.isNotEmpty(tenantIds), TenantDataSourceEntity::getTenantId, tenantIds)
                 .eq(schemaStatus != null, TenantDataSourceEntity::getSchemaStatus, schemaStatus)

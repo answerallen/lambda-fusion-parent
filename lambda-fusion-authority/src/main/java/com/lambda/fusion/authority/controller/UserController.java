@@ -12,7 +12,7 @@ import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.helper.UserQueryHelper;
-import com.lambda.fusion.authority.manager.TenantAuthorizeManager;
+import com.lambda.fusion.authority.manager.TenantManager;
 import com.lambda.fusion.authority.model.role.SimpleRole;
 import com.lambda.fusion.authority.model.user.*;
 import com.lambda.fusion.authority.service.OrganizationService;
@@ -53,11 +53,11 @@ public class UserController {
     private final UserQueryHelper userQueryHelper;
     private final UserCenterService userCenterService;
     private final UserInfoService userInfoService;
-    private TenantAuthorizeManager tenantAuthorizeManager;
+    private TenantManager tenantManager;
 
     @Autowired(required = false)
-    public void setTenantAuthorizeManager(TenantAuthorizeManager tenantAuthorizeManager) {
-        this.tenantAuthorizeManager = tenantAuthorizeManager;
+    public void setTenantManager(TenantManager tenantManager) {
+        this.tenantManager = tenantManager;
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000066")
@@ -132,7 +132,7 @@ public class UserController {
         if (MapUtils.isNotEmpty(createUser.getPersonal())) {
             userService.addUserFields(createUser.getPersonal(), createUser.getUsername());
         }
-        if (tenantAuthorizeManager != null) {
+        if (tenantManager != null) {
             log.info("添加租户用户");
         }
         return userService.getByUsername(createUser.getUsername());
@@ -153,8 +153,8 @@ public class UserController {
     @DeleteMapping(value = "/{username}")
     @Operation(summary = "删除用户信息")
     public void delete(@PathVariable @Parameter(description = "用户名", required = true) String username) {
-        if (tenantAuthorizeManager != null) {
-            tenantAuthorizeManager.deleteUser(username);
+        if (tenantManager != null) {
+            tenantManager.deleteUser(username);
         }
         userService.deleteUser(SecurityUtils.getUser(), username);
     }
@@ -187,9 +187,9 @@ public class UserController {
             throw AuthorityBusinessException.invalidParameter("username不能为空");
         }
         String password = userService.resetUserPassword(resetPassword);
-        if (tenantAuthorizeManager != null) {
+        if (tenantManager != null) {
             resetPassword.setNewPassword(password);
-            tenantAuthorizeManager.resetPassword(resetPassword);
+            tenantManager.resetPassword(resetPassword);
         }
         return password;
     }
@@ -200,8 +200,8 @@ public class UserController {
     public void disabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         userService.deactivateUser(SecurityUtils.getUser(), FusionConstants.DISABLED, username);
 
-        if (tenantAuthorizeManager != null) {
-            tenantAuthorizeManager.prohibitUser(FusionConstants.DISABLED, username);
+        if (tenantManager != null) {
+            tenantManager.prohibitUser(FusionConstants.DISABLED, username);
         }
     }
 
@@ -211,8 +211,8 @@ public class UserController {
     public void enabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         userService.deactivateUser(SecurityUtils.getUser(), FusionConstants.ENABLED, username);
 
-        if (tenantAuthorizeManager != null) {
-            tenantAuthorizeManager.prohibitUser(FusionConstants.ENABLED, username);
+        if (tenantManager != null) {
+            tenantManager.prohibitUser(FusionConstants.ENABLED, username);
         }
     }
 
@@ -314,9 +314,9 @@ public class UserController {
         createUser.setAuthorities(List.of(simpleRole));
         userService.addUser(createUser, SecurityUtils.getUser());
         User updated = userService.getByUsername(createTenantUser.getUsername());
-        if (tenantAuthorizeManager != null) {
+        if (tenantManager != null) {
             User copy = BeanUtil.toBean(updated, User.class);
-            tenantAuthorizeManager.addUser(copy);
+            tenantManager.addUser(copy);
         }
         return updated;
     }
@@ -333,9 +333,9 @@ public class UserController {
         user.setUsername(username);
         userService.updateTenantUser(user, SecurityUtils.getUser());
         User updated = userService.getByUsername(username);
-        if (tenantAuthorizeManager != null) {
+        if (tenantManager != null) {
             User copy = BeanUtil.toBean(updated, User.class);
-            tenantAuthorizeManager.updateUser(copy);
+            tenantManager.updateUser(copy);
         }
         return updated;
     }

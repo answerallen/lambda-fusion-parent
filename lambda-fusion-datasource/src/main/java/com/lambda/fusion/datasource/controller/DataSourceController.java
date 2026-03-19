@@ -109,10 +109,10 @@ public class DataSourceController {
     @Operation(summary = "绑定租户数据源", description = "独立库租户按用途绑定数据源，租户库绑定会重置初始化状态")
     public void bindTenantDatasource(
             @Parameter(description = "租户ID", required = true) @PathVariable String tenantId,
-            @Parameter(description = "数据源标识", required = true) @RequestParam("datasourceKey") String datasourceKey,
+            @Parameter(description = "数据源ID", required = true) @RequestParam("datasourceId") String datasourceId,
             @Parameter(description = "数据库用途", required = true) @RequestParam("usageType") Integer usageType) {
         dataSourceManageService.bindTenantDataSource(
-                tenantId, datasourceKey, FusionConstants.DatabaseUsageType.fromValue(usageType));
+                tenantId, datasourceId, FusionConstants.DatabaseUsageType.fromValue(usageType));
     }
 
     @OperationLog
@@ -122,8 +122,8 @@ public class DataSourceController {
         TenantDataSourceEntity binding =
                 dataSourceManageService.getTenantDataSource(tenantId, FusionConstants.DatabaseUsageType.TENANT);
         Assert.notNull(binding, "租户未配置数据源");
-        Assert.hasText(binding.getDatasourceKey(), "租户数据源标识为空");
-        DataSourceEntity dataSourceEntity = dataSourceManageService.getByDatasourceKey(binding.getDatasourceKey());
+        Assert.hasText(binding.getDatasourceId(), "租户数据源ID为空");
+        DataSourceEntity dataSourceEntity = dataSourceManageService.getById(binding.getDatasourceId());
         Assert.notNull(dataSourceEntity, "绑定的数据源不存在");
         boolean initialized = remoteDataSourceService.initSchema(dataSourceEntity.getId());
         Assert.isTrue(initialized, "租户主库初始化失败");

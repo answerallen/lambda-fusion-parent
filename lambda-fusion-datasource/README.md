@@ -69,7 +69,7 @@
 对应实体：`DataSourceEntity`
 
 关键字段：
-- `datasource_key`：逻辑唯一标识（业务可读标识，如 `tenant_main_001`）
+- `id`：数据源唯一标识（系统主键）
 - `usage_type`：`FusionConstants.DatabaseUsageType`（必须来源于 `DATABASE_USAGE_TYPE` 字典值，例如 1=AI, 2=TENANT）
 - `status`：`DatasourceConstants.DatasourceStatus`（`DATASOURCE_STATUS` 字典值，1=在线，0=下线）
 - `jdbc_url/username/password`：标准 JDBC 连接信息
@@ -79,7 +79,7 @@
 
 关键字段：
 - `tenant_id`：目标租户 ID
-- `datasource_key`：关联的数据源标识
+- `datasource_key`：关联的数据源 ID（字段名沿用历史命名）
 - `usage_type`：用途约束（一个租户下，每种用途只能绑定一个数据源，例如可同时绑定一个 TENANT 主库和一个 AI 专属库）
 - `schema_status`：标识库结构初始化状态（0=未初始化 / 1=已初始化），仅在针对租户主库的初始化链路中起效。
 
@@ -105,7 +105,7 @@
 用于为多租户系统配置和映射专属数据库：
 - `GET /tenant/status?tenantIds=...`：批量查询指定租户们的绑定状态与初始化状态。
 - `GET /tenant/{tenantId}`：查询指定租户名下，当前绑定的所有数据源清单（例如返回一条 TENANT 用途和一条 AI 用途的绑定关系）。
-- `PUT /tenant/{tenantId}/bind?datasourceKey=...&usageType=...`：按指定用途绑定数据源。
+- `PUT /tenant/{tenantId}/bind?datasourceId=...&usageType=...`：按指定用途绑定数据源。
   - **重要约束：** 请求的 `usageType` 必须与目标 `DataSourceEntity` 自身的 `usage_type` 严格一致，否则会触发绑定失败。绑定 TENANT 用途会重置 `schema_status = 0`。
 - `POST /tenant/{tenantId}/init`：初始化租户主库。
   - 仅读取该租户下 `usageType=TENANT` 的记录，调用内部 `initSchema` 逻辑广播执行 DDL，成功后置 `schema_status = 1`。
@@ -146,7 +146,7 @@ DataSourceListener (AFTER_COMMIT 阶段) -> 封装为 DataSourceChangeEvent -> �
 ```
 
 ### 7.2 租户用途绑定（TENANT / AI）
-1. `bindTenantDataSource(tenantId, datasourceKey, usageType)` 校验该租户为**独立库模式** (`DEDICATED`)。
+1. `bindTenantDataSource(tenantId, datasourceId, usageType)` 校验该租户为**独立库模式** (`DEDICATED`)。
 2. 校验目标数据源存在，且 `DataSourceEntity.usageType` 与请求中的 `usageType` 严格一致。
 3. 在 `la_tenant_datasource` 中按 `(tenantId, usageType)` 维度写入/更新绑定记录。
 4. 若为 `TENANT` 绑定，则将 `schema_status` 重置为 `0`（未初始化）。
@@ -248,7 +248,6 @@ lambda:
 curl -X POST 'http://localhost:8080/datasource' \
   -H 'Content-Type: application/json' \
   -d '{
-    "datasourceKey": "tenant_main_001",
     "datasourceName": "租户主库-001",
     "dbType": "mysql",
     "usageType": 2,
@@ -263,13 +262,13 @@ curl -X POST 'http://localhost:8080/datasource' \
 绑定租户主库（TENANT）：
 
 ```bash
-curl -X PUT 'http://localhost:8080/datasource/tenant/t1001/bind?datasourceKey=tenant_main_001&usageType=2'
+curl -X PUT 'http://localhost:8080/datasource/tenant/t1001/bind?datasourceId=1910000000000000001&usageType=2'
 ```
 
 绑定租户 AI 库（AI）：
 
 ```bash
-curl -X PUT 'http://localhost:8080/datasource/tenant/t1001/bind?datasourceKey=tenant_ai_001&usageType=1'
+curl -X PUT 'http://localhost:8080/datasource/tenant/t1001/bind?datasourceId=1910000000000000002&usageType=1'
 ```
 
 初始化租户主库：

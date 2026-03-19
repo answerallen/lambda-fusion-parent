@@ -20,7 +20,6 @@ public class RemoteDataSource implements Serializable {
 
     private String id;
     private String tenantId;
-    private String datasourceKey;
     private String datasourceName;
     private String dbType;
     private FusionConstants.DatabaseUsageType usageType;

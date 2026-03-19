@@ -20,10 +20,6 @@ public class UpsertDataSource extends BaseDTO<DataSourceEntity> {
     private String id;
 
     @NotBlank
-    @Schema(description = "逻辑资源标识")
-    private String datasourceKey;
-
-    @NotBlank
     @Schema(description = "数据源名称")
     private String datasourceName;
 

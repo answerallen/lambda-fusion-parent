@@ -1,7 +1,5 @@
 package com.lambda.fusion.authority.manager;
 
-import static com.lambda.fusion.core.FusionConstants.*;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.lambda.cloud.core.principal.LoginUser;
@@ -19,14 +17,17 @@ import com.lambda.fusion.authority.service.TenantService;
 import com.lambda.fusion.authority.service.UserService;
 import com.lambda.fusion.core.utils.SecurityUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.lambda.fusion.core.FusionConstants.*;
 
 /**
  * 租户授权数据管理器
@@ -42,7 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "NP_UNWRITTEN_FIELD", "UPM_UNCALLED_PRIVATE_METHOD"})
 @Slf4j
-public class TenantAuthorizeManager {
+public class TenantManager {
 
     private TenantService tenantService;
     private UserService userService;
@@ -65,7 +66,7 @@ public class TenantAuthorizeManager {
      * @param status    状态
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void saveAuth(String authority, List<Resource> resources, int status) {
+    public void grantRolePermission(String authority, List<Resource> resources, int status) {
         // 只处理租户管理员角色
         if (!isTenantAdmin(authority)) {
             return;
@@ -81,7 +82,7 @@ public class TenantAuthorizeManager {
      * @param authority 角色
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void deleteAuthorization(String authority, List<Resource> resources) {
+    public void revokeRolePermission(String authority, List<Resource> resources) {
         // 只处理租户管理员角色
         if (!isTenantAdmin(authority)) {
             return;
@@ -124,7 +125,7 @@ public class TenantAuthorizeManager {
         }
         // 租户管理员的tenantId属性为null，其所属组织id才是租户id
         String tenantId = userMapper.selectTenantIdByUsername(user.getUsername());
-        execute(tenantId, () -> userService.deleteUser(SecurityUtils.getUser(), username));
+        userService.deleteUser(SecurityUtils.getUser(), username);
         System.out.println(tenantId);
     }
 
@@ -179,58 +180,14 @@ public class TenantAuthorizeManager {
         return isTenantAdmin;
     }
 
-    /**
-     * 在所有设置了主库映射的租户主库中执行
-     *
-     * @param runnable runnable
-     */
-    @SuppressWarnings("unused")
-    private void execute(Runnable runnable) {
-        List<String> tenantDsKey = getTenantDsKey();
-        if (tenantDsKey.isEmpty()) {
-            return;
-        }
-        // 依次操作租户库
-        for (String dsKey : tenantDsKey) {
-            try {
-                if (StringUtils.isNotBlank(dsKey)) {
-                    //                   DynamicDataSourceWrapper.wrap(dsKey, runnable);
-                }
-            } catch (Exception e) {
-                log.error("租户主库执行异常，数据源id:{}", dsKey, e);
-            }
-        }
-    }
-
-    /**
-     * 在指定租户主库中执行
-     *
-     * @param tenantId 租户id
-     * @param runnable runnable
-     */
-    private void execute(String tenantId, Runnable runnable) {
-        if (StringUtils.isBlank(tenantId)) {
-            return;
-        }
-        // TODO 数据库执行
-    }
 
     private List<String> getTenantIds() {
         LambdaQueryWrapper<TenantEntity> wrapper = Wrappers.lambdaQuery(TenantEntity.class)
-                .eq(TenantEntity::getStatus, 1)
-                .apply("EXAMINE_STATE = {0}", 1);
+                .eq(TenantEntity::getStatus, 1);
         List<TenantEntity> tenants = tenantService.list(wrapper);
         if (tenants == null || tenants.isEmpty()) {
             return new ArrayList<>();
         }
         return tenants.stream().map(TenantEntity::getTenantId).collect(Collectors.toList());
-    }
-
-    private List<String> getTenantDsKey() {
-        List<String> tenantIds = getTenantIds();
-        if (tenantIds == null || tenantIds.isEmpty()) {
-            return new ArrayList<>();
-        }
-        return new ArrayList<>();
     }
 }

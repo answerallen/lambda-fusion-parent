@@ -14,7 +14,7 @@ import lombok.Setter;
  * (
  * id                 varchar(50)  not null primary key comment '绑定ID',
  * tenant_id          varchar(32)  not null comment '租户ID',
- * datasource_key     varchar(50)  null comment '数据源标识',
+ * datasource_key     varchar(50)  null comment '数据源ID',
  * schema_status      tinyint      default 0 comment '0未初始化 1已初始化',
  * created_at         datetime,
  * created_by         varchar(50),
@@ -41,8 +41,8 @@ public class TenantDataSourceEntity extends BaseEntity {
     private String tenantId;
 
     @TableField("datasource_key")
-    @Schema(description = "数据源标识")
-    private String datasourceKey;
+    @Schema(description = "数据源ID")
+    private String datasourceId;
 
     @TableField("usage_type")
     @Schema(description = "数据库用途")

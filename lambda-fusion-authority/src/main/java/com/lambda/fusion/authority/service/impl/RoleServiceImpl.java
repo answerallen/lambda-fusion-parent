@@ -13,7 +13,7 @@ import com.google.common.collect.Sets;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.helper.UserRoleHelper;
-import com.lambda.fusion.authority.manager.TenantAuthorizeManager;
+import com.lambda.fusion.authority.manager.TenantManager;
 import com.lambda.fusion.authority.mapper.AccessPermissionMapper;
 import com.lambda.fusion.authority.mapper.RoleGroupMapper;
 import com.lambda.fusion.authority.mapper.RoleMapper;
@@ -58,11 +58,11 @@ public class RoleServiceImpl implements RoleService {
 
     private final AccessPermissionMapper accessPermissionMapper;
 
-    private TenantAuthorizeManager tenantAuthorizeManager;
+    private TenantManager tenantManager;
 
     @Autowired(required = false)
-    public void setTenantAuthorizeManager(TenantAuthorizeManager tenantAuthorizeManager) {
-        this.tenantAuthorizeManager = tenantAuthorizeManager;
+    public void setTenantManager(TenantManager tenantManager) {
+        this.tenantManager = tenantManager;
     }
 
     private @NonNull Set<String> getExcludes(UserDetails userDetails) {
@@ -283,8 +283,8 @@ public class RoleServiceImpl implements RoleService {
         }
 
         // 处理租户主库
-        if (tenantAuthorizeManager != null) {
-            tenantAuthorizeManager.saveAuth(authority, resources, status);
+        if (tenantManager != null) {
+            tenantManager.grantRolePermission(authority, resources, status);
         }
     }
 
@@ -347,8 +347,8 @@ public class RoleServiceImpl implements RoleService {
         }
 
         // 处理租户主库
-        if (tenantAuthorizeManager != null) {
-            tenantAuthorizeManager.deleteAuthorization(authority, resources);
+        if (tenantManager != null) {
+            tenantManager.revokeRolePermission(authority, resources);
         }
     }
 

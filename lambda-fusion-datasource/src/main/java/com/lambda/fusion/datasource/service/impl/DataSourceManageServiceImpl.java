@@ -147,15 +147,6 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
 
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
-    public DataSourceEntity getByDatasourceKey(String datasourceKey) {
-        Assert.hasText(datasourceKey, "datasourceKey is blank");
-        return getOne(Wrappers.lambdaQuery(DataSourceEntity.class)
-                .eq(DataSourceEntity::getDatasourceKey, datasourceKey)
-                .last("limit 1"));
-    }
-
-    @Override
-    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
     public TenantDataSourceEntity getTenantDataSource(String tenantId, FusionConstants.DatabaseUsageType usageType) {
         Assert.hasText(tenantId, "tenantId is blank");
         Assert.notNull(usageType, "usageType is null");
@@ -194,12 +185,12 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void bindTenantDataSource(
-            String tenantId, String datasourceKey, FusionConstants.DatabaseUsageType usageType) {
+            String tenantId, String datasourceId, FusionConstants.DatabaseUsageType usageType) {
         Assert.hasText(tenantId, "tenantId is blank");
-        Assert.hasText(datasourceKey, "datasourceKey is blank");
+        Assert.hasText(datasourceId, "datasourceId is blank");
         Assert.notNull(usageType, "usageType is null");
         Assert.isTrue(tenantIsolationResolver.isDedicated(tenantId), "仅独立库租户允许配置数据源");
-        DataSourceEntity dataSourceEntity = getByDatasourceKey(datasourceKey);
+        DataSourceEntity dataSourceEntity = getById(datasourceId);
         Assert.notNull(dataSourceEntity, "datasource not found");
         Assert.notNull(dataSourceEntity.getUsageType(), "datasource usageType is null");
         Assert.isTrue(
@@ -211,7 +202,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
             TenantDataSourceEntity entity = new TenantDataSourceEntity();
             entity.setId(IdWorker.getIdStr());
             entity.setTenantId(tenantId);
-            entity.setDatasourceKey(datasourceKey);
+            entity.setDatasourceId(datasourceId);
             entity.setUsageType(usageType);
             if (FusionConstants.DatabaseUsageType.TENANT.equals(usageType)) {
                 entity.setSchemaStatus(TenantDataSourceEntity.SCHEMA_UNINITIALIZED);
@@ -220,7 +211,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
             return;
         }
 
-        binding.setDatasourceKey(datasourceKey);
+        binding.setDatasourceId(datasourceId);
         binding.setUsageType(usageType);
         if (FusionConstants.DatabaseUsageType.TENANT.equals(usageType)) {
             binding.setSchemaStatus(TenantDataSourceEntity.SCHEMA_UNINITIALIZED);

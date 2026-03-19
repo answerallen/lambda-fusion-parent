@@ -20,7 +20,6 @@ import lombok.Setter;
  * create table la_datasources
  * (
  * id               varchar(32)  not null primary key comment '资源ID',
- * datasource_key   varchar(128) not null comment '逻辑资源标识（系统用）',
  * datasource_name     varchar(128) not null comment '数据源名称（展示用）',
  * db_type          varchar(32)  not null comment 'mysql pg oracle',
  * usage_type       varchar(32)  not null comment '用途：BUSINESS SYSTEM TENANT',
@@ -48,10 +47,6 @@ public class DataSourceEntity extends BaseEntity {
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     @Schema(description = "数据源编号")
     private String id;
-
-    @TableField("datasource_key")
-    @Schema(description = "逻辑资源标识")
-    private String datasourceKey;
 
     @TableField("datasource_name")
     @Schema(description = "数据源名称")
