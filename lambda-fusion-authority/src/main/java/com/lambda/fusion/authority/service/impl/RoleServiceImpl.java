@@ -12,7 +12,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
-import com.lambda.fusion.authority.helper.UserRoleHelper;
+import com.lambda.fusion.authority.support.AuthorityHelper;
 import com.lambda.fusion.authority.manager.TenantManager;
 import com.lambda.fusion.authority.mapper.AccessPermissionMapper;
 import com.lambda.fusion.authority.mapper.RoleGroupMapper;
@@ -248,7 +248,7 @@ public class RoleServiceImpl implements RoleService {
 
         String tenantId = userDetails.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
-            tenantId = UserRoleHelper.getTenantId(authority);
+            tenantId = AuthorityHelper.getTenantId(authority);
         }
 
         List<Resource> resources = resourceService.getAllParentsByOperator(userDetails, resource);
@@ -322,7 +322,7 @@ public class RoleServiceImpl implements RoleService {
 
         String tenantId = userDetails.getTenantId();
         if (StringUtils.isBlank(tenantId)) {
-            tenantId = UserRoleHelper.getTenantId(authority);
+            tenantId = AuthorityHelper.getTenantId(authority);
         }
 
         List<Resource> resources = resourceService.getAllChildrenByOperator(userDetails, resource);

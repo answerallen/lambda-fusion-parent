@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.helper;
+package com.lambda.fusion.authority.support;
 
 import static com.lambda.fusion.core.FusionConstants.*;
 
@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Collection;
 import org.apache.commons.lang.StringUtils;
 
-public class UserRoleHelper {
+public class AuthorityHelper {
 
     public static boolean isSelf(User user) {
         UserDetails loginUser = SecurityUtils.getUser();
@@ -51,7 +51,7 @@ public class UserRoleHelper {
         return user.getAuthorities().stream()
                 .map(SimpleRole::getAuthority)
                 .filter(StringUtils::isNotBlank)
-                .anyMatch(role -> role.contains(FusionConstants.ROLE_USER));
+                .anyMatch(role -> role.contains(ROLE_DEV));
     }
 
     public static boolean isTenant(Collection<SimpleRole> roles) {

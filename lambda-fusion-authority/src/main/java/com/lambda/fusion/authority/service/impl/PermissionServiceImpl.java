@@ -4,7 +4,7 @@ import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.ApiResourceMapper;
 import com.lambda.fusion.authority.model.resource.ApiPermissionTreeNode;
 import com.lambda.fusion.authority.model.resource.Resource;
-import com.lambda.fusion.authority.service.ApiPermissionService;
+import com.lambda.fusion.authority.service.PermissionService;
 import com.lambda.fusion.authority.service.ResourceService;
 import com.lambda.fusion.permission.model.ApiPermissionMetadata;
 import com.lambda.fusion.permission.service.ApiPermissionRegistry;
@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @Service
 @RequiredArgsConstructor
-public class ApiPermissionServiceImpl implements ApiPermissionService {
+public class PermissionServiceImpl implements PermissionService {
     private static final String DEFAULT_GROUP = "未分组";
 
     private final ResourceService resourceService;

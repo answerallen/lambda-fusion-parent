@@ -11,7 +11,7 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
-import com.lambda.fusion.authority.helper.UserQueryHelper;
+import com.lambda.fusion.authority.assembler.UserQueryAssembler;
 import com.lambda.fusion.authority.manager.TenantManager;
 import com.lambda.fusion.authority.model.role.SimpleRole;
 import com.lambda.fusion.authority.model.user.*;
@@ -50,7 +50,7 @@ public class UserController {
 
     private final OrganizationService organizationService;
     private final UserService userService;
-    private final UserQueryHelper userQueryHelper;
+    private final UserQueryAssembler userQueryAssembler;
     private final UserCenterService userCenterService;
     private final UserInfoService userInfoService;
     private TenantManager tenantManager;
@@ -73,7 +73,7 @@ public class UserController {
         if (size != null) {
             userQuery.setPageSize(size);
         }
-        UserQueryContext userQueryContext = userQueryHelper.buildUserQueryContext(userQuery);
+        UserQueryContext userQueryContext = userQueryAssembler.buildUserQueryContext(userQuery);
         return userService.getUsers(userQuery.getPage(), userQueryContext);
     }
 

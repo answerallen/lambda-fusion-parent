@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.helper;
+package com.lambda.fusion.authority.support;
 
 import com.google.common.collect.Maps;
 import com.lambda.fusion.authority.model.user.UserFieldsEntity;
@@ -8,7 +8,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class UserInfoHelper {
+public class UserInfoConverter {
 
     public static List<UserFieldsEntity> buildUserFieldsFromMap(Map<String, Object> personal, String username) {
         return getUserFieldsEntities(personal, username);

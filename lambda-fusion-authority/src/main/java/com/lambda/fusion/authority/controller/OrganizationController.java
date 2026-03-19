@@ -6,7 +6,7 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
-import com.lambda.fusion.authority.helper.OrganizationQueryHelper;
+import com.lambda.fusion.authority.assembler.OrganizationQueryAssembler;
 import com.lambda.fusion.authority.model.organization.CreateOrganization;
 import com.lambda.fusion.authority.model.organization.Organization;
 import com.lambda.fusion.authority.model.organization.OrganizationQuery;
@@ -59,7 +59,7 @@ public class OrganizationController {
             @RequestParam(required = false) @Parameter(description = "组织别名") String alias,
             @RequestParam(required = false) Boolean enabled) {
         LoginUser operator = OperatorUtils.getOperator();
-        OrganizationQuery organizationQuery = OrganizationQueryHelper.buildOrganizationQuery();
+        OrganizationQuery organizationQuery = OrganizationQueryAssembler.buildOrganizationQuery();
         if (BooleanUtils.isTrue(enabled)) {
             organizationQuery.setEnabled(true);
         }
@@ -77,7 +77,7 @@ public class OrganizationController {
     @GetMapping("/list")
     @Operation(summary = "获取组织机构树形下拉列表", description = "查询组织机构列表树形下拉列表")
     public List<OrganizationTree> list() {
-        OrganizationQuery parameters = OrganizationQueryHelper.buildOrganizationQuery();
+        OrganizationQuery parameters = OrganizationQueryAssembler.buildOrganizationQuery();
         parameters.setEnabled(true);
         return organizationService.getOrganizationTree(parameters);
     }

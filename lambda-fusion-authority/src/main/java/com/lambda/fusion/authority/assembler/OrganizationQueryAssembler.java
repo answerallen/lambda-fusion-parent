@@ -1,10 +1,10 @@
-package com.lambda.fusion.authority.helper;
+package com.lambda.fusion.authority.assembler;
 
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.model.organization.OrganizationQuery;
 import org.apache.commons.lang.StringUtils;
 
-public class OrganizationQueryHelper {
+public class OrganizationQueryAssembler {
 
     /**
      * 获取查询组织机构的参数

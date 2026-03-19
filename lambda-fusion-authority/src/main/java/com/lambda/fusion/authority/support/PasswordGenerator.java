@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.helper;
+package com.lambda.fusion.authority.support;
 
 import cn.hutool.core.lang.UUID;
 import com.lambda.fusion.authority.AuthorityProperties;
@@ -6,7 +6,7 @@ import com.lambda.fusion.authority.model.user.Password;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
 
-public class PasswordHelper {
+public class PasswordGenerator {
 
     public static Password obtainPassword(AuthorityProperties.PasswordStrategy strategy, String parameter) {
         String origin;

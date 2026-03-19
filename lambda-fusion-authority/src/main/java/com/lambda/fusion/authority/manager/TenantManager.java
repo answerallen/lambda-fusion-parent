@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
-import com.lambda.fusion.authority.helper.UserRoleHelper;
+import com.lambda.fusion.authority.support.AuthorityHelper;
 import com.lambda.fusion.authority.mapper.RoleMapper;
 import com.lambda.fusion.authority.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.mapper.UserMapper;
@@ -269,7 +269,7 @@ public class TenantManager {
         if (ROLE_TENANT.equals(authority)) {
             return getTenantIds();
         }
-        String tenantId = UserRoleHelper.getTenantId(authority);
+        String tenantId = AuthorityHelper.getTenantId(authority);
         if (StringUtils.isBlank(tenantId)) {
             return new ArrayList<>();
         }

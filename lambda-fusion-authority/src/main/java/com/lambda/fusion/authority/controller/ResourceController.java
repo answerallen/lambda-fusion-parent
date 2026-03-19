@@ -9,7 +9,7 @@ import com.lambda.fusion.authority.model.resource.CreateResource;
 import com.lambda.fusion.authority.model.resource.MoveResource;
 import com.lambda.fusion.authority.model.resource.Resource;
 import com.lambda.fusion.authority.model.resource.ResourceTree;
-import com.lambda.fusion.authority.service.ApiPermissionService;
+import com.lambda.fusion.authority.service.PermissionService;
 import com.lambda.fusion.authority.service.ResourceService;
 import com.lambda.fusion.core.FusionConstants;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.*;
 public class ResourceController {
 
     private final ResourceService resourceService;
-    private final ApiPermissionService apiPermissionService;
+    private final PermissionService permissionService;
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000030")
     @GetMapping("/tree")
@@ -112,7 +112,7 @@ public class ResourceController {
             @PathVariable @Parameter(description = "资源编号", required = true) String id,
             @RequestParam(required = false) @Parameter(description = "应用名称") String application,
             @RequestParam(required = false) @Parameter(description = "接口名称") String name) {
-        return apiPermissionService.listPermissionTree(id, application, name);
+        return permissionService.listPermissionTree(id, application, name);
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000037")
@@ -121,7 +121,7 @@ public class ResourceController {
     public void bindApiPermission(
             @PathVariable @Parameter(description = "资源编号", required = true) String id,
             @PathVariable @Parameter(description = "接口权限ID", required = true) String permissionId) {
-        apiPermissionService.bind(id, permissionId);
+        permissionService.bind(id, permissionId);
     }
 
     @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000038")
@@ -130,6 +130,6 @@ public class ResourceController {
     public void unbindApiPermission(
             @PathVariable @Parameter(description = "资源编号", required = true) String id,
             @PathVariable @Parameter(description = "接口权限ID", required = true) String permissionId) {
-        apiPermissionService.unbind(id, permissionId);
+        permissionService.unbind(id, permissionId);
     }
 }

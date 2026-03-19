@@ -18,9 +18,9 @@ import com.lambda.cloud.core.utils.StpLogicUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
-import com.lambda.fusion.authority.helper.PasswordHelper;
-import com.lambda.fusion.authority.helper.UserInfoHelper;
-import com.lambda.fusion.authority.helper.UserRoleHelper;
+import com.lambda.fusion.authority.support.PasswordGenerator;
+import com.lambda.fusion.authority.support.UserInfoConverter;
+import com.lambda.fusion.authority.support.AuthorityHelper;
 import com.lambda.fusion.authority.mapper.*;
 import com.lambda.fusion.authority.model.organization.OrganizationEntity;
 import com.lambda.fusion.authority.model.organization.SimpleOrganization;
@@ -118,7 +118,7 @@ public class UserServiceImpl implements UserService {
             List<UserFieldsEntity> fields = userFieldsMapper.getListByUsername(username);
             Map<String, Map<String, Object>> allPersonUserMap;
             if (CollectionUtils.isNotEmpty(fields)) {
-                allPersonUserMap = UserInfoHelper.buildUserFieldsMap(fields);
+                allPersonUserMap = UserInfoConverter.buildUserFieldsMap(fields);
                 user.setPersonal(allPersonUserMap.get(username));
             }
         }
@@ -251,7 +251,7 @@ public class UserServiceImpl implements UserService {
 
     private Map<String, Map<String, Object>> buildUserPersonFieldMap(Set<String> usernames) {
         List<UserFieldsEntity> fields = userFieldsMapper.getPersonUser(usernames);
-        return UserInfoHelper.buildUserFieldsMap(fields);
+        return UserInfoConverter.buildUserFieldsMap(fields);
     }
 
     /**
@@ -276,7 +276,7 @@ public class UserServiceImpl implements UserService {
      * 补充完善用户权限信息
      */
     private void assembleUserPermissionInfo(User user, String tenantId) {
-        if (UserRoleHelper.isTenant(user)) {
+        if (AuthorityHelper.isTenant(user)) {
             user.setDisableAssignment(true);
         }
         if (StringUtils.isNotBlank(user.getTenantId()) && !Objects.equals(tenantId, user.getTenantId())) {
@@ -422,10 +422,10 @@ public class UserServiceImpl implements UserService {
 
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
         String originPassword = userEntity.getPassword();
-        Password encodePassword = PasswordHelper.obtainPassword(strategy, originPassword);
+        Password encodePassword = PasswordGenerator.obtainPassword(strategy, originPassword);
         userEntity.setPassword(passwordEncoder.encode(encodePassword.getEncrypted()));
 
-        if (UserRoleHelper.isTenant(createUser.getAuthorities())) {
+        if (AuthorityHelper.isTenant(createUser.getAuthorities())) {
             String orgId = createUser.getTenantId();
             createUser.setOrganization(new SimpleOrganization(orgId));
         }
@@ -492,12 +492,12 @@ public class UserServiceImpl implements UserService {
 
         if (MapUtils.isNotEmpty(updateUser.getPersonal())) {
             List<UserFieldsEntity> fields =
-                    UserInfoHelper.buildUserFieldsFromMap(updateUser.getPersonal(), userEntity.getUsername());
+                    UserInfoConverter.buildUserFieldsFromMap(updateUser.getPersonal(), userEntity.getUsername());
             this.userFieldsMapper.deleteByUsername(userEntity.getUsername());
             this.userFieldsMapper.insert(fields);
         }
 
-        if (!UserRoleHelper.isTenant(updateUser.getAuthorities())) {
+        if (!AuthorityHelper.isTenant(updateUser.getAuthorities())) {
             SimpleOrganization simpleOrganization = updateUser.getOrganization();
             if (simpleOrganization != null) {
                 UserOrganizationEntity organizationEntity =
@@ -576,7 +576,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public String resetUserPassword(ResetPassword resetPassword) {
         AuthorityProperties.PasswordStrategy strategy = properties.getPasswordStrategy();
-        Password password = PasswordHelper.obtainPassword(strategy, resetPassword.getNewPassword());
+        Password password = PasswordGenerator.obtainPassword(strategy, resetPassword.getNewPassword());
         userMapper.updatePassword(resetPassword.getUsername(), passwordEncoder.encode(password.getEncrypted()));
         UserInfoEntity userInfoEntity = new UserInfoEntity();
         userInfoEntity.setUsername(resetPassword.getUsername());
@@ -655,7 +655,7 @@ public class UserServiceImpl implements UserService {
         if (personal == null) {
             throw AuthorityBusinessException.invalidParameter("用户扩展信息不能为空");
         }
-        List<UserFieldsEntity> fieldsEntities = UserInfoHelper.buildUserFieldsFromMap(personal, username);
+        List<UserFieldsEntity> fieldsEntities = UserInfoConverter.buildUserFieldsFromMap(personal, username);
         userFieldsMapper.insert(fieldsEntities);
     }
 
