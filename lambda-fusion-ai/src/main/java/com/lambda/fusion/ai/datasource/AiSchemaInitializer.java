@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.datasource;
 
 import com.lambda.fusion.ai.AiProperties;
-import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
+import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
 import javax.sql.DataSource;
 import liquibase.integration.spring.SpringLiquibase;
 import lombok.RequiredArgsConstructor;

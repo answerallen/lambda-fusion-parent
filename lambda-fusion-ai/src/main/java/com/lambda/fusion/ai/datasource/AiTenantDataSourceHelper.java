@@ -1,9 +1,9 @@
 package com.lambda.fusion.ai.datasource;
 
 import com.lambda.fusion.ai.AiProperties;
-import com.lambda.fusion.datasource.api.DataSourceSwitcher;
+import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
-import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
+import com.lambda.fusion.datasource.commons.tenant.TenantDataSourceManager;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.datasource.api.RemoteDataSourceService;
+import com.lambda.fusion.datasource.commons.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;

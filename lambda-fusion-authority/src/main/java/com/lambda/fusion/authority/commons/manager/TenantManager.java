@@ -22,7 +22,7 @@ import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import com.lambda.fusion.authority.model.user.UserRoleEntity;
 import com.lambda.fusion.authority.service.TenantService;
 import com.lambda.fusion.core.utils.AuthUtils;
-import com.lambda.fusion.datasource.api.DataSourceSwitcher;
+import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -36,7 +36,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
