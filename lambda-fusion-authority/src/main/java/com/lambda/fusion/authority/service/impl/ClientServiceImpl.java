@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.ClientMapper;
 import com.lambda.fusion.authority.model.client.ClientEntity;
 import com.lambda.fusion.authority.model.resource.ApiPermissionTreeNode;

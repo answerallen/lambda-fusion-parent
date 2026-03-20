@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.support;
+package com.lambda.fusion.authority.commons.utils;
 
 import cn.hutool.core.lang.UUID;
 import com.lambda.fusion.authority.AuthorityProperties;

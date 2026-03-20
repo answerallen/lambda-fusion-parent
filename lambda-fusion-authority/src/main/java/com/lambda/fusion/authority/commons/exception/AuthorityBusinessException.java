@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.exception;
+package com.lambda.fusion.authority.commons.exception;
 
 import com.lambda.cloud.core.exception.model.ErrorCode;
 import com.lambda.cloud.mvc.execption.BusinessException;

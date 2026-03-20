@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.service.impl;
 
-import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.AreaMapper;
 import com.lambda.fusion.authority.model.area.*;
 import com.lambda.fusion.authority.service.AreaService;

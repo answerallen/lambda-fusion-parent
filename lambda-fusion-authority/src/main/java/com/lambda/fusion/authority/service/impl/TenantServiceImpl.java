@@ -9,7 +9,7 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.cloud.oss.model.UploadObjectResult;
-import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.mapper.RoleGroupMapper;
 import com.lambda.fusion.authority.mapper.RoleMapper;

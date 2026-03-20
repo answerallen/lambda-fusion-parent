@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.listenner;
+package com.lambda.fusion.authority.commons.listener;
 
 import com.lambda.cloud.sse.listener.SseEventListener;
 import com.lambda.fusion.authority.service.UserOnlineLogService;

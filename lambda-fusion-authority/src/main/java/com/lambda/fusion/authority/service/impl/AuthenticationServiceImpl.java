@@ -11,7 +11,7 @@ import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.AuthorityConstants;
-import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.AuthenticationMapper;
 import com.lambda.fusion.authority.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.model.authentication.*;

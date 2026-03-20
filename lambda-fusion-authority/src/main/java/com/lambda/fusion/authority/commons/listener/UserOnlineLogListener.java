@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.listenner;
+package com.lambda.fusion.authority.commons.listener;
 
 import cn.dev33.satoken.listener.SaTokenListenerForSimple;
 import cn.dev33.satoken.stp.parameter.SaLoginParameter;

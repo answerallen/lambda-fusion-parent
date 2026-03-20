@@ -2,13 +2,13 @@ package com.lambda.fusion.authority.service.impl;
 
 import cn.hutool.json.JSONUtil;
 import com.lambda.cloud.sms.SmsMessageSender;
-import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.utils.UserInfoConverter;
 import com.lambda.fusion.authority.mapper.UserFieldsMapper;
 import com.lambda.fusion.authority.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.mapper.UserMapper;
 import com.lambda.fusion.authority.model.user.*;
 import com.lambda.fusion.authority.service.UserCenterService;
-import com.lambda.fusion.authority.support.UserInfoConverter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Map;

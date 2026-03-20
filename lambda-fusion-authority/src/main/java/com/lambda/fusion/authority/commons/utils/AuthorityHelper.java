@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.support;
+package com.lambda.fusion.authority.commons.utils;
 
 import static com.lambda.fusion.core.FusionConstants.*;
 

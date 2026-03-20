@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.support;
+package com.lambda.fusion.authority.commons.utils;
 
 import com.google.common.collect.Maps;
 import com.lambda.fusion.authority.model.user.UserFieldsEntity;

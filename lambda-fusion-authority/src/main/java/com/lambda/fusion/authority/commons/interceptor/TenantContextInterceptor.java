@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.inteceptor;
+package com.lambda.fusion.authority.commons.interceptor;
 
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.cloud.redis.helper.RedisHelper;

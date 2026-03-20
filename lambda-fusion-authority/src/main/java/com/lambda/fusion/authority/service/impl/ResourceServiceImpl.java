@@ -5,12 +5,14 @@ import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.lambda.fusion.authority.AuthorityConstants;
-import com.lambda.fusion.authority.exception.AuthorityBusinessException;
-import com.lambda.fusion.authority.manager.RoleManager;
+import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.ResourceMapper;
+import com.lambda.fusion.authority.mapper.RoleMapper;
 import com.lambda.fusion.authority.model.authentication.MenuQuery;
 import com.lambda.fusion.authority.model.resource.*;
+import com.lambda.fusion.authority.model.role.UserAuthority;
 import com.lambda.fusion.authority.service.ResourceService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
@@ -20,6 +22,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -34,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class ResourceServiceImpl implements ResourceService {
-    private final RoleManager roleManager;
+    private final RoleMapper roleMapper;
     private final ResourceMapper resourceMapper;
     protected final TreeDataFilter treeDataFilter;
 
@@ -465,7 +468,7 @@ public class ResourceServiceImpl implements ResourceService {
         Map<String, Object> parameters = Maps.newHashMap();
         parameters.put("parentKeys", parentKeys);
         if (!userDetails.isDev()) {
-            Set<String> authorities = roleManager.getAuthoritiesByUsername(userDetails.getUsername());
+            Set<String> authorities = getAuthoritiesByUsername(userDetails.getUsername());
             authorities.add(userDetails.getUsername());
             parameters.put("authorities", authorities);
         }
@@ -517,6 +520,24 @@ public class ResourceServiceImpl implements ResourceService {
         } else {
             return pid0.equals(pid1);
         }
+    }
+
+    @Nonnull
+    public Set<String> getAuthoritiesByUsername(String username) {
+        List<UserAuthority> results = roleMapper.getAuthoritiesByUser(username);
+        if (CollectionUtils.isEmpty(results)) {
+            return Sets.newHashSet();
+        }
+        Set<String> authorities = Sets.newHashSetWithExpectedSize(results.size());
+        results.forEach(item -> {
+            String authority = item.getAuthority();
+            String orgId = item.getOrgId();
+            if (FusionConstants.ROLE_TENANT.equals(item.getAuthority())) {
+                authority = FusionConstants.ROLE_TENANT + FusionConstants.AT + orgId;
+            }
+            authorities.add(authority);
+        });
+        return authorities;
     }
 
     /***

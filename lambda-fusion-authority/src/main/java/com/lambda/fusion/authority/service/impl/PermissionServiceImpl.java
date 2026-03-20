@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.service.impl;
 
-import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.ApiResourceMapper;
 import com.lambda.fusion.authority.model.resource.ApiPermissionTreeNode;
 import com.lambda.fusion.authority.model.resource.Resource;

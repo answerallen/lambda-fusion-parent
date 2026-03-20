@@ -1,11 +1,12 @@
-package com.lambda.fusion.authority.manager;
+package com.lambda.fusion.authority.commons.manager;
 
 import static com.lambda.fusion.core.FusionConstants.*;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.lambda.cloud.core.principal.LoginUser;
-import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.utils.AuthorityHelper;
 import com.lambda.fusion.authority.mapper.RoleMapper;
 import com.lambda.fusion.authority.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.mapper.UserMapper;
@@ -20,7 +21,6 @@ import com.lambda.fusion.authority.model.user.UserEntity;
 import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import com.lambda.fusion.authority.model.user.UserRoleEntity;
 import com.lambda.fusion.authority.service.TenantService;
-import com.lambda.fusion.authority.support.AuthorityHelper;
 import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
@@ -36,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,15 +1,15 @@
-package com.lambda.fusion.authority.assembler;
+package com.lambda.fusion.authority.commons.assembler;
 
 import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 import cn.hutool.json.JSONUtil;
 import com.google.common.collect.Sets;
+import com.lambda.fusion.authority.commons.utils.UserInfoConverter;
 import com.lambda.fusion.authority.model.user.UserFieldsEntity;
 import com.lambda.fusion.authority.model.user.UserQuery;
 import com.lambda.fusion.authority.model.user.UserQueryContext;
 import com.lambda.fusion.authority.service.OrganizationService;
 import com.lambda.fusion.authority.service.UserService;
-import com.lambda.fusion.authority.support.UserInfoConverter;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.AuthUtils;

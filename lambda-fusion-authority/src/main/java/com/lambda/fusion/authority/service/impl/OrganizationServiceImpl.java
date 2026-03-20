@@ -10,7 +10,7 @@ import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.AuthorityProperties;
-import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.*;
 import com.lambda.fusion.authority.model.organization.*;
 import com.lambda.fusion.authority.model.resource.MoveResource;

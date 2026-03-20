@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.authority.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.model.client.ClientEntity;
 import com.lambda.fusion.authority.model.client.ClientQuery;
 import com.lambda.fusion.authority.model.client.UpsertClient;
