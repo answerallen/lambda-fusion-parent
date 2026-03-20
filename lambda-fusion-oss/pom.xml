@@ -7,7 +7,7 @@
         <version>2026.1.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>lambda-fusion-upload</artifactId>
+    <artifactId>lambda-fusion-oss</artifactId>
 
     <name>lambda-fusion-upload</name>
 
