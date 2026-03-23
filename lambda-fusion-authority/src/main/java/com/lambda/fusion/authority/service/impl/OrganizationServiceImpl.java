@@ -25,6 +25,7 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
 import com.lambda.fusion.core.utils.AuthUtils;
+import com.lambda.fusion.datascope.commons.event.DataScopeObjectChangedEvent;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +56,7 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
     private final UserOrganizationMapper userOrganizationMapper;
     private final RoleGroupMapper roleGroupMapper;
     private final AuthorityProperties authorityProperties;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     public List<Organization> organizationTreeList(OrganizationQuery organizationQuery) {
@@ -203,6 +206,7 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
 
         // 执行删除操作
         performDeletion(organization, id);
+        publishOrgDeletedEvent(id);
     }
 
     /**
@@ -269,6 +273,10 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
         if (resource.getId() == null) {
             throw AuthorityBusinessException.invalidParameter("机构ID不能为空");
         }
+        Organization before = getOrganizationById(resource.getId());
+        if (before == null) {
+            throw AuthorityBusinessException.organizationNotFound(resource.getId());
+        }
         List<OrganizationEntity> organizations =
                 organizationMapper.selectList(new LambdaQueryWrapper<OrganizationEntity>()
                         .eq(OrganizationEntity::getName, resource.getName())
@@ -278,7 +286,9 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
         }
         OrganizationEntity organizationEntity = resource.toEntity();
         organizationMapper.updateById(organizationEntity);
-        return getOrganizationById(resource.getId());
+        Organization updated = getOrganizationById(resource.getId());
+        publishOrgUpdatedEvent(updated.getId(), updated.getParentId(), before.getParentId());
+        return updated;
     }
 
     @Override
@@ -527,7 +537,9 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
             entity.setParentId(FusionConstants.TREE_TOP_LEVEL);
         }
         organizationMapper.insert(entity);
-        return getOrganizationById(orgId);
+        Organization created = getOrganizationById(orgId);
+        publishOrgCreatedEvent(created.getId(), created.getParentId());
+        return created;
     }
 
     @Override
@@ -619,6 +631,53 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
                 mode,
                 organizationMapper::selectChildren,
                 organizationMapper::selectOrganizationsByParentKeys);
+        Map<String, String> previousParentIdMap = organizationMapper.selectByIds(
+                        changed.stream().map(Organization::getId).collect(Collectors.toSet()))
+                .stream()
+                .collect(Collectors.toMap(OrganizationEntity::getId, OrganizationEntity::getParentId, (left, right) -> left));
         organizationMapper.updateAffectedNodesAfterMove(changed);
+        List<String> cascadeObjectIds = changed.stream().map(Organization::getId).collect(Collectors.toList());
+        String parentId = changed.stream()
+                .filter(item -> Objects.equals(item.getId(), id))
+                .map(Organization::getParentId)
+                .findFirst()
+                .orElse(source.getParentId());
+        publishOrgMovedEvent(id, parentId, previousParentIdMap.get(id), cascadeObjectIds);
+    }
+
+    private void publishOrgCreatedEvent(String orgId, String parentId) {
+        UserDetails operator = AuthUtils.getUser();
+        applicationEventPublisher.publishEvent(
+                DataScopeObjectChangedEvent.created(this, Organization.class.getName(), orgId, parentId, operator));
+    }
+
+    private void publishOrgUpdatedEvent(String orgId, String parentId, String previousParentId) {
+        UserDetails operator = AuthUtils.getUser();
+        applicationEventPublisher.publishEvent(DataScopeObjectChangedEvent.updated(
+                this,
+                Organization.class.getName(),
+                orgId,
+                parentId,
+                previousParentId,
+                operator));
+    }
+
+    private void publishOrgDeletedEvent(String orgId) {
+        UserDetails operator = AuthUtils.getUser();
+        applicationEventPublisher.publishEvent(
+                DataScopeObjectChangedEvent.deleted(this, Organization.class.getName(), orgId, operator));
+    }
+
+    private void publishOrgMovedEvent(
+            String orgId, String parentId, String previousParentId, List<String> cascadeObjectIds) {
+        UserDetails operator = AuthUtils.getUser();
+        applicationEventPublisher.publishEvent(DataScopeObjectChangedEvent.moved(
+                this,
+                Organization.class.getName(),
+                orgId,
+                parentId,
+                previousParentId,
+                cascadeObjectIds,
+                operator));
     }
 }

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="lambda-datascope-202603230001" author="zx">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_datascopes"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_datascopes" remarks="通用数据权限映射表">
+            <column name="ID" type="varchar(32)" remarks="业务数据ID(例如：部门ID、项目ID、合同ID)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TID" type="varchar(32)" remarks="授权主体ID(例如：角色ID、用户ID)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TARGET_TYPE" type="varchar(32)" remarks="主体类型: USER, ROLE, ORG, GROUP, CLIENT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DOMAIN_TYPE" type="int" remarks="业务数据类型：0-部门数据 1-项目数据 2-XX业务数据">
+                <constraints nullable="false"/>
+            </column>
+            <column name="RANK_LEVEL" type="int" remarks="层级(预留)"/>
+            <column name="CHECKED" type="int" defaultValueNumeric="1" remarks="前端勾选状态(1全选 2半选)"/>
+            <column name="TENANT_ID" type="varchar(32)" remarks="多租户隔离字段"/>
+        </createTable>
+        <addPrimaryKey tableName="la_datascopes" columnNames="ID, TID, TARGET_TYPE, DOMAIN_TYPE" constraintName="pk_la_datascopes"/>
+    </changeSet>
+
+</databaseChangeLog>
