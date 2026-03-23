@@ -21,41 +21,47 @@ Lambda Fusion 是一个基于 [**lamuda-cloud-parent**](https://gitee.com/westbo
 
 ### ✨ 核心特性
 
-- 🔐 **完善的权限体系** - RBAC 模型 + 多租户支持
+- 🔐 **完善的权限体系** - RBAC 模型 + 行级数据权限 (DataScope) + 多租户支持
 - ⚙️ **动态配置管理** - 支持热更新和多配置源
-- 📚 **灵活的数据字典** - 静态/动态字典，支持多种数据源
-- 🤖 **AI 知识库集成** - 智能化业务支持
+- 📚 **灵活的数据字典** - 静态/动态字典，支持基于 SQL 的数据源
+- 🤖 **AI 知识库集成** - RAG 文档检索、向量化存储与 LLM 会话支持
 - 🎯 **开箱即用** - 预置常用业务模块，快速启动项目
 
 
 ## 🏗️ 项目架构
 
-采用模块化设计，各模块职责清晰，可按需引入：
+采用模块化设计，各模块职责清晰，可按需独立引入：
 
-```
+```text
 lambda-fusion-parent/
-├── 📦 lambda-fusion-bom/          # BOM 依赖管理
-├── 🤖 lambda-fusion-ai/           # AI模块
-├── 🎯 lambda-fusion-core/         # 核心模块
-├── 🔐 lambda-fusion-authority/    # 权限管理（用户、角色、组织、资源）
-├── ⚙️ lambda-fusion-config/       # 配置管理（动态配置、热更新）
-├── 📚 lambda-fusion-dictionary/   # 数据字典（静态/动态字典）
-├── 📤 lambda-fusion-upload/       # 文件上传（OSS、本地存储）
-├── 🗄️ lambda-fusion-datasource/   # 数据源管理（多数据源支持）
-└── 🛡️ lambda-fusion-permission/   # 权限控制（API接口级权限、数据权限）
-
+├── 📦 lambda-fusion-bom/          # BOM 依赖版本管理
+├── 🎯 lambda-fusion-core/         # 核心基础模块（通用实体、树组件、分页、工具类）
+├── 🔐 lambda-fusion-authority/    # 权限与用户中心（用户、角色、组织、资源、租户、登录认证）
+├── 🛡️ lambda-fusion-permission/   # 权限控制引擎（API 接口鉴权、DataScope 数据隔离）
+├── ⚙️ lambda-fusion-config/       # 动态配置管理（全局设置、系统配置热加载）
+├── 📚 lambda-fusion-dictionary/   # 数据字典服务（静态/动态字典引擎）
+├── 🗄️ lambda-fusion-datasource/   # 多数据源管理（基于多租户的动态数据源路由）
+├── 📤 lambda-fusion-oss/          # 对象存储服务（统一附件管理）
+├── 🤖 lambda-fusion-ai/           # AI 智能化模块（RAG、文档切片、向量检索、LLM）
+└── 🚀 lambda-fusion-startup/      # 框架启动器（融合启动验证与测试工程）
 ```
 
 ## 🎯 核心功能
+
 | 项目 | 说明 | 
 |------|---------|
 | 👤 **用户管理** | 用户信息维护、在线状态监控、密码策略管理 |
 | 🎭 **角色管理** | 角色权限分配、角色组管理、角色继承 |
 | 🏢 **组织架构** | 多层级组织结构、部门管理、岗位管理 |
-| 📋 **资源管理** | 菜单权限、按钮权限、API 资源控制 |
-| 🔑 **客户端管理** | 客户端管理、授权、访问控制 |
-| 🏠 **多租户支持** | 租户配置、数据隔离、租户级权限 |
-| 🔒 **认证服务** | 用户认证、SSO 支持、动态菜单生成 |
+| 📋 **资源与权限** | 菜单权限、按钮权限、API 接口级安全控制 |
+| 🛡️ **数据权限** | 行级数据隔离（DataScope）、泛化主体授权、智能层级同步 |
+| 🏠 **多租户支持** | 租户配置、数据隔离、多租户动态数据源路由 |
+| 🔒 **认证服务** | 用户认证登录、SSO 支持、Token 管理 |
+| 📚 **数据字典** | 支持静态枚举配置与基于 SQL 的动态字典查询 |
+| ⚙️ **配置中心** | 系统全局设置、动态配置下发与实时生效 |
+| 🤖 **AI 知识库** | 文档解析、向量化存储、RAG 增强检索与大模型问答 |
+| 📤 **文件存储** | 统一附件上传与分组管理，支持多对象存储 |
+| 🔑 **客户端管理** | 内部调用与外部 API 客户端授权、访问控制 |
 
 
 ## 🛠️ 技术栈
@@ -69,6 +75,7 @@ lambda-fusion-parent/
 | ☁️ **Spring Cloud** | Latest | 微服务生态组件 |
 | 🔐 **Sa-Token** | Latest | 轻量级权限认证框架 |
 | 💾 **MyBatis Plus** | Latest | 增强版 ORM 框架 |
+| 🌳 **JSqlParser** | Latest | 强大的 SQL 语法树解析器（用于动态数据权限） |
 
 
 ### 数据存储
@@ -78,6 +85,7 @@ lambda-fusion-parent/
 | 🐬 **MySQL / PostgreSQL** | 关系型数据库 |
 | 🔴 **Redis** | 缓存存储、分布式锁 |
 | 📊 **Liquibase** | 数据库版本管理 |
+| 🧠 **Vector DB** | 向量数据库（AI 模块知识检索） |
 
 ### 工具库
 
@@ -122,10 +130,16 @@ lambda-fusion-parent/
 根据需要引入具体模块：
 
 ```xml
-<!-- 权限管理 -->
+<!-- 权限与用户管理 -->
 <dependency>
     <groupId>com.lambda.fusion</groupId>
     <artifactId>lambda-fusion-authority</artifactId>
+</dependency>
+
+<!-- 数据权限控制面 -->
+<dependency>
+    <groupId>com.lambda.fusion</groupId>
+    <artifactId>lambda-fusion-permission-datascope</artifactId>
 </dependency>
 
 <!-- 配置管理 -->
@@ -144,7 +158,7 @@ lambda-fusion-parent/
 
 ## 📚 相关资源
 
-- 🎯 [实战项目示例](https://gitee.com/westboy/lambda-fusion-admin)
+- 🎯 [实战项目示例](https://gitee.com/westboy/lambda-fusion-example-project)
 
 
 ## 📄 开源协议

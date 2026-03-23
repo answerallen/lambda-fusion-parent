@@ -43,8 +43,3 @@ lambda:
 1.  **启动上报**：系统启动时，`PermissionClientInitializer` 会触发 `LocalPermissionLoader` 读取本地的 JSON 权限配置，并使用 `PermissionPushClient` 将数据推送到权限中心。
 2.  **请求拦截**：HTTP 请求进入时，`PermissionSecureInterceptor` 根据请求的 URL 和 Method，在本地缓存的权限注册表中查找对应的 `ApiPermissionMetadata`。
 3.  **权限校验**：如果匹配到需要的权限标识（如 `T1000000067`），则调用 `SaToken` 的 `checkPermission` 进行权限验证。
-
-## 最佳实践
-
-*   建议将权限 JSON 文件按业务模块进行拆分管理。
-*   在对外暴露的公共 API 且不需要鉴权时，确保 `deny-unmatched` 配置合理或在 JSON 中显式放行。

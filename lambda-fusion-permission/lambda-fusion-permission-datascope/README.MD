@@ -72,4 +72,4 @@ applicationEventPublisher.publishEvent(
 ```
 
 ## 注意事项
-*   超级管理员（内置 `ROLE_ADMIN` 等标识）拥有最高权限，前端对其进行的显式数据授权将被忽略，以防止在 `la_datascopes` 表中产生冗余数据。底层拦截器会在 SQL 层面直接放行超管请求。
+*   超级管理员（内置 `ROLE_ADMIN` 等标识）。
