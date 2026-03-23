@@ -1,6 +1,6 @@
 package com.lambda.fusion.datascope.commons.provider;
 
-import com.lambda.fusion.datascope.model.PurviewNode;
+import com.lambda.fusion.datascope.model.DataScopeNode;
 
 import java.util.List;
 
@@ -23,5 +23,5 @@ public interface DataViewProvider {
      * @param tenantId 租户ID
      * @return 节点列表(扁平列表，由业务层统一组装树)
      */
-    List<PurviewNode> loadDataView(String tenantId);
+    List<DataScopeNode> loadDataView(String tenantId);
 }

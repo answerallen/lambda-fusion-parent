@@ -10,7 +10,7 @@ import java.util.Map;
 
 @Data
 @Schema(description = "通用权限树节点")
-public class PurviewNode implements TreeNode<PurviewNode> {
+public class DataScopeNode implements TreeNode<DataScopeNode> {
 
     @Schema(description = "节点ID")
     private String id;
@@ -34,7 +34,7 @@ public class PurviewNode implements TreeNode<PurviewNode> {
     private Map<String, Object> props = new HashMap<>();
 
     @Schema(description = "子节点")
-    private List<PurviewNode> children;
+    private List<DataScopeNode> children;
 
     @Override
     public String id() {
@@ -47,7 +47,7 @@ public class PurviewNode implements TreeNode<PurviewNode> {
     }
 
     @Override
-    public void children(List<PurviewNode> children) {
+    public void children(List<DataScopeNode> children) {
         this.children = children;
     }
 }

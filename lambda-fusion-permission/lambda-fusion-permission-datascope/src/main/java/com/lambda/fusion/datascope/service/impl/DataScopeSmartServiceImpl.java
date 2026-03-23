@@ -140,8 +140,15 @@ public class DataScopeSmartServiceImpl implements DataScopeSmartService {
             Set<String> ownersOldParent,
             Set<String> ownersNewParent,
             UserDetails operator) {
+        
+        // 确保不会移除操作人本身的权限
+        Set<String> safeOwnersOldParent = new LinkedHashSet<>(ownersOldParent);
+        if (operator != null) {
+            safeOwnersOldParent.remove(joinOwner(USER, operator.getUsername()));
+        }
+
         Set<String> removeOwners = new LinkedHashSet<>(ownersSelf);
-        removeOwners.retainAll(ownersOldParent);
+        removeOwners.retainAll(safeOwnersOldParent);
         for (String owner : removeOwners) {
             String[] segments = splitOwner(owner);
             if (segments == null) {

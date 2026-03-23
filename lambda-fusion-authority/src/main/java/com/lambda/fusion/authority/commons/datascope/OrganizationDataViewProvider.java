@@ -3,12 +3,13 @@ package com.lambda.fusion.authority.commons.datascope;
 import com.lambda.fusion.authority.model.organization.Organization;
 import com.lambda.fusion.authority.model.organization.OrganizationQuery;
 import com.lambda.fusion.authority.service.OrganizationService;
-import com.lambda.fusion.datascope.model.PurviewNode;
 import com.lambda.fusion.datascope.commons.provider.DataViewProvider;
+import com.lambda.fusion.datascope.model.DataScopeNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
  */
 @Component
 @RequiredArgsConstructor
-public class OrgDataViewProvider implements DataViewProvider {
+public class OrganizationDataViewProvider implements DataViewProvider {
 
     private final OrganizationService organizationService;
 
@@ -27,27 +28,27 @@ public class OrgDataViewProvider implements DataViewProvider {
     }
 
     @Override
-    public List<PurviewNode> loadDataView(String tenantId) {
+    public List<DataScopeNode> loadDataView(String tenantId) {
         OrganizationQuery query = new OrganizationQuery();
         query.setTenantId(tenantId);
         // 获取所有组织节点（平铺列表）
         List<Organization> organizations = organizationService.selectAll(query);
-
+        Map<String, Boolean> hasChildMap = organizations.stream()
+                .filter(item -> item.getParentId() != null)
+                .collect(Collectors.toMap(Organization::getParentId, item -> true, (left, right) -> left));
         return organizations.stream().map(org -> {
-            PurviewNode node = new PurviewNode();
+            DataScopeNode node = new DataScopeNode();
             node.setId(org.getId());
             node.setName(org.getName());
             node.setPid(org.getParentId());
             node.setLevel(org.getLevel());
             // 根据是否有子节点判断是否为末级节点
-            boolean isLastStage = organizations.stream()
-                    .noneMatch(child -> org.getId().equals(child.getParentId()));
+            boolean isLastStage = !hasChildMap.containsKey(org.getId());
             node.setLastStage(isLastStage);
-            
             // 可以扩展一些额外的属性供前端使用
             node.getProps().put("alias", org.getAlias());
             node.getProps().put("category", org.getCategory());
-            
+
             return node;
         }).collect(Collectors.toList());
     }
