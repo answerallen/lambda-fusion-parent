@@ -11,7 +11,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>lambda-fusion-api-permission</module>
-        <module>lambda-fusion-data-permission</module>
+        <module>lambda-fusion-datascope</module>
     </modules>
 
 </project>
