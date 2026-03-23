@@ -10,8 +10,8 @@
     <artifactId>lambda-fusion-permission</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>lambda-fusion-api-permission</module>
-        <module>lambda-fusion-datascope</module>
+        <module>lambda-fusion-permission-api</module>
+        <module>lambda-fusion-permission-datascope</module>
     </modules>
 
 </project>

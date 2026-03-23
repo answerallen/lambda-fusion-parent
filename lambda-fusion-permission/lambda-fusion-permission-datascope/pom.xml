@@ -7,7 +7,7 @@
         <version>2026.1.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>lambda-fusion-datascope</artifactId>
+    <artifactId>lambda-fusion-permission-datascope</artifactId>
     <packaging>jar</packaging>
 
 </project>

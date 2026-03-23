@@ -7,7 +7,7 @@
         <version>2026.1.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>lambda-fusion-api-permission</artifactId>
+    <artifactId>lambda-fusion-permission-api</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
