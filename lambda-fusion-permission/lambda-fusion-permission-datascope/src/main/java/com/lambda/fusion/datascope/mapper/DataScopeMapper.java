@@ -2,10 +2,9 @@ package com.lambda.fusion.datascope.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.datascope.model.DataScopeEntity;
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 @Mapper
 public interface DataScopeMapper extends BaseMapper<DataScopeEntity> {
@@ -15,7 +14,10 @@ public interface DataScopeMapper extends BaseMapper<DataScopeEntity> {
      */
     void batchInsert(@Param("list") List<DataScopeEntity> list);
 
-    void deleteByTarget(@Param("targetId") String targetId, @Param("targetType") String targetType, @Param("domainType") Integer domainType);
+    void deleteByTarget(
+            @Param("targetId") String targetId,
+            @Param("targetType") String targetType,
+            @Param("domainType") Integer domainType);
 
     List<DataScopeEntity> selectByTypeAndId(@Param("domainType") Integer domainType, @Param("id") String id);
 

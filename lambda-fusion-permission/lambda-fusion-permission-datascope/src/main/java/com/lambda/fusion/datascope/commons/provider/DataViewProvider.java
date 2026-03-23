@@ -1,7 +1,6 @@
 package com.lambda.fusion.datascope.commons.provider;
 
 import com.lambda.fusion.datascope.model.DataScopeNode;
-
 import java.util.List;
 
 /**

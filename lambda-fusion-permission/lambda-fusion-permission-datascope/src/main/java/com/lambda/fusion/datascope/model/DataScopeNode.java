@@ -2,11 +2,10 @@ package com.lambda.fusion.datascope.model;
 
 import com.lambda.fusion.core.tree.TreeNode;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Data;
 
 @Data
 @Schema(description = "通用权限树节点")

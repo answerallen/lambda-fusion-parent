@@ -22,7 +22,7 @@ public class DataScopeEntity {
      */
     @TableField("TID")
     private String tid;
-    
+
     /**
      * 主体类型: USER, ROLE, ORG, GROUP, CLIENT
      */

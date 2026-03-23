@@ -5,24 +5,25 @@ import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.AuthUtils;
+import com.lambda.fusion.datascope.commons.provider.DataViewProvider;
 import com.lambda.fusion.datascope.mapper.DataScopeMapper;
 import com.lambda.fusion.datascope.model.DataScopeEntity;
-import com.lambda.fusion.datascope.model.GrantDataScope;
 import com.lambda.fusion.datascope.model.DataScopeNode;
-import com.lambda.fusion.datascope.commons.provider.DataViewProvider;
+import com.lambda.fusion.datascope.model.GrantDataScope;
 import com.lambda.fusion.datascope.service.DataScopeGrantService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 @Slf4j
 @Service
+@SuppressFBWarnings("EI_EXPOSE_REP")
 @RequiredArgsConstructor
 public class DataScopeGrantServiceImpl implements DataScopeGrantService {
 
@@ -52,8 +53,8 @@ public class DataScopeGrantServiceImpl implements DataScopeGrantService {
                 .eq(DataScopeEntity::getTargetType, targetType)
                 .eq(DataScopeEntity::getDomainType, type);
         List<DataScopeEntity> grantedList = dataScopeMapper.selectList(wrapper);
-        Map<String, Integer> grantedMap = grantedList.stream()
-                .collect(Collectors.toMap(DataScopeEntity::getId, DataScopeEntity::getChecked));
+        Map<String, Integer> grantedMap =
+                grantedList.stream().collect(Collectors.toMap(DataScopeEntity::getId, DataScopeEntity::getChecked));
 
         // 4. 回填选中状态
         for (DataScopeNode node : allNodes) {
@@ -71,28 +72,32 @@ public class DataScopeGrantServiceImpl implements DataScopeGrantService {
         UserDetails userDetails = AuthUtils.getUser();
         String tenantId = userDetails != null ? userDetails.getTenantId() : null;
 
-     // 如果是给超级管理员角色授权，直接跳过（超级管理员拥有所有权限，无需在数据权限表中产生冗余数据）
-        if ("ROLE".equals(grantDataScope.getTargetType()) && FusionConstants.ROLE_ADMIN.equals(grantDataScope.getTargetId())) {
+        // 如果是给超级管理员角色授权，直接跳过（超级管理员拥有所有权限，无需在数据权限表中产生冗余数据）
+        if ("ROLE".equals(grantDataScope.getTargetType())
+                && FusionConstants.ROLE_ADMIN.equals(grantDataScope.getTargetId())) {
             log.warn("Cannot grant data scope to super admin role directly");
             return;
         }
 
         // 1. 删除旧的授权数据
-        dataScopeMapper.deleteByTarget(grantDataScope.getTargetId(), grantDataScope.getTargetType(), grantDataScope.getType());
+        dataScopeMapper.deleteByTarget(
+                grantDataScope.getTargetId(), grantDataScope.getTargetType(), grantDataScope.getType());
 
         // 2. 插入新的授权数据
         if (CollectionUtils.isNotEmpty(grantDataScope.getNodes())) {
-            List<DataScopeEntity> entities = grantDataScope.getNodes().stream().map(node -> {
-                DataScopeEntity entity = new DataScopeEntity();
-                entity.setId(node.getId());
-                entity.setTid(grantDataScope.getTargetId());
-                entity.setTargetType(grantDataScope.getTargetType());
-                entity.setDomainType(grantDataScope.getType());
-                entity.setRankLevel(node.getLevel());
-                entity.setChecked(node.getChecked());
-                entity.setTenantId(tenantId);
-                return entity;
-            }).collect(Collectors.toList());
+            List<DataScopeEntity> entities = grantDataScope.getNodes().stream()
+                    .map(node -> {
+                        DataScopeEntity entity = new DataScopeEntity();
+                        entity.setId(node.getId());
+                        entity.setTid(grantDataScope.getTargetId());
+                        entity.setTargetType(grantDataScope.getTargetType());
+                        entity.setDomainType(grantDataScope.getType());
+                        entity.setRankLevel(node.getLevel());
+                        entity.setChecked(node.getChecked());
+                        entity.setTenantId(tenantId);
+                        return entity;
+                    })
+                    .collect(Collectors.toList());
 
             dataScopeMapper.batchInsert(entities);
         }

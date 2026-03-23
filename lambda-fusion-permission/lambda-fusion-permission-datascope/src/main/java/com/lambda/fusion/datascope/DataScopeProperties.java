@@ -1,8 +1,8 @@
 package com.lambda.fusion.datascope;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.Map;
-
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang.ArrayUtils;
@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Setter
 @Getter
+@SuppressFBWarnings("EI_EXPOSE_REP")
 @ConfigurationProperties(prefix = DataScopeConstants.PREFIX)
 public class DataScopeProperties {
 
@@ -33,6 +34,5 @@ public class DataScopeProperties {
     public static class Smart {
         private boolean enabled = false;
         private Map<String, Integer[]> types = new HashMap<>();
-
     }
 }

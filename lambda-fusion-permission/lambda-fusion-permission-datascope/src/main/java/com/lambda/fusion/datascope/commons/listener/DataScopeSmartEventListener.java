@@ -3,11 +3,13 @@ package com.lambda.fusion.datascope.commons.listener;
 import com.lambda.fusion.datascope.DataScopeProperties;
 import com.lambda.fusion.datascope.commons.event.DataScopeObjectChangedEvent;
 import com.lambda.fusion.datascope.service.DataScopeSmartService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.ArrayUtils;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Component
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class DataScopeSmartEventListener {
 
     private final DataScopeSmartService dataScopeSmartService;
@@ -31,25 +33,25 @@ public class DataScopeSmartEventListener {
             }
             switch (event.getChangeType()) {
                 case CREATED ->
-                        dataScopeSmartService.smartForCreated(
-                                type, event.getObjectId(), event.getParentId(), event.getOperator());
+                    dataScopeSmartService.smartForCreated(
+                            type, event.getObjectId(), event.getParentId(), event.getOperator());
                 case UPDATED ->
-                        dataScopeSmartService.smartForUpdated(
-                                type,
-                                event.getObjectId(),
-                                event.getParentId(),
-                                event.getPreviousParentId(),
-                                event.getOperator());
+                    dataScopeSmartService.smartForUpdated(
+                            type,
+                            event.getObjectId(),
+                            event.getParentId(),
+                            event.getPreviousParentId(),
+                            event.getOperator());
                 case DELETED -> dataScopeSmartService.smartForDeleted(type, event.getObjectId());
-                case MOVED -> dataScopeSmartService.smartForMoved(
-                        type,
-                        event.getObjectId(),
-                        event.getParentId(),
-                        event.getPreviousParentId(),
-                        event.getCascadeObjectIds(),
-                        event.getOperator());
-                default -> {
-                }
+                case MOVED ->
+                    dataScopeSmartService.smartForMoved(
+                            type,
+                            event.getObjectId(),
+                            event.getParentId(),
+                            event.getPreviousParentId(),
+                            event.getCascadeObjectIds(),
+                            event.getOperator());
+                default -> {}
             }
         }
     }

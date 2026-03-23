@@ -2,10 +2,10 @@ package com.lambda.fusion.ai.datasource;
 
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.lambda.fusion.ai.AiProperties;
-import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.commons.tenant.TenantDataSourceManager;
 import com.lambda.fusion.datasource.commons.tenant.TenantIsolationResolver;
 import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
+import com.lambda.fusion.datasource.model.RemoteDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

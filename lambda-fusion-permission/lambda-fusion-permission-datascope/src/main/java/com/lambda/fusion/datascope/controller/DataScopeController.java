@@ -1,15 +1,14 @@
 package com.lambda.fusion.datascope.controller;
 
-import com.lambda.fusion.datascope.model.GrantDataScope;
 import com.lambda.fusion.datascope.model.DataScopeNode;
+import com.lambda.fusion.datascope.model.GrantDataScope;
 import com.lambda.fusion.datascope.service.DataScopeGrantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name = "数据权限管理")
 @RestController

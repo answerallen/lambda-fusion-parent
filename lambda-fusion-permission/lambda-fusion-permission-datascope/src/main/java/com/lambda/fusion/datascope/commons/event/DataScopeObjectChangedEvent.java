@@ -2,12 +2,13 @@ package com.lambda.fusion.datascope.commons.event;
 
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.datascope.DataScopeConstants;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.List;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
-import java.util.List;
-
 @Getter
+@SuppressFBWarnings("EI_EXPOSE_REP")
 public class DataScopeObjectChangedEvent extends ApplicationEvent {
 
     private final DataScopeConstants.ChangeType changeType;
@@ -50,7 +51,15 @@ public class DataScopeObjectChangedEvent extends ApplicationEvent {
             String parentId,
             String previousParentId,
             UserDetails operator) {
-        return new DataScopeObjectChangedEvent(source, DataScopeConstants.ChangeType.UPDATED, businessKey, objectId, parentId, previousParentId, null, operator);
+        return new DataScopeObjectChangedEvent(
+                source,
+                DataScopeConstants.ChangeType.UPDATED,
+                businessKey,
+                objectId,
+                parentId,
+                previousParentId,
+                null,
+                operator);
     }
 
     public static DataScopeObjectChangedEvent moved(
@@ -62,12 +71,19 @@ public class DataScopeObjectChangedEvent extends ApplicationEvent {
             List<String> cascadeObjectIds,
             UserDetails operator) {
         return new DataScopeObjectChangedEvent(
-                source, DataScopeConstants.ChangeType.MOVED, businessKey, objectId, parentId, previousParentId, cascadeObjectIds, operator);
+                source,
+                DataScopeConstants.ChangeType.MOVED,
+                businessKey,
+                objectId,
+                parentId,
+                previousParentId,
+                cascadeObjectIds,
+                operator);
     }
 
     public static DataScopeObjectChangedEvent deleted(
             Object source, String businessKey, String objectId, UserDetails operator) {
-        return new DataScopeObjectChangedEvent(source, DataScopeConstants.ChangeType.DELETED, businessKey, objectId, null, null, null, operator);
+        return new DataScopeObjectChangedEvent(
+                source, DataScopeConstants.ChangeType.DELETED, businessKey, objectId, null, null, null, operator);
     }
-
 }

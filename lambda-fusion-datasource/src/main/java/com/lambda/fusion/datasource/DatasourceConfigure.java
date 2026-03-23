@@ -7,11 +7,11 @@ import com.lambda.fusion.datasource.commons.client.ClientDataSourceChangeListene
 import com.lambda.fusion.datasource.commons.client.ClientDataSourceInitializer;
 import com.lambda.fusion.datasource.commons.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.commons.interceptor.TenantDataSourceInterceptor;
-import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.commons.server.ServerDataSourceInitializer;
-import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.fusion.datasource.commons.tenant.TenantSchemaCleaner;
 import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
+import com.lambda.fusion.datasource.mapper.DataSourceMapper;
+import com.lambda.fusion.datasource.service.DataSourceManageService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.mybatis.spring.annotation.MapperScan;

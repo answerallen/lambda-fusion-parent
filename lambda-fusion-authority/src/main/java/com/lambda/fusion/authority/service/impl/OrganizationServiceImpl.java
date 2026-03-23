@@ -631,12 +631,15 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
                 mode,
                 organizationMapper::selectChildren,
                 organizationMapper::selectOrganizationsByParentKeys);
-        Map<String, String> previousParentIdMap = organizationMapper.selectByIds(
-                        changed.stream().map(Organization::getId).collect(Collectors.toSet()))
-                .stream()
-                .collect(Collectors.toMap(OrganizationEntity::getId, OrganizationEntity::getParentId, (left, right) -> left));
+        Map<String, String> previousParentIdMap =
+                organizationMapper
+                        .selectByIds(changed.stream().map(Organization::getId).collect(Collectors.toSet()))
+                        .stream()
+                        .collect(Collectors.toMap(
+                                OrganizationEntity::getId, OrganizationEntity::getParentId, (left, right) -> left));
         organizationMapper.updateAffectedNodesAfterMove(changed);
-        List<String> cascadeObjectIds = changed.stream().map(Organization::getId).collect(Collectors.toList());
+        List<String> cascadeObjectIds =
+                changed.stream().map(Organization::getId).collect(Collectors.toList());
         String parentId = changed.stream()
                 .filter(item -> Objects.equals(item.getId(), id))
                 .map(Organization::getParentId)
@@ -654,12 +657,7 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
     private void publishOrgUpdatedEvent(String orgId, String parentId, String previousParentId) {
         UserDetails operator = AuthUtils.getUser();
         applicationEventPublisher.publishEvent(DataScopeObjectChangedEvent.updated(
-                this,
-                Organization.class.getName(),
-                orgId,
-                parentId,
-                previousParentId,
-                operator));
+                this, Organization.class.getName(), orgId, parentId, previousParentId, operator));
     }
 
     private void publishOrgDeletedEvent(String orgId) {
@@ -672,12 +670,6 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
             String orgId, String parentId, String previousParentId, List<String> cascadeObjectIds) {
         UserDetails operator = AuthUtils.getUser();
         applicationEventPublisher.publishEvent(DataScopeObjectChangedEvent.moved(
-                this,
-                Organization.class.getName(),
-                orgId,
-                parentId,
-                previousParentId,
-                cascadeObjectIds,
-                operator));
+                this, Organization.class.getName(), orgId, parentId, previousParentId, cascadeObjectIds, operator));
     }
 }

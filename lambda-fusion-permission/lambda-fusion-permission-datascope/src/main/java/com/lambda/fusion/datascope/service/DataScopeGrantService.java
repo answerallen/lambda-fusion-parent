@@ -1,8 +1,7 @@
 package com.lambda.fusion.datascope.service;
 
-import com.lambda.fusion.datascope.model.GrantDataScope;
 import com.lambda.fusion.datascope.model.DataScopeNode;
-
+import com.lambda.fusion.datascope.model.GrantDataScope;
 import java.util.List;
 
 public interface DataScopeGrantService {

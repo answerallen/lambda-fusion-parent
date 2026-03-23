@@ -1,9 +1,11 @@
 package com.lambda.fusion.datascope.service.impl;
 
 import com.lambda.fusion.core.identity.UserDetails;
+import com.lambda.fusion.datascope.DataScopeConstants;
 import com.lambda.fusion.datascope.mapper.DataScopeMapper;
 import com.lambda.fusion.datascope.model.DataScopeEntity;
 import com.lambda.fusion.datascope.service.DataScopeSmartService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
@@ -12,10 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
 public class DataScopeSmartServiceImpl implements DataScopeSmartService {
-
-    private static final String USER = "USER";
 
     private final DataScopeMapper dataScopeMapper;
 
@@ -27,7 +28,7 @@ public class DataScopeSmartServiceImpl implements DataScopeSmartService {
         }
         Set<String> owners = new LinkedHashSet<>();
         if (operator != null && !operator.isAnyManager()) {
-            owners.add(joinOwner(USER, operator.getUsername()));
+            owners.add(joinOwner(DataScopeConstants.USER, operator.getUsername()));
         }
         owners.addAll(loadCheckedOwners(type, parentId));
         if (owners.isEmpty()) {
@@ -59,7 +60,8 @@ public class DataScopeSmartServiceImpl implements DataScopeSmartService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void smartForUpdated(int type, String objectId, String parentId, String previousParentId, UserDetails operator) {
+    public void smartForUpdated(
+            int type, String objectId, String parentId, String previousParentId, UserDetails operator) {
         if (StringUtils.isBlank(objectId) || StringUtils.equals(parentId, previousParentId)) {
             return;
         }
@@ -140,11 +142,11 @@ public class DataScopeSmartServiceImpl implements DataScopeSmartService {
             Set<String> ownersOldParent,
             Set<String> ownersNewParent,
             UserDetails operator) {
-        
+
         // 确保不会移除操作人本身的权限
         Set<String> safeOwnersOldParent = new LinkedHashSet<>(ownersOldParent);
         if (operator != null) {
-            safeOwnersOldParent.remove(joinOwner(USER, operator.getUsername()));
+            safeOwnersOldParent.remove(joinOwner(DataScopeConstants.USER, operator.getUsername()));
         }
 
         Set<String> removeOwners = new LinkedHashSet<>(ownersSelf);

@@ -3,7 +3,7 @@ package com.lambda.fusion.dict.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.AuthUtils;
-import com.lambda.fusion.dict.commons.DictUsage;
+import com.lambda.fusion.dict.DictConstants;
 import com.lambda.fusion.dict.commons.registry.DictHolder;
 import com.lambda.fusion.dict.commons.registry.DictRegistry;
 import com.lambda.fusion.dict.model.DictTypeTree;
@@ -49,10 +49,10 @@ public class DictTypeController {
         UserDetails userDetails = AuthUtils.getUser();
         if (userDetails.isDev()) {
             if (dictTypeTree.getDictUsage() == null) {
-                dictTypeTree.setDictUsage(DictUsage.SYSTEM.getValue());
+                dictTypeTree.setDictUsage(DictConstants.DictUsage.SYSTEM.getValue());
             }
         } else {
-            dictTypeTree.setDictUsage(DictUsage.USER.getValue());
+            dictTypeTree.setDictUsage(DictConstants.DictUsage.USER.getValue());
         }
         return dictTypeService.saveDictType(dictTypeTree);
     }

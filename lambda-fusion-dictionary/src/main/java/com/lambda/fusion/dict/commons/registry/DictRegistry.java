@@ -1,6 +1,6 @@
 package com.lambda.fusion.dict.commons.registry;
 
-import com.lambda.fusion.dict.commons.DictValueType;
+import com.lambda.fusion.dict.DictConstants;
 import com.lambda.fusion.dict.model.DictInfo;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.model.DynamicDictSource;
@@ -52,7 +52,7 @@ public class DictRegistry {
         final DictTypeTree dictTypeTree = new DictTypeTree();
         dictTypeTree.setId(dictHolder.getDictName());
         dictTypeTree.setDictType(dictHolder.getDictName());
-        dictTypeTree.setDataType(DictValueType.ENUM_DICT.getCode());
+        dictTypeTree.setDataType(DictConstants.DictValueType.ENUM_DICT.getCode());
         dictTypeTree.setDictName(dictHolder.getDictDesc());
         dictTypeTree.setDictUsage(dictHolder.getDictUsage());
         dictTypeTree.setLevel(1);

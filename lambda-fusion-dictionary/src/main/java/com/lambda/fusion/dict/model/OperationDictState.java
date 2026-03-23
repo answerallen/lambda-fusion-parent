@@ -1,6 +1,6 @@
 package com.lambda.fusion.dict.model;
 
-import com.lambda.fusion.dict.commons.OperationType;
+import com.lambda.fusion.dict.DictConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -25,5 +25,5 @@ public class OperationDictState {
     private Integer state;
 
     @Schema(description = "操作类型: ENABLE_STATE, SELECTABLE")
-    private OperationType operationType;
+    private DictConstants.OperationType operationType;
 }

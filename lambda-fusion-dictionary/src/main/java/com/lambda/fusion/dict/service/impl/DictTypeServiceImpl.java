@@ -15,7 +15,6 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.SqlParamUtils;
 import com.lambda.fusion.dict.DictProperties;
-import com.lambda.fusion.dict.commons.DictValueType;
 import com.lambda.fusion.dict.commons.registry.DictRegistry;
 import com.lambda.fusion.dict.commons.resolver.DictSourceResolver;
 import com.lambda.fusion.dict.mapper.DictInfoMapper;

@@ -2,7 +2,6 @@ package com.lambda.fusion.dict.commons.resolver;
 
 import static com.lambda.fusion.dict.DictConstants.*;
 
-import com.lambda.fusion.dict.commons.DictValueType;
 import com.lambda.fusion.dict.mapper.DictSqlMapper;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.model.DynamicDictSource;

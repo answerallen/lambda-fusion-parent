@@ -6,7 +6,6 @@ import static com.lambda.fusion.dict.DictConstants.*;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.dict.DictProperties;
-import com.lambda.fusion.dict.commons.DictValueType;
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.model.DynamicDictSource;
 import jakarta.annotation.Resource;
