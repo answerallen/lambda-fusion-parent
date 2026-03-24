@@ -13,11 +13,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "lambda.fusion.config")
 public class ConfigProperties {
 
+    private  ApplicationConfig application = new ApplicationConfig();
+
     private AutoRefreshConfig autoRefresh = new AutoRefreshConfig();
 
     private QueryConfig queryConfig = new QueryConfig();
 
     private DataSourceConfig datasource = new DataSourceConfig();
+
+    @Getter
+    @Setter
+    public static class ApplicationConfig {
+        private String homePath;
+    }
 
     @Getter
     @Setter
