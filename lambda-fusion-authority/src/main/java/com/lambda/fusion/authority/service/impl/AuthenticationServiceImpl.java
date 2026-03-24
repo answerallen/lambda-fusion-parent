@@ -18,12 +18,14 @@ import com.lambda.fusion.authority.model.authentication.*;
 import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import com.lambda.fusion.authority.model.user.UserProfile;
 import com.lambda.fusion.authority.service.AuthenticationService;
+import com.lambda.fusion.config.ConfigProperties;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,11 +40,13 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final AuthenticationMapper authenticationMapper;
     private final UserInfoMapper userInfoMapper;
+    private final ConfigProperties configProperties;
 
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
@@ -233,7 +237,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         user.setToken(StpUtil.getTokenValue());
-        user.setHomePath("/dashboard/analysis");
+        user.setHomePath(configProperties.getApplication().getHomePath());
 
         return user;
     }

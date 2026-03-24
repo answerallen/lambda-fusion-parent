@@ -33,6 +33,12 @@
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-fusion-config</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-security</artifactId>
         </dependency>
         <dependency>

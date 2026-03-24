@@ -13,7 +13,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "lambda.fusion.config")
 public class ConfigProperties {
 
-    private  ApplicationConfig application = new ApplicationConfig();
+    private ApplicationConfig application = new ApplicationConfig();
 
     private AutoRefreshConfig autoRefresh = new AutoRefreshConfig();
 
@@ -24,7 +24,7 @@ public class ConfigProperties {
     @Getter
     @Setter
     public static class ApplicationConfig {
-        private String homePath;
+        private String homePath = "/";
     }
 
     @Getter
