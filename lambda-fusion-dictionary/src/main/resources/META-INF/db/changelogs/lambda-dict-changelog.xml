@@ -80,15 +80,13 @@
 
     <changeSet id="lambda-fusion-dict-202603240101" author="zx">
         <preConditions onFail="MARK_RAN">
-            <not>
-                <sqlCheck expectedResult="0">
-                    SELECT COUNT(1) FROM la_dict_type WHERE id IN (
-                        '2036323330111361024',
-                        '2016822604289114112',
-                        '2015795037228474368'
-                    )
-                </sqlCheck>
-            </not>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(1) FROM la_dict_type WHERE id IN (
+                    '2036323330111361024',
+                    '2016822604289114112',
+                    '2015795037228474368'
+                )
+            </sqlCheck>
         </preConditions>
         <insert tableName="la_dict_type">
             <column name="ID" value="2036323330111361024"/>
@@ -140,15 +138,13 @@
 
     <changeSet id="lambda-fusion-dict-202603240102" author="zx">
         <preConditions onFail="MARK_RAN">
-            <not>
-                <sqlCheck expectedResult="0">
-                    SELECT COUNT(1) FROM la_dict_info WHERE id IN (
-                        '2036323887186235393',
-                        '2016822669904805890',
-                        '2016822703383740417'
-                    )
-                </sqlCheck>
-            </not>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(1) FROM la_dict_info WHERE id IN (
+                    '2036323887186235393',
+                    '2016822669904805890',
+                    '2016822703383740417'
+                )
+            </sqlCheck>
         </preConditions>
         <insert tableName="la_dict_info">
             <column name="ID" value="2036323887186235393"/>
