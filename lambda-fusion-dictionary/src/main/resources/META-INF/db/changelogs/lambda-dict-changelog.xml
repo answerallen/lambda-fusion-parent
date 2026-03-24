@@ -78,4 +78,121 @@
         </createTable>
     </changeSet>
 
+    <changeSet id="lambda-fusion-dict-202603240101" author="zx">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <sqlCheck expectedResult="0">
+                    SELECT COUNT(1) FROM la_dict_type WHERE id IN (
+                        '2036323330111361024',
+                        '2016822604289114112',
+                        '2015795037228474368'
+                    )
+                </sqlCheck>
+            </not>
+        </preConditions>
+        <insert tableName="la_dict_type">
+            <column name="ID" value="2036323330111361024"/>
+            <column name="PARENT_ID" value="2015795037228474368"/>
+            <column name="DICT_TYPE" value="DATA_SCOPE_TYPE"/>
+            <column name="DICT_NAME" value="数据权限类别"/>
+            <column name="DATA_TYPE" value="0"/>
+            <column name="SORT" valueNumeric="0"/>
+            <column name="CREATED_AT" valueDate="2026-03-24T14:04:50"/>
+            <column name="UPDATED_AT" valueDate="2026-03-24T14:05:54"/>
+            <column name="CREATED_BY" value="13303820660"/>
+            <column name="UPDATED_BY" value="13303820660"/>
+            <column name="DEL_FLAG" valueNumeric="0"/>
+            <column name="DICT_USAGE" valueNumeric="0"/>
+            <column name="LEVEL" valueNumeric="1"/>
+            <column name="PARENT_KEYS" value="2015795037228474368"/>
+        </insert>
+        <insert tableName="la_dict_type">
+            <column name="ID" value="2016822604289114112"/>
+            <column name="PARENT_ID" value="0"/>
+            <column name="DICT_TYPE" value="SEX"/>
+            <column name="DICT_NAME" value="性别"/>
+            <column name="DATA_TYPE" value="0"/>
+            <column name="SORT" valueNumeric="1"/>
+            <column name="CREATED_AT" valueDate="2026-01-29T18:35:57"/>
+            <column name="UPDATED_AT" valueDate="2026-03-06T12:50:07"/>
+            <column name="CREATED_BY" value="13303820660"/>
+            <column name="UPDATED_BY" value="westboy"/>
+            <column name="DEL_FLAG" valueNumeric="0"/>
+            <column name="DICT_USAGE" valueNumeric="1"/>
+            <column name="LEVEL" valueNumeric="1"/>
+        </insert>
+        <insert tableName="la_dict_type">
+            <column name="ID" value="2015795037228474368"/>
+            <column name="PARENT_ID" value="0"/>
+            <column name="DICT_TYPE" value="SYS_BIZ_DICT"/>
+            <column name="DICT_NAME" value="系统字典"/>
+            <column name="DATA_TYPE" value="0"/>
+            <column name="SORT" valueNumeric="3"/>
+            <column name="CREATED_AT" valueDate="2026-01-26T22:32:43"/>
+            <column name="UPDATED_AT" valueDate="2026-01-27T12:07:41"/>
+            <column name="CREATED_BY" value="13303820660"/>
+            <column name="UPDATED_BY" value="13303820660"/>
+            <column name="DEL_FLAG" valueNumeric="0"/>
+            <column name="DICT_USAGE" valueNumeric="0"/>
+            <column name="LEVEL" valueNumeric="1"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="lambda-fusion-dict-202603240102" author="zx">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <sqlCheck expectedResult="0">
+                    SELECT COUNT(1) FROM la_dict_info WHERE id IN (
+                        '2036323887186235393',
+                        '2016822669904805890',
+                        '2016822703383740417'
+                    )
+                </sqlCheck>
+            </not>
+        </preConditions>
+        <insert tableName="la_dict_info">
+            <column name="ID" value="2036323887186235393"/>
+            <column name="SORT_NO" value="0"/>
+            <column name="CREATED_AT" valueDate="2026-03-24T14:07:02"/>
+            <column name="CREATED_BY" value="13303820660"/>
+            <column name="DEL_FLAG" valueNumeric="0"/>
+            <column name="ENABLE_STATE" valueNumeric="1"/>
+            <column name="DICT_TYPE" value="DATA_SCOPE_TYPE"/>
+            <column name="FIELD_TYPE" value="0"/>
+            <column name="FIELD_NAME" value="组织机构"/>
+            <column name="SELECT_ABLE" valueNumeric="1"/>
+            <column name="LEVEL" valueNumeric="1"/>
+        </insert>
+        <insert tableName="la_dict_info">
+            <column name="ID" value="2016822669904805890"/>
+            <column name="SORT_NO" value="0"/>
+            <column name="CREATED_AT" valueDate="2026-01-29T18:36:10"/>
+            <column name="UPDATED_AT" valueDate="2026-03-09T14:50:43"/>
+            <column name="CREATED_BY" value="13303820660"/>
+            <column name="UPDATED_BY" value="13303820660"/>
+            <column name="DEL_FLAG" valueNumeric="0"/>
+            <column name="ENABLE_STATE" valueNumeric="1"/>
+            <column name="DICT_TYPE" value="SEX"/>
+            <column name="FIELD_TYPE" value="1"/>
+            <column name="FIELD_NAME" value="男"/>
+            <column name="SELECT_ABLE" valueNumeric="1"/>
+            <column name="LEVEL" valueNumeric="1"/>
+        </insert>
+        <insert tableName="la_dict_info">
+            <column name="ID" value="2016822703383740417"/>
+            <column name="SORT_NO" value="1"/>
+            <column name="CREATED_AT" valueDate="2026-01-29T18:36:18"/>
+            <column name="UPDATED_AT" valueDate="2026-03-01T22:00:32"/>
+            <column name="CREATED_BY" value="13303820660"/>
+            <column name="UPDATED_BY" value="13303820660"/>
+            <column name="DEL_FLAG" valueNumeric="0"/>
+            <column name="ENABLE_STATE" valueNumeric="1"/>
+            <column name="DICT_TYPE" value="SEX"/>
+            <column name="FIELD_TYPE" value="2"/>
+            <column name="FIELD_NAME" value="女"/>
+            <column name="SELECT_ABLE" valueNumeric="1"/>
+            <column name="LEVEL" valueNumeric="1"/>
+        </insert>
+    </changeSet>
+
 </databaseChangeLog>
