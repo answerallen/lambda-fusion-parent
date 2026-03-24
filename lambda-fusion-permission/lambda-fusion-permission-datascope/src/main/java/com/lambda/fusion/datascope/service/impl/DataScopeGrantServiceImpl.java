@@ -1,8 +1,9 @@
 package com.lambda.fusion.datascope.service.impl;
 
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.lambda.cloud.core.exception.IllegalArgumentException;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.datascope.commons.provider.DataViewProvider;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,8 +34,7 @@ public class DataScopeGrantServiceImpl implements DataScopeGrantService {
 
     @Override
     public List<DataScopeNode> getDataScopeTree(int type, String targetId, String targetType) {
-        UserDetails userDetails = AuthUtils.getUser();
-        String tenantId = userDetails != null ? userDetails.getTenantId() : null;
+        String tenantId = AuthUtils.getTenantId();
 
         // 1. 找到对应的策略提供者
         DataViewProvider provider = dataViewProviders.stream()
@@ -51,10 +52,11 @@ public class DataScopeGrantServiceImpl implements DataScopeGrantService {
         LambdaQueryWrapper<DataScopeEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(DataScopeEntity::getTid, targetId)
                 .eq(DataScopeEntity::getTargetType, targetType)
-                .eq(DataScopeEntity::getDomainType, type);
+                .eq(DataScopeEntity::getDomainType, type)
+                .eq(StrUtil.isNotEmpty(tenantId), DataScopeEntity::getTenantId, tenantId);
         List<DataScopeEntity> grantedList = dataScopeMapper.selectList(wrapper);
-        Map<String, Integer> grantedMap =
-                grantedList.stream().collect(Collectors.toMap(DataScopeEntity::getId, DataScopeEntity::getChecked));
+        Map<String, Integer> grantedMap = grantedList.stream()
+                .collect(Collectors.toMap(DataScopeEntity::getId, DataScopeEntity::getChecked, (left, right) -> left));
 
         // 4. 回填选中状态
         for (DataScopeNode node : allNodes) {
@@ -69,10 +71,8 @@ public class DataScopeGrantServiceImpl implements DataScopeGrantService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void grantDataScope(GrantDataScope grantDataScope) {
-        UserDetails userDetails = AuthUtils.getUser();
-        String tenantId = userDetails != null ? userDetails.getTenantId() : null;
+        String tenantId = AuthUtils.getTenantId();
 
-        // 如果是给超级管理员角色授权，直接跳过（超级管理员拥有所有权限，无需在数据权限表中产生冗余数据）
         if ("ROLE".equals(grantDataScope.getTargetType())
                 && FusionConstants.ROLE_ADMIN.equals(grantDataScope.getTargetId())) {
             log.warn("Cannot grant data scope to super admin role directly");
@@ -86,6 +86,7 @@ public class DataScopeGrantServiceImpl implements DataScopeGrantService {
         // 2. 插入新的授权数据
         if (CollectionUtils.isNotEmpty(grantDataScope.getNodes())) {
             List<DataScopeEntity> entities = grantDataScope.getNodes().stream()
+                    .filter(node -> node != null && StringUtils.isNotBlank(node.getId()))
                     .map(node -> {
                         DataScopeEntity entity = new DataScopeEntity();
                         entity.setId(node.getId());

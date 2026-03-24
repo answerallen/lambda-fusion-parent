@@ -23,10 +23,10 @@ public class GrantDataScope {
     private Integer type;
 
     @Schema(description = "选中的节点列表")
-    private List<PurviewNodeParam> nodes;
+    private List<DataScopeNodeParam> nodes;
 
     @Data
-    public static class PurviewNodeParam {
+    public static class DataScopeNodeParam {
         private String id;
         private Integer checked; // 1-全选 2-半选
         private Integer level;

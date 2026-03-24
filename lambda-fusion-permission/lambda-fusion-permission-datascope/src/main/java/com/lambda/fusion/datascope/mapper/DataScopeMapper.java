@@ -1,5 +1,6 @@
 package com.lambda.fusion.datascope.mapper;
 
+import com.baomidou.mybatisplus.annotation.InterceptorIgnore;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.datascope.model.DataScopeEntity;
 import java.util.List;
@@ -7,6 +8,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
+@InterceptorIgnore(tenantLine = "true")
 public interface DataScopeMapper extends BaseMapper<DataScopeEntity> {
 
     /**
