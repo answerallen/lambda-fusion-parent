@@ -87,6 +87,7 @@ lambda-fusion-parent/
 
 * **账号密码**：`westboy` / `8a30d075d80fad0e799a6ac3a654a214`
 
+---
 
 ## 🚀 快速开始
 
@@ -139,7 +140,6 @@ lambda-fusion-parent/
 </dependency>
 ```
 
-
 ## 📖 生态依赖
 
 - **[lambda-cloud-parent](https://gitee.com/westboy/lambda-cloud-parent)** - 核心基座，封装底层自动化配置与基础工具类
@@ -150,8 +150,6 @@ lambda-fusion-parent/
 ## 📚 相关资源
 
 - 🎯 [实战项目示例](https://gitee.com/westboy/lambda-fusion-admin)
-
----
 
 
 ## 📄 开源协议
