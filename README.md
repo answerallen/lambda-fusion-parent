@@ -2,14 +2,12 @@
 
 # 🚀 Lambda Fusion Framework
 
-**企业级微服务业务开发框架**
+**基于 Spring Boot 4.0 + JDK 21 构建的全栈企业级微服务开发框架**
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2025.1.x-brightblue.svg)](https://spring.io/projects/spring-cloud)
 [![JDK](https://img.shields.io/badge/JDK-21+-orange.svg)](https://www.oracle.com/java/technologies/javase-downloads.html)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-
-[>>> 实战示例项目：https://gitee.com/westboy/lambda-fusion-admin <<<](https://gitee.com/westboy/lambda-fusion-admin) 
    
 </div>
 
