@@ -87,8 +87,6 @@ lambda-fusion-parent/
 
 * **账号密码**：`westboy` / `8a30d075d80fad0e799a6ac3a654a214`
 
----
-
 ## 🚀 快速开始
 
 ### 环境要求
@@ -139,6 +137,8 @@ lambda-fusion-parent/
     <artifactId>lambda-fusion-dictionary</artifactId>
 </dependency>
 ```
+
+---
 
 ## 📖 生态依赖
 
