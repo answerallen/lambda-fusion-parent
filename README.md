@@ -25,7 +25,6 @@ Lambda Fusion 是一个基于 [**lamuda-cloud-parent**](https://gitee.com/westbo
 - 🤖 **AI 知识库集成** - 智能化业务支持
 - 🎯 **开箱即用** - 预置常用业务模块，快速启动项目
 
----
 
 ## 🏗️ 项目架构
 
@@ -45,7 +44,6 @@ lambda-fusion-parent/
 
 ```
 
----
 
 ## 🎯 核心功能
 | 项目 | 说明 | 
@@ -58,7 +56,6 @@ lambda-fusion-parent/
 | 🏠 **多租户支持** | 租户配置、数据隔离、租户级权限 |
 | 🔒 **认证服务** | 用户认证、SSO 支持、动态菜单生成 |
 
----
 
 ## 🛠️ 技术栈
 
@@ -75,7 +72,6 @@ lambda-fusion-parent/
 | ☕ **Caffeine** |Latest | 高性能本地缓存 |
 | 🔧 **Hutool** |Latest | Java 工具类库 |
 
----
 
 ## 🎨 预览与体验
 
@@ -91,7 +87,6 @@ lambda-fusion-parent/
 
 * **账号密码**：`westboy` / `8a30d075d80fad0e799a6ac3a654a214`
 
----
 
 ## 🚀 快速开始
 
@@ -144,7 +139,6 @@ lambda-fusion-parent/
 </dependency>
 ```
 
----
 
 ## 📖 生态依赖
 
@@ -152,7 +146,6 @@ lambda-fusion-parent/
 - **[lambda-cloud-project-parent](https://gitee.com/westboy/lambda-cloud-project-parent)** - 统管项目依赖版本与 Maven 构建标准
 - **[lambda-fusion-web](https://gitee.com/westboy/lambda-fusion-web)** - 基于 Vben Admin 构建的现代化前端界面
 
----
 
 ## 📚 相关资源
 
