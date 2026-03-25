@@ -27,6 +27,13 @@ Lambda Fusion 是一个基于 [**lamuda-cloud-parent**](https://gitee.com/westbo
 - 🤖 **AI 知识库集成** - 智能化业务支持
 - 🎯 **开箱即用** - 预置常用业务模块，快速启动项目
 
+## 🏗️ 生态依赖
+
+项目采用纵向分层架构，确保基础能力与业务逻辑的极致解耦
+
+- **[lambda-cloud-parent](https://gitee.com/westboy/lambda-cloud-parent)** - 核心基座，封装底层自动化配置与基础工具类
+- **[lambda-cloud-project-parent](https://gitee.com/westboy/lambda-cloud-project-parent)** - 统管项目依赖版本与 Maven 构建标准
+- **[lambda-fusion-web](https://gitee.com/westboy/lambda-fusion-web)** - 基于 Vben Admin 构建的现代化前端界面
 
 ## 🏗️ 项目架构
 
