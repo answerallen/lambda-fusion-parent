@@ -16,11 +16,7 @@ import com.lambda.fusion.datasource.commons.tenant.TenantIsolationResolver;
 import com.lambda.fusion.datasource.commons.util.DataSourcePropertyUtils;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
-import com.lambda.fusion.datasource.model.DataSourceEntity;
-import com.lambda.fusion.datasource.model.QueryDataSource;
-import com.lambda.fusion.datasource.model.RemoteDataSource;
-import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
-import com.lambda.fusion.datasource.model.UpsertDataSource;
+import com.lambda.fusion.datasource.model.*;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
@@ -200,6 +196,11 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.isTrue(
                 usageType.equals(dataSourceEntity.getUsageType()),
                 "datasource usageType mismatch, expected: " + usageType.name());
+        Assert.isTrue(
+                dataSourceEntity.getStatus() != null
+                        && Integer.valueOf(1)
+                                .equals(dataSourceEntity.getStatus().getCode()),
+                "数据源未启用，不允许绑定");
 
         TenantDataSourceEntity binding = getTenantDataSource(tenantId, usageType);
         if (binding == null) {
@@ -250,10 +251,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
 
         DataSourceEntity dataSourceEntity = getById(binding.getDatasourceId());
         Assert.notNull(dataSourceEntity, "绑定的数据源不存在");
-        Assert.isTrue(
-                dataSourceEntity.getStatus() != null
-                        && Integer.valueOf(1).equals(dataSourceEntity.getStatus().getCode()),
-                "数据源未启用，无法初始化");
+        Assert.isTrue(dataSourceEntity.getStatus().isOnline(), "数据源未启用，无法初始化");
 
         boolean initialized = remoteDataSourceService.initSchema(dataSourceEntity.getId());
         Assert.isTrue(initialized, "租户主库初始化失败");

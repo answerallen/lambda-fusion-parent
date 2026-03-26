@@ -1,5 +1,7 @@
 package com.lambda.fusion.datasource.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.annotation.SaMode;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.FusionConstants;
@@ -15,6 +17,9 @@ import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.*;
 
+@SaCheckRole(
+        value = {FusionConstants.ROLE_ADMIN, FusionConstants.ROLE_SYSTEM, FusionConstants.ROLE_DEV},
+        mode = SaMode.OR)
 @Tag(name = "数据源管理")
 @RestController
 @RequestMapping("/datasource")
@@ -117,4 +122,3 @@ public class DataSourceController {
         dataSourceManageService.initTenantDataSource(tenantId);
     }
 }
-

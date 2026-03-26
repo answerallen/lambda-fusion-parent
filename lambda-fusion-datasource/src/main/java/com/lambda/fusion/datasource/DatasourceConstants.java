@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.lambda.fusion.core.annotation.DictMapper;
 import com.lambda.fusion.core.dict.DictEnum;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -72,6 +73,10 @@ public interface DatasourceConstants {
                 }
             }
             return null;
+        }
+
+        public boolean isOnline() {
+            return Objects.equals(code, DatasourceStatus.ONLINE.code);
         }
     }
 
