@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.service;
 
 import com.lambda.fusion.ai.model.RagResult;
 import com.lambda.fusion.ai.model.VectorSearchResult;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.util.List;
 
@@ -30,9 +31,10 @@ public interface RagService {
      * @param query      用户问题
      * @param kbId       知识库ID
      * @param llmModelId 指定的LLM模型ID
+     * @param history    历史对话上下文
      * @return RAG执行结果
      */
-    RagResult chat(String query, Long kbId, Long llmModelId);
+    RagResult chat(String query, Long kbId, Long llmModelId, List<dev.langchain4j.data.message.ChatMessage> history);
 
     /**
      * 流式对话 (RAG)
@@ -41,13 +43,14 @@ public interface RagService {
      * @param kbId            知识库ID
      * @param retrievedChunks 预先检索到的文档块 (可选，若为null则内部重新检索)
      * @param llmModelId      指定的LLM模型ID
+     * @param history         历史对话上下文
      * @param handler         流式响应处理器
-     * @return 最终召回的文档块
      */
-    List<VectorSearchResult> streamChat(
+    void streamChat(
             String query,
             Long kbId,
             List<VectorSearchResult> retrievedChunks,
             Long llmModelId,
+            List<ChatMessage> history,
             StreamingChatResponseHandler handler);
 }

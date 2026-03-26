@@ -9,12 +9,8 @@ import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.model.entity.PromptTemplateEntity;
 import com.lambda.fusion.ai.repository.VectorRepository;
 import com.lambda.fusion.ai.service.RagService;
-import com.lambda.fusion.ai.support.factory.ChatModelFactory;
 import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.StreamingChatModel;
-import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.input.Prompt;
@@ -43,7 +39,8 @@ public class RagServiceImpl implements RagService {
     private final PromptTemplateMapper promptTemplateMapper;
     private final EmbeddingModel embeddingModel;
 
-    private final ChatModelFactory chatModelFactory;
+    private final com.lambda.fusion.ai.agent.LlmProcessingNode llmProcessingNode;
+    private final com.lambda.fusion.ai.agent.ToolExecutingNode toolExecutingNode;
 
     @Override
     public List<VectorSearchResult> retrieve(String query, Long kbId, Integer topK, Double minScore) {
@@ -105,7 +102,8 @@ public class RagServiceImpl implements RagService {
     }
 
     @Override
-    public RagResult chat(String query, Long kbId, Long llmModelId) {
+    public RagResult chat(
+            String query, Long kbId, Long llmModelId, List<dev.langchain4j.data.message.ChatMessage> history) {
         List<VectorSearchResult> searchResults = retrieve(query, kbId, null, null);
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
 
@@ -120,29 +118,52 @@ public class RagServiceImpl implements RagService {
         Prompt prompt = PromptTemplate.from(templateContent).apply(variables);
 
         // 使用Factory获取模型(OpenAI/Ollama等)
-        ChatModel chatModel = chatModelFactory.getChatModel(llmModelId);
-        UserMessage userMessage = prompt.toUserMessage();
+        List<dev.langchain4j.data.message.ChatMessage> messages = new java.util.ArrayList<>();
+        if (history != null && !history.isEmpty()) {
+            messages.addAll(history);
+        }
+        messages.add(prompt.toUserMessage());
 
-        ChatResponse response = chatModel.chat(userMessage);
-        String answer = response.aiMessage().text();
+        com.lambda.fusion.ai.agent.AgentGraph graph = new com.lambda.fusion.ai.agent.AgentGraph()
+                .addNode(llmProcessingNode)
+                .addNode(toolExecutingNode)
+                .setEntryPoint(com.lambda.fusion.ai.agent.LlmProcessingNode.NAME);
+
+        com.lambda.fusion.ai.agent.AgentState state = new com.lambda.fusion.ai.agent.AgentState();
+        state.setLlmModelId(llmModelId);
+        state.setKbId(kbId);
+        state.setMessages(messages);
+
+        state = graph.invoke(state);
+
+        String answer = "No response";
+        int pTokens = (int) state.getAttributes().getOrDefault("promptTokens", 0);
+        int cTokens = (int) state.getAttributes().getOrDefault("completionTokens", 0);
+
+        if (!state.getMessages().isEmpty()) {
+            dev.langchain4j.data.message.ChatMessage lastMsg =
+                    state.getMessages().get(state.getMessages().size() - 1);
+            if (lastMsg instanceof dev.langchain4j.data.message.AiMessage) {
+                answer = ((dev.langchain4j.data.message.AiMessage) lastMsg).text();
+            }
+        }
 
         return RagResult.builder()
                 .answer(answer)
                 .retrievedChunks(searchResults)
                 .prompt(prompt.text())
-                .promptTokens(
-                        response.tokenUsage() != null ? response.tokenUsage().inputTokenCount() : 0)
-                .completionTokens(
-                        response.tokenUsage() != null ? response.tokenUsage().outputTokenCount() : 0)
+                .promptTokens(pTokens)
+                .completionTokens(cTokens)
                 .build();
     }
 
     @Override
-    public List<VectorSearchResult> streamChat(
+    public void streamChat(
             String query,
             Long kbId,
             List<VectorSearchResult> retrievedChunks,
             Long llmModelId,
+            List<ChatMessage> history,
             StreamingChatResponseHandler handler) {
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
@@ -162,14 +183,53 @@ public class RagServiceImpl implements RagService {
         variables.put("context", context);
         variables.put("question", query);
 
-        Prompt prompt = PromptTemplate.from(templateContent).apply(variables);
+        dev.langchain4j.model.input.Prompt prompt =
+                dev.langchain4j.model.input.PromptTemplate.from(templateContent).apply(variables);
 
-        // 使用Factory获取流式模型
-        StreamingChatModel streamingModel = chatModelFactory.getStreamingChatModel(llmModelId);
+        List<dev.langchain4j.data.message.ChatMessage> messages = new java.util.ArrayList<>();
+        if (history != null && !history.isEmpty()) {
+            messages.addAll(history);
+        }
+        messages.add(prompt.toUserMessage());
 
-        streamingModel.chat(prompt.text(), handler);
+        com.lambda.fusion.ai.agent.AgentGraph graph = new com.lambda.fusion.ai.agent.AgentGraph()
+                .addNode(llmProcessingNode)
+                .addNode(toolExecutingNode)
+                .setEntryPoint(com.lambda.fusion.ai.agent.LlmProcessingNode.NAME);
 
-        return searchResults;
+        com.lambda.fusion.ai.agent.AgentState state = new com.lambda.fusion.ai.agent.AgentState();
+        state.setLlmModelId(llmModelId);
+        state.setKbId(kbId);
+        state.setMessages(messages);
+        state.getAttributes().put("streamHandler", handler); // inject handler for LlmProcessingNode
+
+        state = graph.invoke(state);
+
+        // 当整个Graph退出时，意味着大模型多轮交涉彻底借束，此时我们手动调用真正的 Complete 供上层切断 SSE 发送
+        if (!state.getMessages().isEmpty()) {
+            dev.langchain4j.data.message.ChatMessage lastMsg =
+                    state.getMessages().get(state.getMessages().size() - 1);
+            if (lastMsg instanceof dev.langchain4j.data.message.AiMessage) {
+                int pTokens = (int) state.getAttributes().getOrDefault("promptTokens", 0);
+                int cTokens = (int) state.getAttributes().getOrDefault("completionTokens", 0);
+                dev.langchain4j.model.output.TokenUsage finalUsage =
+                        new dev.langchain4j.model.output.TokenUsage(pTokens, cTokens);
+
+                // 伪造最终响应供上层闭环
+                dev.langchain4j.model.chat.response.ChatResponse finalResponse =
+                        dev.langchain4j.model.chat.response.ChatResponse.builder()
+                                .aiMessage((dev.langchain4j.data.message.AiMessage) lastMsg)
+                                .tokenUsage(finalUsage)
+                                .finishReason(dev.langchain4j.model.output.FinishReason.STOP)
+                                .build();
+
+                handler.onCompleteResponse(finalResponse);
+            } else {
+                handler.onError(new RuntimeException("AI未能产生最终响应"));
+            }
+        } else {
+            handler.onError(new RuntimeException("Graph无响应状态"));
+        }
     }
 
     private String loadPromptTemplate(String category) {

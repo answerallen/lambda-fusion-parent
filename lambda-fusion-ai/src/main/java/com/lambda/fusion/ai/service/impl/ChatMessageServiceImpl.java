@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,15 +53,10 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
             throw AiBusinessException.sessionNotFound(sessionId);
         }
 
-        ChatMessageEntity userMsg = new ChatMessageEntity();
-        userMsg.setMessageId(IdUtil.fastSimpleUUID());
-        userMsg.setSessionId(sessionId);
-        userMsg.setRole("user");
-        userMsg.setContent(dto.getContent());
-        userMsg.setIsRagEnhanced(false);
-        chatMessageMapper.insert(userMsg);
+        ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
 
-        RagResult ragResult = ragService.chat(dto.getContent(), session.getKbId(), session.getLlmModelId());
+        List<dev.langchain4j.data.message.ChatMessage> history = buildChatHistory(sessionId, userMsg.getMessageId());
+        RagResult ragResult = ragService.chat(dto.getContent(), session.getKbId(), session.getLlmModelId(), history);
 
         ChatMessageEntity aiMsg = new ChatMessageEntity();
         aiMsg.setMessageId(IdUtil.fastSimpleUUID());
@@ -81,6 +77,17 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         return entityToVO(aiMsg);
     }
 
+    private @NonNull ChatMessageEntity getChatMessageEntity(Long sessionId, SendMessage dto) {
+        ChatMessageEntity userMsg = new ChatMessageEntity();
+        userMsg.setMessageId(IdUtil.fastSimpleUUID());
+        userMsg.setSessionId(sessionId);
+        userMsg.setRole("user");
+        userMsg.setContent(dto.getContent());
+        userMsg.setIsRagEnhanced(false);
+        chatMessageMapper.insert(userMsg);
+        return userMsg;
+    }
+
     @Override
     public void sendMessageStream(Long sessionId, SendMessage dto) {
         ChatSessionEntity session = chatSessionMapper.selectById(sessionId);
@@ -91,24 +98,22 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         String clientId = "chat_" + sessionId;
 
         try {
-            ChatMessageEntity userMsg = new ChatMessageEntity();
-            userMsg.setMessageId(IdUtil.fastSimpleUUID());
-            userMsg.setSessionId(sessionId);
-            userMsg.setRole("user");
-            userMsg.setContent(dto.getContent());
-            userMsg.setIsRagEnhanced(false);
-            chatMessageMapper.insert(userMsg);
+            ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
 
             List<VectorSearchResult> retrievedChunks =
                     ragService.retrieve(dto.getContent(), session.getKbId(), null, null);
 
             StringBuilder fullAnswer = new StringBuilder();
 
+            List<dev.langchain4j.data.message.ChatMessage> history =
+                    buildChatHistory(sessionId, userMsg.getMessageId());
+
             ragService.streamChat(
                     dto.getContent(),
                     session.getKbId(),
                     retrievedChunks,
                     session.getLlmModelId(),
+                    history,
                     new StreamingChatResponseHandler() {
                         @Override
                         public void onPartialResponse(String token) {
@@ -187,5 +192,24 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         ChatMessage vo = new ChatMessage();
         BeanUtils.copyProperties(entity, vo);
         return vo;
+    }
+
+    private List<dev.langchain4j.data.message.ChatMessage> buildChatHistory(Long sessionId, String excludeMessageId) {
+        List<ChatMessageEntity> recentMessages = chatMessageMapper.listBySessionId(sessionId, 11);
+        List<dev.langchain4j.data.message.ChatMessage> history = new java.util.ArrayList<>();
+        if (recentMessages != null) {
+            for (ChatMessageEntity entity : recentMessages) {
+                if (excludeMessageId != null && excludeMessageId.equals(entity.getMessageId())) {
+                    continue;
+                }
+                if ("assistant".equals(entity.getRole())) {
+                    history.add(new dev.langchain4j.data.message.AiMessage(entity.getContent()));
+                } else if ("user".equals(entity.getRole()) && entity.getContent() != null) {
+                    history.add(new dev.langchain4j.data.message.UserMessage(entity.getContent()));
+                }
+            }
+            java.util.Collections.reverse(history);
+        }
+        return history;
     }
 }
