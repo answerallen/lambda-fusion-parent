@@ -1,13 +1,16 @@
 package com.lambda.fusion.ai.agent;
 
+import com.lambda.fusion.ai.agent.evaluator.ConditionEvaluator;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
 /**
- * 智能体工作流执行引擎
- * 类似最小化的 LangGraph 运行时
+ * 智能体可视化工作流执行引擎
  */
 @Slf4j
 public class AgentGraph {
@@ -15,46 +18,69 @@ public class AgentGraph {
     public static final String END_NODE = "END";
 
     private final Map<String, AgentNode> nodes = new HashMap<>();
-    private String startNodeName;
+    private final List<Edge> edges = new ArrayList<>();
+    private String startNodeId;
+
+    @Data
+    public static class Edge {
+        private String sourceId;
+        private String targetId;
+        private ConditionEvaluator conditionEvaluator;
+        private String conditionExpression;
+    }
 
     /**
-     * 注册节点
+     * 注册节点(带独立ID前缀)
      */
-    public AgentGraph addNode(AgentNode node) {
-        if (node == null || !StringUtils.hasText(node.getName())) {
-            throw new IllegalArgumentException("Invalid node");
+    public AgentGraph addNode(String id, AgentNode node) {
+        if (!StringUtils.hasText(id) || node == null) {
+            throw new IllegalArgumentException("Invalid node registration");
         }
-        nodes.put(node.getName(), node);
+        nodes.put(id, node);
         return this;
     }
 
     /**
-     * 声明启动节点
+     * 增加边缘连线规划
      */
-    public AgentGraph setEntryPoint(String nodeName) {
-        if (!nodes.containsKey(nodeName)) {
-            throw new IllegalArgumentException("Node must be added before setting as entry point");
-        }
-        this.startNodeName = nodeName;
+    public AgentGraph addEdge(String sourceId, String targetId, ConditionEvaluator evaluator, String expression) {
+        Edge edge = new Edge();
+        edge.setSourceId(sourceId);
+        edge.setTargetId(targetId);
+        edge.setConditionEvaluator(evaluator);
+        edge.setConditionExpression(expression);
+        edges.add(edge);
         return this;
     }
 
     /**
-     * 使用给定的初始状态启动并遍历图
+     * 声明图启动的入口Node ID
+     */
+    public AgentGraph setEntryPoint(String nodeId) {
+        if (!nodes.containsKey(nodeId)) {
+            throw new IllegalArgumentException("Node id " + nodeId + " must be added before setting as entry point");
+        }
+        this.startNodeId = nodeId;
+        return this;
+    }
+
+    /**
+     * 引擎启动，按照 Edges 与 Node 返回态进行流转分发
      */
     public AgentState invoke(AgentState state) {
-        if (startNodeName == null) {
+        if (startNodeId == null) {
             throw new IllegalStateException("Entry point not set");
         }
 
-        String currentNodeName = startNodeName;
+        String currentNodeId = startNodeId;
         long loopCount = 0;
-        final long MAX_LOOPS = 20; // 避免死循环跑飞
+        final long MAX_LOOPS = 25; // 防止错误连边导致的无限死循环递归
 
-        while (!AgentGraph.END_NODE.equals(currentNodeName) && !state.isFinished()) {
-            AgentNode node = nodes.get(currentNodeName);
+        while (!AgentGraph.END_NODE.equals(currentNodeId) && !state.isFinished()) {
+            AgentNode node = nodes.get(currentNodeId);
             if (node == null) {
-                throw new IllegalStateException("Next node '" + currentNodeName + "' not found in graph");
+                log.error("在Graph上下文中找不到试图进入的 Node ID: '{}'", currentNodeId);
+                break;
             }
 
             loopCount++;
@@ -63,18 +89,43 @@ public class AgentGraph {
                 break;
             }
 
-            log.debug("AgentGraph -> Executing Node: {}", currentNodeName);
+            log.debug("AgentGraph -> Executing Node ID: {} (Type: {})", currentNodeId, node.getName());
 
-            // 执行节点逻辑并获取下一个状态
-            currentNodeName = node.execute(state);
+            // 1. 获取节点自身的建议流转路由
+            String suggestedNext = node.execute(state);
 
-            if (currentNodeName == null) {
-                log.warn("Node {} returned null, forcing termination.", node.getName());
-                break;
+            // 2. 边缘路由解析与覆盖
+            // 如果节点硬性返回了下一个节点的名字/ID，优先跳往；如果没有（即可视化下解耦的情况），则评估画布 Edges
+            if (StringUtils.hasText(suggestedNext)) {
+                currentNodeId = suggestedNext;
+            } else {
+                currentNodeId = evaluateEdgesForNext(currentNodeId, state);
+                if (currentNodeId == null) {
+                    log.warn("当前节点 '{}' 执行完毕后没有匹配到任何有效的出向边，图执行被迫停止。", node.getName());
+                    break;
+                }
             }
         }
 
         log.debug("AgentGraph -> Execution Finish!");
         return state;
+    }
+
+    private String evaluateEdgesForNext(String currentNodeId, AgentState state) {
+        for (Edge edge : edges) {
+            if (edge.getSourceId().equals(currentNodeId)) {
+                // 判断条件
+                if (edge.getConditionEvaluator() != null && StringUtils.hasText(edge.getConditionExpression())) {
+                    boolean isPass = edge.getConditionEvaluator().evaluate(edge.getConditionExpression(), state);
+                    if (isPass) {
+                        return edge.getTargetId();
+                    }
+                } else {
+                    // 没有配置验证器，视为直通车
+                    return edge.getTargetId();
+                }
+            }
+        }
+        return null;
     }
 }

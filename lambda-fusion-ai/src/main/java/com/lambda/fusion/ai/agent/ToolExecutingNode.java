@@ -47,7 +47,7 @@ public class ToolExecutingNode implements AgentNode {
         // 清空当前执行意图
         state.getPendingToolRequests().clear();
 
-        // 执行成功后把信息交回给LLM分析节点闭环
-        return LlmProcessingNode.NAME;
+        // 动作完成后，把流程引导权归还给出度边缘评估（由图连线来动态配置下一个检查点，而不是写死必须查大模型）
+        return null;
     }
 }

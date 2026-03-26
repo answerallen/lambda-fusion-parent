@@ -96,11 +96,9 @@ public class LlmProcessingNode implements AgentNode {
         }
 
         if (response.aiMessage().hasToolExecutionRequests()) {
-            // 将请求丢给状态中继供下一个节点(ToolNode)挂载执行
             state.setPendingToolRequests(response.aiMessage().toolExecutionRequests());
-            return ToolExecutingNode.NAME; // 流转到动作执行节点
+            return null; // 流转由 AgentGraph 的连线来决定
         } else {
-            // 没有进一步工具请求，推理结束，可以答复用户
             state.setFinished(true);
             return AgentGraph.END_NODE;
         }

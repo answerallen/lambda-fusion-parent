@@ -125,8 +125,18 @@ public class RagServiceImpl implements RagService {
         messages.add(prompt.toUserMessage());
 
         com.lambda.fusion.ai.agent.AgentGraph graph = new com.lambda.fusion.ai.agent.AgentGraph()
-                .addNode(llmProcessingNode)
-                .addNode(toolExecutingNode)
+                .addNode(com.lambda.fusion.ai.agent.LlmProcessingNode.NAME, llmProcessingNode)
+                .addNode(com.lambda.fusion.ai.agent.ToolExecutingNode.NAME, toolExecutingNode)
+                .addEdge(
+                        com.lambda.fusion.ai.agent.LlmProcessingNode.NAME,
+                        com.lambda.fusion.ai.agent.ToolExecutingNode.NAME,
+                        null,
+                        null)
+                .addEdge(
+                        com.lambda.fusion.ai.agent.ToolExecutingNode.NAME,
+                        com.lambda.fusion.ai.agent.LlmProcessingNode.NAME,
+                        null,
+                        null)
                 .setEntryPoint(com.lambda.fusion.ai.agent.LlmProcessingNode.NAME);
 
         com.lambda.fusion.ai.agent.AgentState state = new com.lambda.fusion.ai.agent.AgentState();
@@ -193,8 +203,18 @@ public class RagServiceImpl implements RagService {
         messages.add(prompt.toUserMessage());
 
         com.lambda.fusion.ai.agent.AgentGraph graph = new com.lambda.fusion.ai.agent.AgentGraph()
-                .addNode(llmProcessingNode)
-                .addNode(toolExecutingNode)
+                .addNode(com.lambda.fusion.ai.agent.LlmProcessingNode.NAME, llmProcessingNode)
+                .addNode(com.lambda.fusion.ai.agent.ToolExecutingNode.NAME, toolExecutingNode)
+                .addEdge(
+                        com.lambda.fusion.ai.agent.LlmProcessingNode.NAME,
+                        com.lambda.fusion.ai.agent.ToolExecutingNode.NAME,
+                        null,
+                        null)
+                .addEdge(
+                        com.lambda.fusion.ai.agent.ToolExecutingNode.NAME,
+                        com.lambda.fusion.ai.agent.LlmProcessingNode.NAME,
+                        null,
+                        null)
                 .setEntryPoint(com.lambda.fusion.ai.agent.LlmProcessingNode.NAME);
 
         com.lambda.fusion.ai.agent.AgentState state = new com.lambda.fusion.ai.agent.AgentState();
