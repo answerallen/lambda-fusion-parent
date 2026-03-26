@@ -10,6 +10,7 @@ import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.DatasourceConstants;
+import com.lambda.fusion.datasource.commons.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.commons.event.DataSourceEvent;
 import com.lambda.fusion.datasource.commons.tenant.TenantIsolationResolver;
 import com.lambda.fusion.datasource.commons.util.DataSourcePropertyUtils;
@@ -40,16 +41,19 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     private final ApplicationEventPublisher eventPublisher;
     private final TenantDataSourceMapper tenantDataSourceMapper;
     private final TenantIsolationResolver tenantIsolationResolver;
+    private final RemoteDataSourceService remoteDataSourceService;
 
     public DataSourceManageServiceImpl(
             DynamicDataSourceService dynamicDataSourceService,
             ApplicationEventPublisher eventPublisher,
             TenantDataSourceMapper tenantDataSourceMapper,
-            TenantIsolationResolver tenantIsolationResolver) {
+            TenantIsolationResolver tenantIsolationResolver,
+            RemoteDataSourceService remoteDataSourceService) {
         this.dynamicDataSourceService = dynamicDataSourceService;
         this.eventPublisher = eventPublisher;
         this.tenantDataSourceMapper = tenantDataSourceMapper;
         this.tenantIsolationResolver = tenantIsolationResolver;
+        this.remoteDataSourceService = remoteDataSourceService;
     }
 
     @Override
@@ -228,6 +232,33 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.notNull(binding, "tenant datasource binding not found");
         binding.setSchemaStatus(TenantDataSourceEntity.SCHEMA_INITIALIZED);
         Assert.isTrue(tenantDataSourceMapper.updateById(binding) > 0, "update tenant datasource schema status failed");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void initTenantDataSource(String tenantId) {
+        Assert.hasText(tenantId, "tenantId is blank");
+        Assert.isTrue(tenantIsolationResolver.isDedicated(tenantId), "仅独立库租户允许初始化主库");
+
+        TenantDataSourceEntity binding = getTenantDataSource(tenantId, FusionConstants.DatabaseUsageType.TENANT);
+        Assert.notNull(binding, "租户未配置数据源");
+        Assert.hasText(binding.getDatasourceId(), "租户数据源ID为空");
+        Assert.isTrue(
+                binding.getSchemaStatus() == null
+                        || binding.getSchemaStatus() != TenantDataSourceEntity.SCHEMA_INITIALIZED,
+                "租户主库已完成初始化，不可重复执行");
+
+        DataSourceEntity dataSourceEntity = getById(binding.getDatasourceId());
+        Assert.notNull(dataSourceEntity, "绑定的数据源不存在");
+        Assert.isTrue(
+                dataSourceEntity.getStatus() != null
+                        && Integer.valueOf(1).equals(dataSourceEntity.getStatus().getCode()),
+                "数据源未启用，无法初始化");
+
+        boolean initialized = remoteDataSourceService.initSchema(dataSourceEntity.getId());
+        Assert.isTrue(initialized, "租户主库初始化失败");
+
+        markTenantDataSourceInitialized(tenantId);
     }
 
     private void syncDynamicDataSource(DataSourceEntity entity) {

@@ -1,10 +1,8 @@
 package com.lambda.fusion.datasource.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.datasource.commons.api.RemoteDataSourceService;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
@@ -23,12 +21,9 @@ import org.springframework.web.bind.annotation.*;
 public class DataSourceController {
 
     private final DataSourceManageService dataSourceManageService;
-    private final RemoteDataSourceService remoteDataSourceService;
 
-    public DataSourceController(
-            DataSourceManageService dataSourceManageService, RemoteDataSourceService remoteDataSourceService) {
+    public DataSourceController(DataSourceManageService dataSourceManageService) {
         this.dataSourceManageService = dataSourceManageService;
-        this.remoteDataSourceService = remoteDataSourceService;
     }
 
     @GetMapping("/page")
@@ -119,14 +114,7 @@ public class DataSourceController {
     @PostMapping("/tenant/{tenantId}/init")
     @Operation(summary = "初始化租户主库", description = "仅独立库租户可执行，要求先完成数据源绑定")
     public void initTenantDatasource(@Parameter(description = "租户ID", required = true) @PathVariable String tenantId) {
-        TenantDataSourceEntity binding =
-                dataSourceManageService.getTenantDataSource(tenantId, FusionConstants.DatabaseUsageType.TENANT);
-        Assert.notNull(binding, "租户未配置数据源");
-        Assert.hasText(binding.getDatasourceId(), "租户数据源ID为空");
-        DataSourceEntity dataSourceEntity = dataSourceManageService.getById(binding.getDatasourceId());
-        Assert.notNull(dataSourceEntity, "绑定的数据源不存在");
-        boolean initialized = remoteDataSourceService.initSchema(dataSourceEntity.getId());
-        Assert.isTrue(initialized, "租户主库初始化失败");
-        dataSourceManageService.markTenantDataSourceInitialized(tenantId);
+        dataSourceManageService.initTenantDataSource(tenantId);
     }
 }
+

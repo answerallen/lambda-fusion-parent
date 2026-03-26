@@ -36,4 +36,6 @@ public interface DataSourceManageService extends IService<DataSourceEntity> {
     void bindTenantDataSource(String tenantId, String datasourceId, FusionConstants.DatabaseUsageType usageType);
 
     void markTenantDataSourceInitialized(String tenantId);
+
+    void initTenantDataSource(String tenantId);
 }

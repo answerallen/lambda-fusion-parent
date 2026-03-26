@@ -52,8 +52,12 @@ public class DatasourceConfigure implements WebMvcConfigurer {
             havingValue = DatasourceConstants.MODE_SERVER,
             matchIfMissing = true)
     public RemoteDataSourceService remoteDataSourceService(
-            DataSourceManageService dataSourceManageService, DataSourceChangeDispatcher callbackManager) {
-        return new RemoteDataSourceServiceImpl(dataSourceManageService, callbackManager);
+            DataSourceManageService dataSourceManageService,
+            DataSourceChangeDispatcher callbackManager,
+            @Autowired(required = false) DynamicDataSourceService dynamicDataSourceService,
+            ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider) {
+        return new RemoteDataSourceServiceImpl(
+                dataSourceManageService, callbackManager, dynamicDataSourceService, schemaInitializerProvider);
     }
 
     @Slf4j

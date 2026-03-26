@@ -1,9 +1,11 @@
 package com.lambda.fusion.datasource.commons.api;
 
 import com.lambda.cloud.core.utils.ConvertUtils;
+import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.commons.dispatcher.DataSourceChangeDispatcher;
+import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
@@ -11,8 +13,9 @@ import com.lambda.fusion.datasource.service.DataSourceManageService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
+import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.util.StringUtils;
 
 /**
@@ -21,12 +24,24 @@ import org.springframework.util.StringUtils;
  * @author Jin
  */
 @Slf4j
-@RequiredArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
 
     private final DataSourceManageService dataSourceManageService;
     private final DataSourceChangeDispatcher callbackManager;
+    private final DynamicDataSourceService dynamicDataSourceService;
+    private final ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider;
+
+    public RemoteDataSourceServiceImpl(
+            DataSourceManageService dataSourceManageService,
+            DataSourceChangeDispatcher callbackManager,
+            DynamicDataSourceService dynamicDataSourceService,
+            ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider) {
+        this.dataSourceManageService = dataSourceManageService;
+        this.callbackManager = callbackManager;
+        this.dynamicDataSourceService = dynamicDataSourceService;
+        this.schemaInitializerProvider = schemaInitializerProvider;
+    }
 
     @Override
     public List<RemoteDataSource> listAll() {
@@ -158,17 +173,39 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     public boolean initSchema(String id) {
         try {
             DataSourceEntity dataSourceEntity = dataSourceManageService.getById(id);
-            if (dataSourceEntity != null) {
-                DataSourceChangeEvent event = new DataSourceChangeEvent();
-                event.setChangeType(DatasourceConstants.ChangeType.INIT_SCHEMA);
-                event.setDataSourceId(id);
-                event.setTenantId(DubboContextHolder.getCurrentTenantId());
-                event.setDataSource(toRemoteDataSource(dataSourceEntity));
-                event.setTimestamp(System.currentTimeMillis());
-                callbackManager.broadcast(event);
-                return true;
+            if (dataSourceEntity == null) {
+                log.error("initSchema failed: datasource not found, id={}", id);
+                return false;
             }
-            return false;
+
+            String tenantId = DubboContextHolder.getCurrentTenantId();
+
+            // 同步执行 Schema 初始化
+            TenantSchemaInitializer initializer = schemaInitializerProvider.getIfAvailable();
+            if (initializer == null) {
+                log.error("initSchema failed: no TenantSchemaInitializer implementation available");
+                return false;
+            }
+
+            DataSource dataSource = dynamicDataSourceService.getDataSource(id);
+            if (dataSource == null) {
+                log.error("initSchema failed: datasource connection not found in dynamic pool, id={}", id);
+                return false;
+            }
+
+            initializer.initializeSchema(tenantId, dataSource);
+            log.info("Schema initialization completed synchronously. datasourceId={}, tenantId={}", id, tenantId);
+
+            // 初始化成功后广播通知 Client 端（让 Client 侧感知 Schema 变更，如刷新缓存等）
+            DataSourceChangeEvent event = new DataSourceChangeEvent();
+            event.setChangeType(DatasourceConstants.ChangeType.INIT_SCHEMA);
+            event.setDataSourceId(id);
+            event.setTenantId(tenantId);
+            event.setDataSource(toRemoteDataSource(dataSourceEntity));
+            event.setTimestamp(System.currentTimeMillis());
+            callbackManager.broadcast(event);
+
+            return true;
         } catch (Exception e) {
             log.error("Failed to init schema: {}", id, e);
             return false;
