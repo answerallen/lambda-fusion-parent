@@ -235,13 +235,35 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void reprocessDocument(Long kbId, Long id) {
+        if (kbId == null) {
+            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
+        }
+        if (id == null) {
+            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
+        }
+
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
-            throw AiBusinessException.knowledgeBaseNotFound(id);
+            throw AiBusinessException.knowledgeBaseNotFound(kbId);
         }
+
+        DocumentEntity doc = documentMapper.selectById(id);
+        if (doc == null) {
+            throw AiBusinessException.documentNotFound(id);
+        }
+
+        log.info("重新处理文档: kbId={}, docId={}", kbId, id);
+
         vectorRepository.deleteByDocumentIdUnified(id);
         documentChunkMapper.deleteByDocumentIds(Collections.singletonList(id));
+
+        doc.setProcessStatus(DocumentStatus.PENDING.name());
+        doc.setProcessProgress(0);
+        doc.setErrorMessage(null);
+        documentMapper.updateById(doc);
+
         documentProcessor.processDocument(id);
     }
 

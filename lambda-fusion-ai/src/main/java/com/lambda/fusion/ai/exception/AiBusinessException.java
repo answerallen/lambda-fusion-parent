@@ -109,4 +109,24 @@ public class AiBusinessException extends BusinessException {
     public static AiBusinessException llmModelNotFound(Long modelId) {
         return new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, modelId);
     }
+
+    /**
+     * 便捷方法：AI机器人不存在异常
+     *
+     * @param robotId 机器人ID
+     * @return AiBusinessException
+     */
+    public static AiBusinessException robotNotFound(Long robotId) {
+        return new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, robotId);
+    }
+
+    /**
+     * 便捷方法：Agent工作流不存在异常
+     *
+     * @param workflowId 工作流ID
+     * @return AiBusinessException
+     */
+    public static AiBusinessException workflowNotFound(Long workflowId) {
+        return new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, workflowId);
+    }
 }

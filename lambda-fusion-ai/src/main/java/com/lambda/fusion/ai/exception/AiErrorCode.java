@@ -204,6 +204,28 @@ public enum AiErrorCode implements ErrorCode {
      */
     NO_PERMISSION_TO_ACCESS_SESSION(30703, "无权访问此会话"),
 
+    // ========== AI机器人相关错误 (30750-30759) ==========
+    /**
+     * AI机器人不存在
+     */
+    ROBOT_NOT_FOUND(30750, "AI机器人不存在"),
+
+    /**
+     * AI机器人已禁用
+     */
+    ROBOT_DISABLED(30751, "AI机器人已禁用"),
+
+    // ========== Agent工作流相关错误 (30760-30769) ==========
+    /**
+     * Agent工作流不存在
+     */
+    WORKFLOW_NOT_FOUND(30760, "Agent工作流不存在"),
+
+    /**
+     * Agent工作流配置无效
+     */
+    WORKFLOW_CONFIG_INVALID(30761, "Agent工作流配置无效"),
+
     // ========== 数据源相关错误 (30800-30899) ==========
     /**
      * 数据源错误

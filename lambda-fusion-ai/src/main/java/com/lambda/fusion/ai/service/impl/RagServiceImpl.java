@@ -47,6 +47,8 @@ public class RagServiceImpl implements RagService {
     private final LlmProcessingNode llmProcessingNode;
     private final ToolExecutingNode toolExecutingNode;
 
+    private volatile AgentGraph cachedAgentGraph;
+
     @Override
     public List<VectorSearchResult> retrieve(String query, Long kbId, Integer topK, Double minScore) {
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
@@ -295,14 +297,22 @@ public class RagServiceImpl implements RagService {
     }
 
     /**
-     * 构建 Agent Graph
+     * 构建 Agent Graph（单例模式，双重检查锁定）
      */
     private AgentGraph buildAgentGraph() {
-        return new AgentGraph()
-                .addNode(LlmProcessingNode.NAME, llmProcessingNode)
-                .addNode(ToolExecutingNode.NAME, toolExecutingNode)
-                .addEdge(LlmProcessingNode.NAME, ToolExecutingNode.NAME, null, null)
-                .addEdge(ToolExecutingNode.NAME, LlmProcessingNode.NAME, null, null)
-                .setEntryPoint(LlmProcessingNode.NAME);
+        if (cachedAgentGraph == null) {
+            synchronized (this) {
+                if (cachedAgentGraph == null) {
+                    log.info("初始化 AgentGraph 实例");
+                    cachedAgentGraph = new AgentGraph()
+                            .addNode(LlmProcessingNode.NAME, llmProcessingNode)
+                            .addNode(ToolExecutingNode.NAME, toolExecutingNode)
+                            .addEdge(LlmProcessingNode.NAME, ToolExecutingNode.NAME, null, null)
+                            .addEdge(ToolExecutingNode.NAME, LlmProcessingNode.NAME, null, null)
+                            .setEntryPoint(LlmProcessingNode.NAME);
+                }
+            }
+        }
+        return cachedAgentGraph;
     }
 }
