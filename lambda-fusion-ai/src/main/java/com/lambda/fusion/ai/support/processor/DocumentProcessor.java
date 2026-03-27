@@ -1,7 +1,13 @@
 package com.lambda.fusion.ai.support.processor;
 
+import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.lambda.cloud.oss.client.OssClient;
+import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
@@ -12,19 +18,26 @@ import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.repository.VectorRepository;
 import dev.langchain4j.data.document.Document;
+import dev.langchain4j.data.document.DocumentParser;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
+import dev.langchain4j.data.document.parser.apache.pdfbox.ApachePdfBoxDocumentParser;
+import dev.langchain4j.data.document.parser.apache.poi.ApachePoiDocumentParser;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -48,6 +61,13 @@ public class DocumentProcessor {
     private final EmbeddingModel embeddingModel;
     private final AiProperties aiProperties;
     private final TransactionTemplate transactionTemplate;
+
+    private OssClientManager ossClientManager;
+
+    @Autowired
+    public void setOssClientManager(OssClientManager ossClientManager) {
+        this.ossClientManager = ossClientManager;
+    }
 
     @Async("documentProcessExecutor")
     public void processDocument(Long documentId) {
@@ -165,15 +185,100 @@ public class DocumentProcessor {
     }
 
     private String loadContent(DocumentEntity doc) {
-        if ("LOCAL".equals(doc.getStorageType())) {
-            File file = new File(doc.getStorageUrl());
-            if (!file.exists()) {
-                throw new RuntimeException("文件不存在: " + doc.getStorageUrl());
-            }
-            Document document = FileSystemDocumentLoader.loadDocument(file.toPath());
-            return document.text();
+        String storageType = doc.getStorageType();
+        if (storageType == null || storageType.isEmpty()) {
+            storageType = "LOCAL";
         }
-        throw new UnsupportedOperationException("暂不支持的存储类型: " + doc.getStorageType());
+
+        switch (storageType.toUpperCase()) {
+            case "LOCAL":
+                return loadFromLocal(doc);
+            case "OSS":
+                return loadFromOss(doc);
+            default:
+                throw new UnsupportedOperationException("暂不支持的存储类型: " + storageType);
+        }
+    }
+
+    private String loadFromLocal(DocumentEntity doc) {
+        File file = new File(doc.getStorageUrl());
+        if (!file.exists()) {
+            throw new RuntimeException("文件不存在: " + doc.getStorageUrl());
+        }
+        Document document = FileSystemDocumentLoader.loadDocument(file.toPath());
+        return document.text();
+    }
+
+    private String loadFromOss(DocumentEntity doc) {
+        if (ossClientManager == null) {
+            throw new RuntimeException("OSS客户端管理器未初始化");
+        }
+
+        String clientName = "zsk";
+        OssClient ossClient = ossClientManager.get(clientName);
+
+        String objectKey = doc.getStoragePath();
+        if (StrUtil.isNotEmpty(objectKey)) {
+            objectKey = doc.getStorageUrl();
+        }
+
+        if (StrUtil.isNotEmpty(objectKey)) {
+            throw new RuntimeException("OSS对象键为空，无法下载文件");
+        }
+
+        log.info("从OSS加载文档: clientName={}, objectKey={}", clientName, objectKey);
+
+        try (S3Object s3Object = ossClient.getObject(objectKey);
+             S3ObjectInputStream inputStream = s3Object.getObjectContent()) {
+
+            byte[] bytes = IoUtil.readBytes(inputStream);
+            String fileType = doc.getFileType();
+
+            if (isTextFile(fileType)) {
+                return new String(bytes, StandardCharsets.UTF_8);
+            }
+
+            Document document = loadDocumentFromBytes(bytes, doc.getFileName(), fileType);
+            return document.text();
+
+        } catch (Exception e) {
+            log.error("从OSS加载文档失败: objectKey={}", objectKey, e);
+            throw new RuntimeException("从OSS加载文档失败: " + e.getMessage(), e);
+        }
+    }
+
+    private boolean isTextFile(String fileType) {
+        if (fileType == null) {
+            return false;
+        }
+        String type = fileType.toUpperCase();
+        return type.equals("TXT") || type.equals("MD") || type.equals("JSON")
+                || type.equals("XML") || type.equals("CSV") || type.equals("HTML");
+    }
+
+    private Document loadDocumentFromBytes(byte[] bytes, String fileName, String fileType) {
+        try (InputStream inputStream = new ByteArrayInputStream(bytes)) {
+            DocumentParser parser = createParser(fileType);
+            if (parser != null) {
+                return parser.parse(inputStream);
+            }
+            return Document.from(new String(bytes, StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            log.warn("文档解析失败，尝试直接读取文本: fileName={}", fileName, e);
+            return Document.from(new String(bytes, StandardCharsets.UTF_8));
+        }
+    }
+
+    private DocumentParser createParser(String fileType) {
+        if (fileType == null) {
+            return null;
+        }
+        String type = fileType.toUpperCase();
+        return switch (type) {
+            case "PDF" -> new ApachePdfBoxDocumentParser();
+            case "DOC", "DOCX", "XLS", "XLSX", "PPT", "PPTX" -> new ApachePoiDocumentParser();
+            default -> null;
+        };
     }
 
     private void updateStatus(DocumentEntity doc, DocumentStatus status, int progress, String msg) {
