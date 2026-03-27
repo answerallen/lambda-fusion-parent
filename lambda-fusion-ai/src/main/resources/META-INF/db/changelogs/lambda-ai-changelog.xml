@@ -757,6 +757,7 @@
             DROP TRIGGER IF EXISTS tr_kb_updated_at ON ai_knowledge_base;
             DROP FUNCTION IF EXISTS update_updated_at_column();
         </rollback>
+    </changeSet>
     <!-- ========================================== -->
     <!-- 向量表自动创建与索引优化 -->
     <!-- ========================================== -->
@@ -815,12 +816,13 @@
         </sql>
     </changeSet>
 
-    <changeSet id="create-unified-vector-table" author="lambda-fusion">
+    <changeSet id="create-unified-vector-table-v2" author="zx">
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="ai_vector_store"/>
             </not>
         </preConditions>
+
         <createTable tableName="ai_vector_store">
             <column name="id" type="bigint" autoIncrement="true">
                 <constraints primaryKey="true"/>
@@ -836,8 +838,8 @@
             <column name="embedding" type="vector(1536)">
                 <constraints nullable="false"/>
             </column>
-            <column name="dimension" type="integer">
-                <constraints nullable="false" defaultValue="1536"/>
+            <column name="dimension" type="integer" defaultValue="1536">
+                <constraints nullable="false"/>
             </column>
             <column name="content" type="text">
                 <constraints nullable="false"/>
@@ -845,18 +847,25 @@
             <column name="metadata" type="jsonb"/>
             <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
         </createTable>
+
         <createIndex tableName="ai_vector_store" indexName="idx_vector_kb_id">
             <column name="kb_id"/>
         </createIndex>
-        <createIndex tableName="ai_vector_store" indexName="idx_vector_embedding">
-            using ivfflat (embedding vector_cosine_ops) with (lists = 100)
-        </createIndex>
-        <createIndex tableName="ai_vector_store" indexName="idx_vector_content_trgm">
-            using gist (content gist_trgm_ops)
-        </createIndex>
+
         <createIndex tableName="ai_vector_store" indexName="idx_vector_dimension">
             <column name="dimension"/>
         </createIndex>
+
+        <sql>
+            CREATE INDEX idx_vector_embedding ON ai_vector_store
+                USING hnsw (embedding vector_cosine_ops)
+                WITH (m = 16, ef_construction = 64);
+        </sql>
+
+        <sql>
+            CREATE INDEX idx_vector_content_trgm ON ai_vector_store
+                USING gist (content gist_trgm_ops);
+        </sql>
     </changeSet>
 
 </databaseChangeLog>

@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.repository;
+package com.lambda.fusion.ai.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.ai.model.entity.WorkflowEntity;

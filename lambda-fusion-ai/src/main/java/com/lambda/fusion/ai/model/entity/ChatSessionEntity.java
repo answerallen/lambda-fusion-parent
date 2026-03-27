@@ -28,6 +28,13 @@ public class ChatSessionEntity {
     private Long userId;
     private Long tenantId;
     private Long llmModelId;
+
+    @Schema(description = "关联的机器人ID")
+    private Long robotId;
+
+    @Schema(description = "关联的主题工作流配置ID")
+    private Long workflowId;
+
     private String systemPrompt;
     private BigDecimal temperature;
     private Integer maxTokens;

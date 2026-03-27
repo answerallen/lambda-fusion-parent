@@ -11,5 +11,6 @@ public class CreateSession {
     private Long userId;
     private Long tenantId;
     private Long llmModelId;
+    private Long robotId;
     private String systemPrompt;
 }

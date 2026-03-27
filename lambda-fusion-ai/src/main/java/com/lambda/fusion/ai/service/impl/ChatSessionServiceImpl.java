@@ -6,9 +6,11 @@ import com.lambda.fusion.ai.AiConstants.Enums.SessionStatus;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
+import com.lambda.fusion.ai.mapper.RobotMapper;
 import com.lambda.fusion.ai.model.ChatSession;
 import com.lambda.fusion.ai.model.CreateSession;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.model.entity.RobotEntity;
 import com.lambda.fusion.ai.service.ChatSessionService;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,11 +26,23 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
         implements ChatSessionService {
 
     private final ChatSessionMapper chatSessionMapper;
+    private final RobotMapper robotMapper;
 
     @Override
     public ChatSession createSession(CreateSession dto) {
         ChatSessionEntity entity = new ChatSessionEntity();
         BeanUtils.copyProperties(dto, entity);
+
+        // 挂载机器人参数
+        if (dto.getRobotId() != null) {
+            RobotEntity robot = robotMapper.selectById(dto.getRobotId());
+            if (robot != null) {
+                if (robot.getLlmModelId() != null) entity.setLlmModelId(robot.getLlmModelId());
+                if (robot.getSystemPrompt() != null) entity.setSystemPrompt(robot.getSystemPrompt());
+                if (robot.getKbId() != null) entity.setKbId(robot.getKbId());
+                if (robot.getWorkflowId() != null) entity.setWorkflowId(robot.getWorkflowId());
+            }
+        }
         entity.setSessionId(IdUtil.fastSimpleUUID());
         entity.setMessageCount(0);
         entity.setTotalTokens(0);
