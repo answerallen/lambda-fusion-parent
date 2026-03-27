@@ -41,9 +41,9 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
-public class AiTenantProvisioningProvisioner extends AbstractTenantDataSourceProvisioner {
+public class TenantProvisioningProvisioner extends AbstractTenantDataSourceProvisioner {
 
-    private final AiSchemaInitializer aiSchemaInitializer;
+    private final SchemaInitializer schemaInitializer;
     private final AiProperties aiProperties;
 
     /**
@@ -51,17 +51,17 @@ public class AiTenantProvisioningProvisioner extends AbstractTenantDataSourcePro
      *
      * @param tenantDataSourceManager 租户数据源管理器
      * @param dynamicRoutingDataSource 动态路由数据源
-     * @param aiSchemaInitializer AI Schema 初始化器
+     * @param schemaInitializer AI Schema 初始化器
      * @param aiProperties AI 配置属性
      */
-    public AiTenantProvisioningProvisioner(
+    public TenantProvisioningProvisioner(
             TenantDataSourceManager tenantDataSourceManager,
             DynamicRoutingDataSource dynamicRoutingDataSource,
             TenantIsolationResolver tenantIsolationResolver,
-            AiSchemaInitializer aiSchemaInitializer,
+            SchemaInitializer schemaInitializer,
             AiProperties aiProperties) {
         super(tenantDataSourceManager, dynamicRoutingDataSource, tenantIsolationResolver);
-        this.aiSchemaInitializer = aiSchemaInitializer;
+        this.schemaInitializer = schemaInitializer;
         this.aiProperties = aiProperties;
     }
 
@@ -72,7 +72,7 @@ public class AiTenantProvisioningProvisioner extends AbstractTenantDataSourcePro
      */
     @Override
     protected TenantSchemaInitializer getSchemaInitializer() {
-        return aiSchemaInitializer;
+        return schemaInitializer;
     }
 
     /**

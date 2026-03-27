@@ -3,12 +3,13 @@ package com.lambda.fusion.ai.service.impl;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.ChatMessageMapper;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
-import com.lambda.fusion.ai.model.ChatMessage;
+import com.lambda.fusion.ai.model.ChatHistory;
 import com.lambda.fusion.ai.model.RagResult;
 import com.lambda.fusion.ai.model.SendMessage;
 import com.lambda.fusion.ai.model.VectorSearchResult;
@@ -17,6 +18,9 @@ import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
 import com.lambda.fusion.ai.service.ChatMessageService;
 import com.lambda.fusion.ai.service.RagService;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.util.List;
@@ -24,7 +28,6 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +50,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ChatMessage sendMessage(Long sessionId, SendMessage dto) {
+    public ChatHistory sendMessage(Long sessionId, SendMessage dto) {
         ChatSessionEntity session = chatSessionMapper.selectById(sessionId);
         if (session == null) {
             throw AiBusinessException.sessionNotFound(sessionId);
@@ -55,7 +58,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
         ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
 
-        List<dev.langchain4j.data.message.ChatMessage> history = buildChatHistory(sessionId, userMsg.getMessageId());
+        List<ChatMessage> history = buildChatHistory(sessionId, userMsg.getMessageId());
         RagResult ragResult = ragService.chat(dto.getContent(), session.getKbId(), session.getLlmModelId(), history);
 
         ChatMessageEntity aiMsg = new ChatMessageEntity();
@@ -74,7 +77,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         // 这可以防止并发访问时的竞态条件
         atomicSessionUpdateService.updateSessionStatistics(sessionId, 2, aiMsg.getTotalTokens());
 
-        return entityToVO(aiMsg);
+        return ConvertUtils.convert(aiMsg);
     }
 
     private @NonNull ChatMessageEntity getChatMessageEntity(Long sessionId, SendMessage dto) {
@@ -105,8 +108,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
             StringBuilder fullAnswer = new StringBuilder();
 
-            List<dev.langchain4j.data.message.ChatMessage> history =
-                    buildChatHistory(sessionId, userMsg.getMessageId());
+            List<ChatMessage> history = buildChatHistory(sessionId, userMsg.getMessageId());
 
             ragService.streamChat(
                     dto.getContent(),
@@ -164,7 +166,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     }
 
     @Override
-    public List<ChatMessage> listMessages(Long sessionId, Integer limit) {
+    public List<ChatHistory> listMessages(Long sessionId, Integer limit) {
         return chatMessageMapper.listBySessionId(sessionId, limit).stream()
                 .map(this::entityToVO)
                 .collect(Collectors.toList());
@@ -188,24 +190,22 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         chatMessageMapper.updateById(entity);
     }
 
-    private ChatMessage entityToVO(ChatMessageEntity entity) {
-        ChatMessage vo = new ChatMessage();
-        BeanUtils.copyProperties(entity, vo);
-        return vo;
+    private ChatHistory entityToVO(ChatMessageEntity entity) {
+        return ConvertUtils.convert(entity);
     }
 
-    private List<dev.langchain4j.data.message.ChatMessage> buildChatHistory(Long sessionId, String excludeMessageId) {
+    private List<ChatMessage> buildChatHistory(Long sessionId, String excludeMessageId) {
         List<ChatMessageEntity> recentMessages = chatMessageMapper.listBySessionId(sessionId, 11);
-        List<dev.langchain4j.data.message.ChatMessage> history = new java.util.ArrayList<>();
+        List<ChatMessage> history = new java.util.ArrayList<>();
         if (recentMessages != null) {
             for (ChatMessageEntity entity : recentMessages) {
                 if (excludeMessageId != null && excludeMessageId.equals(entity.getMessageId())) {
                     continue;
                 }
                 if ("assistant".equals(entity.getRole())) {
-                    history.add(new dev.langchain4j.data.message.AiMessage(entity.getContent()));
+                    history.add(new AiMessage(entity.getContent()));
                 } else if ("user".equals(entity.getRole()) && entity.getContent() != null) {
-                    history.add(new dev.langchain4j.data.message.UserMessage(entity.getContent()));
+                    history.add(new UserMessage(entity.getContent()));
                 }
             }
             java.util.Collections.reverse(history);

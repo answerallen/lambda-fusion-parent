@@ -105,6 +105,10 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         }
 
         String fileExtension = FileUtil.extName(originalFilename);
+
+        // 验证文件扩展名白名单
+        validateFileExtension(fileExtension);
+
         String ossKey = "ai-documents/" + kbId + "/" + fileHash + "." + fileExtension;
 
         File tempFile = null;
@@ -144,10 +148,10 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
             log.error("文件保存失败", e);
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "文件保存失败", e);
         } finally {
-            // 确保临时文件被删除
+            // 确保临时文件被删除 - 使用更安全的方式
             if (tempFile != null && tempFile.exists()) {
                 try {
-                    if (!tempFile.delete()) {
+                    if (!FileUtil.del(tempFile)) {
                         log.warn("临时文件删除失败: {}", tempFile.getAbsolutePath());
                     }
                 } catch (Exception e) {
@@ -251,5 +255,29 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         Page<DocumentChunkEntity> documentChunkEntityPage = documentChunkMapper.selectPage(
                 documentChunkQuery.getPage(), documentChunkQuery.getLambdaQueryWrapper());
         return documentChunkEntityPage.convert(ConvertUtils::convert);
+    }
+
+    /**
+     * 验证文件扩展名是否在白名单中
+     * 防止上传恶意文件
+     */
+    private void validateFileExtension(String fileExtension) {
+        if (fileExtension == null || fileExtension.isEmpty()) {
+            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "文件扩展名不能为空");
+        }
+
+        // 允许的文件扩展名白名单
+        String[] allowedExtensions = {
+            "pdf", "txt", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "md", "json", "xml", "csv"
+        };
+
+        String lowerExtension = fileExtension.toLowerCase();
+        for (String allowed : allowedExtensions) {
+            if (allowed.equals(lowerExtension)) {
+                return;
+            }
+        }
+
+        throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "不支持的文件类型: " + fileExtension);
     }
 }

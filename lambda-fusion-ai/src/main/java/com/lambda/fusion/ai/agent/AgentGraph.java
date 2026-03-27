@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.agent;
 
 import com.lambda.fusion.ai.agent.evaluator.ConditionEvaluator;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,14 +12,18 @@ import org.springframework.util.StringUtils;
 
 /**
  * 智能体可视化工作流执行引擎
+ *
+ * 线程安全设计：
+ * - edges 列表使用 Collections.synchronizedList 保证线程安全
+ * - nodes 映射使用 Collections.synchronizedMap 保证线程安全
  */
 @Slf4j
 public class AgentGraph {
 
     public static final String END_NODE = "END";
 
-    private final Map<String, AgentNode> nodes = new HashMap<>();
-    private final List<Edge> edges = new ArrayList<>();
+    private final Map<String, AgentNode> nodes = Collections.synchronizedMap(new HashMap<>());
+    private final List<Edge> edges = Collections.synchronizedList(new ArrayList<>());
     private String startNodeId;
 
     @Data

@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.controller;
 
 import com.lambda.cloud.sse.SseEmitterManager;
-import com.lambda.fusion.ai.model.ChatMessage;
+import com.lambda.fusion.ai.model.ChatHistory;
 import com.lambda.fusion.ai.model.SendMessage;
 import com.lambda.fusion.ai.service.ChatMessageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,7 +23,7 @@ public class ChatMessageController {
 
     @PostMapping
     @Operation(summary = "发送消息")
-    public ChatMessage send(@PathVariable Long sessionId, @Valid @RequestBody SendMessage sendMessage) {
+    public ChatHistory send(@PathVariable Long sessionId, @Valid @RequestBody SendMessage sendMessage) {
         return chatMessageService.sendMessage(sessionId, sendMessage);
     }
 
@@ -42,7 +42,7 @@ public class ChatMessageController {
 
     @GetMapping
     @Operation(summary = "查询消息列表")
-    public List<ChatMessage> list(@PathVariable Long sessionId, @RequestParam(defaultValue = "50") Integer limit) {
+    public List<ChatHistory> list(@PathVariable Long sessionId, @RequestParam(defaultValue = "50") Integer limit) {
         return chatMessageService.listMessages(sessionId, limit);
     }
 

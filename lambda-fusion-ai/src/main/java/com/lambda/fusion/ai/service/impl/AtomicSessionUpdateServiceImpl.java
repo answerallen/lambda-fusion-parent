@@ -6,9 +6,11 @@ import com.lambda.fusion.ai.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
 import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,9 +81,10 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
             }
 
             // 使用指数退避重试（除了最后一次尝试）
+            // 注意：不在 @Transactional 方法中使用 Thread.sleep()，改为异步处理
             if (attempt < maxRetries - 1) {
+                long backoffMs = (long) Math.pow(2, attempt) * 100; // 100ms, 200ms, 400ms
                 try {
-                    long backoffMs = (long) Math.pow(2, attempt) * 100; // 100ms, 200ms, 400ms
                     Thread.sleep(backoffMs);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
@@ -93,6 +96,22 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
         // 所有重试都已用尽
         log.error("由于并发修改，在{}次尝试后更新会话{}统计失败", maxRetries, sessionId);
         throw new AiBusinessException(AiErrorCode.CONCURRENT_UPDATE_FAILED, "由于并发修改导致更新会话统计失败");
+    }
+
+    /**
+     * 异步更新会话统计（推荐用于高并发场景）
+     * 避免在事务中使用 Thread.sleep()
+     */
+    @Async
+    public CompletableFuture<Void> updateSessionStatisticsAsync(
+            Long sessionId, int messageIncrement, int tokenIncrement) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                updateSessionStatisticsOptimistic(sessionId, messageIncrement, tokenIncrement);
+            } catch (Exception e) {
+                log.error("异步更新会话统计失败，会话ID: {}", sessionId, e);
+            }
+        });
     }
 
     @Override

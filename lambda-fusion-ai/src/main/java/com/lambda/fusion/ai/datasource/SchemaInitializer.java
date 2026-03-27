@@ -34,7 +34,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class AiSchemaInitializer implements TenantSchemaInitializer {
+public class SchemaInitializer implements TenantSchemaInitializer {
 
     private final AiProperties aiProperties;
 

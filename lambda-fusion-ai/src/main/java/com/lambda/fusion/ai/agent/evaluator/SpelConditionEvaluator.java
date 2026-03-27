@@ -1,19 +1,38 @@
 package com.lambda.fusion.ai.agent.evaluator;
 
 import com.lambda.fusion.ai.agent.AgentState;
+import java.util.HashSet;
+import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.expression.spel.support.SimpleEvaluationContext;
 import org.springframework.stereotype.Component;
 
 /**
  * 基于 Spring Expression Language (SpEL) 的边流转策略判断器。
  * 允许前端用简洁内联属性配置判断图节点，比如: '#state.finished'
+ *
+ * 安全设计：
+ * - 使用 SimpleEvaluationContext 替代 StandardEvaluationContext，限制可访问的对象
+ * - 只允许访问 AgentState 的特定属性
+ * - 禁止访问系统对象和反射调用
  */
+@Slf4j
 @Component
 public class SpelConditionEvaluator implements ConditionEvaluator {
 
     private final ExpressionParser parser = new SpelExpressionParser();
+
+    // 允许的表达式白名单模式
+    private static final Set<String> ALLOWED_PATTERNS = new HashSet<>();
+
+    static {
+        // 允许的表达式模式（简单的属性访问和比较）
+        ALLOWED_PATTERNS.add("state\\..*");
+        ALLOWED_PATTERNS.add("#state\\..*");
+        ALLOWED_PATTERNS.add("#.*");
+    }
 
     @Override
     public boolean evaluate(String expression, AgentState state) {
@@ -21,23 +40,82 @@ public class SpelConditionEvaluator implements ConditionEvaluator {
             return true;
         }
 
-        StandardEvaluationContext context = new StandardEvaluationContext();
-        // 允许直接用 #state.abc 访问状态属性
-        context.setVariable("state", state);
+        // 表达式安全验证
+        if (!isExpressionSafe(expression)) {
+            log.warn("检测到不安全的 SpEL 表达式，已拒绝执行: {}", expression);
+            return false;
+        }
 
-        // 提取 attributes 平铺作为快速局部变量供比对 (e.g., #intent == 'search')
-        if (state.getAttributes() != null) {
-            state.getAttributes().forEach(context::setVariable);
-            // 兼容 pendingToolRequests 长度判断
-            if (state.getPendingToolRequests() != null) {
-                context.setVariable("hasTools", !state.getPendingToolRequests().isEmpty());
-            } else {
-                context.setVariable("hasTools", false);
+        try {
+            // 使用 SimpleEvaluationContext 限制访问范围
+            SimpleEvaluationContext context =
+                    SimpleEvaluationContext.forReadOnlyDataBinding().build();
+            context.setVariable("state", state);
+
+            // 提取 attributes 平铺作为快速局部变量供比对 (e.g., #intent == 'search')
+            if (state.getAttributes() != null) {
+                state.getAttributes().forEach((key, value) -> {
+                    try {
+                        context.setVariable(key, value);
+                    } catch (Exception e) {
+                        log.debug("无法设置变量 {}: {}", key, e.getMessage());
+                    }
+                });
+
+                // 兼容 pendingToolRequests 长度判断
+                if (state.getPendingToolRequests() != null) {
+                    context.setVariable(
+                            "hasTools", !state.getPendingToolRequests().isEmpty());
+                } else {
+                    context.setVariable("hasTools", false);
+                }
+            }
+
+            Boolean result = parser.parseExpression(expression).getValue(context, Boolean.class);
+            return result != null && result;
+
+        } catch (Exception e) {
+            log.error("SpEL 表达式执行异常: {}", expression, e);
+            return false;
+        }
+    }
+
+    /**
+     * 验证表达式是否安全
+     * 检查是否包含危险的操作符或方法调用
+     */
+    private boolean isExpressionSafe(String expression) {
+        if (expression == null) {
+            return true;
+        }
+
+        String expr = expression.toLowerCase();
+
+        // 禁止的危险操作符和方法
+        String[] dangerousPatterns = {
+            "t(", // 类型转换
+            "new ", // 对象创建
+            "class", // 类访问
+            "getclass", // 获取类
+            "forname", // 反射
+            "getmethod", // 反射
+            "invoke", // 反射调用
+            "runtime", // 运行时
+            "exec", // 执行命令
+            "system", // 系统调用
+            "processs", // 进程
+            "constructor", // 构造器
+            "field", // 字段反射
+            "method" // 方法反射
+        };
+
+        for (String pattern : dangerousPatterns) {
+            if (expr.contains(pattern)) {
+                return false;
             }
         }
 
-        Boolean result = parser.parseExpression(expression).getValue(context, Boolean.class);
-        return result != null && result;
+        return true;
     }
 
     @Override

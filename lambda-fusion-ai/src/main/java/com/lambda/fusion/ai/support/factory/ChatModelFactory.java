@@ -6,6 +6,7 @@ import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.service.LlmModelService;
+import com.lambda.fusion.ai.support.security.KeyEncryptionService;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.ollama.OllamaChatModel;
@@ -29,6 +30,7 @@ import org.springframework.util.StringUtils;
 public class ChatModelFactory {
 
     private final LlmModelService llmModelService;
+    private final KeyEncryptionService keyEncryptionService;
 
     // 缓存模型实例，避免频繁创建连接
     private final Cache<Long, ChatModel> chatModelCache = Caffeine.newBuilder()
@@ -204,18 +206,26 @@ public class ChatModelFactory {
     /**
      * 解密API密钥
      * <p>
-     * TODO: 实现实际的密钥解密逻辑
-     * 当前返回原值，需要集成密钥管理服务
+     * 使用 KeyEncryptionService 进行安全的密钥解密
+     * 支持向后兼容未加密的密钥
      */
     private String validAndGetDecryptApiKey(LlmModelEntity entity) {
         if (!StringUtils.hasText(entity.getApiKeyEncrypted())) {
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "OpenAI API密钥未配置或解密失败，模型ID: " + entity.getId());
         }
-        // TODO: 调用密钥解密服务
-        // return keyDecryptionService.decrypt(encryptedKey);
 
-        // 临时实现：直接返回（需要后续实现真正的解密）
-        log.warn("API密钥解密未实现，使用原值。请实现密钥解密逻辑");
-        return entity.getApiKeyEncrypted();
+        try {
+            // 使用密钥加密服务进行解密
+            String decryptedKey = keyEncryptionService.decrypt(entity.getApiKeyEncrypted());
+
+            if (!StringUtils.hasText(decryptedKey)) {
+                throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "API密钥解密结果为空，模型ID: " + entity.getId());
+            }
+
+            return decryptedKey;
+        } catch (Exception e) {
+            log.error("API密钥解密失败，模型ID: {}", entity.getId(), e);
+            throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "API密钥解密失败，模型ID: " + entity.getId(), e);
+        }
     }
 }

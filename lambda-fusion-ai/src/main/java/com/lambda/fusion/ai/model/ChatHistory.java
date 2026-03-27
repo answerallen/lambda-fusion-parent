@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 @Schema(description = "对话消息VO")
-public class ChatMessage {
+public class ChatHistory {
     private Long id;
     private String messageId;
     private Long sessionId;

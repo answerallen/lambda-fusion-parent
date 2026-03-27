@@ -30,7 +30,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
-public class AiTenantDataSourceHelper {
+public class TenantDataSourceHelper {
 
     private final TenantDataSourceManager tenantDataSourceManager;
     private final AiProperties aiProperties;

@@ -1,6 +1,8 @@
 package com.lambda.fusion.ai.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.fusion.ai.model.ChatHistory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,6 +13,7 @@ import lombok.Data;
  *
  * @author Jin
  */
+@AutoConverter(target = ChatHistory.class)
 @Data
 @TableName("ai_chat_message")
 @Schema(description = "对话消息实体")
