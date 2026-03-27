@@ -1,6 +1,6 @@
 # Lambda Fusion AI 模块
 
-Lambda Fusion AI 是一个企业级AI应用平台模块，基于LangChain4j框架实现RAG（检索增强生成）知识库问答系统。该模块提供完整的AI能力集成，支持多租户架构，为企业提供智能问答、文档理解和知识管理解决方案。
+Lambda Fusion AI 是一个企业级AI应用平台模块，基于LangChain4j框架实现RAG（检索增强生成）知识库问答系统，并提供可视化Agent工作流引擎。该模块提供完整的AI能力集成，支持多租户架构，为企业提供智能问答、文档理解、知识管理和AI自动化流程解决方案。
 
 ## 核心特性
 
@@ -9,6 +9,12 @@ Lambda Fusion AI 是一个企业级AI应用平台模块，基于LangChain4j框�
 - **文档理解**: 支持PDF、Word、Excel等多种格式文档解析
 - **知识管理**: 多租户知识库隔离，支持分类管理
 - **实时问答**: 支持流式和非流式对话模式
+
+### 🤖 Agent工作流引擎
+- **可视化编排**: 支持图形化工作流设计与配置
+- **节点扩展**: 可插拔的Agent节点（LLM处理、工具执行等）
+- **条件路由**: 基于SpEL/JavaScript表达式的动态流转
+- **状态管理**: 线程安全的状态对象贯穿整个执行链
 
 ### 🚀 已实现功能
 - ✅ **知识库管理**: 创建、配置、更新、删除知识库
@@ -19,9 +25,10 @@ Lambda Fusion AI 是一个企业级AI应用平台模块，基于LangChain4j框�
 - ✅ **提示词模板**: 模板创建、变量渲染、系统模板
 - ✅ **向量检索**: pgvector集成，支持相似度搜索
 - ✅ **文档处理**: 自动分段、向量化、批量处理
+- ✅ **AI机器人**: 机器人创建、人设配置、知识库绑定
+- ✅ **Agent工作流**: 可视化图编排、动态节点执行
 
 ### 🔄 开发中功能
-- ⏳ **高级RAG管道**: 可视化管道编排和配置
 - ⏳ **多模态支持**: 图像、音频文档处理
 - ⏳ **智能分析**: 对话质量分析、知识覆盖度统计
 - ⏳ **API集成**: 更多LLM厂商支持（Claude、文心一言等）
@@ -38,75 +45,6 @@ Lambda Fusion AI 是一个企业级AI应用平台模块，基于LangChain4j框�
 - **配置管理**: Nacos集成
 - **数据库版本**: Liquibase
 
-### 架构设计
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   REST API      │    │   Service       │    │   Data Access   │
-│   Controllers   │───▶│   Business      │───▶│   MyBatis +     │
-│   (6个控制器)    │    │   Logic         │    │   VectorRepo    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   LangChain4j   │    │   Document      │    │   PostgreSQL    │
-│   Integration   │    │   Processor     │    │   + pgvector    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-## API接口文档
-
-### 知识库管理 `/v1/knowledge-bases`
-
-| 方法 | 路径 | 描述 | 参数 |
-|------|------|------|------|
-| POST | `/` | 创建知识库 | CreateKnowledgeBase |
-| GET | `/page` | 分页查询 | pageNum, pageSize, tenantId, status |
-| GET | `/{id}` | 查询详情 | id |
-| PUT | `/{id}` | 更新配置 | id, UpdateKnowledgeBase |
-| DELETE | `/{id}` | 删除知识库 | id |
-| GET | `/list` | 列表查询 | tenantId, status |
-
-### 文档管理 `/v1/knowledge-bases/{kbId}/documents`
-
-| 方法 | 路径 | 描述 | 参数 |
-|------|------|------|------|
-| POST | `/` | 上传文档 | kbId, file, uploadedBy |
-| GET | `/page` | 分页查询 | kbId, pageNum, pageSize, status |
-| GET | `/` | 列表查询 | kbId, status |
-| GET | `/{docId}` | 查询详情 | kbId, docId |
-| DELETE | `/{docId}` | 删除文档 | kbId, docId |
-| GET | `/{docId}/status` | 处理状态 | kbId, docId |
-| GET | `/{docId}/chunks` | 文档分段 | kbId, docId, pageNum, pageSize |
-| POST | `/{docId}/reprocess` | 重新处理 | kbId, docId |
-
-### 对话管理 `/v1/chat`
-
-| 方法 | 路径 | 描述 | 参数 |
-|------|------|------|------|
-| POST | `/sessions` | 创建会话 | CreateSession |
-| GET | `/sessions` | 会话列表 | userId, status |
-| POST | `/sessions/{sessionId}/messages` | 发送消息 | sessionId, SendMessage |
-| POST | `/sessions/{sessionId}/messages/stream` | 流式消息 | sessionId, SendMessage |
-| GET | `/sessions/{sessionId}/messages` | 消息历史 | sessionId, limit |
-| POST | `/sessions/{sessionId}/messages/{messageId}/feedback` | 用户反馈 | sessionId, messageId, feedback |
-
-### LLM模型管理 `/v1/llm-models`
-
-| 方法 | 路径 | 描述 | 参数 |
-|------|------|------|------|
-| POST | `/` | 注册模型 | RegisterModel |
-| GET | `/` | 模型列表 | provider, status |
-| PUT | `/{id}` | 更新配置 | id, UpdateModel |
-| DELETE | `/{id}` | 删除模型 | id |
-
-### 提示词模板 `/v1/prompt-templates`
-
-| 方法 | 路径 | 描述 | 参数 |
-|------|------|------|------|
-| POST | `/` | 创建模板 | CreateTemplate |
-| GET | `/` | 模板列表 | category, type |
-| POST | `/{id}/render` | 渲染模板 | id, variables |
-| GET | `/system` | 系统模板 | category |
 
 ## 数据模型
 
@@ -121,20 +59,66 @@ KnowledgeBase (知识库)
 
 LlmModel (LLM模型) ──── ChatSession (对话会话) N:1
 PromptTemplate (提示词模板) ──── ChatMessage (消息) N:1
+
+Robot (AI机器人)
+    ├── LlmModel (LLM模型) N:1
+    ├── KnowledgeBase (知识库) N:1
+    └── Workflow (工作流) N:1
+
+Workflow (Agent工作流)
+    └── GraphDefinition (图定义JSON)
+        ├── NodeDefinition[] (节点定义)
+        └── EdgeDefinition[] (边定义)
 ```
 
 ### 数据库表结构
 
 | 表名 | 描述 | 主要字段 |
 |------|------|----------|
-| `ai_knowledge_base` | 知识库配置 | kb_id, name, embedding_model, chunk_size, retrieval_top_k |
-| `ai_document` | 文档信息 | document_id, kb_id, file_name, process_status, chunk_count |
-| `ai_document_chunk` | 文档分段 | chunk_id, document_id, content, vector_id, chunk_index |
-| `ai_llm_model` | LLM模型配置 | provider, model_name, api_key_encrypted, base_url |
-| `ai_chat_session` | 对话会话 | session_id, kb_id, llm_model_id, message_count |
-| `ai_chat_message` | 对话消息 | message_id, session_id, role, content, token_count |
-| `ai_prompt_template` | 提示词模板 | template_id, name, content, variables |
-| `ai_vector_store_*` | 向量存储表 | vector_id, embedding, metadata (动态表名) |
+| `ai_knowledge_base` | 知识库配置 | kb_id, name, embedding_model, embedding_dimension, chunk_size, chunk_strategy, retrieval_top_k, similarity_threshold |
+| `ai_document` | 文档信息 | document_id, kb_id, file_name, file_type, file_hash, storage_type, process_status, chunk_count |
+| `ai_document_chunk` | 文档分段 | chunk_id, document_id, kb_id, content, chunk_index, vector_id, embedding_status |
+| `ai_llm_model` | LLM模型配置 | model_id, provider, model_name, api_key_encrypted, base_url, default_temperature, default_max_tokens |
+| `ai_chat_session` | 对话会话 | session_id, kb_id, user_id, llm_model_id, robot_id, workflow_id, message_count |
+| `ai_chat_message` | 对话消息 | message_id, session_id, role, content, is_rag_enhanced, prompt_tokens, completion_tokens |
+| `ai_prompt_template` | 提示词模板 | template_id, name, template_content, variables, category, is_system |
+| `ai_robot` | AI机器人 | robot_id, name, description, llm_model_id, kb_id, workflow_id, system_prompt |
+| `ai_agent_workflow` | Agent工作流 | name, description, graph_json |
+| `ai_vector_store` | 统一向量存储 | vector_id, kb_id, document_id, chunk_id, embedding, dimension, content |
+
+### Agent工作流模型
+
+```java
+// 图定义结构
+GraphDefinition {
+    entryPoint: "START_NODE_ID",
+    nodes: [
+        NodeDefinition {
+            id: "node_1",
+            type: "LLM_PROCESSOR | TOOL_EXECUTOR",
+            properties: { ... }
+        }
+    ],
+    edges: [
+        EdgeDefinition {
+            sourceId: "node_1",
+            targetId: "node_2",
+            condition: "expression"
+        }
+    ]
+}
+
+// Agent状态对象
+AgentState {
+    messages: List<ChatMessage>,      // 对话历史
+    sessionId: Long,                   // 会话ID
+    kbId: Long,                        // 知识库ID
+    llmModelId: Long,                  // LLM模型ID
+    pendingToolRequests: List<ToolExecutionRequest>,
+    attributes: Map<String, Object>,   // 扩展属性
+    finished: boolean                  // 终止标志
+}
+```
 
 ## 配置指南
 
@@ -143,34 +127,27 @@ PromptTemplate (提示词模板) ──── ChatMessage (消息) N:1
 lambda:
   fusion:
     ai:
-      # 文档存储配置
-      document:
-        storage-type: LOCAL                    # 存储类型: LOCAL/OSS
-        base-path: /data/ai-documents         # 本地存储路径
-        max-file-size: 10485760              # 最大文件大小(10MB)
+      # 数据源配置
+      datasource:
+        enabled: true                          # 启用动态数据源
+        default-name: ai-postgres              # 默认数据源名称
+        vector-name: ai-postgres               # 向量数据源名称
+        tenant-prefix: ai-tenant-              # 租户数据源前缀
       
       # Embedding模型配置
       embedding:
-        provider: openai                      # 提供商: openai
-        api-key: ${AI_OPENAI_API_KEY}        # API密钥
-        model-name: text-embedding-3-small   # 模型名称
-        base-url: https://api.openai.com     # API地址
-        dimension: 1536                      # 向量维度
-      
-      # 对话模型配置
-      chat:
-        provider: openai                      # 提供商: openai/ollama
-        api-key: ${AI_OPENAI_API_KEY}        # API密钥
-        model-name: gpt-4o-mini              # 模型名称
-        base-url: https://api.openai.com     # API地址
-        temperature: 0.7                     # 温度参数
+        provider: openai                       # 提供商: openai
+        api-key: ${AI_OPENAI_API_KEY}         # API密钥
+        model-name: text-embedding-3-small    # 模型名称
+        base-url: https://api.openai.com      # API地址
+        dimension: 1536                       # 向量维度
       
       # 文档分段配置
       document-chunk:
-        default-chunk-size: 500              # 默认分块大小(tokens)
-        default-chunk-overlap: 50            # 默认重叠大小(tokens)
-        max-file-size: 10485760             # 最大文件大小
-        batch-size: 100                     # 批处理大小
+        default-chunk-size: 500               # 默认分块大小(tokens)
+        default-chunk-overlap: 50             # 默认重叠大小(tokens)
+        max-file-size: 10485760              # 最大文件大小(10MB)
+        batch-size: 100                       # 批处理大小
 ```
 
 ### 数据库配置
@@ -182,7 +159,6 @@ spring:
     password: password
     driver-class-name: org.postgresql.Driver
   
-  # Redis配置
   redis:
     host: localhost
     port: 6379
@@ -272,11 +248,47 @@ private RagService ragService;
 RagResult result = ragService.chat(
     "如何使用Spring Boot？",  // 用户问题
     kb.getId(),              // 知识库ID
-    llmModelId              // LLM模型ID
+    llmModelId,             // LLM模型ID
+    history                 // 历史对话
 );
 
 System.out.println("答案: " + result.getAnswer());
 System.out.println("引用文档: " + result.getRetrievedChunks().size());
+```
+
+#### 创建AI机器人
+```java
+@Autowired
+private RobotService robotService;
+
+CreateRobot createRobot = new CreateRobot();
+createRobot.setName("技术助手");
+createRobot.setDescription("专注于技术问题解答");
+createRobot.setLlmModelId(llmModelId);
+createRobot.setKbId(kb.getId());
+createRobot.setSystemPrompt("你是一个专业的技术顾问...");
+
+Robot robot = robotService.createRobot(createRobot);
+```
+
+#### 使用Agent工作流
+```java
+@Autowired
+private AgentGraphFactory graphFactory;
+
+// 从数据库加载工作流定义
+GraphDefinition definition = loadFromJson(workflowEntity.getGraphJson());
+
+// 构建执行图
+AgentGraph graph = graphFactory.buildGraph(definition);
+
+// 执行工作流
+AgentState state = new AgentState();
+state.setSessionId(sessionId);
+state.setLlmModelId(llmModelId);
+state.addMessage(UserMessage.from("用户问题"));
+
+AgentState result = graph.invoke(state);
 ```
 
 ## 错误处理
@@ -307,18 +319,20 @@ try {
 ## 性能优化
 
 ### 缓存策略
-- **模型实例缓存**: Caffeine缓存LLM模型实例(1小时TTL)
+- **模型实例缓存**: Caffeine缓存LLM模型实例(1小时TTL, 最大100个)
 - **向量检索缓存**: Redis缓存热点查询结果
 - **配置缓存**: 知识库配置本地缓存
 
 ### 异步处理
 - **文档处理**: 使用@Async异步处理文档解析和向量化
+- **线程池配置**: 核心线程5个，最大线程10个，队列容量1000
 - **批量操作**: 支持批量文档上传和处理
 - **流式响应**: SSE支持实时流式对话
 
 ### 数据库优化
-- **索引策略**: 向量表使用IVFFlat索引
-- **分区表**: 大量数据时支持按时间分区
+- **索引策略**: 向量表使用IVFFlat索引和HNSW索引
+- **混合检索**: 支持向量相似度+Trigram关键词混合检索
+- **动态向量表**: 按维度动态创建向量表(768, 1536等)
 - **连接池**: HikariCP连接池优化
 
 ## 监控与运维
@@ -340,6 +354,7 @@ management:
 - 向量检索响应时间
 - LLM调用成功率和延迟
 - 知识库存储使用量
+- Agent工作流执行耗时
 
 ### 日志配置
 ```yaml
@@ -353,26 +368,47 @@ logging:
 
 ## 扩展开发
 
-### 自定义文档处理器
+### 自定义Agent节点
 ```java
 @Component
-public class CustomDocumentProcessor implements DocumentProcessor {
+public class CustomAgentNode implements AgentNode {
+    
     @Override
-    public List<TextSegment> process(Document document) {
-        // 自定义文档处理逻辑
-        return segments;
+    public String getName() {
+        return "CUSTOM_PROCESSOR";
+    }
+    
+    @Override
+    public String execute(AgentState state) {
+        // 自定义节点处理逻辑
+        // 返回下一个节点ID或null(由边条件决定)
+        return null;
     }
 }
 ```
 
-### 自定义LLM提供商
+### 自定义条件评估器
 ```java
 @Component
-public class CustomLlmProvider implements LlmProvider {
+public class CustomConditionEvaluator implements ConditionEvaluator {
+    
     @Override
-    public ChatModel createChatModel(LlmModelEntity config) {
-        // 实现自定义LLM集成
-        return chatModel;
+    public boolean evaluate(String expression, AgentState state) {
+        // 解析表达式并返回布尔结果
+        return true;
+    }
+}
+```
+
+### 自定义工具提供者
+```java
+@Component
+public class CustomToolProvider {
+    
+    @Tool("查询天气信息")
+    public String queryWeather(@P("城市") String city) {
+        // 实现工具逻辑
+        return "天气信息...";
     }
 }
 ```
