@@ -95,12 +95,17 @@ public class TenantDataSourceProxy implements DataSource {
      * @throws IllegalArgumentException 如果格式无效
      */
     private String extractTenantIdFromDataSourceName(String dsName) {
-        if (dsName != null && dsName.contains("_")) {
-            String[] parts = dsName.split("_");
-            if (parts.length >= 3) {
-                return parts[parts.length - 1];
-            }
+        if (dsName == null || tenantPrefix == null) {
+            throw new IllegalArgumentException("Datasource name or tenant prefix is null");
         }
-        throw new IllegalArgumentException("Invalid datasource name format: " + dsName);
+        if (!dsName.startsWith(tenantPrefix)) {
+            throw new IllegalArgumentException(
+                    "Invalid datasource name format: " + dsName + ", expected prefix: " + tenantPrefix);
+        }
+        String tenantId = dsName.substring(tenantPrefix.length());
+        if (tenantId.isBlank()) {
+            throw new IllegalArgumentException("Tenant id is blank for datasource: " + dsName);
+        }
+        return tenantId;
     }
 }

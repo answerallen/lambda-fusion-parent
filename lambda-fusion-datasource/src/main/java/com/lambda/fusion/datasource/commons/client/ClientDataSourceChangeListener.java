@@ -7,7 +7,6 @@ import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.commons.api.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.commons.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.commons.tenant.TenantSchemaCleaner;
-import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
 import com.lambda.fusion.datasource.commons.util.DataSourcePropertyUtils;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -28,7 +27,6 @@ import org.springframework.beans.factory.ObjectProvider;
 public class ClientDataSourceChangeListener implements DataSourceChangeListener {
 
     private final DynamicDataSourceService dynamicDataSourceService;
-    private final ObjectProvider<TenantSchemaInitializer> schemaInitializer;
     private final ObjectProvider<TenantSchemaCleaner> schemaCleaner;
 
     @Override
@@ -103,19 +101,24 @@ public class ClientDataSourceChangeListener implements DataSourceChangeListener 
     }
 
     private void handleInitSchema(DataSourceChangeEvent event) {
-        schemaInitializer.ifAvailable((initializer) -> {
-            String dataSourceId = event.getDataSourceId();
-            if (StrUtil.isEmpty(dataSourceId)) {
-                log.warn("Received INIT_SCHEMA event without datasource id");
+        String dataSourceId = event.getDataSourceId();
+        if (StrUtil.isEmpty(dataSourceId)) {
+            log.warn("Received INIT_SCHEMA event without datasource id");
+            return;
+        }
+        try {
+            DataSource dataSource = dynamicDataSourceService.getDataSource(dataSourceId);
+            if (dataSource == null) {
+                log.warn("Received INIT_SCHEMA event but datasource not found locally. datasourceId={}", dataSourceId);
                 return;
             }
-            try {
-                DataSource dataSource = dynamicDataSourceService.getDataSource(dataSourceId);
-                initializer.initializeSchema(event.getTenantId(), dataSource);
-            } catch (Exception e) {
-                log.error("Failed to init schema. datasourceId={}", dataSourceId, e);
-            }
-        });
+            log.info(
+                    "Received INIT_SCHEMA event. datasourceId={}, tenantId={}, client only refreshes local datasource view",
+                    dataSourceId,
+                    event.getTenantId());
+        } catch (Exception e) {
+            log.error("Failed to refresh datasource view after INIT_SCHEMA. datasourceId={}", dataSourceId, e);
+        }
     }
 
     private void handleRemoveSchema(DataSourceChangeEvent event) {

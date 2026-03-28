@@ -11,6 +11,7 @@ import com.lambda.fusion.datasource.commons.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.commons.tenant.TenantSchemaCleaner;
 import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
+import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.spring.ServiceBean;
@@ -55,9 +56,14 @@ public class DatasourceConfigure implements WebMvcConfigurer {
             DataSourceManageService dataSourceManageService,
             DataSourceChangeDispatcher callbackManager,
             @Autowired(required = false) DynamicDataSourceService dynamicDataSourceService,
-            ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider) {
+            ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider,
+            TenantDataSourceMapper tenantDataSourceMapper) {
         return new RemoteDataSourceServiceImpl(
-                dataSourceManageService, callbackManager, dynamicDataSourceService, schemaInitializerProvider);
+                dataSourceManageService,
+                callbackManager,
+                dynamicDataSourceService,
+                schemaInitializerProvider,
+                tenantDataSourceMapper);
     }
 
     @Slf4j
@@ -99,10 +105,8 @@ public class DatasourceConfigure implements WebMvcConfigurer {
     @ConditionalOnProperty(name = DatasourceConstants.MODE_PROPERTY, havingValue = DatasourceConstants.MODE_CLIENT)
     public ClientDataSourceChangeListener dataSourceChangeListener(
             DynamicDataSourceService dynamicDataSourceService,
-            ObjectProvider<TenantSchemaInitializer> initializerObjectProvider,
             ObjectProvider<TenantSchemaCleaner> cleanerObjectProvider) {
-        return new ClientDataSourceChangeListener(
-                dynamicDataSourceService, initializerObjectProvider, cleanerObjectProvider);
+        return new ClientDataSourceChangeListener(dynamicDataSourceService, cleanerObjectProvider);
     }
 
     @Bean

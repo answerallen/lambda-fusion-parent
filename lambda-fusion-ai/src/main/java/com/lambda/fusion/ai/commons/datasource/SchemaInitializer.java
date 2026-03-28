@@ -36,6 +36,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SchemaInitializer implements TenantSchemaInitializer {
 
+    private static final String AI_CHANGELOG_PATH = "classpath:META-INF/db/changelogs/lambda-ai-changelog.xml";
+
     private final AiProperties aiProperties;
 
     /**
@@ -126,7 +128,7 @@ public class SchemaInitializer implements TenantSchemaInitializer {
         try {
             SpringLiquibase liquibase = new SpringLiquibase();
             liquibase.setDataSource(dataSource);
-            liquibase.setChangeLog("classpath:db/changelog/ai-changelog-master.xml");
+            liquibase.setChangeLog(AI_CHANGELOG_PATH);
             liquibase.setContexts("ai");
             liquibase.setDefaultSchema(null); // 使用默认 schema
             liquibase.setShouldRun(true);

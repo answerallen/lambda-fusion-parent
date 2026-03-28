@@ -2,6 +2,7 @@ package com.lambda.fusion.datasource.commons.interceptor;
 
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.datasource.DatasourceProperties;
 import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.commons.tenant.TenantDataSourceManager;
 import com.lambda.fusion.datasource.commons.tenant.TenantIsolationResolver;
@@ -28,6 +29,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class TenantDataSourceInterceptor implements HandlerInterceptor {
     private final TenantIsolationResolver tenantIsolationResolver;
     private final TenantDataSourceManager tenantDataSourceManager;
+    private final DatasourceProperties datasourceProperties;
 
     @Override
     public boolean preHandle(
@@ -38,7 +40,8 @@ public class TenantDataSourceInterceptor implements HandlerInterceptor {
             FusionConstants.IsolationMode mode =
                     tenantIsolationResolver.resolve(tenantId).orElse(null);
             if (FusionConstants.IsolationMode.DEDICATED.equals(mode)) {
-                DataSourceSwitcher switcher = tenantDataSourceManager.switchToTenantDataSource(tenantId, "tenant_");
+                DataSourceSwitcher switcher = tenantDataSourceManager.switchToTenantDataSource(
+                        tenantId, datasourceProperties.getDefaultTenantPrefix());
                 request.setAttribute(FusionConstants.SWITCHER_ATTR, switcher);
                 log.debug("Switched to DEDICATED database for tenant [{}]", tenantId);
             } else {

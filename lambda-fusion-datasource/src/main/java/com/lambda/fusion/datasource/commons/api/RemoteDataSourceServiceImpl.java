@@ -1,13 +1,16 @@
 package com.lambda.fusion.datasource.commons.api;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.commons.dispatcher.DataSourceChangeDispatcher;
 import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
+import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
+import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -31,16 +34,19 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     private final DataSourceChangeDispatcher callbackManager;
     private final DynamicDataSourceService dynamicDataSourceService;
     private final ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider;
+    private final TenantDataSourceMapper tenantDataSourceMapper;
 
     public RemoteDataSourceServiceImpl(
             DataSourceManageService dataSourceManageService,
             DataSourceChangeDispatcher callbackManager,
             DynamicDataSourceService dynamicDataSourceService,
-            ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider) {
+            ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider,
+            TenantDataSourceMapper tenantDataSourceMapper) {
         this.dataSourceManageService = dataSourceManageService;
         this.callbackManager = callbackManager;
         this.dynamicDataSourceService = dynamicDataSourceService;
         this.schemaInitializerProvider = schemaInitializerProvider;
+        this.tenantDataSourceMapper = tenantDataSourceMapper;
     }
 
     @Override
@@ -178,7 +184,11 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
                 return false;
             }
 
-            String tenantId = DubboContextHolder.getCurrentTenantId();
+            String tenantId = resolveTenantId(id);
+            if (!StringUtils.hasText(tenantId)) {
+                log.error("initSchema failed: tenant context not found for datasourceId={}", id);
+                return false;
+            }
 
             // 同步执行 Schema 初始化
             TenantSchemaInitializer initializer = schemaInitializerProvider.getIfAvailable();
@@ -196,7 +206,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
             initializer.initializeSchema(tenantId, dataSource);
             log.info("Schema initialization completed synchronously. datasourceId={}, tenantId={}", id, tenantId);
 
-            // 初始化成功后广播通知 Client 端（让 Client 侧感知 Schema 变更，如刷新缓存等）
+            // 初始化成功后广播通知 Client 端刷新本地数据源视图
             DataSourceChangeEvent event = new DataSourceChangeEvent();
             event.setChangeType(DatasourceConstants.ChangeType.INIT_SCHEMA);
             event.setDataSourceId(id);
@@ -217,10 +227,11 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
         try {
             DataSourceEntity dataSourceEntity = dataSourceManageService.getById(id);
             if (dataSourceEntity != null) {
+                String tenantId = resolveTenantId(id);
                 DataSourceChangeEvent event = new DataSourceChangeEvent();
                 event.setChangeType(DatasourceConstants.ChangeType.REMOVE_SCHEMA);
                 event.setDataSourceId(id);
-                event.setTenantId(DubboContextHolder.getCurrentTenantId());
+                event.setTenantId(tenantId);
                 event.setDataSource(toRemoteDataSource(dataSourceEntity));
                 event.setTimestamp(System.currentTimeMillis());
                 callbackManager.broadcast(event);
@@ -241,5 +252,17 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
 
     private UpsertDataSource toUpsertDataSource(RemoteDataSource dto) {
         return ConvertUtils.convert(dto);
+    }
+
+    private String resolveTenantId(String dataSourceId) {
+        String tenantId = DubboContextHolder.getCurrentTenantId();
+        if (StringUtils.hasText(tenantId)) {
+            return tenantId;
+        }
+        TenantDataSourceEntity binding =
+                tenantDataSourceMapper.selectOne(new LambdaQueryWrapper<TenantDataSourceEntity>()
+                        .eq(TenantDataSourceEntity::getDatasourceId, dataSourceId)
+                        .last("LIMIT 1"));
+        return binding == null ? null : binding.getTenantId();
     }
 }
