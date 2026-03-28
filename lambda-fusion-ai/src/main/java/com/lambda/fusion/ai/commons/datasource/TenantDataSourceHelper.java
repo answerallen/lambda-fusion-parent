@@ -35,13 +35,29 @@ public class TenantDataSourceHelper {
     private final TenantDataSourceManager tenantDataSourceManager;
     private final AiProperties aiProperties;
 
+    public String getCoreDataSourceName() {
+        return aiProperties.getDataSource().getDefaultName();
+    }
+
+    public String getVectorDataSourceName() {
+        return aiProperties.getDataSource().getVectorName();
+    }
+
     /**
      * 获取当前租户的数据源名称
      */
     public String getCurrentTenantDataSourceName() {
+        return getCurrentCoreDataSourceName();
+    }
+
+    public String getCurrentCoreDataSourceName() {
         return tenantDataSourceManager.getCurrentTenantDataSourceName(
-                aiProperties.getDataSource().getDefaultName(),
-                aiProperties.getDataSource().getTenantPrefix());
+                getCoreDataSourceName(), aiProperties.getDataSource().getTenantPrefix());
+    }
+
+    public String getCurrentVectorDataSourceName() {
+        return tenantDataSourceManager.getCurrentTenantDataSourceName(
+                getVectorDataSourceName(), aiProperties.getDataSource().getTenantPrefix());
     }
 
     /**
@@ -80,7 +96,8 @@ public class TenantDataSourceHelper {
      * 获取所有已启用的租户数据源
      */
     public List<RemoteDataSource> listEnabledTenantDataSources() {
-        return tenantDataSourceManager.listEnabledTenantDataSources();
+        return tenantDataSourceManager.listEnabledTenantDataSources(
+                aiProperties.getDataSource().getTenantPrefix());
     }
 
     /**
@@ -102,8 +119,16 @@ public class TenantDataSourceHelper {
      * 编程式切换到当前租户数据源
      */
     public DataSourceSwitcher switchToCurrentTenantDataSource() {
+        return switchToCurrentTenantCoreDataSource();
+    }
+
+    public DataSourceSwitcher switchToCurrentTenantCoreDataSource() {
         return tenantDataSourceManager.switchToCurrentTenantDataSource(
-                aiProperties.getDataSource().getDefaultName(),
-                aiProperties.getDataSource().getTenantPrefix());
+                getCoreDataSourceName(), aiProperties.getDataSource().getTenantPrefix());
+    }
+
+    public DataSourceSwitcher switchToCurrentTenantVectorDataSource() {
+        return tenantDataSourceManager.switchToCurrentTenantDataSource(
+                getVectorDataSourceName(), aiProperties.getDataSource().getTenantPrefix());
     }
 }
