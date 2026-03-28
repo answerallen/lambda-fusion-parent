@@ -5,8 +5,8 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
-import com.lambda.fusion.ai.exception.AiBusinessException;
-import com.lambda.fusion.ai.exception.AiErrorCode;
+import com.lambda.fusion.ai.commons.exception.AiBusinessException;
+import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.ChatMessageMapper;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.model.ChatHistory;
@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 消息服务实现类
@@ -47,16 +48,15 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     private final RagService ragService;
     private final AtomicSessionUpdateService atomicSessionUpdateService;
     private final SseEmitterManager sseEmitterManager;
+    private final TransactionTemplate transactionTemplate;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ChatHistory sendMessage(Long sessionId, SendMessage dto) {
-        ChatSessionEntity session = chatSessionMapper.selectById(sessionId);
-        if (session == null) {
-            throw AiBusinessException.sessionNotFound(sessionId);
-        }
+        ChatSessionEntity session = getSessionOrThrow(sessionId);
 
         ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
+        chatMessageMapper.insert(userMsg);
 
         List<ChatMessage> history = buildChatHistory(sessionId, userMsg.getMessageId());
         RagResult ragResult = ragService.chat(dto.getContent(), session.getKbId(), session.getLlmModelId(), history);
@@ -87,28 +87,22 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         userMsg.setRole("user");
         userMsg.setContent(dto.getContent());
         userMsg.setIsRagEnhanced(false);
-        chatMessageMapper.insert(userMsg);
         return userMsg;
     }
 
     @Override
     public void sendMessageStream(Long sessionId, SendMessage dto) {
-        ChatSessionEntity session = chatSessionMapper.selectById(sessionId);
-        if (session == null) {
-            throw AiBusinessException.sessionNotFound(sessionId);
-        }
+        ChatSessionEntity session = getSessionOrThrow(sessionId);
 
         String clientId = "chat_" + sessionId;
 
         try {
             ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
-
             List<VectorSearchResult> retrievedChunks =
                     ragService.retrieve(dto.getContent(), session.getKbId(), null, null);
 
             StringBuilder fullAnswer = new StringBuilder();
-
-            List<ChatMessage> history = buildChatHistory(sessionId, userMsg.getMessageId());
+            List<ChatMessage> history = buildChatHistory(sessionId, null);
 
             ragService.streamChat(
                     dto.getContent(),
@@ -125,7 +119,9 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
                         @Override
                         public void onCompleteResponse(ChatResponse response) {
-                            String finalContent = fullAnswer.toString();
+                            String finalContent = fullAnswer.isEmpty() && response.aiMessage() != null
+                                    ? response.aiMessage().text()
+                                    : fullAnswer.toString();
 
                             ChatMessageEntity aiMsg = new ChatMessageEntity();
                             aiMsg.setMessageId(IdUtil.fastSimpleUUID());
@@ -145,11 +141,13 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                             aiMsg.setCompletionTokens(completionTokens);
                             aiMsg.setTotalTokens(promptTokens + completionTokens);
 
-                            chatMessageMapper.insert(aiMsg);
-
-                            atomicSessionUpdateService.updateSessionStatistics(sessionId, 2, aiMsg.getTotalTokens());
-
-                            sseEmitterManager.sendEvent(clientId, "finish", aiMsg.getMessageId());
+                            try {
+                                persistStreamMessages(sessionId, userMsg, aiMsg);
+                                sseEmitterManager.sendEvent(clientId, "finish", aiMsg.getMessageId());
+                            } catch (Exception e) {
+                                log.error("流式消息持久化失败", e);
+                                sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
+                            }
                         }
 
                         @Override
@@ -167,31 +165,52 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
     @Override
     public List<ChatHistory> listMessages(Long sessionId, Integer limit) {
+        getSessionOrThrow(sessionId);
         return chatMessageMapper.listBySessionId(sessionId, limit).stream()
                 .map(this::entityToVO)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public void submitFeedback(Long messageId, Integer feedback) {
-        // 验证输入参数
+    public void submitFeedback(Long sessionId, String messageId, Integer feedback) {
+        if (sessionId == null) {
+            throw new AiBusinessException(AiErrorCode.SESSION_NOT_FOUND, "会话ID不能为空");
+        }
         if (messageId == null) {
-            throw new AiBusinessException(AiErrorCode.MESSAGE_NOT_FOUND, "消息ID不能为空");
+            throw new AiBusinessException(AiErrorCode.MESSAGE_NOT_FOUND, "消息标识不能为空");
         }
-
-        // 获取实体并在继续之前检查是否为null
-        ChatMessageEntity entity = chatMessageMapper.selectById(messageId);
+        ChatMessageEntity entity = this.lambdaQuery()
+                .eq(ChatMessageEntity::getSessionId, sessionId)
+                .eq(ChatMessageEntity::getMessageId, messageId)
+                .one();
         if (entity == null) {
-            throw AiBusinessException.messageNotFound(messageId);
+            throw new AiBusinessException(AiErrorCode.MESSAGE_NOT_FOUND, "消息不存在: " + messageId);
         }
-
-        // 更新反馈 - 此时实体保证非null
         entity.setUserFeedback(feedback);
         chatMessageMapper.updateById(entity);
     }
 
     private ChatHistory entityToVO(ChatMessageEntity entity) {
         return ConvertUtils.convert(entity);
+    }
+
+    private ChatSessionEntity getSessionOrThrow(Long sessionId) {
+        if (sessionId == null) {
+            throw new AiBusinessException(AiErrorCode.SESSION_NOT_FOUND, "会话ID不能为空");
+        }
+        ChatSessionEntity session = chatSessionMapper.selectById(sessionId);
+        if (session == null) {
+            throw AiBusinessException.sessionNotFound(sessionId);
+        }
+        return session;
+    }
+
+    private void persistStreamMessages(Long sessionId, ChatMessageEntity userMsg, ChatMessageEntity aiMsg) {
+        transactionTemplate.executeWithoutResult(status -> {
+            chatMessageMapper.insert(userMsg);
+            chatMessageMapper.insert(aiMsg);
+            atomicSessionUpdateService.updateSessionStatistics(sessionId, 2, aiMsg.getTotalTokens());
+        });
     }
 
     private List<ChatMessage> buildChatHistory(Long sessionId, String excludeMessageId) {

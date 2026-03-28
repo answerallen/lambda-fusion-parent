@@ -43,14 +43,14 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param id 文档ID
      * @return 文档VO
      */
-    Document getDocumentById(Long id);
+    Document getDocumentById(Long kbId, Long id);
 
     /**
      * 删除文档
      *
      * @param id 文档ID
      */
-    void deleteDocument(Long id);
+    void deleteDocument(Long kbId, Long id);
 
     /**
      * 查询文档处理状态
@@ -58,7 +58,7 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param id 文档ID
      * @return 处理状态信息
      */
-    String getProcessStatus(Long id);
+    String getProcessStatus(Long kbId, Long id);
 
     /**
      * 更新处理状态

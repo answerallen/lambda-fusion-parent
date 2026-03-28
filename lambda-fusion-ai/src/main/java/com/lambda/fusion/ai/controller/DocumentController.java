@@ -67,7 +67,7 @@ public class DocumentController {
     public Document getById(
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
             @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
-        return documentService.getDocumentById(docId);
+        return documentService.getDocumentById(kbId, docId);
     }
 
     @DeleteMapping("/{docId}")
@@ -75,7 +75,7 @@ public class DocumentController {
     public void delete(
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
             @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
-        documentService.deleteDocument(docId);
+        documentService.deleteDocument(kbId, docId);
     }
 
     @GetMapping("/{docId}/status")
@@ -83,7 +83,7 @@ public class DocumentController {
     public String getStatus(
             @Parameter(description = "知识库ID") @PathVariable Long kbId,
             @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
-        return documentService.getProcessStatus(docId);
+        return documentService.getProcessStatus(kbId, docId);
     }
 
     @GetMapping({

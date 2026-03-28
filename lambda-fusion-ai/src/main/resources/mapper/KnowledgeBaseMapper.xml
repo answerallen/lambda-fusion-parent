@@ -32,7 +32,7 @@
     <select id="selectExpiredKnowledgeBases" resultType="com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity">
         SELECT * FROM ai_knowledge_base
         WHERE status = 'ACTIVE'
-        AND updated_at &lt; DATE_SUB(NOW(), INTERVAL 90 DAY)
+        AND updated_at &lt; CURRENT_TIMESTAMP - INTERVAL '90 days'
         AND deleted_at IS NULL
         ORDER BY updated_at ASC
     </select>

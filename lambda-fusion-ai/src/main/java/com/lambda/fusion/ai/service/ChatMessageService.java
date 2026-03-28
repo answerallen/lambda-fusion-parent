@@ -13,5 +13,5 @@ public interface ChatMessageService extends IService<ChatMessageEntity> {
 
     List<ChatHistory> listMessages(Long sessionId, Integer limit);
 
-    void submitFeedback(Long messageId, Integer feedback);
+    void submitFeedback(Long sessionId, String messageId, Integer feedback);
 }

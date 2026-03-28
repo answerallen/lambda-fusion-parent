@@ -88,7 +88,7 @@
                status, created_at, updated_at, last_message_at
         FROM ai_chat_session
         WHERE status = 'ACTIVE'
-        AND (last_message_at IS NULL OR last_message_at &lt; DATE_SUB(NOW(), INTERVAL 30 DAY))
+        AND (last_message_at IS NULL OR last_message_at &lt; CURRENT_TIMESTAMP - INTERVAL '30 days')
         ORDER BY last_message_at ASC NULLS FIRST
     </select>
 

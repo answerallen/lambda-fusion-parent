@@ -1,10 +1,10 @@
 package com.lambda.fusion.ai.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.lambda.fusion.ai.agent.AgentGraph;
-import com.lambda.fusion.ai.agent.AgentState;
-import com.lambda.fusion.ai.agent.LlmProcessingNode;
-import com.lambda.fusion.ai.agent.ToolExecutingNode;
+import com.lambda.fusion.ai.commons.agent.AgentGraph;
+import com.lambda.fusion.ai.commons.agent.AgentState;
+import com.lambda.fusion.ai.commons.agent.LlmProcessingNode;
+import com.lambda.fusion.ai.commons.agent.ToolExecutingNode;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
 import com.lambda.fusion.ai.model.RagResult;
@@ -135,12 +135,16 @@ public class RagServiceImpl implements RagService {
      * 辅助方法：创建一个带有新分数的结果对象（防御性拷贝）
      */
     private VectorSearchResult createResultWithNewScore(VectorSearchResult original, double newScore) {
-        // 假设 VectorSearchResult 有相应的构造函数
-        // 如果没有，也可以用 original.clone() 然后 setScore
+        if (original == null) {
+            return null;
+        }
         VectorSearchResult copy = new VectorSearchResult();
+        copy.setId(original.getId());
         copy.setVectorId(original.getVectorId());
+        copy.setContent(original.getContent());
         copy.setMetadata(original.getMetadata());
         copy.setScore(newScore);
+        copy.setDistance(original.getDistance());
         return copy;
     }
 

@@ -13,8 +13,9 @@ import com.lambda.cloud.oss.client.OssClient;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.cloud.oss.model.UploadObjectResult;
 import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
-import com.lambda.fusion.ai.exception.AiBusinessException;
-import com.lambda.fusion.ai.exception.AiErrorCode;
+import com.lambda.fusion.ai.commons.exception.AiBusinessException;
+import com.lambda.fusion.ai.commons.exception.AiErrorCode;
+import com.lambda.fusion.ai.commons.support.processor.DocumentProcessor;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
@@ -27,7 +28,6 @@ import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.repository.VectorRepository;
 import com.lambda.fusion.ai.service.DocumentService;
-import com.lambda.fusion.ai.support.processor.DocumentProcessor;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import java.io.File;
 import java.io.IOException;
@@ -163,28 +163,21 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
     @Override
     public List<Document> listByKbId(Long kbId, String status) {
+        validateKnowledgeBaseExists(kbId);
         List<DocumentEntity> documentEntities = documentMapper.listByKbId(kbId, status);
         return toVO(documentEntities);
     }
 
     @Override
-    public Document getDocumentById(Long id) {
-        Document document = getByIdForVO(id);
-        if (document == null) {
-            throw AiBusinessException.documentNotFound(id);
-        }
-        return document;
+    public Document getDocumentById(Long kbId, Long id) {
+        return toVO(getDocumentInKnowledgeBase(kbId, id));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteDocument(Long id) {
-        log.info("删除文档, id={}", id);
-
-        DocumentEntity entity = documentMapper.selectById(id);
-        if (entity == null) {
-            throw AiBusinessException.documentNotFound(id);
-        }
+    public void deleteDocument(Long kbId, Long id) {
+        log.info("删除文档, kbId={}, id={}", kbId, id);
+        DocumentEntity entity = getDocumentInKnowledgeBase(kbId, id);
 
         // 1. 获取关联知识库信息以确定向量表
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(entity.getKbId());
@@ -213,12 +206,8 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     }
 
     @Override
-    public String getProcessStatus(Long id) {
-        DocumentEntity documentEntity = getById(id);
-        if (documentEntity == null) {
-            throw AiBusinessException.documentNotFound(id);
-        }
-        return documentEntity.getProcessStatus();
+    public String getProcessStatus(Long kbId, Long id) {
+        return getDocumentInKnowledgeBase(kbId, id).getProcessStatus();
     }
 
     @Override
@@ -237,22 +226,10 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void reprocessDocument(Long kbId, Long id) {
-        if (kbId == null) {
-            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
-        }
         if (id == null) {
             throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
         }
-
-        KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
-        if (kb == null) {
-            throw AiBusinessException.knowledgeBaseNotFound(kbId);
-        }
-
-        DocumentEntity doc = documentMapper.selectById(id);
-        if (doc == null) {
-            throw AiBusinessException.documentNotFound(id);
-        }
+        DocumentEntity doc = getDocumentInKnowledgeBase(kbId, id);
 
         log.info("重新处理文档: kbId={}, docId={}", kbId, id);
 
@@ -269,11 +246,13 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
     @Override
     public IPage<Document> pageDocuments(DocumentQuery documentQuery) {
+        validateKnowledgeBaseExists(documentQuery.getKbId());
         return pageForVO(documentQuery.getPage(), documentQuery.getLambdaQueryWrapper());
     }
 
     @Override
     public IPage<DocumentChunk> pageChunks(DocumentChunkQuery documentChunkQuery) {
+        getDocumentInKnowledgeBase(documentChunkQuery.getKbId(), documentChunkQuery.getDocumentId());
         Page<DocumentChunkEntity> documentChunkEntityPage = documentChunkMapper.selectPage(
                 documentChunkQuery.getPage(), documentChunkQuery.getLambdaQueryWrapper());
         return documentChunkEntityPage.convert(ConvertUtils::convert);
@@ -301,5 +280,29 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         }
 
         throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "不支持的文件类型: " + fileExtension);
+    }
+
+    private void validateKnowledgeBaseExists(Long kbId) {
+        if (kbId == null) {
+            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
+        }
+        if (knowledgeBaseMapper.selectById(kbId) == null) {
+            throw AiBusinessException.knowledgeBaseNotFound(kbId);
+        }
+    }
+
+    private DocumentEntity getDocumentInKnowledgeBase(Long kbId, Long documentId) {
+        validateKnowledgeBaseExists(kbId);
+        if (documentId == null) {
+            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
+        }
+        DocumentEntity entity = documentMapper.selectById(documentId);
+        if (entity == null || entity.getDeletedAt() != null) {
+            throw AiBusinessException.documentNotFound(documentId);
+        }
+        if (!kbId.equals(entity.getKbId())) {
+            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档不属于当前知识库: " + documentId);
+        }
+        return entity;
     }
 }

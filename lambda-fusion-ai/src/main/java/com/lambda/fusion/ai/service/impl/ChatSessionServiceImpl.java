@@ -3,8 +3,8 @@ package com.lambda.fusion.ai.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.fusion.ai.AiConstants.Enums.SessionStatus;
-import com.lambda.fusion.ai.exception.AiBusinessException;
-import com.lambda.fusion.ai.exception.AiErrorCode;
+import com.lambda.fusion.ai.commons.exception.AiBusinessException;
+import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.mapper.RobotMapper;
 import com.lambda.fusion.ai.model.ChatSession;
@@ -36,12 +36,13 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
         // 挂载机器人参数
         if (dto.getRobotId() != null) {
             RobotEntity robot = robotMapper.selectById(dto.getRobotId());
-            if (robot != null) {
-                if (robot.getLlmModelId() != null) entity.setLlmModelId(robot.getLlmModelId());
-                if (robot.getSystemPrompt() != null) entity.setSystemPrompt(robot.getSystemPrompt());
-                if (robot.getKbId() != null) entity.setKbId(robot.getKbId());
-                if (robot.getWorkflowId() != null) entity.setWorkflowId(robot.getWorkflowId());
+            if (robot == null) {
+                throw AiBusinessException.robotNotFound(dto.getRobotId());
             }
+            if (robot.getLlmModelId() != null) entity.setLlmModelId(robot.getLlmModelId());
+            if (robot.getSystemPrompt() != null) entity.setSystemPrompt(robot.getSystemPrompt());
+            if (robot.getKbId() != null) entity.setKbId(robot.getKbId());
+            if (robot.getWorkflowId() != null) entity.setWorkflowId(robot.getWorkflowId());
         }
         entity.setSessionId(IdUtil.fastSimpleUUID());
         entity.setMessageCount(0);

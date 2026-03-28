@@ -48,7 +48,7 @@ public class ChatMessageController {
 
     @PostMapping("/{messageId}/feedback")
     @Operation(summary = "提交反馈")
-    public void feedback(@PathVariable Long sessionId, @PathVariable Long messageId, @RequestParam Integer feedback) {
-        chatMessageService.submitFeedback(messageId, feedback);
+    public void feedback(@PathVariable Long sessionId, @PathVariable String messageId, @RequestParam Integer feedback) {
+        chatMessageService.submitFeedback(sessionId, messageId, feedback);
     }
 }

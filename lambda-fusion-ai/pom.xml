@@ -20,6 +20,11 @@
             <version>1.10.0-beta18</version>
         </dependency>
         <dependency>
+            <groupId>org.bsc.langgraph4j</groupId>
+            <artifactId>langgraph4j-core</artifactId>
+            <version>1.6.5</version>
+        </dependency>
+        <dependency>
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-fusion-core</artifactId>
             <version>${project.version}</version>
