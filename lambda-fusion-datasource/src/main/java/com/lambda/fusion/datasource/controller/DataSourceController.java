@@ -5,6 +5,7 @@ import cn.dev33.satoken.annotation.SaMode;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.datasource.model.DataSourceBindingStatus;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
@@ -95,6 +96,14 @@ public class DataSourceController {
     public List<TenantDataSourceEntity> tenantStatuses(
             @Parameter(description = "租户ID集合", required = true) @RequestParam("tenantIds") List<String> tenantIds) {
         return dataSourceManageService.listTenantDataSources(tenantIds);
+    }
+
+    @GetMapping("/tenant/datasource/status")
+    @Operation(summary = "查询数据源租户绑定汇总", description = "按数据源ID集合查询绑定数量和初始化数量")
+    public List<DataSourceBindingStatus> dataSourceBindingStatuses(
+            @Parameter(description = "数据源ID集合", required = true) @RequestParam("datasourceIds")
+                    List<String> datasourceIds) {
+        return dataSourceManageService.listDataSourceBindingStatuses(datasourceIds);
     }
 
     @GetMapping("/tenant/{tenantId}")

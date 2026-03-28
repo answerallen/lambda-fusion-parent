@@ -190,6 +190,14 @@ public class TenantDataSourceManager {
                 .toList();
     }
 
+    public List<RemoteDataSource> listEnabledTenantDataSources(String tenantPrefix) {
+        return listEnabledTenantDataSources().stream()
+                .filter(ds -> StringUtils.hasText(ds.getDatasourceName()))
+                .filter(ds -> !StringUtils.hasText(tenantPrefix)
+                        || ds.getDatasourceName().startsWith(tenantPrefix))
+                .toList();
+    }
+
     /**
      * 清除租户数据源缓存
      */

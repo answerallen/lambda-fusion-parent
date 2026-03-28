@@ -21,12 +21,15 @@ import com.lambda.fusion.datasource.service.DataSourceManageService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 @Service
 @SuppressFBWarnings({"EI_EXPOSE_REP2"})
@@ -83,8 +86,16 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     public void update(String id, UpsertDataSource upsertDataSource) {
         Assert.hasText(id, "id is blank");
         Assert.notNull(upsertDataSource, "input is null");
+        DataSourceEntity existing = getById(id);
+        Assert.notNull(existing, "entity not found");
         DataSourceEntity entity = upsertDataSource.toEntity();
         entity.setId(id);
+        if (!StringUtils.hasText(entity.getPassword())) {
+            entity.setPassword(existing.getPassword());
+        }
+        if (entity.getStatus() == null) {
+            entity.setStatus(existing.getStatus());
+        }
         boolean updated = updateById(entity);
         Assert.isTrue(updated, "update failed");
         syncDynamicDataSource(entity);
@@ -95,6 +106,9 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     @Transactional(rollbackFor = Exception.class)
     public void delete(String id) {
         Assert.hasText(id, "id is blank");
+        long bindingCount = tenantDataSourceMapper.selectCount(
+                Wrappers.lambdaQuery(TenantDataSourceEntity.class).eq(TenantDataSourceEntity::getDatasourceId, id));
+        Assert.isTrue(bindingCount == 0, "数据源已被租户绑定，无法删除");
         DataSourceEntity existing = getById(id);
         if (existing != null) {
             RemoteDataSource dto = new RemoteDataSource();
@@ -183,6 +197,56 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     }
 
     @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED, rollbackFor = Exception.class)
+    public List<DataSourceBindingStatus> listDataSourceBindingStatuses(List<String> datasourceIds) {
+        if (CollectionUtils.isEmpty(datasourceIds)) {
+            return Collections.emptyList();
+        }
+        Map<String, DataSourceBindingStatus> statusMap = new LinkedHashMap<>();
+        for (String datasourceId : datasourceIds) {
+            if (!StringUtils.hasText(datasourceId)) {
+                continue;
+            }
+            DataSourceBindingStatus status = new DataSourceBindingStatus();
+            status.setDatasourceId(datasourceId);
+            status.setTenantBindingTenantId(null);
+            status.setTenantSchemaInitialized(Boolean.FALSE);
+            status.setAiBindingTenantId(null);
+            status.setTenantBindingConflict(Boolean.FALSE);
+            status.setAiBindingConflict(Boolean.FALSE);
+            statusMap.put(datasourceId, status);
+        }
+        if (statusMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<TenantDataSourceEntity> bindings =
+                tenantDataSourceMapper.selectList(Wrappers.lambdaQuery(TenantDataSourceEntity.class)
+                        .in(TenantDataSourceEntity::getDatasourceId, statusMap.keySet()));
+        for (TenantDataSourceEntity binding : bindings) {
+            DataSourceBindingStatus status = statusMap.get(binding.getDatasourceId());
+            if (status == null) {
+                continue;
+            }
+            FusionConstants.DatabaseUsageType usageType = binding.getUsageType();
+            if (FusionConstants.DatabaseUsageType.AI.equals(usageType)) {
+                if (!StringUtils.hasText(status.getAiBindingTenantId())) {
+                    status.setAiBindingTenantId(binding.getTenantId());
+                } else if (!status.getAiBindingTenantId().equals(binding.getTenantId())) {
+                    status.setAiBindingConflict(Boolean.TRUE);
+                }
+                continue;
+            }
+            if (!StringUtils.hasText(status.getTenantBindingTenantId())) {
+                status.setTenantBindingTenantId(binding.getTenantId());
+                status.setTenantSchemaInitialized(binding.isSchemaInitialized());
+            } else if (!status.getTenantBindingTenantId().equals(binding.getTenantId())) {
+                status.setTenantBindingConflict(Boolean.TRUE);
+            }
+        }
+        return List.copyOf(statusMap.values());
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void bindTenantDataSource(
             String tenantId, String datasourceId, FusionConstants.DatabaseUsageType usageType) {
@@ -201,6 +265,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
                         && Integer.valueOf(1)
                                 .equals(dataSourceEntity.getStatus().getCode()),
                 "数据源未启用，不允许绑定");
+        assertUsageDatasourceExclusive(tenantId, datasourceId, usageType);
 
         TenantDataSourceEntity binding = getTenantDataSource(tenantId, usageType);
         if (binding == null) {
@@ -222,6 +287,31 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
             binding.setSchemaStatus(TenantDataSourceEntity.SCHEMA_UNINITIALIZED);
         }
         Assert.isTrue(tenantDataSourceMapper.updateById(binding) > 0, "update tenant datasource failed");
+    }
+
+    private void assertUsageDatasourceExclusive(
+            String tenantId, String datasourceId, FusionConstants.DatabaseUsageType usageType) {
+        if (FusionConstants.DatabaseUsageType.AI.equals(usageType)) {
+            TenantDataSourceEntity existingBinding =
+                    tenantDataSourceMapper.selectOne(Wrappers.lambdaQuery(TenantDataSourceEntity.class)
+                            .eq(TenantDataSourceEntity::getDatasourceId, datasourceId)
+                            .eq(TenantDataSourceEntity::getUsageType, usageType)
+                            .ne(TenantDataSourceEntity::getTenantId, tenantId)
+                            .last("limit 1"));
+            Assert.isTrue(existingBinding == null, "AI数据源已被其他租户绑定，必须一租户一数据源");
+            return;
+        }
+        if (FusionConstants.DatabaseUsageType.TENANT.equals(usageType)) {
+            TenantDataSourceEntity existingBinding =
+                    tenantDataSourceMapper.selectOne(Wrappers.lambdaQuery(TenantDataSourceEntity.class)
+                            .eq(TenantDataSourceEntity::getDatasourceId, datasourceId)
+                            .and(wrapper -> wrapper.eq(TenantDataSourceEntity::getUsageType, usageType)
+                                    .or()
+                                    .isNull(TenantDataSourceEntity::getUsageType))
+                            .ne(TenantDataSourceEntity::getTenantId, tenantId)
+                            .last("limit 1"));
+            Assert.isTrue(existingBinding == null, "租户主库数据源已被其他租户绑定，必须一租户一数据源");
+        }
     }
 
     @Override
