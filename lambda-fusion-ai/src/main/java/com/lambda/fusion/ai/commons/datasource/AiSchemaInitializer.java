@@ -34,7 +34,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SchemaInitializer implements TenantSchemaInitializer {
+public class AiSchemaInitializer implements TenantSchemaInitializer {
 
     private static final String AI_CHANGELOG_PATH = "classpath:META-INF/db/changelogs/lambda-ai-changelog.xml";
 

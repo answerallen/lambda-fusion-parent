@@ -134,10 +134,12 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     @Transactional(rollbackFor = Exception.class)
     public void enable(String id) {
         Assert.hasText(id, "id is blank");
+        boolean test = test(id);
+        Assert.isTrue(test, "数据源测试失败");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
         if (entity.getStatus() != null
-                && Integer.valueOf(1).equals(entity.getStatus().getCode())) {
+                && DatasourceConstants.DatasourceStatus.ONLINE.equals(entity.getStatus())) {
             syncDynamicDataSource(entity);
             return;
         }

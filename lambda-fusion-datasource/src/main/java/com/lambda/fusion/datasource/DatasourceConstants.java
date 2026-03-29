@@ -53,9 +53,7 @@ public interface DatasourceConstants {
     @AllArgsConstructor
     enum DatasourceStatus implements DictEnum<Integer> {
         OFFLINE(0, "下线"),
-        ONLINE(1, "在线"),
-        READONLY(2, "只读"),
-        MAINTENANCE(3, "维护");
+        ONLINE(1, "在线");
 
         @EnumValue
         @JsonValue
