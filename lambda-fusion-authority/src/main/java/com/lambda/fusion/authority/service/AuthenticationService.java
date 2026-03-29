@@ -4,7 +4,6 @@ import com.lambda.fusion.authority.model.authentication.AuthenticatedUser;
 import com.lambda.fusion.authority.model.authentication.MenuQuery;
 import com.lambda.fusion.authority.model.authentication.MenuRoute;
 import com.lambda.fusion.authority.model.user.UserProfile;
-import com.lambda.fusion.core.api.RemoteAuthenticationService;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.AuthUtils;
 import java.util.List;
@@ -13,7 +12,7 @@ import java.util.List;
  * 认证服务接口
  * 负责用户认证、授权和导航菜单相关的业务逻辑
  */
-public interface AuthenticationService extends RemoteAuthenticationService {
+public interface AuthenticationService {
 
     /**
      * 获取用户的导航菜单
@@ -38,6 +37,7 @@ public interface AuthenticationService extends RemoteAuthenticationService {
 
     /**
      * 获取用户的导航菜单
+     *
      * @param query 导航查询参数
      * @return 导航菜单列表
      */

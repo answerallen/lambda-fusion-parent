@@ -4,6 +4,7 @@ import cn.dev33.satoken.listener.SaTokenListener;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
 import com.lambda.cloud.sse.listener.SseEventListener;
+import com.lambda.fusion.authority.api.RemoteAuthenticationService;
 import com.lambda.fusion.authority.commons.interceptor.TenantContextInterceptor;
 import com.lambda.fusion.authority.commons.listener.UserOnlineLogListener;
 import com.lambda.fusion.authority.commons.listener.UserSeeEventListener;
@@ -12,10 +13,8 @@ import com.lambda.fusion.authority.mapper.RoleMapper;
 import com.lambda.fusion.authority.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.mapper.UserMapper;
 import com.lambda.fusion.authority.mapper.UserRoleMapper;
-import com.lambda.fusion.authority.service.AuthenticationService;
 import com.lambda.fusion.authority.service.TenantService;
 import com.lambda.fusion.authority.service.UserOnlineLogService;
-import com.lambda.fusion.core.api.RemoteAuthenticationService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.AuthUtils;
@@ -68,7 +67,7 @@ public class AuthorityConfigure implements WebMvcConfigurer {
     public static class DubboServiceConfiguration {
         @Bean
         public ServiceBean<RemoteAuthenticationService> remoteAuthenticationServiceBean(
-                AuthenticationService authenticationService, ApplicationContext applicationContext) {
+                RemoteAuthenticationService authenticationService, ApplicationContext applicationContext) {
             ServiceBean<RemoteAuthenticationService> serviceBean = new ServiceBean<>(applicationContext);
             serviceBean.setInterface(RemoteAuthenticationService.class);
             serviceBean.setRef(authenticationService);

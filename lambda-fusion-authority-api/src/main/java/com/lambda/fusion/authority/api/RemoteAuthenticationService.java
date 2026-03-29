@@ -1,4 +1,4 @@
-package com.lambda.fusion.core.api;
+package com.lambda.fusion.authority.api;
 
 import com.lambda.security.service.UserDetailService;
 

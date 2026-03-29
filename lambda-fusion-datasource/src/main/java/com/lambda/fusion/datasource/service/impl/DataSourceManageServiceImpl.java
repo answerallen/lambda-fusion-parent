@@ -138,8 +138,7 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.isTrue(test, "数据源测试失败");
         DataSourceEntity entity = getById(id);
         Assert.notNull(entity, "entity not found");
-        if (entity.getStatus() != null
-                && DatasourceConstants.DatasourceStatus.ONLINE.equals(entity.getStatus())) {
+        if (entity.getStatus() != null && DatasourceConstants.DatasourceStatus.ONLINE.equals(entity.getStatus())) {
             syncDynamicDataSource(entity);
             return;
         }

@@ -11,6 +11,7 @@ import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.AuthorityConstants;
+import com.lambda.fusion.authority.api.RemoteAuthenticationService;
 import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.AuthenticationMapper;
 import com.lambda.fusion.authority.mapper.UserInfoMapper;
@@ -42,7 +43,7 @@ import org.springframework.stereotype.Service;
 @Service
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
-public class AuthenticationServiceImpl implements AuthenticationService {
+public class AuthenticationServiceImpl implements AuthenticationService, RemoteAuthenticationService {
 
     private final AuthenticationMapper authenticationMapper;
     private final UserInfoMapper userInfoMapper;
