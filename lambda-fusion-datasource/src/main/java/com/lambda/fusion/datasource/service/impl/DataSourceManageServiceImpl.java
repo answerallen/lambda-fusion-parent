@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -40,19 +41,19 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     private final ApplicationEventPublisher eventPublisher;
     private final TenantDataSourceMapper tenantDataSourceMapper;
     private final TenantIsolationResolver tenantIsolationResolver;
-    private final RemoteDataSourceService remoteDataSourceService;
+    private final ObjectProvider<RemoteDataSourceService> remoteDataSourceServiceProvider;
 
     public DataSourceManageServiceImpl(
             DynamicDataSourceService dynamicDataSourceService,
             ApplicationEventPublisher eventPublisher,
             TenantDataSourceMapper tenantDataSourceMapper,
             TenantIsolationResolver tenantIsolationResolver,
-            RemoteDataSourceService remoteDataSourceService) {
+            ObjectProvider<RemoteDataSourceService> remoteDataSourceServiceProvider) {
         this.dynamicDataSourceService = dynamicDataSourceService;
         this.eventPublisher = eventPublisher;
         this.tenantDataSourceMapper = tenantDataSourceMapper;
         this.tenantIsolationResolver = tenantIsolationResolver;
-        this.remoteDataSourceService = remoteDataSourceService;
+        this.remoteDataSourceServiceProvider = remoteDataSourceServiceProvider;
     }
 
     @Override
@@ -343,6 +344,8 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.notNull(dataSourceEntity, "绑定的数据源不存在");
         Assert.isTrue(dataSourceEntity.getStatus().isOnline(), "数据源未启用，无法初始化");
 
+        RemoteDataSourceService remoteDataSourceService = remoteDataSourceServiceProvider.getIfAvailable();
+        Assert.notNull(remoteDataSourceService, "remoteDataSourceService is not available");
         boolean initialized = remoteDataSourceService.initSchema(dataSourceEntity.getId());
         Assert.isTrue(initialized, "租户主库初始化失败");
 
