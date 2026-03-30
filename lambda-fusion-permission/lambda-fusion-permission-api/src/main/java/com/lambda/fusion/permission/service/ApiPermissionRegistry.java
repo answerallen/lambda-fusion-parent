@@ -11,9 +11,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import org.springframework.stereotype.Component;
 
-@Component
 public class ApiPermissionRegistry {
     private final AtomicReference<List<ApiPermissionMetadata>> localApis = new AtomicReference<>(List.of());
 

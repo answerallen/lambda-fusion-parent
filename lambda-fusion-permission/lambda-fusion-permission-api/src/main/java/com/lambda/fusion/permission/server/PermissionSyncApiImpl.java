@@ -21,10 +21,14 @@ public class PermissionSyncApiImpl implements PermissionSyncApi {
 
     private void verifyToken(String token) {
         String expected = permissionProperties.getServer().getAuthToken();
+        // If not configured, deny by default for security
         if (expected == null || expected.isBlank()) {
-            return;
+            throw new SecurityException("permission sync token is not configured on server");
         }
-        if (!expected.equals(token)) {
+        if (token == null
+                || !java.security.MessageDigest.isEqual(
+                        expected.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        token.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
             throw new SecurityException("invalid permission token");
         }
     }

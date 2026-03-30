@@ -12,12 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
-import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class LocalPermissionLoader {
     private final PermissionProperties properties;

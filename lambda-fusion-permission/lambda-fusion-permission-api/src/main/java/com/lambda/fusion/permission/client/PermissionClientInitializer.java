@@ -15,22 +15,20 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 
 @Slf4j
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-@RequiredArgsConstructor
 public class PermissionClientInitializer implements ApplicationRunner, DisposableBean {
     private final PermissionProperties properties;
     private final LocalPermissionLoader localPermissionLoader;
     private final ApiPermissionRegistry apiPermissionRegistry;
     private final PermissionPushClient permissionPushClient;
+    private final String applicationName;
     private final AtomicBoolean schedulerStarted = new AtomicBoolean(false);
     private final AtomicReference<List<PermissionFileMetadata>> loadedFiles = new AtomicReference<>(List.of());
     private final ScheduledExecutorService pushExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -39,8 +37,18 @@ public class PermissionClientInitializer implements ApplicationRunner, Disposabl
         return t;
     });
 
-    @Value("${spring.application.name:unknown-app}")
-    private String applicationName;
+    public PermissionClientInitializer(
+            PermissionProperties properties,
+            LocalPermissionLoader localPermissionLoader,
+            ApiPermissionRegistry apiPermissionRegistry,
+            PermissionPushClient permissionPushClient,
+            String applicationName) {
+        this.properties = properties;
+        this.localPermissionLoader = localPermissionLoader;
+        this.apiPermissionRegistry = apiPermissionRegistry;
+        this.permissionPushClient = permissionPushClient;
+        this.applicationName = applicationName;
+    }
 
     @Override
     public void run(@NonNull ApplicationArguments args) {
@@ -100,6 +108,14 @@ public class PermissionClientInitializer implements ApplicationRunner, Disposabl
 
     @Override
     public void destroy() {
-        pushExecutor.shutdownNow();
+        pushExecutor.shutdown();
+        try {
+            if (!pushExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                pushExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            pushExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 }

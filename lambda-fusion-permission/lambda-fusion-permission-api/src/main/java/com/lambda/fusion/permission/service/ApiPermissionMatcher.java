@@ -4,10 +4,8 @@ import com.lambda.fusion.permission.model.ApiPermissionMetadata;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 
-@Component
 public class ApiPermissionMatcher {
     private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 

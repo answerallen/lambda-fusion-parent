@@ -9,6 +9,8 @@ import com.lambda.fusion.permission.service.ApiPermissionMatcher;
 import com.lambda.fusion.permission.service.ApiPermissionRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
+import org.apache.dubbo.config.spring.ReferenceBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,8 +42,9 @@ public class PermissionConfigure {
 
     @Bean
     @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_CLIENT)
-    public PermissionPushClient permissionPushClient(PermissionProperties properties) {
-        return new PermissionPushClient(properties);
+    public PermissionPushClient permissionPushClient(
+            PermissionProperties properties, PermissionSyncApi permissionSyncApi) {
+        return new PermissionPushClient(properties, permissionSyncApi);
     }
 
     @Bean
@@ -50,9 +53,25 @@ public class PermissionConfigure {
             PermissionProperties properties,
             LocalPermissionLoader localPermissionLoader,
             ApiPermissionRegistry apiPermissionRegistry,
-            PermissionPushClient permissionPushClient) {
+            PermissionPushClient permissionPushClient,
+            @Value("${spring.application.name:unknown-app}") String applicationName) {
         return new PermissionClientInitializer(
-                properties, localPermissionLoader, apiPermissionRegistry, permissionPushClient);
+                properties, localPermissionLoader, apiPermissionRegistry, permissionPushClient, applicationName);
+    }
+
+    @Slf4j
+    @Configuration
+    @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ReferenceBean")
+    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_CLIENT)
+    public static class DubboClientConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean(PermissionSyncApi.class)
+        public ReferenceBean<PermissionSyncApi> remoteAuthenticationServiceBean() {
+            ReferenceBean<PermissionSyncApi> referenceBean = new ReferenceBean<>();
+            referenceBean.setInterfaceClass(PermissionSyncApi.class);
+            return referenceBean;
+        }
     }
 
     @Bean
@@ -63,8 +82,9 @@ public class PermissionConfigure {
     }
 
     @Slf4j
-    @Configuration
+    @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ServiceBean")
+    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
     public static class DubboServiceConfiguration {
 
         @Bean
@@ -72,7 +92,7 @@ public class PermissionConfigure {
                 interfaceClass = PermissionSyncApi.class,
                 group = PermissionConstants.DUBBO_GROUP,
                 version = PermissionConstants.DUBBO_VERSION)
-        public PermissionSyncApi remoteAuthenticationService(PermissionSyncApi permissionSyncApi) {
+        public PermissionSyncApi remotePermissionSyncApi(PermissionSyncApi permissionSyncApi) {
             return permissionSyncApi;
         }
     }
