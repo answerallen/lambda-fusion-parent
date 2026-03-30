@@ -8,7 +8,6 @@
     </parent>
 
     <artifactId>lambda-fusion-permission-api</artifactId>
-    <packaging>jar</packaging>
 
     <dependencies>
         <dependency>

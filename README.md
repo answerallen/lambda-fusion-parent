@@ -38,10 +38,11 @@ lambda-fusion-parent/
 ├── 🔐 lambda-fusion-authority/    # 权限管理（用户、角色、组织、资源）
 ├── ⚙️ lambda-fusion-config/       # 配置管理（动态配置、热更新）
 ├── 📚 lambda-fusion-dictionary/   # 数据字典（静态/动态字典）
-├── 📤 lambda-fusion-upload/       # 文件上传（OSS、本地存储）
+├── 📤 lambda-fusion-oss/       # 文件上传（OSS、本地存储）
 ├── 🗄️ lambda-fusion-datasource/   # 数据源管理（多数据源支持）
-└── 🛡️ lambda-fusion-permission/   # 权限控制（API接口级权限、数据权限）
-
+└── 🛡️ lambda-fusion-permission/   # 权限控制模块
+    ├── lambda-fusion-permission-api/  # API接口权限
+    └── ️lambda-fusion-permission-datascope/   # 数据权限
 ```
 
 
