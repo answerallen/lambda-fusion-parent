@@ -212,7 +212,7 @@
         SELECT RESOURCE_ID FROM LA_ROLE_RESOURCES WHERE AUTHORITY = #{authority} AND RESOURCE_ID IN
         <foreach collection="ids" item="item" separator="," open="(" close=")">#{item}</foreach>
     </select>
-    <select id="getAuthoritiesByUser" resultType="com.lambda.fusion.authority.model.role.UserAuthority">
+    <select id="getUserAuthorityByUsername" resultType="com.lambda.fusion.authority.model.role.UserAuthority">
         SELECT
             T1.AUTHORITY,
             T2.ORGANIZATION_ID AS orgId

@@ -231,7 +231,7 @@ public class TenantManager {
         if (StringUtils.isBlank(username)) {
             return true;
         }
-        return roleMapper.getAuthoritiesByUser(username).stream()
+        return roleMapper.getUserAuthorityByUsername(username).stream()
                 .map(UserAuthority::getAuthority)
                 .filter(StringUtils::isNotBlank)
                 .noneMatch(AuthorityHelper::isTenantAdminRole);

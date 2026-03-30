@@ -12,9 +12,14 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
+import com.lambda.fusion.authority.commons.utils.AuthorityHelper;
 import com.lambda.fusion.authority.mapper.AuthenticationMapper;
+import com.lambda.fusion.authority.mapper.RoleMapper;
 import com.lambda.fusion.authority.mapper.UserInfoMapper;
+import com.lambda.fusion.authority.mapper.UserMapper;
 import com.lambda.fusion.authority.model.authentication.*;
+import com.lambda.fusion.authority.model.role.UserAuthority;
+import com.lambda.fusion.authority.model.user.User;
 import com.lambda.fusion.authority.model.user.UserInfoEntity;
 import com.lambda.fusion.authority.model.user.UserProfile;
 import com.lambda.fusion.authority.service.AuthenticationService;
@@ -49,6 +54,8 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
 
     private final AuthenticationMapper authenticationMapper;
     private final UserInfoMapper userInfoMapper;
+    private final UserMapper userMapper;
+    private final RoleMapper roleMapper;
     private final ConfigProperties configProperties;
 
     @Override
@@ -60,13 +67,26 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
         if (authUser == null) {
             throw AuthorityBusinessException.userNotFound(username);
         }
-        UserDetails userDetails = authUser.toLoginUser();
-        return prepareLoginUser(userDetails);
+        return prepareLoginUser(authUser.toUserDetails());
     }
 
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
-        return new ArrayList<>(AuthUtils.getUser().getRoles());
+        List<String> roles = new ArrayList<>();
+        List<UserAuthority> authorities = roleMapper.getUserAuthorityByUsername(loginId.toString());
+        if (CollUtil.isEmpty(authorities)) {
+            roles.add(FusionConstants.ROLE_USER);
+        } else {
+            authorities.forEach(userAuthority -> {
+                if (userAuthority.getAuthority().startsWith(ROLE_TENANT)) {
+                    String tenantAuthority = ROLE_TENANT + AT + userAuthority.getOrgId();
+                    roles.add(tenantAuthority);
+                } else {
+                    roles.add(userAuthority.getAuthority());
+                }
+            });
+        }
+        return roles;
     }
 
     @Override
@@ -76,8 +96,9 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
         if (CollUtil.isNotEmpty(permissions)) {
             authorities.addAll(permissions);
         }
-        UserDetails user = AuthUtils.getUser();
-        if (user.isTenantManager()) {
+
+        User user = userMapper.selectUserByUsername(loginId.toString());
+        if (AuthorityHelper.isTenantManager(user)) {
             List<String> tenantAdminPermissions =
                     authenticationMapper.selectTenantAdminPermissions(ROLE_TENANT + AT + user.getTenantId());
             if (CollUtil.isNotEmpty(tenantAdminPermissions)) {
@@ -89,6 +110,7 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
                 authorities.addAll(tenantAdminAuthorities);
             }
         }
+
         return authorities;
     }
 
@@ -100,7 +122,7 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
                 .filter(d -> d.size() == 1)
                 .map(List::getFirst)
                 .orElseThrow(() -> new UsernameNotFoundException("手机号不存在！"));
-        return prepareLoginUser(user.toLoginUser());
+        return prepareLoginUser(user.toUserDetails());
     }
 
     @Override
@@ -136,19 +158,16 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
         if (node == null) {
             return;
         }
-
         NavigationRouteMeta meta = node.getMeta();
         if (meta == null) {
             meta = new NavigationRouteMeta();
             node.setMeta(meta);
         }
-
         meta.putIfAbsent("title", node.getName());
         meta.putIfAbsent("icon", node.getIcon());
         meta.putIfAbsent("order", node.getOrderNo());
         meta.putIfAbsent("hideInMenu", node.isHidden());
         meta.putIfAbsent("keepAlive", node.isKeepAlive());
-
         if (StrUtil.isBlank(node.getComponent())) {
             String component = resolveComponent(node, meta);
             if (StrUtil.isNotBlank(component)) {
@@ -162,14 +181,12 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
                 node.setComponent(path);
             }
         }
-
         if (StrUtil.isBlank(node.getRedirect()) && CollUtil.isNotEmpty(node.getChildren())) {
             MenuRoute firstChild = node.getChildren().getFirst();
             if (firstChild != null && StrUtil.isNotBlank(firstChild.path)) {
                 node.setRedirect(firstChild.getPath());
             }
         }
-
         if (CollUtil.isNotEmpty(node.getChildren())) {
             for (MenuRoute child : node.getChildren()) {
                 enrichNavigationNode(child);
@@ -181,14 +198,11 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
         if (CollUtil.isNotEmpty(node.getChildren())) {
             return "BasicLayout";
         }
-
         Integer type = node.getType();
         if (type == null) {
             return null;
         }
-
         String url = node.getUrl();
-
         if (type.equals(AuthorityConstants.MenuType.EXTERNAL_LINK.getCode())) {
             if (StrUtil.isNotBlank(url)) {
                 meta.putIfAbsent("link", url);
@@ -196,7 +210,6 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
             }
             return null;
         }
-
         if (type.equals(AuthorityConstants.MenuType.EMBEDDED_PAGE.getCode())) {
             if (StrUtil.isNotBlank(url)) {
                 meta.putIfAbsent("iframeSrc", url);
@@ -204,7 +217,6 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
             }
             return null;
         }
-
         return null;
     }
 

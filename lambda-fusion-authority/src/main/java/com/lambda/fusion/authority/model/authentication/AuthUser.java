@@ -79,7 +79,7 @@ public class AuthUser implements Serializable {
     @Schema(description = "用户权限集合")
     private Set<String> authorities;
 
-    public UserDetails toLoginUser() {
+    public UserDetails toUserDetails() {
         return ConvertUtils.convert(this);
     }
 }

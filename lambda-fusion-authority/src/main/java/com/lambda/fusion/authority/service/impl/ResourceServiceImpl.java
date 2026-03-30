@@ -524,7 +524,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Nonnull
     public Set<String> getAuthoritiesByUsername(String username) {
-        List<UserAuthority> results = roleMapper.getAuthoritiesByUser(username);
+        List<UserAuthority> results = roleMapper.getUserAuthorityByUsername(username);
         if (CollectionUtils.isEmpty(results)) {
             return Sets.newHashSet();
         }

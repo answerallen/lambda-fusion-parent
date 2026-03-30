@@ -250,5 +250,5 @@ public interface RoleMapper extends BaseMapper<RoleEntity> {
      * @return java.util.Set<java.lang.String>
      */
     @InterceptorIgnore(tenantLine = "true")
-    List<UserAuthority> getAuthoritiesByUser(String username);
+    List<UserAuthority> getUserAuthorityByUsername(String username);
 }
