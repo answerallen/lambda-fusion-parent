@@ -42,6 +42,10 @@ mybatis-plus:
 ################################# Lambda 配置 #################################
 lambda:
   fusion:
+    permission:
+      server:
+        auth-token: 111
+      mode: server
     config:
       auto-refresh:
         enabled: true

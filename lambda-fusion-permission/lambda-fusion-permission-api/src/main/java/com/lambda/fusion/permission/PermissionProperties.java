@@ -21,8 +21,6 @@ public class PermissionProperties {
         private boolean failFast = false;
         private long pushIntervalSeconds = 300;
         private String resourcePath = "META-INF/permissions/api-permissions.json";
-        private String reportPath = "/permission/apis/report";
-        private String serverBaseUrl;
         private String authToken;
     }
 

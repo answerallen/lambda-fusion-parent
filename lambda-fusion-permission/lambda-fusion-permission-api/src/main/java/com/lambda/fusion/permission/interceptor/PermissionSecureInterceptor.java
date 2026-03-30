@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+@Deprecated
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
 public class PermissionSecureInterceptor implements SecureInterceptor {

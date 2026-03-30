@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
@@ -42,7 +43,7 @@ public class PermissionClientInitializer implements ApplicationRunner, Disposabl
     private String applicationName;
 
     @Override
-    public void run(ApplicationArguments args) {
+    public void run(@NonNull ApplicationArguments args) {
         List<PermissionFileMetadata> files = localPermissionLoader.load();
         if (CollUtil.isEmpty(files)) {
             log.warn("no permission json files found, app={}", applicationName);

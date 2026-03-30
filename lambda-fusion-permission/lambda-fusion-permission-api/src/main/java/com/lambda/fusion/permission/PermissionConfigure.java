@@ -1,15 +1,16 @@
 package com.lambda.fusion.permission;
 
+import cn.dev33.satoken.stp.StpInterface;
 import com.lambda.fusion.permission.api.PermissionSyncApi;
 import com.lambda.fusion.permission.client.PermissionClientInitializer;
 import com.lambda.fusion.permission.client.PermissionPushClient;
-import com.lambda.fusion.permission.interceptor.PermissionSecureInterceptor;
 import com.lambda.fusion.permission.loader.LocalPermissionLoader;
 import com.lambda.fusion.permission.server.PermissionSyncApiImpl;
 import com.lambda.fusion.permission.service.ApiPermissionMatcher;
 import com.lambda.fusion.permission.service.ApiPermissionRegistry;
-import com.lambda.security.inteceptor.SecureInterceptor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboService;
+import org.apache.dubbo.config.spring.ReferenceBean;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -18,12 +19,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @EnableConfigurationProperties(PermissionProperties.class)
-@ConditionalOnProperty(name = PermissionConstants.PREFIX + ".enabled", havingValue = "true", matchIfMissing = true)
 public class PermissionConfigure {
     @Bean
     @ConditionalOnMissingBean
@@ -44,19 +43,13 @@ public class PermissionConfigure {
     }
 
     @Bean
-    @ConditionalOnProperty(
-            name = PermissionConstants.MODE_PROPERTY,
-            havingValue = PermissionConstants.MODE_CLIENT,
-            matchIfMissing = true)
+    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_CLIENT)
     public PermissionPushClient permissionPushClient(PermissionProperties properties) {
         return new PermissionPushClient(properties);
     }
 
     @Bean
-    @ConditionalOnProperty(
-            name = PermissionConstants.MODE_PROPERTY,
-            havingValue = PermissionConstants.MODE_CLIENT,
-            matchIfMissing = true)
+    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_CLIENT)
     public PermissionClientInitializer permissionClientInitializer(
             PermissionProperties properties,
             LocalPermissionLoader localPermissionLoader,
@@ -64,19 +57,6 @@ public class PermissionConfigure {
             PermissionPushClient permissionPushClient) {
         return new PermissionClientInitializer(
                 properties, localPermissionLoader, apiPermissionRegistry, permissionPushClient);
-    }
-
-    @Bean
-    @Primary
-    @ConditionalOnProperty(
-            name = PermissionConstants.MODE_PROPERTY,
-            havingValue = PermissionConstants.MODE_CLIENT,
-            matchIfMissing = true)
-    public SecureInterceptor secureInterceptor(
-            PermissionProperties properties,
-            ApiPermissionRegistry apiPermissionRegistry,
-            ApiPermissionMatcher apiPermissionMatcher) {
-        return new PermissionSecureInterceptor(properties, apiPermissionRegistry, apiPermissionMatcher);
     }
 
     @Bean
@@ -92,16 +72,9 @@ public class PermissionConfigure {
     public static class DubboServiceConfiguration {
 
         @Bean
-        @ConditionalOnClass(ServiceBean.class)
-        @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
-        public ServiceBean<PermissionSyncApi> permissionSyncApiBean(
-                PermissionSyncApi permissionSyncApi, ApplicationContext applicationContext) {
-            ServiceBean<PermissionSyncApi> serviceBean = new ServiceBean<>(applicationContext);
-            serviceBean.setInterface(PermissionSyncApi.class);
-            serviceBean.setRef(permissionSyncApi);
-            serviceBean.setGroup(PermissionConstants.DUBBO_GROUP);
-            serviceBean.setVersion(PermissionConstants.DUBBO_VERSION);
-            return serviceBean;
+        @DubboService(interfaceClass = PermissionSyncApi.class,group = PermissionConstants.DUBBO_GROUP,version = PermissionConstants.DUBBO_VERSION)
+        public PermissionSyncApi remoteAuthenticationService(PermissionSyncApi permissionSyncApi) {
+            return permissionSyncApi;
         }
     }
 }
