@@ -1,5 +1,5 @@
 package com.lambda.fusion.authority.api;
 
-import com.lambda.security.service.UserDetailService;
+import cn.dev33.satoken.stp.StpInterface;
 
-public interface RemoteAuthenticationService extends UserDetailService {}
+public interface RemoteAuthenticationService extends StpInterface {}

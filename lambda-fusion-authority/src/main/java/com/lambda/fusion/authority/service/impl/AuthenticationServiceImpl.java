@@ -11,7 +11,6 @@ import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.AuthorityConstants;
-import com.lambda.fusion.authority.api.RemoteAuthenticationService;
 import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.mapper.AuthenticationMapper;
 import com.lambda.fusion.authority.mapper.UserInfoMapper;
@@ -26,6 +25,7 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
+import com.lambda.security.service.UserDetailService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 /**
@@ -40,10 +41,11 @@ import org.springframework.stereotype.Service;
  * 负责用户认证、授权和导航菜单相关的业务逻辑实现
  */
 @Slf4j
+@Primary
 @Service
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
-public class AuthenticationServiceImpl implements AuthenticationService, RemoteAuthenticationService {
+public class AuthenticationServiceImpl implements AuthenticationService, UserDetailService {
 
     private final AuthenticationMapper authenticationMapper;
     private final UserInfoMapper userInfoMapper;

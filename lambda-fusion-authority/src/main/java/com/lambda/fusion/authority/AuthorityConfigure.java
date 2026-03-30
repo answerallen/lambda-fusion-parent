@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
 import com.lambda.cloud.sse.listener.SseEventListener;
 import com.lambda.fusion.authority.api.RemoteAuthenticationService;
+import com.lambda.fusion.authority.commons.adapter.RemoteAuthenticationServiceAdapter;
 import com.lambda.fusion.authority.commons.interceptor.TenantContextInterceptor;
 import com.lambda.fusion.authority.commons.listener.UserOnlineLogListener;
 import com.lambda.fusion.authority.commons.listener.UserSeeEventListener;
@@ -24,7 +25,7 @@ import java.time.LocalDateTime;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.dubbo.config.spring.ServiceBean;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.apache.ibatis.reflection.MetaObject;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +33,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -65,13 +65,12 @@ public class AuthorityConfigure implements WebMvcConfigurer {
     @Configuration
     @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ServiceBean")
     public static class DubboServiceConfiguration {
+
         @Bean
-        public ServiceBean<RemoteAuthenticationService> remoteAuthenticationServiceBean(
-                RemoteAuthenticationService authenticationService, ApplicationContext applicationContext) {
-            ServiceBean<RemoteAuthenticationService> serviceBean = new ServiceBean<>(applicationContext);
-            serviceBean.setInterface(RemoteAuthenticationService.class);
-            serviceBean.setRef(authenticationService);
-            return serviceBean;
+        @DubboService(interfaceClass = RemoteAuthenticationService.class)
+        public RemoteAuthenticationService remoteAuthenticationService(
+                RemoteAuthenticationServiceAdapter remoteAuthenticationServiceAdapter) {
+            return remoteAuthenticationServiceAdapter;
         }
     }
 
