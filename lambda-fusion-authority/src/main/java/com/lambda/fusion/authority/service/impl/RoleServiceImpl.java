@@ -37,6 +37,7 @@ import org.apache.commons.lang.StringUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -148,6 +149,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"auth:role", "auth:permission"}, allEntries = true)
     public Role updateRole(UserDetails userDetails, UpdateRole updateRole) {
         if (updateRole == null || updateRole.getAlias() == null) {
             throw AuthorityBusinessException.invalidParameter("别名不能为空！");
@@ -190,6 +192,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = {"auth:role", "auth:permission"}, allEntries = true)
     public void deleteRoleById(String authority) {
         if (authority == null) {
             throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
@@ -240,7 +243,10 @@ public class RoleServiceImpl implements RoleService {
         return TreeBuilder.build(permissions);
     }
 
-    @CacheEvict(value = "ResourceOwners", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "ResourceOwners", allEntries = true),
+            @CacheEvict(value = "auth:permission", allEntries = true)
+    })
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void grantRolePermission(String authority, String resourceId, int status, UserDetails userDetails) {
@@ -316,7 +322,10 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "ResourceOwners", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "ResourceOwners", allEntries = true),
+            @CacheEvict(value = "auth:permission", allEntries = true)
+    })
     public void revokeRolePermission(String authority, String resourceId, UserDetails userDetails) {
         Resource resource = getResource(authority, resourceId, userDetails);
 
@@ -358,6 +367,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @CacheEvict(cacheNames = {"auth:role", "auth:permission"}, allEntries = true)
     public void prohibitRole(int type, String authority) {
         if (authority == null) {
             throw AuthorityBusinessException.invalidParameter("角色标识不能为空");
@@ -433,7 +443,11 @@ public class RoleServiceImpl implements RoleService {
         return defaultRoleGroupEntity;
     }
 
-    @CacheEvict(value = "ResourceOwners", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "ResourceOwners", allEntries = true),
+            @CacheEvict(value = "auth:role", allEntries = true),
+            @CacheEvict(value = "auth:permission", allEntries = true)
+    })
     @Override
     public void assignUsersToRole(UserDetails userDetails, BatchAssignUserRole req) {
         final String authority = req.getRoleId();

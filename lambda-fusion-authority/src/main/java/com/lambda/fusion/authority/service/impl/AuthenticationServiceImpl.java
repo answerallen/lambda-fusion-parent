@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -71,6 +72,7 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
     }
 
     @Override
+    @Cacheable(value = "auth:role", key = "#loginId.toString()")
     public List<String> getRoleList(Object loginId, String loginType) {
         List<String> roles = new ArrayList<>();
         List<UserAuthority> authorities = roleMapper.getUserAuthorityByUsername(loginId.toString());
@@ -90,6 +92,7 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
     }
 
     @Override
+    @Cacheable(value = "auth:permission", key = "#loginId.toString()")
     public List<String> getPermissionList(Object loginId, String loginType) {
         List<String> authorities = authenticationMapper.selectAuthoritiesByUsername(loginId.toString());
         List<String> permissions = authenticationMapper.selectPermissionsByUsername(loginId.toString());
