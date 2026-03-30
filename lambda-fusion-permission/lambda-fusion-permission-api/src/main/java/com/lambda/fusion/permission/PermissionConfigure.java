@@ -1,6 +1,5 @@
 package com.lambda.fusion.permission;
 
-import cn.dev33.satoken.stp.StpInterface;
 import com.lambda.fusion.permission.api.PermissionSyncApi;
 import com.lambda.fusion.permission.client.PermissionClientInitializer;
 import com.lambda.fusion.permission.client.PermissionPushClient;
@@ -10,13 +9,10 @@ import com.lambda.fusion.permission.service.ApiPermissionMatcher;
 import com.lambda.fusion.permission.service.ApiPermissionRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
-import org.apache.dubbo.config.spring.ReferenceBean;
-import org.apache.dubbo.config.spring.ServiceBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
@@ -72,7 +68,10 @@ public class PermissionConfigure {
     public static class DubboServiceConfiguration {
 
         @Bean
-        @DubboService(interfaceClass = PermissionSyncApi.class,group = PermissionConstants.DUBBO_GROUP,version = PermissionConstants.DUBBO_VERSION)
+        @DubboService(
+                interfaceClass = PermissionSyncApi.class,
+                group = PermissionConstants.DUBBO_GROUP,
+                version = PermissionConstants.DUBBO_VERSION)
         public PermissionSyncApi remoteAuthenticationService(PermissionSyncApi permissionSyncApi) {
             return permissionSyncApi;
         }
