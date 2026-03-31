@@ -8,8 +8,8 @@ import com.lambda.fusion.permission.server.PermissionSyncApiImpl;
 import com.lambda.fusion.permission.service.ApiPermissionMatcher;
 import com.lambda.fusion.permission.service.ApiPermissionRegistry;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.annotation.DubboService;
-import org.apache.dubbo.config.spring.ReferenceBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -59,26 +59,30 @@ public class PermissionConfigure {
                 properties, localPermissionLoader, apiPermissionRegistry, permissionPushClient, applicationName);
     }
 
+    @Bean
+    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
+    public PermissionSyncApi permissionSyncApiImpl(
+            ApiPermissionRegistry apiPermissionRegistry, PermissionProperties properties) {
+        return new PermissionSyncApiImpl(apiPermissionRegistry, properties);
+    }
+
     @Slf4j
-    @Configuration
+    @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ReferenceBean")
     @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_CLIENT)
     public static class DubboClientConfiguration {
 
         @Bean
         @ConditionalOnMissingBean(PermissionSyncApi.class)
-        public ReferenceBean<PermissionSyncApi> remoteAuthenticationServiceBean() {
-            ReferenceBean<PermissionSyncApi> referenceBean = new ReferenceBean<>();
-            referenceBean.setInterfaceClass(PermissionSyncApi.class);
-            return referenceBean;
+        public PermissionSyncApi remotePermissionSyncApiBean() {
+            ReferenceConfig<PermissionSyncApi> reference = new ReferenceConfig<>();
+            reference.setInterface(PermissionSyncApi.class);
+            reference.setVersion(PermissionConstants.DUBBO_VERSION);
+            reference.setGroup(PermissionConstants.DUBBO_GROUP);
+            reference.setCheck(false);
+            reference.setTimeout(5000);
+            return reference.get();
         }
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
-    public PermissionSyncApi permissionSyncApiImpl(
-            ApiPermissionRegistry apiPermissionRegistry, PermissionProperties properties) {
-        return new PermissionSyncApiImpl(apiPermissionRegistry, properties);
     }
 
     @Slf4j
