@@ -62,8 +62,11 @@ public class PermissionConfigure {
     @Bean
     @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
     public PermissionSyncApi permissionSyncApiImpl(
-            ApiPermissionRegistry apiPermissionRegistry, PermissionProperties properties) {
-        return new PermissionSyncApiImpl(apiPermissionRegistry, properties);
+            ApiPermissionRegistry apiPermissionRegistry,
+            LocalPermissionLoader localPermissionLoader,
+            PermissionProperties properties,
+            @Value("${spring.application.name:unknown-app}") String applicationName) {
+        return new PermissionSyncApiImpl(apiPermissionRegistry, properties, localPermissionLoader, applicationName);
     }
 
     @Slf4j
