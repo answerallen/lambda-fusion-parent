@@ -60,7 +60,7 @@ public class UserController {
         this.tenantManager = tenantManager;
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000066")
+    @SaCheckPermission(value = "T1000000066")
     @GetMapping({"", "/page", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询所有用户列表")
     public Page<User> page(
@@ -77,28 +77,28 @@ public class UserController {
         return userService.getUsers(userQuery.getPage(), userQueryContext);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000067")
+    @SaCheckPermission(value = "T1000000067")
     @GetMapping(value = "/{username}/check")
     @Operation(summary = "检查用户名是否存在")
     public Boolean checkName(@PathVariable @Parameter(description = "用户名", required = true) String username) {
         return userService.checkUserName(StrUtil.trim(username));
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000068")
+    @SaCheckPermission(value = "T1000000068")
     @GetMapping(value = "/{username}")
     @Operation(summary = "查询用户信息")
     public User getUser(@PathVariable @Parameter(description = "用户名", required = true) String username) {
         return userService.getByUsername(StrUtil.trim(username));
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000069")
+    @SaCheckPermission(value = "T1000000069")
     @GetMapping("/search")
     @Operation(summary = "根据关键字模糊查询用户列表")
     public List<User> search(@Parameter(description = "关键字", required = true) @RequestParam("key") String key) {
         return userService.getUsersByKey(key);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000070")
+    @SaCheckPermission(value = "T1000000070")
     @GetMapping("/allUser")
     @Operation(summary = "查询用户下拉列表")
     public List<UserProfile> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
@@ -108,7 +108,7 @@ public class UserController {
         return userService.getUserProfiles(loginUser, orgIds);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000071")
+    @SaCheckPermission(value = "T1000000071")
     @GetMapping("/current")
     @Operation(summary = "查询当前用户的详细信息")
     public User getCurrent() {
@@ -116,7 +116,7 @@ public class UserController {
         return userService.getByUsername(operator.getName());
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000072")
+    @SaCheckPermission(value = "T1000000072")
     @GetMapping("/authority/{authority}")
     @Operation(summary = "根据角色查询用户名", description = "根据角色查询用户")
     public List<String> getNamesByAuthority(@PathVariable String authority) {
@@ -124,7 +124,7 @@ public class UserController {
         return userService.getUserNamesByAuthority(operator.getOrgId(), authority);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000073")
+    @SaCheckPermission(value = "T1000000073")
     @PostMapping
     @Operation(summary = "新增用户信息")
     public User add(@Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateUser createUser) {
@@ -139,7 +139,7 @@ public class UserController {
         return created;
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000074")
+    @SaCheckPermission(value = "T1000000074")
     @PutMapping(value = "/{username}")
     @Operation(summary = "更新用户信息")
     public User update(
@@ -154,7 +154,7 @@ public class UserController {
         return updated;
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000075")
+    @SaCheckPermission(value = "T1000000075")
     @DeleteMapping(value = "/{username}")
     @Operation(summary = "删除用户信息")
     public void delete(@PathVariable @Parameter(description = "用户名", required = true) String username) {
@@ -164,7 +164,7 @@ public class UserController {
         userService.deleteUser(AuthUtils.getUser(), username);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000076")
+    @SaCheckPermission(value = "T1000000076")
     @PutMapping("/password/edit")
     @Operation(summary = "修改用户密码", description = "用于用户自己修改密码")
     public void updateUserPassword(
@@ -182,7 +182,7 @@ public class UserController {
         userService.updateUserPassword(operator.getName(), oldPassword, newPassword);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000077")
+    @SaCheckPermission(value = "T1000000077")
     @PutMapping("/password/reset")
     @Operation(summary = "重置用户密码", description = "主要由用户管理员使用")
     public String resetUserPassword(
@@ -199,7 +199,7 @@ public class UserController {
         return password;
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000078")
+    @SaCheckPermission(value = "T1000000078")
     @PatchMapping("/{username}/disabled")
     @Operation(summary = "禁用用户")
     public void disabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
@@ -210,7 +210,7 @@ public class UserController {
         }
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000079")
+    @SaCheckPermission(value = "T1000000079")
     @PatchMapping("/{username}/enabled")
     @Operation(summary = "启用用户")
     public void enabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
@@ -221,14 +221,14 @@ public class UserController {
         }
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000080")
+    @SaCheckPermission(value = "T1000000080")
     @PatchMapping("/{username}/unlock")
     @Operation(summary = "解锁用户")
     public void unlock(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         userService.unlockUser(username, AuthUtils.getUser());
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000081")
+    @SaCheckPermission(value = "T1000000081")
     @GetMapping("/{username}/permission")
     @Operation(summary = "查询用户所有权限")
     public List<Permission> userPermissions(
@@ -238,7 +238,7 @@ public class UserController {
         return TreeBuilder.build(permissions);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000082")
+    @SaCheckPermission(value = "T1000000082")
     @PatchMapping(value = "/unbind/{username}/{type}")
     @Operation(summary = "解除第三方绑定")
     public void unbind(
@@ -253,7 +253,7 @@ public class UserController {
         userInfoService.unbindUserInfo(operator, type, username);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000083")
+    @SaCheckPermission(value = "T1000000083")
     @PutMapping(value = "/update/mobile")
     @Operation(summary = "更新用户手机号")
     public void updateMobile(
@@ -263,7 +263,7 @@ public class UserController {
         userCenterService.updateMobile(operator.getName(), mobile, verifyCode);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000084")
+    @SaCheckPermission(value = "T1000000084")
     @PutMapping(value = "/update/email")
     @Operation(summary = "更新用户邮箱")
     public void updateEmail(
@@ -273,7 +273,7 @@ public class UserController {
         userCenterService.updateEmail(operator.getName(), email, verifyCode);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000085")
+    @SaCheckPermission(value = "T1000000085")
     @PostMapping(value = "/update/info")
     @Operation(
             summary = "更新个人信息",
@@ -291,7 +291,7 @@ public class UserController {
         return userCenterService.updateInfo(restUserInfo);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000086")
+    @SaCheckPermission(value = "T1000000086")
     @PostMapping(value = "/send/mobile/code")
     @Operation(summary = "发送手机验证码")
     public VerifyCode sendMobileVerifyCode(
@@ -300,14 +300,14 @@ public class UserController {
         return userCenterService.sendMobileVerifyCode(operator.getName(), mobile);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000087")
+    @SaCheckPermission(value = "T1000000087")
     @GetMapping("/tenant/{tenantId}/admins")
     @Operation(summary = "查询租户管理员")
     public List<User> tenantAdmins(@PathVariable @Parameter(description = "租户ID", required = true) String tenantId) {
         return userService.queryTenantAdmins(tenantId);
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000088")
+    @SaCheckPermission(value = "T1000000088")
     @PutMapping(value = "/tenant/{tenantId}/admins")
     @Operation(summary = "添加租户管理员用户信息")
     public User addTenantUser(
@@ -326,7 +326,7 @@ public class UserController {
         return updated;
     }
 
-    @SaCheckPermission(orRole = FusionConstants.ROLE_DEV, value = "T1000000089")
+    @SaCheckPermission(value = "T1000000089")
     @PutMapping(value = "/tenant/{tenantId}/admins/{username}")
     @Operation(summary = "更新租户管理员用户信息")
     public User updateTenantUser(
