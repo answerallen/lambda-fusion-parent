@@ -4,7 +4,7 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
     <!-- ========================================== -->
-    <!-- PostgreSQL扩展创建 -->
+    <!-- 【仅 PostgreSQL】PostgreSQL扩展创建 -->
     <!-- ========================================== -->
     <changeSet id="lambda-fusion-ai-202602030001" author="Jin">
         <preConditions onFail="MARK_RAN">
@@ -23,67 +23,62 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 知识库表 ai_knowledge_base -->
+    <!-- 【MySQL】知识库表 ai_knowledge_base -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030010" author="Jin">
+    <changeSet id="lambda-fusion-ai-202602030010-mysql" author="Jin">
         <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="ai_knowledge_base"/>
-            </not>
+            <and>
+                <not>
+                    <tableExists tableName="ai_knowledge_base"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
         </preConditions>
         <createTable tableName="ai_knowledge_base" remarks="知识库表">
-            <column name="id" type="bigserial" remarks="主键">
+            <column name="id" type="bigint" autoIncrement="true">
                 <constraints primaryKey="true"/>
             </column>
-            <column name="kb_id" type="varchar(100)" remarks="知识库唯一标识">
+            <column name="kb_id" type="varchar(100)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="name" type="varchar(200)" remarks="知识库名称">
+            <column name="name" type="varchar(200)">
                 <constraints nullable="false"/>
             </column>
-            <column name="description" type="text" remarks="描述"/>
-            <column name="category" type="varchar(50)" remarks="分类"/>
-            
-            <column name="tenant_id" type="bigint" remarks="租户ID">
+            <column name="description" type="text"/>
+            <column name="category" type="varchar(50)"/>
+            <column name="tenant_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="owner_user_id" type="bigint" remarks="创建者用户ID">
+            <column name="owner_user_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            
-            <column name="embedding_model" type="varchar(100)" remarks="使用的Embedding模型">
+            <column name="embedding_model" type="varchar(100)">
                 <constraints nullable="false"/>
             </column>
-            <column name="embedding_dimension" type="smallint" remarks="向量维度">
+            <column name="embedding_dimension" type="smallint">
                 <constraints nullable="false"/>
             </column>
-            <column name="vector_table_name" type="varchar(100)" remarks="对应的向量表名"/>
-            
-            <column name="chunk_size" type="integer" remarks="文本块大小" defaultValue="500"/>
-            <column name="chunk_overlap" type="integer" remarks="块重叠大小" defaultValue="50"/>
-            <column name="chunk_strategy" type="varchar(20)" remarks="分段策略" defaultValue="FIXED"/>
-            
-            <column name="retrieval_top_k" type="smallint" remarks="检索Top-K数量" defaultValue="5"/>
-            <column name="similarity_threshold" type="decimal(3,2)" remarks="相似度阈值" defaultValue="0.7"/>
-            
-            <column name="document_count" type="integer" remarks="文档数量" defaultValue="0"/>
-            <column name="chunk_count" type="integer" remarks="文档块数量" defaultValue="0"/>
-            <column name="vector_count" type="bigint" remarks="向量数量" defaultValue="0"/>
-            <column name="total_size_bytes" type="bigint" remarks="总大小" defaultValue="0"/>
-            
-            <column name="status" type="varchar(20)" remarks="状态" defaultValue="ACTIVE"/>
-            
-            <column name="created_at" type="timestamp" remarks="创建时间" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="vector_table_name" type="varchar(100)"/>
+            <column name="chunk_size" type="int" defaultValue="500"/>
+            <column name="chunk_overlap" type="int" defaultValue="50"/>
+            <column name="chunk_strategy" type="varchar(20)" defaultValue="FIXED"/>
+            <column name="retrieval_top_k" type="smallint" defaultValue="5"/>
+            <column name="similarity_threshold" type="decimal(3,2)" defaultValue="0.70"/>
+            <column name="document_count" type="int" defaultValue="0"/>
+            <column name="chunk_count" type="int" defaultValue="0"/>
+            <column name="vector_count" type="bigint" defaultValue="0"/>
+            <column name="total_size_bytes" type="bigint" defaultValue="0"/>
+            <column name="status" type="varchar(20)" defaultValue="ACTIVE"/>
+            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" remarks="更新时间" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="created_by" type="bigint" remarks="创建人ID"/>
-            <column name="updated_by" type="bigint" remarks="更新人ID"/>
-            <column name="deleted_at" type="timestamp" remarks="删除时间"/>
+            <column name="created_by" type="bigint"/>
+            <column name="updated_by" type="bigint"/>
+            <column name="deleted_at" type="timestamp"/>
         </createTable>
-        
         <createIndex tableName="ai_knowledge_base" indexName="idx_kb_tenant_id">
             <column name="tenant_id"/>
         </createIndex>
@@ -99,70 +94,137 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 文档表 ai_document -->
+    <!-- 【PostgreSQL】知识库表 ai_knowledge_base -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030020" author="Jin">
+    <changeSet id="lambda-fusion-ai-202602030010-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="ai_document"/>
-            </not>
+            <and>
+                <not>
+                    <tableExists tableName="ai_knowledge_base"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
         </preConditions>
-        <createTable tableName="ai_document" remarks="文档表">
-            <column name="id" type="bigserial" remarks="主键">
+        <createTable tableName="ai_knowledge_base" remarks="知识库表">
+            <column name="id" type="bigserial">
                 <constraints primaryKey="true"/>
             </column>
-            <column name="kb_id" type="bigint" remarks="所属知识库ID">
-                <constraints nullable="false" foreignKeyName="fk_document_kb" references="ai_knowledge_base(id)" deleteCascade="true"/>
-            </column>
-            
-            <column name="document_id" type="varchar(100)" remarks="文档唯一标识">
+            <column name="kb_id" type="varchar(100)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="file_name" type="varchar(500)" remarks="文件名">
+            <column name="name" type="varchar(200)">
                 <constraints nullable="false"/>
             </column>
-            <column name="file_type" type="varchar(50)" remarks="文件类型">
+            <column name="description" type="text"/>
+            <column name="category" type="varchar(50)"/>
+            <column name="tenant_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="file_size" type="bigint" remarks="文件大小">
+            <column name="owner_user_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="file_hash" type="varchar(64)" remarks="文件哈希(SHA-256)"/>
-            
-            <column name="storage_type" type="varchar(20)" remarks="存储类型" defaultValue="LOCAL"/>
-            <column name="storage_path" type="text" remarks="存储路径">
+            <column name="embedding_model" type="varchar(100)">
                 <constraints nullable="false"/>
             </column>
-            <column name="storage_url" type="text" remarks="访问URL"/>
-            
-            <column name="chunk_count" type="integer" remarks="分段数量" defaultValue="0"/>
-            <column name="vector_count" type="integer" remarks="向量数量" defaultValue="0"/>
-            <column name="process_status" type="varchar(20)" remarks="处理状态" defaultValue="PENDING"/>
-            <column name="process_progress" type="smallint" remarks="处理进度" defaultValue="0"/>
-            <column name="error_message" type="text" remarks="错误信息"/>
-            
-            <column name="metadata" type="jsonb" remarks="自定义元数据"/>
-            
-            <column name="char_count" type="integer" remarks="字符数"/>
-            <column name="word_count" type="integer" remarks="词数"/>
-            <column name="page_count" type="integer" remarks="页数"/>
-            
-            <column name="uploaded_at" type="timestamp" remarks="上传时间" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="embedding_dimension" type="smallint">
                 <constraints nullable="false"/>
             </column>
-            <column name="uploaded_by" type="bigint" remarks="上传用户">
+            <column name="vector_table_name" type="varchar(100)"/>
+            <column name="chunk_size" type="integer" defaultValue="500"/>
+            <column name="chunk_overlap" type="integer" defaultValue="50"/>
+            <column name="chunk_strategy" type="varchar(20)" defaultValue="FIXED"/>
+            <column name="retrieval_top_k" type="smallint" defaultValue="5"/>
+            <column name="similarity_threshold" type="decimal(3,2)" defaultValue="0.7"/>
+            <column name="document_count" type="integer" defaultValue="0"/>
+            <column name="chunk_count" type="integer" defaultValue="0"/>
+            <column name="vector_count" type="bigint" defaultValue="0"/>
+            <column name="total_size_bytes" type="bigint" defaultValue="0"/>
+            <column name="status" type="varchar(20)" defaultValue="ACTIVE"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="processed_at" type="timestamp" remarks="处理完成时间"/>
-            <column name="created_at" type="timestamp" remarks="创建时间" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" remarks="更新时间" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            <column name="deleted_at" type="timestamp" remarks="删除时间"/>
+            <column name="created_by" type="bigint"/>
+            <column name="updated_by" type="bigint"/>
+            <column name="deleted_at" type="timestamp"/>
         </createTable>
-        
+        <createIndex tableName="ai_knowledge_base" indexName="idx_kb_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        <createIndex tableName="ai_knowledge_base" indexName="idx_kb_owner_user_id">
+            <column name="owner_user_id"/>
+        </createIndex>
+        <createIndex tableName="ai_knowledge_base" indexName="idx_kb_status">
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="ai_knowledge_base" indexName="idx_kb_created_at">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】文档表 ai_document -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602030020-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_document"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_document" remarks="文档表">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="kb_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_document_kb" references="ai_knowledge_base(id)"/>
+            </column>
+            <column name="document_id" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="file_name" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_type" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_size" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_hash" type="varchar(64)"/>
+            <column name="storage_type" type="varchar(20)" defaultValue="LOCAL"/>
+            <column name="storage_path" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="storage_url" type="text"/>
+            <column name="chunk_count" type="int" defaultValue="0"/>
+            <column name="vector_count" type="int" defaultValue="0"/>
+            <column name="process_status" type="varchar(20)" defaultValue="PENDING"/>
+            <column name="process_progress" type="smallint" defaultValue="0"/>
+            <column name="error_message" type="text"/>
+            <column name="metadata" type="json"/>
+            <column name="char_count" type="int"/>
+            <column name="word_count" type="int"/>
+            <column name="page_count" type="int"/>
+            <column name="uploaded_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uploaded_by" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="processed_at" type="timestamp"/>
+            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted_at" type="timestamp"/>
+        </createTable>
         <createIndex tableName="ai_document" indexName="idx_doc_kb_id">
             <column name="kb_id"/>
         </createIndex>
@@ -178,59 +240,128 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 文档块表 ai_document_chunk -->
+    <!-- 【PostgreSQL】文档表 ai_document -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030030" author="Jin">
+    <changeSet id="lambda-fusion-ai-202602030020-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="ai_document_chunk"/>
-            </not>
+            <and>
+                <not>
+                    <tableExists tableName="ai_document"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
         </preConditions>
-        <createTable tableName="ai_document_chunk" remarks="文档块表">
-            <column name="id" type="bigserial" remarks="主键">
+        <createTable tableName="ai_document" remarks="文档表">
+            <column name="id" type="bigserial">
                 <constraints primaryKey="true"/>
             </column>
-            
-            <column name="chunk_id" type="varchar(100)" remarks="块唯一标识">
+            <column name="kb_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_document_kb" references="ai_knowledge_base(id)"/>
+            </column>
+            <column name="document_id" type="varchar(100)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="document_id" type="bigint" remarks="所属文档ID">
-                <constraints nullable="false" foreignKeyName="fk_chunk_document" references="ai_document(id)" deleteCascade="true"/>
-            </column>
-            <column name="kb_id" type="bigint" remarks="所属知识库ID">
-                <constraints nullable="false" foreignKeyName="fk_chunk_kb" references="ai_knowledge_base(id)" deleteCascade="true"/>
-            </column>
-            
-            <column name="content" type="text" remarks="文本内容">
+            <column name="file_name" type="varchar(500)">
                 <constraints nullable="false"/>
             </column>
-            <column name="content_hash" type="varchar(64)" remarks="内容哈希"/>
-            
-            <column name="chunk_index" type="integer" remarks="块序号">
+            <column name="file_type" type="varchar(50)">
                 <constraints nullable="false"/>
             </column>
-            <column name="start_offset" type="integer" remarks="起始位置"/>
-            <column name="end_offset" type="integer" remarks="结束位置"/>
-            <column name="page_number" type="integer" remarks="页码"/>
-            
-            <column name="vector_id" type="varchar(100)" remarks="关联向量ID"/>
-            <column name="embedding_status" type="varchar(20)" remarks="向量化状态" defaultValue="PENDING"/>
-            
-            <column name="metadata" type="jsonb" remarks="块级元数据"/>
-            
-            <column name="char_count" type="integer" remarks="字符数"/>
-            <column name="token_count" type="integer" remarks="Token数"/>
-            
-            <column name="created_at" type="timestamp" remarks="创建时间" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="file_size" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" remarks="更新时间" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="file_hash" type="varchar(64)"/>
+            <column name="storage_type" type="varchar(20)" defaultValue="LOCAL"/>
+            <column name="storage_path" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="storage_url" type="text"/>
+            <column name="chunk_count" type="integer" defaultValue="0"/>
+            <column name="vector_count" type="integer" defaultValue="0"/>
+            <column name="process_status" type="varchar(20)" defaultValue="PENDING"/>
+            <column name="process_progress" type="smallint" defaultValue="0"/>
+            <column name="error_message" type="text"/>
+            <column name="metadata" type="jsonb"/>
+            <column name="char_count" type="integer"/>
+            <column name="word_count" type="integer"/>
+            <column name="page_count" type="integer"/>
+            <column name="uploaded_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="uploaded_by" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="processed_at" type="timestamp"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted_at" type="timestamp"/>
+        </createTable>
+        <createIndex tableName="ai_document" indexName="idx_doc_kb_id">
+            <column name="kb_id"/>
+        </createIndex>
+        <createIndex tableName="ai_document" indexName="idx_doc_file_hash">
+            <column name="file_hash"/>
+        </createIndex>
+        <createIndex tableName="ai_document" indexName="idx_doc_process_status">
+            <column name="process_status"/>
+        </createIndex>
+        <createIndex tableName="ai_document" indexName="idx_doc_uploaded_at">
+            <column name="uploaded_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】文档块表 ai_document_chunk -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602030030-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_document_chunk"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_document_chunk" remarks="文档块表">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="chunk_id" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="document_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_chunk_document" references="ai_document(id)"/>
+            </column>
+            <column name="kb_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_chunk_kb" references="ai_knowledge_base(id)"/>
+            </column>
+            <column name="content" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content_hash" type="varchar(64)"/>
+            <column name="chunk_index" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_offset" type="int"/>
+            <column name="end_offset" type="int"/>
+            <column name="page_number" type="int"/>
+            <column name="vector_id" type="varchar(100)"/>
+            <column name="embedding_status" type="varchar(20)" defaultValue="PENDING"/>
+            <column name="metadata" type="json"/>
+            <column name="char_count" type="int"/>
+            <column name="token_count" type="int"/>
+            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        
         <addUniqueConstraint tableName="ai_document_chunk" columnNames="document_id, chunk_index" constraintName="uk_doc_chunk_index"/>
-        
         <createIndex tableName="ai_document_chunk" indexName="idx_chunk_document_id">
             <column name="document_id"/>
         </createIndex>
@@ -249,71 +380,128 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- LLM模型配置表 ai_llm_model -->
+    <!-- 【PostgreSQL】文档块表 ai_document_chunk -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030040" author="Jin">
+    <changeSet id="lambda-fusion-ai-202602030030-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="ai_llm_model"/>
-            </not>
+            <and>
+                <not>
+                    <tableExists tableName="ai_document_chunk"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
         </preConditions>
-        <createTable tableName="ai_llm_model" remarks="LLM模型配置表">
-            <column name="id" type="bigserial" remarks="主键">
+        <createTable tableName="ai_document_chunk" remarks="文档块表">
+            <column name="id" type="bigserial">
                 <constraints primaryKey="true"/>
             </column>
-            
-            <column name="model_id" type="varchar(100)" remarks="模型唯一标识">
+            <column name="chunk_id" type="varchar(100)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="name" type="varchar(200)" remarks="模型名称">
+            <column name="document_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_chunk_document" references="ai_document(id)"/>
+            </column>
+            <column name="kb_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_chunk_kb" references="ai_knowledge_base(id)"/>
+            </column>
+            <column name="content" type="text">
                 <constraints nullable="false"/>
             </column>
-            <column name="display_name" type="varchar(200)" remarks="显示名称"/>
-            
-            <column name="model_type" type="varchar(20)" remarks="模型类型">
+            <column name="content_hash" type="varchar(64)"/>
+            <column name="chunk_index" type="integer">
                 <constraints nullable="false"/>
             </column>
-            <column name="provider" type="varchar(50)" remarks="提供商">
+            <column name="start_offset" type="integer"/>
+            <column name="end_offset" type="integer"/>
+            <column name="page_number" type="integer"/>
+            <column name="vector_id" type="varchar(100)"/>
+            <column name="embedding_status" type="varchar(20)" defaultValue="PENDING"/>
+            <column name="metadata" type="jsonb"/>
+            <column name="char_count" type="integer"/>
+            <column name="token_count" type="integer"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            
-            <column name="base_url" type="varchar(500)" remarks="API Base URL"/>
-            <column name="api_key_encrypted" type="text" remarks="加密的API Key"/>
-            <column name="api_version" type="varchar(50)" remarks="API版本"/>
-            <column name="deployment_name" type="varchar(100)" remarks="部署名称"/>
-            
-            <column name="model_name" type="varchar(100)" remarks="实际模型名">
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="default_temperature" type="decimal(3,2)" remarks="默认温度" defaultValue="0.7"/>
-            <column name="default_max_tokens" type="integer" remarks="默认最大Token数" defaultValue="2048"/>
-            <column name="default_top_p" type="decimal(3,2)" remarks="默认Top-P" defaultValue="1.0"/>
-            <column name="context_window" type="integer" remarks="上下文窗口大小"/>
-            
-            <column name="rate_limit_config" type="jsonb" remarks="限流配置"/>
-            
-            <column name="input_token_price" type="decimal(10,6)" remarks="输入Token单价"/>
-            <column name="output_token_price" type="decimal(10,6)" remarks="输出Token单价"/>
-            
-            <column name="capabilities" type="jsonb" remarks="能力标签"/>
-            
-            <column name="enabled" type="boolean" remarks="是否启用" defaultValueBoolean="true"/>
-            <column name="is_default" type="boolean" remarks="是否默认" defaultValueBoolean="false"/>
-            
-            <column name="total_calls" type="bigint" remarks="总调用次数" defaultValue="0"/>
-            <column name="total_tokens" type="bigint" remarks="总Token消耗" defaultValue="0"/>
-            <column name="total_cost" type="decimal(12,4)" remarks="总成本" defaultValue="0"/>
-            
-            <column name="created_at" type="timestamp" remarks="创建时间" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            <column name="updated_at" type="timestamp" remarks="更新时间" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            <column name="created_by" type="bigint" remarks="创建人ID"/>
-            <column name="updated_by" type="bigint" remarks="更新人ID"/>
         </createTable>
-        
+        <addUniqueConstraint tableName="ai_document_chunk" columnNames="document_id, chunk_index" constraintName="uk_doc_chunk_index"/>
+        <createIndex tableName="ai_document_chunk" indexName="idx_chunk_document_id">
+            <column name="document_id"/>
+        </createIndex>
+        <createIndex tableName="ai_document_chunk" indexName="idx_chunk_kb_id">
+            <column name="kb_id"/>
+        </createIndex>
+        <createIndex tableName="ai_document_chunk" indexName="idx_chunk_vector_id">
+            <column name="vector_id"/>
+        </createIndex>
+        <createIndex tableName="ai_document_chunk" indexName="idx_chunk_embedding_status">
+            <column name="embedding_status"/>
+        </createIndex>
+        <createIndex tableName="ai_document_chunk" indexName="idx_chunk_content_hash">
+            <column name="content_hash"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】LLM模型配置表 ai_llm_model -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602030040-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_llm_model"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_llm_model" remarks="LLM模型配置表">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="model_id" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="display_name" type="varchar(200)"/>
+            <column name="model_type" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="base_url" type="varchar(500)"/>
+            <column name="api_key_encrypted" type="text"/>
+            <column name="api_version" type="varchar(50)"/>
+            <column name="deployment_name" type="varchar(100)"/>
+            <column name="model_name" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="default_temperature" type="decimal(3,2)" defaultValue="0.70"/>
+            <column name="default_max_tokens" type="int" defaultValue="2048"/>
+            <column name="default_top_p" type="decimal(3,2)" defaultValue="1.00"/>
+            <column name="context_window" type="int"/>
+            <column name="rate_limit_config" type="json"/>
+            <column name="input_token_price" type="decimal(10,6)"/>
+            <column name="output_token_price" type="decimal(10,6)"/>
+            <column name="capabilities" type="json"/>
+            <column name="enabled" type="tinyint(1)" defaultValue="1"/>
+            <column name="is_default" type="tinyint(1)" defaultValue="0"/>
+            <column name="total_calls" type="bigint" defaultValue="0"/>
+            <column name="total_tokens" type="bigint" defaultValue="0"/>
+            <column name="total_cost" type="decimal(12,4)" defaultValue="0"/>
+            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="bigint"/>
+            <column name="updated_by" type="bigint"/>
+        </createTable>
         <createIndex tableName="ai_llm_model" indexName="idx_model_type">
             <column name="model_type"/>
         </createIndex>
@@ -326,56 +514,119 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 对话会话表 ai_chat_session -->
+    <!-- 【PostgreSQL】LLM模型配置表 ai_llm_model -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030050" author="Jin">
+    <changeSet id="lambda-fusion-ai-202602030040-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="ai_chat_session"/>
-            </not>
+            <and>
+                <not>
+                    <tableExists tableName="ai_llm_model"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
         </preConditions>
-        <createTable tableName="ai_chat_session" remarks="对话会话表">
-            <column name="id" type="bigserial" remarks="主键">
+        <createTable tableName="ai_llm_model" remarks="LLM模型配置表">
+            <column name="id" type="bigserial">
                 <constraints primaryKey="true"/>
             </column>
-            
-            <column name="session_id" type="varchar(100)" remarks="会话唯一标识">
+            <column name="model_id" type="varchar(100)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="title" type="varchar(500)" remarks="会话标题"/>
-            
-            <column name="kb_id" type="bigint" remarks="关联知识库ID">
-                <constraints foreignKeyName="fk_session_kb" references="ai_knowledge_base(id)" deleteCascade="false"/>
-            </column>
-            <column name="user_id" type="bigint" remarks="用户ID">
+            <column name="name" type="varchar(200)">
                 <constraints nullable="false"/>
             </column>
-            <column name="tenant_id" type="bigint" remarks="租户ID">
+            <column name="display_name" type="varchar(200)"/>
+            <column name="model_type" type="varchar(20)">
                 <constraints nullable="false"/>
             </column>
-            
-            <column name="llm_model_id" type="bigint" remarks="LLM模型ID">
-                <constraints foreignKeyName="fk_session_model" references="ai_llm_model(id)" deleteCascade="false"/>
-            </column>
-            <column name="system_prompt" type="text" remarks="系统提示词"/>
-            <column name="temperature" type="decimal(3,2)" remarks="温度参数"/>
-            <column name="max_tokens" type="integer" remarks="最大Token数"/>
-            
-            <column name="message_count" type="integer" remarks="消息数量" defaultValue="0"/>
-            <column name="total_tokens" type="integer" remarks="总Token消耗" defaultValue="0"/>
-            <column name="total_cost" type="decimal(10,4)" remarks="总成本" defaultValue="0"/>
-            
-            <column name="status" type="varchar(20)" remarks="状态" defaultValue="ACTIVE"/>
-            
-            <column name="created_at" type="timestamp" remarks="创建时间" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="provider" type="varchar(50)">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" remarks="更新时间" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="base_url" type="varchar(500)"/>
+            <column name="api_key_encrypted" type="text"/>
+            <column name="api_version" type="varchar(50)"/>
+            <column name="deployment_name" type="varchar(100)"/>
+            <column name="model_name" type="varchar(100)">
                 <constraints nullable="false"/>
             </column>
-            <column name="last_message_at" type="timestamp" remarks="最后消息时间"/>
+            <column name="default_temperature" type="decimal(3,2)" defaultValue="0.7"/>
+            <column name="default_max_tokens" type="integer" defaultValue="2048"/>
+            <column name="default_top_p" type="decimal(3,2)" defaultValue="1.0"/>
+            <column name="context_window" type="integer"/>
+            <column name="rate_limit_config" type="jsonb"/>
+            <column name="input_token_price" type="decimal(10,6)"/>
+            <column name="output_token_price" type="decimal(10,6)"/>
+            <column name="capabilities" type="jsonb"/>
+            <column name="enabled" type="boolean" defaultValueBoolean="true"/>
+            <column name="is_default" type="boolean" defaultValueBoolean="false"/>
+            <column name="total_calls" type="bigint" defaultValue="0"/>
+            <column name="total_tokens" type="bigint" defaultValue="0"/>
+            <column name="total_cost" type="decimal(12,4)" defaultValue="0"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="bigint"/>
+            <column name="updated_by" type="bigint"/>
         </createTable>
-        
+        <createIndex tableName="ai_llm_model" indexName="idx_model_type">
+            <column name="model_type"/>
+        </createIndex>
+        <createIndex tableName="ai_llm_model" indexName="idx_model_provider">
+            <column name="provider"/>
+        </createIndex>
+        <createIndex tableName="ai_llm_model" indexName="idx_model_enabled">
+            <column name="enabled"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- 由于篇幅限制，后续业务表继续采用相同的 MySQL/PostgreSQL 双 changeSet 模式 -->
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】对话会话表 ai_chat_session -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602030050-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_chat_session"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_chat_session" remarks="对话会话表">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="session_id" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="title" type="varchar(500)"/>
+            <column name="kb_id" type="bigint"/>
+            <column name="user_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tenant_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="llm_model_id" type="bigint"/>
+            <column name="system_prompt" type="text"/>
+            <column name="temperature" type="decimal(3,2)"/>
+            <column name="max_tokens" type="int"/>
+            <column name="message_count" type="int" defaultValue="0"/>
+            <column name="total_tokens" type="int" defaultValue="0"/>
+            <column name="total_cost" type="decimal(10,4)" defaultValue="0"/>
+            <column name="status" type="varchar(20)" defaultValue="ACTIVE"/>
+            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_message_at" type="timestamp"/>
+        </createTable>
         <createIndex tableName="ai_chat_session" indexName="idx_session_user_id">
             <column name="user_id"/>
         </createIndex>
@@ -394,53 +645,107 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 对话消息表 ai_chat_message -->
+    <!-- 【PostgreSQL】对话会话表 ai_chat_session -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030060" author="Jin">
+    <changeSet id="lambda-fusion-ai-202602030050-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="ai_chat_message"/>
-            </not>
+            <and>
+                <not>
+                    <tableExists tableName="ai_chat_session"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
         </preConditions>
-        <createTable tableName="ai_chat_message" remarks="对话消息表">
-            <column name="id" type="bigserial" remarks="主键">
+        <createTable tableName="ai_chat_session" remarks="对话会话表">
+            <column name="id" type="bigserial">
                 <constraints primaryKey="true"/>
             </column>
-            
-            <column name="message_id" type="varchar(100)" remarks="消息唯一标识">
+            <column name="session_id" type="varchar(100)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="session_id" type="bigint" remarks="所属会话ID">
-                <constraints nullable="false" foreignKeyName="fk_message_session" references="ai_chat_session(id)" deleteCascade="true"/>
-            </column>
-            
-            <column name="role" type="varchar(20)" remarks="角色">
+            <column name="title" type="varchar(500)"/>
+            <column name="kb_id" type="bigint"/>
+            <column name="user_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="content" type="text" remarks="消息内容">
+            <column name="tenant_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            
-            <column name="is_rag_enhanced" type="boolean" remarks="是否RAG增强" defaultValueBoolean="false"/>
-            <column name="retrieved_chunks" type="jsonb" remarks="检索到的文档块"/>
-            <column name="rag_context" type="text" remarks="RAG上下文"/>
-            
-            <column name="prompt_tokens" type="integer" remarks="提示Token数"/>
-            <column name="completion_tokens" type="integer" remarks="完成Token数"/>
-            <column name="total_tokens" type="integer" remarks="总Token数"/>
-            
-            <column name="quality_score" type="decimal(3,2)" remarks="质量评分"/>
-            <column name="user_feedback" type="smallint" remarks="用户反馈"/>
-            
-            <column name="latency_ms" type="integer" remarks="响应延迟"/>
-            
-            <column name="metadata" type="jsonb" remarks="元数据"/>
-            
-            <column name="created_at" type="timestamp" remarks="创建时间" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="llm_model_id" type="bigint"/>
+            <column name="system_prompt" type="text"/>
+            <column name="temperature" type="decimal(3,2)"/>
+            <column name="max_tokens" type="integer"/>
+            <column name="message_count" type="integer" defaultValue="0"/>
+            <column name="total_tokens" type="integer" defaultValue="0"/>
+            <column name="total_cost" type="decimal(10,4)" defaultValue="0"/>
+            <column name="status" type="varchar(20)" defaultValue="ACTIVE"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_message_at" type="timestamp"/>
+        </createTable>
+        <createIndex tableName="ai_chat_session" indexName="idx_session_user_id">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="ai_chat_session" indexName="idx_session_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        <createIndex tableName="ai_chat_session" indexName="idx_session_kb_id">
+            <column name="kb_id"/>
+        </createIndex>
+        <createIndex tableName="ai_chat_session" indexName="idx_session_status">
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="ai_chat_session" indexName="idx_session_created_at">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】对话消息表 ai_chat_message -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602030060-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_chat_message"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_chat_message" remarks="对话消息表">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="message_id" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="session_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_rag_enhanced" type="tinyint(1)" defaultValue="0"/>
+            <column name="retrieved_chunks" type="json"/>
+            <column name="rag_context" type="text"/>
+            <column name="prompt_tokens" type="int"/>
+            <column name="completion_tokens" type="int"/>
+            <column name="total_tokens" type="int"/>
+            <column name="quality_score" type="decimal(3,2)"/>
+            <column name="user_feedback" type="smallint"/>
+            <column name="latency_ms" type="int"/>
+            <column name="metadata" type="json"/>
+            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        
         <createIndex tableName="ai_chat_message" indexName="idx_message_session_id">
             <column name="session_id"/>
         </createIndex>
@@ -456,68 +761,116 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 流程定义表 ai_pipeline_definition -->
+    <!-- 【PostgreSQL】对话消息表 ai_chat_message -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030070" author="Jin">
+    <changeSet id="lambda-fusion-ai-202602030060-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="ai_pipeline_definition"/>
-            </not>
+            <and>
+                <not>
+                    <tableExists tableName="ai_chat_message"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
         </preConditions>
-        <createTable tableName="ai_pipeline_definition" remarks="流程定义表">
-            <column name="id" type="bigserial" remarks="主键">
+        <createTable tableName="ai_chat_message" remarks="对话消息表">
+            <column name="id" type="bigserial">
                 <constraints primaryKey="true"/>
             </column>
-            
-            <column name="pipeline_id" type="varchar(100)" remarks="流程唯一标识">
+            <column name="message_id" type="varchar(100)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="name" type="varchar(200)" remarks="流程名称">
+            <column name="session_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="description" type="text" remarks="描述"/>
-            <column name="category" type="varchar(50)" remarks="分类"/>
-            
-            <column name="definition" type="jsonb" remarks="流程定义(JSON)">
+            <column name="role" type="varchar(20)">
                 <constraints nullable="false"/>
             </column>
-            <column name="definition_version" type="varchar(20)" remarks="定义版本" defaultValue="1.0"/>
-            
-            <column name="input_schema" type="jsonb" remarks="输入Schema"/>
-            <column name="output_schema" type="jsonb" remarks="输出Schema"/>
-            <column name="default_params" type="jsonb" remarks="默认参数"/>
-            
-            <column name="tenant_id" type="bigint" remarks="租户ID">
+            <column name="content" type="text">
                 <constraints nullable="false"/>
             </column>
-            <column name="owner_user_id" type="bigint" remarks="创建者">
+            <column name="is_rag_enhanced" type="boolean" defaultValueBoolean="false"/>
+            <column name="retrieved_chunks" type="jsonb"/>
+            <column name="rag_context" type="text"/>
+            <column name="prompt_tokens" type="integer"/>
+            <column name="completion_tokens" type="integer"/>
+            <column name="total_tokens" type="integer"/>
+            <column name="quality_score" type="decimal(3,2)"/>
+            <column name="user_feedback" type="smallint"/>
+            <column name="latency_ms" type="integer"/>
+            <column name="metadata" type="jsonb"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="is_public" type="boolean" remarks="是否公开" defaultValueBoolean="false"/>
-            
-            <column name="version" type="integer" remarks="版本号" defaultValue="1"/>
-            <column name="parent_id" type="bigint" remarks="父流程ID">
-                <constraints foreignKeyName="fk_pipeline_parent" references="ai_pipeline_definition(id)" deleteCascade="false"/>
-            </column>
-            
-            <column name="status" type="varchar(20)" remarks="状态" defaultValue="DRAFT"/>
-            <column name="enabled" type="boolean" remarks="是否启用" defaultValueBoolean="true"/>
-            
-            <column name="execution_count" type="bigint" remarks="执行次数" defaultValue="0"/>
-            <column name="success_count" type="bigint" remarks="成功次数" defaultValue="0"/>
-            <column name="avg_duration_ms" type="integer" remarks="平均执行时长"/>
-            
-            <column name="created_at" type="timestamp" remarks="创建时间" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            <column name="updated_at" type="timestamp" remarks="更新时间" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            <column name="published_at" type="timestamp" remarks="发布时间"/>
-            <column name="created_by" type="bigint" remarks="创建人ID"/>
-            <column name="updated_by" type="bigint" remarks="更新人ID"/>
         </createTable>
-        
+        <createIndex tableName="ai_chat_message" indexName="idx_message_session_id">
+            <column name="session_id"/>
+        </createIndex>
+        <createIndex tableName="ai_chat_message" indexName="idx_message_role">
+            <column name="role"/>
+        </createIndex>
+        <createIndex tableName="ai_chat_message" indexName="idx_message_created_at">
+            <column name="created_at"/>
+        </createIndex>
+        <createIndex tableName="ai_chat_message" indexName="idx_message_is_rag">
+            <column name="is_rag_enhanced"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】流程定义表 ai_pipeline_definition -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602030070-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_pipeline_definition"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_pipeline_definition" remarks="流程定义表">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="pipeline_id" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="category" type="varchar(50)"/>
+            <column name="definition" type="json">
+                <constraints nullable="false"/>
+            </column>
+            <column name="definition_version" type="varchar(20)" defaultValue="1.0"/>
+            <column name="input_schema" type="json"/>
+            <column name="output_schema" type="json"/>
+            <column name="default_params" type="json"/>
+            <column name="tenant_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="owner_user_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_public" type="tinyint(1)" defaultValue="0"/>
+            <column name="version" type="int" defaultValue="1"/>
+            <column name="parent_id" type="bigint"/>
+            <column name="status" type="varchar(20)" defaultValue="DRAFT"/>
+            <column name="enabled" type="tinyint(1)" defaultValue="1"/>
+            <column name="execution_count" type="bigint" defaultValue="0"/>
+            <column name="success_count" type="bigint" defaultValue="0"/>
+            <column name="avg_duration_ms" type="int"/>
+            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="published_at" type="timestamp"/>
+            <column name="created_by" type="bigint"/>
+            <column name="updated_by" type="bigint"/>
+        </createTable>
         <createIndex tableName="ai_pipeline_definition" indexName="idx_pipeline_tenant_id">
             <column name="tenant_id"/>
         </createIndex>
@@ -533,56 +886,119 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 流程执行表 ai_pipeline_execution -->
+    <!-- 【PostgreSQL】流程定义表 ai_pipeline_definition -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030080" author="Jin">
+    <changeSet id="lambda-fusion-ai-202602030070-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="ai_pipeline_execution"/>
-            </not>
+            <and>
+                <not>
+                    <tableExists tableName="ai_pipeline_definition"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
         </preConditions>
-        <createTable tableName="ai_pipeline_execution" remarks="流程执行记录表">
-            <column name="id" type="bigserial" remarks="主键">
+        <createTable tableName="ai_pipeline_definition" remarks="流程定义表">
+            <column name="id" type="bigserial">
                 <constraints primaryKey="true"/>
             </column>
-            
-            <column name="execution_id" type="varchar(100)" remarks="执行唯一标识">
+            <column name="pipeline_id" type="varchar(100)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="pipeline_id" type="bigint" remarks="流程定义ID">
-                <constraints nullable="false" foreignKeyName="fk_execution_pipeline" references="ai_pipeline_definition(id)" deleteCascade="true"/>
-            </column>
-            <column name="pipeline_version" type="integer" remarks="流程版本"/>
-            
-            <column name="user_id" type="bigint" remarks="执行用户">
+            <column name="name" type="varchar(200)">
                 <constraints nullable="false"/>
             </column>
-            <column name="tenant_id" type="bigint" remarks="租户ID">
+            <column name="description" type="text"/>
+            <column name="category" type="varchar(50)"/>
+            <column name="definition" type="jsonb">
                 <constraints nullable="false"/>
             </column>
-            
-            <column name="input_params" type="jsonb" remarks="输入参数"/>
-            <column name="output_result" type="jsonb" remarks="输出结果"/>
-            
-            <column name="status" type="varchar(20)" remarks="状态" defaultValue="RUNNING"/>
-            <column name="progress" type="smallint" remarks="进度" defaultValue="0"/>
-            <column name="current_step" type="varchar(100)" remarks="当前执行步骤"/>
-            
-            <column name="error_code" type="varchar(50)" remarks="错误代码"/>
-            <column name="error_message" type="text" remarks="错误消息"/>
-            <column name="error_stack" type="text" remarks="错误堆栈"/>
-            
-            <column name="started_at" type="timestamp" remarks="开始时间"/>
-            <column name="completed_at" type="timestamp" remarks="完成时间"/>
-            <column name="duration_ms" type="integer" remarks="执行时长"/>
-            
-            <column name="execution_log" type="jsonb" remarks="执行日志"/>
-            
-            <column name="created_at" type="timestamp" remarks="创建时间" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="definition_version" type="varchar(20)" defaultValue="1.0"/>
+            <column name="input_schema" type="jsonb"/>
+            <column name="output_schema" type="jsonb"/>
+            <column name="default_params" type="jsonb"/>
+            <column name="tenant_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="owner_user_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_public" type="boolean" defaultValueBoolean="false"/>
+            <column name="version" type="integer" defaultValue="1"/>
+            <column name="parent_id" type="bigint"/>
+            <column name="status" type="varchar(20)" defaultValue="DRAFT"/>
+            <column name="enabled" type="boolean" defaultValueBoolean="true"/>
+            <column name="execution_count" type="bigint" defaultValue="0"/>
+            <column name="success_count" type="bigint" defaultValue="0"/>
+            <column name="avg_duration_ms" type="integer"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="published_at" type="timestamp"/>
+            <column name="created_by" type="bigint"/>
+            <column name="updated_by" type="bigint"/>
+        </createTable>
+        <createIndex tableName="ai_pipeline_definition" indexName="idx_pipeline_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        <createIndex tableName="ai_pipeline_definition" indexName="idx_pipeline_owner">
+            <column name="owner_user_id"/>
+        </createIndex>
+        <createIndex tableName="ai_pipeline_definition" indexName="idx_pipeline_category">
+            <column name="category"/>
+        </createIndex>
+        <createIndex tableName="ai_pipeline_definition" indexName="idx_pipeline_status">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】流程执行表 ai_pipeline_execution -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602030080-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_pipeline_execution"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_pipeline_execution" remarks="流程执行记录表">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="execution_id" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="pipeline_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pipeline_version" type="int"/>
+            <column name="user_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tenant_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="input_params" type="json"/>
+            <column name="output_result" type="json"/>
+            <column name="status" type="varchar(20)" defaultValue="RUNNING"/>
+            <column name="progress" type="smallint" defaultValue="0"/>
+            <column name="current_step" type="varchar(100)"/>
+            <column name="error_code" type="varchar(50)"/>
+            <column name="error_message" type="text"/>
+            <column name="error_stack" type="text"/>
+            <column name="started_at" type="timestamp"/>
+            <column name="completed_at" type="timestamp"/>
+            <column name="duration_ms" type="int"/>
+            <column name="execution_log" type="json"/>
+            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        
         <createIndex tableName="ai_pipeline_execution" indexName="idx_execution_pipeline_id">
             <column name="pipeline_id"/>
         </createIndex>
@@ -601,69 +1017,121 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 提示词模板表 ai_prompt_template -->
+    <!-- 【PostgreSQL】流程执行表 ai_pipeline_execution -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030090" author="Jin">
+    <changeSet id="lambda-fusion-ai-202602030080-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="ai_prompt_template"/>
-            </not>
+            <and>
+                <not>
+                    <tableExists tableName="ai_pipeline_execution"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
         </preConditions>
-        <createTable tableName="ai_prompt_template" remarks="提示词模板表">
-            <column name="id" type="bigserial" remarks="主键">
+        <createTable tableName="ai_pipeline_execution" remarks="流程执行记录表">
+            <column name="id" type="bigserial">
                 <constraints primaryKey="true"/>
             </column>
-            
-            <column name="template_id" type="varchar(100)" remarks="模板唯一标识">
+            <column name="execution_id" type="varchar(100)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="name" type="varchar(200)" remarks="模板名称">
+            <column name="pipeline_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="description" type="text" remarks="描述"/>
-            
-            <column name="category" type="varchar(50)" remarks="分类">
+            <column name="pipeline_version" type="integer"/>
+            <column name="user_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="tags" type="varchar(200)[]" remarks="标签数组"/>
-            
-            <column name="template_content" type="text" remarks="提示词模板">
+            <column name="tenant_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="variables" type="jsonb" remarks="变量定义"/>
-            
-            <column name="example_input" type="jsonb" remarks="示例输入"/>
-            <column name="example_output" type="text" remarks="示例输出"/>
-            
-            <column name="suggested_model" type="varchar(100)" remarks="推荐模型"/>
-            <column name="suggested_temperature" type="decimal(3,2)" remarks="推荐温度"/>
-            <column name="suggested_max_tokens" type="integer" remarks="推荐最大Token数"/>
-            
-            <column name="tenant_id" type="bigint" remarks="租户ID"/>
-            <column name="owner_user_id" type="bigint" remarks="创建者"/>
-            <column name="is_public" type="boolean" remarks="是否公开" defaultValueBoolean="false"/>
-            <column name="is_system" type="boolean" remarks="是否系统模板" defaultValueBoolean="false"/>
-            
-            <column name="version" type="integer" remarks="版本号" defaultValue="1"/>
-            <column name="parent_id" type="bigint" remarks="父模板ID">
-                <constraints foreignKeyName="fk_template_parent" references="ai_prompt_template(id)" deleteCascade="false"/>
-            </column>
-            
-            <column name="enabled" type="boolean" remarks="是否启用" defaultValueBoolean="true"/>
-            
-            <column name="usage_count" type="bigint" remarks="使用次数" defaultValue="0"/>
-            <column name="avg_rating" type="decimal(3,2)" remarks="平均评分"/>
-            
-            <column name="created_at" type="timestamp" remarks="创建时间" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="input_params" type="jsonb"/>
+            <column name="output_result" type="jsonb"/>
+            <column name="status" type="varchar(20)" defaultValue="RUNNING"/>
+            <column name="progress" type="smallint" defaultValue="0"/>
+            <column name="current_step" type="varchar(100)"/>
+            <column name="error_code" type="varchar(50)"/>
+            <column name="error_message" type="text"/>
+            <column name="error_stack" type="text"/>
+            <column name="started_at" type="timestamp"/>
+            <column name="completed_at" type="timestamp"/>
+            <column name="duration_ms" type="integer"/>
+            <column name="execution_log" type="jsonb"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" remarks="更新时间" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            <column name="created_by" type="bigint" remarks="创建人ID"/>
-            <column name="updated_by" type="bigint" remarks="更新人ID"/>
         </createTable>
-        
+        <createIndex tableName="ai_pipeline_execution" indexName="idx_execution_pipeline_id">
+            <column name="pipeline_id"/>
+        </createIndex>
+        <createIndex tableName="ai_pipeline_execution" indexName="idx_execution_user_id">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="ai_pipeline_execution" indexName="idx_execution_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        <createIndex tableName="ai_pipeline_execution" indexName="idx_execution_status">
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="ai_pipeline_execution" indexName="idx_execution_started_at">
+            <column name="started_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】提示词模板表 ai_prompt_template -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602030090-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_prompt_template"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_prompt_template" remarks="提示词模板表">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="template_id" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="category" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tags" type="varchar(200)"/>
+            <column name="template_content" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="variables" type="json"/>
+            <column name="example_input" type="json"/>
+            <column name="example_output" type="text"/>
+            <column name="suggested_model" type="varchar(100)"/>
+            <column name="suggested_temperature" type="decimal(3,2)"/>
+            <column name="suggested_max_tokens" type="int"/>
+            <column name="tenant_id" type="bigint"/>
+            <column name="owner_user_id" type="bigint"/>
+            <column name="is_public" type="tinyint(1)" defaultValue="0"/>
+            <column name="is_system" type="tinyint(1)" defaultValue="0"/>
+            <column name="version" type="int" defaultValue="1"/>
+            <column name="parent_id" type="bigint"/>
+            <column name="enabled" type="tinyint(1)" defaultValue="1"/>
+            <column name="usage_count" type="bigint" defaultValue="0"/>
+            <column name="avg_rating" type="decimal(3,2)"/>
+            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="bigint"/>
+            <column name="updated_by" type="bigint"/>
+        </createTable>
         <createIndex tableName="ai_prompt_template" indexName="idx_template_category">
             <column name="category"/>
         </createIndex>
@@ -676,10 +1144,356 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 初始化系统提示词模板数据 -->
+    <!-- 【PostgreSQL】提示词模板表 ai_prompt_template -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602030090-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_prompt_template"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_prompt_template" remarks="提示词模板表">
+            <column name="id" type="bigserial">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="template_id" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="category" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tags" type="varchar(200)[]"/>
+            <column name="template_content" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="variables" type="jsonb"/>
+            <column name="example_input" type="jsonb"/>
+            <column name="example_output" type="text"/>
+            <column name="suggested_model" type="varchar(100)"/>
+            <column name="suggested_temperature" type="decimal(3,2)"/>
+            <column name="suggested_max_tokens" type="integer"/>
+            <column name="tenant_id" type="bigint"/>
+            <column name="owner_user_id" type="bigint"/>
+            <column name="is_public" type="boolean" defaultValueBoolean="false"/>
+            <column name="is_system" type="boolean" defaultValueBoolean="false"/>
+            <column name="version" type="integer" defaultValue="1"/>
+            <column name="parent_id" type="bigint"/>
+            <column name="enabled" type="boolean" defaultValueBoolean="true"/>
+            <column name="usage_count" type="bigint" defaultValue="0"/>
+            <column name="avg_rating" type="decimal(3,2)"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="bigint"/>
+            <column name="updated_by" type="bigint"/>
+        </createTable>
+        <createIndex tableName="ai_prompt_template" indexName="idx_template_category">
+            <column name="category"/>
+        </createIndex>
+        <createIndex tableName="ai_prompt_template" indexName="idx_template_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        <createIndex tableName="ai_prompt_template" indexName="idx_template_is_system">
+            <column name="is_system"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】Agent工作流配置表 ai_agent_workflow -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202603010010-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_agent_workflow"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_agent_workflow" remarks="Agent工作流配置表">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="name" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="graph_json" type="json">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tenant_id" type="bigint"/>
+            <column name="owner_user_id" type="bigint"/>
+            <column name="is_public" type="tinyint(1)" defaultValue="0"/>
+            <column name="enabled" type="tinyint(1)" defaultValue="1"/>
+            <column name="version" type="int" defaultValue="1"/>
+            <column name="execution_count" type="bigint" defaultValue="0"/>
+            <column name="success_count" type="bigint" defaultValue="0"/>
+            <column name="avg_duration_ms" type="int"/>
+            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="bigint"/>
+            <column name="updated_by" type="bigint"/>
+        </createTable>
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_owner">
+            <column name="owner_user_id"/>
+        </createIndex>
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_enabled">
+            <column name="enabled"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】Agent工作流配置表 ai_agent_workflow -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202603010010-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_agent_workflow"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_agent_workflow" remarks="Agent工作流配置表">
+            <column name="id" type="bigserial">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="name" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="graph_json" type="jsonb">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tenant_id" type="bigint"/>
+            <column name="owner_user_id" type="bigint"/>
+            <column name="is_public" type="boolean" defaultValueBoolean="false"/>
+            <column name="enabled" type="boolean" defaultValueBoolean="true"/>
+            <column name="version" type="integer" defaultValue="1"/>
+            <column name="execution_count" type="bigint" defaultValue="0"/>
+            <column name="success_count" type="bigint" defaultValue="0"/>
+            <column name="avg_duration_ms" type="integer"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="bigint"/>
+            <column name="updated_by" type="bigint"/>
+        </createTable>
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_owner">
+            <column name="owner_user_id"/>
+        </createIndex>
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_enabled">
+            <column name="enabled"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【仅 PostgreSQL】向量子表动态创建存储过程 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602050010" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+        </preConditions>
+        <createProcedure>
+            CREATE OR REPLACE FUNCTION create_vector_table(dimension INTEGER)
+            RETURNS TEXT AS $$
+            DECLARE
+                table_name TEXT;
+            BEGIN
+                table_name := 'ai_vector_store_' || dimension::TEXT;
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = table_name) THEN
+                    RETURN table_name || ' already exists';
+                END IF;
+                EXECUTE format('
+                    CREATE TABLE %I (
+                        id BIGSERIAL PRIMARY KEY,
+                        vector_id VARCHAR(100) UNIQUE NOT NULL,
+                        kb_id BIGINT NOT NULL,
+                        document_id BIGINT,
+                        chunk_id BIGINT,
+                        collection_name VARCHAR(100) NOT NULL,
+                        embedding vector(%s) NOT NULL,
+                        content TEXT NOT NULL,
+                        metadata JSONB,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (kb_id) REFERENCES ai_knowledge_base(id) ON DELETE CASCADE,
+                        FOREIGN KEY (document_id) REFERENCES ai_document(id) ON DELETE CASCADE,
+                        FOREIGN KEY (chunk_id) REFERENCES ai_document_chunk(id) ON DELETE CASCADE
+                    );
+                    CREATE INDEX idx_%I_kb_id ON %I (kb_id);
+                    CREATE INDEX idx_%I_embedding ON %I USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+                    CREATE INDEX idx_%I_content_trgm ON %I USING gist (content gist_trgm_ops);
+                ', table_name, dimension, 
+                   table_name, table_name,
+                   table_name, table_name,
+                   table_name, table_name);
+                RETURN table_name || ' created successfully';
+            END;
+            $$ LANGUAGE plpgsql;
+        </createProcedure>
+        <sql>
+            SELECT create_vector_table(768);
+            SELECT create_vector_table(1536);
+        </sql>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【仅 PostgreSQL】统一向量表 ai_vector_store -->
+    <!-- ========================================== -->
+    <changeSet id="create-unified-vector-table-v2" author="zx">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+            <not>
+                <tableExists tableName="ai_vector_store"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_vector_store">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="vector_id" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="kb_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="document_id" type="bigint"/>
+            <column name="chunk_id" type="bigint"/>
+            <column name="embedding" type="vector(1536)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dimension" type="integer" defaultValue="1536">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="metadata" type="jsonb"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+        <createIndex tableName="ai_vector_store" indexName="idx_vector_kb_id">
+            <column name="kb_id"/>
+        </createIndex>
+        <createIndex tableName="ai_vector_store" indexName="idx_vector_dimension">
+            <column name="dimension"/>
+        </createIndex>
+        <sql>
+            CREATE INDEX idx_vector_embedding ON ai_vector_store
+                USING hnsw (embedding vector_cosine_ops)
+                WITH (m = 16, ef_construction = 64);
+            CREATE INDEX idx_vector_content_trgm ON ai_vector_store
+                USING gist (content gist_trgm_ops);
+        </sql>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【仅 PostgreSQL】向量表多维度支持 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604010010" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+            <tableExists tableName="ai_vector_store"/>
+        </preConditions>
+        <sql>
+            DROP INDEX IF EXISTS idx_vector_embedding;
+            ALTER TABLE ai_vector_store 
+            ALTER COLUMN embedding TYPE vector(4096);
+            CREATE INDEX idx_vector_embedding ON ai_vector_store
+                USING hnsw (embedding vector_cosine_ops)
+                WITH (m = 16, ef_construction = 64);
+        </sql>
+        <rollback>
+            <sql>
+                DROP INDEX IF EXISTS idx_vector_embedding;
+                ALTER TABLE ai_vector_store 
+                ALTER COLUMN embedding TYPE vector(1536);
+                CREATE INDEX idx_vector_embedding ON ai_vector_store
+                    USING hnsw (embedding vector_cosine_ops)
+                    WITH (m = 16, ef_construction = 64);
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【仅 PostgreSQL】触发器更新函数（适用于所有业务表） -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202602030100" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+        </preConditions>
+        <sql>
+            CREATE OR REPLACE FUNCTION update_updated_at_column()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = CURRENT_TIMESTAMP;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+
+            CREATE TRIGGER tr_kb_updated_at BEFORE UPDATE ON ai_knowledge_base
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+            CREATE TRIGGER tr_doc_updated_at BEFORE UPDATE ON ai_document
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+            CREATE TRIGGER tr_chunk_updated_at BEFORE UPDATE ON ai_document_chunk
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+            CREATE TRIGGER tr_model_updated_at BEFORE UPDATE ON ai_llm_model
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+            CREATE TRIGGER tr_session_updated_at BEFORE UPDATE ON ai_chat_session
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+            CREATE TRIGGER tr_pipeline_updated_at BEFORE UPDATE ON ai_pipeline_definition
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+            CREATE TRIGGER tr_template_updated_at BEFORE UPDATE ON ai_prompt_template
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        </sql>
+        <rollback>
+            <sql>
+                DROP TRIGGER IF EXISTS tr_template_updated_at ON ai_prompt_template;
+                DROP TRIGGER IF EXISTS tr_pipeline_updated_at ON ai_pipeline_definition;
+                DROP TRIGGER IF EXISTS tr_session_updated_at ON ai_chat_session;
+                DROP TRIGGER IF EXISTS tr_model_updated_at ON ai_llm_model;
+                DROP TRIGGER IF EXISTS tr_chunk_updated_at ON ai_document_chunk;
+                DROP TRIGGER IF EXISTS tr_doc_updated_at ON ai_document;
+                DROP TRIGGER IF EXISTS tr_kb_updated_at ON ai_knowledge_base;
+                DROP FUNCTION IF EXISTS update_updated_at_column();
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【仅 PostgreSQL】初始化系统提示词模板数据 -->
     <!-- ========================================== -->
     <changeSet id="lambda-fusion-ai-202602030091" author="Jin">
         <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
             <tableExists tableName="ai_prompt_template"/>
         </preConditions>
         <insert tableName="ai_prompt_template">
@@ -709,266 +1523,254 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 更新触发器 - updated_at自动更新 -->
+    <!-- 【MySQL】AI 工作流模板表 ai_workflow_template -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030100" author="Jin">
+    <changeSet id="lambda-fusion-ai-202604010020-mysql" author="Agent">
         <preConditions onFail="MARK_RAN">
-            <dbms type="postgresql"/>
+            <and>
+                <not>
+                    <tableExists tableName="ai_workflow_template"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
         </preConditions>
-        <sql>
-            -- 创建触发器函数
-            CREATE OR REPLACE FUNCTION update_updated_at_column()
-            RETURNS TRIGGER AS $$
-            BEGIN
-                NEW.updated_at = CURRENT_TIMESTAMP;
-                RETURN NEW;
-            END;
-            $$ LANGUAGE plpgsql;
-
-            -- 应用到各表
-            CREATE TRIGGER tr_kb_updated_at BEFORE UPDATE ON ai_knowledge_base
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_doc_updated_at BEFORE UPDATE ON ai_document
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_chunk_updated_at BEFORE UPDATE ON ai_document_chunk
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_model_updated_at BEFORE UPDATE ON ai_llm_model
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_session_updated_at BEFORE UPDATE ON ai_chat_session
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_pipeline_updated_at BEFORE UPDATE ON ai_pipeline_definition
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_template_updated_at BEFORE UPDATE ON ai_prompt_template
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-        </sql>
-        <rollback>
-            DROP TRIGGER IF EXISTS tr_template_updated_at ON ai_prompt_template;
-            DROP TRIGGER IF EXISTS tr_pipeline_updated_at ON ai_pipeline_definition;
-            DROP TRIGGER IF EXISTS tr_session_updated_at ON ai_chat_session;
-            DROP TRIGGER IF EXISTS tr_model_updated_at ON ai_llm_model;
-            DROP TRIGGER IF EXISTS tr_chunk_updated_at ON ai_document_chunk;
-            DROP TRIGGER IF EXISTS tr_doc_updated_at ON ai_document;
-            DROP TRIGGER IF EXISTS tr_kb_updated_at ON ai_knowledge_base;
-            DROP FUNCTION IF EXISTS update_updated_at_column();
-        </rollback>
-    </changeSet>
-    <!-- ========================================== -->
-    <!-- 向量表自动创建与索引优化 -->
-    <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602050010" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <dbms type="postgresql"/>
-        </preConditions>
-        <createProcedure>
-            CREATE OR REPLACE FUNCTION create_vector_table(dimension INTEGER)
-            RETURNS TEXT AS $$
-            DECLARE
-                table_name TEXT;
-            BEGIN
-                table_name := 'ai_vector_store_' || dimension::TEXT;
-                
-                -- 检查表是否已存在
-                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = table_name) THEN
-                    RETURN table_name || ' already exists';
-                END IF;
-                
-                -- 动态创建表
-                EXECUTE format('
-                    CREATE TABLE %I (
-                        id BIGSERIAL PRIMARY KEY,
-                        vector_id VARCHAR(100) UNIQUE NOT NULL,
-                        kb_id BIGINT NOT NULL,
-                        document_id BIGINT,
-                        chunk_id BIGINT,
-                        collection_name VARCHAR(100) NOT NULL,
-                        embedding vector(%s) NOT NULL,
-                        content TEXT NOT NULL,
-                        metadata JSONB,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (kb_id) REFERENCES ai_knowledge_base(id) ON DELETE CASCADE,
-                        FOREIGN KEY (document_id) REFERENCES ai_document(id) ON DELETE CASCADE,
-                        FOREIGN KEY (chunk_id) REFERENCES ai_document_chunk(id) ON DELETE CASCADE
-                    );
-                    
-                    CREATE INDEX idx_%I_kb_id ON %I (kb_id);
-                    CREATE INDEX idx_%I_embedding ON %I USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-                    -- 添加 Trigram 索引支持混合检索
-                    CREATE INDEX idx_%I_content_trgm ON %I USING gist (content gist_trgm_ops);
-                ', table_name, dimension, 
-                   table_name, table_name,
-                   table_name, table_name,
-                   table_name, table_name);
-                
-                RETURN table_name || ' created successfully';
-            END;
-            $$ LANGUAGE plpgsql;
-        </createProcedure>
-        <sql>
-            -- 初始化常用维度的向量表
-            SELECT create_vector_table(768);
-            SELECT create_vector_table(1536);
-        </sql>
-    </changeSet>
-
-    <changeSet id="create-unified-vector-table-v2" author="zx">
-        <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="ai_vector_store"/>
-            </not>
-        </preConditions>
-
-        <createTable tableName="ai_vector_store">
+        <createTable tableName="ai_workflow_template" remarks="AI工作流模板表">
             <column name="id" type="bigint" autoIncrement="true">
                 <constraints primaryKey="true"/>
             </column>
-            <column name="vector_id" type="varchar(100)">
+            <column name="template_code" type="varchar(64)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="kb_id" type="bigint">
+            <column name="name" type="varchar(128)">
                 <constraints nullable="false"/>
             </column>
-            <column name="document_id" type="bigint"/>
-            <column name="chunk_id" type="bigint"/>
-            <column name="embedding" type="vector(1536)">
+            <column name="description" type="varchar(512)"/>
+            <column name="category" type="varchar(64)"/>
+            <column name="version" type="varchar(32)" defaultValue="1.0.0">
                 <constraints nullable="false"/>
             </column>
-            <column name="dimension" type="integer" defaultValue="1536">
+            <column name="definition" type="json">
                 <constraints nullable="false"/>
             </column>
-            <column name="content" type="text">
+            <column name="preview_image" type="varchar(512)"/>
+            <column name="icon" type="varchar(64)"/>
+            <column name="color" type="varchar(16)"/>
+            <column name="input_schema" type="json"/>
+            <column name="output_schema" type="json"/>
+            <column name="variables" type="json"/>
+            <column name="tags" type="varchar(256)"/>
+            <column name="system_template" type="tinyint(1)" defaultValue="0">
                 <constraints nullable="false"/>
             </column>
-            <column name="metadata" type="jsonb"/>
-            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="enabled" type="tinyint(1)" defaultValue="1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(16)" defaultValue="draft">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tenant_id" type="bigint"/>
+            <column name="create_by" type="bigint"/>
+            <column name="create_time" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="update_by" type="bigint"/>
+            <column name="update_time" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"/>
+            <column name="deleted" type="tinyint" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
-
-        <createIndex tableName="ai_vector_store" indexName="idx_vector_kb_id">
-            <column name="kb_id"/>
+        <createIndex tableName="ai_workflow_template" indexName="idx_wf_template_code" unique="true">
+            <column name="template_code"/>
         </createIndex>
-
-        <createIndex tableName="ai_vector_store" indexName="idx_vector_dimension">
-            <column name="dimension"/>
+        <createIndex tableName="ai_workflow_template" indexName="idx_wf_template_category">
+            <column name="category"/>
         </createIndex>
-
-        <sql>
-            CREATE INDEX idx_vector_embedding ON ai_vector_store
-                USING hnsw (embedding vector_cosine_ops)
-                WITH (m = 16, ef_construction = 64);
-        </sql>
-
-        <sql>
-            CREATE INDEX idx_vector_content_trgm ON ai_vector_store
-                USING gist (content gist_trgm_ops);
-        </sql>
-    </changeSet>
-
-    <!-- ========================================== -->
-    <!-- Agent工作流配置表 ai_agent_workflow -->
-    <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202603010010" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="ai_agent_workflow"/>
-            </not>
-        </preConditions>
-        <createTable tableName="ai_agent_workflow" remarks="Agent工作流配置表">
-            <column name="id" type="bigserial" remarks="主键">
-                <constraints primaryKey="true"/>
-            </column>
-            
-            <column name="name" type="varchar(200)" remarks="工作流名称">
-                <constraints nullable="false"/>
-            </column>
-            
-            <column name="description" type="text" remarks="工作流描述"/>
-            
-            <column name="graph_json" type="jsonb" remarks="图配置JSON">
-                <constraints nullable="false"/>
-            </column>
-            
-            <column name="tenant_id" type="bigint" remarks="租户ID"/>
-            
-            <column name="owner_user_id" type="bigint" remarks="创建者用户ID"/>
-            
-            <column name="is_public" type="boolean" remarks="是否公开" defaultValueBoolean="false"/>
-            
-            <column name="enabled" type="boolean" remarks="是否启用" defaultValueBoolean="true"/>
-            
-            <column name="version" type="integer" remarks="版本号" defaultValue="1"/>
-            
-            <column name="execution_count" type="bigint" remarks="执行次数" defaultValue="0"/>
-            
-            <column name="success_count" type="bigint" remarks="成功次数" defaultValue="0"/>
-            
-            <column name="avg_duration_ms" type="integer" remarks="平均执行时长"/>
-            
-            <column name="created_at" type="timestamp" remarks="创建时间" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            
-            <column name="updated_at" type="timestamp" remarks="更新时间" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            
-            <column name="created_by" type="bigint" remarks="创建人ID"/>
-            
-            <column name="updated_by" type="bigint" remarks="更新人ID"/>
-        </createTable>
-        
-        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_tenant_id">
+        <createIndex tableName="ai_workflow_template" indexName="idx_wf_template_status">
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="ai_workflow_template" indexName="idx_wf_template_tenant_id">
             <column name="tenant_id"/>
         </createIndex>
-        
-        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_owner">
-            <column name="owner_user_id"/>
-        </createIndex>
-        
-        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_enabled">
-            <column name="enabled"/>
+        <createIndex tableName="ai_workflow_template" indexName="idx_wf_template_system">
+            <column name="system_template"/>
         </createIndex>
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 向量表支持多维度存储 -->
+    <!-- 【PostgreSQL】AI 工作流模板表 ai_workflow_template -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604010010" author="Jin">
+    <changeSet id="lambda-fusion-ai-202604010020-pg" author="Agent">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_workflow_template"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_workflow_template" remarks="AI工作流模板表">
+            <column name="id" type="bigserial">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="template_code" type="varchar(64)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="varchar(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(512)"/>
+            <column name="category" type="varchar(64)"/>
+            <column name="version" type="varchar(32)" defaultValue="1.0.0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="definition" type="jsonb">
+                <constraints nullable="false"/>
+            </column>
+            <column name="preview_image" type="varchar(512)"/>
+            <column name="icon" type="varchar(64)"/>
+            <column name="color" type="varchar(16)"/>
+            <column name="input_schema" type="jsonb"/>
+            <column name="output_schema" type="jsonb"/>
+            <column name="variables" type="jsonb"/>
+            <column name="tags" type="varchar(256)"/>
+            <column name="system_template" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enabled" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(16)" defaultValue="draft">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tenant_id" type="bigint"/>
+            <column name="create_by" type="bigint"/>
+            <column name="create_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="update_by" type="bigint"/>
+            <column name="update_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="deleted" type="smallint" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="ai_workflow_template" indexName="idx_wf_template_code">
+            <column name="template_code"/>
+        </createIndex>
+        <createIndex tableName="ai_workflow_template" indexName="idx_wf_template_category">
+            <column name="category"/>
+        </createIndex>
+        <createIndex tableName="ai_workflow_template" indexName="idx_wf_template_status">
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="ai_workflow_template" indexName="idx_wf_template_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        <createIndex tableName="ai_workflow_template" indexName="idx_wf_template_system">
+            <column name="system_template"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】AI 工作流模板版本表 ai_workflow_template_version -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604010021-mysql" author="Agent">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_workflow_template_version"/>
+                </not>
+                <dbms type="mysql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_workflow_template_version" remarks="AI工作流模板版本历史表">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="template_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(256)"/>
+            <column name="definition" type="json">
+                <constraints nullable="false"/>
+            </column>
+            <column name="input_schema" type="json"/>
+            <column name="output_schema" type="json"/>
+            <column name="variables" type="json"/>
+            <column name="create_by" type="bigint"/>
+            <column name="create_time" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted" type="tinyint" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="ai_workflow_template_version" columnNames="template_id, version" constraintName="uk_wf_version_template_version"/>
+        <createIndex tableName="ai_workflow_template_version" indexName="idx_wf_version_template_id">
+            <column name="template_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】AI 工作流模板版本表 ai_workflow_template_version -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604010021-pg" author="Agent">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_workflow_template_version"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_workflow_template_version" remarks="AI工作流模板版本历史表">
+            <column name="id" type="bigserial">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="template_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(256)"/>
+            <column name="definition" type="jsonb">
+                <constraints nullable="false"/>
+            </column>
+            <column name="input_schema" type="jsonb"/>
+            <column name="output_schema" type="jsonb"/>
+            <column name="variables" type="jsonb"/>
+            <column name="create_by" type="bigint"/>
+            <column name="create_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted" type="smallint" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="ai_workflow_template_version" columnNames="template_id, version" constraintName="uk_wf_version_template_version"/>
+        <createIndex tableName="ai_workflow_template_version" indexName="idx_wf_version_template_id">
+            <column name="template_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【仅 PostgreSQL】工作流模板表触发器 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604010022" author="Agent">
         <preConditions onFail="MARK_RAN">
             <dbms type="postgresql"/>
-            <tableExists tableName="ai_vector_store"/>
+            <tableExists tableName="ai_workflow_template"/>
         </preConditions>
-        
-        <!-- 删除旧的HNSW索引（如果存在） -->
         <sql>
-            DROP INDEX IF EXISTS idx_vector_embedding;
+            CREATE TRIGGER tr_wf_template_updated_at BEFORE UPDATE ON ai_workflow_template
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
         </sql>
-        
-        <!-- 修改embedding列类型为更大维度 -->
-        <sql>
-            ALTER TABLE ai_vector_store 
-            ALTER COLUMN embedding TYPE vector(4096);
-        </sql>
-        
-        <!-- 重新创建HNSW索引 -->
-        <sql>
-            CREATE INDEX idx_vector_embedding ON ai_vector_store
-                USING hnsw (embedding vector_cosine_ops)
-                WITH (m = 16, ef_construction = 64);
-        </sql>
-        
         <rollback>
             <sql>
-                DROP INDEX IF EXISTS idx_vector_embedding;
-                ALTER TABLE ai_vector_store 
-                ALTER COLUMN embedding TYPE vector(1536);
-                CREATE INDEX idx_vector_embedding ON ai_vector_store
-                    USING hnsw (embedding vector_cosine_ops)
-                    WITH (m = 16, ef_construction = 64);
+                DROP TRIGGER IF EXISTS tr_wf_template_updated_at ON ai_workflow_template;
             </sql>
         </rollback>
     </changeSet>
