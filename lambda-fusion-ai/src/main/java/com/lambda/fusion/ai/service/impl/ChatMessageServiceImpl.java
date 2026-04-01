@@ -54,6 +54,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     @Transactional(rollbackFor = Exception.class)
     public ChatHistory sendMessage(Long sessionId, SendMessage dto) {
         ChatSessionEntity session = getSessionOrThrow(sessionId);
+        validateSessionActive(session);
 
         ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
         chatMessageMapper.insert(userMsg);
@@ -93,11 +94,13 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     @Override
     public void sendMessageStream(Long sessionId, SendMessage dto) {
         ChatSessionEntity session = getSessionOrThrow(sessionId);
+        validateSessionActive(session);
 
         String clientId = "chat_" + sessionId;
 
+        ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
+
         try {
-            ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
             List<VectorSearchResult> retrievedChunks =
                     ragService.retrieve(dto.getContent(), session.getKbId(), null, null);
 
@@ -119,9 +122,13 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
                         @Override
                         public void onCompleteResponse(ChatResponse response) {
-                            String finalContent = fullAnswer.isEmpty() && response.aiMessage() != null
+                            // 修复：添加空指针检查
+                            String aiText = response.aiMessage() != null
+                                            && response.aiMessage().text() != null
                                     ? response.aiMessage().text()
-                                    : fullAnswer.toString();
+                                    : null;
+                            String finalContent =
+                                    fullAnswer.isEmpty() && aiText != null ? aiText : fullAnswer.toString();
 
                             ChatMessageEntity aiMsg = new ChatMessageEntity();
                             aiMsg.setMessageId(IdUtil.fastSimpleUUID());
@@ -211,6 +218,15 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
             chatMessageMapper.insert(aiMsg);
             atomicSessionUpdateService.updateSessionStatistics(sessionId, 2, aiMsg.getTotalTokens());
         });
+    }
+
+    private void validateSessionActive(ChatSessionEntity session) {
+        if (session == null) {
+            return;
+        }
+        if ("ARCHIVED".equals(session.getStatus())) {
+            throw new AiBusinessException(AiErrorCode.SESSION_ARCHIVED);
+        }
     }
 
     private List<ChatMessage> buildChatHistory(Long sessionId, String excludeMessageId) {

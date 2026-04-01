@@ -110,6 +110,14 @@ public class AiProperties {
         private int batchSize = 100;
 
         /**
+         * 向量批量插入的最大批次大小
+         * 防止SQL语句过长导致数据库错误
+         */
+        @Min(value = 50, message = "向量批量插入批次大小至少为50")
+        @Max(value = 500, message = "向量批量插入批次大小不能超过500")
+        private int vectorBatchSize = 200;
+
+        /**
          * 在启动时验证配置参数，如有需要则应用修正
          * <p>
          * 此方法确保：

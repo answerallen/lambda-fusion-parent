@@ -1,7 +1,7 @@
-# Lambda AI 模块动态数据源配置示例
+# Lambda AI 模块配置示例
 # 
-# 此文件展示了如何配置 AI 模块的动态数据源功能
-# 包括：默认数据源、向量数据源、租户数据源前缀等
+# 此文件展示了如何配置 AI 模块的完整功能
+# 包括：动态数据源、安全加密、LLM 容错、向量存储等
 
 spring:
   application:
@@ -10,60 +10,81 @@ spring:
   # 数据源配置（baomidou dynamic-datasource）
   datasource:
     dynamic:
-      # 主数据源（默认）
       primary: master
-      
-      # 严格模式（如果数据源不存在则抛出异常）
       strict: false
-      
-      # 数据源配置
       datasource:
-        # 主数据源（MySQL - 业务数据）
         master:
           driver-class-name: com.mysql.cj.jdbc.Driver
           url: jdbc:mysql://localhost:3306/lambda_fusion?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
           username: root
           password: password
-          
-        # AI 数据源（PostgreSQL - AI 数据 + pgvector）
         ai-postgres:
           driver-class-name: org.postgresql.Driver
           url: jdbc:postgresql://localhost:5432/lambda_ai?currentSchema=public
           username: postgres
           password: password
-          
-        # 租户数据源示例（PostgreSQL - 租户 1001）
         ai-tenant-1001:
           driver-class-name: org.postgresql.Driver
           url: jdbc:postgresql://localhost:5432/tenant_1001?currentSchema=public
           username: postgres
           password: password
-          
-        # 租户数据源示例（PostgreSQL - 租户 1002）
-        ai-tenant-1002:
-          driver-class-name: org.postgresql.Driver
-          url: jdbc:postgresql://localhost:5432/tenant_1002?currentSchema=public
-          username: postgres
-          password: password
 
-# Lambda AI 模块数据源配置
+# Lambda AI 模块配置
 lambda:
   fusion:
     ai:
+      # 数据源配置
       datasource:
-        # 是否启用动态数据源功能
         enabled: true
-        
-        # 默认数据源名称（用于 AI 核心数据）
         default-name: ai-postgres
-        
-        # 向量数据源名称（用于向量存储和相似度搜索）
         vector-name: ai-postgres
-        
-        # 租户数据源名称前缀
-        # 租户数据源命名规则: {tenant-prefix}{tenantId}
-        # 例如: ai-tenant-1001, ai-tenant-1002
         tenant-prefix: ai-tenant-
+      
+      # 安全配置
+      security:
+        # API Key 加密密钥（生产环境必须配置，至少32字符）
+        encryption-key: "your-32-character-secret-key-here"
+      
+      # Embedding 模型配置
+      embedding:
+        api-key: "${OPENAI_API_KEY:sk-xxx}"
+        model-name: "text-embedding-3-small"
+        base-url: "https://api.openai.com/v1"
+      
+      # 文档处理配置
+      document:
+        max-file-size: 10485760
+
+# Resilience4j 容错配置
+resilience4j:
+  # 重试配置
+  retry:
+    instances:
+      llm-call:
+        max-attempts: 3
+        wait-duration: 1s
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.net.SocketTimeoutException
+          - java.io.IOException
+  
+  # 熔断器配置
+  circuitbreaker:
+    instances:
+      llm-call:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        minimum-number-of-calls: 5
+  
+  # 限流配置
+  ratelimiter:
+    instances:
+      llm-call:
+        limit-for-period: 30
+        limit-refresh-period: 1m
+        timeout-duration: 10s
 
 # Liquibase 配置
 liquibase:
@@ -86,6 +107,8 @@ lambda:
         default-name: ai-postgres
         vector-name: ai-postgres
         tenant-prefix: ai-tenant-dev-
+      security:
+        encryption-key: "dev-encryption-key-32-chars"
 
 ---
 # 测试环境配置
@@ -118,17 +141,24 @@ lambda:
         default-name: ai-postgres-prod
         vector-name: ai-postgres-prod
         tenant-prefix: ai-tenant-prod-
+      security:
+        # 生产环境必须使用环境变量或密钥管理服务
+        encryption-key: "${AI_ENCRYPTION_KEY}"
 
----
-# 禁用动态数据源（回退到单一数据源模式）
-spring:
-  config:
-    activate:
-      on-profile: single-datasource
-
-lambda:
-  fusion:
-    ai:
-      datasource:
-        # 禁用动态数据源功能
-        enabled: false
+# 生产环境更严格的容错配置
+resilience4j:
+  circuitbreaker:
+    instances:
+      llm-call:
+        sliding-window-size: 20
+        failure-rate-threshold: 40
+        wait-duration-in-open-state: 60s
+        permitted-number-of-calls-in-half-open-state: 5
+        minimum-number-of-calls: 10
+  
+  ratelimiter:
+    instances:
+      llm-call:
+        limit-for-period: 60
+        limit-refresh-period: 1m
+        timeout-duration: 30s

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lambda.fusion.ai.mapper.PipelineExecutionMapper">
+
+    <resultMap id="BaseResultMap" type="com.lambda.fusion.ai.model.entity.PipelineExecutionEntity">
+        <id column="id" property="id"/>
+        <result column="execution_id" property="executionId"/>
+        <result column="pipeline_id" property="pipelineId"/>
+        <result column="pipeline_version" property="pipelineVersion"/>
+        <result column="user_id" property="userId"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="input_params" property="inputParams"/>
+        <result column="output_result" property="outputResult"/>
+        <result column="status" property="status"/>
+        <result column="progress" property="progress"/>
+        <result column="current_step" property="currentStep"/>
+        <result column="error_code" property="errorCode"/>
+        <result column="error_message" property="errorMessage"/>
+        <result column="error_stack" property="errorStack"/>
+        <result column="started_at" property="startedAt"/>
+        <result column="completed_at" property="completedAt"/>
+        <result column="duration_ms" property="durationMs"/>
+        <result column="execution_log" property="executionLog"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="selectByExecutionId" resultMap="BaseResultMap">
+        SELECT * FROM ai_pipeline_execution WHERE execution_id = #{executionId}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE ai_pipeline_execution
+        SET status = #{status}, progress = #{progress}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateCompletion">
+        UPDATE ai_pipeline_execution
+        SET status = #{status},
+            output_result = #{outputResult},
+            execution_log = #{executionLog},
+            completed_at = #{completedAt},
+            duration_ms = #{durationMs},
+            progress = 100
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateFailure">
+        UPDATE ai_pipeline_execution
+        SET status = 'FAILED',
+            error_code = #{errorCode},
+            error_message = #{errorMessage},
+            error_stack = #{errorStack},
+            completed_at = #{completedAt}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

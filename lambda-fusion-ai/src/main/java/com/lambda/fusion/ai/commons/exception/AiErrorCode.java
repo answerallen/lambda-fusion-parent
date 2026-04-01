@@ -226,6 +226,21 @@ public enum AiErrorCode implements ErrorCode {
      */
     WORKFLOW_CONFIG_INVALID(30761, "Agent工作流配置无效"),
 
+    /**
+     * 工作流执行失败
+     */
+    WORKFLOW_EXECUTION_FAILED(30762, "工作流执行失败"),
+
+    /**
+     * 工作流执行记录不存在
+     */
+    WORKFLOW_EXECUTION_NOT_FOUND(30763, "工作流执行记录不存在"),
+
+    /**
+     * 工作流执行超时
+     */
+    WORKFLOW_EXECUTION_TIMEOUT(30764, "工作流执行超时"),
+
     // ========== 数据源相关错误 (30800-30899) ==========
     /**
      * 数据源错误

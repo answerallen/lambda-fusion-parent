@@ -10,6 +10,8 @@ import com.lambda.cloud.oss.client.OssClient;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.commons.support.batch.BatchInsertUtils;
+import com.lambda.fusion.ai.commons.support.vector.VectorDimensionService;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
@@ -61,6 +63,7 @@ public class DocumentProcessor {
     private final EmbeddingModel embeddingModel;
     private final AiProperties aiProperties;
     private final TransactionTemplate transactionTemplate;
+    private final VectorDimensionService vectorDimensionService;
 
     private OssClientManager ossClientManager;
 
@@ -95,6 +98,9 @@ public class DocumentProcessor {
                 throw new RuntimeException("知识库不存在: " + doc.getKbId());
             }
             Integer embeddingDimension = kb.getEmbeddingDimension();
+            if (embeddingDimension == null || embeddingDimension <= 0) {
+                throw new RuntimeException("知识库向量维度配置无效: " + doc.getKbId());
+            }
 
             // 4. 文档切分 - 使用配置验证
             int chunkSize = aiProperties.getDocumentChunk().getValidatedChunkSize(kb.getChunkSize());
@@ -120,9 +126,17 @@ public class DocumentProcessor {
                     throw new RuntimeException("向量化失败: 返回结果为空");
                 }
 
-                List<Double> vector = embeddingResponse.content().vectorAsList().stream()
+                List<Double> originalVector = embeddingResponse.content().vectorAsList().stream()
                         .map(Float::doubleValue)
                         .collect(Collectors.toList());
+
+                int actualDimension = originalVector.size();
+                if (actualDimension != embeddingDimension) {
+                    log.warn("向量维度不匹配: 模型输出 {} 维，知识库配置 {} 维", actualDimension, embeddingDimension);
+                }
+
+                // 归一化向量维度到最大维度（4096），用于数据库存储
+                List<Double> normalizedVector = vectorDimensionService.normalizeToMaxDimension(originalVector);
 
                 // 构建实体
                 DocumentChunkEntity chunk = new DocumentChunkEntity();
@@ -135,7 +149,8 @@ public class DocumentProcessor {
                 chunk.setVectorId(IdUtil.fastSimpleUUID());
                 chunk.setCharCount(segment.text().length());
                 chunk.setMetadata(JSONUtil.toJsonStr(segment.metadata()));
-                chunk.setEmbedding(vector);
+                chunk.setEmbedding(normalizedVector);
+                chunk.setDimension(actualDimension);
 
                 chunkEntities.add(chunk);
 
@@ -147,20 +162,28 @@ public class DocumentProcessor {
                 }
             }
 
-            // 6. 执行批量插入 - 在单一事务中完成
+            // 6. 执行批量插入 - 在单一事务中完成，使用分批处理防止SQL过长
             if (!chunkEntities.isEmpty()) {
-                log.info("执行批量存储: {} chunks", chunkEntities.size());
+                log.info(
+                        "执行批量存储: {} chunks，批次大小: {}",
+                        chunkEntities.size(),
+                        aiProperties.getDocumentChunk().getVectorBatchSize());
 
-                transactionTemplate.execute(status -> {
-                    try {
-                        documentChunkMapper.batchInsert(chunkEntities);
-                        vectorRepository.batchInsertVectorsUnified(chunkEntities, kb.getId(), embeddingDimension);
-                        return null;
-                    } catch (Exception e) {
-                        log.error("批量插入失败，事务将回滚", e);
-                        status.setRollbackOnly();
-                        throw new RuntimeException("批量插入失败", e);
-                    }
+                int vectorBatchSize = aiProperties.getDocumentChunk().getVectorBatchSize();
+
+                // 分批处理向量插入
+                BatchInsertUtils.batchProcess(chunkEntities, vectorBatchSize, batch -> {
+                    transactionTemplate.execute(status -> {
+                        try {
+                            documentChunkMapper.batchInsert(batch);
+                            vectorRepository.batchInsertVectorsUnified(batch, kb.getId());
+                            return null;
+                        } catch (Exception e) {
+                            log.error("批量插入失败，事务将回滚", e);
+                            status.setRollbackOnly();
+                            throw new RuntimeException("批量插入失败", e);
+                        }
+                    });
                 });
             }
 

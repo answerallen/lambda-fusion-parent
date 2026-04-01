@@ -95,6 +95,12 @@ public class DocumentChunkEntity {
     @Schema(description = "向量化状态(PENDING、PROCESSING、COMPLETED、FAILED)")
     private String embeddingStatus;
 
+    /**
+     * 向量维度
+     */
+    @Schema(description = "向量维度")
+    private Integer dimension;
+
     // ==================== 元数据 ====================
 
     /**

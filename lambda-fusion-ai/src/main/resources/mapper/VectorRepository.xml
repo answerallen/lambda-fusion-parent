@@ -2,76 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.lambda.fusion.ai.repository.VectorRepository">
 
-    <insert id="insertVector">
-        INSERT INTO ${tableName}
-        (id, vector_id, content, metadata, embedding, created_at)
-        VALUES
-        (#{id}, #{vectorId}, #{content}, #{metadata}::jsonb, #{embedding, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler}, CURRENT_TIMESTAMP)
-    </insert>
-
-    <insert id="batchInsertVectors">
-        INSERT INTO ${tableName}
-        (id, vector_id, content, metadata, embedding, created_at)
-        VALUES
-        <foreach collection="list" item="item" separator=",">
-            (#{item.id}, #{item.vectorId}, #{item.content}, #{item.metadata}::jsonb, #{item.embedding, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler}, CURRENT_TIMESTAMP)
-        </foreach>
-    </insert>
-
-    <select id="searchSimilar" resultType="com.lambda.fusion.ai.model.VectorSearchResult">
-        SELECT 
-            id, 
-            vector_id, 
-            content, 
-            metadata,
-            (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler})) as score,
-            (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler}) as distance
-        FROM ${tableName}
-        WHERE (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler})) > #{minScore}
-        ORDER BY score DESC
-        LIMIT #{topK}
-    </select>
-
-    <select id="searchKeyword" resultType="com.lambda.fusion.ai.model.VectorSearchResult">
-        SELECT 
-            id, 
-            vector_id, 
-            content, 
-            metadata,
-            similarity(content, #{keyword}) as score,
-            (1 - similarity(content, #{keyword})) as distance
-        FROM ${tableName}
-        WHERE content % #{keyword}
-        ORDER BY score DESC
-        LIMIT #{topK}
-    </select>
-
-    <delete id="deleteVector">
-        DELETE FROM ${tableName}
-        WHERE vector_id = #{vectorId}
-    </delete>
-
-    <delete id="deleteVectors">
-        DELETE FROM ${tableName}
-        WHERE vector_id IN
-        <foreach collection="vectorIds" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
-    </delete>
-
-    <delete id="deleteByDocumentId">
-        DELETE FROM ${tableName}
-        WHERE id IN (
-            SELECT id FROM ai_document_chunk WHERE document_id = #{documentId}
-        )
-    </delete>
-
-    <delete id="deleteByKbId">
-        DELETE FROM ${tableName}
-        WHERE id IN (
-            SELECT id FROM ai_document_chunk WHERE kb_id = #{kbId}
-        )
-    </delete>
+    <!-- ==================== 统一表操作（推荐） ==================== -->
 
     <insert id="insertVectorUnified">
         INSERT INTO ai_vector_store
@@ -85,7 +16,7 @@
         (id, vector_id, kb_id, document_id, chunk_id, content, metadata, embedding, dimension, created_at)
         VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.id}, #{item.vectorId}, #{kbId}, #{item.documentId}, #{item.chunkId}, #{item.content}, #{item.metadata}::jsonb, #{item.embedding, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler}, #{dimension}, CURRENT_TIMESTAMP)
+            (#{item.id}, #{item.vectorId}, #{kbId}, #{item.documentId}, #{item.chunkId}, #{item.content}, #{item.metadata}::jsonb, #{item.embedding, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler}, #{item.dimension}, CURRENT_TIMESTAMP)
         </foreach>
     </insert>
 
@@ -123,6 +54,14 @@
     <delete id="deleteVectorUnified">
         DELETE FROM ai_vector_store
         WHERE vector_id = #{vectorId}
+    </delete>
+
+    <delete id="deleteVectorsUnified">
+        DELETE FROM ai_vector_store
+        WHERE vector_id IN
+        <foreach collection="vectorIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
     </delete>
 
     <delete id="deleteByDocumentIdUnified">

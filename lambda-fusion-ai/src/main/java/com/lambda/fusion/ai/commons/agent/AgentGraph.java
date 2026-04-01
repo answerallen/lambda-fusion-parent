@@ -139,12 +139,19 @@ public class AgentGraph {
 
     /**
      * 注册节点(带独立ID前缀)
+     * <p>
+     * 线程安全：使用 synchronized 保证复合操作的原子性
      */
-    public AgentGraph addNode(String id, AgentNode node) {
+    public synchronized AgentGraph addNode(String id, AgentNode node) {
         return addNode(id, node, Map.of());
     }
 
-    public AgentGraph addNode(String id, AgentNode node, Map<String, Object> properties) {
+    /**
+     * 注册节点(带属性)
+     * <p>
+     * 线程安全：使用 synchronized 保证 nodes 和 nodeProperties 操作的原子性
+     */
+    public synchronized AgentGraph addNode(String id, AgentNode node, Map<String, Object> properties) {
         if (!StringUtils.hasText(id) || node == null) {
             throw new IllegalArgumentException("Invalid node registration");
         }
@@ -156,8 +163,11 @@ public class AgentGraph {
 
     /**
      * 增加边缘连线规划
+     * <p>
+     * 线程安全：使用 synchronized 保证 edges 操作的原子性
      */
-    public AgentGraph addEdge(String sourceId, String targetId, ConditionEvaluator evaluator, String expression) {
+    public synchronized AgentGraph addEdge(
+            String sourceId, String targetId, ConditionEvaluator evaluator, String expression) {
         Edge edge = new Edge();
         edge.setSourceId(sourceId);
         edge.setTargetId(targetId);
@@ -170,8 +180,10 @@ public class AgentGraph {
 
     /**
      * 声明图启动的入口Node ID
+     * <p>
+     * 线程安全：使用 synchronized 保证复合操作的原子性
      */
-    public AgentGraph setEntryPoint(String nodeId) {
+    public synchronized AgentGraph setEntryPoint(String nodeId) {
         if (!nodes.containsKey(nodeId)) {
             throw new IllegalArgumentException("Node id " + nodeId + " must be added before setting as entry point");
         }
@@ -212,7 +224,7 @@ public class AgentGraph {
                 : executable.invoke(LangGraphRuntimeState.toInput(state), runnableConfig);
         return output.map(runtimeState -> {
             AgentState finalState = runtimeState.agentState();
-            recordWorkflowSummary(finalState, "invoke", invokeStartedAt);
+            recordWorkflowSummary(finalState, invokeStartedAt);
             return finalState;
         });
     }
@@ -231,8 +243,8 @@ public class AgentGraph {
                 : executable.stream(LangGraphRuntimeState.toInput(state), runnableConfig);
     }
 
-    public CompiledGraph<LangGraphRuntimeState> compiledGraph() {
-        return getOrBuildCompiledGraph();
+    public void compiledGraph() {
+        getOrBuildCompiledGraph();
     }
 
     private synchronized CompiledGraph<LangGraphRuntimeState> getOrBuildCompiledGraph() {
@@ -397,12 +409,12 @@ public class AgentGraph {
         stats.putIfAbsent("routeDecisions", 0);
     }
 
-    private void recordWorkflowSummary(AgentState state, String mode, long invokeStartedAt) {
-        if (state == null || !isTraceEnabled(state)) {
+    private void recordWorkflowSummary(AgentState state, long invokeStartedAt) {
+        if (!isTraceEnabled(state)) {
             return;
         }
         Map<String, Object> stats = ensureExecutionStats(state);
-        stats.put("mode", mode);
+        stats.put("mode", "invoke");
         stats.put("totalDurationMs", toDurationMs(invokeStartedAt));
         stats.put("finished", state.isFinished());
         stats.put(
@@ -419,7 +431,7 @@ public class AgentGraph {
             String nodeType,
             long nodeStartedAt,
             String suggestedNext) {
-        if (nextState == null || !isTraceEnabled(nextState)) {
+        if (!isTraceEnabled(nextState)) {
             return;
         }
         Map<String, Object> event = new LinkedHashMap<>();
@@ -449,7 +461,7 @@ public class AgentGraph {
 
     private void recordRouteDecision(
             AgentState state, String sourceNodeId, String targetNodeId, String reason, Object detail) {
-        if (state == null || !isTraceEnabled(state)) {
+        if (!isTraceEnabled(state)) {
             return;
         }
         Map<String, Object> event = new LinkedHashMap<>();
@@ -472,7 +484,7 @@ public class AgentGraph {
         List<Map<String, Object>> trace = (List<Map<String, Object>>) state.getAttributes()
                 .computeIfAbsent(EXECUTION_TRACE_ATTRIBUTE, key -> new ArrayList<Map<String, Object>>());
         if (trace.size() >= MAX_TRACE_ENTRIES) {
-            trace.remove(0);
+            trace.removeFirst();
         }
         trace.add(event);
     }

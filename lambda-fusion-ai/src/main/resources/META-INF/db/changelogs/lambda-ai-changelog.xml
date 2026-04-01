@@ -726,7 +726,7 @@
             $$ LANGUAGE plpgsql;
 
             -- 应用到各表
-            CREATE TR IGGER tr_kb_updated_at BEFORE UPDATE ON ai_knowledge_base
+            CREATE TRIGGER tr_kb_updated_at BEFORE UPDATE ON ai_knowledge_base
             FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
             CREATE TRIGGER tr_doc_updated_at BEFORE UPDATE ON ai_document
@@ -866,6 +866,111 @@
             CREATE INDEX idx_vector_content_trgm ON ai_vector_store
                 USING gist (content gist_trgm_ops);
         </sql>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- Agent工作流配置表 ai_agent_workflow -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202603010010" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_agent_workflow"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_agent_workflow" remarks="Agent工作流配置表">
+            <column name="id" type="bigserial" remarks="主键">
+                <constraints primaryKey="true"/>
+            </column>
+            
+            <column name="name" type="varchar(200)" remarks="工作流名称">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="description" type="text" remarks="工作流描述"/>
+            
+            <column name="graph_json" type="jsonb" remarks="图配置JSON">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="tenant_id" type="bigint" remarks="租户ID"/>
+            
+            <column name="owner_user_id" type="bigint" remarks="创建者用户ID"/>
+            
+            <column name="is_public" type="boolean" remarks="是否公开" defaultValueBoolean="false"/>
+            
+            <column name="enabled" type="boolean" remarks="是否启用" defaultValueBoolean="true"/>
+            
+            <column name="version" type="integer" remarks="版本号" defaultValue="1"/>
+            
+            <column name="execution_count" type="bigint" remarks="执行次数" defaultValue="0"/>
+            
+            <column name="success_count" type="bigint" remarks="成功次数" defaultValue="0"/>
+            
+            <column name="avg_duration_ms" type="integer" remarks="平均执行时长"/>
+            
+            <column name="created_at" type="timestamp" remarks="创建时间" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="updated_at" type="timestamp" remarks="更新时间" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            
+            <column name="created_by" type="bigint" remarks="创建人ID"/>
+            
+            <column name="updated_by" type="bigint" remarks="更新人ID"/>
+        </createTable>
+        
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_owner">
+            <column name="owner_user_id"/>
+        </createIndex>
+        
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_enabled">
+            <column name="enabled"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 向量表支持多维度存储 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604010010" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+            <tableExists tableName="ai_vector_store"/>
+        </preConditions>
+        
+        <!-- 删除旧的HNSW索引（如果存在） -->
+        <sql>
+            DROP INDEX IF EXISTS idx_vector_embedding;
+        </sql>
+        
+        <!-- 修改embedding列类型为更大维度 -->
+        <sql>
+            ALTER TABLE ai_vector_store 
+            ALTER COLUMN embedding TYPE vector(4096);
+        </sql>
+        
+        <!-- 重新创建HNSW索引 -->
+        <sql>
+            CREATE INDEX idx_vector_embedding ON ai_vector_store
+                USING hnsw (embedding vector_cosine_ops)
+                WITH (m = 16, ef_construction = 64);
+        </sql>
+        
+        <rollback>
+            <sql>
+                DROP INDEX IF EXISTS idx_vector_embedding;
+                ALTER TABLE ai_vector_store 
+                ALTER COLUMN embedding TYPE vector(1536);
+                CREATE INDEX idx_vector_embedding ON ai_vector_store
+                    USING hnsw (embedding vector_cosine_ops)
+                    WITH (m = 16, ef_construction = 64);
+            </sql>
+        </rollback>
     </changeSet>
 
 </databaseChangeLog>

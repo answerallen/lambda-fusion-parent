@@ -13,6 +13,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * 原子会话统计更新服务实现
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateService {
 
     private final ChatSessionMapper chatSessionMapper;
+    private final TransactionTemplate transactionTemplate;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -54,36 +56,38 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
 
         int maxRetries = 3;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                // 获取当前会话及版本
-                ChatSessionEntity session = chatSessionMapper.selectByIdWithVersion(sessionId);
-                if (session == null) {
-                    throw AiBusinessException.sessionNotFound(sessionId);
+            Boolean success = transactionTemplate.execute(status -> {
+                try {
+                    ChatSessionEntity session = chatSessionMapper.selectByIdWithVersion(sessionId);
+                    if (session == null) {
+                        throw AiBusinessException.sessionNotFound(sessionId);
+                    }
+
+                    session.setMessageCount(session.getMessageCount() + messageIncrement);
+                    session.setTotalTokens(session.getTotalTokens() + tokenIncrement);
+                    session.setLastMessageAt(LocalDateTime.now());
+
+                    int updatedRows = chatSessionMapper.updateByIdWithVersion(session);
+                    if (updatedRows > 0) {
+                        log.debug("使用乐观锁成功更新会话{}统计: 消息 +{}, token +{}", sessionId, messageIncrement, tokenIncrement);
+                        return true;
+                    }
+
+                    log.debug("会话{}乐观锁冲突，尝试 {}/{}", sessionId, attempt + 1, maxRetries);
+                    return false;
+
+                } catch (OptimisticLockingFailureException e) {
+                    log.debug("会话{}乐观锁失败，尝试 {}/{}", sessionId, attempt + 1, maxRetries);
+                    return false;
                 }
+            });
 
-                // 更新统计
-                session.setMessageCount(session.getMessageCount() + messageIncrement);
-                session.setTotalTokens(session.getTotalTokens() + tokenIncrement);
-                session.setLastMessageAt(LocalDateTime.now());
-
-                // 尝试乐观更新
-                int updatedRows = chatSessionMapper.updateByIdWithVersion(session);
-                if (updatedRows > 0) {
-                    log.debug("使用乐观锁成功更新会话{}统计: 消息 +{}, token +{}", sessionId, messageIncrement, tokenIncrement);
-                    return; // 成功
-                }
-
-                // 发生版本冲突，将重试
-                log.debug("会话{}乐观锁冲突，尝试 {}/{}", sessionId, attempt + 1, maxRetries);
-
-            } catch (OptimisticLockingFailureException e) {
-                log.debug("会话{}乐观锁失败，尝试 {}/{}", sessionId, attempt + 1, maxRetries);
+            if (Boolean.TRUE.equals(success)) {
+                return;
             }
 
-            // 使用指数退避重试（除了最后一次尝试）
-            // 注意：不在 @Transactional 方法中使用 Thread.sleep()，改为异步处理
             if (attempt < maxRetries - 1) {
-                long backoffMs = (long) Math.pow(2, attempt) * 100; // 100ms, 200ms, 400ms
+                long backoffMs = (long) Math.pow(2, attempt) * 100;
                 try {
                     Thread.sleep(backoffMs);
                 } catch (InterruptedException ie) {
@@ -93,15 +97,10 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
             }
         }
 
-        // 所有重试都已用尽
         log.error("由于并发修改，在{}次尝试后更新会话{}统计失败", maxRetries, sessionId);
         throw new AiBusinessException(AiErrorCode.CONCURRENT_UPDATE_FAILED, "由于并发修改导致更新会话统计失败");
     }
 
-    /**
-     * 异步更新会话统计（推荐用于高并发场景）
-     * 避免在事务中使用 Thread.sleep()
-     */
     @Async
     public CompletableFuture<Void> updateSessionStatisticsAsync(
             Long sessionId, int messageIncrement, int tokenIncrement) {

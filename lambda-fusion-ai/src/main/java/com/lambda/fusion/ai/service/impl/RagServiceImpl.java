@@ -5,6 +5,8 @@ import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.LlmProcessingNode;
 import com.lambda.fusion.ai.commons.agent.ToolExecutingNode;
+import com.lambda.fusion.ai.commons.exception.AiBusinessException;
+import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
 import com.lambda.fusion.ai.model.RagResult;
@@ -53,13 +55,13 @@ public class RagServiceImpl implements RagService {
     public List<VectorSearchResult> retrieve(String query, Long kbId, Integer topK, Double minScore) {
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
-            throw new RuntimeException("知识库不存在");
+            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库不存在: " + kbId);
         }
 
         // 添加空指针检查
         Response<Embedding> embeddingResponse = embeddingModel.embed(query);
         if (embeddingResponse == null) {
-            throw new RuntimeException("向量化失败：返回结果为空");
+            throw new AiBusinessException(AiErrorCode.EMBEDDING_FAILED, "向量化失败：返回结果为空");
         }
 
         List<Double> queryVector = embeddingResponse.content().vectorAsList().stream()
@@ -69,7 +71,7 @@ public class RagServiceImpl implements RagService {
         // 添加维度检查
         Integer embeddingDimension = kb.getEmbeddingDimension();
         if (embeddingDimension == null || embeddingDimension <= 0) {
-            throw new RuntimeException("知识库向量维度配置无效");
+            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "知识库向量维度配置无效: " + kbId);
         }
 
         int limit = topK != null ? topK : (kb.getRetrievalTopK() != null ? kb.getRetrievalTopK() : 5);
@@ -302,21 +304,26 @@ public class RagServiceImpl implements RagService {
 
     /**
      * 构建 Agent Graph（单例模式，双重检查锁定）
+     * <p>
+     * 修复说明：使用局部变量避免半初始化对象暴露问题
      */
     private AgentGraph buildAgentGraph() {
-        if (cachedAgentGraph == null) {
+        AgentGraph graph = cachedAgentGraph;
+        if (graph == null) {
             synchronized (this) {
-                if (cachedAgentGraph == null) {
+                graph = cachedAgentGraph;
+                if (graph == null) {
                     log.info("初始化 AgentGraph 实例");
-                    cachedAgentGraph = new AgentGraph()
+                    AgentGraph newGraph = new AgentGraph()
                             .addNode(LlmProcessingNode.NAME, llmProcessingNode)
                             .addNode(ToolExecutingNode.NAME, toolExecutingNode)
                             .addEdge(LlmProcessingNode.NAME, ToolExecutingNode.NAME, null, null)
                             .addEdge(ToolExecutingNode.NAME, LlmProcessingNode.NAME, null, null)
                             .setEntryPoint(LlmProcessingNode.NAME);
+                    cachedAgentGraph = graph = newGraph;
                 }
             }
         }
-        return cachedAgentGraph;
+        return graph;
     }
 }
