@@ -134,6 +134,12 @@
             <artifactId>resilience4j-reactor</artifactId>
             <version>2.4.0</version>
         </dependency>
+        <!-- Beetl 模板引擎 -->
+        <dependency>
+            <groupId>com.ibeetl</groupId>
+            <artifactId>beetl</artifactId>
+            <version>3.20.2.RELEASE</version>
+        </dependency>
     </dependencies>
 
 </project>

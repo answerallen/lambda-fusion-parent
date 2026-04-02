@@ -163,6 +163,11 @@ public enum AiErrorCode implements ErrorCode {
     PROMPT_TEMPLATE_NOT_FOUND(30503, "提示词模板不存在"),
 
     /**
+     * 系统模板不允许修改
+     */
+    SYSTEM_TEMPLATE_NOT_EDITABLE(30504, "系统模板不允许修改或删除"),
+
+    /**
      * RAG增强失败
      */
     RAG_ENHANCEMENT_FAILED(30504, "RAG增强失败"),
@@ -215,7 +220,7 @@ public enum AiErrorCode implements ErrorCode {
      */
     ROBOT_DISABLED(30751, "AI机器人已禁用"),
 
-    // ========== Agent工作流相关错误 (30760-30769) ==========
+    // ========== Agent工作流相关错误 (30760-30779) ==========
     /**
      * Agent工作流不存在
      */
@@ -225,6 +230,16 @@ public enum AiErrorCode implements ErrorCode {
      * Agent工作流配置无效
      */
     WORKFLOW_CONFIG_INVALID(30761, "Agent工作流配置无效"),
+
+    /**
+     * 工作流模板编码已存在
+     */
+    WORKFLOW_TEMPLATE_CODE_EXISTS(30762, "工作流模板编码已存在"),
+
+    /**
+     * 工作流模板版本不存在
+     */
+    WORKFLOW_TEMPLATE_VERSION_NOT_FOUND(30763, "工作流模板版本不存在"),
 
     /**
      * 工作流执行失败

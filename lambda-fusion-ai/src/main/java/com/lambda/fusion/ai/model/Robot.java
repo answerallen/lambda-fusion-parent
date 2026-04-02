@@ -1,7 +1,9 @@
 package com.lambda.fusion.ai.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.Data;
 
 /**
@@ -25,6 +27,9 @@ public class Robot {
     @Schema(description = "描述")
     private String description;
 
+    @Schema(description = "机器人分类")
+    private String category;
+
     @Schema(description = "LLM模型ID")
     private Long llmModelId;
 
@@ -45,6 +50,41 @@ public class Robot {
 
     @Schema(description = "系统公开状态")
     private Boolean isPublic;
+
+    // ========== 模型参数配置 ==========
+
+    @Schema(description = "模型温度参数(0.0-2.0)")
+    private BigDecimal temperature;
+
+    @Schema(description = "最大Token数")
+    private Integer maxTokens;
+
+    // ========== 知识库检索配置 ==========
+
+    @Schema(description = "检索TopK")
+    private Integer retrievalTopK;
+
+    @Schema(description = "相似度阈值(0.0-1.0)")
+    private BigDecimal similarityThreshold;
+
+    @Schema(description = "是否显示引用来源")
+    private Boolean showCitation;
+
+    // ========== 对话配置 ==========
+
+    @Schema(description = "开场白/欢迎语")
+    private String welcomeMessage;
+
+    @Schema(description = "预设问题列表")
+    private List<String> suggestedQuestions;
+
+    @Schema(description = "是否启用建议追问")
+    private Boolean enableFollowUp;
+
+    // ========== 发布配置 ==========
+
+    @Schema(description = "发布渠道列表")
+    private List<String> publishChannels;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

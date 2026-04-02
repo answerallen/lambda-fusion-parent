@@ -56,6 +56,7 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
 
         int maxRetries = 3;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
+            int finalAttempt = attempt;
             Boolean success = transactionTemplate.execute(status -> {
                 try {
                     ChatSessionEntity session = chatSessionMapper.selectByIdWithVersion(sessionId);
@@ -73,11 +74,11 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
                         return true;
                     }
 
-                    log.debug("会话{}乐观锁冲突，尝试 {}/{}", sessionId, attempt + 1, maxRetries);
+                    log.debug("会话{}乐观锁冲突，尝试 {}/{}", sessionId, finalAttempt + 1, maxRetries);
                     return false;
 
                 } catch (OptimisticLockingFailureException e) {
-                    log.debug("会话{}乐观锁失败，尝试 {}/{}", sessionId, attempt + 1, maxRetries);
+                    log.debug("会话{}乐观锁失败，尝试 {}/{}", sessionId, finalAttempt + 1, maxRetries);
                     return false;
                 }
             });

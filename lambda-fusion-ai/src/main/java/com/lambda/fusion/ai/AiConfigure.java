@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai;
 
+import cn.hutool.core.util.StrUtil;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -10,10 +11,13 @@ import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeoutException;
+import org.beetl.core.GroupTemplate;
+import org.beetl.core.resource.StringTemplateResourceLoader;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -63,7 +67,7 @@ public class AiConfigure {
         return executor;
     }
 
-    @Configuration
+    @Configuration(proxyBeanMethods = false)
     public static class LlmResilienceConfig {
 
         public static final String LLM_CIRCUIT_BREAKER = "llm-call";
@@ -116,6 +120,27 @@ public class AiConfigure {
                     .build();
 
             return registry.retry(LLM_RETRY, config);
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    public static class BeetlTemplateConfig {
+
+        @Bean
+        public GroupTemplate groupTemplate() throws IOException {
+            StringTemplateResourceLoader resourceLoader = new StringTemplateResourceLoader();
+
+            org.beetl.core.Configuration cfg = org.beetl.core.Configuration.defaultConfiguration();
+
+            cfg.setHtmlTagSupport(false);
+
+            cfg.setPlaceholderStart("${");
+            cfg.setPlaceholderEnd("}");
+
+            GroupTemplate gt = new GroupTemplate(resourceLoader, cfg);
+            gt.registerFunctionPackage("str", new StrUtil());
+
+            return gt;
         }
     }
 }

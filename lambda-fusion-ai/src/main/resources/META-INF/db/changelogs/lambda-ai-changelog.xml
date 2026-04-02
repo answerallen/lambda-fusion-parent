@@ -1775,4 +1775,107 @@
         </rollback>
     </changeSet>
 
+    <!-- ========================================== -->
+    <!-- 【MySQL】AI机器人表扩展字段 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604020010-mysql" author="Agent">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="mysql"/>
+            <tableExists tableName="ai_robot"/>
+        </preConditions>
+        <!-- 基础信息扩展 -->
+        <addColumn tableName="ai_robot">
+            <column name="category" type="varchar(50)" remarks="机器人分类"/>
+        </addColumn>
+        <!-- 模型参数配置 -->
+        <addColumn tableName="ai_robot">
+            <column name="temperature" type="decimal(3,2)" defaultValue="0.70" remarks="模型温度参数"/>
+        </addColumn>
+        <addColumn tableName="ai_robot">
+            <column name="max_tokens" type="int" defaultValue="4000" remarks="最大Token数"/>
+        </addColumn>
+        <!-- 知识库检索配置 -->
+        <addColumn tableName="ai_robot">
+            <column name="retrieval_top_k" type="smallint" defaultValue="5" remarks="检索TopK"/>
+        </addColumn>
+        <addColumn tableName="ai_robot">
+            <column name="similarity_threshold" type="decimal(3,2)" defaultValue="0.70" remarks="相似度阈值"/>
+        </addColumn>
+        <addColumn tableName="ai_robot">
+            <column name="show_citation" type="tinyint(1)" defaultValue="1" remarks="是否显示引用来源"/>
+        </addColumn>
+        <!-- 对话配置 -->
+        <addColumn tableName="ai_robot">
+            <column name="welcome_message" type="text" remarks="开场白/欢迎语"/>
+        </addColumn>
+        <addColumn tableName="ai_robot">
+            <column name="suggested_questions" type="json" remarks="预设问题(JSON数组)"/>
+        </addColumn>
+        <addColumn tableName="ai_robot">
+            <column name="enable_follow_up" type="tinyint(1)" defaultValue="0" remarks="是否启用建议追问"/>
+        </addColumn>
+        <!-- 发布配置 -->
+        <addColumn tableName="ai_robot">
+            <column name="publish_channels" type="json" remarks="发布渠道(JSON数组)"/>
+        </addColumn>
+        <!-- 添加索引 -->
+        <createIndex tableName="ai_robot" indexName="idx_robot_category">
+            <column name="category"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】AI机器人表扩展字段 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604020010-pg" author="Agent">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+            <tableExists tableName="ai_robot"/>
+        </preConditions>
+        <!-- 基础信息扩展 -->
+        <addColumn tableName="ai_robot">
+            <column name="category" type="varchar(50)" remarks="机器人分类"/>
+        </addColumn>
+        <!-- 模型参数配置 -->
+        <addColumn tableName="ai_robot">
+            <column name="temperature" type="decimal(3,2)" defaultValue="0.7" remarks="模型温度参数"/>
+        </addColumn>
+        <addColumn tableName="ai_robot">
+            <column name="max_tokens" type="integer" defaultValue="4000" remarks="最大Token数"/>
+        </addColumn>
+        <!-- 知识库检索配置 -->
+        <addColumn tableName="ai_robot">
+            <column name="retrieval_top_k" type="smallint" defaultValue="5" remarks="检索TopK"/>
+        </addColumn>
+        <addColumn tableName="ai_robot">
+            <column name="similarity_threshold" type="decimal(3,2)" defaultValue="0.7" remarks="相似度阈值"/>
+        </addColumn>
+        <addColumn tableName="ai_robot">
+            <column name="show_citation" type="boolean" defaultValueBoolean="true" remarks="是否显示引用来源"/>
+        </addColumn>
+        <!-- 对话配置 -->
+        <addColumn tableName="ai_robot">
+            <column name="welcome_message" type="text" remarks="开场白/欢迎语"/>
+        </addColumn>
+        <addColumn tableName="ai_robot">
+            <column name="suggested_questions" type="jsonb" remarks="预设问题(JSON数组)"/>
+        </addColumn>
+        <addColumn tableName="ai_robot">
+            <column name="enable_follow_up" type="boolean" defaultValueBoolean="false" remarks="是否启用建议追问"/>
+        </addColumn>
+        <!-- 发布配置 -->
+        <addColumn tableName="ai_robot">
+            <column name="publish_channels" type="jsonb" remarks="发布渠道(JSON数组)"/>
+        </addColumn>
+        <!-- 添加索引 -->
+        <createIndex tableName="ai_robot" indexName="idx_robot_category">
+            <column name="category"/>
+        </createIndex>
+        <!-- 添加触发器 -->
+        <sql>
+            CREATE TRIGGER tr_robot_updated_at BEFORE UPDATE ON ai_robot
+            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+        </sql>
+    </changeSet>
+
 </databaseChangeLog>

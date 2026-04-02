@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.controller;
 
 import com.lambda.fusion.ai.model.CreateTemplate;
 import com.lambda.fusion.ai.model.PromptTemplate;
+import com.lambda.fusion.ai.model.UpdateTemplate;
 import com.lambda.fusion.ai.service.PromptTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -9,6 +10,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -31,8 +33,31 @@ public class PromptTemplateController {
         if (category != null) {
             return promptTemplateService.listByCategory(category);
         }
-        promptTemplateService.list();
-        return null;
+        return promptTemplateService.list().stream()
+                .map(entity -> {
+                    PromptTemplate vo = new PromptTemplate();
+                    BeanUtils.copyProperties(entity, vo);
+                    return vo;
+                })
+                .toList();
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "根据ID查询模板")
+    public PromptTemplate getById(@PathVariable Long id) {
+        return promptTemplateService.getTemplateById(id);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "更新模板")
+    public PromptTemplate update(@PathVariable Long id, @Valid @RequestBody UpdateTemplate dto) {
+        return promptTemplateService.updateTemplate(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除模板")
+    public void delete(@PathVariable Long id) {
+        promptTemplateService.deleteTemplate(id);
     }
 
     @GetMapping("/system")

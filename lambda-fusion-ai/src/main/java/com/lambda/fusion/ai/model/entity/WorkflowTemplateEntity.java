@@ -1,0 +1,130 @@
+package com.lambda.fusion.ai.model.entity;
+
+import com.baomidou.mybatisplus.annotation.*;
+import java.time.LocalDateTime;
+import lombok.Data;
+
+/**
+ * 工作流模板实体
+ * 用于存储可复用的 AI 流程编排模板
+ */
+@Data
+@TableName("ai_workflow_template")
+public class WorkflowTemplateEntity {
+
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    /**
+     * 模板唯一编码
+     */
+    private String templateCode;
+
+    /**
+     * 模板名称
+     */
+    private String name;
+
+    /**
+     * 模板描述
+     */
+    private String description;
+
+    /**
+     * 模板分类
+     */
+    private String category;
+
+    /**
+     * 模板版本号
+     */
+    private String version;
+
+    /**
+     * 模板定义JSON（GraphDefinition 的 JSON 序列化）
+     */
+    private String definition;
+
+    /**
+     * 模板缩略图/预览图URL
+     */
+    private String previewImage;
+
+    /**
+     * 模板图标
+     */
+    private String icon;
+
+    /**
+     * 模板颜色标识
+     */
+    private String color;
+
+    /**
+     * 输入参数定义JSON Schema
+     */
+    private String inputSchema;
+
+    /**
+     * 输出参数定义JSON Schema
+     */
+    private String outputSchema;
+
+    /**
+     * 变量定义（模板中使用的变量列表）
+     */
+    private String variables;
+
+    /**
+     * 标签（逗号分隔）
+     */
+    private String tags;
+
+    /**
+     * 是否系统内置模板
+     */
+    private Boolean systemTemplate;
+
+    /**
+     * 是否启用
+     */
+    private Boolean enabled;
+
+    /**
+     * 状态：draft-草稿, published-已发布, deprecated-已废弃
+     */
+    private String status;
+
+    /**
+     * 租户ID
+     */
+    private Long tenantId;
+
+    /**
+     * 创建人
+     */
+    private Long createBy;
+
+    /**
+     * 创建时间
+     */
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createTime;
+
+    /**
+     * 更新人
+     */
+    private Long updateBy;
+
+    /**
+     * 更新时间
+     */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
+
+    /**
+     * 是否删除
+     */
+    @TableLogic
+    private Integer deleted;
+}

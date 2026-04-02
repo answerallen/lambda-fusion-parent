@@ -1,9 +1,8 @@
 package com.lambda.fusion.ai.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import com.lambda.cloud.core.annotation.AutoConverter;
-import com.lambda.fusion.ai.model.Robot;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Data;
 
@@ -12,7 +11,6 @@ import lombok.Data;
  *
  * @author Jin
  */
-@AutoConverter(target = Robot.class)
 @Data
 @TableName("ai_robot")
 @Schema(description = "AI机器人实体")
@@ -32,6 +30,9 @@ public class RobotEntity {
 
     @Schema(description = "机器人职能描述")
     private String description;
+
+    @Schema(description = "机器人分类")
+    private String category;
 
     @Schema(description = "绑定的LLM模型ID")
     private Long llmModelId;
@@ -53,6 +54,41 @@ public class RobotEntity {
 
     @Schema(description = "是否系统全局公开")
     private Boolean isPublic;
+
+    // ========== 模型参数配置 ==========
+
+    @Schema(description = "模型温度参数(0.0-2.0)")
+    private BigDecimal temperature;
+
+    @Schema(description = "最大Token数")
+    private Integer maxTokens;
+
+    // ========== 知识库检索配置 ==========
+
+    @Schema(description = "检索TopK")
+    private Integer retrievalTopK;
+
+    @Schema(description = "相似度阈值(0.0-1.0)")
+    private BigDecimal similarityThreshold;
+
+    @Schema(description = "是否显示引用来源")
+    private Boolean showCitation;
+
+    // ========== 对话配置 ==========
+
+    @Schema(description = "开场白/欢迎语")
+    private String welcomeMessage;
+
+    @Schema(description = "预设问题(JSON数组)")
+    private String suggestedQuestions;
+
+    @Schema(description = "是否启用建议追问")
+    private Boolean enableFollowUp;
+
+    // ========== 发布配置 ==========
+
+    @Schema(description = "发布渠道(JSON数组: web/api/wechat等)")
+    private String publishChannels;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
