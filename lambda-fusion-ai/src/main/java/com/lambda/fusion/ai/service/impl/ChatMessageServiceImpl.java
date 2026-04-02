@@ -13,17 +13,22 @@ import com.lambda.fusion.ai.model.ChatHistory;
 import com.lambda.fusion.ai.model.RagResult;
 import com.lambda.fusion.ai.model.SendMessage;
 import com.lambda.fusion.ai.model.VectorSearchResult;
+import com.lambda.fusion.ai.model.WorkflowExecutionRequest;
+import com.lambda.fusion.ai.model.WorkflowExecutionResult;
 import com.lambda.fusion.ai.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
 import com.lambda.fusion.ai.service.ChatMessageService;
 import com.lambda.fusion.ai.service.RagService;
+import com.lambda.fusion.ai.service.WorkflowExecutionService;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +51,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     private final ChatMessageMapper chatMessageMapper;
     private final ChatSessionMapper chatSessionMapper;
     private final RagService ragService;
+    private final WorkflowExecutionService workflowExecutionService;
     private final AtomicSessionUpdateService atomicSessionUpdateService;
     private final SseEmitterManager sseEmitterManager;
     private final TransactionTemplate transactionTemplate;
@@ -59,23 +65,15 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
         chatMessageMapper.insert(userMsg);
 
-        List<ChatMessage> history = buildChatHistory(sessionId, userMsg.getMessageId());
-        RagResult ragResult = ragService.chat(dto.getContent(), session.getKbId(), session.getLlmModelId(), history);
-
-        ChatMessageEntity aiMsg = new ChatMessageEntity();
-        aiMsg.setMessageId(IdUtil.fastSimpleUUID());
-        aiMsg.setSessionId(sessionId);
-        aiMsg.setRole("assistant");
-        aiMsg.setContent(ragResult.getAnswer());
-        aiMsg.setIsRagEnhanced(true);
-        aiMsg.setRetrievedChunks(JSONUtil.toJsonStr(ragResult.getRetrievedChunks()));
-        aiMsg.setPromptTokens(ragResult.getPromptTokens());
-        aiMsg.setCompletionTokens(ragResult.getCompletionTokens());
-        aiMsg.setTotalTokens(ragResult.getPromptTokens() + ragResult.getCompletionTokens());
+        ChatMessageEntity aiMsg;
+        if (session.getWorkflowId() != null) {
+            aiMsg = executeWorkflowSync(session, dto, userMsg);
+        } else {
+            aiMsg = executeRagSync(session, dto, userMsg);
+        }
         chatMessageMapper.insert(aiMsg);
 
-        // 使用原子操作更新会话统计
-        // 这可以防止并发访问时的竞态条件
+        // 使用原子操作更新会话统计，这可以防止并发访问时的竞态条件
         atomicSessionUpdateService.updateSessionStatistics(sessionId, 2, aiMsg.getTotalTokens());
 
         return ConvertUtils.convert(aiMsg);
@@ -101,6 +99,10 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
 
         try {
+            if (session.getWorkflowId() != null) {
+                executeWorkflowStream(session, dto, userMsg, clientId);
+                return;
+            }
             List<VectorSearchResult> retrievedChunks =
                     ragService.retrieve(dto.getContent(), session.getKbId(), null, null);
 
@@ -168,6 +170,103 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
             sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
             throw new AiBusinessException(AiErrorCode.MESSAGE_SEND_FAILED, e);
         }
+    }
+
+    private ChatMessageEntity executeRagSync(ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg) {
+        List<ChatMessage> history = buildChatHistory(session.getId(), userMsg.getMessageId());
+        RagResult ragResult = ragService.chat(dto.getContent(), session.getKbId(), session.getLlmModelId(), history);
+        ChatMessageEntity aiMsg = createAssistantMessageEntity(session.getId(), ragResult.getAnswer(), true);
+        aiMsg.setRetrievedChunks(JSONUtil.toJsonStr(ragResult.getRetrievedChunks()));
+        int promptTokens = ragResult.getPromptTokens() != null ? ragResult.getPromptTokens() : 0;
+        int completionTokens = ragResult.getCompletionTokens() != null ? ragResult.getCompletionTokens() : 0;
+        aiMsg.setPromptTokens(promptTokens);
+        aiMsg.setCompletionTokens(completionTokens);
+        aiMsg.setTotalTokens(promptTokens + completionTokens);
+        return aiMsg;
+    }
+
+    private ChatMessageEntity executeWorkflowSync(ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg) {
+        WorkflowExecutionResult result =
+                workflowExecutionService.execute(session.getWorkflowId(), buildWorkflowExecutionRequest(session, dto, userMsg, false));
+        ChatMessageEntity aiMsg = createAssistantMessageEntity(session.getId(), result.getAnswer(), false);
+        int promptTokens = result.getPromptTokens() != null ? result.getPromptTokens() : 0;
+        int completionTokens = result.getCompletionTokens() != null ? result.getCompletionTokens() : 0;
+        aiMsg.setPromptTokens(promptTokens);
+        aiMsg.setCompletionTokens(completionTokens);
+        aiMsg.setTotalTokens(promptTokens + completionTokens);
+        return aiMsg;
+    }
+
+    private void executeWorkflowStream(ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg, String clientId) {
+        StringBuilder fullAnswer = new StringBuilder();
+        workflowExecutionService.executeStream(
+                session.getWorkflowId(),
+                buildWorkflowExecutionRequest(session, dto, userMsg, true),
+                new StreamingChatResponseHandler() {
+                    @Override
+                    public void onPartialResponse(String token) {
+                        sseEmitterManager.sendEvent(clientId, "message", token);
+                        fullAnswer.append(token);
+                    }
+
+                    @Override
+                    public void onCompleteResponse(ChatResponse response) {
+                        String aiText = response.aiMessage() != null && response.aiMessage().text() != null
+                                ? response.aiMessage().text()
+                                : "";
+                        String finalContent = fullAnswer.isEmpty() ? aiText : fullAnswer.toString();
+                        ChatMessageEntity aiMsg =
+                                createAssistantMessageEntity(session.getId(), finalContent, false);
+                        int promptTokens = response.tokenUsage() != null ? response.tokenUsage().inputTokenCount() : 0;
+                        int completionTokens = response.tokenUsage() != null
+                                ? response.tokenUsage().outputTokenCount()
+                                : 0;
+                        aiMsg.setPromptTokens(promptTokens);
+                        aiMsg.setCompletionTokens(completionTokens);
+                        aiMsg.setTotalTokens(promptTokens + completionTokens);
+                        try {
+                            persistStreamMessages(session.getId(), userMsg, aiMsg);
+                            sseEmitterManager.sendEvent(clientId, "finish", aiMsg.getMessageId());
+                        } catch (Exception e) {
+                            log.error("工作流流式消息持久化失败", e);
+                            sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable error) {
+                        log.error("工作流流式执行异常", error);
+                        sseEmitterManager.sendEvent(clientId, "error", error.getMessage());
+                    }
+                });
+    }
+
+    private WorkflowExecutionRequest buildWorkflowExecutionRequest(
+            ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg, boolean traceEnabled) {
+        WorkflowExecutionRequest request = new WorkflowExecutionRequest();
+        request.setUserId(session.getUserId());
+        request.setTenantId(session.getTenantId());
+        request.setSessionId(session.getId());
+        request.setKbId(session.getKbId());
+        request.setLlmModelId(session.getLlmModelId());
+        List<ChatMessage> history = buildChatHistory(session.getId(), userMsg.getMessageId());
+        history.add(new UserMessage(dto.getContent()));
+        request.setMessages(history);
+        Map<String, Object> inputParams = new HashMap<>();
+        inputParams.put("question", dto.getContent());
+        request.setInputParams(inputParams);
+        request.setTraceEnabled(traceEnabled);
+        return request;
+    }
+
+    private ChatMessageEntity createAssistantMessageEntity(Long sessionId, String content, boolean ragEnhanced) {
+        ChatMessageEntity aiMsg = new ChatMessageEntity();
+        aiMsg.setMessageId(IdUtil.fastSimpleUUID());
+        aiMsg.setSessionId(sessionId);
+        aiMsg.setRole("assistant");
+        aiMsg.setContent(content);
+        aiMsg.setIsRagEnhanced(ragEnhanced);
+        return aiMsg;
     }
 
     @Override

@@ -7,9 +7,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.factory.AgentGraphFactory;
+import com.lambda.fusion.ai.commons.agent.model.GraphDefinition;
+import com.lambda.fusion.ai.commons.agent.model.NodeDefinition;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
-import com.lambda.fusion.ai.commons.support.factory.ChatModelFactory;
 import com.lambda.fusion.ai.mapper.PipelineExecutionMapper;
 import com.lambda.fusion.ai.mapper.WorkflowMapper;
 import com.lambda.fusion.ai.model.WorkflowExecutionRequest;
@@ -19,8 +20,6 @@ import com.lambda.fusion.ai.model.entity.WorkflowEntity;
 import com.lambda.fusion.ai.service.WorkflowExecutionService;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.chat.StreamingChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.io.PrintWriter;
@@ -29,8 +28,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+
+import dev.langchain4j.model.output.FinishReason;
+import dev.langchain4j.model.output.TokenUsage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,7 +46,6 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     private final WorkflowMapper workflowMapper;
     private final PipelineExecutionMapper executionMapper;
     private final AgentGraphFactory agentGraphFactory;
-    private final ChatModelFactory chatModelFactory;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -92,72 +92,19 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             if (modelId == null) {
                 modelId = resolveDefaultModelId(workflow);
             }
-
-            StreamingChatModel streamingModel = chatModelFactory.getStreamingChatModel(modelId);
-
-            List<ChatMessage> messages = new ArrayList<>();
-            if (request.getMessages() != null) {
-                messages.addAll(request.getMessages());
+            if (modelId != null) {
+                state.setLlmModelId(modelId);
             }
+            state.getAttributes().put("streamHandler", handler);
 
-            ChatRequest chatRequest = ChatRequest.builder().messages(messages).build();
+            long startTime = System.currentTimeMillis();
+            state = graph.invoke(state);
+            long duration = System.currentTimeMillis() - startTime;
 
-            StreamingChatResponseHandler innerHandler = new StreamingChatResponseHandler() {
-                private final StringBuilder fullContent = new StringBuilder();
-                private int promptTokens = 0;
-                private int completionTokens = 0;
-
-                @Override
-                public void onPartialResponse(String token) {
-                    fullContent.append(token);
-                    handler.onPartialResponse(token);
-                }
-
-                @Override
-                public void onCompleteResponse(ChatResponse response) {
-                    promptTokens = response.tokenUsage() != null
-                            ? response.tokenUsage().inputTokenCount()
-                            : 0;
-                    completionTokens = response.tokenUsage() != null
-                            ? response.tokenUsage().outputTokenCount()
-                            : 0;
-
-                    state.addMessage(response.aiMessage());
-                    state.setFinished(true);
-                    state.getAttributes().put("promptTokens", promptTokens);
-                    state.getAttributes().put("completionTokens", completionTokens);
-
-                    long duration = System.currentTimeMillis()
-                            - execution
-                                    .getStartedAt()
-                                    .atZone(java.time.ZoneId.systemDefault())
-                                    .toInstant()
-                                    .toEpochMilli();
-
-                    WorkflowExecutionResult result = WorkflowExecutionResult.builder()
-                            .executionId(execution.getExecutionId())
-                            .finished(true)
-                            .answer(fullContent.toString())
-                            .durationMs(duration)
-                            .promptTokens(promptTokens)
-                            .completionTokens(completionTokens)
-                            .totalTokens(promptTokens + completionTokens)
-                            .status("COMPLETED")
-                            .build();
-
-                    updateExecutionSuccess(execution, result);
-                    handler.onCompleteResponse(response);
-                }
-
-                @Override
-                public void onError(Throwable error) {
-                    log.error("流式执行失败", error);
-                    updateExecutionFailure(execution, error);
-                    handler.onError(error);
-                }
-            };
-
-            streamingModel.chat(chatRequest, innerHandler);
+            WorkflowExecutionResult result = extractResult(state, execution, duration);
+            updateExecutionSuccess(execution, result);
+            ChatResponse chatResponse = buildChatResponse(state);
+            handler.onCompleteResponse(chatResponse);
 
         } catch (Exception e) {
             log.error("流式执行工作流失败, workflowId={}", workflowId, e);
@@ -325,6 +272,47 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     }
 
     private Long resolveDefaultModelId(WorkflowEntity workflow) {
+        if (workflow == null || !StringUtils.hasText(workflow.getGraphJson())) {
+            return null;
+        }
+        try {
+            GraphDefinition definition = objectMapper.readValue(workflow.getGraphJson(), GraphDefinition.class);
+            if (definition == null || definition.getNodes() == null || definition.getNodes().isEmpty()) {
+                return null;
+            }
+            for (NodeDefinition node : definition.getNodes()) {
+                if (node == null || node.getProperties() == null || node.getProperties().isEmpty()) {
+                    continue;
+                }
+                Long resolvedModelId = resolveModelId(node.getProperties());
+                if (resolvedModelId != null) {
+                    return resolvedModelId;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("解析工作流默认模型失败, workflowId={}", workflow.getId(), e);
+            return null;
+        }
+    }
+
+    private Long resolveModelId(Map<String, Object> properties) {
+        Object modelIdValue = properties.get("llmModelId");
+        if (modelIdValue == null) {
+            modelIdValue = properties.get("modelId");
+        }
+        if (modelIdValue instanceof Number numberValue) {
+            long modelId = numberValue.longValue();
+            return modelId > 0 ? modelId : null;
+        }
+        if (modelIdValue instanceof String textValue && StringUtils.hasText(textValue)) {
+            try {
+                long modelId = Long.parseLong(textValue.trim());
+                return modelId > 0 ? modelId : null;
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
         return null;
     }
 
@@ -335,6 +323,27 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
                 .durationMs(
                         entity.getDurationMs() != null ? entity.getDurationMs().longValue() : null)
                 .errorMessage(entity.getErrorMessage())
+                .build();
+    }
+
+    private ChatResponse buildChatResponse(AgentState state) {
+        AiMessage aiMessage = null;
+        if (state != null && state.getMessages() != null && !state.getMessages().isEmpty()) {
+            ChatMessage lastMessage = state.getMessages().getLast();
+            if (lastMessage instanceof AiMessage parsedMessage) {
+                aiMessage = parsedMessage;
+            }
+        }
+        int promptTokens = state != null
+                ? (Integer) state.getAttributes().getOrDefault("promptTokens", 0)
+                : 0;
+        int completionTokens = state != null
+                ? (Integer) state.getAttributes().getOrDefault("completionTokens", 0)
+                : 0;
+        return ChatResponse.builder()
+                .aiMessage(aiMessage != null ? aiMessage : AiMessage.from(""))
+                .tokenUsage(new TokenUsage(promptTokens, completionTokens))
+                .finishReason(FinishReason.STOP)
                 .build();
     }
 }

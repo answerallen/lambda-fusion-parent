@@ -1209,18 +1209,18 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 【MySQL】Agent工作流配置表 ai_agent_workflow -->
+    <!-- 【MySQL】Jin工作流配置表 ai_Jin_workflow -->
     <!-- ========================================== -->
     <changeSet id="lambda-fusion-ai-202603010010-mysql" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
-                    <tableExists tableName="ai_agent_workflow"/>
+                    <tableExists tableName="ai_Jin_workflow"/>
                 </not>
                 <dbms type="mysql"/>
             </and>
         </preConditions>
-        <createTable tableName="ai_agent_workflow" remarks="Agent工作流配置表">
+        <createTable tableName="ai_Jin_workflow" remarks="Jin工作流配置表">
             <column name="id" type="bigint" autoIncrement="true">
                 <constraints primaryKey="true"/>
             </column>
@@ -1248,30 +1248,30 @@
             <column name="created_by" type="bigint"/>
             <column name="updated_by" type="bigint"/>
         </createTable>
-        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_tenant_id">
+        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_tenant_id">
             <column name="tenant_id"/>
         </createIndex>
-        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_owner">
+        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_owner">
             <column name="owner_user_id"/>
         </createIndex>
-        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_enabled">
+        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_enabled">
             <column name="enabled"/>
         </createIndex>
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 【PostgreSQL】Agent工作流配置表 ai_agent_workflow -->
+    <!-- 【PostgreSQL】Jin工作流配置表 ai_Jin_workflow -->
     <!-- ========================================== -->
     <changeSet id="lambda-fusion-ai-202603010010-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
-                    <tableExists tableName="ai_agent_workflow"/>
+                    <tableExists tableName="ai_Jin_workflow"/>
                 </not>
                 <dbms type="postgresql"/>
             </and>
         </preConditions>
-        <createTable tableName="ai_agent_workflow" remarks="Agent工作流配置表">
+        <createTable tableName="ai_Jin_workflow" remarks="Jin工作流配置表">
             <column name="id" type="bigserial">
                 <constraints primaryKey="true"/>
             </column>
@@ -1299,13 +1299,13 @@
             <column name="created_by" type="bigint"/>
             <column name="updated_by" type="bigint"/>
         </createTable>
-        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_tenant_id">
+        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_tenant_id">
             <column name="tenant_id"/>
         </createIndex>
-        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_owner">
+        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_owner">
             <column name="owner_user_id"/>
         </createIndex>
-        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_enabled">
+        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_enabled">
             <column name="enabled"/>
         </createIndex>
     </changeSet>
@@ -1525,7 +1525,7 @@
     <!-- ========================================== -->
     <!-- 【MySQL】AI 工作流模板表 ai_workflow_template -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604010020-mysql" author="Agent">
+    <changeSet id="lambda-fusion-ai-202604010020-mysql" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -1599,7 +1599,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】AI 工作流模板表 ai_workflow_template -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604010020-pg" author="Agent">
+    <changeSet id="lambda-fusion-ai-202604010020-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -1673,7 +1673,7 @@
     <!-- ========================================== -->
     <!-- 【MySQL】AI 工作流模板版本表 ai_workflow_template_version -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604010021-mysql" author="Agent">
+    <changeSet id="lambda-fusion-ai-202604010021-mysql" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -1716,7 +1716,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】AI 工作流模板版本表 ai_workflow_template_version -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604010021-pg" author="Agent">
+    <changeSet id="lambda-fusion-ai-202604010021-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -1759,7 +1759,7 @@
     <!-- ========================================== -->
     <!-- 【仅 PostgreSQL】工作流模板表触发器 -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604010022" author="Agent">
+    <changeSet id="lambda-fusion-ai-202604010022" author="Jin">
         <preConditions onFail="MARK_RAN">
             <dbms type="postgresql"/>
             <tableExists tableName="ai_workflow_template"/>
@@ -1778,7 +1778,7 @@
     <!-- ========================================== -->
     <!-- 【MySQL】AI机器人表扩展字段 -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604020010-mysql" author="Agent">
+    <changeSet id="lambda-fusion-ai-202604020010-mysql" author="Jin">
         <preConditions onFail="MARK_RAN">
             <dbms type="mysql"/>
             <tableExists tableName="ai_robot"/>
@@ -1827,7 +1827,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】AI机器人表扩展字段 -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604020010-pg" author="Agent">
+    <changeSet id="lambda-fusion-ai-202604020010-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <dbms type="postgresql"/>
             <tableExists tableName="ai_robot"/>

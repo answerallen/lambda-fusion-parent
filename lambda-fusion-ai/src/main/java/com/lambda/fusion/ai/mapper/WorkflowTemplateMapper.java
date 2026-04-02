@@ -32,6 +32,7 @@ public interface WorkflowTemplateMapper extends BaseMapper<WorkflowTemplateEntit
     /**
      * 分页查询模板列表
      */
+    @Select("")
     IPage<WorkflowTemplateEntity> selectTemplatePage(
             Page<WorkflowTemplateEntity> page,
             @Param("tenantId") Long tenantId,

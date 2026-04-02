@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * 工作流模板版本历史 Mapper
@@ -44,6 +45,6 @@ public interface WorkflowTemplateVersionMapper extends BaseMapper<WorkflowTempla
     /**
      * 删除指定模板的所有版本历史
      */
-    @Select("UPDATE ai_workflow_template_version SET deleted = 1 WHERE template_id = #{templateId}")
+    @Update("UPDATE ai_workflow_template_version SET deleted = 1 WHERE template_id = #{templateId}")
     void deleteByTemplateId(@Param("templateId") Long templateId);
 }

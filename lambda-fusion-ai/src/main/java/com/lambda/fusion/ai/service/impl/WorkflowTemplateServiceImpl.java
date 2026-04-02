@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.commons.agent.factory.AgentGraphFactory;
@@ -17,8 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+import org.springframework.util.StringUtils;
 
 /**
  * 工作流模板服务实现
@@ -138,7 +138,17 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
     @Override
     public IPage<WorkflowTemplateEntity> listTemplates(
             Page<WorkflowTemplateEntity> page, Long tenantId, String category, String status, String keyword) {
-        return templateMapper.selectTemplatePage(page, tenantId, category, status, keyword);
+        LambdaQueryWrapper<WorkflowTemplateEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(tenantId != null, WorkflowTemplateEntity::getTenantId, tenantId)
+                .eq(StringUtils.hasText(category), WorkflowTemplateEntity::getCategory, category)
+                .eq(StringUtils.hasText(status), WorkflowTemplateEntity::getStatus, status)
+                .and(StringUtils.hasText(keyword), query -> query.like(WorkflowTemplateEntity::getName, keyword)
+                        .or()
+                        .like(WorkflowTemplateEntity::getTemplateCode, keyword)
+                        .or()
+                        .like(WorkflowTemplateEntity::getDescription, keyword))
+                .orderByDesc(WorkflowTemplateEntity::getCreateTime);
+        return templateMapper.selectPage(page, wrapper);
     }
 
     @Override
