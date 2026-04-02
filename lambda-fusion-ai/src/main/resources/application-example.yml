@@ -15,17 +15,17 @@ spring:
       datasource:
         master:
           driver-class-name: com.mysql.cj.jdbc.Driver
-          url: jdbc:mysql://101.42.251.191:3306/lambda_fusion?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+          url: jdbc:mysql://localhost:3306/lambda_fusion?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
           username: root
           password: password
         ai-postgres:
           driver-class-name: org.postgresql.Driver
-          url: jdbc:postgresql://101.42.251.191:5432/lambda_ai?currentSchema=public
+          url: jdbc:postgresql://localhost:5432/lambda_ai?currentSchema=public
           username: postgres
           password: password
         ai-tenant-1001:
           driver-class-name: org.postgresql.Driver
-          url: jdbc:postgresql://101.42.251.191:5432/tenant_1001?currentSchema=public
+          url: jdbc:postgresql://localhost:5432/tenant_1001?currentSchema=public
           username: postgres
           password: password
 
