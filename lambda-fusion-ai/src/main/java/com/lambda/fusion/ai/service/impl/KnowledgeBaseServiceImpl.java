@@ -34,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@DS("#{@aiDataSourceProperties.defaultName}")
+@DS("@aiDataSourceProperties.defaultName")
 public class KnowledgeBaseServiceImpl
         extends AbstractCrudService<KnowledgeBaseEntity, KnowledgeBase, KnowledgeBaseMapper>
         implements KnowledgeBaseService {

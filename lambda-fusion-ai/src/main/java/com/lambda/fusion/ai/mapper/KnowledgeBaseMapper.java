@@ -15,7 +15,7 @@ import org.apache.ibatis.annotations.Select;
  * 知识库 Mapper接口
  */
 @Mapper
-@DS("#{@aiDataSourceProperties.defaultName}")
+@DS("@aiDataSourceProperties.defaultName")
 public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
 
     /**
