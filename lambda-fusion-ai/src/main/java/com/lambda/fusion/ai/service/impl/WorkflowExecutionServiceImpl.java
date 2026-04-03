@@ -22,6 +22,8 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import dev.langchain4j.model.output.FinishReason;
+import dev.langchain4j.model.output.TokenUsage;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.LocalDateTime;
@@ -29,9 +31,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -277,11 +276,15 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         }
         try {
             GraphDefinition definition = objectMapper.readValue(workflow.getGraphJson(), GraphDefinition.class);
-            if (definition == null || definition.getNodes() == null || definition.getNodes().isEmpty()) {
+            if (definition == null
+                    || definition.getNodes() == null
+                    || definition.getNodes().isEmpty()) {
                 return null;
             }
             for (NodeDefinition node : definition.getNodes()) {
-                if (node == null || node.getProperties() == null || node.getProperties().isEmpty()) {
+                if (node == null
+                        || node.getProperties() == null
+                        || node.getProperties().isEmpty()) {
                     continue;
                 }
                 Long resolvedModelId = resolveModelId(node.getProperties());
@@ -334,12 +337,8 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
                 aiMessage = parsedMessage;
             }
         }
-        int promptTokens = state != null
-                ? (Integer) state.getAttributes().getOrDefault("promptTokens", 0)
-                : 0;
-        int completionTokens = state != null
-                ? (Integer) state.getAttributes().getOrDefault("completionTokens", 0)
-                : 0;
+        int promptTokens = state != null ? (Integer) state.getAttributes().getOrDefault("promptTokens", 0) : 0;
+        int completionTokens = state != null ? (Integer) state.getAttributes().getOrDefault("completionTokens", 0) : 0;
         return ChatResponse.builder()
                 .aiMessage(aiMessage != null ? aiMessage : AiMessage.from(""))
                 .tokenUsage(new TokenUsage(promptTokens, completionTokens))

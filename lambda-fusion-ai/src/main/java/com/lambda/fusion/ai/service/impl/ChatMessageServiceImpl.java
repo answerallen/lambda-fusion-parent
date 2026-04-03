@@ -185,9 +185,10 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         return aiMsg;
     }
 
-    private ChatMessageEntity executeWorkflowSync(ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg) {
-        WorkflowExecutionResult result =
-                workflowExecutionService.execute(session.getWorkflowId(), buildWorkflowExecutionRequest(session, dto, userMsg, false));
+    private ChatMessageEntity executeWorkflowSync(
+            ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg) {
+        WorkflowExecutionResult result = workflowExecutionService.execute(
+                session.getWorkflowId(), buildWorkflowExecutionRequest(session, dto, userMsg, false));
         ChatMessageEntity aiMsg = createAssistantMessageEntity(session.getId(), result.getAnswer(), false);
         int promptTokens = result.getPromptTokens() != null ? result.getPromptTokens() : 0;
         int completionTokens = result.getCompletionTokens() != null ? result.getCompletionTokens() : 0;
@@ -197,7 +198,8 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         return aiMsg;
     }
 
-    private void executeWorkflowStream(ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg, String clientId) {
+    private void executeWorkflowStream(
+            ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg, String clientId) {
         StringBuilder fullAnswer = new StringBuilder();
         workflowExecutionService.executeStream(
                 session.getWorkflowId(),
@@ -211,13 +213,15 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
                     @Override
                     public void onCompleteResponse(ChatResponse response) {
-                        String aiText = response.aiMessage() != null && response.aiMessage().text() != null
+                        String aiText = response.aiMessage() != null
+                                        && response.aiMessage().text() != null
                                 ? response.aiMessage().text()
                                 : "";
                         String finalContent = fullAnswer.isEmpty() ? aiText : fullAnswer.toString();
-                        ChatMessageEntity aiMsg =
-                                createAssistantMessageEntity(session.getId(), finalContent, false);
-                        int promptTokens = response.tokenUsage() != null ? response.tokenUsage().inputTokenCount() : 0;
+                        ChatMessageEntity aiMsg = createAssistantMessageEntity(session.getId(), finalContent, false);
+                        int promptTokens = response.tokenUsage() != null
+                                ? response.tokenUsage().inputTokenCount()
+                                : 0;
                         int completionTokens = response.tokenUsage() != null
                                 ? response.tokenUsage().outputTokenCount()
                                 : 0;
