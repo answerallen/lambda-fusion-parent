@@ -26,7 +26,7 @@ import com.lambda.fusion.ai.model.DocumentQuery;
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
-import com.lambda.fusion.ai.repository.VectorRepository;
+import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.service.DocumentService;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import java.io.File;
@@ -65,7 +65,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
     @Autowired
     public void setOssClient(OssClientManager ossClientManager) {
-        this.ossClient = ossClientManager.get("zsk");
+        this.ossClient = ossClientManager.get("default");
     }
 
     @Value("${lambda.fusion.ai.document.max-file-size:10485760}")

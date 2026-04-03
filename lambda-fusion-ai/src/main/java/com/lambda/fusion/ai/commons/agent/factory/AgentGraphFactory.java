@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.commons.agent.factory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator;
@@ -12,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 将前端传来的 JSON Schema (GraphDefinition)

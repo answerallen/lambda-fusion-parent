@@ -25,7 +25,7 @@ import org.springframework.util.StringUtils;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@DS("#{@aiDataSourceProperties.defaultName}")
+@DS("@aiDataSourceProperties.defaultName")
 public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEntity> implements LlmModelService {
 
     private final LlmModelMapper llmModelMapper;

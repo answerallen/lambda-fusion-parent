@@ -1,7 +1,6 @@
 package com.lambda.fusion.ai.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentToolProvider;
 import com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator;
@@ -28,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 @RequiredArgsConstructor

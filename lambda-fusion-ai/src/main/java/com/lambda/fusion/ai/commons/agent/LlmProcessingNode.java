@@ -27,8 +27,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 /**
@@ -41,16 +42,32 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class LlmProcessingNode implements AgentNode {
 
     public static final String NAME = "LLM_PROCESSOR";
 
-    private final ChatModelFactory chatModelFactory;
+    private ChatModelFactory chatModelFactory;
     private final AgentToolProvider toolProvider;
     private final PromptTemplateService promptTemplateService;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final RetryRegistry retryRegistry;
+
+    public LlmProcessingNode(
+            AgentToolProvider toolProvider,
+            PromptTemplateService promptTemplateService,
+            CircuitBreakerRegistry circuitBreakerRegistry,
+            RetryRegistry retryRegistry) {
+        this.toolProvider = toolProvider;
+        this.promptTemplateService = promptTemplateService;
+        this.circuitBreakerRegistry = circuitBreakerRegistry;
+        this.retryRegistry = retryRegistry;
+    }
+
+    @Autowired
+    @Lazy
+    public void setChatModelFactory(ChatModelFactory chatModelFactory) {
+        this.chatModelFactory = chatModelFactory;
+    }
 
     @Override
     public String getName() {

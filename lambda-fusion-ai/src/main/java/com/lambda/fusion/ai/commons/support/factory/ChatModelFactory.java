@@ -15,8 +15,9 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -26,11 +27,20 @@ import org.springframework.util.StringUtils;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class ChatModelFactory {
 
-    private final LlmModelService llmModelService;
+    private LlmModelService llmModelService;
     private final KeyEncryptionService keyEncryptionService;
+
+    public ChatModelFactory(KeyEncryptionService keyEncryptionService) {
+        this.keyEncryptionService = keyEncryptionService;
+    }
+
+    @Autowired
+    @Lazy
+    public void setLlmModelService(LlmModelService llmModelService) {
+        this.llmModelService = llmModelService;
+    }
 
     // 缓存模型实例，避免频繁创建连接
     private final Cache<Long, ChatModel> chatModelCache = Caffeine.newBuilder()

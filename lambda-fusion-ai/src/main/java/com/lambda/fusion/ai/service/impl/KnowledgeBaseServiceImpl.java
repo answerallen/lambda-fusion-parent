@@ -14,7 +14,7 @@ import com.lambda.fusion.ai.model.KnowledgeBaseQuery;
 import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
-import com.lambda.fusion.ai.repository.VectorRepository;
+import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import java.time.LocalDateTime;

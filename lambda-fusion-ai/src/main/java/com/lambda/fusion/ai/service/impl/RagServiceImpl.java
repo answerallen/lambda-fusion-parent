@@ -13,7 +13,7 @@ import com.lambda.fusion.ai.model.RagResult;
 import com.lambda.fusion.ai.model.VectorSearchResult;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.model.entity.PromptTemplateEntity;
-import com.lambda.fusion.ai.repository.VectorRepository;
+import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.service.RagService;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;

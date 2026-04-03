@@ -1,13 +1,12 @@
 package com.lambda.fusion.ai.commons.agent;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -20,6 +19,8 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Agent动作提供者
@@ -122,7 +123,12 @@ public class AgentToolProvider implements ApplicationContextAware {
         try {
             Map<String, Object> arguments = new HashMap<>();
             if (request.arguments() != null && !request.arguments().isEmpty()) {
-                arguments = objectMapper.readValue(request.arguments(), new TypeReference<>() {});
+                arguments = objectMapper.readValue(request.arguments(), new TypeReference<>() {
+                    @Override
+                    public Type getType() {
+                        return super.getType();
+                    }
+                });
             }
 
             Method method = executor.method;

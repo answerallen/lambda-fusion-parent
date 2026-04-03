@@ -4,25 +4,6 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
     <!-- ========================================== -->
-    <!-- 【仅 PostgreSQL】PostgreSQL扩展创建 -->
-    <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030001" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <dbms type="postgresql"/>
-        </preConditions>
-        <sql>
-            CREATE EXTENSION IF NOT EXISTS vector;
-            CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-            CREATE EXTENSION IF NOT EXISTS pg_trgm;
-        </sql>
-        <rollback>
-            DROP EXTENSION IF EXISTS pg_trgm;
-            DROP EXTENSION IF EXISTS "uuid-ossp";
-            DROP EXTENSION IF EXISTS vector;
-        </rollback>
-    </changeSet>
-
-    <!-- ========================================== -->
     <!-- 【MySQL】知识库表 ai_knowledge_base -->
     <!-- ========================================== -->
     <changeSet id="lambda-fusion-ai-202602030010-mysql" author="Jin">
@@ -69,10 +50,10 @@
             <column name="vector_count" type="bigint" defaultValue="0"/>
             <column name="total_size_bytes" type="bigint" defaultValue="0"/>
             <column name="status" type="varchar(20)" defaultValue="ACTIVE"/>
-            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
             <column name="created_by" type="bigint"/>
@@ -210,17 +191,17 @@
             <column name="char_count" type="int"/>
             <column name="word_count" type="int"/>
             <column name="page_count" type="int"/>
-            <column name="uploaded_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="uploaded_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
             <column name="uploaded_by" type="bigint">
                 <constraints nullable="false"/>
             </column>
             <column name="processed_at" type="timestamp"/>
-            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
             <column name="deleted_at" type="timestamp"/>
@@ -354,10 +335,10 @@
             <column name="metadata" type="json"/>
             <column name="char_count" type="int"/>
             <column name="token_count" type="int"/>
-            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -493,10 +474,10 @@
             <column name="total_calls" type="bigint" defaultValue="0"/>
             <column name="total_tokens" type="bigint" defaultValue="0"/>
             <column name="total_cost" type="decimal(12,4)" defaultValue="0"/>
-            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
             <column name="created_by" type="bigint"/>
@@ -619,10 +600,10 @@
             <column name="total_tokens" type="int" defaultValue="0"/>
             <column name="total_cost" type="decimal(10,4)" defaultValue="0"/>
             <column name="status" type="varchar(20)" defaultValue="ACTIVE"/>
-            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
             <column name="last_message_at" type="timestamp"/>
@@ -742,7 +723,7 @@
             <column name="user_feedback" type="smallint"/>
             <column name="latency_ms" type="int"/>
             <column name="metadata" type="json"/>
-            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -861,10 +842,10 @@
             <column name="execution_count" type="bigint" defaultValue="0"/>
             <column name="success_count" type="bigint" defaultValue="0"/>
             <column name="avg_duration_ms" type="int"/>
-            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
             <column name="published_at" type="timestamp"/>
@@ -995,7 +976,7 @@
             <column name="completed_at" type="timestamp"/>
             <column name="duration_ms" type="int"/>
             <column name="execution_log" type="json"/>
-            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
         </createTable>
@@ -1123,10 +1104,10 @@
             <column name="enabled" type="tinyint(1)" defaultValue="1"/>
             <column name="usage_count" type="bigint" defaultValue="0"/>
             <column name="avg_rating" type="decimal(3,2)"/>
-            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
             <column name="created_by" type="bigint"/>
@@ -1239,10 +1220,10 @@
             <column name="execution_count" type="bigint" defaultValue="0"/>
             <column name="success_count" type="bigint" defaultValue="0"/>
             <column name="avg_duration_ms" type="int"/>
-            <column name="created_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
             <column name="created_by" type="bigint"/>
@@ -1308,184 +1289,6 @@
         <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_enabled">
             <column name="enabled"/>
         </createIndex>
-    </changeSet>
-
-    <!-- ========================================== -->
-    <!-- 【仅 PostgreSQL】向量子表动态创建存储过程 -->
-    <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602050010" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <dbms type="postgresql"/>
-        </preConditions>
-        <createProcedure>
-            CREATE OR REPLACE FUNCTION create_vector_table(dimension INTEGER)
-            RETURNS TEXT AS $$
-            DECLARE
-                table_name TEXT;
-            BEGIN
-                table_name := 'ai_vector_store_' || dimension::TEXT;
-                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = table_name) THEN
-                    RETURN table_name || ' already exists';
-                END IF;
-                EXECUTE format('
-                    CREATE TABLE %I (
-                        id BIGSERIAL PRIMARY KEY,
-                        vector_id VARCHAR(100) UNIQUE NOT NULL,
-                        kb_id BIGINT NOT NULL,
-                        document_id BIGINT,
-                        chunk_id BIGINT,
-                        collection_name VARCHAR(100) NOT NULL,
-                        embedding vector(%s) NOT NULL,
-                        content TEXT NOT NULL,
-                        metadata JSONB,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (kb_id) REFERENCES ai_knowledge_base(id) ON DELETE CASCADE,
-                        FOREIGN KEY (document_id) REFERENCES ai_document(id) ON DELETE CASCADE,
-                        FOREIGN KEY (chunk_id) REFERENCES ai_document_chunk(id) ON DELETE CASCADE
-                    );
-                    CREATE INDEX idx_%I_kb_id ON %I (kb_id);
-                    CREATE INDEX idx_%I_embedding ON %I USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-                    CREATE INDEX idx_%I_content_trgm ON %I USING gist (content gist_trgm_ops);
-                ', table_name, dimension, 
-                   table_name, table_name,
-                   table_name, table_name,
-                   table_name, table_name);
-                RETURN table_name || ' created successfully';
-            END;
-            $$ LANGUAGE plpgsql;
-        </createProcedure>
-        <sql>
-            SELECT create_vector_table(768);
-            SELECT create_vector_table(1536);
-        </sql>
-    </changeSet>
-
-    <!-- ========================================== -->
-    <!-- 【仅 PostgreSQL】统一向量表 ai_vector_store -->
-    <!-- ========================================== -->
-    <changeSet id="create-unified-vector-table-v2" author="zx">
-        <preConditions onFail="MARK_RAN">
-            <dbms type="postgresql"/>
-            <not>
-                <tableExists tableName="ai_vector_store"/>
-            </not>
-        </preConditions>
-        <createTable tableName="ai_vector_store">
-            <column name="id" type="bigint" autoIncrement="true">
-                <constraints primaryKey="true"/>
-            </column>
-            <column name="vector_id" type="varchar(100)">
-                <constraints nullable="false" unique="true"/>
-            </column>
-            <column name="kb_id" type="bigint">
-                <constraints nullable="false"/>
-            </column>
-            <column name="document_id" type="bigint"/>
-            <column name="chunk_id" type="bigint"/>
-            <column name="embedding" type="vector(1536)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="dimension" type="integer" defaultValue="1536">
-                <constraints nullable="false"/>
-            </column>
-            <column name="content" type="text">
-                <constraints nullable="false"/>
-            </column>
-            <column name="metadata" type="jsonb"/>
-            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
-        </createTable>
-        <createIndex tableName="ai_vector_store" indexName="idx_vector_kb_id">
-            <column name="kb_id"/>
-        </createIndex>
-        <createIndex tableName="ai_vector_store" indexName="idx_vector_dimension">
-            <column name="dimension"/>
-        </createIndex>
-        <sql>
-            CREATE INDEX idx_vector_embedding ON ai_vector_store
-                USING hnsw (embedding vector_cosine_ops)
-                WITH (m = 16, ef_construction = 64);
-            CREATE INDEX idx_vector_content_trgm ON ai_vector_store
-                USING gist (content gist_trgm_ops);
-        </sql>
-    </changeSet>
-
-    <!-- ========================================== -->
-    <!-- 【仅 PostgreSQL】向量表多维度支持 -->
-    <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604010010" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <dbms type="postgresql"/>
-            <tableExists tableName="ai_vector_store"/>
-        </preConditions>
-        <sql>
-            DROP INDEX IF EXISTS idx_vector_embedding;
-            ALTER TABLE ai_vector_store 
-            ALTER COLUMN embedding TYPE vector(4096);
-            CREATE INDEX idx_vector_embedding ON ai_vector_store
-                USING hnsw (embedding vector_cosine_ops)
-                WITH (m = 16, ef_construction = 64);
-        </sql>
-        <rollback>
-            <sql>
-                DROP INDEX IF EXISTS idx_vector_embedding;
-                ALTER TABLE ai_vector_store 
-                ALTER COLUMN embedding TYPE vector(1536);
-                CREATE INDEX idx_vector_embedding ON ai_vector_store
-                    USING hnsw (embedding vector_cosine_ops)
-                    WITH (m = 16, ef_construction = 64);
-            </sql>
-        </rollback>
-    </changeSet>
-
-    <!-- ========================================== -->
-    <!-- 【仅 PostgreSQL】触发器更新函数（适用于所有业务表） -->
-    <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030100" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <dbms type="postgresql"/>
-        </preConditions>
-        <sql>
-            CREATE OR REPLACE FUNCTION update_updated_at_column()
-            RETURNS TRIGGER AS $$
-            BEGIN
-                NEW.updated_at = CURRENT_TIMESTAMP;
-                RETURN NEW;
-            END;
-            $$ LANGUAGE plpgsql;
-
-            CREATE TRIGGER tr_kb_updated_at BEFORE UPDATE ON ai_knowledge_base
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_doc_updated_at BEFORE UPDATE ON ai_document
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_chunk_updated_at BEFORE UPDATE ON ai_document_chunk
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_model_updated_at BEFORE UPDATE ON ai_llm_model
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_session_updated_at BEFORE UPDATE ON ai_chat_session
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_pipeline_updated_at BEFORE UPDATE ON ai_pipeline_definition
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-            CREATE TRIGGER tr_template_updated_at BEFORE UPDATE ON ai_prompt_template
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-        </sql>
-        <rollback>
-            <sql>
-                DROP TRIGGER IF EXISTS tr_template_updated_at ON ai_prompt_template;
-                DROP TRIGGER IF EXISTS tr_pipeline_updated_at ON ai_pipeline_definition;
-                DROP TRIGGER IF EXISTS tr_session_updated_at ON ai_chat_session;
-                DROP TRIGGER IF EXISTS tr_model_updated_at ON ai_llm_model;
-                DROP TRIGGER IF EXISTS tr_chunk_updated_at ON ai_document_chunk;
-                DROP TRIGGER IF EXISTS tr_doc_updated_at ON ai_document;
-                DROP TRIGGER IF EXISTS tr_kb_updated_at ON ai_knowledge_base;
-                DROP FUNCTION IF EXISTS update_updated_at_column();
-            </sql>
-        </rollback>
     </changeSet>
 
     <!-- ========================================== -->
@@ -1570,11 +1373,11 @@
             </column>
             <column name="tenant_id" type="bigint"/>
             <column name="create_by" type="bigint"/>
-            <column name="create_time" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="create_time" type="timestamp" >
                 <constraints nullable="false"/>
             </column>
             <column name="update_by" type="bigint"/>
-            <column name="update_time" type="timestamp" defaultValue="CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"/>
+            <column name="update_time" type="timestamp" />
             <column name="deleted" type="tinyint" defaultValue="0">
                 <constraints nullable="false"/>
             </column>
@@ -1700,7 +1503,7 @@
             <column name="output_schema" type="json"/>
             <column name="variables" type="json"/>
             <column name="create_by" type="bigint"/>
-            <column name="create_time" type="timestamp" defaultValue="CURRENT_TIMESTAMP">
+            <column name="create_time" type="timestamp" >
                 <constraints nullable="false"/>
             </column>
             <column name="deleted" type="tinyint" defaultValue="0">
@@ -1754,25 +1557,6 @@
         <createIndex tableName="ai_workflow_template_version" indexName="idx_wf_version_template_id">
             <column name="template_id"/>
         </createIndex>
-    </changeSet>
-
-    <!-- ========================================== -->
-    <!-- 【仅 PostgreSQL】工作流模板表触发器 -->
-    <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604010022" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <dbms type="postgresql"/>
-            <tableExists tableName="ai_workflow_template"/>
-        </preConditions>
-        <sql>
-            CREATE TRIGGER tr_wf_template_updated_at BEFORE UPDATE ON ai_workflow_template
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-        </sql>
-        <rollback>
-            <sql>
-                DROP TRIGGER IF EXISTS tr_wf_template_updated_at ON ai_workflow_template;
-            </sql>
-        </rollback>
     </changeSet>
 
     <!-- ========================================== -->
@@ -1871,11 +1655,6 @@
         <createIndex tableName="ai_robot" indexName="idx_robot_category">
             <column name="category"/>
         </createIndex>
-        <!-- 添加触发器 -->
-        <sql>
-            CREATE TRIGGER tr_robot_updated_at BEFORE UPDATE ON ai_robot
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-        </sql>
     </changeSet>
 
 </databaseChangeLog>

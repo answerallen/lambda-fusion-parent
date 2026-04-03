@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.repository;
+package com.lambda.fusion.ai.mapper;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
 import com.lambda.fusion.ai.model.VectorSearchResult;
