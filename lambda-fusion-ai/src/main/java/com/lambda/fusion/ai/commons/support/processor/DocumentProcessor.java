@@ -15,10 +15,10 @@ import com.lambda.fusion.ai.commons.support.vector.VectorDimensionService;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
+import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
-import com.lambda.fusion.ai.mapper.VectorRepository;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentParser;
 import dev.langchain4j.data.document.DocumentSplitter;
@@ -135,8 +135,17 @@ public class DocumentProcessor {
                     log.warn("向量维度不匹配: 模型输出 {} 维，知识库配置 {} 维", actualDimension, embeddingDimension);
                 }
 
-                // 归一化向量维度到最大维度（4096），用于数据库存储
-                List<Double> normalizedVector = vectorDimensionService.normalizeToMaxDimension(originalVector);
+                // 获取最接近的支持维度，用于选择分表
+                int storageDimension = vectorDimensionService.getNearestSupportedDimension(actualDimension);
+
+                // 如果实际维度与存储维度不同，需要归一化
+                List<Double> storageVector;
+                if (actualDimension != storageDimension) {
+                    storageVector = vectorDimensionService.normalizeToDimension(originalVector, storageDimension);
+                    log.debug("向量维度从 {} 归一化到 {}", actualDimension, storageDimension);
+                } else {
+                    storageVector = originalVector;
+                }
 
                 // 构建实体
                 DocumentChunkEntity chunk = new DocumentChunkEntity();
@@ -149,8 +158,8 @@ public class DocumentProcessor {
                 chunk.setVectorId(IdUtil.fastSimpleUUID());
                 chunk.setCharCount(segment.text().length());
                 chunk.setMetadata(JSONUtil.toJsonStr(segment.metadata()));
-                chunk.setEmbedding(normalizedVector);
-                chunk.setDimension(actualDimension);
+                chunk.setEmbedding(storageVector);
+                chunk.setDimension(storageDimension);
 
                 chunkEntities.add(chunk);
 
@@ -176,7 +185,9 @@ public class DocumentProcessor {
                     transactionTemplate.execute(status -> {
                         try {
                             documentChunkMapper.batchInsert(batch);
-                            vectorRepository.batchInsertVectorsUnified(batch, kb.getId());
+                            // 使用分表存储，根据维度选择表
+                            Integer dimension = batch.get(0).getDimension();
+                            vectorRepository.batchInsertVectors(dimension, batch, kb.getId(), "default");
                             return null;
                         } catch (Exception e) {
                             log.error("批量插入失败，事务将回滚", e);

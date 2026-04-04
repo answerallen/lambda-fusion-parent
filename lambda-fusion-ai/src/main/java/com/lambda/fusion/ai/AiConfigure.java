@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai;
 
 import cn.hutool.core.util.StrUtil;
+import com.lambda.cloud.liquibase.LiquibasePostExecutor;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -142,5 +143,10 @@ public class AiConfigure {
 
             return gt;
         }
+    }
+
+    @Bean
+    public LiquibasePostExecutor vectorInitExecutor() {
+        return new LiquibasePostExecutor("classpath:META-INF/db/changelogs/lambda-ai-pg-vector-changelog.xml");
     }
 }

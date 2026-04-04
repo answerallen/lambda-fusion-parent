@@ -16,9 +16,11 @@ import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.commons.support.processor.DocumentProcessor;
+import com.lambda.fusion.ai.commons.support.vector.VectorDimensionService;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
+import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.model.Document;
 import com.lambda.fusion.ai.model.DocumentChunk;
 import com.lambda.fusion.ai.model.DocumentChunkQuery;
@@ -26,7 +28,6 @@ import com.lambda.fusion.ai.model.DocumentQuery;
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
-import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.service.DocumentService;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import java.io.File;
@@ -182,9 +183,11 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         // 1. 获取关联知识库信息以确定向量表
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(entity.getKbId());
 
-        // 2. 删除向量数据
+        // 2. 删除向量数据（遍历所有维度分表）
         if (kb != null) {
-            vectorRepository.deleteByDocumentIdUnified(id);
+            for (Integer dimension : VectorDimensionService.SUPPORTED_DIMENSIONS) {
+                vectorRepository.deleteByDocumentId(dimension, id);
+            }
         }
 
         // 3. 删除文档块数据
@@ -233,7 +236,10 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
         log.info("重新处理文档: kbId={}, docId={}", kbId, id);
 
-        vectorRepository.deleteByDocumentIdUnified(id);
+        // 删除所有维度分表中的向量数据
+        for (Integer dimension : VectorDimensionService.SUPPORTED_DIMENSIONS) {
+            vectorRepository.deleteByDocumentId(dimension, id);
+        }
         documentChunkMapper.deleteByDocumentIds(Collections.singletonList(id));
 
         doc.setProcessStatus(DocumentStatus.PENDING.name());

@@ -5,16 +5,17 @@ import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
+import com.lambda.fusion.ai.commons.support.vector.VectorDimensionService;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
+import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBase;
 import com.lambda.fusion.ai.model.KnowledgeBaseQuery;
 import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
-import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import java.time.LocalDateTime;
@@ -104,7 +105,10 @@ public class KnowledgeBaseServiceImpl
             List<Long> documentIds =
                     documents.stream().map(DocumentEntity::getId).collect(Collectors.toList());
 
-            vectorRepository.deleteByKbIdUnified(id);
+            // 删除所有维度分表中的向量数据
+            for (Integer dimension : VectorDimensionService.SUPPORTED_DIMENSIONS) {
+                vectorRepository.deleteByKbId(dimension, id);
+            }
 
             documentChunkMapper.deleteByDocumentIds(documentIds);
 

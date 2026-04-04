@@ -7,13 +7,14 @@ import com.lambda.fusion.ai.commons.agent.LlmProcessingNode;
 import com.lambda.fusion.ai.commons.agent.ToolExecutingNode;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
+import com.lambda.fusion.ai.commons.support.vector.VectorDimensionService;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
+import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.model.RagResult;
 import com.lambda.fusion.ai.model.VectorSearchResult;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.model.entity.PromptTemplateEntity;
-import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.service.RagService;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;
@@ -45,6 +46,7 @@ public class RagServiceImpl implements RagService {
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final PromptTemplateMapper promptTemplateMapper;
     private final EmbeddingModel embeddingModel;
+    private final VectorDimensionService vectorDimensionService;
 
     private final LlmProcessingNode llmProcessingNode;
     private final ToolExecutingNode toolExecutingNode;
@@ -81,10 +83,14 @@ public class RagServiceImpl implements RagService {
                         ? kb.getSimilarityThreshold().doubleValue()
                         : 0.6);
 
-        // 性能优化 - 合并两次查询为一次
+        // 获取存储维度，用于选择分表
+        int storageDimension = vectorDimensionService.getNearestSupportedDimension(embeddingDimension);
+
+        // 使用分表存储进行搜索
         List<VectorSearchResult> vectorResults =
-                vectorRepository.searchSimilarUnified(kbId, queryVector, limit * 2, scoreThreshold, embeddingDimension);
-        List<VectorSearchResult> keywordResults = vectorRepository.searchKeywordUnified(kbId, query, limit * 2);
+                vectorRepository.searchSimilar(storageDimension, kbId, queryVector, limit * 2, scoreThreshold);
+        List<VectorSearchResult> keywordResults =
+                vectorRepository.searchKeyword(storageDimension, kbId, query, limit * 2);
 
         return reciprocalRankFusion(vectorResults, keywordResults, limit);
     }

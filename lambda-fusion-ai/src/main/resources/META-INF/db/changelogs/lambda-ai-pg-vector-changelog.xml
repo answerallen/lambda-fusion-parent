@@ -69,82 +69,36 @@
         <sql>
             SELECT create_vector_table(768);
             SELECT create_vector_table(1536);
+            SELECT create_vector_table(4096);
         </sql>
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 统一向量表 ai_vector_store -->
+    <!-- 向量初始化脚本 -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602060010" author="zx">
+    <changeSet id="lambda-fusion-ai-202604040010" author="Jin">
         <preConditions onFail="MARK_RAN">
             <dbms type="postgresql"/>
-            <not>
-                <tableExists tableName="ai_vector_store"/>
-            </not>
-        </preConditions>
-        <createTable tableName="ai_vector_store">
-            <column name="id" type="bigint" autoIncrement="true">
-                <constraints primaryKey="true"/>
-            </column>
-            <column name="vector_id" type="varchar(100)">
-                <constraints nullable="false" unique="true"/>
-            </column>
-            <column name="kb_id" type="bigint">
-                <constraints nullable="false"/>
-            </column>
-            <column name="document_id" type="bigint"/>
-            <column name="chunk_id" type="bigint"/>
-            <column name="embedding" type="vector(1536)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="dimension" type="integer" defaultValue="1536">
-                <constraints nullable="false"/>
-            </column>
-            <column name="content" type="text">
-                <constraints nullable="false"/>
-            </column>
-            <column name="metadata" type="jsonb"/>
-            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
-        </createTable>
-        <createIndex tableName="ai_vector_store" indexName="idx_vector_kb_id">
-            <column name="kb_id"/>
-        </createIndex>
-        <createIndex tableName="ai_vector_store" indexName="idx_vector_dimension">
-            <column name="dimension"/>
-        </createIndex>
-        <sql>
-            CREATE INDEX idx_vector_embedding ON ai_vector_store
-                USING hnsw (embedding vector_cosine_ops)
-                WITH (m = 16, ef_construction = 64);
-            CREATE INDEX idx_vector_content_trgm ON ai_vector_store
-                USING gist (content gist_trgm_ops);
-        </sql>
-    </changeSet>
-
-    <!-- ========================================== -->
-    <!-- 向量表多维度支持 -->
-    <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604010010" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <dbms type="postgresql"/>
-            <tableExists tableName="ai_vector_store"/>
+            <tableExists tableName="ai_vector_store_4096"/>
         </preConditions>
         <sql>
-            DROP INDEX IF EXISTS idx_vector_embedding;
-            ALTER TABLE ai_vector_store 
-            ALTER COLUMN embedding TYPE vector(4096);
-            CREATE INDEX idx_vector_embedding ON ai_vector_store
-                USING hnsw (embedding vector_cosine_ops)
-                WITH (m = 16, ef_construction = 64);
+            -- 初始化向量表，创建示例数据
+            INSERT INTO ai_vector_store_4096 (vector_id, kb_id, document_id, chunk_id, collection_name, embedding, content, metadata)
+            VALUES 
+            ('init-vector-1', 1, 1, 1, 'default',
+             (SELECT array_agg(random() - 0.5)::vector(4096) FROM generate_series(1, 4096)), 
+             '这是一个示例向量内容，用于测试向量搜索功能', 
+             '{"source": "initialization", "type": "test"}'::jsonb),
+            ('init-vector-2', 1, 1, 2, 'default',
+             (SELECT array_agg(random() - 0.5)::vector(4096) FROM generate_series(1, 4096)), 
+             '这是另一个示例向量内容，用于测试向量搜索功能', 
+             '{"source": "initialization", "type": "test"}'::jsonb)
+            ON CONFLICT (vector_id) DO NOTHING;
         </sql>
         <rollback>
             <sql>
-                DROP INDEX IF EXISTS idx_vector_embedding;
-                ALTER TABLE ai_vector_store 
-                ALTER COLUMN embedding TYPE vector(1536);
-                CREATE INDEX idx_vector_embedding ON ai_vector_store
-                    USING hnsw (embedding vector_cosine_ops)
-                    WITH (m = 16, ef_construction = 64);
+                -- 回滚初始化数据
+                DELETE FROM ai_vector_store_4096 WHERE vector_id IN ('init-vector-1', 'init-vector-2');
             </sql>
         </rollback>
     </changeSet>
