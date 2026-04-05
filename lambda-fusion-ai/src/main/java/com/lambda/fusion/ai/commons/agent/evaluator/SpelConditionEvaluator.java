@@ -1,8 +1,6 @@
 package com.lambda.fusion.ai.commons.agent.evaluator;
 
 import com.lambda.fusion.ai.commons.agent.AgentState;
-import java.util.HashSet;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -23,16 +21,6 @@ import org.springframework.stereotype.Component;
 public class SpelConditionEvaluator implements ConditionEvaluator {
 
     private final ExpressionParser parser = new SpelExpressionParser();
-
-    // 允许的表达式白名单模式
-    private static final Set<String> ALLOWED_PATTERNS = new HashSet<>();
-
-    static {
-        // 允许的表达式模式（简单的属性访问和比较）
-        ALLOWED_PATTERNS.add("state\\..*");
-        ALLOWED_PATTERNS.add("#state\\..*");
-        ALLOWED_PATTERNS.add("#.*");
-    }
 
     @Override
     public boolean evaluate(String expression, AgentState state) {

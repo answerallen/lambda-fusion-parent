@@ -4,32 +4,33 @@ import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-/**
- * 并行执行节点。
- * 同时执行多个分支，等待所有分支完成后汇聚结果。
- * <p>
- * 配置属性：
- * - branches: 并行分支配置数组，每个分支包含 id（分支标识）和 target（目标节点ID）
- * - joinNode: 汇聚节点ID（所有分支完成后跳转）
- * - timeout: 超时时间（毫秒，默认 30000）
- * - waitAll: 是否等待所有分支完成（默认 true，false 表示任意一个完成就继续）
- * - errorStrategy: 错误处理策略 (failFast | ignore | cancelOthers)
- */
 @Slf4j
 @Component
 public class ParallelNode implements AgentNode {
 
+    public static final String NAME = "PARALLEL";
+
     private static final String PARALLEL_CONTEXT_KEY = "__parallel_context__";
+    private static final String PARALLEL_RESULTS_KEY = "__parallel_results__";
+    private static final String PARALLEL_ERRORS_KEY = "__parallel_errors__";
     private static final long DEFAULT_TIMEOUT = 30000;
 
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
+    private final Executor executor;
+
+    public ParallelNode(@Qualifier("agentParallelExecutor") Executor executor) {
+        this.executor = executor;
+    }
 
     @Override
     public String getName() {
-        return "PARALLEL";
+        return NAME;
     }
 
     @Override
@@ -42,10 +43,8 @@ public class ParallelNode implements AgentNode {
             return new ExecutionResult(state, null);
         }
 
-        // 获取并行上下文
         ParallelContext context = getOrCreateParallelContext(state);
 
-        // 获取分支配置
         Object branchesObj = properties.get("branches");
         if (!(branchesObj instanceof List<?> branchList)) {
             log.warn("并行节点缺少分支配置");
@@ -53,114 +52,278 @@ public class ParallelNode implements AgentNode {
         }
 
         String joinNode = (String) properties.get("joinNode");
-        long timeout = ((Number) properties.getOrDefault("timeout", DEFAULT_TIMEOUT)).longValue();
-        boolean waitAll = (boolean) properties.getOrDefault("waitAll", true);
+        Object timeoutObj = properties.getOrDefault("timeout", DEFAULT_TIMEOUT);
+        long timeout = timeoutObj instanceof Number n ? n.longValue() : DEFAULT_TIMEOUT;
+        boolean waitAll = !Boolean.FALSE.equals(properties.getOrDefault("waitAll", true));
         String errorStrategy = (String) properties.getOrDefault("errorStrategy", "failFast");
 
-        // 如果已经启动了并行执行，检查是否完成
+        if (context.isCompleted) {
+            clearParallelContext(state);
+            return new ExecutionResult(state, joinNode);
+        }
+
         if (context.isStarted) {
             return checkParallelCompletion(state, context, joinNode, waitAll, errorStrategy);
         }
 
-        // 首次进入，启动并行执行
-        return startParallelExecution(state, context, branchList, timeout);
+        return startParallelExecution(state, context, branchList, timeout, waitAll, errorStrategy, joinNode);
     }
 
-    /**
-     * 启动并行执行
-     */
     private ExecutionResult startParallelExecution(
-            AgentState state, ParallelContext context, List<?> branchList, long timeout) {
+            AgentState state,
+            ParallelContext context,
+            List<?> branchList,
+            long timeout,
+            boolean waitAll,
+            String errorStrategy,
+            String joinNode) {
+
+        BiFunction<String, AgentState, AgentState> nodeExecutor = state.getNodeExecutor();
+        if (nodeExecutor == null) {
+            log.warn("并行节点无法获取节点执行器，可能不在 AgentGraph 上下文中执行");
+            return new ExecutionResult(state, joinNode);
+        }
+
         context.isStarted = true;
         context.startTime = System.currentTimeMillis();
-        context.pendingBranches = new HashSet<>();
-        context.completedBranches = new HashMap<>();
-        context.failedBranches = new HashMap<>();
+        context.timeout = timeout;
+        context.errorStrategy = errorStrategy;
+        context.waitAll = waitAll;
+        context.joinNode = joinNode;
 
-        // 记录所有待执行的分支
+        List<BranchConfig> branches = new ArrayList<>();
         for (Object branchObj : branchList) {
             if (branchObj instanceof Map<?, ?> branch) {
                 String branchId = (String) branch.get("id");
                 String target = (String) branch.get("target");
                 if (branchId != null && target != null) {
+                    branches.add(new BranchConfig(branchId, target));
                     context.pendingBranches.add(branchId);
-                    context.branchTargets.put(branchId, target);
                 }
             }
         }
 
-        if (context.pendingBranches.isEmpty()) {
+        if (branches.isEmpty()) {
             log.warn("并行节点没有有效的分支配置");
             clearParallelContext(state);
             return new ExecutionResult(state, null);
         }
 
-        // 保存上下文并返回，让调度器处理分支执行
         saveParallelContext(state, context);
-        log.debug("并行节点启动 {} 个分支执行", context.pendingBranches.size());
 
-        // 返回第一个分支作为起点（实际并行执行由上层调度器处理）
-        String firstBranch = context.pendingBranches.iterator().next();
-        return new ExecutionResult(state, context.branchTargets.get(firstBranch));
+        Map<String, Object> results = new ConcurrentHashMap<>();
+        Map<String, Throwable> errors = new ConcurrentHashMap<>();
+        AtomicBoolean hasFailure = new AtomicBoolean(false);
+        AtomicBoolean cancelled = new AtomicBoolean(false);
+        AtomicReference<Throwable> firstError = new AtomicReference<>();
+        CountDownLatch latch = new CountDownLatch(branches.size());
+
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        for (BranchConfig branch : branches) {
+            if (cancelled.get() && "failFast".equals(errorStrategy)) {
+                latch.countDown();
+                continue;
+            }
+
+            CompletableFuture<Void> future = CompletableFuture.runAsync(
+                    () -> {
+                        if (cancelled.get()) {
+                            latch.countDown();
+                            return;
+                        }
+
+                        long branchStartedAt = System.currentTimeMillis();
+                        try {
+                            AgentState branchState = deepCopyState(state);
+                            branchState.getAttributes().put("__branch_id__", branch.id());
+
+                            log.debug("并行分支 {} 开始执行，目标节点: {}", branch.id(), branch.target());
+
+                            AgentState branchResult = nodeExecutor.apply(branch.target(), branchState);
+
+                            long branchDuration = System.currentTimeMillis() - branchStartedAt;
+
+                            Map<String, Object> resultInfo = new HashMap<>();
+                            resultInfo.put("branchId", branch.id());
+                            resultInfo.put("targetNode", branch.target());
+                            resultInfo.put("startedAt", branchStartedAt);
+                            resultInfo.put("durationMs", branchDuration);
+                            resultInfo.put("success", true);
+
+                            if (branchResult != null && branchResult.getAttributes() != null) {
+                                Map<String, Object> branchOutput = new HashMap<>();
+                                branchResult.getAttributes().forEach((k, v) -> {
+                                    if (!k.startsWith("_")) {
+                                        branchOutput.put(k, v);
+                                    }
+                                });
+                                resultInfo.put("output", branchOutput);
+                            }
+
+                            results.put(branch.id(), resultInfo);
+                            context.completedBranches.put(branch.id(), resultInfo);
+                            context.pendingBranches.remove(branch.id());
+
+                            log.debug("并行分支 {} 执行完成，耗时: {}ms", branch.id(), branchDuration);
+
+                        } catch (Exception e) {
+                            long branchDuration = System.currentTimeMillis() - branchStartedAt;
+                            log.error("并行分支 {} 执行失败，耗时: {}ms", branch.id(), branchDuration, e);
+
+                            errors.put(branch.id(), e);
+                            context.failedBranches.put(branch.id(), e);
+                            context.pendingBranches.remove(branch.id());
+                            hasFailure.set(true);
+
+                            firstError.compareAndSet(null, e);
+
+                            Map<String, Object> errorInfo = new HashMap<>();
+                            errorInfo.put("branchId", branch.id());
+                            errorInfo.put("targetNode", branch.target());
+                            errorInfo.put("startedAt", branchStartedAt);
+                            errorInfo.put("durationMs", branchDuration);
+                            errorInfo.put("success", false);
+                            errorInfo.put("error", e.getMessage());
+                            results.put(branch.id(), errorInfo);
+
+                            if ("failFast".equals(errorStrategy)) {
+                                cancelled.set(true);
+                            }
+                        } finally {
+                            latch.countDown();
+                        }
+                    },
+                    executor);
+
+            futures.add(future);
+        }
+
+        try {
+            boolean completed;
+            if (waitAll) {
+                completed = latch.await(timeout, TimeUnit.MILLISECONDS);
+            } else {
+                completed = latch.await(1, TimeUnit.MILLISECONDS);
+                if (!completed) {
+                    long remainingTimeout = timeout;
+                    long checkInterval = Math.min(100, timeout / 10);
+                    while (remainingTimeout > 0 && !completed) {
+                        if (results.size() > 0 || errors.size() > 0) {
+                            break;
+                        }
+                        completed = latch.await(Math.min(checkInterval, remainingTimeout), TimeUnit.MILLISECONDS);
+                        remainingTimeout -= checkInterval;
+                    }
+                }
+            }
+
+            if (!completed && waitAll) {
+                log.warn("并行节点执行超时，已完成: {}, 总数: {}", branches.size() - latch.getCount(), branches.size());
+                cancelled.set(true);
+            }
+
+            context.isCompleted = true;
+            context.completedAt = System.currentTimeMillis();
+
+            if (state.getAttributes() == null) {
+                state.setAttributes(new ConcurrentHashMap<>());
+            }
+            state.getAttributes().put(PARALLEL_RESULTS_KEY, new HashMap<>(results));
+
+            if (!errors.isEmpty()) {
+                Map<String, String> errorMessages = new HashMap<>();
+                errors.forEach((id, e) -> errorMessages.put(id, e.getMessage()));
+                state.getAttributes().put(PARALLEL_ERRORS_KEY, errorMessages);
+            }
+
+            saveParallelContext(state, context);
+
+            log.info(
+                    "并行节点执行完成，成功: {}, 失败: {}, 耗时: {}ms",
+                    results.size() - errors.size(),
+                    errors.size(),
+                    context.completedAt - context.startTime);
+
+            clearParallelContext(state);
+
+            if (hasFailure.get() && "failFast".equals(errorStrategy) && firstError.get() != null) {
+                log.warn("并行节点因分支失败而终止: {}", firstError.get().getMessage());
+            }
+
+            return new ExecutionResult(state, joinNode);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("并行节点执行被中断", e);
+            cancelled.set(true);
+            clearParallelContext(state);
+            return new ExecutionResult(state, joinNode);
+        }
     }
 
-    /**
-     * 检查并行执行完成情况
-     */
     private ExecutionResult checkParallelCompletion(
             AgentState state, ParallelContext context, String joinNode, boolean waitAll, String errorStrategy) {
-        // 检查超时
+
         long elapsed = System.currentTimeMillis() - context.startTime;
         if (elapsed > context.timeout) {
             log.warn("并行节点执行超时");
+            context.isCompleted = true;
+            saveParallelContext(state, context);
             clearParallelContext(state);
             return new ExecutionResult(state, joinNode);
         }
 
-        // 检查是否有失败的分支
-        if (!context.failedBranches.isEmpty()) {
-            switch (errorStrategy.toLowerCase()) {
-                case "failfast" -> {
-                    log.warn("并行节点分支执行失败，快速失败: {}", context.failedBranches.keySet());
-                    clearParallelContext(state);
-                    return new ExecutionResult(state, joinNode);
-                }
-                case "cancelothers" -> {
-                    // 取消其他分支（标记为已完成）
-                    context.pendingBranches.clear();
-                    log.warn("并行节点分支执行失败，取消其他分支: {}", context.failedBranches.keySet());
-                }
-                case "ignore" -> log.debug("并行节点分支执行失败，忽略错误: {}", context.failedBranches.keySet());
-            }
-        }
-
-        // 检查是否完成
-        if (waitAll) {
-            // 等待所有分支完成
-            if (context.pendingBranches.isEmpty()) {
-                // 所有分支完成
-                log.debug("并行节点所有分支执行完成");
-                clearParallelContext(state);
-                return new ExecutionResult(state, joinNode);
-            }
-        } else {
-            // 任意一个分支完成就继续
-            if (!context.completedBranches.isEmpty()) {
-                log.debug("并行节点至少一个分支执行完成");
-                clearParallelContext(state);
-                return new ExecutionResult(state, joinNode);
-            }
-        }
-
-        // 还有分支在执行中，继续等待
-        saveParallelContext(state, context);
         return new ExecutionResult(state, null);
     }
 
-    /**
-     * 标记分支完成（供外部调用）
-     */
+    private AgentState deepCopyState(AgentState original) {
+        AgentState copy = new AgentState();
+        copy.setSessionId(original.getSessionId());
+        copy.setKbId(original.getKbId());
+        copy.setLlmModelId(original.getLlmModelId());
+        copy.setFinished(original.isFinished());
+        copy.setMessages(
+                new CopyOnWriteArrayList<>(original.getMessages() != null ? original.getMessages() : List.of()));
+        copy.setPendingToolRequests(new CopyOnWriteArrayList<>(
+                original.getPendingToolRequests() != null ? original.getPendingToolRequests() : List.of()));
+        copy.setNodeExecutor(original.getNodeExecutor());
+        copy.setAvailableNodes(original.getAvailableNodes());
+
+        if (original.getAttributes() != null) {
+            Map<String, Object> copiedAttributes = new ConcurrentHashMap<>();
+            original.getAttributes().forEach((key, value) -> {
+                if (value instanceof Map<?, ?> mapValue) {
+                    copiedAttributes.put(key, deepCopyMap(mapValue));
+                } else if (value instanceof List<?> listValue) {
+                    copiedAttributes.put(key, new CopyOnWriteArrayList<>(listValue));
+                } else {
+                    copiedAttributes.put(key, value);
+                }
+            });
+            copy.setAttributes(copiedAttributes);
+        } else {
+            copy.setAttributes(new ConcurrentHashMap<>());
+        }
+
+        return copy;
+    }
+
     @SuppressWarnings("unchecked")
+    private Map<String, Object> deepCopyMap(Map<?, ?> source) {
+        Map<String, Object> copy = new ConcurrentHashMap<>();
+        source.forEach((key, value) -> {
+            if (value instanceof Map<?, ?> mapValue) {
+                copy.put(String.valueOf(key), deepCopyMap(mapValue));
+            } else if (value instanceof List<?> listValue) {
+                copy.put(String.valueOf(key), new CopyOnWriteArrayList<>(listValue));
+            } else {
+                copy.put(String.valueOf(key), value);
+            }
+        });
+        return copy;
+    }
+
     public void markBranchCompleted(AgentState state, String branchId, Object result) {
         ParallelContext context = getOrCreateParallelContext(state);
         context.pendingBranches.remove(branchId);
@@ -168,10 +331,6 @@ public class ParallelNode implements AgentNode {
         saveParallelContext(state, context);
     }
 
-    /**
-     * 标记分支失败（供外部调用）
-     */
-    @SuppressWarnings("unchecked")
     public void markBranchFailed(AgentState state, String branchId, Throwable error) {
         ParallelContext context = getOrCreateParallelContext(state);
         context.pendingBranches.remove(branchId);
@@ -179,9 +338,6 @@ public class ParallelNode implements AgentNode {
         saveParallelContext(state, context);
     }
 
-    /**
-     * 获取或创建并行上下文
-     */
     @SuppressWarnings("unchecked")
     private ParallelContext getOrCreateParallelContext(AgentState state) {
         if (state.getAttributes() != null) {
@@ -193,61 +349,79 @@ public class ParallelNode implements AgentNode {
         return new ParallelContext();
     }
 
-    /**
-     * 保存并行上下文
-     */
     private void saveParallelContext(AgentState state, ParallelContext context) {
         if (state.getAttributes() != null) {
             state.getAttributes().put(PARALLEL_CONTEXT_KEY, context.toMap());
         }
     }
 
-    /**
-     * 清除并行上下文
-     */
     private void clearParallelContext(AgentState state) {
         if (state.getAttributes() != null) {
             state.getAttributes().remove(PARALLEL_CONTEXT_KEY);
         }
     }
 
-    /**
-     * 并行上下文
-     */
+    private record BranchConfig(String id, String target) {}
+
     private static class ParallelContext {
         boolean isStarted = false;
+        boolean isCompleted = false;
         long startTime = 0;
+        long completedAt = 0;
         long timeout = DEFAULT_TIMEOUT;
-        Set<String> pendingBranches = new HashSet<>();
-        Map<String, Object> completedBranches = new HashMap<>();
-        Map<String, Throwable> failedBranches = new HashMap<>();
-        Map<String, String> branchTargets = new HashMap<>();
+        String errorStrategy = "failFast";
+        boolean waitAll = true;
+        String joinNode = null;
+        Set<String> pendingBranches = ConcurrentHashMap.newKeySet();
+        Map<String, Object> completedBranches = new ConcurrentHashMap<>();
+        Map<String, Throwable> failedBranches = new ConcurrentHashMap<>();
 
         Map<String, Object> toMap() {
             Map<String, Object> map = new HashMap<>();
             map.put("isStarted", isStarted);
+            map.put("isCompleted", isCompleted);
             map.put("startTime", startTime);
+            map.put("completedAt", completedAt);
             map.put("timeout", timeout);
+            map.put("errorStrategy", errorStrategy);
+            map.put("waitAll", waitAll);
+            map.put("joinNode", joinNode);
             map.put("pendingBranches", new HashSet<>(pendingBranches));
             map.put("completedBranches", new HashMap<>(completedBranches));
-            map.put("failedBranches", new HashMap<>(failedBranches));
-            map.put("branchTargets", new HashMap<>(branchTargets));
+            Map<String, String> failedInfo = new HashMap<>();
+            failedBranches.forEach((k, v) -> failedInfo.put(k, v.getMessage()));
+            map.put("failedBranches", failedInfo);
             return map;
         }
 
         @SuppressWarnings("unchecked")
         static ParallelContext fromMap(Map<String, Object> map) {
             ParallelContext context = new ParallelContext();
-            context.isStarted = (boolean) map.getOrDefault("isStarted", false);
-            context.startTime = ((Number) map.getOrDefault("startTime", 0L)).longValue();
-            context.timeout = ((Number) map.getOrDefault("timeout", DEFAULT_TIMEOUT)).longValue();
-            context.pendingBranches = new HashSet<>((Set<String>) map.getOrDefault("pendingBranches", new HashSet<>()));
-            context.completedBranches =
-                    new HashMap<>((Map<String, Object>) map.getOrDefault("completedBranches", new HashMap<>()));
-            context.failedBranches =
-                    new HashMap<>((Map<String, Throwable>) map.getOrDefault("failedBranches", new HashMap<>()));
-            context.branchTargets =
-                    new HashMap<>((Map<String, String>) map.getOrDefault("branchTargets", new HashMap<>()));
+            context.isStarted = Boolean.TRUE.equals(map.get("isStarted"));
+            context.isCompleted = Boolean.TRUE.equals(map.get("isCompleted"));
+            Object startTimeVal = map.get("startTime");
+            context.startTime = startTimeVal instanceof Number n ? n.longValue() : 0L;
+            Object completedAtVal = map.get("completedAt");
+            context.completedAt = completedAtVal instanceof Number n ? n.longValue() : 0L;
+            Object timeoutVal = map.get("timeout");
+            context.timeout = timeoutVal instanceof Number n ? n.longValue() : DEFAULT_TIMEOUT;
+            context.errorStrategy = (String) map.getOrDefault("errorStrategy", "failFast");
+            Object waitAllVal = map.get("waitAll");
+            context.waitAll = waitAllVal == null || Boolean.TRUE.equals(waitAllVal);
+            context.joinNode = (String) map.get("joinNode");
+            context.pendingBranches = ConcurrentHashMap.newKeySet();
+            context.pendingBranches.addAll((Set<String>) map.getOrDefault("pendingBranches", new HashSet<>()));
+            context.completedBranches = new ConcurrentHashMap<>(
+                    (Map<String, Object>) map.getOrDefault("completedBranches", new HashMap<>()));
+            context.failedBranches = new ConcurrentHashMap<>();
+            Object failedInfoObj = map.get("failedBranches");
+            if (failedInfoObj instanceof Map<?, ?> failedInfo) {
+                failedInfo.forEach((k, v) -> {
+                    if (k != null && v != null) {
+                        context.failedBranches.put(String.valueOf(k), new RuntimeException(String.valueOf(v)));
+                    }
+                });
+            }
             return context;
         }
     }

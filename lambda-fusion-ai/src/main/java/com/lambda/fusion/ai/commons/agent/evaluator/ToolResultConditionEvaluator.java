@@ -58,13 +58,14 @@ public class ToolResultConditionEvaluator implements ConditionEvaluator {
             if (toolResults instanceof Map<?, ?> results) {
                 metrics.hasResults = !results.isEmpty();
                 metrics.resultCount = results.size();
+            }
 
-                // 获取最后一个工具结果
-                Object lastResult = state.getAttributes().get(LAST_TOOL_RESULT_KEY);
-                if (lastResult instanceof Map<?, ?> resultMap) {
-                    metrics.lastResult = (Map<String, Object>) resultMap;
-                    metrics.lastResultSuccess = isSuccessResult(resultMap);
-                }
+            // 获取最后一个工具结果（独立于 toolResults）
+            Object lastResult = state.getAttributes().get(LAST_TOOL_RESULT_KEY);
+            if (lastResult instanceof Map<?, ?> resultMap) {
+                metrics.lastResult = (Map<String, Object>) resultMap;
+                metrics.lastResultSuccess = isSuccessResult(resultMap);
+                metrics.hasResults = true;
             }
 
             // 如果没有 lastToolResult，尝试从 toolResults 中获取最后一个
@@ -74,8 +75,8 @@ public class ToolResultConditionEvaluator implements ConditionEvaluator {
                     lastKey = key;
                 }
                 if (lastKey != null) {
-                    Object lastResult = results.get(lastKey);
-                    if (lastResult instanceof Map<?, ?> resultMap) {
+                    Object result = results.get(lastKey);
+                    if (result instanceof Map<?, ?> resultMap) {
                         metrics.lastResult = (Map<String, Object>) resultMap;
                         metrics.lastResultSuccess = isSuccessResult(resultMap);
                     }
@@ -140,14 +141,14 @@ public class ToolResultConditionEvaluator implements ConditionEvaluator {
             return evaluateCountExpression(operator, metrics.resultCount);
         }
 
+        // 通用 contains 表达式（优先于属性表达式，因为 contains 可能以 result. 开头）
+        if (expr.contains("contains")) {
+            return evaluateContainsExpression(expr, metrics.lastResult);
+        }
+
         // 结果属性表达式
         if (expr.startsWith("result.")) {
             return evaluateResultPropertyExpression(expr.substring(7), metrics.lastResult);
-        }
-
-        // 通用 contains 表达式
-        if (expr.contains("contains")) {
-            return evaluateContainsExpression(expr, metrics.lastResult);
         }
 
         log.warn("不支持的工具结果表达式格式: {}", expr);
@@ -231,8 +232,8 @@ public class ToolResultConditionEvaluator implements ConditionEvaluator {
         String beforeContains = expr.substring(0, containsIdx).trim();
         String afterContains = expr.substring(containsIdx + 8).trim();
 
-        // 获取要搜索的内容
-        String searchContent = afterContains;
+        // 获取要搜索的内容，移除括号
+        String searchContent = afterContains.replaceAll("[()]", "");
         if ((searchContent.startsWith("\"") && searchContent.endsWith("\""))
                 || (searchContent.startsWith("'") && searchContent.endsWith("'"))) {
             searchContent = searchContent.substring(1, searchContent.length() - 1);
@@ -240,12 +241,12 @@ public class ToolResultConditionEvaluator implements ConditionEvaluator {
 
         // 确定搜索范围
         String searchTarget;
-        if (beforeContains.isEmpty() || "result".equals(beforeContains)) {
+        if (beforeContains.isEmpty() || "result".equals(beforeContains) || "result.".equals(beforeContains)) {
             // 搜索整个结果
             searchTarget = result.toString().toLowerCase();
         } else if (beforeContains.startsWith("result.")) {
-            // 搜索特定属性
-            String propertyName = beforeContains.substring(7);
+            // 搜索特定属性，移除末尾的点号
+            String propertyName = beforeContains.substring(7).replaceAll("\\.$", "");
             Object value = result.get(propertyName);
             searchTarget = value != null ? value.toString().toLowerCase() : "";
         } else {

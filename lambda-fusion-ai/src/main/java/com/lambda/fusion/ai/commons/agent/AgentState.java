@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiFunction;
 import lombok.Data;
 
 /**
@@ -19,6 +20,9 @@ import lombok.Data;
  */
 @Data
 public class AgentState {
+
+    public static final String NODE_EXECUTOR_ATTRIBUTE = "_nodeExecutor";
+
     /**
      * 对话消息流转历史记录 - 使用 CopyOnWriteArrayList 保证线程安全
      */
@@ -127,5 +131,37 @@ public class AgentState {
             return new LinkedHashMap<>((Map<String, Object>) map);
         }
         return Map.of();
+    }
+
+    @SuppressWarnings("unchecked")
+    public BiFunction<String, AgentState, AgentState> getNodeExecutor() {
+        Object executor = this.attributes.get(NODE_EXECUTOR_ATTRIBUTE);
+        if (executor instanceof BiFunction) {
+            return (BiFunction<String, AgentState, AgentState>) executor;
+        }
+        return null;
+    }
+
+    public void setNodeExecutor(BiFunction<String, AgentState, AgentState> executor) {
+        if (this.attributes == null) {
+            this.attributes = new ConcurrentHashMap<>();
+        }
+        this.attributes.put(NODE_EXECUTOR_ATTRIBUTE, executor);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, AgentNode> getAvailableNodes() {
+        Object nodes = this.attributes.get(AgentGraph.AVAILABLE_NODES_ATTRIBUTE);
+        if (nodes instanceof Map) {
+            return (Map<String, AgentNode>) nodes;
+        }
+        return Map.of();
+    }
+
+    public void setAvailableNodes(Map<String, AgentNode> nodes) {
+        if (this.attributes == null) {
+            this.attributes = new ConcurrentHashMap<>();
+        }
+        this.attributes.put(AgentGraph.AVAILABLE_NODES_ATTRIBUTE, nodes);
     }
 }

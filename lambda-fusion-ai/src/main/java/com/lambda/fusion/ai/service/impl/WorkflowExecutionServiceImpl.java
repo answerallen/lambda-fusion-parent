@@ -281,6 +281,10 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
                     || definition.getNodes().isEmpty()) {
                 return null;
             }
+
+            Long llmProcessorModelId = null;
+            Long fallbackModelId = null;
+
             for (NodeDefinition node : definition.getNodes()) {
                 if (node == null
                         || node.getProperties() == null
@@ -289,10 +293,21 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
                 }
                 Long resolvedModelId = resolveModelId(node.getProperties());
                 if (resolvedModelId != null) {
-                    return resolvedModelId;
+                    if ("LLM_PROCESSOR".equals(node.getType()) && llmProcessorModelId == null) {
+                        llmProcessorModelId = resolvedModelId;
+                        log.debug("从 LLM_PROCESSOR 节点 {} 找到模型ID: {}", node.getId(), resolvedModelId);
+                    } else if (fallbackModelId == null) {
+                        fallbackModelId = resolvedModelId;
+                        log.debug("从节点 {} 找到模型ID: {}", node.getId(), resolvedModelId);
+                    }
                 }
             }
-            return null;
+
+            Long result = llmProcessorModelId != null ? llmProcessorModelId : fallbackModelId;
+            if (result != null) {
+                log.info("工作流 {} 使用默认模型ID: {}", workflow.getId(), result);
+            }
+            return result;
         } catch (Exception e) {
             log.warn("解析工作流默认模型失败, workflowId={}", workflow.getId(), e);
             return null;

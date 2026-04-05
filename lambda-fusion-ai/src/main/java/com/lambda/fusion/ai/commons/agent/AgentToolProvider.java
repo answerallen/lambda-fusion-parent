@@ -77,6 +77,13 @@ public class AgentToolProvider implements ApplicationContextAware {
                         if (name == null || name.isEmpty()) {
                             name = method.getName();
                         }
+                        if (methodMap.containsKey(name)) {
+                            log.warn(
+                                    "检测到同名工具冲突: '{}', 来自 bean '{}', 方法 '{}'。将覆盖之前的注册。",
+                                    name,
+                                    beanName,
+                                    method.getName());
+                        }
                         methodMap.put(name, new ToolExecutorMethod(bean, method));
                         log.info("注册 Agent Tool: {}", name);
                     }

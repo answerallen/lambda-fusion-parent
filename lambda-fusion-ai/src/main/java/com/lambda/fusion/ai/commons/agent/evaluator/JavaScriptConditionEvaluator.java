@@ -7,7 +7,11 @@ import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+
+import com.oracle.truffle.js.scriptengine.GraalJSScriptEngine;
 import lombok.extern.slf4j.Slf4j;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,7 +30,7 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
 
     private final ScriptEngineManager manager = new ScriptEngineManager();
 
-    private volatile String cachedEngineName;
+    private volatile ScriptEngine cachedEngine;
 
     private static final int MAX_EXPRESSION_LENGTH = 1000;
 
@@ -46,44 +50,32 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
     }
 
     private ScriptEngine getScriptEngine() {
-        if (cachedEngineName == null) {
+        if (cachedEngine == null) {
             synchronized (this) {
-                if (cachedEngineName == null) {
-                    cachedEngineName = resolveScriptEngineName();
+                if (cachedEngine == null) {
+                    cachedEngine = resolveScriptEngine();
                 }
             }
         }
-        if (cachedEngineName == null) {
-            return null;
-        }
-        return manager.getEngineByName(cachedEngineName);
+        return cachedEngine;
     }
 
-    private String resolveScriptEngineName() {
-        ScriptEngine engine;
 
-        engine = manager.getEngineByName("graal.js");
-        if (engine != null) {
-            log.info("使用 GraalJS 脚本引擎");
-            return "graal.js";
+    private ScriptEngine resolveScriptEngine() {
+        try {
+            log.info("正在通过显式构造器创建 GraalJS 引擎");
+            return GraalJSScriptEngine.create(
+                    null,
+                    Context.newBuilder("js")
+                            .allowHostAccess(HostAccess.ALL)
+                            .allowHostClassLookup(s -> false)
+            );
+        } catch (Throwable t) {
+            log.warn("无法直接创建 GraalJS 引擎，尝试传统方式...", t);
+            return manager.getEngineByName("graal.js");
         }
-
-        engine = manager.getEngineByName("nashorn");
-        if (engine != null) {
-            log.info("使用 Nashorn 脚本引擎");
-            return "nashorn";
-        }
-
-        engine = manager.getEngineByName("JavaScript");
-        if (engine != null) {
-            log.info("使用 JavaScript 脚本引擎");
-            return "JavaScript";
-        }
-
-        log.error("未找到可用的 JavaScript 脚本引擎。请添加依赖：\n"
-                + "JDK 15+: 添加 org.graalvm.polyglot:polyglot 和 org.graalvm.js:js 依赖\n" + "JDK 8-14: Nashorn 已内置");
-        return null;
     }
+
 
     @Override
     public boolean evaluate(String expression, AgentState state) {
@@ -131,7 +123,7 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
 
             if (state.getAttributes() != null) {
                 state.getAttributes().forEach((key, value) -> {
-                    if (value instanceof String || value instanceof Number || value instanceof Boolean) {
+                    if (value != null) {
                         bindings.put(key, value);
                     }
                 });

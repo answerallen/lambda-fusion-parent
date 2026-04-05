@@ -113,15 +113,19 @@
             <artifactId>langchain4j-open-ai</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.graalvm.polyglot</groupId>
-            <artifactId>polyglot</artifactId>
+            <groupId>org.graalvm.js</groupId>
+            <artifactId>js-language</artifactId>
+            <version>23.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.truffle</groupId>
+            <artifactId>truffle-api</artifactId>
             <version>23.1.2</version>
         </dependency>
         <dependency>
             <groupId>org.graalvm.js</groupId>
-            <artifactId>js</artifactId>
-            <version>23.0.11</version>
-            <scope>compile</scope>
+            <artifactId>js-scriptengine</artifactId>
+            <version>23.1.2</version>
         </dependency>
         <!-- Resilience4j 容错机制 -->
         <dependency>

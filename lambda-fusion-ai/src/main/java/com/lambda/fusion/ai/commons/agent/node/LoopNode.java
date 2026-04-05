@@ -49,7 +49,8 @@ public class LoopNode implements AgentNode {
         String loopType = (String) properties.getOrDefault("loopType", "while");
         String condition = (String) properties.get("condition");
         String conditionType = (String) properties.getOrDefault("conditionType", "spel");
-        int maxIterations = (int) properties.getOrDefault("maxIterations", DEFAULT_MAX_ITERATIONS);
+        Object maxIterObj = properties.getOrDefault("maxIterations", DEFAULT_MAX_ITERATIONS);
+        int maxIterations = maxIterObj instanceof Number n ? n.intValue() : DEFAULT_MAX_ITERATIONS;
         String loopBody = (String) properties.get("loopBody");
         String exitNode = (String) properties.get("exitNode");
 
@@ -159,12 +160,156 @@ public class LoopNode implements AgentNode {
      */
     private ExecutionResult executeFor(
             AgentState state, Map<String, Object> properties, String loopBody, String exitNode, LoopContext context) {
-        // for 循环简化实现，复用 while 逻辑
-        // 实际项目中可以实现完整的 for 循环语义
         String condition = (String) properties.get("condition");
         String conditionType = (String) properties.getOrDefault("conditionType", "spel");
+        String forInit = (String) properties.get("forInit");
+        String forUpdate = (String) properties.get("forUpdate");
+        Object maxIterObj = properties.getOrDefault("maxIterations", DEFAULT_MAX_ITERATIONS);
+        int maxIterations = maxIterObj instanceof Number n ? n.intValue() : DEFAULT_MAX_ITERATIONS;
 
-        return executeWhile(state, condition, conditionType, loopBody, exitNode, context);
+        ConditionEvaluator evaluator = evaluators.get(conditionType);
+        if (evaluator == null) {
+            log.warn("未找到条件评估器类型: {}", conditionType);
+            clearLoopContext(state);
+            return new ExecutionResult(state, exitNode);
+        }
+
+        if (!context.initialized && forInit != null && !forInit.isBlank()) {
+            executeInitExpression(state, forInit);
+            context.initialized = true;
+            saveLoopContext(state, context);
+        }
+
+        if (context.pendingUpdate && forUpdate != null && !forUpdate.isBlank()) {
+            executeUpdateExpression(state, forUpdate);
+            context.pendingUpdate = false;
+        }
+
+        if (context.iterationCount >= maxIterations) {
+            log.warn("for 循环达到最大迭代次数限制: {}", maxIterations);
+            clearLoopContext(state);
+            return new ExecutionResult(state, exitNode);
+        }
+
+        boolean shouldContinue = evaluator.evaluate(condition, state);
+        if (!shouldContinue) {
+            clearLoopContext(state);
+            log.debug("for 循环条件不满足，退出循环");
+            return new ExecutionResult(state, exitNode);
+        }
+
+        context.iterationCount++;
+        context.pendingUpdate = true;
+        saveLoopContext(state, context);
+
+        log.debug("for 循环第 {} 次迭代", context.iterationCount);
+        return new ExecutionResult(state, loopBody);
+    }
+
+    /**
+     * 执行 for 循环初始化表达式
+     */
+    private void executeInitExpression(AgentState state, String forInit) {
+        try {
+            if (forInit.contains("=")) {
+                String[] parts = forInit.split("=", 2);
+                if (parts.length == 2) {
+                    String varName = parts[0].trim();
+                    String valueExpr = parts[1].trim();
+                    Object value = parseValueExpression(valueExpr);
+
+                    if (value != null) {
+                        if (state.getAttributes() == null) {
+                            state.setAttributes(new java.util.HashMap<>());
+                        }
+                        state.getAttributes().put(varName, value);
+                        log.debug("for 循环初始化: {} = {}", varName, value);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("for 循环初始化表达式执行失败: {}", forInit, e);
+        }
+    }
+
+    /**
+     * 解析值表达式
+     */
+    private Object parseValueExpression(String valueExpr) {
+        if (valueExpr.matches("\\d+")) {
+            return Integer.parseInt(valueExpr);
+        } else if (valueExpr.matches("\\d+\\.\\d+")) {
+            return Double.parseDouble(valueExpr);
+        } else if (valueExpr.startsWith("\"") && valueExpr.endsWith("\"")) {
+            return valueExpr.substring(1, valueExpr.length() - 1);
+        } else if (valueExpr.equals("true")) {
+            return true;
+        } else if (valueExpr.equals("false")) {
+            return false;
+        }
+        log.warn("无法解析值表达式: {}", valueExpr);
+        return null;
+    }
+
+    /**
+     * 执行 for 循环更新表达式
+     */
+    private void executeUpdateExpression(AgentState state, String forUpdate) {
+        try {
+            if (forUpdate.contains("++")) {
+                String varName = forUpdate.replace("++", "").trim();
+                if (state.getAttributes() != null && state.getAttributes().containsKey(varName)) {
+                    Object current = state.getAttributes().get(varName);
+                    if (current instanceof Integer) {
+                        state.getAttributes().put(varName, (Integer) current + 1);
+                        printDebugMessage(varName, (Integer) current + 1);
+                    }
+                }
+            } else if (forUpdate.contains("--")) {
+                String varName = forUpdate.replace("--", "").trim();
+                if (state.getAttributes() != null && state.getAttributes().containsKey(varName)) {
+                    Object current = state.getAttributes().get(varName);
+                    if (current instanceof Integer) {
+                        state.getAttributes().put(varName, (Integer) current - 1);
+                        printDebugMessage(varName, (Integer) current - 1);
+                    }
+                }
+            } else if (forUpdate.contains("+=")) {
+                String[] parts = forUpdate.split("\\+=", 2);
+                if (parts.length == 2) {
+                    String varName = parts[0].trim();
+                    String incrementStr = parts[1].trim();
+                    if (state.getAttributes() != null && state.getAttributes().containsKey(varName)) {
+                        Object current = state.getAttributes().get(varName);
+                        int increment = Integer.parseInt(incrementStr);
+                        if (current instanceof Integer) {
+                            state.getAttributes().put(varName, (Integer) current + increment);
+                            printDebugMessage(varName, (Integer) current + increment);
+                        }
+                    }
+                }
+            } else if (forUpdate.contains("-=")) {
+                String[] parts = forUpdate.split("-=", 2);
+                if (parts.length == 2) {
+                    String varName = parts[0].trim();
+                    String decrementStr = parts[1].trim();
+                    if (state.getAttributes() != null && state.getAttributes().containsKey(varName)) {
+                        Object current = state.getAttributes().get(varName);
+                        int decrement = Integer.parseInt(decrementStr);
+                        if (current instanceof Integer) {
+                            state.getAttributes().put(varName, (Integer) current - decrement);
+                            printDebugMessage(varName, (Integer) current - decrement);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("for 循环更新表达式执行失败: {}", forUpdate, e);
+        }
+    }
+
+    private static void printDebugMessage(String varName, int current) {
+        log.debug("for 循环更新: {} = {}", varName, current);
     }
 
     /**
@@ -175,9 +320,12 @@ public class LoopNode implements AgentNode {
             Object contextObj = state.getAttributes().get(LOOP_CONTEXT_KEY);
             if (contextObj instanceof Map<?, ?> contextMap) {
                 LoopContext context = new LoopContext();
-                context.iterationCount = (int) contextMap.get("iterationCount");
-                context.conditionChecked = (boolean) contextMap.get("conditionChecked");
-                context.bodyExecuted = (boolean) contextMap.get("bodyExecuted");
+                Object iterCount = contextMap.get("iterationCount");
+                context.iterationCount = iterCount instanceof Number n ? n.intValue() : 0;
+                context.conditionChecked = Boolean.TRUE.equals(contextMap.get("conditionChecked"));
+                context.bodyExecuted = Boolean.TRUE.equals(contextMap.get("bodyExecuted"));
+                context.pendingUpdate = Boolean.TRUE.equals(contextMap.get("pendingUpdate"));
+                context.initialized = Boolean.TRUE.equals(contextMap.get("initialized"));
                 return context;
             }
         }
@@ -193,6 +341,8 @@ public class LoopNode implements AgentNode {
             contextMap.put("iterationCount", context.iterationCount);
             contextMap.put("conditionChecked", context.conditionChecked);
             contextMap.put("bodyExecuted", context.bodyExecuted);
+            contextMap.put("pendingUpdate", context.pendingUpdate);
+            contextMap.put("initialized", context.initialized);
             state.getAttributes().put(LOOP_CONTEXT_KEY, contextMap);
         }
     }
@@ -213,5 +363,7 @@ public class LoopNode implements AgentNode {
         int iterationCount = 0;
         boolean conditionChecked = false;
         boolean bodyExecuted = false;
+        boolean pendingUpdate = false;
+        boolean initialized = false;
     }
 }

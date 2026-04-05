@@ -126,18 +126,35 @@ public class ConfidenceConditionEvaluator implements ConditionEvaluator {
     }
 
     /**
-     * 解析反向表达式: 0.8>, 0.9>=
+     * 解析反向表达式: 0.8>, 0.9>=, 0.5<, 0.6<=
+     * 例如 "0.8>confidence" 实际是 confidence < 0.8
      */
-    private boolean evaluateReverseExpression(String operator, double confidence) {
-        try {
-            double threshold = Double.parseDouble(operator);
+    private boolean evaluateReverseExpression(String expr, double confidence) {
+        String trimmed = expr.trim();
 
-            // 这里需要根据实际表达式判断
-            // 例如 "0.8>confidence" 实际是 confidence < 0.8
-            // 简化处理：假设都是 threshold > confidence 的形式
-            return threshold > confidence;
+        try {
+            if (trimmed.endsWith(">=")) {
+                double threshold = Double.parseDouble(
+                        trimmed.substring(0, trimmed.length() - 2).trim());
+                return confidence <= threshold;
+            } else if (trimmed.endsWith(">")) {
+                double threshold = Double.parseDouble(
+                        trimmed.substring(0, trimmed.length() - 1).trim());
+                return confidence < threshold;
+            } else if (trimmed.endsWith("<=")) {
+                double threshold = Double.parseDouble(
+                        trimmed.substring(0, trimmed.length() - 2).trim());
+                return confidence >= threshold;
+            } else if (trimmed.endsWith("<")) {
+                double threshold = Double.parseDouble(
+                        trimmed.substring(0, trimmed.length() - 1).trim());
+                return confidence > threshold;
+            } else {
+                double threshold = Double.parseDouble(trimmed);
+                return threshold > confidence;
+            }
         } catch (NumberFormatException e) {
-            log.warn("无法解析反向表达式阈值: {}", operator);
+            log.warn("无法解析反向表达式阈值: {}", expr);
             return false;
         }
     }

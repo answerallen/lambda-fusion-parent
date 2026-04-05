@@ -15,8 +15,9 @@ import org.springframework.context.annotation.Configuration;
 public class AiProperties {
 
     private EmbeddingConfig embedding = new EmbeddingConfig();
-    private DocumentChunkConfig documentChunk = new DocumentChunkConfig(); // 已添加
+    private DocumentChunkConfig documentChunk = new DocumentChunkConfig();
     private AiDataSource dataSource = new AiDataSource();
+    private AgentConfig agent = new AgentConfig();
 
     @Data
     public static class EmbeddingConfig {
@@ -216,5 +217,69 @@ public class AiProperties {
 
             return configuredOverlap;
         }
+    }
+
+    /**
+     * Agent 工作流引擎配置属性
+     */
+    @Data
+    public static class AgentConfig {
+
+        private ParallelExecutorConfig parallelExecutor = new ParallelExecutorConfig();
+        private SubgraphConfig subgraph = new SubgraphConfig();
+    }
+
+    /**
+     * 并行执行器线程池配置
+     */
+    @Data
+    public static class ParallelExecutorConfig {
+
+        /**
+         * 核心线程数
+         */
+        private int corePoolSize = 5;
+
+        /**
+         * 最大线程数
+         */
+        private int maxPoolSize = 20;
+
+        /**
+         * 任务队列容量
+         */
+        private int queueCapacity = 100;
+
+        /**
+         * 线程存活时间（秒）
+         */
+        private int keepAliveSeconds = 60;
+
+        /**
+         * 线程名前缀
+         */
+        private String threadNamePrefix = "agent-parallel-";
+    }
+
+    /**
+     * 子图配置
+     */
+    @Data
+    public static class SubgraphConfig {
+
+        /**
+         * 异步执行超时时间（毫秒）
+         */
+        private long asyncTimeout = 30000;
+
+        /**
+         * 是否启用子图定义缓存
+         */
+        private boolean cacheEnabled = true;
+
+        /**
+         * 缓存最大条目数
+         */
+        private int cacheMaxSize = 100;
     }
 }

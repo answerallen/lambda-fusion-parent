@@ -20,7 +20,6 @@ import org.springframework.stereotype.Repository;
 @DS("#{@aiDataSourceProperties.vectorName}")
 public interface VectorRepository {
 
-
     /**
      * 插入向量数据到分表
      * 根据维度自动选择表：ai_vector_store_{dimension}
@@ -133,5 +132,4 @@ public interface VectorRepository {
      * @param collectionName 集合名称
      */
     void deleteByCollectionName(@Param("dimension") Integer dimension, @Param("collectionName") String collectionName);
-
 }
