@@ -2,7 +2,7 @@ package com.lambda.fusion.ai;
 
 import cn.hutool.core.util.StrUtil;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
-import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
+import com.lambda.fusion.ai.commons.datasource.AiSchemaInitializer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -141,9 +141,52 @@ public class AiConfigure {
         }
     }
 
+    /**
+     * 业务库 Schema 初始化器
+     * 初始化 AI 模块核心业务表（知识库、文档、LLM模型等）
+     */
+    @Bean
+    public ApplicationRunner businessSchemaInitializer(
+            ObjectProvider<AiSchemaInitializer> schemaInitializerProvider,
+            AiProperties aiProperties,
+            DynamicDataSourceService dynamicDataSourceService) {
+        return args -> {
+            String dataSourceName = aiProperties.getDataSource().getDefaultName();
+            log.info("Starting business schema initialization for datasource: {}", dataSourceName);
+
+            DataSource dataSource;
+            try {
+                dataSource = dynamicDataSourceService.getDataSource(dataSourceName);
+            } catch (Exception e) {
+                log.warn("Business datasource '{}' not available, skipping schema initialization", dataSourceName);
+                return;
+            }
+
+            if (dataSource == null) {
+                log.warn("Business datasource '{}' is null, skipping schema initialization", dataSourceName);
+                return;
+            }
+
+            schemaInitializerProvider.ifAvailable(schemaInitializer -> {
+                try {
+                    String tenantId = "";
+                    log.info("Executing business schema initialization for tenant: {}", tenantId);
+                    schemaInitializer.initializeBusinessSchema(tenantId, dataSource);
+                    log.info("Business schema initialization completed successfully");
+                } catch (Exception e) {
+                    log.error("Failed to initialize business schema", e);
+                }
+            });
+        };
+    }
+
+    /**
+     * 向量库 Schema 初始化器
+     * 初始化向量存储相关的表结构和 pgvector 扩展
+     */
     @Bean
     public ApplicationRunner vectorStoreSchemaInitializer(
-            ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider,
+            ObjectProvider<AiSchemaInitializer> schemaInitializerProvider,
             AiProperties aiProperties,
             DynamicDataSourceService dynamicDataSourceService) {
         return args -> {
@@ -166,8 +209,8 @@ public class AiConfigure {
             schemaInitializerProvider.ifAvailable(schemaInitializer -> {
                 try {
                     String tenantId = "";
-                    log.info("Executing schema initialization for tenant: {}", tenantId);
-                    schemaInitializer.initializeSchema(tenantId, dataSource);
+                    log.info("Executing vector schema initialization for tenant: {}", tenantId);
+                    schemaInitializer.initializeVectorSchema(tenantId, dataSource);
                     log.info("Vector store schema initialization completed successfully");
                 } catch (Exception e) {
                     log.error("Failed to initialize vector store schema", e);

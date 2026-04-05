@@ -14,18 +14,25 @@ import org.springframework.stereotype.Component;
  * <p>
  * 负责初始化租户数据源的数据库 Schema，包括：
  * 1. 检测数据库类型（PostgreSQL/MySQL）
- * 2. 执行 Liquibase 数据库迁移（主 changelog + 向量库 changelog）
+ * 2. 执行 Liquibase 数据库迁移（业务库 changelog + 向量库 changelog）
  * </p>
  *
  * <p>使用示例：</p>
  * <pre>
- * // 初始化租户 Schema
+ * // 初始化业务库 Schema
  * try {
- *     aiSchemaInitializer.initializeSchema("1001", dataSource);
- *     log.info("Tenant schema initialized successfully");
+ *     aiSchemaInitializer.initializeBusinessSchema("1001", businessDataSource);
+ *     log.info("Business schema initialized successfully");
  * } catch (Exception e) {
- *     log.error("Failed to initialize tenant schema", e);
- *     // 回滚数据源注册
+ *     log.error("Failed to initialize business schema", e);
+ * }
+ *
+ * // 初始化向量库 Schema
+ * try {
+ *     aiSchemaInitializer.initializeVectorSchema("1001", vectorDataSource);
+ *     log.info("Vector schema initialized successfully");
+ * } catch (Exception e) {
+ *     log.error("Failed to initialize vector schema", e);
  * }
  * </pre>
  */
@@ -40,7 +47,8 @@ public class AiSchemaInitializer implements TenantSchemaInitializer {
             "classpath:META-INF/db/changelogs/lambda-ai-vector-changelog.xml";
 
     /**
-     * 初始化租户数据源的 Schema
+     * 初始化租户数据源的 Schema（业务库 + 向量库）
+     * 当业务库和向量库使用同一数据源时调用此方法
      *
      * @param tenantId   租户ID
      * @param dataSource 租户数据源
@@ -50,19 +58,16 @@ public class AiSchemaInitializer implements TenantSchemaInitializer {
         log.info("Initializing AI schema for tenant: {}", tenantId);
 
         try {
-
             // 1. 检测数据库类型
             String dbType = detectDatabaseType(dataSource);
             log.info("Detected database type: {} for tenant: {}", dbType, tenantId);
 
-            // 2. 执行 Liquibase 数据库迁移（主 changelog）
-            executeLiquibaseMigration(dataSource, AI_SCHEMA_CHANGELOG_XML, tenantId);
-            log.info("Executed main Liquibase migration for tenant: {}", tenantId);
+            // 2. 执行业务库 Liquibase 数据库迁移
+            initializeBusinessSchema(tenantId, dataSource);
 
-            // 3. 如果是 PostgreSQL，执行向量库专用的 changelog（包含 pgvector 扩展初始化）
+            // 3. 如果是 PostgreSQL，执行向量库初始化
             if ("postgresql".equalsIgnoreCase(dbType)) {
-                executeLiquibaseMigration(dataSource, AI_VECTOR_CHANGELOG_PATH, tenantId);
-                log.info("Executed vector store Liquibase migration for tenant: {}", tenantId);
+                initializeVectorSchema(tenantId, dataSource);
             }
 
             log.info("AI schema initialization completed for tenant: {}", tenantId);
@@ -70,6 +75,51 @@ public class AiSchemaInitializer implements TenantSchemaInitializer {
         } catch (Exception e) {
             log.error("Failed to initialize AI schema for tenant: {}", tenantId, e);
             throw new RuntimeException("AI schema initialization failed for tenant: " + tenantId, e);
+        }
+    }
+
+    /**
+     * 初始化业务库 Schema
+     * 包含知识库、文档、LLM模型等核心表结构
+     *
+     * @param tenantId   租户ID
+     * @param dataSource 业务数据源
+     */
+    public void initializeBusinessSchema(String tenantId, DataSource dataSource) {
+        log.info("Initializing business schema for tenant: {}", tenantId);
+
+        try {
+            executeLiquibaseMigration(dataSource, AI_SCHEMA_CHANGELOG_XML, tenantId);
+            log.info("Business schema initialized successfully for tenant: {}", tenantId);
+        } catch (Exception e) {
+            log.error("Failed to initialize business schema for tenant: {}", tenantId, e);
+            throw new RuntimeException("Business schema initialization failed for tenant: " + tenantId, e);
+        }
+    }
+
+    /**
+     * 初始化向量库 Schema
+     * 包含向量存储相关的表结构和 pgvector 扩展
+     *
+     * @param tenantId   租户ID
+     * @param dataSource 向量数据源
+     */
+    public void initializeVectorSchema(String tenantId, DataSource dataSource) {
+        log.info("Initializing vector schema for tenant: {}", tenantId);
+
+        try {
+            // 检测数据库类型，只有 PostgreSQL 支持向量库
+            String dbType = detectDatabaseType(dataSource);
+            if (!"postgresql".equalsIgnoreCase(dbType)) {
+                log.warn("Vector schema initialization skipped for non-PostgreSQL database: {}", dbType);
+                return;
+            }
+
+            executeLiquibaseMigration(dataSource, AI_VECTOR_CHANGELOG_PATH, tenantId);
+            log.info("Vector schema initialized successfully for tenant: {}", tenantId);
+        } catch (Exception e) {
+            log.error("Failed to initialize vector schema for tenant: {}", tenantId, e);
+            throw new RuntimeException("Vector schema initialization failed for tenant: " + tenantId, e);
         }
     }
 
