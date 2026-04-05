@@ -31,17 +31,17 @@ public class AgentState {
     /**
      * 会话属性
      */
-    private Long sessionId;
+    private String sessionId;
 
     /**
      * 知识库ID
      */
-    private Long kbId;
+    private String kbId;
 
     /**
      * 引用的LLM模型ID
      */
-    private Long llmModelId;
+    private String llmModelId;
 
     /**
      * 当前待执行的工具请求信息(由 LLMNode 产生，提供给 ToolNode) - 使用 CopyOnWriteArrayList 保证线程安全
@@ -163,5 +163,62 @@ public class AgentState {
             this.attributes = new ConcurrentHashMap<>();
         }
         this.attributes.put(AgentGraph.AVAILABLE_NODES_ATTRIBUTE, nodes);
+    }
+
+    // Manually added getters and setters for Lombok compatibility
+    public List<ChatMessage> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<ChatMessage> messages) {
+        this.messages = messages;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public String getKbId() {
+        return kbId;
+    }
+
+    public void setKbId(String kbId) {
+        this.kbId = kbId;
+    }
+
+    public String getLlmModelId() {
+        return llmModelId;
+    }
+
+    public void setLlmModelId(String llmModelId) {
+        this.llmModelId = llmModelId;
+    }
+
+    public List<ToolExecutionRequest> getPendingToolRequests() {
+        return pendingToolRequests;
+    }
+
+    public void setPendingToolRequests(List<ToolExecutionRequest> pendingToolRequests) {
+        this.pendingToolRequests = pendingToolRequests;
+    }
+
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(Map<String, Object> attributes) {
+        this.attributes = attributes;
+    }
+
+    public boolean isFinished() {
+        return finished;
+    }
+
+    public void setFinished(boolean finished) {
+        this.finished = finished;
     }
 }

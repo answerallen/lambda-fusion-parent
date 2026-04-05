@@ -7,10 +7,10 @@ import lombok.Data;
 @Schema(description = "创建会话DTO")
 public class CreateSession {
     private String title;
-    private Long kbId;
-    private Long userId;
-    private Long tenantId;
-    private Long llmModelId;
-    private Long robotId;
+    private String kbId;
+    private String userId;
+    private String tenantId;
+    private String llmModelId;
+    private String robotId;
     private String systemPrompt;
 }

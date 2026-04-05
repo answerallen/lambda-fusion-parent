@@ -58,7 +58,7 @@ public interface VectorRepository {
     void batchInsertVectors(
             @Param("dimension") Integer dimension,
             @Param("list") List<DocumentChunkEntity> list,
-            @Param("kbId") Long kbId,
+            @Param("kbId") String kbId,
             @Param("collectionName") String collectionName);
 
     /**
@@ -73,7 +73,7 @@ public interface VectorRepository {
      */
     List<VectorSearchResult> searchSimilar(
             @Param("dimension") Integer dimension,
-            @Param("kbId") Long kbId,
+            @Param("kbId") String kbId,
             @Param("queryVector") List<Double> queryVector,
             @Param("topK") Integer topK,
             @Param("minScore") Double minScore);
@@ -89,7 +89,7 @@ public interface VectorRepository {
      */
     List<VectorSearchResult> searchKeyword(
             @Param("dimension") Integer dimension,
-            @Param("kbId") Long kbId,
+            @Param("kbId") String kbId,
             @Param("keyword") String keyword,
             @Param("topK") Integer topK);
 
@@ -115,7 +115,7 @@ public interface VectorRepository {
      * @param dimension  向量维度（用于选择表）
      * @param documentId 文档ID
      */
-    void deleteByDocumentId(@Param("dimension") Integer dimension, @Param("documentId") Long documentId);
+    void deleteByDocumentId(@Param("dimension") Integer dimension, @Param("documentId") String documentId);
 
     /**
      * 根据知识库ID删除向量（分表）
@@ -123,7 +123,7 @@ public interface VectorRepository {
      * @param dimension 向量维度（用于选择表）
      * @param kbId      知识库ID
      */
-    void deleteByKbId(@Param("dimension") Integer dimension, @Param("kbId") Long kbId);
+    void deleteByKbId(@Param("dimension") Integer dimension, @Param("kbId") String kbId);
 
     /**
      * 根据集合名称删除向量（分表）

@@ -80,7 +80,7 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
 
     @Override
     @Transactional
-    public WorkflowTemplateEntity updateTemplate(Long id, WorkflowTemplateEntity template) {
+    public WorkflowTemplateEntity updateTemplate(String id, WorkflowTemplateEntity template) {
         WorkflowTemplateEntity existing = templateMapper.selectById(id);
         if (existing == null) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, id);
@@ -107,7 +107,7 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
 
     @Override
     @Transactional
-    public void deleteTemplate(Long id) {
+    public void deleteTemplate(String id) {
         WorkflowTemplateEntity existing = templateMapper.selectById(id);
         if (existing == null) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, id);
@@ -123,7 +123,7 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
     }
 
     @Override
-    public WorkflowTemplateEntity getTemplateById(Long id) {
+    public WorkflowTemplateEntity getTemplateById(String id) {
         return templateMapper.selectById(id);
     }
 
@@ -139,7 +139,7 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
 
     @Override
     public IPage<WorkflowTemplateEntity> listTemplates(
-            Page<WorkflowTemplateEntity> page, Long tenantId, String category, String status, String keyword) {
+            Page<WorkflowTemplateEntity> page, String tenantId, String category, String status, String keyword) {
         LambdaQueryWrapper<WorkflowTemplateEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(tenantId != null, WorkflowTemplateEntity::getTenantId, tenantId)
                 .eq(StringUtils.hasText(category), WorkflowTemplateEntity::getCategory, category)
@@ -160,7 +160,7 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
 
     @Override
     @Transactional
-    public WorkflowTemplateEntity publishTemplate(Long id) {
+    public WorkflowTemplateEntity publishTemplate(String id) {
         WorkflowTemplateEntity template = templateMapper.selectById(id);
         if (template == null) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, id);
@@ -180,7 +180,7 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
 
     @Override
     @Transactional
-    public WorkflowTemplateEntity deprecateTemplate(Long id) {
+    public WorkflowTemplateEntity deprecateTemplate(String id) {
         WorkflowTemplateEntity template = templateMapper.selectById(id);
         if (template == null) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, id);
@@ -196,7 +196,7 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
 
     @Override
     @Transactional
-    public WorkflowTemplateEntity copyTemplate(Long id, String newCode, String newName) {
+    public WorkflowTemplateEntity copyTemplate(String id, String newCode, String newName) {
         WorkflowTemplateEntity source = templateMapper.selectById(id);
         if (source == null) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, id);
@@ -233,13 +233,13 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
     }
 
     @Override
-    public List<WorkflowTemplateVersionEntity> getTemplateVersions(Long templateId) {
+    public List<WorkflowTemplateVersionEntity> getTemplateVersions(String templateId) {
         return versionMapper.selectByTemplateId(templateId);
     }
 
     @Override
     @Transactional
-    public WorkflowTemplateEntity rollbackToVersion(Long templateId, String version) {
+    public WorkflowTemplateEntity rollbackToVersion(String templateId, String version) {
         WorkflowTemplateEntity template = templateMapper.selectById(templateId);
         if (template == null) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, templateId);
@@ -270,7 +270,7 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
     }
 
     @Override
-    public String exportTemplate(Long id) {
+    public String exportTemplate(String id) {
         WorkflowTemplateEntity template = templateMapper.selectById(id);
         if (template == null) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, id);
@@ -304,7 +304,7 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
 
     @Override
     @Transactional
-    public WorkflowTemplateEntity importTemplate(String json, Long tenantId) {
+    public WorkflowTemplateEntity importTemplate(String json, String tenantId) {
         try {
             JsonNode root = objectMapper.readTree(json);
 

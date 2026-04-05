@@ -12,9 +12,9 @@ public interface RobotService extends IService<RobotEntity> {
 
     Robot updateRobot(UpdateRobot dto);
 
-    Robot getRobotById(Long id);
+    Robot getRobotById(String id);
 
     List<Robot> listAllRobots();
 
-    void deleteRobot(Long id);
+    void deleteRobot(String id);
 }

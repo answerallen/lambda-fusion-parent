@@ -74,7 +74,7 @@ public class DocumentProcessor {
     }
 
     @Async("documentProcessExecutor")
-    public void processDocument(Long documentId) {
+    public void processDocument(String documentId) {
         log.info("开始处理文档: {}", documentId);
         DocumentEntity doc = documentMapper.selectById(documentId);
         if (doc == null) {

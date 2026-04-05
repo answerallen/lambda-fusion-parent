@@ -33,7 +33,7 @@ public class RobotController {
 
     @GetMapping("/{id}")
     @Operation(summary = "获取AI机器人详情")
-    public Robot getRobot(@PathVariable Long id) {
+    public Robot getRobot(@PathVariable String id) {
         return robotService.getRobotById(id);
     }
 
@@ -45,7 +45,7 @@ public class RobotController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除AI机器人")
-    public Boolean deleteRobot(@PathVariable Long id) {
+    public Boolean deleteRobot(@PathVariable String id) {
         robotService.deleteRobot(id);
         return true;
     }

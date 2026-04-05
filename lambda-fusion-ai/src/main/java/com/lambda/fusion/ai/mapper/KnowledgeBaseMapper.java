@@ -49,7 +49,7 @@ public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
             + "AND deleted_at IS NULL "
             + "ORDER BY created_at DESC"
             + "</script>")
-    List<KnowledgeBaseEntity> listByTenantId(@Param("tenantId") Long tenantId, @Param("status") String status);
+    List<KnowledgeBaseEntity> listByTenantId(@Param("tenantId") String tenantId, @Param("status") String status);
 
     /**
      * 统计租户知识库数

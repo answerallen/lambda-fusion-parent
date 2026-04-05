@@ -71,11 +71,11 @@ public class AgentGraph {
         public static final String NEXT_NODE_KEY = "_nextNode";
         private static final Map<String, Channel<?>> SCHEMA = Map.of(
                 SESSION_ID_KEY,
-                Channels.base(() -> 0L),
+                Channels.base(() -> "0"),
                 KB_ID_KEY,
-                Channels.base(() -> 0L),
+                Channels.base(() -> "0"),
                 LLM_MODEL_ID_KEY,
-                Channels.base(() -> 0L),
+                Channels.base(() -> "0"),
                 MESSAGES_KEY,
                 Channels.appender(ArrayList::new),
                 PENDING_TOOL_REQUESTS_KEY,
@@ -113,9 +113,9 @@ public class AgentGraph {
 
         AgentState agentState() {
             AgentState state = new AgentState();
-            state.setSessionId(this.<Long>value(SESSION_ID_KEY).orElse(null));
-            state.setKbId(this.<Long>value(KB_ID_KEY).orElse(null));
-            state.setLlmModelId(this.<Long>value(LLM_MODEL_ID_KEY).orElse(null));
+            state.setSessionId(this.<String>value(SESSION_ID_KEY).orElse(null));
+            state.setKbId(this.<String>value(KB_ID_KEY).orElse(null));
+            state.setLlmModelId(this.<String>value(LLM_MODEL_ID_KEY).orElse(null));
             state.setMessages(
                     new ArrayList<>(this.<List<ChatMessage>>value(MESSAGES_KEY).orElse(List.of())));
             state.setPendingToolRequests(

@@ -73,7 +73,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     private Long maxFileSize;
 
     @Override
-    public Document uploadDocument(Long kbId, MultipartFile file, Long uploadedBy) {
+    public Document uploadDocument(String kbId, MultipartFile file, String uploadedBy) {
         log.info("上传文档到知识库: kbId={}, fileName={}", kbId, file.getOriginalFilename());
 
         if (kbId == null) {
@@ -163,20 +163,20 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     }
 
     @Override
-    public List<Document> listByKbId(Long kbId, String status) {
+    public List<Document> listByKbId(String kbId, String status) {
         validateKnowledgeBaseExists(kbId);
         List<DocumentEntity> documentEntities = documentMapper.listByKbId(kbId, status);
         return toVO(documentEntities);
     }
 
     @Override
-    public Document getDocumentById(Long kbId, Long id) {
+    public Document getDocumentById(String kbId, String id) {
         return toVO(getDocumentInKnowledgeBase(kbId, id));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteDocument(Long kbId, Long id) {
+    public void deleteDocument(String kbId, String id) {
         log.info("删除文档, kbId={}, id={}", kbId, id);
         DocumentEntity entity = getDocumentInKnowledgeBase(kbId, id);
 
@@ -209,13 +209,13 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     }
 
     @Override
-    public String getProcessStatus(Long kbId, Long id) {
+    public String getProcessStatus(String kbId, String id) {
         return getDocumentInKnowledgeBase(kbId, id).getProcessStatus();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateProcessStatus(Long id, String processStatus, Integer progress, String errorMessage) {
+    public void updateProcessStatus(String id, String processStatus, Integer progress, String errorMessage) {
         documentMapper.updateProcessStatus(id, processStatus, progress, errorMessage);
         if (DocumentStatus.COMPLETED.name().equals(processStatus)) {
             DocumentEntity entity = documentMapper.selectById(id);
@@ -228,7 +228,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void reprocessDocument(Long kbId, Long id) {
+    public void reprocessDocument(String kbId, String id) {
         if (id == null) {
             throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
         }
@@ -288,7 +288,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "不支持的文件类型: " + fileExtension);
     }
 
-    private void validateKnowledgeBaseExists(Long kbId) {
+    private void validateKnowledgeBaseExists(String kbId) {
         if (kbId == null) {
             throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库ID不能为空");
         }
@@ -297,7 +297,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         }
     }
 
-    private DocumentEntity getDocumentInKnowledgeBase(Long kbId, Long documentId) {
+    private DocumentEntity getDocumentInKnowledgeBase(String kbId, String documentId) {
         validateKnowledgeBaseExists(kbId);
         if (documentId == null) {
             throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");

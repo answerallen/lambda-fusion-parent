@@ -27,7 +27,7 @@
             </column>
             <column name="description" type="text"/>
             <column name="category" type="varchar(50)"/>
-            <column name="tenant_id" type="bigint">
+            <column name="tenant_id" type="varchar(32)">
                 <constraints nullable="false"/>
             </column>
             <column name="owner_user_id" type="bigint">
@@ -98,7 +98,7 @@
             </column>
             <column name="description" type="text"/>
             <column name="category" type="varchar(50)"/>
-            <column name="tenant_id" type="bigint">
+            <column name="tenant_id" type="varchar(32)">
                 <constraints nullable="false"/>
             </column>
             <column name="owner_user_id" type="bigint">
@@ -564,6 +564,48 @@
     </changeSet>
 
     <!-- ========================================== -->
+    <!-- 【MySQL】为 ai_llm_model 添加 tenant_id 字段 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604050010-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <dbms type="mysql"/>
+                <tableExists tableName="ai_llm_model"/>
+                <not>
+                    <columnExists tableName="ai_llm_model" columnName="tenant_id"/>
+                </not>
+            </and>
+        </preConditions>
+        <addColumn tableName="ai_llm_model">
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
+        </addColumn>
+        <createIndex tableName="ai_llm_model" indexName="idx_model_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】为 ai_llm_model 添加 tenant_id 字段 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604050010-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <dbms type="postgresql"/>
+                <tableExists tableName="ai_llm_model"/>
+                <not>
+                    <columnExists tableName="ai_llm_model" columnName="tenant_id"/>
+                </not>
+            </and>
+        </preConditions>
+        <addColumn tableName="ai_llm_model">
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
+        </addColumn>
+        <createIndex tableName="ai_llm_model" indexName="idx_model_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
     <!-- 【MySQL】对话会话表 ai_chat_session -->
     <!-- ========================================== -->
     <changeSet id="lambda-fusion-ai-202602030050-mysql" author="Jin">
@@ -587,7 +629,7 @@
             <column name="user_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="tenant_id" type="bigint">
+            <column name="tenant_id" type="varchar(32)">
                 <constraints nullable="false"/>
             </column>
             <column name="llm_model_id" type="bigint"/>
@@ -647,7 +689,7 @@
             <column name="user_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="tenant_id" type="bigint">
+            <column name="tenant_id" type="varchar(32)">
                 <constraints nullable="false"/>
             </column>
             <column name="llm_model_id" type="bigint"/>
@@ -826,7 +868,7 @@
             <column name="input_schema" type="json"/>
             <column name="output_schema" type="json"/>
             <column name="default_params" type="json"/>
-            <column name="tenant_id" type="bigint">
+            <column name="tenant_id" type="varchar(32)">
                 <constraints nullable="false"/>
             </column>
             <column name="owner_user_id" type="bigint">
@@ -895,7 +937,7 @@
             <column name="input_schema" type="jsonb"/>
             <column name="output_schema" type="jsonb"/>
             <column name="default_params" type="jsonb"/>
-            <column name="tenant_id" type="bigint">
+            <column name="tenant_id" type="varchar(32)">
                 <constraints nullable="false"/>
             </column>
             <column name="owner_user_id" type="bigint">
@@ -959,7 +1001,7 @@
             <column name="user_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="tenant_id" type="bigint">
+            <column name="tenant_id" type="varchar(32)">
                 <constraints nullable="false"/>
             </column>
             <column name="input_params" type="json"/>
@@ -1021,7 +1063,7 @@
             <column name="user_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
-            <column name="tenant_id" type="bigint">
+            <column name="tenant_id" type="varchar(32)">
                 <constraints nullable="false"/>
             </column>
             <column name="input_params" type="jsonb"/>
@@ -1093,7 +1135,7 @@
             <column name="suggested_model" type="varchar(100)"/>
             <column name="suggested_temperature" type="decimal(3,2)"/>
             <column name="suggested_max_tokens" type="int"/>
-            <column name="tenant_id" type="bigint"/>
+            <column name="tenant_id" type="varchar(32)"/>
             <column name="owner_user_id" type="bigint"/>
             <column name="is_public" type="tinyint(1)" defaultValue="0"/>
             <column name="is_system" type="tinyint(1)" defaultValue="0"/>
@@ -1158,7 +1200,7 @@
             <column name="suggested_model" type="varchar(100)"/>
             <column name="suggested_temperature" type="decimal(3,2)"/>
             <column name="suggested_max_tokens" type="integer"/>
-            <column name="tenant_id" type="bigint"/>
+            <column name="tenant_id" type="varchar(32)"/>
             <column name="owner_user_id" type="bigint"/>
             <column name="is_public" type="boolean" defaultValueBoolean="false"/>
             <column name="is_system" type="boolean" defaultValueBoolean="false"/>
@@ -1210,7 +1252,7 @@
             <column name="graph_json" type="json">
                 <constraints nullable="false"/>
             </column>
-            <column name="tenant_id" type="bigint"/>
+            <column name="tenant_id" type="varchar(32)"/>
             <column name="owner_user_id" type="bigint"/>
             <column name="is_public" type="tinyint(1)" defaultValue="0"/>
             <column name="enabled" type="tinyint(1)" defaultValue="1"/>
@@ -1261,7 +1303,7 @@
             <column name="graph_json" type="jsonb">
                 <constraints nullable="false"/>
             </column>
-            <column name="tenant_id" type="bigint"/>
+            <column name="tenant_id" type="varchar(32)"/>
             <column name="owner_user_id" type="bigint"/>
             <column name="is_public" type="boolean" defaultValueBoolean="false"/>
             <column name="enabled" type="boolean" defaultValueBoolean="true"/>
@@ -1372,7 +1414,7 @@
             <column name="status" type="varchar(16)" defaultValue="draft">
                 <constraints nullable="false"/>
             </column>
-            <column name="tenant_id" type="bigint"/>
+            <column name="tenant_id" type="varchar(32)"/>
             <column name="create_by" type="bigint"/>
             <column name="create_time" type="timestamp" >
                 <constraints nullable="false"/>
@@ -1446,7 +1488,7 @@
             <column name="status" type="varchar(16)" defaultValue="draft">
                 <constraints nullable="false"/>
             </column>
-            <column name="tenant_id" type="bigint"/>
+            <column name="tenant_id" type="varchar(32)"/>
             <column name="create_by" type="bigint"/>
             <column name="create_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
@@ -1561,6 +1603,90 @@
     </changeSet>
 
     <!-- ========================================== -->
+    <!-- 【MySQL】为 ai_chat_message 添加 tenant_id 字段 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604050020-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <dbms type="mysql"/>
+                <tableExists tableName="ai_chat_message"/>
+                <not>
+                    <columnExists tableName="ai_chat_message" columnName="tenant_id"/>
+                </not>
+            </and>
+        </preConditions>
+        <addColumn tableName="ai_chat_message">
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
+        </addColumn>
+        <createIndex tableName="ai_chat_message" indexName="idx_message_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】为 ai_chat_message 添加 tenant_id 字段 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604050020-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <dbms type="postgresql"/>
+                <tableExists tableName="ai_chat_message"/>
+                <not>
+                    <columnExists tableName="ai_chat_message" columnName="tenant_id"/>
+                </not>
+            </and>
+        </preConditions>
+        <addColumn tableName="ai_chat_message">
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
+        </addColumn>
+        <createIndex tableName="ai_chat_message" indexName="idx_message_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】为 ai_workflow_template_version 添加 tenant_id 字段 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604050030-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <dbms type="mysql"/>
+                <tableExists tableName="ai_workflow_template_version"/>
+                <not>
+                    <columnExists tableName="ai_workflow_template_version" columnName="tenant_id"/>
+                </not>
+            </and>
+        </preConditions>
+        <addColumn tableName="ai_workflow_template_version">
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
+        </addColumn>
+        <createIndex tableName="ai_workflow_template_version" indexName="idx_wf_version_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】为 ai_workflow_template_version 添加 tenant_id 字段 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604050030-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <dbms type="postgresql"/>
+                <tableExists tableName="ai_workflow_template_version"/>
+                <not>
+                    <columnExists tableName="ai_workflow_template_version" columnName="tenant_id"/>
+                </not>
+            </and>
+        </preConditions>
+        <addColumn tableName="ai_workflow_template_version">
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
+        </addColumn>
+        <createIndex tableName="ai_workflow_template_version" indexName="idx_wf_version_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
     <!-- 【MySQL】AI机器人表扩展字段 -->
     <!-- ========================================== -->
     <changeSet id="lambda-fusion-ai-202604020010-mysql" author="Jin">
@@ -1656,6 +1782,72 @@
         <createIndex tableName="ai_robot" indexName="idx_robot_category">
             <column name="category"/>
         </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【MySQL】修改所有表主键为 varchar(32) -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604050040-mysql" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="mysql"/>
+        </preConditions>
+        <!-- ai_knowledge_base -->
+        <modifyDataType tableName="ai_knowledge_base" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_document -->
+        <modifyDataType tableName="ai_document" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_document_chunk -->
+        <modifyDataType tableName="ai_document_chunk" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_llm_model -->
+        <modifyDataType tableName="ai_llm_model" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_chat_session -->
+        <modifyDataType tableName="ai_chat_session" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_chat_message -->
+        <modifyDataType tableName="ai_chat_message" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_pipeline_definition -->
+        <modifyDataType tableName="ai_pipeline_definition" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_pipeline_execution -->
+        <modifyDataType tableName="ai_pipeline_execution" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_prompt_template -->
+        <modifyDataType tableName="ai_prompt_template" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_agent_workflow -->
+        <modifyDataType tableName="ai_agent_workflow" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_workflow_template -->
+        <modifyDataType tableName="ai_workflow_template" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_workflow_template_version -->
+        <modifyDataType tableName="ai_workflow_template_version" columnName="id" newDataType="varchar(32)"/>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】修改所有表主键为 varchar(32) -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-202604050040-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+        </preConditions>
+        <!-- ai_knowledge_base -->
+        <modifyDataType tableName="ai_knowledge_base" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_document -->
+        <modifyDataType tableName="ai_document" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_document_chunk -->
+        <modifyDataType tableName="ai_document_chunk" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_llm_model -->
+        <modifyDataType tableName="ai_llm_model" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_chat_session -->
+        <modifyDataType tableName="ai_chat_session" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_chat_message -->
+        <modifyDataType tableName="ai_chat_message" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_pipeline_definition -->
+        <modifyDataType tableName="ai_pipeline_definition" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_pipeline_execution -->
+        <modifyDataType tableName="ai_pipeline_execution" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_prompt_template -->
+        <modifyDataType tableName="ai_prompt_template" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_agent_workflow -->
+        <modifyDataType tableName="ai_agent_workflow" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_workflow_template -->
+        <modifyDataType tableName="ai_workflow_template" columnName="id" newDataType="varchar(32)"/>
+        <!-- ai_workflow_template_version -->
+        <modifyDataType tableName="ai_workflow_template_version" columnName="id" newDataType="varchar(32)"/>
     </changeSet>
 
 </databaseChangeLog>

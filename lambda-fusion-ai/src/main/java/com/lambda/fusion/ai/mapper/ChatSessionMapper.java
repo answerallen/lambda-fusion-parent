@@ -14,7 +14,7 @@ public interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {
     /**
      * 按用户ID查询会话列表
      */
-    List<ChatSessionEntity> listByUserId(@Param("userId") Long userId);
+    List<ChatSessionEntity> listByUserId(@Param("userId") String userId);
 
     /**
      * 原子性更新会话统计
@@ -25,7 +25,7 @@ public interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {
             + "updated_at = NOW() "
             + "WHERE id = #{sessionId}")
     int atomicUpdateStatistics(
-            @Param("sessionId") Long sessionId,
+            @Param("sessionId") String sessionId,
             @Param("messageIncrement") int messageIncrement,
             @Param("tokenIncrement") int tokenIncrement,
             @Param("lastMessageAt") LocalDateTime lastMessageAt);
@@ -33,7 +33,7 @@ public interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {
     /**
      * 按ID和版本查询(乐观锁)
      */
-    ChatSessionEntity selectByIdWithVersion(@Param("sessionId") Long sessionId);
+    ChatSessionEntity selectByIdWithVersion(@Param("sessionId") String sessionId);
 
     /**
      * 按ID和版本更新(乐观锁)
@@ -46,7 +46,8 @@ public interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {
     @Update("UPDATE ai_chat_session SET " + "last_message_at = #{lastMessageAt}, "
             + "updated_at = NOW() "
             + "WHERE id = #{sessionId}")
-    int updateLastMessageTime(@Param("sessionId") Long sessionId, @Param("lastMessageAt") LocalDateTime lastMessageAt);
+    int updateLastMessageTime(
+            @Param("sessionId") String sessionId, @Param("lastMessageAt") LocalDateTime lastMessageAt);
 
     /**
      * 按用户ID和状态查询会话

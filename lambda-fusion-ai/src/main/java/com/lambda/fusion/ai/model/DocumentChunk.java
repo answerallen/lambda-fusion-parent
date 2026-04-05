@@ -12,10 +12,16 @@ import lombok.Data;
 public class DocumentChunk {
 
     @Schema(description = "ID")
-    private Long id;
+    private String id;
 
     @Schema(description = "块唯一标识")
     private String chunkId;
+
+    @Schema(description = "所属文档ID")
+    private String documentId;
+
+    @Schema(description = "所属知识库ID")
+    private String kbId;
 
     @Schema(description = "内容")
     private String content;
@@ -26,8 +32,26 @@ public class DocumentChunk {
     @Schema(description = "块序号")
     private Integer chunkIndex;
 
+    @Schema(description = "起始位置")
+    private Integer startOffset;
+
+    @Schema(description = "结束位置")
+    private Integer endOffset;
+
     @Schema(description = "页码")
     private Integer pageNumber;
+
+    @Schema(description = "关联向量ID")
+    private String vectorId;
+
+    @Schema(description = "嵌入状态")
+    private String embeddingStatus;
+
+    @Schema(description = "向量维度")
+    private Integer dimension;
+
+    @Schema(description = "元数据")
+    private String metadata;
 
     @Schema(description = "字符数")
     private Integer charCount;
@@ -35,9 +59,12 @@ public class DocumentChunk {
     @Schema(description = "Token数")
     private Integer tokenCount;
 
-    @Schema(description = "嵌入状态")
-    private String embeddingStatus;
+    @Schema(description = "租户ID")
+    private String tenantId;
 
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;
+
+    @Schema(description = "更新时间")
+    private LocalDateTime updatedAt;
 }

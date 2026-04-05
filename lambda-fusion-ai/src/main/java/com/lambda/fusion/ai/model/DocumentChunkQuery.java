@@ -33,13 +33,13 @@ public class DocumentChunkQuery extends Pagination<DocumentChunkEntity> {
      * 文档ID
      */
     @Schema(description = "文档ID，用于查询指定文档下的文档块")
-    private Long documentId;
+    private String documentId;
 
     /**
      * 知识库ID
      */
     @Schema(description = "知识库ID，用于查询指定知识库下的文档块")
-    private Long kbId;
+    private String kbId;
 
     /**
      * 向量化状态

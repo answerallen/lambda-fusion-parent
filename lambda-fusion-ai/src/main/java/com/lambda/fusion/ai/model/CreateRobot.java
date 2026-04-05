@@ -31,13 +31,13 @@ public class CreateRobot {
     private String systemPrompt;
 
     @Schema(description = "LLM模型ID")
-    private Long llmModelId;
+    private String llmModelId;
 
     @Schema(description = "知识库ID")
-    private Long kbId;
+    private String kbId;
 
     @Schema(description = "工作流ID")
-    private Long workflowId;
+    private String workflowId;
 
     @Schema(description = "开启状态", defaultValue = "true")
     private Boolean enabled = true;

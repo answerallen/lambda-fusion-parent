@@ -16,8 +16,8 @@ import lombok.Data;
 @Schema(description = "AI机器人实体")
 public class RobotEntity {
 
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId(type = IdType.INPUT)
+    private String id;
 
     @Schema(description = "对外暴露的唯一机器人标识")
     private String robotId;
@@ -35,19 +35,19 @@ public class RobotEntity {
     private String category;
 
     @Schema(description = "绑定的LLM模型ID")
-    private Long llmModelId;
+    private String llmModelId;
 
     @Schema(description = "系统设定人设与初始提示词")
     private String systemPrompt;
 
     @Schema(description = "关联的知识库ID")
-    private Long kbId;
+    private String kbId;
 
     @Schema(description = "关联的主体工作流配置ID (如基于多Agent)")
-    private Long workflowId;
+    private String workflowId;
 
     @Schema(description = "租户隔离ID")
-    private Long tenantId;
+    private String tenantId;
 
     @Schema(description = "是否启用")
     private Boolean enabled;

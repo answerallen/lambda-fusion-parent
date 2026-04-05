@@ -32,19 +32,19 @@ public class LlmModelController {
 
     @GetMapping("/{id}")
     @Operation(summary = "查询模型详情")
-    public LlmModel getById(@PathVariable Long id) {
+    public LlmModel getById(@PathVariable String id) {
         return llmModelService.getModelById(id);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "更新模型")
-    public void update(@PathVariable Long id, @Valid @RequestBody RegisterModel dto) {
+    public void update(@PathVariable String id, @Valid @RequestBody RegisterModel dto) {
         llmModelService.updateModel(id, dto);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除模型")
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable String id) {
         llmModelService.deleteModel(id);
     }
 }

@@ -37,7 +37,7 @@ public class WorkflowController {
 
     @GetMapping("/{id}")
     @Operation(summary = "获取工作流图编排详情")
-    public WorkflowEntity getWorkflow(@PathVariable Long id) {
+    public WorkflowEntity getWorkflow(@PathVariable String id) {
         return workflowService.getById(id);
     }
 
@@ -49,13 +49,13 @@ public class WorkflowController {
 
     @PostMapping("/{id}/execute")
     @Operation(summary = "执行工作流")
-    public WorkflowExecutionResult execute(@PathVariable Long id, @RequestBody WorkflowExecutionRequest request) {
+    public WorkflowExecutionResult execute(@PathVariable String id, @RequestBody WorkflowExecutionRequest request) {
         return workflowExecutionService.execute(id, request);
     }
 
     @PostMapping("/{id}/execute/stream")
     @Operation(summary = "流式执行工作流")
-    public SseEmitter executeStream(@PathVariable Long id, @RequestBody WorkflowExecutionRequest request) {
+    public SseEmitter executeStream(@PathVariable String id, @RequestBody WorkflowExecutionRequest request) {
         String clientId = "workflow_" + id + "_" + System.currentTimeMillis();
         SseEmitter emitter = sseEmitterManager.createEmitter(clientId);
 
@@ -89,7 +89,7 @@ public class WorkflowController {
     @GetMapping("/{id}/executions")
     @Operation(summary = "查询工作流执行历史")
     public Page<WorkflowExecutionResult> listExecutions(
-            @PathVariable Long id,
+            @PathVariable String id,
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") int pageNum,
             @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") int pageSize) {
         return workflowExecutionService.listExecutions(id, pageNum, pageSize);

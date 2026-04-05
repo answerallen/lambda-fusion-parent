@@ -182,7 +182,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WorkflowMapper, WorkflowEnt
     }
 
     private void validateModelReference(NodeDefinition node, Map<String, Object> properties) {
-        Long modelId = resolveLong(properties, "llmModelId", "modelId");
+        String modelId = resolveLong(properties, "llmModelId", "modelId");
         if (modelId == null) {
             return;
         }
@@ -197,7 +197,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WorkflowMapper, WorkflowEnt
     }
 
     private void validatePromptTemplateReference(NodeDefinition node, Map<String, Object> properties) {
-        Long promptTemplateId = resolveLong(properties, "promptTemplateId", "systemPromptTemplateId");
+        String promptTemplateId = resolveLong(properties, "promptTemplateId", "systemPromptTemplateId");
         if (promptTemplateId == null) {
             return;
         }
@@ -224,14 +224,14 @@ public class WorkflowServiceImpl extends ServiceImpl<WorkflowMapper, WorkflowEnt
         }
     }
 
-    private Long resolveLong(Map<String, Object> properties, String... keys) {
+    private String resolveLong(Map<String, Object> properties, String... keys) {
         Object value = firstNonNull(properties, keys);
         if (value instanceof Number number) {
-            return number.longValue();
+            return number.toString();
         }
         if (value instanceof String text && StringUtils.hasText(text)) {
             try {
-                return Long.parseLong(text.trim());
+                return text;
             } catch (NumberFormatException e) {
                 throw new AiBusinessException(AiErrorCode.WORKFLOW_CONFIG_INVALID, "节点配置中的ID格式非法: " + text);
             }

@@ -11,7 +11,7 @@ import lombok.Data;
 public class VectorSearchResult {
 
     @Schema(description = "主键ID")
-    private Long id;
+    private String id;
 
     @Schema(description = "向量ID")
     private String vectorId;

@@ -58,7 +58,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ChatHistory sendMessage(Long sessionId, SendMessage dto) {
+    public ChatHistory sendMessage(String sessionId, SendMessage dto) {
         ChatSessionEntity session = getSessionOrThrow(sessionId);
         validateSessionActive(session);
 
@@ -79,7 +79,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         return ConvertUtils.convert(aiMsg);
     }
 
-    private @NonNull ChatMessageEntity getChatMessageEntity(Long sessionId, SendMessage dto) {
+    private @NonNull ChatMessageEntity getChatMessageEntity(String sessionId, SendMessage dto) {
         ChatMessageEntity userMsg = new ChatMessageEntity();
         userMsg.setMessageId(IdUtil.fastSimpleUUID());
         userMsg.setSessionId(sessionId);
@@ -90,7 +90,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     }
 
     @Override
-    public void sendMessageStream(Long sessionId, SendMessage dto) {
+    public void sendMessageStream(String sessionId, SendMessage dto) {
         ChatSessionEntity session = getSessionOrThrow(sessionId);
         validateSessionActive(session);
 
@@ -263,7 +263,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         return request;
     }
 
-    private ChatMessageEntity createAssistantMessageEntity(Long sessionId, String content, boolean ragEnhanced) {
+    private ChatMessageEntity createAssistantMessageEntity(String sessionId, String content, boolean ragEnhanced) {
         ChatMessageEntity aiMsg = new ChatMessageEntity();
         aiMsg.setMessageId(IdUtil.fastSimpleUUID());
         aiMsg.setSessionId(sessionId);
@@ -274,7 +274,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     }
 
     @Override
-    public List<ChatHistory> listMessages(Long sessionId, Integer limit) {
+    public List<ChatHistory> listMessages(String sessionId, Integer limit) {
         getSessionOrThrow(sessionId);
         return chatMessageMapper.listBySessionId(sessionId, limit).stream()
                 .map(this::entityToVO)
@@ -282,7 +282,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     }
 
     @Override
-    public void submitFeedback(Long sessionId, String messageId, Integer feedback) {
+    public void submitFeedback(String sessionId, String messageId, Integer feedback) {
         if (sessionId == null) {
             throw new AiBusinessException(AiErrorCode.SESSION_NOT_FOUND, "会话ID不能为空");
         }
@@ -304,7 +304,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         return ConvertUtils.convert(entity);
     }
 
-    private ChatSessionEntity getSessionOrThrow(Long sessionId) {
+    private ChatSessionEntity getSessionOrThrow(String sessionId) {
         if (sessionId == null) {
             throw new AiBusinessException(AiErrorCode.SESSION_NOT_FOUND, "会话ID不能为空");
         }
@@ -315,7 +315,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         return session;
     }
 
-    private void persistStreamMessages(Long sessionId, ChatMessageEntity userMsg, ChatMessageEntity aiMsg) {
+    private void persistStreamMessages(String sessionId, ChatMessageEntity userMsg, ChatMessageEntity aiMsg) {
         transactionTemplate.executeWithoutResult(status -> {
             chatMessageMapper.insert(userMsg);
             chatMessageMapper.insert(aiMsg);
@@ -332,7 +332,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         }
     }
 
-    private List<ChatMessage> buildChatHistory(Long sessionId, String excludeMessageId) {
+    private List<ChatMessage> buildChatHistory(String sessionId, String excludeMessageId) {
         List<ChatMessageEntity> recentMessages = chatMessageMapper.listBySessionId(sessionId, 11);
         List<ChatMessage> history = new java.util.ArrayList<>();
         if (recentMessages != null) {

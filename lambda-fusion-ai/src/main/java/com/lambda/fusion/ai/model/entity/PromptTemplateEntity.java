@@ -16,8 +16,8 @@ import lombok.Data;
 @Schema(description = "提示词模板实体")
 public class PromptTemplateEntity {
 
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId(type = IdType.INPUT)
+    private String id;
 
     private String templateId;
     private String name;
@@ -31,12 +31,12 @@ public class PromptTemplateEntity {
     private String suggestedModel;
     private BigDecimal suggestedTemperature;
     private Integer suggestedMaxTokens;
-    private Long tenantId;
-    private Long ownerUserId;
+    private String tenantId;
+    private String ownerUserId;
     private Boolean isPublic;
     private Boolean isSystem;
     private Integer version;
-    private Long parentId;
+    private String parentId;
     private Boolean enabled;
     private Long usageCount;
     private BigDecimal avgRating;
@@ -47,6 +47,6 @@ public class PromptTemplateEntity {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 
-    private Long createdBy;
-    private Long updatedBy;
+    private String createdBy;
+    private String updatedBy;
 }

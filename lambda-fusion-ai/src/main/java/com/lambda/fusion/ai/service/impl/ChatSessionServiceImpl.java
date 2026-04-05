@@ -53,14 +53,14 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
     }
 
     @Override
-    public List<ChatSession> listUserSessions(Long userId) {
+    public List<ChatSession> listUserSessions(String userId) {
         return chatSessionMapper.listByUserId(userId).stream()
                 .map(this::entityToVO)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public void archiveSession(Long sessionId) {
+    public void archiveSession(String sessionId) {
         // 验证输入参数
         if (sessionId == null) {
             throw new AiBusinessException(AiErrorCode.SESSION_NOT_FOUND, "会话ID不能为空");

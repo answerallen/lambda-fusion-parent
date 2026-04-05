@@ -19,17 +19,17 @@ public interface WorkflowTemplateService {
     /**
      * 更新模板
      */
-    WorkflowTemplateEntity updateTemplate(Long id, WorkflowTemplateEntity template);
+    WorkflowTemplateEntity updateTemplate(String id, WorkflowTemplateEntity template);
 
     /**
      * 删除模板
      */
-    void deleteTemplate(Long id);
+    void deleteTemplate(String id);
 
     /**
      * 根据ID查询模板
      */
-    WorkflowTemplateEntity getTemplateById(Long id);
+    WorkflowTemplateEntity getTemplateById(String id);
 
     /**
      * 根据模板编码查询
@@ -45,7 +45,7 @@ public interface WorkflowTemplateService {
      * 分页查询模板
      */
     IPage<WorkflowTemplateEntity> listTemplates(
-            Page<WorkflowTemplateEntity> page, Long tenantId, String category, String status, String keyword);
+            Page<WorkflowTemplateEntity> page, String tenantId, String category, String status, String keyword);
 
     /**
      * 查询系统内置模板
@@ -55,37 +55,37 @@ public interface WorkflowTemplateService {
     /**
      * 发布模板
      */
-    WorkflowTemplateEntity publishTemplate(Long id);
+    WorkflowTemplateEntity publishTemplate(String id);
 
     /**
      * 废弃模板
      */
-    WorkflowTemplateEntity deprecateTemplate(Long id);
+    WorkflowTemplateEntity deprecateTemplate(String id);
 
     /**
      * 复制模板
      */
-    WorkflowTemplateEntity copyTemplate(Long id, String newCode, String newName);
+    WorkflowTemplateEntity copyTemplate(String id, String newCode, String newName);
 
     /**
      * 获取模板的所有版本
      */
-    List<WorkflowTemplateVersionEntity> getTemplateVersions(Long templateId);
+    List<WorkflowTemplateVersionEntity> getTemplateVersions(String templateId);
 
     /**
      * 回滚到指定版本
      */
-    WorkflowTemplateEntity rollbackToVersion(Long templateId, String version);
+    WorkflowTemplateEntity rollbackToVersion(String templateId, String version);
 
     /**
      * 导出模板为JSON
      */
-    String exportTemplate(Long id);
+    String exportTemplate(String id);
 
     /**
      * 从JSON导入模板
      */
-    WorkflowTemplateEntity importTemplate(String json, Long tenantId);
+    WorkflowTemplateEntity importTemplate(String json, String tenantId);
 
     /**
      * 验证模板定义是否有效

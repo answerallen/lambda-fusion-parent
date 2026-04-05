@@ -15,7 +15,7 @@ import lombok.Data;
 public class KnowledgeBase {
 
     @Schema(description = "知识库ID")
-    private Long id;
+    private String id;
 
     @Schema(description = "知识库唯一标识")
     private String kbId;
@@ -30,10 +30,10 @@ public class KnowledgeBase {
     private String category;
 
     @Schema(description = "租户ID")
-    private Long tenantId;
+    private String tenantId;
 
     @Schema(description = "创建者ID")
-    private Long ownerUserId;
+    private String ownerUserId;
 
     @Schema(description = "Embedding模型")
     private String embeddingModel;
@@ -81,8 +81,8 @@ public class KnowledgeBase {
     private LocalDateTime updatedAt;
 
     @Schema(description = "创建人ID")
-    private Long createdBy;
+    private String createdBy;
 
     @Schema(description = "更新人ID")
-    private Long updatedBy;
+    private String updatedBy;
 }

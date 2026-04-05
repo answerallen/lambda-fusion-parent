@@ -13,7 +13,7 @@ import lombok.Data;
 @Schema(description = "AI机器人返回信息")
 public class Robot {
 
-    private Long id;
+    private String id;
 
     @Schema(description = "机器人对外标识")
     private String robotId;
@@ -31,19 +31,19 @@ public class Robot {
     private String category;
 
     @Schema(description = "LLM模型ID")
-    private Long llmModelId;
+    private String llmModelId;
 
     @Schema(description = "系统提示词")
     private String systemPrompt;
 
     @Schema(description = "关联知识库ID")
-    private Long kbId;
+    private String kbId;
 
     @Schema(description = "关联工作流ID")
-    private Long workflowId;
+    private String workflowId;
 
     @Schema(description = "所属租户ID")
-    private Long tenantId;
+    private String tenantId;
 
     @Schema(description = "开启状态")
     private Boolean enabled;

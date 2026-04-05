@@ -31,7 +31,7 @@ public interface KnowledgeBaseService extends IService<KnowledgeBaseEntity> {
      * @param id  知识库 ID
      * @param dto 更新知识库 DTO
      */
-    void updateKnowledgeBase(Long id, UpdateKnowledgeBase dto);
+    void updateKnowledgeBase(String id, UpdateKnowledgeBase dto);
 
     /**
      * 根据 ID 查询知识库
@@ -39,14 +39,14 @@ public interface KnowledgeBaseService extends IService<KnowledgeBaseEntity> {
      * @param id 知识库 ID
      * @return 知识库 VO
      */
-    KnowledgeBase getKnowledgeBaseById(Long id);
+    KnowledgeBase getKnowledgeBaseById(String id);
 
     /**
      * 删除知识库(软删除)
      *
      * @param id 知识库 ID
      */
-    void deleteKnowledgeBase(Long id);
+    void deleteKnowledgeBase(String id);
 
     /**
      * 根据租户 ID 查询知识库列表
@@ -55,7 +55,7 @@ public interface KnowledgeBaseService extends IService<KnowledgeBaseEntity> {
      * @param status   状态(可选)
      * @return 知识库列表
      */
-    List<KnowledgeBase> listByTenantId(Long tenantId, String status);
+    List<KnowledgeBase> listByTenantId(String tenantId, String status);
 
     /**
      * 分页查询知识库

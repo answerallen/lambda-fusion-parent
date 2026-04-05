@@ -19,19 +19,19 @@ public class ChatSessionController {
 
     @PostMapping
     @Operation(summary = "创建会话")
-    public ChatSession create(@RequestBody CreateSession dto) {
-        return chatSessionService.createSession(dto);
+    public ChatSession create(@RequestBody CreateSession createSession) {
+        return chatSessionService.createSession(createSession);
     }
 
     @GetMapping
     @Operation(summary = "查询用户会话列表")
-    public List<ChatSession> list(@RequestParam Long userId) {
+    public List<ChatSession> list(@RequestParam String userId) {
         return chatSessionService.listUserSessions(userId);
     }
 
     @PostMapping("/{sessionId}/archive")
     @Operation(summary = "归档会话")
-    public void archive(@PathVariable Long sessionId) {
+    public void archive(@PathVariable String sessionId) {
         chatSessionService.archiveSession(sessionId);
     }
 }

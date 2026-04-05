@@ -35,19 +35,19 @@ public class WorkflowTemplateController {
     @PutMapping("/{id}")
     @Operation(summary = "更新工作流模板")
     public WorkflowTemplateEntity updateTemplate(
-            @PathVariable @NotNull Long id, @RequestBody @Valid WorkflowTemplateEntity template) {
+            @PathVariable @NotNull String id, @RequestBody @Valid WorkflowTemplateEntity template) {
         return workflowTemplateService.updateTemplate(id, template);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除工作流模板")
-    public void deleteTemplate(@PathVariable @NotNull Long id) {
+    public void deleteTemplate(@PathVariable @NotNull String id) {
         workflowTemplateService.deleteTemplate(id);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "获取工作流模板详情")
-    public WorkflowTemplateEntity getTemplate(@PathVariable @NotNull Long id) {
+    public WorkflowTemplateEntity getTemplate(@PathVariable @NotNull String id) {
         return workflowTemplateService.getTemplateById(id);
     }
 
@@ -69,7 +69,7 @@ public class WorkflowTemplateController {
     public IPage<WorkflowTemplateEntity> listTemplates(
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") int pageNum,
             @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") int pageSize,
-            @Parameter(description = "租户ID") @RequestParam(required = false) Long tenantId,
+            @Parameter(description = "租户ID") @RequestParam(required = false) String tenantId,
             @Parameter(description = "分类") @RequestParam(required = false) String category,
             @Parameter(description = "状态") @RequestParam(required = false) String status,
             @Parameter(description = "关键词") @RequestParam(required = false) String keyword) {
@@ -95,20 +95,20 @@ public class WorkflowTemplateController {
 
     @PostMapping("/{id}/publish")
     @Operation(summary = "发布工作流模板")
-    public WorkflowTemplateEntity publishTemplate(@PathVariable @NotNull Long id) {
+    public WorkflowTemplateEntity publishTemplate(@PathVariable @NotNull String id) {
         return workflowTemplateService.publishTemplate(id);
     }
 
     @PostMapping("/{id}/deprecate")
     @Operation(summary = "废弃工作流模板")
-    public WorkflowTemplateEntity deprecateTemplate(@PathVariable @NotNull Long id) {
+    public WorkflowTemplateEntity deprecateTemplate(@PathVariable @NotNull String id) {
         return workflowTemplateService.deprecateTemplate(id);
     }
 
     @PostMapping("/{id}/copy")
     @Operation(summary = "复制工作流模板")
     public WorkflowTemplateEntity copyTemplate(
-            @PathVariable @NotNull Long id, @RequestBody Map<String, String> params) {
+            @PathVariable @NotNull String id, @RequestBody Map<String, String> params) {
         String newCode = params.get("newCode");
         String newName = params.get("newName");
         return workflowTemplateService.copyTemplate(id, newCode, newName);
@@ -116,21 +116,21 @@ public class WorkflowTemplateController {
 
     @GetMapping("/{templateId}/versions")
     @Operation(summary = "获取模板版本历史")
-    public List<WorkflowTemplateVersionEntity> getTemplateVersions(@PathVariable @NotNull Long templateId) {
+    public List<WorkflowTemplateVersionEntity> getTemplateVersions(@PathVariable @NotNull String templateId) {
         return workflowTemplateService.getTemplateVersions(templateId);
     }
 
     @PostMapping("/{templateId}/rollback")
     @Operation(summary = "回滚到指定版本")
     public WorkflowTemplateEntity rollbackToVersion(
-            @PathVariable @NotNull Long templateId, @RequestBody Map<String, String> params) {
+            @PathVariable @NotNull String templateId, @RequestBody Map<String, String> params) {
         String version = params.get("version");
         return workflowTemplateService.rollbackToVersion(templateId, version);
     }
 
     @GetMapping("/{id}/export")
     @Operation(summary = "导出工作流模板")
-    public String exportTemplate(@PathVariable @NotNull Long id) {
+    public String exportTemplate(@PathVariable @NotNull String id) {
         return workflowTemplateService.exportTemplate(id);
     }
 
@@ -138,9 +138,8 @@ public class WorkflowTemplateController {
     @Operation(summary = "导入工作流模板")
     public WorkflowTemplateEntity importTemplate(@RequestBody Map<String, Object> params) {
         String json = (String) params.get("json");
-        Long tenantId = params.get("tenantId") != null
-                ? Long.valueOf(params.get("tenantId").toString())
-                : null;
+        String tenantId =
+                params.get("tenantId") != null ? params.get("tenantId").toString() : null;
         return workflowTemplateService.importTemplate(json, tenantId);
     }
 

@@ -42,14 +42,14 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
             + "AND deleted_at IS NULL "
             + "ORDER BY uploaded_at DESC"
             + "</script>")
-    List<DocumentEntity> listByKbId(@Param("kbId") Long kbId, @Param("status") String status);
+    List<DocumentEntity> listByKbId(@Param("kbId") String kbId, @Param("status") String status);
 
     /**
      * 根据文件哈希查询文档(去重检测)
      */
     @Select(
             "SELECT * FROM ai_document WHERE file_hash = #{fileHash} AND kb_id = #{kbId} AND deleted_at IS NULL LIMIT 1")
-    DocumentEntity selectByFileHash(@Param("fileHash") String fileHash, @Param("kbId") Long kbId);
+    DocumentEntity selectByFileHash(@Param("fileHash") String fileHash, @Param("kbId") String kbId);
 
     /**
      * 根据documentId查询文档
@@ -63,7 +63,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
     @Update("UPDATE ai_document SET process_status = #{processStatus}, process_progress = #{processProgress}, "
             + "error_message = #{errorMessage}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}")
     void updateProcessStatus(
-            @Param("id") Long id,
+            @Param("id") String id,
             @Param("processStatus") String processStatus,
             @Param("processProgress") Integer processProgress,
             @Param("errorMessage") String errorMessage);
@@ -104,7 +104,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @param kbIds 知识库ID列表
      * @return 删除数量
      */
-    int deleteByKbIdBatch(@Param("kbIds") List<Long> kbIds);
+    int deleteByKbIdBatch(@Param("kbIds") List<String> kbIds);
 
     /**
      * 查询待处理文档

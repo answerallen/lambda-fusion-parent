@@ -32,7 +32,7 @@ public class DocumentQuery extends Pagination<DocumentEntity> {
      * 知识库ID
      */
     @Schema(description = "知识库ID，用于查询指定知识库下的文档")
-    private Long kbId;
+    private String kbId;
 
     /**
      * 处理状态

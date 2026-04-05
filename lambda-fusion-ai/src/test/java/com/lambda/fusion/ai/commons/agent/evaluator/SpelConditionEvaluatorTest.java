@@ -37,13 +37,13 @@ class SpelConditionEvaluatorTest {
     @Test
     @DisplayName("测试访问状态属性")
     void testAccessStateProperties() {
-        state.setSessionId(123L);
-        state.setKbId(1L);
-        state.setLlmModelId(2L);
+        state.setSessionId("123");
+        state.setKbId("1");
+        state.setLlmModelId("2");
 
-        assertThat(evaluator.evaluate("#state.sessionId == 123", state)).isTrue();
-        assertThat(evaluator.evaluate("#state.kbId == 1", state)).isTrue();
-        assertThat(evaluator.evaluate("#state.llmModelId == 2", state)).isTrue();
+        assertThat(evaluator.evaluate("#state.sessionId == '123'", state)).isTrue();
+        assertThat(evaluator.evaluate("#state.kbId == '1'", state)).isTrue();
+        assertThat(evaluator.evaluate("#state.llmModelId == '2'", state)).isTrue();
     }
 
     @Test

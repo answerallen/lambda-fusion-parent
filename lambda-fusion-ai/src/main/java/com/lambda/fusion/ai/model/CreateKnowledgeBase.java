@@ -27,15 +27,13 @@ public class CreateKnowledgeBase {
     @Schema(description = "分类(技术文档、FAQ、产品手册等)")
     private String category;
 
-    @NotNull(message = "租户ID不能为空")
-    @Positive(message = "租户ID必须为正整数")
+    @NotBlank(message = "租户ID不能为空")
     @Schema(description = "租户ID")
-    private Long tenantId;
+    private String tenantId;
 
-    @NotNull(message = "创建者ID不能为空")
-    @Positive(message = "创建者ID必须为正整数")
+    @NotBlank(message = "创建者ID不能为空")
     @Schema(description = "创建者ID")
-    private Long ownerUserId;
+    private String ownerUserId;
 
     @NotBlank(message = "Embedding模型不能为空")
     @Size(min = 1, max = 100, message = "Embedding模型名称长度必须在1-100字符之间")

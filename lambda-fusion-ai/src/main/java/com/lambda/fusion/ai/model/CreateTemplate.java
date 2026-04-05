@@ -17,7 +17,7 @@ public class CreateTemplate {
     private String templateContent;
 
     private String variables;
-    private Long tenantId;
-    private Long ownerUserId;
+    private String tenantId;
+    private String ownerUserId;
     private Boolean isPublic;
 }

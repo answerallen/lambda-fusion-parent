@@ -13,7 +13,7 @@ public interface ChatMessageMapper extends BaseMapper<ChatMessageEntity> {
     /**
      * 按会话ID查询消息列表
      */
-    List<ChatMessageEntity> listBySessionId(@Param("sessionId") Long sessionId, @Param("limit") Integer limit);
+    List<ChatMessageEntity> listBySessionId(@Param("sessionId") String sessionId, @Param("limit") Integer limit);
 
     /**
      * 按会话ID和角色查询消息
@@ -23,21 +23,21 @@ public interface ChatMessageMapper extends BaseMapper<ChatMessageEntity> {
      * @return 消息列表
      */
     List<ChatMessageEntity> selectBySessionIdAndRole(
-            @Param("sessionId") Long sessionId, @Param("role") String role, @Param("limit") Integer limit);
+            @Param("sessionId") String sessionId, @Param("role") String role, @Param("limit") Integer limit);
 
     /**
      * 统计会话消息数
      * @param sessionId 会话ID
      * @return 消息数量
      */
-    Integer countBySessionId(@Param("sessionId") Long sessionId);
+    Integer countBySessionId(@Param("sessionId") String sessionId);
 
     /**
      * 删除会话所有消息
      * @param sessionId 会话ID
      * @return 删除数量
      */
-    int deleteBySessionId(@Param("sessionId") Long sessionId);
+    int deleteBySessionId(@Param("sessionId") String sessionId);
 
     /**
      * 批量更新反馈

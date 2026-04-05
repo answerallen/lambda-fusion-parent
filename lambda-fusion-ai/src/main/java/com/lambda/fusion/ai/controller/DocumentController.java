@@ -31,16 +31,16 @@ public class DocumentController {
     @PostMapping
     @Operation(summary = "上传文档", description = "上传文档到指定知识库")
     public Document upload(
-            @Parameter(description = "知识库ID", required = true) @PathVariable Long kbId,
+            @Parameter(description = "知识库ID", required = true) @PathVariable String kbId,
             @Parameter(description = "文件", required = true) @RequestParam("file") MultipartFile file,
-            @Parameter(description = "上传用户ID", required = true) @RequestParam Long uploadedBy) {
+            @Parameter(description = "上传用户ID", required = true) @RequestParam String uploadedBy) {
         return documentService.uploadDocument(kbId, file, uploadedBy);
     }
 
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询文档", description = "分页查询知识库中的文档列表")
     public IPage<Document> page(
-            @Parameter(description = "知识库ID", required = true) @PathVariable Long kbId,
+            @Parameter(description = "知识库ID", required = true) @PathVariable String kbId,
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
             @Valid DocumentQuery documentQuery) {
@@ -57,7 +57,7 @@ public class DocumentController {
     @GetMapping
     @Operation(summary = "查询文档列表", description = "查询知识库中的所有文档")
     public List<Document> list(
-            @Parameter(description = "知识库ID", required = true) @PathVariable Long kbId,
+            @Parameter(description = "知识库ID", required = true) @PathVariable String kbId,
             @Parameter(description = "处理状态") @RequestParam(required = false) String status) {
         return documentService.listByKbId(kbId, status);
     }
@@ -65,24 +65,24 @@ public class DocumentController {
     @GetMapping("/{docId}")
     @Operation(summary = "查询文档详情", description = "根据ID查询文档详细信息")
     public Document getById(
-            @Parameter(description = "知识库ID") @PathVariable Long kbId,
-            @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
+            @Parameter(description = "知识库ID") @PathVariable String kbId,
+            @Parameter(description = "文档ID", required = true) @PathVariable String docId) {
         return documentService.getDocumentById(kbId, docId);
     }
 
     @DeleteMapping("/{docId}")
     @Operation(summary = "删除文档", description = "删除指定文档(含物理文件)")
     public void delete(
-            @Parameter(description = "知识库ID") @PathVariable Long kbId,
-            @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
+            @Parameter(description = "知识库ID") @PathVariable String kbId,
+            @Parameter(description = "文档ID", required = true) @PathVariable String docId) {
         documentService.deleteDocument(kbId, docId);
     }
 
     @GetMapping("/{docId}/status")
     @Operation(summary = "查询处理状态", description = "查询文档处理状态和进度")
     public String getStatus(
-            @Parameter(description = "知识库ID") @PathVariable Long kbId,
-            @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
+            @Parameter(description = "知识库ID") @PathVariable String kbId,
+            @Parameter(description = "文档ID", required = true) @PathVariable String docId) {
         return documentService.getProcessStatus(kbId, docId);
     }
 
@@ -93,8 +93,8 @@ public class DocumentController {
     })
     @Operation(summary = "分页查询文档块", description = "查看文档切分后的块列表")
     public IPage<DocumentChunk> pageChunks(
-            @Parameter(description = "知识库ID") @PathVariable Long kbId,
-            @Parameter(description = "文档ID", required = true) @PathVariable Long docId,
+            @Parameter(description = "知识库ID") @PathVariable String kbId,
+            @Parameter(description = "文档ID", required = true) @PathVariable String docId,
             @PathVariable(required = false) Integer number,
             @PathVariable(required = false) Integer size,
             @Valid DocumentChunkQuery documentChunkQuery) {
@@ -112,8 +112,8 @@ public class DocumentController {
     @PostMapping("/{docId}/reprocess")
     @Operation(summary = "重新处理文档", description = "重新执行文档切分和向量化")
     public void reprocess(
-            @Parameter(description = "知识库ID") @PathVariable Long kbId,
-            @Parameter(description = "文档ID", required = true) @PathVariable Long docId) {
+            @Parameter(description = "知识库ID") @PathVariable String kbId,
+            @Parameter(description = "文档ID", required = true) @PathVariable String docId) {
         documentService.reprocessDocument(kbId, docId);
     }
 }

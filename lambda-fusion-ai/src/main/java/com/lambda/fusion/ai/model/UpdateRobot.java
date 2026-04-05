@@ -2,7 +2,7 @@ package com.lambda.fusion.ai.model;
 
 import com.lambda.cloud.core.annotation.FieldMapping;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.Data;
@@ -14,9 +14,9 @@ import lombok.Data;
 @Schema(description = "更新AI机器人请求体")
 public class UpdateRobot {
 
-    @NotNull(message = "ID不能为空")
-    @Schema(description = "自增主键ID", requiredMode = Schema.RequiredMode.REQUIRED)
-    private Long id;
+    @NotBlank(message = "ID不能为空")
+    @Schema(description = "主键ID", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String id;
 
     @Schema(description = "机器人名称")
     private String name;
@@ -34,13 +34,13 @@ public class UpdateRobot {
     private String systemPrompt;
 
     @Schema(description = "LLM模型ID")
-    private Long llmModelId;
+    private String llmModelId;
 
     @Schema(description = "知识库ID")
-    private Long kbId;
+    private String kbId;
 
     @Schema(description = "工作流ID")
-    private Long workflowId;
+    private String workflowId;
 
     @Schema(description = "开启状态")
     private Boolean enabled;

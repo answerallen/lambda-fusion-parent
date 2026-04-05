@@ -19,11 +19,11 @@ import lombok.Data;
 @Schema(description = "对话消息实体")
 public class ChatMessageEntity {
 
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId(type = IdType.INPUT)
+    private String id;
 
     private String messageId;
-    private Long sessionId;
+    private String sessionId;
     private String role;
     private String content;
     private Boolean isRagEnhanced;
@@ -36,6 +36,9 @@ public class ChatMessageEntity {
     private Integer userFeedback;
     private Integer latencyMs;
     private String metadata;
+
+    @Schema(description = "租户隔离ID")
+    private String tenantId;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

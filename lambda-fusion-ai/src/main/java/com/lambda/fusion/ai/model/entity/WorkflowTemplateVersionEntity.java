@@ -12,13 +12,13 @@ import lombok.Data;
 @TableName("ai_workflow_template_version")
 public class WorkflowTemplateVersionEntity {
 
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId(type = IdType.INPUT)
+    private String id;
 
     /**
      * 关联的模板ID
      */
-    private Long templateId;
+    private String templateId;
 
     /**
      * 版本号
@@ -51,9 +51,14 @@ public class WorkflowTemplateVersionEntity {
     private String variables;
 
     /**
+     * 租户隔离ID
+     */
+    private String tenantId;
+
+    /**
      * 创建此版本的用户
      */
-    private Long createBy;
+    private String createBy;
 
     /**
      * 版本创建时间

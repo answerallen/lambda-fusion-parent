@@ -74,7 +74,7 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
             + "#{docId}"
             + "</foreach>"
             + "</script>")
-    int deleteByDocumentIds(@Param("documentIds") List<Long> documentIds);
+    int deleteByDocumentIds(@Param("documentIds") List<String> documentIds);
 
     /**
      * 检查文档块是否存在 (通过 Hash)

@@ -110,7 +110,7 @@ class AgentGraphTest {
         graph.setEntryPoint("startNode");
 
         AgentState initialState = new AgentState();
-        initialState.setSessionId(1L);
+        initialState.setSessionId("1");
 
         AgentState finalState = graph.invoke(initialState);
 
@@ -134,7 +134,7 @@ class AgentGraphTest {
         graph.setEntryPoint("startNode");
 
         AgentState initialState = new AgentState();
-        initialState.setSessionId(1L);
+        initialState.setSessionId("1");
 
         graph.invoke(initialState);
 

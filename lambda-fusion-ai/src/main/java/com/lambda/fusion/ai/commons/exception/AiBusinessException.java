@@ -66,7 +66,7 @@ public class AiBusinessException extends BusinessException {
      * @param kbId 知识库ID
      * @return AiBusinessException
      */
-    public static AiBusinessException knowledgeBaseNotFound(Long kbId) {
+    public static AiBusinessException knowledgeBaseNotFound(String kbId) {
         return new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, kbId);
     }
 
@@ -76,7 +76,7 @@ public class AiBusinessException extends BusinessException {
      * @param docId 文档ID
      * @return AiBusinessException
      */
-    public static AiBusinessException documentNotFound(Long docId) {
+    public static AiBusinessException documentNotFound(String docId) {
         return new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, docId);
     }
 
@@ -86,7 +86,7 @@ public class AiBusinessException extends BusinessException {
      * @param sessionId 会话ID
      * @return AiBusinessException
      */
-    public static AiBusinessException sessionNotFound(Long sessionId) {
+    public static AiBusinessException sessionNotFound(String sessionId) {
         return new AiBusinessException(AiErrorCode.SESSION_NOT_FOUND, sessionId);
     }
 
@@ -106,7 +106,7 @@ public class AiBusinessException extends BusinessException {
      * @param modelId 模型ID
      * @return AiBusinessException
      */
-    public static AiBusinessException llmModelNotFound(Long modelId) {
+    public static AiBusinessException llmModelNotFound(String modelId) {
         return new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, modelId);
     }
 
@@ -116,7 +116,7 @@ public class AiBusinessException extends BusinessException {
      * @param robotId 机器人ID
      * @return AiBusinessException
      */
-    public static AiBusinessException robotNotFound(Long robotId) {
+    public static AiBusinessException robotNotFound(String robotId) {
         return new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, robotId);
     }
 
@@ -126,7 +126,7 @@ public class AiBusinessException extends BusinessException {
      * @param workflowId 工作流ID
      * @return AiBusinessException
      */
-    public static AiBusinessException workflowNotFound(Long workflowId) {
+    public static AiBusinessException workflowNotFound(String workflowId) {
         return new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, workflowId);
     }
 }

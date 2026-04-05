@@ -44,19 +44,19 @@ public class PromptTemplateController {
 
     @GetMapping("/{id}")
     @Operation(summary = "根据ID查询模板")
-    public PromptTemplate getById(@PathVariable Long id) {
+    public PromptTemplate getById(@PathVariable String id) {
         return promptTemplateService.getTemplateById(id);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "更新模板")
-    public PromptTemplate update(@PathVariable Long id, @Valid @RequestBody UpdateTemplate dto) {
+    public PromptTemplate update(@PathVariable String id, @Valid @RequestBody UpdateTemplate dto) {
         return promptTemplateService.updateTemplate(id, dto);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除模板")
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable String id) {
         promptTemplateService.deleteTemplate(id);
     }
 
@@ -68,7 +68,7 @@ public class PromptTemplateController {
 
     @PostMapping("/{templateId}/render")
     @Operation(summary = "渲染模板")
-    public String render(@PathVariable Long templateId, @RequestBody Map<String, Object> variables) {
+    public String render(@PathVariable String templateId, @RequestBody Map<String, Object> variables) {
         return promptTemplateService.renderTemplate(templateId, variables);
     }
 }

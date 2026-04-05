@@ -12,8 +12,8 @@ import lombok.Data;
 @TableName("ai_workflow_template")
 public class WorkflowTemplateEntity {
 
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId(type = IdType.INPUT)
+    private String id;
 
     /**
      * 模板唯一编码
@@ -98,12 +98,12 @@ public class WorkflowTemplateEntity {
     /**
      * 租户ID
      */
-    private Long tenantId;
+    private String tenantId;
 
     /**
      * 创建人
      */
-    private Long createBy;
+    private String createBy;
 
     /**
      * 创建时间
@@ -114,7 +114,7 @@ public class WorkflowTemplateEntity {
     /**
      * 更新人
      */
-    private Long updateBy;
+    private String updateBy;
 
     /**
      * 更新时间

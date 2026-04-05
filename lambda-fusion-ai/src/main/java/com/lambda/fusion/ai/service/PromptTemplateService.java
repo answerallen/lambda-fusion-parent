@@ -11,13 +11,13 @@ import java.util.Map;
 public interface PromptTemplateService extends IService<PromptTemplateEntity> {
     PromptTemplate createTemplate(CreateTemplate dto);
 
-    PromptTemplate updateTemplate(Long id, UpdateTemplate dto);
+    PromptTemplate updateTemplate(String id, UpdateTemplate dto);
 
-    void deleteTemplate(Long id);
+    void deleteTemplate(String id);
 
-    PromptTemplate getTemplateById(Long id);
+    PromptTemplate getTemplateById(String id);
 
-    String renderTemplate(Long templateId, Map<String, Object> variables);
+    String renderTemplate(String templateId, Map<String, Object> variables);
 
     List<PromptTemplate> listByCategory(String category);
 

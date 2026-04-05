@@ -52,28 +52,28 @@ public class KnowledgeBaseController {
 
     @GetMapping("/{id}")
     @Operation(summary = "查询知识库详情", description = "根据ID查询知识库详细信息")
-    public KnowledgeBase getById(@Parameter(description = "知识库ID", required = true) @PathVariable Long id) {
+    public KnowledgeBase getById(@Parameter(description = "知识库ID", required = true) @PathVariable String id) {
         return knowledgeBaseService.getKnowledgeBaseById(id);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "更新知识库", description = "更新知识库配置信息")
     public void update(
-            @Parameter(description = "知识库ID", required = true) @PathVariable Long id,
+            @Parameter(description = "知识库ID", required = true) @PathVariable String id,
             @Valid @RequestBody UpdateKnowledgeBase dto) {
         knowledgeBaseService.updateKnowledgeBase(id, dto);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除知识库", description = "删除指定的知识库(软删除)")
-    public void delete(@Parameter(description = "知识库ID", required = true) @PathVariable Long id) {
+    public void delete(@Parameter(description = "知识库ID", required = true) @PathVariable String id) {
         knowledgeBaseService.deleteKnowledgeBase(id);
     }
 
     @GetMapping("/list")
     @Operation(summary = "查询知识库列表", description = "根据租户ID查询知识库列表")
     public List<KnowledgeBase> list(
-            @Parameter(description = "租户ID", required = true) @RequestParam Long tenantId,
+            @Parameter(description = "租户ID", required = true) @RequestParam String tenantId,
             @Parameter(description = "状态") @RequestParam(required = false) String status) {
         return knowledgeBaseService.listByTenantId(tenantId, status);
     }

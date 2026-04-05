@@ -165,7 +165,7 @@ public class AiConfigure {
 
             schemaInitializerProvider.ifAvailable(schemaInitializer -> {
                 try {
-                    String tenantId = "vector-store";
+                    String tenantId = "";
                     log.info("Executing schema initialization for tenant: {}", tenantId);
                     schemaInitializer.initializeSchema(tenantId, dataSource);
                     log.info("Vector store schema initialization completed successfully");

@@ -10,23 +10,20 @@ import lombok.Data;
 @Schema(description = "工作流执行记录实体")
 public class PipelineExecutionEntity {
 
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId(type = IdType.INPUT)
+    private String id;
 
     @Schema(description = "执行唯一标识")
     private String executionId;
 
     @Schema(description = "工作流定义ID")
-    private Long pipelineId;
+    private String pipelineId;
 
     @Schema(description = "工作流版本")
     private Integer pipelineVersion;
 
     @Schema(description = "执行用户ID")
-    private Long userId;
-
-    @Schema(description = "租户ID")
-    private Long tenantId;
+    private String userId;
 
     @Schema(description = "输入参数(JSON)")
     private String inputParams;
@@ -60,6 +57,9 @@ public class PipelineExecutionEntity {
 
     @Schema(description = "执行时长(ms)")
     private Integer durationMs;
+
+    @Schema(description = "租户隔离ID")
+    private String tenantId;
 
     @Schema(description = "执行日志(JSON)")
     private String executionLog;

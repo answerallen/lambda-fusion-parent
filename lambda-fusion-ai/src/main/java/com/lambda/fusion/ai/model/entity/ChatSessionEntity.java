@@ -16,24 +16,23 @@ import lombok.Data;
 @Schema(description = "对话会话实体")
 public class ChatSessionEntity {
 
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId(type = IdType.INPUT)
+    private String id;
 
     @Version
     private Long version;
 
     private String sessionId;
     private String title;
-    private Long kbId;
-    private Long userId;
-    private Long tenantId;
-    private Long llmModelId;
+    private String kbId;
+    private String userId;
+    private String llmModelId;
 
     @Schema(description = "关联的机器人ID")
-    private Long robotId;
+    private String robotId;
 
     @Schema(description = "关联的主题工作流配置ID")
-    private Long workflowId;
+    private String workflowId;
 
     private String systemPrompt;
     private BigDecimal temperature;
@@ -42,6 +41,9 @@ public class ChatSessionEntity {
     private Integer totalTokens;
     private BigDecimal totalCost;
     private String status;
+
+    @Schema(description = "租户隔离ID")
+    private String tenantId;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

@@ -32,7 +32,7 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateSessionStatistics(Long sessionId, int messageIncrement, int tokenIncrement) {
+    public void updateSessionStatistics(String sessionId, int messageIncrement, int tokenIncrement) {
         if (sessionId == null) {
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "会话ID不能为空");
         }
@@ -49,7 +49,7 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
     }
 
     @Override
-    public void updateSessionStatisticsOptimistic(Long sessionId, int messageIncrement, int tokenIncrement) {
+    public void updateSessionStatisticsOptimistic(String sessionId, int messageIncrement, int tokenIncrement) {
         if (sessionId == null) {
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "会话ID不能为空");
         }
@@ -104,7 +104,7 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
 
     @Async
     public CompletableFuture<Void> updateSessionStatisticsAsync(
-            Long sessionId, int messageIncrement, int tokenIncrement) {
+            String sessionId, int messageIncrement, int tokenIncrement) {
         return CompletableFuture.runAsync(() -> {
             try {
                 updateSessionStatisticsOptimistic(sessionId, messageIncrement, tokenIncrement);
@@ -116,7 +116,7 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateLastMessageTime(Long sessionId, LocalDateTime lastMessageAt) {
+    public void updateLastMessageTime(String sessionId, LocalDateTime lastMessageAt) {
         if (sessionId == null) {
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "会话ID不能为空");
         }

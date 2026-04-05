@@ -55,7 +55,7 @@ public class RagServiceImpl implements RagService {
     private volatile AgentGraph cachedAgentGraph;
 
     @Override
-    public List<VectorSearchResult> retrieve(String query, Long kbId, Integer topK, Double minScore) {
+    public List<VectorSearchResult> retrieve(String query, String kbId, Integer topK, Double minScore) {
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
             throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库不存在: " + kbId);
@@ -162,7 +162,7 @@ public class RagServiceImpl implements RagService {
     }
 
     @Override
-    public RagResult chat(String query, Long kbId, Long llmModelId, List<ChatMessage> history) {
+    public RagResult chat(String query, String kbId, String llmModelId, List<ChatMessage> history) {
         List<VectorSearchResult> searchResults = retrieve(query, kbId, null, null);
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
@@ -219,9 +219,9 @@ public class RagServiceImpl implements RagService {
     @Override
     public void streamChat(
             String query,
-            Long kbId,
+            String kbId,
             List<VectorSearchResult> retrievedChunks,
-            Long llmModelId,
+            String llmModelId,
             List<ChatMessage> history,
             StreamingChatResponseHandler handler) {
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);

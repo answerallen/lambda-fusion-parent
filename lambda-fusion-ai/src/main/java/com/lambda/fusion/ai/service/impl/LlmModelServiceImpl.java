@@ -48,7 +48,7 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
     }
 
     @Override
-    public void updateModel(Long id, RegisterModel dto) {
+    public void updateModel(String id, RegisterModel dto) {
         // 验证输入参数
         if (id == null) {
             throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
@@ -66,7 +66,7 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
     }
 
     @Override
-    public LlmModel getModelById(Long id) {
+    public LlmModel getModelById(String id) {
         // 验证输入参数
         if (id == null) {
             throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
@@ -86,7 +86,7 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
     }
 
     @Override
-    public void deleteModel(Long id) {
+    public void deleteModel(String id) {
         // 验证输入参数
         if (id == null) {
             throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");

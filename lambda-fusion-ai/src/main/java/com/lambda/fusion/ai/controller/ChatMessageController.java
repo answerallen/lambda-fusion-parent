@@ -23,32 +23,33 @@ public class ChatMessageController {
 
     @PostMapping
     @Operation(summary = "发送消息")
-    public ChatHistory send(@PathVariable Long sessionId, @Valid @RequestBody SendMessage sendMessage) {
+    public ChatHistory send(@PathVariable String sessionId, @Valid @RequestBody SendMessage sendMessage) {
         return chatMessageService.sendMessage(sessionId, sendMessage);
     }
 
     @GetMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式发送消息")
-    public SseEmitter streamSend(@PathVariable Long sessionId) {
+    public SseEmitter streamSend(@PathVariable String sessionId) {
         String clientId = "chat_" + sessionId;
         return sseEmitterManager.createEmitter(clientId);
     }
 
     @PostMapping(value = "/stream")
     @Operation(summary = "发起流式对话")
-    public void startStreamChat(@PathVariable Long sessionId, @Valid @RequestBody SendMessage sendMessage) {
+    public void startStreamChat(@PathVariable String sessionId, @Valid @RequestBody SendMessage sendMessage) {
         chatMessageService.sendMessageStream(sessionId, sendMessage);
     }
 
     @GetMapping
     @Operation(summary = "查询消息列表")
-    public List<ChatHistory> list(@PathVariable Long sessionId, @RequestParam(defaultValue = "50") Integer limit) {
+    public List<ChatHistory> list(@PathVariable String sessionId, @RequestParam(defaultValue = "50") Integer limit) {
         return chatMessageService.listMessages(sessionId, limit);
     }
 
     @PostMapping("/{messageId}/feedback")
     @Operation(summary = "提交反馈")
-    public void feedback(@PathVariable Long sessionId, @PathVariable String messageId, @RequestParam Integer feedback) {
+    public void feedback(
+            @PathVariable String sessionId, @PathVariable String messageId, @RequestParam Integer feedback) {
         chatMessageService.submitFeedback(sessionId, messageId, feedback);
     }
 }

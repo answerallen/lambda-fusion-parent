@@ -26,7 +26,7 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param uploadedBy 上传用户ID
      * @return 文档VO
      */
-    Document uploadDocument(Long kbId, MultipartFile file, Long uploadedBy);
+    Document uploadDocument(String kbId, MultipartFile file, String uploadedBy);
 
     /**
      * 根据知识库ID查询文档列表
@@ -35,7 +35,7 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param status 处理状态(可选)
      * @return 文档列表
      */
-    List<Document> listByKbId(Long kbId, String status);
+    List<Document> listByKbId(String kbId, String status);
 
     /**
      * 根据ID查询文档详情
@@ -43,14 +43,14 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param id 文档ID
      * @return 文档VO
      */
-    Document getDocumentById(Long kbId, Long id);
+    Document getDocumentById(String kbId, String id);
 
     /**
      * 删除文档
      *
      * @param id 文档ID
      */
-    void deleteDocument(Long kbId, Long id);
+    void deleteDocument(String kbId, String id);
 
     /**
      * 查询文档处理状态
@@ -58,7 +58,7 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param id 文档ID
      * @return 处理状态信息
      */
-    String getProcessStatus(Long kbId, Long id);
+    String getProcessStatus(String kbId, String id);
 
     /**
      * 更新处理状态
@@ -68,11 +68,11 @@ public interface DocumentService extends IService<DocumentEntity> {
      * @param progress      处理进度
      * @param errorMessage  错误信息
      */
-    void updateProcessStatus(Long id, String processStatus, Integer progress, String errorMessage);
+    void updateProcessStatus(String id, String processStatus, Integer progress, String errorMessage);
     /**
      * 重新处理文档 (重新切分和向量化)
      */
-    void reprocessDocument(Long docId, Long id);
+    void reprocessDocument(String docId, String id);
 
     /**
      * 分页查询文档列表

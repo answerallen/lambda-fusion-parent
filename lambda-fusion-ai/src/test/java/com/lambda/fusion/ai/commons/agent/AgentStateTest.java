@@ -72,22 +72,22 @@ class AgentStateTest {
     @Test
     @DisplayName("测试设置和获取sessionId")
     void testSetAndGetSessionId() {
-        state.setSessionId(123L);
-        assertThat(state.getSessionId()).isEqualTo(123L);
+        state.setSessionId("123");
+        assertThat(state.getSessionId()).isEqualTo("123");
     }
 
     @Test
     @DisplayName("测试设置和获取kbId")
     void testSetAndGetKbId() {
-        state.setKbId(1L);
-        assertThat(state.getKbId()).isEqualTo(1L);
+        state.setKbId("1");
+        assertThat(state.getKbId()).isEqualTo("1");
     }
 
     @Test
     @DisplayName("测试设置和获取llmModelId")
     void testSetAndGetLlmModelId() {
-        state.setLlmModelId(2L);
-        assertThat(state.getLlmModelId()).isEqualTo(2L);
+        state.setLlmModelId("2");
+        assertThat(state.getLlmModelId()).isEqualTo("2");
     }
 
     @Test

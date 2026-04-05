@@ -14,13 +14,13 @@ import lombok.Data;
 public class Document {
 
     @Schema(description = "文档ID")
-    private Long id;
+    private String id;
 
     @Schema(description = "文档唯一标识")
     private String documentId;
 
     @Schema(description = "所属知识库ID")
-    private Long kbId;
+    private String kbId;
 
     @Schema(description = "文件名")
     private String fileName;
@@ -70,11 +70,14 @@ public class Document {
     @Schema(description = "页数")
     private Integer pageCount;
 
+    @Schema(description = "租户ID")
+    private String tenantId;
+
     @Schema(description = "上传时间")
     private LocalDateTime uploadedAt;
 
     @Schema(description = "上传用户ID")
-    private Long uploadedBy;
+    private String uploadedBy;
 
     @Schema(description = "处理完成时间")
     private LocalDateTime processedAt;

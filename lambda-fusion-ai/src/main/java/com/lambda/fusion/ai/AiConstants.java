@@ -142,19 +142,29 @@ public interface AiConstants {
     enum ModelType {
 
         /**
-         * 聊天模型
+         * 对话模型，支持多轮上下文交互（聊天/问答/补全统一接口）
          */
-        CHAT("聊天模型"),
+        CHAT("对话模型"),
 
         /**
-         * Embedding模型(向量化)
+         * 文本向量化模型，用于语义搜索和RAG检索
          */
         EMBEDDING("Embedding模型"),
 
         /**
-         * 文本补全模型
+         * 视觉模型，支持图像理解和分析
          */
-        COMPLETION("补全模型");
+        VISION("视觉模型"),
+
+        /**
+         * 图像生成模型，根据文本描述生成图像
+         */
+        IMAGE("图像生成模型"),
+
+        /**
+         * 多模态模型，支持文本+图像+音频等多种输入
+         */
+        MULTIMODAL("多模态模型");
 
         private final String description;
     }

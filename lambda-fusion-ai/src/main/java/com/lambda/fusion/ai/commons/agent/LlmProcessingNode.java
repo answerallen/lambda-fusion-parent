@@ -79,7 +79,7 @@ public class LlmProcessingNode implements AgentNode {
         log.info("LlmProcessingNode: 正在推理决策...");
 
         Map<String, Object> nodeProperties = nextState.getCurrentNodeProperties();
-        Long effectiveModelId = resolveModelId(nextState, nodeProperties);
+        String effectiveModelId = resolveModelId(nextState, nodeProperties);
         String systemPrompt = resolveSystemPrompt(nextState, nodeProperties);
         Set<String> allowedTools = resolveToolNames(nodeProperties, "allowedTools", "toolNames", "tools");
 
@@ -103,7 +103,7 @@ public class LlmProcessingNode implements AgentNode {
 
     private ChatResponse executeWithResilience(
             AgentState state,
-            Long modelId,
+            String modelId,
             String systemPrompt,
             List<ToolSpecification> tools,
             StreamingChatResponseHandler handler)
@@ -135,7 +135,7 @@ public class LlmProcessingNode implements AgentNode {
 
     private ChatResponse doLlmCall(
             AgentState state,
-            Long modelId,
+            String modelId,
             String systemPrompt,
             List<ToolSpecification> tools,
             StreamingChatResponseHandler handler)
@@ -223,7 +223,7 @@ public class LlmProcessingNode implements AgentNode {
         if (systemPrompt != null) {
             return systemPrompt;
         }
-        Long promptTemplateId = resolveLong(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
+        String promptTemplateId = resolveLong(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
         if (promptTemplateId == null) {
             return null;
         }
@@ -231,14 +231,14 @@ public class LlmProcessingNode implements AgentNode {
                 promptTemplateId, buildTemplateVariables(nextState, nodeProperties));
     }
 
-    private Long resolveModelId(AgentState nextState, Map<String, Object> nodeProperties) {
+    private String resolveModelId(AgentState nextState, Map<String, Object> nodeProperties) {
         Object configuredModelId = firstNonNull(nodeProperties, "llmModelId", "modelId");
         if (configuredModelId instanceof Number number) {
-            return number.longValue();
+            return number.toString();
         }
         if (configuredModelId instanceof String value && !value.isBlank()) {
             try {
-                return Long.parseLong(value.trim());
+                return value;
             } catch (NumberFormatException e) {
                 log.warn("LlmProcessingNode: 节点 {} 配置了非法模型ID: {}", nextState.getCurrentNodeId(), value);
             }
@@ -246,14 +246,14 @@ public class LlmProcessingNode implements AgentNode {
         return nextState.getLlmModelId();
     }
 
-    private Long resolveLong(Map<String, Object> nodeProperties, String... keys) {
+    private String resolveLong(Map<String, Object> nodeProperties, String... keys) {
         Object configuredValue = firstNonNull(nodeProperties, keys);
         if (configuredValue instanceof Number number) {
-            return number.longValue();
+            return number.toString();
         }
         if (configuredValue instanceof String value && !value.isBlank()) {
             try {
-                return Long.parseLong(value.trim());
+                return value;
             } catch (NumberFormatException e) {
                 return null;
             }

@@ -23,7 +23,7 @@ public interface RagService {
      * @param minScore 最小相似度
      * @return 搜索结果列表
      */
-    List<VectorSearchResult> retrieve(String query, Long kbId, Integer topK, Double minScore);
+    List<VectorSearchResult> retrieve(String query, String kbId, Integer topK, Double minScore);
 
     /**
      * RAG问答
@@ -34,7 +34,8 @@ public interface RagService {
      * @param history    历史对话上下文
      * @return RAG执行结果
      */
-    RagResult chat(String query, Long kbId, Long llmModelId, List<dev.langchain4j.data.message.ChatMessage> history);
+    RagResult chat(
+            String query, String kbId, String llmModelId, List<dev.langchain4j.data.message.ChatMessage> history);
 
     /**
      * 流式对话 (RAG)
@@ -48,9 +49,9 @@ public interface RagService {
      */
     void streamChat(
             String query,
-            Long kbId,
+            String kbId,
             List<VectorSearchResult> retrievedChunks,
-            Long llmModelId,
+            String llmModelId,
             List<ChatMessage> history,
             StreamingChatResponseHandler handler);
 }

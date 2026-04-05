@@ -74,7 +74,7 @@ public class KnowledgeBaseServiceImpl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateKnowledgeBase(Long id, UpdateKnowledgeBase updateKnowledgeBase) {
+    public void updateKnowledgeBase(String id, UpdateKnowledgeBase updateKnowledgeBase) {
         log.info("更新知识库, id: {}", id);
         KnowledgeBaseEntity entity = updateKnowledgeBase.toEntity();
         entity.setId(id);
@@ -83,7 +83,7 @@ public class KnowledgeBaseServiceImpl
     }
 
     @Override
-    public KnowledgeBase getKnowledgeBaseById(Long id) {
+    public KnowledgeBase getKnowledgeBaseById(String id) {
         KnowledgeBase knowledgeBase = getByIdForVO(id);
         if (knowledgeBase == null) {
             throw AiBusinessException.knowledgeBaseNotFound(id);
@@ -94,7 +94,7 @@ public class KnowledgeBaseServiceImpl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteKnowledgeBase(Long id) {
+    public void deleteKnowledgeBase(String id) {
         KnowledgeBaseEntity entity = knowledgeBaseMapper.selectById(id);
         if (entity == null) {
             throw AiBusinessException.knowledgeBaseNotFound(id);
@@ -102,7 +102,7 @@ public class KnowledgeBaseServiceImpl
 
         List<DocumentEntity> documents = documentMapper.listByKbId(id, null);
         if (!documents.isEmpty()) {
-            List<Long> documentIds =
+            List<String> documentIds =
                     documents.stream().map(DocumentEntity::getId).collect(Collectors.toList());
 
             // 删除所有维度分表中的向量数据
@@ -123,7 +123,7 @@ public class KnowledgeBaseServiceImpl
     }
 
     @Override
-    public List<KnowledgeBase> listByTenantId(Long tenantId, String status) {
+    public List<KnowledgeBase> listByTenantId(String tenantId, String status) {
         log.info("查询知识库列表, tenantId: {}, status: {}", tenantId, status);
 
         List<KnowledgeBaseEntity> entities = knowledgeBaseMapper.listByTenantId(tenantId, status);

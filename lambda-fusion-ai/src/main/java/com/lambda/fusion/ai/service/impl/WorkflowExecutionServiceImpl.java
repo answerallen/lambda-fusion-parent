@@ -49,7 +49,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public WorkflowExecutionResult execute(Long workflowId, WorkflowExecutionRequest request) {
+    public WorkflowExecutionResult execute(String workflowId, WorkflowExecutionRequest request) {
         log.info("开始执行工作流, workflowId={}", workflowId);
 
         WorkflowEntity workflow = loadWorkflow(workflowId);
@@ -77,7 +77,8 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     }
 
     @Override
-    public void executeStream(Long workflowId, WorkflowExecutionRequest request, StreamingChatResponseHandler handler) {
+    public void executeStream(
+            String workflowId, WorkflowExecutionRequest request, StreamingChatResponseHandler handler) {
         log.info("开始流式执行工作流, workflowId={}", workflowId);
 
         WorkflowEntity workflow = loadWorkflow(workflowId);
@@ -87,7 +88,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             AgentGraph graph = agentGraphFactory.buildFromDefinition(workflow.getGraphJson());
             AgentState state = prepareInitialState(request, execution);
 
-            Long modelId = request.getLlmModelId();
+            String modelId = request.getLlmModelId();
             if (modelId == null) {
                 modelId = resolveDefaultModelId(workflow);
             }
@@ -128,7 +129,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     }
 
     @Override
-    public Page<WorkflowExecutionResult> listExecutions(Long workflowId, int pageNum, int pageSize) {
+    public Page<WorkflowExecutionResult> listExecutions(String workflowId, int pageNum, int pageSize) {
         Page<PipelineExecutionEntity> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<PipelineExecutionEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(PipelineExecutionEntity::getPipelineId, workflowId)
@@ -143,7 +144,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         return resultPage;
     }
 
-    private WorkflowEntity loadWorkflow(Long workflowId) {
+    private WorkflowEntity loadWorkflow(String workflowId) {
         if (workflowId == null) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, "工作流ID不能为空");
         }
@@ -270,7 +271,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         }
     }
 
-    private Long resolveDefaultModelId(WorkflowEntity workflow) {
+    private String resolveDefaultModelId(WorkflowEntity workflow) {
         if (workflow == null || !StringUtils.hasText(workflow.getGraphJson())) {
             return null;
         }
@@ -282,8 +283,8 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
                 return null;
             }
 
-            Long llmProcessorModelId = null;
-            Long fallbackModelId = null;
+            String llmProcessorModelId = null;
+            String fallbackModelId = null;
 
             for (NodeDefinition node : definition.getNodes()) {
                 if (node == null
@@ -291,7 +292,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
                         || node.getProperties().isEmpty()) {
                     continue;
                 }
-                Long resolvedModelId = resolveModelId(node.getProperties());
+                String resolvedModelId = resolveModelId(node.getProperties());
                 if (resolvedModelId != null) {
                     if ("LLM_PROCESSOR".equals(node.getType()) && llmProcessorModelId == null) {
                         llmProcessorModelId = resolvedModelId;
@@ -303,7 +304,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
                 }
             }
 
-            Long result = llmProcessorModelId != null ? llmProcessorModelId : fallbackModelId;
+            String result = llmProcessorModelId != null ? llmProcessorModelId : fallbackModelId;
             if (result != null) {
                 log.info("工作流 {} 使用默认模型ID: {}", workflow.getId(), result);
             }
@@ -314,19 +315,17 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         }
     }
 
-    private Long resolveModelId(Map<String, Object> properties) {
+    private String resolveModelId(Map<String, Object> properties) {
         Object modelIdValue = properties.get("llmModelId");
         if (modelIdValue == null) {
             modelIdValue = properties.get("modelId");
         }
         if (modelIdValue instanceof Number numberValue) {
-            long modelId = numberValue.longValue();
-            return modelId > 0 ? modelId : null;
+            return numberValue.toString();
         }
         if (modelIdValue instanceof String textValue && StringUtils.hasText(textValue)) {
             try {
-                long modelId = Long.parseLong(textValue.trim());
-                return modelId > 0 ? modelId : null;
+                return textValue;
             } catch (NumberFormatException e) {
                 return null;
             }

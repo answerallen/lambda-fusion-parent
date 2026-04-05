@@ -21,9 +21,9 @@ public class DocumentChunkEntity {
     /**
      * 主键ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.INPUT)
     @Schema(description = "文档块ID")
-    private Long id;
+    private String id;
 
     /**
      * 块唯一标识
@@ -35,13 +35,13 @@ public class DocumentChunkEntity {
      * 所属文档ID
      */
     @Schema(description = "所属文档ID")
-    private Long documentId;
+    private String documentId;
 
     /**
      * 所属知识库ID
      */
     @Schema(description = "所属知识库ID")
-    private Long kbId;
+    private String kbId;
 
     /**
      * 文本内容
@@ -124,6 +124,12 @@ public class DocumentChunkEntity {
     private Integer tokenCount;
 
     // ==================== 审计字段 ====================
+
+    /**
+     * 租户隔离ID
+     */
+    @Schema(description = "租户隔离ID")
+    private String tenantId;
 
     /**
      * 创建时间

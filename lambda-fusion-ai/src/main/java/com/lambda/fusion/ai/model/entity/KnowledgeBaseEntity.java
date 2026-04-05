@@ -22,9 +22,9 @@ public class KnowledgeBaseEntity {
     /**
      * 主键ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.INPUT)
     @Schema(description = "知识库ID")
-    private Long id;
+    private String id;
 
     /**
      * 知识库唯一标识
@@ -56,13 +56,13 @@ public class KnowledgeBaseEntity {
      * 租户ID
      */
     @Schema(description = "租户ID")
-    private Long tenantId;
+    private String tenantId;
 
     /**
      * 创建者用户ID
      */
     @Schema(description = "创建者用户ID")
-    private Long ownerUserId;
+    private String ownerUserId;
 
     // ==================== 向量配置 ====================
 
@@ -172,13 +172,13 @@ public class KnowledgeBaseEntity {
      * 创建人ID
      */
     @Schema(description = "创建人ID")
-    private Long createdBy;
+    private String createdBy;
 
     /**
      * 更新人ID
      */
     @Schema(description = "更新人ID")
-    private Long updatedBy;
+    private String updatedBy;
 
     /**
      * 删除时间(软删除)

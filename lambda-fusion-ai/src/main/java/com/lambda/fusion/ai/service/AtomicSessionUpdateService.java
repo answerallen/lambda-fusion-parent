@@ -19,7 +19,7 @@ public interface AtomicSessionUpdateService {
      * @param messageIncrement 要添加的消息数量（通常为2，用户+AI消息）
      * @param tokenIncrement 要添加的token数量
      */
-    void updateSessionStatistics(Long sessionId, int messageIncrement, int tokenIncrement);
+    void updateSessionStatistics(String sessionId, int messageIncrement, int tokenIncrement);
 
     /**
      * 使用乐观锁方式原子性更新会话统计
@@ -29,7 +29,7 @@ public interface AtomicSessionUpdateService {
      * @param messageIncrement 要添加的消息数量
      * @param tokenIncrement 要添加的token数量
      */
-    void updateSessionStatisticsOptimistic(Long sessionId, int messageIncrement, int tokenIncrement);
+    void updateSessionStatisticsOptimistic(String sessionId, int messageIncrement, int tokenIncrement);
 
     /**
      * 仅原子性更新最后消息时间戳
@@ -38,5 +38,5 @@ public interface AtomicSessionUpdateService {
      * @param sessionId 要更新的会话ID
      * @param lastMessageAt 最后消息的时间戳
      */
-    void updateLastMessageTime(Long sessionId, LocalDateTime lastMessageAt);
+    void updateLastMessageTime(String sessionId, LocalDateTime lastMessageAt);
 }

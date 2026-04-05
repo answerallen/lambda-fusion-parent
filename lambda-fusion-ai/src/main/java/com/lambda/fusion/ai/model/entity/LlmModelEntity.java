@@ -16,9 +16,9 @@ import lombok.Data;
 @Schema(description = "LLM模型实体")
 public class LlmModelEntity {
 
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.INPUT)
     @Schema(description = "模型ID")
-    private Long id;
+    private String id;
 
     @Schema(description = "模型唯一标识")
     private String modelId;
@@ -98,8 +98,8 @@ public class LlmModelEntity {
     private LocalDateTime updatedAt;
 
     @Schema(description = "创建人ID")
-    private Long createdBy;
+    private String createdBy;
 
     @Schema(description = "更新人ID")
-    private Long updatedBy;
+    private String updatedBy;
 }

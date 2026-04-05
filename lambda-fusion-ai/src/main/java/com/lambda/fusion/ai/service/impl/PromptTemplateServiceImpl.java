@@ -43,7 +43,7 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
     }
 
     @Override
-    public String renderTemplate(Long templateId, Map<String, Object> variables) {
+    public String renderTemplate(String templateId, Map<String, Object> variables) {
         // 验证输入参数
         if (templateId == null) {
             throw new AiBusinessException(AiErrorCode.PROMPT_TEMPLATE_NOT_FOUND, "模板ID不能为空");
@@ -106,7 +106,7 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public PromptTemplate updateTemplate(Long id, UpdateTemplate dto) {
+    public PromptTemplate updateTemplate(String id, UpdateTemplate dto) {
         // 查询现有模板
         PromptTemplateEntity entity = promptTemplateMapper.selectById(id);
         if (entity == null) {
@@ -144,7 +144,7 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteTemplate(Long id) {
+    public void deleteTemplate(String id) {
         // 查询现有模板
         PromptTemplateEntity entity = promptTemplateMapper.selectById(id);
         if (entity == null) {
@@ -160,7 +160,7 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
     }
 
     @Override
-    public PromptTemplate getTemplateById(Long id) {
+    public PromptTemplate getTemplateById(String id) {
         PromptTemplateEntity entity = promptTemplateMapper.selectById(id);
         if (entity == null) {
             throw new AiBusinessException(AiErrorCode.PROMPT_TEMPLATE_NOT_FOUND, id);

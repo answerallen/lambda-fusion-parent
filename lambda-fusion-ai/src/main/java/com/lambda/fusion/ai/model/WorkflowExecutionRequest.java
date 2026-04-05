@@ -11,19 +11,19 @@ import lombok.Data;
 public class WorkflowExecutionRequest {
 
     @Schema(description = "用户ID")
-    private Long userId;
+    private String userId;
 
     @Schema(description = "租户ID")
-    private Long tenantId;
+    private String tenantId;
 
     @Schema(description = "会话ID")
-    private Long sessionId;
+    private String sessionId;
 
     @Schema(description = "知识库ID")
-    private Long kbId;
+    private String kbId;
 
     @Schema(description = "LLM模型ID")
-    private Long llmModelId;
+    private String llmModelId;
 
     @Schema(description = "初始消息列表")
     private List<ChatMessage> messages;

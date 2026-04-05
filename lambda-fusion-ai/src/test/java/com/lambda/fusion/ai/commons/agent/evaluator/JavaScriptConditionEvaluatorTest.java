@@ -204,9 +204,9 @@ class JavaScriptConditionEvaluatorTest {
     @Test
     @DisplayName("测试state绑定")
     void testStateBinding() {
-        state.setSessionId(123L);
+        state.setSessionId("123");
 
-        assertThat(evaluator.evaluate("state.getSessionId() == 123", state)).isTrue();
+        assertThat(evaluator.evaluate("state.getSessionId() == '123'", state)).isTrue();
     }
 
     @Test

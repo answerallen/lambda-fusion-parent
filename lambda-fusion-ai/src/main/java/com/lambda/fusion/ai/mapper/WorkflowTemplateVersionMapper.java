@@ -19,7 +19,7 @@ public interface WorkflowTemplateVersionMapper extends BaseMapper<WorkflowTempla
      */
     @Select(
             "SELECT * FROM ai_workflow_template_version WHERE template_id = #{templateId} AND deleted = 0 ORDER BY create_time DESC")
-    List<WorkflowTemplateVersionEntity> selectByTemplateId(@Param("templateId") Long templateId);
+    List<WorkflowTemplateVersionEntity> selectByTemplateId(@Param("templateId") String templateId);
 
     /**
      * 查询指定版本的模板
@@ -27,7 +27,7 @@ public interface WorkflowTemplateVersionMapper extends BaseMapper<WorkflowTempla
     @Select(
             "SELECT * FROM ai_workflow_template_version WHERE template_id = #{templateId} AND version = #{version} AND deleted = 0")
     WorkflowTemplateVersionEntity selectByTemplateIdAndVersion(
-            @Param("templateId") Long templateId, @Param("version") String version);
+            @Param("templateId") String templateId, @Param("version") String version);
 
     /**
      * 获取模板的最新版本号
@@ -46,5 +46,5 @@ public interface WorkflowTemplateVersionMapper extends BaseMapper<WorkflowTempla
      * 删除指定模板的所有版本历史
      */
     @Update("UPDATE ai_workflow_template_version SET deleted = 1 WHERE template_id = #{templateId}")
-    void deleteByTemplateId(@Param("templateId") Long templateId);
+    void deleteByTemplateId(@Param("templateId") String templateId);
 }

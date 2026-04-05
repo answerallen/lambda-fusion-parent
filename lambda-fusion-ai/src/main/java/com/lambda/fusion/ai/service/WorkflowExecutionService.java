@@ -7,11 +7,11 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 
 public interface WorkflowExecutionService {
 
-    WorkflowExecutionResult execute(Long workflowId, WorkflowExecutionRequest request);
+    WorkflowExecutionResult execute(String workflowId, WorkflowExecutionRequest request);
 
-    void executeStream(Long workflowId, WorkflowExecutionRequest request, StreamingChatResponseHandler handler);
+    void executeStream(String workflowId, WorkflowExecutionRequest request, StreamingChatResponseHandler handler);
 
     WorkflowExecutionResult getExecutionResult(String executionId);
 
-    Page<WorkflowExecutionResult> listExecutions(Long workflowId, int pageNum, int pageSize);
+    Page<WorkflowExecutionResult> listExecutions(String workflowId, int pageNum, int pageSize);
 }

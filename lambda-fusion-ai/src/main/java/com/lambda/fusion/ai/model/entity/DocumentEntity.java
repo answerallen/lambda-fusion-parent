@@ -18,15 +18,15 @@ public class DocumentEntity {
     /**
      * 主键ID
      */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.INPUT)
     @Schema(description = "文档ID")
-    private Long id;
+    private String id;
 
     /**
      * 所属知识库ID
      */
     @Schema(description = "所属知识库ID")
-    private Long kbId;
+    private String kbId;
 
     /**
      * 文档唯一标识
@@ -141,6 +141,12 @@ public class DocumentEntity {
     // ==================== 审计字段 ====================
 
     /**
+     * 租户隔离ID
+     */
+    @Schema(description = "租户隔离ID")
+    private String tenantId;
+
+    /**
      * 上传时间
      */
     @TableField(fill = FieldFill.INSERT)
@@ -151,7 +157,7 @@ public class DocumentEntity {
      * 上传用户ID
      */
     @Schema(description = "上传用户ID")
-    private Long uploadedBy;
+    private String uploadedBy;
 
     /**
      * 处理完成时间

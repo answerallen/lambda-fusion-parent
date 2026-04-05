@@ -57,7 +57,7 @@ public class RobotServiceImpl extends ServiceImpl<RobotMapper, RobotEntity> impl
     }
 
     @Override
-    public Robot getRobotById(Long id) {
+    public Robot getRobotById(String id) {
         if (id == null) {
             throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "机器人ID不能为空");
         }
@@ -78,7 +78,7 @@ public class RobotServiceImpl extends ServiceImpl<RobotMapper, RobotEntity> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteRobot(Long id) {
+    public void deleteRobot(String id) {
         if (id == null) {
             throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "机器人ID不能为空");
         }

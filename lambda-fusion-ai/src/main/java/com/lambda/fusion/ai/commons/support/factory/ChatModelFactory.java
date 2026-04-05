@@ -43,12 +43,12 @@ public class ChatModelFactory {
     }
 
     // 缓存模型实例，避免频繁创建连接
-    private final Cache<Long, ChatModel> chatModelCache = Caffeine.newBuilder()
+    private final Cache<String, ChatModel> chatModelCache = Caffeine.newBuilder()
             .expireAfterWrite(1, TimeUnit.HOURS)
             .maximumSize(100)
             .build();
 
-    private final Cache<Long, StreamingChatModel> streamingChatModelCache = Caffeine.newBuilder()
+    private final Cache<String, StreamingChatModel> streamingChatModelCache = Caffeine.newBuilder()
             .expireAfterWrite(1, TimeUnit.HOURS)
             .maximumSize(100)
             .build();
@@ -56,7 +56,7 @@ public class ChatModelFactory {
     /**
      * 获取非流式对话模型
      */
-    public ChatModel getChatModel(Long modelId) {
+    public ChatModel getChatModel(String modelId) {
         if (modelId == null) {
             return getDefaultChatModel();
         }
@@ -66,14 +66,14 @@ public class ChatModelFactory {
     /**
      * 获取流式对话模型
      */
-    public StreamingChatModel getStreamingChatModel(Long modelId) {
+    public StreamingChatModel getStreamingChatModel(String modelId) {
         if (modelId == null) {
             return getDefaultStreamingChatModel();
         }
         return streamingChatModelCache.get(modelId, this::createStreamingChatModel);
     }
 
-    public void invalidateModelCache(Long modelId) {
+    public void invalidateModelCache(String modelId) {
         if (modelId == null) {
             return;
         }
@@ -82,7 +82,7 @@ public class ChatModelFactory {
         log.info("已清理LLM模型缓存，模型ID: {}", modelId);
     }
 
-    private ChatModel createChatModel(Long modelId) {
+    private ChatModel createChatModel(String modelId) {
         LlmModelEntity entity = llmModelService.getById(modelId);
         if (entity == null) {
             throw new RuntimeException("未找到LLM模型配置: " + modelId);
@@ -90,7 +90,7 @@ public class ChatModelFactory {
         return buildChatModel(entity);
     }
 
-    private StreamingChatModel createStreamingChatModel(Long modelId) {
+    private StreamingChatModel createStreamingChatModel(String modelId) {
         LlmModelEntity entity = llmModelService.getById(modelId);
         if (entity == null) {
             throw new RuntimeException("未找到LLM模型配置: " + modelId);

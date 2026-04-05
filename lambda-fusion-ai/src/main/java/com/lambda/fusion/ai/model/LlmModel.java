@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 @Schema(description = "LLM模型VO")
 public class LlmModel {
-    private Long id;
+    private String id;
     private String modelId;
     private String name;
     private String displayName;
@@ -16,9 +16,17 @@ public class LlmModel {
     private String provider;
     private String baseUrl;
     private String apiKeyEncrypted;
+    private String apiVersion;
+    private String deploymentName;
     private String modelName;
     private BigDecimal defaultTemperature;
     private Integer defaultMaxTokens;
+    private BigDecimal defaultTopP;
+    private Integer contextWindow;
+    private String rateLimitConfig;
+    private BigDecimal inputTokenPrice;
+    private BigDecimal outputTokenPrice;
+    private String capabilities;
     private Boolean enabled;
     private Boolean isDefault;
     private Long totalCalls;
@@ -26,4 +34,6 @@ public class LlmModel {
     private BigDecimal totalCost;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String createdBy;
+    private String updatedBy;
 }

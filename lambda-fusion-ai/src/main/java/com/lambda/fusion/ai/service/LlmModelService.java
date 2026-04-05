@@ -9,11 +9,11 @@ import java.util.List;
 public interface LlmModelService extends IService<LlmModelEntity> {
     LlmModel registerModel(RegisterModel dto);
 
-    void updateModel(Long id, RegisterModel dto);
+    void updateModel(String id, RegisterModel dto);
 
-    LlmModel getModelById(Long id);
+    LlmModel getModelById(String id);
 
     List<LlmModel> listAll();
 
-    void deleteModel(Long id);
+    void deleteModel(String id);
 }
