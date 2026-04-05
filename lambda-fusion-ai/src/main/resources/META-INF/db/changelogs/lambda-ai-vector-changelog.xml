@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- ========================================== -->
+    <!-- PostgresSQL扩展创建 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-2026020300011" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+        </preConditions>
+        <sql>
+            CREATE EXTENSION IF NOT EXISTS vector;
+            CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+            CREATE EXTENSION IF NOT EXISTS pg_trgm;
+        </sql>
+        <rollback>
+            DROP EXTENSION IF EXISTS pg_trgm;
+            DROP EXTENSION IF EXISTS "uuid-ossp";
+            DROP EXTENSION IF EXISTS vector;
+        </rollback>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 向量子表动态创建存储过程 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-20260205001001" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+        </preConditions>
+        <createProcedure>
+            CREATE OR REPLACE FUNCTION create_vector_table(dimension INTEGER)
+            RETURNS TEXT AS $$
+            DECLARE
+                v_table_name TEXT;
+            BEGIN
+                v_table_name := 'ai_vector_store_' || dimension::TEXT;
+                IF EXISTS (SELECT 1 FROM information_schema.tables t WHERE t.table_name = v_table_name) THEN
+                    RETURN v_table_name || ' already exists';
+                END IF;
+                
+                -- For dimensions &lt;= 2000: use vector type with ivfflat index
+                -- For dimensions &lt;= 4000: use halfvec type with hnsw index (pgvector 0.7+)
+                -- For dimensions &gt; 4000: use vector type without index
+                IF dimension &lt;= 2000 THEN
+                    EXECUTE format('
+                        CREATE TABLE %I (
+                            id BIGSERIAL PRIMARY KEY,
+                            vector_id VARCHAR(100) UNIQUE NOT NULL,
+                            kb_id BIGINT NOT NULL,
+                            document_id BIGINT,
+                            chunk_id BIGINT,
+                            collection_name VARCHAR(100) NOT NULL,
+                            embedding vector(%s) NOT NULL,
+                            content TEXT NOT NULL,
+                            metadata JSONB,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (kb_id) REFERENCES ai_knowledge_base(id) ON DELETE CASCADE,
+                            FOREIGN KEY (document_id) REFERENCES ai_document(id) ON DELETE CASCADE,
+                            FOREIGN KEY (chunk_id) REFERENCES ai_document_chunk(id) ON DELETE CASCADE
+                        );
+                        CREATE INDEX idx_%I_kb_id ON %I (kb_id);
+                        CREATE INDEX idx_%I_embedding ON %I USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+                        CREATE INDEX idx_%I_content_trgm ON %I USING gist (content gist_trgm_ops);
+                    ', v_table_name, dimension, v_table_name, v_table_name, v_table_name, v_table_name, v_table_name, v_table_name);
+                ELSIF dimension &lt;= 4000 THEN
+                    EXECUTE format('
+                        CREATE TABLE %I (
+                            id BIGSERIAL PRIMARY KEY,
+                            vector_id VARCHAR(100) UNIQUE NOT NULL,
+                            kb_id BIGINT NOT NULL,
+                            document_id BIGINT,
+                            chunk_id BIGINT,
+                            collection_name VARCHAR(100) NOT NULL,
+                            embedding halfvec(%s) NOT NULL,
+                            content TEXT NOT NULL,
+                            metadata JSONB,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (kb_id) REFERENCES ai_knowledge_base(id) ON DELETE CASCADE,
+                            FOREIGN KEY (document_id) REFERENCES ai_document(id) ON DELETE CASCADE,
+                            FOREIGN KEY (chunk_id) REFERENCES ai_document_chunk(id) ON DELETE CASCADE
+                        );
+                        CREATE INDEX idx_%I_kb_id ON %I (kb_id);
+                        CREATE INDEX idx_%I_embedding ON %I USING hnsw (embedding halfvec_cosine_ops);
+                        CREATE INDEX idx_%I_content_trgm ON %I USING gist (content gist_trgm_ops);
+                    ', v_table_name, dimension, v_table_name, v_table_name, v_table_name, v_table_name, v_table_name, v_table_name);
+                ELSE
+                    -- High dimensions without index (sequential scan)
+                    EXECUTE format('
+                        CREATE TABLE %I (
+                            id BIGSERIAL PRIMARY KEY,
+                            vector_id VARCHAR(100) UNIQUE NOT NULL,
+                            kb_id BIGINT NOT NULL,
+                            document_id BIGINT,
+                            chunk_id BIGINT,
+                            collection_name VARCHAR(100) NOT NULL,
+                            embedding vector(%s) NOT NULL,
+                            content TEXT NOT NULL,
+                            metadata JSONB,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (kb_id) REFERENCES ai_knowledge_base(id) ON DELETE CASCADE,
+                            FOREIGN KEY (document_id) REFERENCES ai_document(id) ON DELETE CASCADE,
+                            FOREIGN KEY (chunk_id) REFERENCES ai_document_chunk(id) ON DELETE CASCADE
+                        );
+                        CREATE INDEX idx_%I_kb_id ON %I (kb_id);
+                        CREATE INDEX idx_%I_content_trgm ON %I USING gist (content gist_trgm_ops);
+                    ', v_table_name, dimension, v_table_name, v_table_name, v_table_name, v_table_name);
+                END IF;
+                RETURN v_table_name || ' created successfully';
+            END;
+            $$ LANGUAGE plpgsql;
+        </createProcedure>
+        <sql>
+            SELECT create_vector_table(768);
+            SELECT create_vector_table(1536);
+            SELECT create_vector_table(2048);
+            SELECT create_vector_table(4096);
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

@@ -37,7 +37,6 @@ class AgentGraphTest {
     void testAddNodeWithoutProperties() {
         graph.addNode("node1", mockNode1);
 
-        
         assertThat(graph).isNotNull();
     }
 
@@ -49,7 +48,6 @@ class AgentGraphTest {
 
         graph.addNode("node1", mockNode1, properties);
 
-        
         assertThat(graph).isNotNull();
     }
 

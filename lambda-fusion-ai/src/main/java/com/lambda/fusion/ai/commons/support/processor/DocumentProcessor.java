@@ -11,6 +11,7 @@ import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.commons.support.batch.BatchInsertUtils;
+import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.commons.support.vector.VectorDimensionService;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
@@ -60,7 +61,7 @@ public class DocumentProcessor {
     private final DocumentChunkMapper documentChunkMapper;
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final VectorRepository vectorRepository;
-    private final EmbeddingModel embeddingModel;
+    private final EmbeddingModelManager embeddingModelManager;
     private final AiProperties aiProperties;
     private final TransactionTemplate transactionTemplate;
     private final VectorDimensionService vectorDimensionService;
@@ -113,7 +114,11 @@ public class DocumentProcessor {
             List<TextSegment> segments = splitter.split(Document.from(content));
             updateStatus(doc, DocumentStatus.PROCESSING, 40, "文档切分完成: " + segments.size() + "块");
 
-            // 5. 批量处理向量和分片
+            // 5. 获取知识库配置的 EmbeddingModel
+            EmbeddingModel embeddingModel = embeddingModelManager.getModelByKnowledgeBase(kb.getEmbeddingModel());
+            log.info("使用 EmbeddingModel: {} 处理文档", kb.getEmbeddingModel());
+
+            // 6. 批量处理向量和分片
             List<DocumentChunkEntity> chunkEntities = new ArrayList<>();
             int totalChunks = segments.size();
 

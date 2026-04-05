@@ -7,6 +7,7 @@ import com.lambda.fusion.ai.commons.agent.LlmProcessingNode;
 import com.lambda.fusion.ai.commons.agent.ToolExecutingNode;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
+import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.commons.support.vector.VectorDimensionService;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
@@ -45,7 +46,7 @@ public class RagServiceImpl implements RagService {
     private final VectorRepository vectorRepository;
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final PromptTemplateMapper promptTemplateMapper;
-    private final EmbeddingModel embeddingModel;
+    private final EmbeddingModelManager embeddingModelManager;
     private final VectorDimensionService vectorDimensionService;
 
     private final LlmProcessingNode llmProcessingNode;
@@ -59,6 +60,10 @@ public class RagServiceImpl implements RagService {
         if (kb == null) {
             throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库不存在: " + kbId);
         }
+
+        // 获取知识库配置的 EmbeddingModel
+        EmbeddingModel embeddingModel = embeddingModelManager.getModelByKnowledgeBase(kb.getEmbeddingModel());
+        log.debug("使用 EmbeddingModel: {} 进行检索", kb.getEmbeddingModel());
 
         // 添加空指针检查
         Response<Embedding> embeddingResponse = embeddingModel.embed(query);

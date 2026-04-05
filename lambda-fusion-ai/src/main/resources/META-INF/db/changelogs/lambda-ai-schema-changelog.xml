@@ -77,7 +77,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】知识库表 ai_knowledge_base -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030010-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026020300101-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -223,7 +223,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】文档表 ai_document -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030020-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026020300201-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -363,7 +363,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】文档块表 ai_document_chunk -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030030-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026020300301-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -497,7 +497,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】LLM模型配置表 ai_llm_model -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030040-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026020300401-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -563,8 +563,6 @@
         </createIndex>
     </changeSet>
 
-    <!-- 由于篇幅限制，后续业务表继续采用相同的 MySQL/PostgreSQL 双 changeSet 模式 -->
-
     <!-- ========================================== -->
     <!-- 【MySQL】对话会话表 ai_chat_session -->
     <!-- ========================================== -->
@@ -628,7 +626,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】对话会话表 ai_chat_session -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030050-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026020300501-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -744,7 +742,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】对话消息表 ai_chat_message -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030060-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026020300601-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -869,7 +867,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】流程定义表 ai_pipeline_definition -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030070-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026020300701-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -1000,7 +998,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】流程执行表 ai_pipeline_execution -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030080-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026020300801-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -1127,7 +1125,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】提示词模板表 ai_prompt_template -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030090-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026020300901-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -1150,7 +1148,7 @@
             <column name="category" type="varchar(50)">
                 <constraints nullable="false"/>
             </column>
-            <column name="tags" type="varchar(200)[]"/>
+            <column name="tags" type="text"/>
             <column name="template_content" type="text">
                 <constraints nullable="false"/>
             </column>
@@ -1190,18 +1188,18 @@
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 【MySQL】Jin工作流配置表 ai_Jin_workflow -->
+    <!-- 【MySQL】Agent工作流配置表 ai_agent_workflow -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202603010010-mysql" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026030100101-mysql" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
-                    <tableExists tableName="ai_Jin_workflow"/>
+                    <tableExists tableName="ai_agent_workflow"/>
                 </not>
                 <dbms type="mysql"/>
             </and>
         </preConditions>
-        <createTable tableName="ai_Jin_workflow" remarks="Jin工作流配置表">
+        <createTable tableName="ai_agent_workflow" remarks="Agent工作流配置表">
             <column name="id" type="bigint" autoIncrement="true">
                 <constraints primaryKey="true"/>
             </column>
@@ -1229,30 +1227,30 @@
             <column name="created_by" type="bigint"/>
             <column name="updated_by" type="bigint"/>
         </createTable>
-        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_tenant_id">
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_tenant_id">
             <column name="tenant_id"/>
         </createIndex>
-        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_owner">
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_owner">
             <column name="owner_user_id"/>
         </createIndex>
-        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_enabled">
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_enabled">
             <column name="enabled"/>
         </createIndex>
     </changeSet>
 
     <!-- ========================================== -->
-    <!-- 【PostgreSQL】Jin工作流配置表 ai_Jin_workflow -->
+    <!-- 【PostgreSQL】Agent工作流配置表 ai_agent_workflow -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202603010010-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260301001011-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
-                    <tableExists tableName="ai_Jin_workflow"/>
+                    <tableExists tableName="ai_agent_workflow"/>
                 </not>
                 <dbms type="postgresql"/>
             </and>
         </preConditions>
-        <createTable tableName="ai_Jin_workflow" remarks="Jin工作流配置表">
+        <createTable tableName="ai_agent_workflow" remarks="Agent工作流配置表">
             <column name="id" type="bigserial">
                 <constraints primaryKey="true"/>
             </column>
@@ -1280,13 +1278,13 @@
             <column name="created_by" type="bigint"/>
             <column name="updated_by" type="bigint"/>
         </createTable>
-        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_tenant_id">
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_tenant_id">
             <column name="tenant_id"/>
         </createIndex>
-        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_owner">
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_owner">
             <column name="owner_user_id"/>
         </createIndex>
-        <createIndex tableName="ai_Jin_workflow" indexName="idx_workflow_enabled">
+        <createIndex tableName="ai_agent_workflow" indexName="idx_workflow_enabled">
             <column name="enabled"/>
         </createIndex>
     </changeSet>
@@ -1294,10 +1292,13 @@
     <!-- ========================================== -->
     <!-- 【仅 PostgreSQL】初始化系统提示词模板数据 -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202602030091" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026020300911" author="Jin">
         <preConditions onFail="MARK_RAN">
             <dbms type="postgresql"/>
             <tableExists tableName="ai_prompt_template"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM ai_prompt_template WHERE template_id = 'system_rag_default'
+            </sqlCheck>
         </preConditions>
         <insert tableName="ai_prompt_template">
             <column name="template_id" value="system_rag_default"/>

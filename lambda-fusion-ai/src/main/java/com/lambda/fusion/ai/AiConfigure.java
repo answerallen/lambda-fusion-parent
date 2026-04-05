@@ -1,9 +1,8 @@
 package com.lambda.fusion.ai;
 
 import cn.hutool.core.util.StrUtil;
-import com.lambda.cloud.liquibase.LiquibasePostExecutor;
-import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
+import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -17,9 +16,13 @@ import java.time.Duration;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeoutException;
+import javax.sql.DataSource;
+import lombok.extern.slf4j.Slf4j;
 import org.beetl.core.GroupTemplate;
 import org.beetl.core.resource.StringTemplateResourceLoader;
 import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -27,22 +30,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+@Slf4j
 @EnableAsync
 @Configuration
 @MapperScan(basePackages = {"com.lambda.fusion.ai.**.mapper"})
 @ComponentScan(basePackageClasses = AiConfigure.class)
 @EnableConfigurationProperties({AiProperties.class})
 public class AiConfigure {
-    @Bean
-    public EmbeddingModel embeddingModel(AiProperties aiProperties) {
-        AiProperties.EmbeddingConfig config = aiProperties.getEmbedding();
-
-        return OpenAiEmbeddingModel.builder()
-                .apiKey(config.getApiKey())
-                .modelName(config.getModelName())
-                .baseUrl(config.getBaseUrl())
-                .build();
-    }
 
     @Bean
     public Executor documentProcessExecutor() {
@@ -148,7 +142,37 @@ public class AiConfigure {
     }
 
     @Bean
-    public LiquibasePostExecutor vectorInitExecutor() {
-        return new LiquibasePostExecutor("classpath:META-INF/db/changelogs/lambda-ai-pg-vector-changelog.xml");
+    public ApplicationRunner vectorStoreSchemaInitializer(
+            ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider,
+            AiProperties aiProperties,
+            DynamicDataSourceService dynamicDataSourceService) {
+        return args -> {
+            String dataSourceName = aiProperties.getDataSource().getVectorName();
+            log.info("Starting vector store schema initialization for datasource: {}", dataSourceName);
+
+            DataSource dataSource;
+            try {
+                dataSource = dynamicDataSourceService.getDataSource(dataSourceName);
+            } catch (Exception e) {
+                log.warn("Vector store datasource '{}' not available, skipping schema initialization", dataSourceName);
+                return;
+            }
+
+            if (dataSource == null) {
+                log.warn("Vector store datasource '{}' is null, skipping schema initialization", dataSourceName);
+                return;
+            }
+
+            schemaInitializerProvider.ifAvailable(schemaInitializer -> {
+                try {
+                    String tenantId = "vector-store";
+                    log.info("Executing schema initialization for tenant: {}", tenantId);
+                    schemaInitializer.initializeSchema(tenantId, dataSource);
+                    log.info("Vector store schema initialization completed successfully");
+                } catch (Exception e) {
+                    log.error("Failed to initialize vector store schema", e);
+                }
+            });
+        };
     }
 }

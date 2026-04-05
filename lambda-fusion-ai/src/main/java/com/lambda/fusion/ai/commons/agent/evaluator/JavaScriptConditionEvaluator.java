@@ -1,14 +1,13 @@
 package com.lambda.fusion.ai.commons.agent.evaluator;
 
 import com.lambda.fusion.ai.commons.agent.AgentState;
+import com.oracle.truffle.js.scriptengine.GraalJSScriptEngine;
 import java.util.HashSet;
 import java.util.Set;
 import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-
-import com.oracle.truffle.js.scriptengine.GraalJSScriptEngine;
 import lombok.extern.slf4j.Slf4j;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
@@ -60,22 +59,17 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
         return cachedEngine;
     }
 
-
     private ScriptEngine resolveScriptEngine() {
         try {
             log.info("正在通过显式构造器创建 GraalJS 引擎");
             return GraalJSScriptEngine.create(
                     null,
-                    Context.newBuilder("js")
-                            .allowHostAccess(HostAccess.ALL)
-                            .allowHostClassLookup(s -> false)
-            );
+                    Context.newBuilder("js").allowHostAccess(HostAccess.ALL).allowHostClassLookup(s -> false));
         } catch (Throwable t) {
             log.warn("无法直接创建 GraalJS 引擎，尝试传统方式...", t);
             return manager.getEngineByName("graal.js");
         }
     }
-
 
     @Override
     public boolean evaluate(String expression, AgentState state) {
