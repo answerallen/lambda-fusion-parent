@@ -20,7 +20,6 @@ import org.springframework.stereotype.Repository;
 @DS("#{@aiDataSourceProperties.vectorName}")
 public interface VectorRepository {
 
-    // ==================== 分表操作====================
 
     /**
      * 插入向量数据到分表
@@ -101,9 +100,7 @@ public interface VectorRepository {
      * @param dimension 向量维度（用于选择表）
      * @param vectorId  向量ID
      */
-    void deleteVector(
-            @Param("dimension") Integer dimension,
-            @Param("vectorId") String vectorId);
+    void deleteVector(@Param("dimension") Integer dimension, @Param("vectorId") String vectorId);
 
     /**
      * 批量删除向量（分表）
@@ -111,9 +108,7 @@ public interface VectorRepository {
      * @param dimension 向量维度（用于选择表）
      * @param vectorIds 向量ID列表
      */
-    void deleteVectors(
-            @Param("dimension") Integer dimension,
-            @Param("vectorIds") List<String> vectorIds);
+    void deleteVectors(@Param("dimension") Integer dimension, @Param("vectorIds") List<String> vectorIds);
 
     /**
      * 根据文档ID删除向量（分表）
@@ -121,9 +116,7 @@ public interface VectorRepository {
      * @param dimension  向量维度（用于选择表）
      * @param documentId 文档ID
      */
-    void deleteByDocumentId(
-            @Param("dimension") Integer dimension,
-            @Param("documentId") Long documentId);
+    void deleteByDocumentId(@Param("dimension") Integer dimension, @Param("documentId") Long documentId);
 
     /**
      * 根据知识库ID删除向量（分表）
@@ -131,9 +124,7 @@ public interface VectorRepository {
      * @param dimension 向量维度（用于选择表）
      * @param kbId      知识库ID
      */
-    void deleteByKbId(
-            @Param("dimension") Integer dimension,
-            @Param("kbId") Long kbId);
+    void deleteByKbId(@Param("dimension") Integer dimension, @Param("kbId") Long kbId);
 
     /**
      * 根据集合名称删除向量（分表）
@@ -141,93 +132,6 @@ public interface VectorRepository {
      * @param dimension      向量维度（用于选择表）
      * @param collectionName 集合名称
      */
-    void deleteByCollectionName(
-            @Param("dimension") Integer dimension,
-            @Param("collectionName") String collectionName);
+    void deleteByCollectionName(@Param("dimension") Integer dimension, @Param("collectionName") String collectionName);
 
-    // ==================== 兼容旧接口（统一表） ====================
-    // 以下方法保留用于向后兼容，建议迁移到分表方法
-
-    /**
-     * 插入向量数据到统一表（已废弃，建议使用 insertVector）
-     *
-     * @deprecated 使用 {@link #insertVector} 代替
-     */
-    @Deprecated
-    void insertVectorUnified(
-            @Param("id") Long id,
-            @Param("vectorId") String vectorId,
-            @Param("kbId") Long kbId,
-            @Param("documentId") Long documentId,
-            @Param("chunkId") Long chunkId,
-            @Param("content") String content,
-            @Param("metadata") String metadata,
-            @Param("embedding") List<Double> embedding,
-            @Param("dimension") Integer dimension);
-
-    /**
-     * 向量相似度搜索（统一表，已废弃）
-     *
-     * @deprecated 使用 {@link #searchSimilar} 代替
-     */
-    @Deprecated
-    List<VectorSearchResult> searchSimilarUnified(
-            @Param("kbId") Long kbId,
-            @Param("queryVector") List<Double> queryVector,
-            @Param("topK") Integer topK,
-            @Param("minScore") Double minScore,
-            @Param("dimension") Integer dimension);
-
-    /**
-     * 关键词搜索（统一表，已废弃）
-     *
-     * @deprecated 使用 {@link #searchKeyword} 代替
-     */
-    @Deprecated
-    List<VectorSearchResult> searchKeywordUnified(
-            @Param("kbId") Long kbId,
-            @Param("keyword") String keyword,
-            @Param("topK") Integer topK);
-
-    /**
-     * 删除向量（统一表，已废弃）
-     *
-     * @deprecated 使用 {@link #deleteVector} 代替
-     */
-    @Deprecated
-    void deleteVectorUnified(@Param("vectorId") String vectorId);
-
-    /**
-     * 批量删除向量（统一表，已废弃）
-     *
-     * @deprecated 使用 {@link #deleteVectors} 代替
-     */
-    @Deprecated
-    void deleteVectorsUnified(@Param("vectorIds") List<String> vectorIds);
-
-    /**
-     * 批量插入向量数据（统一表，已废弃）
-     *
-     * @deprecated 使用 {@link #batchInsertVectors} 代替
-     */
-    @Deprecated
-    void batchInsertVectorsUnified(
-            @Param("list") List<DocumentChunkEntity> documentChunkEntities,
-            @Param("kbId") Long kbId);
-
-    /**
-     * 根据文档ID删除向量（统一表，已废弃）
-     *
-     * @deprecated 使用 {@link #deleteByDocumentId} 代替
-     */
-    @Deprecated
-    void deleteByDocumentIdUnified(@Param("documentId") Long documentId);
-
-    /**
-     * 根据知识库ID删除向量（统一表，已废弃）
-     *
-     * @deprecated 使用 {@link #deleteByKbId} 代替
-     */
-    @Deprecated
-    void deleteByKbIdUnified(@Param("kbId") Long kbId);
 }
