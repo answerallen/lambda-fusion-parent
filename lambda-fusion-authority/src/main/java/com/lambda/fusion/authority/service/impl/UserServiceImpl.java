@@ -46,8 +46,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jspecify.annotations.NonNull;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -545,6 +545,7 @@ public class UserServiceImpl implements UserService {
         userOrganizationMapper.deleteUserOrganizationByUser(username);
         userFieldsMapper.deleteByUsername(username);
         // todo 删除用户数据权限
+
     }
 
     @Override

@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.*;
  * 用户角色API
  */
 @RestController
-@RequestMapping({"/authority/roles", "/authority/roles"})
+@RequestMapping({"/authority/roles"})
 @Tag(name = "角色管理")
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class RoleController {
@@ -111,8 +111,7 @@ public class RoleController {
     @PostMapping
     @Operation(description = "新增角色信息", summary = "新增角色信息")
     public Role add(@Parameter(description = "角色信息", required = true) @RequestBody CreateRole createRole) {
-        UserDetails userDetails = AuthUtils.getUser();
-        return roleService.saveRole(userDetails, createRole);
+        return roleService.saveRole(AuthUtils.getUser(), createRole);
     }
 
     @SaCheckPermission(value = "T1000000046")
@@ -123,8 +122,7 @@ public class RoleController {
             @Parameter(description = "角色信息", required = true) @RequestBody UpdateRole updateRole) {
         Assert.notNull(authority, "角色名称不能为空！");
         updateRole.setAuthority(authority);
-        UserDetails userDetails = AuthUtils.getUser();
-        return roleService.updateRole(userDetails, updateRole);
+        return roleService.updateRole(AuthUtils.getUser(), updateRole);
     }
 
     @SaCheckPermission(value = "T1000000047")

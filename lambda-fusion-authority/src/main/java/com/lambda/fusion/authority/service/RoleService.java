@@ -118,15 +118,12 @@ public interface RoleService {
     /**
      * 查询该角色名是否被使用
      *
-     * @param authority
      */
     boolean hasUsedAuthority(String authority);
 
     /**
      * 启用或禁用角色
      *
-     * @param type
-     * @param authority
      **/
     void prohibitRole(int type, String authority);
 
