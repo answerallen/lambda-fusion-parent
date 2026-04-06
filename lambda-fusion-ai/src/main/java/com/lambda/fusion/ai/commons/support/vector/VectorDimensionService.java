@@ -135,7 +135,7 @@ public class VectorDimensionService {
         }
 
         // 找到最接近的支持维度
-        int nearest = SUPPORTED_DIMENSIONS.get(0);
+        int nearest = SUPPORTED_DIMENSIONS.getFirst();
         int minDiff = Math.abs(dimension - nearest);
 
         for (int supportedDim : SUPPORTED_DIMENSIONS) {

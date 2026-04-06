@@ -44,7 +44,6 @@ public class RetrievalRelevanceConditionEvaluator implements ConditionEvaluator 
     /**
      * 从 state 中提取检索指标
      */
-    @SuppressWarnings("unchecked")
     private RetrievalMetrics extractMetrics(AgentState state) {
         RetrievalMetrics metrics = new RetrievalMetrics();
 
@@ -73,11 +72,9 @@ public class RetrievalRelevanceConditionEvaluator implements ConditionEvaluator 
                     }
                 }
 
-                if (metrics.docCount > 0) {
-                    metrics.avgRelevance = sumRelevance / metrics.docCount;
-                    metrics.maxRelevance = maxRelevance;
-                    metrics.minRelevance = minRelevance == 1 ? 0 : minRelevance;
-                }
+                metrics.avgRelevance = sumRelevance / metrics.docCount;
+                metrics.maxRelevance = maxRelevance;
+                metrics.minRelevance = minRelevance == 1 ? 0 : minRelevance;
 
                 // 判断是否有相关文档（平均相关性 > 0.5 视为有相关）
                 metrics.hasRelevantDocs = metrics.avgRelevance > 0.5;

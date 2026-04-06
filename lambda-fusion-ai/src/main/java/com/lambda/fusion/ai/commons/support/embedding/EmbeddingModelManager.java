@@ -163,15 +163,12 @@ public class EmbeddingModelManager {
      */
     private LlmModelEntity findModelByName(String modelName) {
         // 查询所有启用的 EMBEDDING 模型，匹配 modelName
-        llmModelMapper.selectEnabledModels("EMBEDDING").stream()
+        return  llmModelMapper.selectEnabledModels("EMBEDDING").stream()
                 .filter(m -> modelName.equalsIgnoreCase(m.getModelName())
                         || modelName.equalsIgnoreCase(m.getName())
                         || modelName.equalsIgnoreCase(m.getDisplayName()))
                 .findFirst()
                 .orElse(null);
-
-        // 简化实现：直接返回 null，后续可以优化
-        return null;
     }
 
     /**

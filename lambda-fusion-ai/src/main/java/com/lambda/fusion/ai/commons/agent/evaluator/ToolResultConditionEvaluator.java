@@ -122,17 +122,19 @@ public class ToolResultConditionEvaluator implements ConditionEvaluator {
         String normalizedExpr = expr.replaceAll("\\s+", "");
 
         // 布尔表达式
-        if ("toolsuccess".equals(normalizedExpr) || "success".equals(normalizedExpr)) {
-            return metrics.lastResultSuccess;
-        }
-        if ("toolfailed".equals(normalizedExpr) || "failed".equals(normalizedExpr)) {
-            return !metrics.lastResultSuccess;
-        }
-        if ("hasresult".equals(normalizedExpr) || "hasresults".equals(normalizedExpr)) {
-            return metrics.hasResults;
-        }
-        if ("haspendingtools".equals(normalizedExpr)) {
-            return metrics.pendingToolCount > 0;
+        switch (normalizedExpr) {
+            case "toolsuccess", "success" -> {
+                return metrics.lastResultSuccess;
+            }
+            case "toolfailed", "failed" -> {
+                return !metrics.lastResultSuccess;
+            }
+            case "hasresult", "hasresults" -> {
+                return metrics.hasResults;
+            }
+            case "haspendingtools" -> {
+                return metrics.pendingToolCount > 0;
+            }
         }
 
         // 结果数量表达式

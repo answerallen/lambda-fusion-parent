@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.commons.agent.evaluator;
 
 import com.lambda.fusion.ai.commons.agent.AgentState;
+import dev.langchain4j.data.message.AiMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -65,9 +66,9 @@ public class ConfidenceConditionEvaluator implements ConditionEvaluator {
 
         // 3. 尝试从最后一条 AI 消息中提取
         if (state.getMessages() != null && !state.getMessages().isEmpty()) {
-            var lastMessage = state.getMessages().get(state.getMessages().size() - 1);
-            if (lastMessage instanceof dev.langchain4j.data.message.AiMessage aiMessage) {
-                // 这里可以根据实际需求扩展，从 metadata 中提取置信度
+            var lastMessage = state.getMessages().getLast();
+            if (lastMessage instanceof AiMessage aiMessage) {
+                // todo 这里可以根据实际需求扩展，从 metadata 中提取置信度
             }
         }
 

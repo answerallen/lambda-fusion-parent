@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 /**
  * 基于 Spring Expression Language (SpEL) 的边流转策略判断器。
  * 允许前端用简洁内联属性配置判断图节点，比如: '#state.finished'
- *
+ * <p>
  * 安全设计：
  * - 使用 SimpleEvaluationContext 替代 StandardEvaluationContext，限制可访问的对象
  * - 只允许访问 AgentState 的特定属性
