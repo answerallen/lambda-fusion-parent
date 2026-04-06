@@ -40,17 +40,14 @@
                     RETURN v_table_name || ' already exists';
                 END IF;
                 
-                -- For dimensions &lt;= 2000: use vector type with ivfflat index
-                -- For dimensions &lt;= 4000: use halfvec type with hnsw index (pgvector 0.7+)
-                -- For dimensions &gt; 4000: use vector type without index
                 IF dimension &lt;= 2000 THEN
                     EXECUTE format('
                         CREATE TABLE %I (
                             id BIGSERIAL PRIMARY KEY,
                             vector_id VARCHAR(100) UNIQUE NOT NULL,
-                            kb_id BIGINT NOT NULL,
-                            document_id BIGINT,
-                            chunk_id BIGINT,
+                            kb_id VARCHAR(64) NOT NULL,
+                            document_id VARCHAR(64),
+                            chunk_id VARCHAR(64),
                             collection_name VARCHAR(100) NOT NULL,
                             embedding vector(%s) NOT NULL,
                             content TEXT NOT NULL,
@@ -69,9 +66,9 @@
                         CREATE TABLE %I (
                             id BIGSERIAL PRIMARY KEY,
                             vector_id VARCHAR(100) UNIQUE NOT NULL,
-                            kb_id BIGINT NOT NULL,
-                            document_id BIGINT,
-                            chunk_id BIGINT,
+                            kb_id VARCHAR(64) NOT NULL,
+                            document_id VARCHAR(64),
+                            chunk_id VARCHAR(64),
                             collection_name VARCHAR(100) NOT NULL,
                             embedding halfvec(%s) NOT NULL,
                             content TEXT NOT NULL,
@@ -86,14 +83,13 @@
                         CREATE INDEX idx_%I_content_trgm ON %I USING gist (content gist_trgm_ops);
                     ', v_table_name, dimension, v_table_name, v_table_name, v_table_name, v_table_name, v_table_name, v_table_name);
                 ELSE
-                    -- High dimensions without index (sequential scan)
                     EXECUTE format('
                         CREATE TABLE %I (
                             id BIGSERIAL PRIMARY KEY,
                             vector_id VARCHAR(100) UNIQUE NOT NULL,
-                            kb_id BIGINT NOT NULL,
-                            document_id BIGINT,
-                            chunk_id BIGINT,
+                            kb_id VARCHAR(64) NOT NULL,
+                            document_id VARCHAR(64),
+                            chunk_id VARCHAR(64),
                             collection_name VARCHAR(100) NOT NULL,
                             embedding vector(%s) NOT NULL,
                             content TEXT NOT NULL,

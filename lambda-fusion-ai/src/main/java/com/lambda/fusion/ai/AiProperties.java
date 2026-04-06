@@ -28,53 +28,13 @@ public class AiProperties {
         private Integer dimension = 1536;
     }
 
-    /**
-     * AI 模块数据源配置属性
-     * <p>
-     * 配置 AI 模块使用的数据源名称和租户数据源前缀。
-     * </p>
-     *
-     * <p>配置示例：</p>
-     * <pre>
-     * lambda:
-     *   fusion:
-     *     ai:
-     *       datasource:
-     *         enabled: true
-     *         default-name: ai-postgres
-     *         vector-name: ai-postgres
-     *         tenant-prefix: ai-tenant-
-     * </pre>
-     */
     @Data
     public static class AiDataSource {
 
-        /**
-         * 是否启用 AI 模块动态数据源功能
-         * 默认: true
-         */
         private Boolean enabled = true;
 
-        /**
-         * AI 模块默认数据源名称
-         * 用于存储 AI 核心数据（知识库、文档、LLM模型等）
-         * 默认: ai-postgres
-         */
-        private String defaultName = "ai-postgres";
+        private String name = "ai-postgres";
 
-        /**
-         * 向量存储数据源名称
-         * 用于存储向量数据和执行向量相似度搜索
-         * 默认: ai-postgres（与默认数据源相同）
-         */
-        private String vectorName = "ai-postgres";
-
-        /**
-         * 租户数据源名称前缀
-         * 租户数据源命名规则: {tenantPrefix}{tenantId}
-         * 例如: ai-tenant-1001, ai-tenant-1002
-         * 默认: ai-tenant-
-         */
         private String tenantPrefix = "ai-tenant-";
     }
 

@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.ai.model.entity.WorkflowTemplateVersionEntity;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.apache.ibatis.annotations.Update;
  * 工作流模板版本历史 Mapper
  */
 @Mapper
+@DS("#{@aiProperties.dataSource.name}")
 public interface WorkflowTemplateVersionMapper extends BaseMapper<WorkflowTemplateVersionEntity> {
 
     /**

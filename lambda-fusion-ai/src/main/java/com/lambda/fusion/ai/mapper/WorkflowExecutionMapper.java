@@ -1,11 +1,13 @@
 package com.lambda.fusion.ai.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.ai.model.entity.WorkflowExecutionEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
+@DS("#{@aiProperties.dataSource.name}")
 public interface WorkflowExecutionMapper extends BaseMapper<WorkflowExecutionEntity> {
 
     WorkflowExecutionEntity selectByExecutionId(@Param("executionId") String executionId);

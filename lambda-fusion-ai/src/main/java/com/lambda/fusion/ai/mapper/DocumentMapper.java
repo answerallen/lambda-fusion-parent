@@ -14,7 +14,7 @@ import org.apache.ibatis.annotations.*;
  * @author Jin
  */
 @Mapper
-@DS("@aiDataSourceProperties.defaultName")
+@DS("#{@aiProperties.dataSource.name}")
 public interface DocumentMapper extends BaseMapper<DocumentEntity> {
 
     /**

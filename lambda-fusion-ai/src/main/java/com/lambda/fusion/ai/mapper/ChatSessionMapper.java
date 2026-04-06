@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.mapper;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import java.time.LocalDateTime;
@@ -9,6 +10,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
+@DS("#{@aiProperties.dataSource.name}")
 public interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {
 
     /**

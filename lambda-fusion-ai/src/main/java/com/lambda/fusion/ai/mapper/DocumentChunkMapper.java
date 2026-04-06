@@ -12,7 +12,7 @@ import org.apache.ibatis.annotations.*;
  * 文档块 Mapper接口
  */
 @Mapper
-@DS("@aiDataSourceProperties.defaultName")
+@DS("#{@aiProperties.dataSource.name}")
 public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
 
     /**

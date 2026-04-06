@@ -25,17 +25,17 @@
     </resultMap>
 
     <select id="selectByExecutionId" resultMap="BaseResultMap">
-        SELECT * FROM ai_pipeline_execution WHERE execution_id = #{executionId}
+        SELECT * FROM ai_workflow_execution WHERE execution_id = #{executionId}
     </select>
 
     <update id="updateStatus">
-        UPDATE ai_pipeline_execution
+        UPDATE ai_workflow_execution
         SET status = #{status}, progress = #{progress}
         WHERE id = #{id}
     </update>
 
     <update id="updateCompletion">
-        UPDATE ai_pipeline_execution
+        UPDATE ai_workflow_execution
         SET status = #{status},
             output_result = #{outputResult},
             execution_log = #{executionLog},
@@ -46,7 +46,7 @@
     </update>
 
     <update id="updateFailure">
-        UPDATE ai_pipeline_execution
+        UPDATE ai_workflow_execution
         SET status = 'FAILED',
             error_code = #{errorCode},
             error_message = #{errorMessage},

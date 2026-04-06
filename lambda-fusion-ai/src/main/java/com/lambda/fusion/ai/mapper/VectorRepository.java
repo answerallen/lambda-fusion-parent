@@ -17,7 +17,7 @@ import org.springframework.stereotype.Repository;
  */
 @Mapper
 @Repository
-@DS("#{@aiDataSourceProperties.vectorName}")
+@DS("#{@aiProperties.dataSource.name}")
 public interface VectorRepository {
 
     /**

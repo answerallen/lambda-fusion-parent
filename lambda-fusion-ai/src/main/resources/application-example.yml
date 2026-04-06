@@ -104,8 +104,7 @@ lambda:
     ai:
       datasource:
         enabled: true
-        default-name: ai-postgres
-        vector-name: ai-postgres
+        name: ai-postgres
         tenant-prefix: ai-tenant-dev-
       security:
         encryption-key: "dev-encryption-key-32-chars"
@@ -122,8 +121,7 @@ lambda:
     ai:
       datasource:
         enabled: true
-        default-name: ai-postgres-test
-        vector-name: ai-postgres-test
+        name: ai-postgres-test
         tenant-prefix: ai-tenant-test-
 
 ---
@@ -138,11 +136,9 @@ lambda:
     ai:
       datasource:
         enabled: true
-        default-name: ai-postgres-prod
-        vector-name: ai-postgres-prod
+        name: ai-postgres-prod
         tenant-prefix: ai-tenant-prod-
       security:
-        # 生产环境必须使用环境变量或密钥管理服务
         encryption-key: "${AI_ENCRYPTION_KEY}"
 
 # 生产环境更严格的容错配置

@@ -472,19 +472,19 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        <createIndex tableName="ai_pipeline_execution" indexName="idx_execution_pipeline_id">
+        <createIndex tableName="ai_workflow_execution" indexName="idx_execution_pipeline_id">
             <column name="pipeline_id"/>
         </createIndex>
-        <createIndex tableName="ai_pipeline_execution" indexName="idx_execution_user_id">
+        <createIndex tableName="ai_workflow_execution" indexName="idx_execution_user_id">
             <column name="user_id"/>
         </createIndex>
-        <createIndex tableName="ai_pipeline_execution" indexName="idx_execution_tenant_id">
+        <createIndex tableName="ai_workflow_execution" indexName="idx_execution_tenant_id">
             <column name="tenant_id"/>
         </createIndex>
-        <createIndex tableName="ai_pipeline_execution" indexName="idx_execution_status">
+        <createIndex tableName="ai_workflow_execution" indexName="idx_execution_status">
             <column name="status"/>
         </createIndex>
-        <createIndex tableName="ai_pipeline_execution" indexName="idx_execution_started_at">
+        <createIndex tableName="ai_workflow_execution" indexName="idx_execution_started_at">
             <column name="started_at"/>
         </createIndex>
     </changeSet>
@@ -617,6 +617,7 @@
             </sqlCheck>
         </preConditions>
         <insert tableName="ai_prompt_template">
+            <column name="id" value="sys_prompt_rag_default"/>
             <column name="template_id" value="system_rag_default"/>
             <column name="name" value="默认RAG问答模板"/>
             <column name="description" value="基于检索到的上下文回答用户问题"/>
