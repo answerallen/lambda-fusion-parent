@@ -6,5 +6,4 @@ import com.lambda.fusion.ai.model.entity.RobotEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-@DS("@aiProperties.dataSource.name")
 public interface RobotMapper extends BaseMapper<RobotEntity> {}

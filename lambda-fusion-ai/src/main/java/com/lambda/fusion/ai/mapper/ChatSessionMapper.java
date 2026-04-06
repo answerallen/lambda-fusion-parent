@@ -10,7 +10,6 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
-@DS("@aiProperties.dataSource.name")
 public interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {
 
     /**

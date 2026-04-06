@@ -7,7 +7,6 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
-@DS("@aiProperties.dataSource.name")
 public interface WorkflowExecutionMapper extends BaseMapper<WorkflowExecutionEntity> {
 
     WorkflowExecutionEntity selectByExecutionId(@Param("executionId") String executionId);

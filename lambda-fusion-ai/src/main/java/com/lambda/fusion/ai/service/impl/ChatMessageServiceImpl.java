@@ -10,11 +10,9 @@ import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.ChatMessageMapper;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.model.ChatHistory;
-import com.lambda.fusion.ai.model.RagResult;
 import com.lambda.fusion.ai.model.SendMessage;
 import com.lambda.fusion.ai.model.VectorSearchResult;
 import com.lambda.fusion.ai.model.WorkflowExecutionRequest;
-import com.lambda.fusion.ai.model.WorkflowExecutionResult;
 import com.lambda.fusion.ai.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
@@ -34,7 +32,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -56,61 +53,38 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     private final SseEmitterManager sseEmitterManager;
     private final TransactionTemplate transactionTemplate;
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public ChatHistory sendMessage(String sessionId, SendMessage dto) {
-        ChatSessionEntity session = getSessionOrThrow(sessionId);
-        validateSessionActive(session);
-
-        ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
-        chatMessageMapper.insert(userMsg);
-
-        ChatMessageEntity aiMsg;
-        if (session.getWorkflowId() != null) {
-            aiMsg = executeWorkflowSync(session, dto, userMsg);
-        } else {
-            aiMsg = executeRagSync(session, dto, userMsg);
-        }
-        chatMessageMapper.insert(aiMsg);
-
-        // 使用原子操作更新会话统计，这可以防止并发访问时的竞态条件
-        atomicSessionUpdateService.updateSessionStatistics(sessionId, 2, aiMsg.getTotalTokens());
-
-        return ConvertUtils.convert(aiMsg);
-    }
-
-    private @NonNull ChatMessageEntity getChatMessageEntity(String sessionId, SendMessage dto) {
+    private @NonNull ChatMessageEntity getChatMessageEntity(String sessionId, SendMessage sendMessage) {
         ChatMessageEntity userMsg = new ChatMessageEntity();
         userMsg.setMessageId(IdUtil.fastSimpleUUID());
         userMsg.setSessionId(sessionId);
         userMsg.setRole("user");
-        userMsg.setContent(dto.getContent());
+        userMsg.setContent(sendMessage.getContent());
         userMsg.setIsRagEnhanced(false);
         return userMsg;
     }
 
     @Override
-    public void sendMessageStream(String sessionId, SendMessage dto) {
+    public void sendMessageStream(String sessionId, SendMessage sendMessage) {
         ChatSessionEntity session = getSessionOrThrow(sessionId);
         validateSessionActive(session);
 
         String clientId = "chat_" + sessionId;
 
-        ChatMessageEntity userMsg = getChatMessageEntity(sessionId, dto);
+        ChatMessageEntity userMsg = getChatMessageEntity(sessionId, sendMessage);
 
         try {
             if (session.getWorkflowId() != null) {
-                executeWorkflowStream(session, dto, userMsg, clientId);
+                executeWorkflowStream(session, sendMessage, userMsg, clientId);
                 return;
             }
             List<VectorSearchResult> retrievedChunks =
-                    ragService.retrieve(dto.getContent(), session.getKbId(), null, null);
+                    ragService.retrieve(sendMessage.getContent(), session.getKbId(), null, null);
 
             StringBuilder fullAnswer = new StringBuilder();
             List<ChatMessage> history = buildChatHistory(sessionId, null);
 
             ragService.streamChat(
-                    dto.getContent(),
+                    sendMessage.getContent(),
                     session.getKbId(),
                     retrievedChunks,
                     session.getLlmModelId(),
@@ -124,7 +98,6 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
                         @Override
                         public void onCompleteResponse(ChatResponse response) {
-                            // 修复：添加空指针检查
                             String aiText = response.aiMessage() != null
                                             && response.aiMessage().text() != null
                                     ? response.aiMessage().text()
@@ -140,7 +113,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                             aiMsg.setIsRagEnhanced(true);
                             aiMsg.setRetrievedChunks(JSONUtil.toJsonStr(retrievedChunks));
 
-                            fillTokenUsage(response, aiMsg);
+                            applyTokenUsage(response, aiMsg);
 
                             try {
                                 persistStreamMessages(sessionId, userMsg, aiMsg);
@@ -164,39 +137,26 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         }
     }
 
-    private void fillTokenUsage(ChatResponse response, ChatMessageEntity aiMsg) {
-        int promptTokens = response.tokenUsage() != null ? response.tokenUsage().inputTokenCount() : 0;
-        int completionTokens =
-                response.tokenUsage() != null ? response.tokenUsage().outputTokenCount() : 0;
-        aiMsg.setPromptTokens(promptTokens);
-        aiMsg.setCompletionTokens(completionTokens);
-        aiMsg.setTotalTokens(promptTokens + completionTokens);
+    private void applyTokenUsage(ChatResponse response, ChatMessageEntity chatMessageEntity) {
+        applyTokenUsage(
+                response.tokenUsage() != null,
+                response.tokenUsage().inputTokenCount(),
+                response.tokenUsage() != null,
+                response.tokenUsage().outputTokenCount(),
+                chatMessageEntity);
     }
 
-    private ChatMessageEntity executeRagSync(ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg) {
-        List<ChatMessage> history = buildChatHistory(session.getId(), userMsg.getMessageId());
-        RagResult ragResult = ragService.chat(dto.getContent(), session.getKbId(), session.getLlmModelId(), history);
-        ChatMessageEntity aiMsg = createAssistantMessageEntity(session.getId(), ragResult.getAnswer(), true);
-        aiMsg.setRetrievedChunks(JSONUtil.toJsonStr(ragResult.getRetrievedChunks()));
-        int promptTokens = ragResult.getPromptTokens() != null ? ragResult.getPromptTokens() : 0;
-        int completionTokens = ragResult.getCompletionTokens() != null ? ragResult.getCompletionTokens() : 0;
-        aiMsg.setPromptTokens(promptTokens);
-        aiMsg.setCompletionTokens(completionTokens);
-        aiMsg.setTotalTokens(promptTokens + completionTokens);
-        return aiMsg;
-    }
-
-    private ChatMessageEntity executeWorkflowSync(
-            ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg) {
-        WorkflowExecutionResult result = workflowExecutionService.execute(
-                session.getWorkflowId(), buildWorkflowExecutionRequest(session, dto, userMsg, false));
-        ChatMessageEntity aiMsg = createAssistantMessageEntity(session.getId(), result.getAnswer(), false);
-        int promptTokens = result.getPromptTokens() != null ? result.getPromptTokens() : 0;
-        int completionTokens = result.getCompletionTokens() != null ? result.getCompletionTokens() : 0;
-        aiMsg.setPromptTokens(promptTokens);
-        aiMsg.setCompletionTokens(completionTokens);
-        aiMsg.setTotalTokens(promptTokens + completionTokens);
-        return aiMsg;
+    private static void applyTokenUsage(
+            boolean ragResult,
+            Integer ragResult1,
+            boolean ragResult2,
+            Integer ragResult3,
+            ChatMessageEntity assistantMessageEntity) {
+        int promptTokens = ragResult ? ragResult1 : 0;
+        int completionTokens = ragResult2 ? ragResult3 : 0;
+        assistantMessageEntity.setPromptTokens(promptTokens);
+        assistantMessageEntity.setCompletionTokens(completionTokens);
+        assistantMessageEntity.setTotalTokens(promptTokens + completionTokens);
     }
 
     private void executeWorkflowStream(
@@ -219,11 +179,12 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                                 ? response.aiMessage().text()
                                 : "";
                         String finalContent = fullAnswer.isEmpty() ? aiText : fullAnswer.toString();
-                        ChatMessageEntity aiMsg = createAssistantMessageEntity(session.getId(), finalContent, false);
-                        fillTokenUsage(response, aiMsg);
+                        ChatMessageEntity messageId =
+                                createAssistantMessageEntity(session.getId(), finalContent, false);
+                        applyTokenUsage(response, messageId);
                         try {
-                            persistStreamMessages(session.getId(), userMsg, aiMsg);
-                            sseEmitterManager.sendEvent(clientId, "finish", aiMsg.getMessageId());
+                            persistStreamMessages(session.getId(), userMsg, messageId);
+                            sseEmitterManager.sendEvent(clientId, "finish", messageId.getMessageId());
                         } catch (Exception e) {
                             log.error("工作流流式消息持久化失败", e);
                             sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
@@ -257,13 +218,13 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     }
 
     private ChatMessageEntity createAssistantMessageEntity(String sessionId, String content, boolean ragEnhanced) {
-        ChatMessageEntity aiMsg = new ChatMessageEntity();
-        aiMsg.setMessageId(IdUtil.fastSimpleUUID());
-        aiMsg.setSessionId(sessionId);
-        aiMsg.setRole("assistant");
-        aiMsg.setContent(content);
-        aiMsg.setIsRagEnhanced(ragEnhanced);
-        return aiMsg;
+        ChatMessageEntity chatMessageEntity = new ChatMessageEntity();
+        chatMessageEntity.setMessageId(IdUtil.fastSimpleUUID());
+        chatMessageEntity.setSessionId(sessionId);
+        chatMessageEntity.setRole("assistant");
+        chatMessageEntity.setContent(content);
+        chatMessageEntity.setIsRagEnhanced(ragEnhanced);
+        return chatMessageEntity;
     }
 
     @Override

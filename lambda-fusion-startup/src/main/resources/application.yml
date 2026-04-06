@@ -41,7 +41,7 @@ logging:
 ################################# Mybatis-plus 配置 #################################
 mybatis-plus:
   tenant:
-    enabled: true
+    enabled: false
   configuration:
     default-enum-type-handler: org.apache.ibatis.type.EnumOrdinalTypeHandler
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
@@ -63,7 +63,8 @@ lambda:
         password: ${MAIN_DB_PASSWORD}
     ai:
       data-source:
-        default-name: master
+        enabled: true
+        name: ai-postgres
   oss:
     clients:
       #### Redis 环境变量 ####

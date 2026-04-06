@@ -15,7 +15,6 @@ import org.apache.ibatis.annotations.Param;
  * @author Jin
  */
 @Mapper
-@DS("@aiProperties.dataSource.name")
 public interface LlmModelMapper extends BaseMapper<LlmModelEntity> {
 
     /**

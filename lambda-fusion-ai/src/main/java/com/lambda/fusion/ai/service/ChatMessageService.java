@@ -7,8 +7,6 @@ import com.lambda.fusion.ai.model.entity.ChatMessageEntity;
 import java.util.List;
 
 public interface ChatMessageService extends IService<ChatMessageEntity> {
-    ChatHistory sendMessage(String sessionId, SendMessage dto);
-
     void sendMessageStream(String sessionId, SendMessage dto);
 
     List<ChatHistory> listMessages(String sessionId, Integer limit);

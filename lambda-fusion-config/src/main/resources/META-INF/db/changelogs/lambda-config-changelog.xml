@@ -57,7 +57,7 @@
         </createTable>
     </changeSet>
 
-    <changeSet id="lambda-config-202603120106" author="gpt">
+    <changeSet id="lambda-config-202603120106" author="Jin">
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="la_settings_layout"/>
@@ -79,7 +79,7 @@
         </createIndex>
     </changeSet>
 
-    <changeSet id="lambda-config-202603120107" author="gpt">
+    <changeSet id="lambda-config-202603120107" author="Jin">
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="la_configs"/>
             <sqlCheck expectedResult="1">

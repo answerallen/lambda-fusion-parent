@@ -21,12 +21,6 @@ public class ChatMessageController {
     private final ChatMessageService chatMessageService;
     private final SseEmitterManager sseEmitterManager;
 
-    @PostMapping
-    @Operation(summary = "发送消息")
-    public ChatHistory send(@PathVariable String sessionId, @Valid @RequestBody SendMessage sendMessage) {
-        return chatMessageService.sendMessage(sessionId, sendMessage);
-    }
-
     @GetMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式发送消息")
     public SseEmitter streamSend(@PathVariable String sessionId) {

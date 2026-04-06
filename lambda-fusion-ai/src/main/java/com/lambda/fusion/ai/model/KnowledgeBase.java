@@ -1,5 +1,7 @@
 package com.lambda.fusion.ai.model;
 
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -10,6 +12,7 @@ import lombok.Data;
  *
  * @author Jin
  */
+@AutoConverter(target = KnowledgeBaseEntity.class, isReverse = true)
 @Data
 @Schema(description = "知识库VO")
 public class KnowledgeBase {

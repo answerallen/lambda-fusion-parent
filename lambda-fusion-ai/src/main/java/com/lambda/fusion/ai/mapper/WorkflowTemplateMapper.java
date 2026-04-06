@@ -14,7 +14,6 @@ import org.apache.ibatis.annotations.Select;
  * 工作流模板 Mapper
  */
 @Mapper
-@DS("@aiProperties.dataSource.name")
 public interface WorkflowTemplateMapper extends BaseMapper<WorkflowTemplateEntity> {
 
     /**

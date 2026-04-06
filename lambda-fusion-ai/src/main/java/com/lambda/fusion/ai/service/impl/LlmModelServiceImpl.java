@@ -1,7 +1,6 @@
 package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
-import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;

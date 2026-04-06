@@ -34,7 +34,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 图节点：负责向大语言模型请求分析，决定是回复用户还是调用后续Tool。
- *
+ * <p>
  * 容错特性：
  * - 重试：失败时自动重试最多3次
  * - 熔断：失败率超过50%时熔断30秒

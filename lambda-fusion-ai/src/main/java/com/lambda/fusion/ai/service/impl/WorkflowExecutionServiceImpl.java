@@ -63,7 +63,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             state = graph.invoke(state);
             long duration = System.currentTimeMillis() - startTime;
 
-            WorkflowExecutionResult result = extractResult(state, execution, duration);
+            WorkflowExecutionResult result = mapToExecutionResult(state, execution, duration);
             updateExecutionSuccess(execution, result);
 
             log.info("工作流执行完成, executionId={}, duration={}ms", execution.getExecutionId(), duration);
@@ -101,7 +101,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             state = graph.invoke(state);
             long duration = System.currentTimeMillis() - startTime;
 
-            WorkflowExecutionResult result = extractResult(state, execution, duration);
+            WorkflowExecutionResult result = mapToExecutionResult(state, execution, duration);
             updateExecutionSuccess(execution, result);
             ChatResponse chatResponse = buildChatResponse(state);
             handler.onCompleteResponse(chatResponse);
@@ -200,7 +200,8 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         return state;
     }
 
-    private WorkflowExecutionResult extractResult(AgentState state, WorkflowExecutionEntity execution, long duration) {
+    private WorkflowExecutionResult mapToExecutionResult(
+            AgentState state, WorkflowExecutionEntity execution, long duration) {
         WorkflowExecutionResult.WorkflowExecutionResultBuilder builder = WorkflowExecutionResult.builder()
                 .executionId(execution.getExecutionId())
                 .finished(state.isFinished())

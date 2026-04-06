@@ -431,8 +431,8 @@ public class UserServiceImpl implements UserService {
             createUser.setOrganization(new SimpleOrganization(orgId));
         }
         Date now = new Date();
-        if(userEntity.getExpiredTime() == null) {
-            userEntity.setExpiredTime(DateUtil.date(now).offset(DateField.YEAR,99));
+        if (userEntity.getExpiredTime() == null) {
+            userEntity.setExpiredTime(DateUtil.date(now).offset(DateField.YEAR, 99));
         }
         userEntity.setCreatedAt(now);
         userEntity.setTenantId(operator.getTenantId());
