@@ -140,15 +140,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                             aiMsg.setIsRagEnhanced(true);
                             aiMsg.setRetrievedChunks(JSONUtil.toJsonStr(retrievedChunks));
 
-                            int promptTokens = response.tokenUsage() != null
-                                    ? response.tokenUsage().inputTokenCount()
-                                    : 0;
-                            int completionTokens = response.tokenUsage() != null
-                                    ? response.tokenUsage().outputTokenCount()
-                                    : 0;
-                            aiMsg.setPromptTokens(promptTokens);
-                            aiMsg.setCompletionTokens(completionTokens);
-                            aiMsg.setTotalTokens(promptTokens + completionTokens);
+                            fillTokenUsage(response, aiMsg);
 
                             try {
                                 persistStreamMessages(sessionId, userMsg, aiMsg);
@@ -170,6 +162,15 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
             sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
             throw new AiBusinessException(AiErrorCode.MESSAGE_SEND_FAILED, e);
         }
+    }
+
+    private void fillTokenUsage(ChatResponse response, ChatMessageEntity aiMsg) {
+        int promptTokens = response.tokenUsage() != null ? response.tokenUsage().inputTokenCount() : 0;
+        int completionTokens =
+                response.tokenUsage() != null ? response.tokenUsage().outputTokenCount() : 0;
+        aiMsg.setPromptTokens(promptTokens);
+        aiMsg.setCompletionTokens(completionTokens);
+        aiMsg.setTotalTokens(promptTokens + completionTokens);
     }
 
     private ChatMessageEntity executeRagSync(ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg) {
@@ -219,15 +220,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                                 : "";
                         String finalContent = fullAnswer.isEmpty() ? aiText : fullAnswer.toString();
                         ChatMessageEntity aiMsg = createAssistantMessageEntity(session.getId(), finalContent, false);
-                        int promptTokens = response.tokenUsage() != null
-                                ? response.tokenUsage().inputTokenCount()
-                                : 0;
-                        int completionTokens = response.tokenUsage() != null
-                                ? response.tokenUsage().outputTokenCount()
-                                : 0;
-                        aiMsg.setPromptTokens(promptTokens);
-                        aiMsg.setCompletionTokens(completionTokens);
-                        aiMsg.setTotalTokens(promptTokens + completionTokens);
+                        fillTokenUsage(response, aiMsg);
                         try {
                             persistStreamMessages(session.getId(), userMsg, aiMsg);
                             sseEmitterManager.sendEvent(clientId, "finish", aiMsg.getMessageId());
@@ -277,7 +270,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     public List<ChatHistory> listMessages(String sessionId, Integer limit) {
         getSessionOrThrow(sessionId);
         return chatMessageMapper.listBySessionId(sessionId, limit).stream()
-                .map(this::entityToVO)
+                .map(this::toChatHistory)
                 .collect(Collectors.toList());
     }
 
@@ -300,7 +293,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         chatMessageMapper.updateById(entity);
     }
 
-    private ChatHistory entityToVO(ChatMessageEntity entity) {
+    private ChatHistory toChatHistory(ChatMessageEntity entity) {
         return ConvertUtils.convert(entity);
     }
 

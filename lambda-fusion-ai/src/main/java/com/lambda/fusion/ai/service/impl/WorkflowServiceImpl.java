@@ -215,7 +215,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WorkflowMapper, WorkflowEnt
     }
 
     private void validateAllowedTools(NodeDefinition node, Map<String, Object> properties) {
-        Set<String> toolNames = resolveToolNames(properties, "allowedTools", "toolNames", "tools");
+        Set<String> toolNames = resolveToolNames(properties);
         for (String toolName : toolNames) {
             if (!agentToolProvider.hasTool(toolName)) {
                 throw new AiBusinessException(
@@ -239,8 +239,8 @@ public class WorkflowServiceImpl extends ServiceImpl<WorkflowMapper, WorkflowEnt
         return null;
     }
 
-    private Set<String> resolveToolNames(Map<String, Object> properties, String... keys) {
-        Object value = firstNonNull(properties, keys);
+    private Set<String> resolveToolNames(Map<String, Object> properties) {
+        Object value = firstNonNull(properties, "allowedTools", "toolNames", "tools");
         if (value == null) {
             return Set.of();
         }

@@ -52,7 +52,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@DS("@aiDataSourceProperties.defaultName")
 public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Document, DocumentMapper>
         implements DocumentService {
 

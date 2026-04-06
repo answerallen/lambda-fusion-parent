@@ -25,7 +25,6 @@ import org.springframework.util.StringUtils;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@DS("@aiDataSourceProperties.defaultName")
 public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEntity> implements LlmModelService {
 
     private final LlmModelMapper llmModelMapper;
@@ -44,7 +43,7 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
         entity.setTotalCalls(0L);
         entity.setTotalTokens(0L);
         llmModelMapper.insert(entity);
-        return entityToVO(entity);
+        return toLlmModel(entity);
     }
 
     @Override
@@ -77,12 +76,12 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
             throw AiBusinessException.llmModelNotFound(id);
         }
 
-        return entityToVO(entity);
+        return toLlmModel(entity);
     }
 
     @Override
     public List<LlmModel> listAll() {
-        return llmModelMapper.selectList(null).stream().map(this::entityToVO).collect(Collectors.toList());
+        return llmModelMapper.selectList(null).stream().map(this::toLlmModel).collect(Collectors.toList());
     }
 
     @Override
@@ -101,7 +100,7 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
         chatModelFactory.invalidateModelCache(id);
     }
 
-    private LlmModel entityToVO(LlmModelEntity entity) {
+    private LlmModel toLlmModel(LlmModelEntity entity) {
         LlmModel vo = new LlmModel();
         BeanUtils.copyProperties(entity, vo);
         vo.setApiKeyEncrypted(null); // 不返回加密的API Key
