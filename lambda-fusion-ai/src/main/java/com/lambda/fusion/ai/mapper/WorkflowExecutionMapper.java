@@ -1,14 +1,14 @@
 package com.lambda.fusion.ai.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.ai.model.entity.PipelineExecutionEntity;
+import com.lambda.fusion.ai.model.entity.WorkflowExecutionEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
-public interface PipelineExecutionMapper extends BaseMapper<PipelineExecutionEntity> {
+public interface WorkflowExecutionMapper extends BaseMapper<WorkflowExecutionEntity> {
 
-    PipelineExecutionEntity selectByExecutionId(@Param("executionId") String executionId);
+    WorkflowExecutionEntity selectByExecutionId(@Param("executionId") String executionId);
 
     int updateStatus(@Param("id") Long id, @Param("status") String status, @Param("progress") Integer progress);
 

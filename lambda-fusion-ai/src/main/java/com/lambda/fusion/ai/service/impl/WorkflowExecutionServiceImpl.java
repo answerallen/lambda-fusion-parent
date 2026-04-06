@@ -10,11 +10,11 @@ import com.lambda.fusion.ai.commons.agent.model.GraphDefinition;
 import com.lambda.fusion.ai.commons.agent.model.NodeDefinition;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
-import com.lambda.fusion.ai.mapper.PipelineExecutionMapper;
+import com.lambda.fusion.ai.mapper.WorkflowExecutionMapper;
 import com.lambda.fusion.ai.mapper.WorkflowMapper;
 import com.lambda.fusion.ai.model.WorkflowExecutionRequest;
 import com.lambda.fusion.ai.model.WorkflowExecutionResult;
-import com.lambda.fusion.ai.model.entity.PipelineExecutionEntity;
+import com.lambda.fusion.ai.model.entity.WorkflowExecutionEntity;
 import com.lambda.fusion.ai.model.entity.WorkflowEntity;
 import com.lambda.fusion.ai.service.WorkflowExecutionService;
 import dev.langchain4j.data.message.AiMessage;
@@ -43,7 +43,7 @@ import tools.jackson.databind.ObjectMapper;
 public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
 
     private final WorkflowMapper workflowMapper;
-    private final PipelineExecutionMapper executionMapper;
+    private final WorkflowExecutionMapper executionMapper;
     private final AgentGraphFactory agentGraphFactory;
     private final ObjectMapper objectMapper;
 
@@ -53,7 +53,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         log.info("开始执行工作流, workflowId={}", workflowId);
 
         WorkflowEntity workflow = loadWorkflow(workflowId);
-        PipelineExecutionEntity execution = createExecutionRecord(workflow, request);
+        WorkflowExecutionEntity execution = createExecutionRecord(workflow, request);
 
         try {
             AgentGraph graph = agentGraphFactory.buildFromDefinition(workflow.getGraphJson());
@@ -82,7 +82,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         log.info("开始流式执行工作流, workflowId={}", workflowId);
 
         WorkflowEntity workflow = loadWorkflow(workflowId);
-        PipelineExecutionEntity execution = createExecutionRecord(workflow, request);
+        WorkflowExecutionEntity execution = createExecutionRecord(workflow, request);
 
         try {
             AgentGraph graph = agentGraphFactory.buildFromDefinition(workflow.getGraphJson());
@@ -120,7 +120,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "执行ID不能为空");
         }
 
-        PipelineExecutionEntity entity = executionMapper.selectByExecutionId(executionId);
+        WorkflowExecutionEntity entity = executionMapper.selectByExecutionId(executionId);
         if (entity == null) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_NOT_FOUND, "执行记录不存在: " + executionId);
         }
@@ -130,12 +130,12 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
 
     @Override
     public Page<WorkflowExecutionResult> listExecutions(String workflowId, int pageNum, int pageSize) {
-        Page<PipelineExecutionEntity> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<PipelineExecutionEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(PipelineExecutionEntity::getPipelineId, workflowId)
-                .orderByDesc(PipelineExecutionEntity::getCreatedAt);
+        Page<WorkflowExecutionEntity> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<WorkflowExecutionEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WorkflowExecutionEntity::getPipelineId, workflowId)
+                .orderByDesc(WorkflowExecutionEntity::getCreatedAt);
 
-        Page<PipelineExecutionEntity> entityPage = executionMapper.selectPage(page, wrapper);
+        Page<WorkflowExecutionEntity> entityPage = executionMapper.selectPage(page, wrapper);
 
         Page<WorkflowExecutionResult> resultPage = new Page<>(pageNum, pageSize, entityPage.getTotal());
         resultPage.setRecords(
@@ -157,8 +157,8 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         return workflow;
     }
 
-    private PipelineExecutionEntity createExecutionRecord(WorkflowEntity workflow, WorkflowExecutionRequest request) {
-        PipelineExecutionEntity execution = new PipelineExecutionEntity();
+    private WorkflowExecutionEntity createExecutionRecord(WorkflowEntity workflow, WorkflowExecutionRequest request) {
+        WorkflowExecutionEntity execution = new WorkflowExecutionEntity();
         execution.setExecutionId(IdUtil.fastSimpleUUID());
         execution.setPipelineId(workflow.getId());
         execution.setPipelineVersion(1);
@@ -180,7 +180,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         return execution;
     }
 
-    private AgentState prepareInitialState(WorkflowExecutionRequest request, PipelineExecutionEntity execution) {
+    private AgentState prepareInitialState(WorkflowExecutionRequest request, WorkflowExecutionEntity execution) {
         AgentState state = new AgentState();
         state.setSessionId(request.getSessionId());
         state.setKbId(request.getKbId());
@@ -200,7 +200,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         return state;
     }
 
-    private WorkflowExecutionResult extractResult(AgentState state, PipelineExecutionEntity execution, long duration) {
+    private WorkflowExecutionResult extractResult(AgentState state, WorkflowExecutionEntity execution, long duration) {
         WorkflowExecutionResult.WorkflowExecutionResultBuilder builder = WorkflowExecutionResult.builder()
                 .executionId(execution.getExecutionId())
                 .finished(state.isFinished())
@@ -226,7 +226,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         return builder.build();
     }
 
-    private void updateExecutionSuccess(PipelineExecutionEntity execution, WorkflowExecutionResult result) {
+    private void updateExecutionSuccess(WorkflowExecutionEntity execution, WorkflowExecutionResult result) {
         try {
             execution.setStatus("COMPLETED");
             execution.setProgress(100);
@@ -254,7 +254,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         }
     }
 
-    private void updateExecutionFailure(PipelineExecutionEntity execution, Throwable error) {
+    private void updateExecutionFailure(WorkflowExecutionEntity execution, Throwable error) {
         try {
             execution.setStatus("FAILED");
             execution.setCompletedAt(LocalDateTime.now());
@@ -333,7 +333,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         return null;
     }
 
-    private WorkflowExecutionResult entityToResult(PipelineExecutionEntity entity) {
+    private WorkflowExecutionResult entityToResult(WorkflowExecutionEntity entity) {
         return WorkflowExecutionResult.builder()
                 .executionId(entity.getExecutionId())
                 .status(entity.getStatus())

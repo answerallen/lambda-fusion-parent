@@ -89,6 +89,9 @@ public class LlmModelEntity {
     @Schema(description = "总成本")
     private BigDecimal totalCost;
 
+    @Schema(description = "租户ID")
+    private String tenantId;
+
     @TableField(fill = FieldFill.INSERT)
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;

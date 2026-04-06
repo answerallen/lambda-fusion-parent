@@ -6,9 +6,9 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
-@TableName("ai_pipeline_execution")
+@TableName("ai_workflow_execution")
 @Schema(description = "工作流执行记录实体")
-public class PipelineExecutionEntity {
+public class WorkflowExecutionEntity {
 
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
