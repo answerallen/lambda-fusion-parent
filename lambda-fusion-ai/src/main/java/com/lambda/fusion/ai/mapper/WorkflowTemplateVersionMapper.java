@@ -13,7 +13,7 @@ import org.apache.ibatis.annotations.Update;
  * 工作流模板版本历史 Mapper
  */
 @Mapper
-@DS("#{@aiProperties.dataSource.name}")
+@DS("@aiProperties.dataSource.name")
 public interface WorkflowTemplateVersionMapper extends BaseMapper<WorkflowTemplateVersionEntity> {
 
     /**

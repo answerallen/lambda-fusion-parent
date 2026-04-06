@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
-@DS("#{@aiProperties.dataSource.name}")
+@DS("@aiProperties.dataSource.name")
 public interface PromptTemplateMapper extends BaseMapper<PromptTemplateEntity> {
 
     /**
