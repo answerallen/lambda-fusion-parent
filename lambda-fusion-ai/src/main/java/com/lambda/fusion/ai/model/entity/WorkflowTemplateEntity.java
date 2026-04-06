@@ -12,7 +12,7 @@ import lombok.Data;
 @TableName("ai_workflow_template")
 public class WorkflowTemplateEntity {
 
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
     /**

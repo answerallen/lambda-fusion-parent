@@ -22,7 +22,7 @@ public class KnowledgeBaseEntity {
     /**
      * 主键ID
      */
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "知识库ID")
     private String id;
 

@@ -10,7 +10,7 @@ import lombok.Data;
 @Schema(description = "Agent工作流配置实体")
 public class WorkflowEntity {
 
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
     @Schema(description = "工作流名称")

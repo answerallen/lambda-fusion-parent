@@ -21,7 +21,7 @@ public class DocumentChunkEntity {
     /**
      * 主键ID
      */
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "文档块ID")
     private String id;
 

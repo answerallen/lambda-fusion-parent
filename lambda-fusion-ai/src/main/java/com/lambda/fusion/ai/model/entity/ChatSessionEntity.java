@@ -16,7 +16,7 @@ import lombok.Data;
 @Schema(description = "对话会话实体")
 public class ChatSessionEntity {
 
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
     @Version

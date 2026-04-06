@@ -16,7 +16,7 @@ import lombok.Data;
 @Schema(description = "LLM模型实体")
 public class LlmModelEntity {
 
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "模型ID")
     private String id;
 

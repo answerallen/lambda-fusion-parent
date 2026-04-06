@@ -16,7 +16,7 @@ import lombok.Data;
 @Schema(description = "提示词模板实体")
 public class PromptTemplateEntity {
 
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
     private String templateId;

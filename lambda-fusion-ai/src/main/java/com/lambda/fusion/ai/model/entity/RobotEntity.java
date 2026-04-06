@@ -16,7 +16,7 @@ import lombok.Data;
 @Schema(description = "AI机器人实体")
 public class RobotEntity {
 
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
     @Schema(description = "对外暴露的唯一机器人标识")

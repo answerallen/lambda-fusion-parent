@@ -10,7 +10,7 @@ import lombok.Data;
 @Schema(description = "工作流执行记录实体")
 public class PipelineExecutionEntity {
 
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
     @Schema(description = "执行唯一标识")

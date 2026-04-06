@@ -19,7 +19,7 @@ import lombok.Data;
 @Schema(description = "对话消息实体")
 public class ChatMessageEntity {
 
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
     private String messageId;
