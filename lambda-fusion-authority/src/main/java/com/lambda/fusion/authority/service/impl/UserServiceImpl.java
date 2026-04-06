@@ -4,6 +4,7 @@ import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
 
 import cn.dev33.satoken.stp.StpLogic;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateField;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
@@ -429,8 +430,11 @@ public class UserServiceImpl implements UserService {
             String orgId = createUser.getTenantId();
             createUser.setOrganization(new SimpleOrganization(orgId));
         }
-
-        userEntity.setCreatedAt(new Date());
+        Date now = new Date();
+        if(userEntity.getExpiredTime() == null) {
+            userEntity.setExpiredTime(DateUtil.date(now).offset(DateField.YEAR,99));
+        }
+        userEntity.setCreatedAt(now);
         userEntity.setTenantId(operator.getTenantId());
         userEntity.setCreatedBy(operator.getName());
         userMapper.insert(userEntity);
