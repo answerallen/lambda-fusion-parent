@@ -6,6 +6,7 @@ import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.cloud.core.shared.BaseDTO;
 import com.lambda.fusion.authority.model.organization.SimpleOrganization;
 import com.lambda.fusion.authority.model.role.SimpleRole;
+import com.lambda.fusion.core.convert.FusionConvertFunctions;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -18,10 +19,10 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 易变的用户信息
+ * 添加用户
  */
 @EqualsAndHashCode(callSuper = true)
-@AutoConverter(target = UserEntity.class)
+@AutoConverter(target = UserEntity.class, uses = FusionConvertFunctions.class)
 @Data
 @Schema(description = "用户信息")
 public class CreateUser extends BaseDTO<UserEntity> {
@@ -47,7 +48,7 @@ public class CreateUser extends BaseDTO<UserEntity> {
     @Schema(description = "租户ID")
     private String tenantId;
 
-    @FieldMapping(target = "enabled", ignore = true)
+    @FieldMapping(target = "enabled", source = "enabled", qualifiedByName = "mapAccountEnabled")
     @Schema(description = "是否启用")
     private boolean enabled;
 

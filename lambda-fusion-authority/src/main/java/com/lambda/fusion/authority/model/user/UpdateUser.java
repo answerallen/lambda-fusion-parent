@@ -18,6 +18,9 @@ import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+/**
+ * 更新用户
+ */
 @EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = UserEntity.class, uses = FusionConvertFunctions.class)
 @Data
