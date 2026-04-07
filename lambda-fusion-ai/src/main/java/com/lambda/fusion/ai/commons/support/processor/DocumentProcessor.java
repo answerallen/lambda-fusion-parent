@@ -253,7 +253,7 @@ public class DocumentProcessor {
             throw new RuntimeException("OSS客户端管理器未初始化");
         }
 
-        String clientName = "zsk";
+        String clientName = aiProperties.getDocument().getOssClientName();
         OssClient ossClient = ossClientManager.get(clientName);
 
         String objectKey = StrUtil.isNotBlank(doc.getStoragePath()) ? doc.getStoragePath() : doc.getStorageUrl();

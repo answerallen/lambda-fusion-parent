@@ -28,6 +28,17 @@ public class AiProperties {
         private Integer dimension = 1536;
     }
 
+    // documentConfig 文档配置项
+    private DocumentConfig document = new DocumentConfig();
+
+    @Data
+    public static class DocumentConfig {
+        /**
+         * OSS客户端名称，用于文档处理时从OSS加载文件
+         */
+        private String ossClientName = "default";
+    }
+
     @Data
     public static class AiDataSource {
 

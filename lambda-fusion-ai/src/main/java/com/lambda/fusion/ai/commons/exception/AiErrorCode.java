@@ -170,7 +170,7 @@ public enum AiErrorCode implements ErrorCode {
     /**
      * RAG增强失败
      */
-    RAG_ENHANCEMENT_FAILED(30504, "RAG增强失败"),
+    RAG_ENHANCEMENT_FAILED(30505, "RAG增强失败"),
 
     // ========== 向量存储相关错误 (30600-30699) ==========
     /**
@@ -244,12 +244,12 @@ public enum AiErrorCode implements ErrorCode {
     /**
      * 工作流执行失败
      */
-    WORKFLOW_EXECUTION_FAILED(30762, "工作流执行失败"),
+    WORKFLOW_EXECUTION_FAILED(30765, "工作流执行失败"),
 
     /**
      * 工作流执行记录不存在
      */
-    WORKFLOW_EXECUTION_NOT_FOUND(30763, "工作流执行记录不存在"),
+    WORKFLOW_EXECUTION_NOT_FOUND(30766, "工作流执行记录不存在"),
 
     /**
      * 工作流执行超时

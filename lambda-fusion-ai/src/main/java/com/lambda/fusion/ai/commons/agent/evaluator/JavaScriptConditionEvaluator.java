@@ -155,7 +155,6 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
 
         String[] dangerousPatterns = {
             "java.",
-            "function",
             "constructor",
             "prototype",
             "eval(",

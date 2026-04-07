@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 public class EmbeddingModelManager {
 
     private final LlmModelMapper llmModelMapper;
+    private final com.lambda.fusion.ai.commons.support.security.KeyEncryptionService keyEncryptionService;
 
     /**
      * EmbeddingModel 缓存
@@ -178,8 +179,10 @@ public class EmbeddingModelManager {
      * @return 解密后的 API Key
      */
     private String decryptApiKey(String encryptedKey) {
-        // TODO: 实现实际的解密逻辑
-        return encryptedKey;
+        if (encryptedKey == null || encryptedKey.isEmpty()) {
+            return encryptedKey;
+        }
+        return keyEncryptionService.decrypt(encryptedKey);
     }
 
     /**

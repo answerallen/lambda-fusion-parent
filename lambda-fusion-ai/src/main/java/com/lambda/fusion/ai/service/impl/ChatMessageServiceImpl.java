@@ -138,25 +138,15 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     }
 
     private void applyTokenUsage(ChatResponse response, ChatMessageEntity chatMessageEntity) {
-        applyTokenUsage(
-                response.tokenUsage() != null,
-                response.tokenUsage().inputTokenCount(),
-                response.tokenUsage() != null,
-                response.tokenUsage().outputTokenCount(),
-                chatMessageEntity);
-    }
-
-    private static void applyTokenUsage(
-            boolean ragResult,
-            Integer ragResult1,
-            boolean ragResult2,
-            Integer ragResult3,
-            ChatMessageEntity assistantMessageEntity) {
-        int promptTokens = ragResult ? ragResult1 : 0;
-        int completionTokens = ragResult2 ? ragResult3 : 0;
-        assistantMessageEntity.setPromptTokens(promptTokens);
-        assistantMessageEntity.setCompletionTokens(completionTokens);
-        assistantMessageEntity.setTotalTokens(promptTokens + completionTokens);
+        int promptTokens = 0;
+        int completionTokens = 0;
+        if (response.tokenUsage() != null) {
+            promptTokens = response.tokenUsage().inputTokenCount();
+            completionTokens = response.tokenUsage().outputTokenCount();
+        }
+        chatMessageEntity.setPromptTokens(promptTokens);
+        chatMessageEntity.setCompletionTokens(completionTokens);
+        chatMessageEntity.setTotalTokens(promptTokens + completionTokens);
     }
 
     private void executeWorkflowStream(

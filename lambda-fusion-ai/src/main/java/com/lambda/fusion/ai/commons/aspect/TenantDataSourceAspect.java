@@ -50,7 +50,6 @@ public class TenantDataSourceAspect {
         }
     }
 
-
     private String resolveTargetDataSource(String tenantId) {
         if (StrUtil.isNotBlank(tenantId) && !"default".equals(tenantId)) {
             String tenantDsName = tenantDataSourceHelper.getTenantDataSourceName(tenantId);

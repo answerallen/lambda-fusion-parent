@@ -124,6 +124,7 @@ public class LoopNode implements AgentNode {
         // do-while 先执行循环体，再检查条件
         if (!context.bodyExecuted) {
             // 首次执行循环体
+            context.iterationCount++;
             context.bodyExecuted = true;
             saveLoopContext(state, context);
             log.debug("do-while 循环执行循环体");
@@ -142,10 +143,9 @@ public class LoopNode implements AgentNode {
 
         if (shouldContinue) {
             // 继续循环
-            context.iterationCount++;
             context.bodyExecuted = false;
             saveLoopContext(state, context);
-            log.debug("do-while 循环继续第 {} 次迭代", context.iterationCount);
+            log.debug("do-while 循环继续第 {} 次迭代", context.iterationCount + 1);
             return new ExecutionResult(state, loopBody);
         } else {
             // 退出循环
