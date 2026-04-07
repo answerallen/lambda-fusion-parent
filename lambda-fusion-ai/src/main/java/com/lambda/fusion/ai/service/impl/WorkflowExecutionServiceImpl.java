@@ -95,7 +95,9 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             if (modelId != null) {
                 state.setLlmModelId(modelId);
             }
-            state.getAttributes().put("streamHandler", handler);
+            // 使用幂等包装器防止重复触发回调
+            StreamingChatResponseHandler idempotentHandler = new IdempotentStreamingHandler(handler);
+            state.getAttributes().put("streamHandler", idempotentHandler);
 
             long startTime = System.currentTimeMillis();
             state = graph.invoke(state);
@@ -104,13 +106,52 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             WorkflowExecutionResult result = mapToExecutionResult(state, execution, duration);
             updateExecutionSuccess(execution, result);
             ChatResponse chatResponse = buildChatResponse(state);
-            handler.onCompleteResponse(chatResponse);
+            idempotentHandler.onCompleteResponse(chatResponse);
 
         } catch (Exception e) {
             log.error("流式执行工作流失败, workflowId={}", workflowId, e);
             updateExecutionFailure(execution, e);
             handler.onError(e);
             throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, e);
+        }
+    }
+
+    /**
+     * 幂等流式响应处理器包装器
+     * 防止 onCompleteResponse 被重复调用
+     */
+    private static class IdempotentStreamingHandler implements StreamingChatResponseHandler {
+        private final StreamingChatResponseHandler delegate;
+        private volatile boolean completed = false;
+
+        IdempotentStreamingHandler(StreamingChatResponseHandler delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void onPartialResponse(String token) {
+            delegate.onPartialResponse(token);
+        }
+
+        @Override
+        public void onCompleteResponse(ChatResponse response) {
+            if (completed) {
+                log.warn("onCompleteResponse 已被调用过，忽略重复调用");
+                return;
+            }
+            synchronized (this) {
+                if (completed) {
+                    log.warn("onCompleteResponse 已被调用过，忽略重复调用");
+                    return;
+                }
+                completed = true;
+                delegate.onCompleteResponse(response);
+            }
+        }
+
+        @Override
+        public void onError(Throwable error) {
+            delegate.onError(error);
         }
     }
 

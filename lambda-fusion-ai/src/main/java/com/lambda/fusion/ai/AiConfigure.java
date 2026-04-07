@@ -3,6 +3,8 @@ package com.lambda.fusion.ai;
 import cn.hutool.core.util.StrUtil;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.fusion.ai.commons.datasource.DatabaseSchemaInitializer;
+import com.lambda.fusion.ai.commons.datasource.TenantDataSourceHelper;
+import com.lambda.fusion.datasource.model.RemoteDataSource;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -13,6 +15,7 @@ import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeoutException;
@@ -141,38 +144,102 @@ public class AiConfigure {
         }
     }
 
+    /**
+     * 应用启动后自动执行 AI Schema 初始化。
+     */
     @Bean
     public ApplicationRunner DatabaseSchemaInitializer(
             ObjectProvider<DatabaseSchemaInitializer> schemaInitializerProvider,
             AiProperties aiProperties,
-            DynamicDataSourceService dynamicDataSourceService) {
+            DynamicDataSourceService dynamicDataSourceService,
+            ObjectProvider<TenantDataSourceHelper> tenantHelperProvider) {
         return args -> {
-            String dataSourceName = aiProperties.getDataSource().getName();
-            log.info("Starting AI schema initialization for datasource: {}", dataSourceName);
+            // 获取 SchemaInitializer；若 Bean 不存在则跳过全部初始化
+            DatabaseSchemaInitializer schemaInitializer = schemaInitializerProvider.getIfAvailable();
+            if (schemaInitializer == null) {
+                log.warn("DatabaseSchemaInitializer not available, skipping all AI schema initialization");
+                return;
+            }
 
-            DataSource dataSource;
+            // ── 步骤 1：初始化默认数据源 ─────────────────────────────
+            String defaultDsName = aiProperties.getDataSource().getName();
+            log.info("Starting AI schema initialization for default datasource: {}", defaultDsName);
+            DataSource defaultDataSource = resolveDataSource(dynamicDataSourceService, defaultDsName);
+            if (defaultDataSource != null) {
+                runSchemaInit(schemaInitializer, "default", defaultDataSource);
+            }
+
+            // ── 步骤 2：遍历所有已注册租户，补充初始化各租户 Schema ─────────────
+            TenantDataSourceHelper tenantHelper = tenantHelperProvider.getIfAvailable();
+            if (tenantHelper == null) {
+                log.info("TenantDataSourceHelper not available, skipping tenant schema initialization");
+                return;
+            }
+
+            List<RemoteDataSource> tenantDataSources;
             try {
-                dataSource = dynamicDataSourceService.getDataSource(dataSourceName);
+                tenantDataSources = tenantHelper.listEnabledTenantDataSources();
             } catch (Exception e) {
-                log.warn("AI datasource '{}' not available, skipping schema initialization", dataSourceName);
+                log.warn(
+                        "Failed to enumerate tenant datasources, skipping tenant schema initialization: {}",
+                        e.getMessage());
                 return;
             }
 
-            if (dataSource == null) {
-                log.warn("AI datasource '{}' is null, skipping schema initialization", dataSourceName);
+            if (tenantDataSources == null || tenantDataSources.isEmpty()) {
+                log.info("No enabled tenant datasources found, skipping tenant schema initialization");
                 return;
             }
 
-            schemaInitializerProvider.ifAvailable(schemaInitializer -> {
-                try {
-                    String tenantId = "default";
-                    log.info("Executing AI schema initialization for tenant: {}", tenantId);
-                    schemaInitializer.initializeSchema(tenantId, dataSource);
-                    log.info("AI schema initialization completed successfully");
-                } catch (Exception e) {
-                    log.error("Failed to initialize AI schema", e);
+            log.info("Found {} enabled tenant datasource(s), initializing AI schemas...", tenantDataSources.size());
+            for (RemoteDataSource tenantDs : tenantDataSources) {
+                String tenantId = tenantDs.getTenantId();
+                if (StrUtil.isEmpty(tenantId) || "default".equals(tenantId)) {
+                    continue;
                 }
-            });
+                String tenantDsName = tenantHelper.getTenantDataSourceName(tenantId);
+                DataSource tenantDataSource = resolveDataSource(dynamicDataSourceService, tenantDsName);
+                if (tenantDataSource != null) {
+                    runSchemaInit(schemaInitializer, tenantId, tenantDataSource);
+                }
+            }
         };
+    }
+
+    /**
+     * 安全获取数据源，捕获异常并记录警告，不影响其他数据源的初始化流程。
+     *
+     * @param service 动态数据源服务
+     * @param dsName  数据源名称
+     * @return DataSource 实例；不可用时返回 {@code null}
+     */
+    private static DataSource resolveDataSource(DynamicDataSourceService service, String dsName) {
+        try {
+            DataSource ds = service.getDataSource(dsName);
+            if (ds == null) {
+                log.warn("AI datasource '{}' is null, skipping schema initialization", dsName);
+            }
+            return ds;
+        } catch (Exception e) {
+            log.warn("AI datasource '{}' not available, skipping schema initialization: {}", dsName, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 对指定租户执行 Liquibase 迁移，单独捕获异常，不影响其他租户的初始化。
+     *
+     * @param initializer Schema 初始化器
+     * @param tenantId    租户 ID（用于日志和 Liquibase 上下文参数）
+     * @param dataSource  租户数据源
+     */
+    private static void runSchemaInit(DatabaseSchemaInitializer initializer, String tenantId, DataSource dataSource) {
+        try {
+            log.info("Executing AI schema initialization for tenant: {}", tenantId);
+            initializer.initializeSchema(tenantId, dataSource);
+            log.info("AI schema initialization completed for tenant: {}", tenantId);
+        } catch (Exception e) {
+            log.error("Failed to initialize AI schema for tenant: {}", tenantId, e);
+        }
     }
 }

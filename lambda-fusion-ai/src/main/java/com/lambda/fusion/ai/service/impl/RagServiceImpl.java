@@ -163,11 +163,13 @@ public class RagServiceImpl implements RagService {
 
     @Override
     public RagResult chat(String query, String kbId, String llmModelId, List<ChatMessage> history) {
-        List<VectorSearchResult> searchResults = retrieve(query, kbId, null, null);
+        // 先获取知识库，避免重复查询
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
-            throw new RuntimeException("知识库不存在");
+            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库不存在: " + kbId);
         }
+
+        List<VectorSearchResult> searchResults = retrieve(query, kbId, null, null);
 
         String context =
                 searchResults.stream().map(VectorSearchResult::getContent).collect(Collectors.joining("\n\n"));
