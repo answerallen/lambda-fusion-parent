@@ -34,7 +34,6 @@ public class ParallelNode implements AgentNode {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public ExecutionResult execute(AgentState state) {
         Map<String, Object> properties = state.getCurrentNodeProperties();
 
