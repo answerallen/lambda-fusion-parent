@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.commons.support.security;
 
 import cn.hutool.core.util.HexUtil;
+import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -9,6 +10,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 /**
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
  * - 每次加密生成随机 IV（初始化向量）
  * - 提供 机密性 + 完整性 + 真实性 保证
  * - 向后兼容未加密的密钥
+ * - 生产环境强制要求配置加密密钥
  */
 @Slf4j
 @Service
@@ -28,11 +31,53 @@ public class AesKeyEncryptionService implements KeyEncryptionService {
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 128;
     private static final String ENCRYPTED_PREFIX = "ENC:";
+    private static final String DEFAULT_DEV_KEY = "default-dev-key-do-not-use-in-production";
+
+    private final Environment environment;
 
     @Value("${lambda.fusion.ai.security.encryption-key:}")
     private String encryptionKey;
 
     private volatile SecretKeySpec secretKey;
+
+    public AesKeyEncryptionService(Environment environment) {
+        this.environment = environment;
+    }
+
+    /**
+     * 启动时验证加密密钥配置
+     * <p>
+     * 生产环境必须配置加密密钥，否则拒绝启动。
+     * 开发/测试环境允许使用默认密钥，但会输出警告日志。
+     */
+    @PostConstruct
+    public void validateKey() {
+        boolean isProduction = isProductionEnvironment();
+        boolean keyNotConfigured = encryptionKey == null || encryptionKey.isEmpty();
+
+        if (isProduction && keyNotConfigured) {
+            String errorMsg = "生产环境必须配置加密密钥！请在配置文件中设置 lambda.fusion.ai.security.encryption-key";
+            log.error(errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+
+        if (keyNotConfigured) {
+            log.warn("未配置加密密钥，将使用默认密钥。生产环境必须配置 lambda.fusion.ai.security.encryption-key");
+        }
+    }
+
+    /**
+     * 判断是否为生产环境
+     */
+    private boolean isProductionEnvironment() {
+        String[] activeProfiles = environment.getActiveProfiles();
+        for (String profile : activeProfiles) {
+            if ("prod".equalsIgnoreCase(profile) || "production".equalsIgnoreCase(profile)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private SecretKeySpec getSecretKey() {
         if (secretKey == null) {
@@ -40,8 +85,7 @@ public class AesKeyEncryptionService implements KeyEncryptionService {
                 if (secretKey == null) {
                     String key = encryptionKey;
                     if (key == null || key.isEmpty()) {
-                        log.warn("未配置加密密钥，将使用默认密钥。生产环境必须配置 lambda.fusion.ai.security.encryption-key");
-                        key = "default-dev-key-do-not-use-in-production";
+                        key = DEFAULT_DEV_KEY;
                     }
 
                     byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);

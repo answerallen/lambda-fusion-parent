@@ -78,7 +78,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WorkflowMapper, WorkflowEnt
         validateGraphDefinition(definition);
         validateNodeRuntimeDependencies(definition);
         try {
-            agentGraphFactory.buildFromDefinition(definition).compiledGraph();
+            agentGraphFactory.buildFromDefinition(definition).precompile();
         } catch (Exception e) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_CONFIG_INVALID, e, "工作流图编译失败");
         }

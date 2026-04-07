@@ -63,7 +63,7 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
 
         } catch (Exception e) {
             log.error("模板渲染失败，templateId: {}, error: {}", templateId, e.getMessage(), e);
-            throw new AiBusinessException(AiErrorCode.PROMPT_TEMPLATE_NOT_FOUND, "模板渲染失败: " + e.getMessage());
+            throw new AiBusinessException(AiErrorCode.TEMPLATE_RENDER_FAILED, "模板渲染失败: " + e.getMessage());
         }
     }
 

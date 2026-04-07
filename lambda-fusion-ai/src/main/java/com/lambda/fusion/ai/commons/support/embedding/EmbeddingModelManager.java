@@ -36,6 +36,11 @@ public class EmbeddingModelManager {
     private final Map<String, EmbeddingModel> modelCache = new ConcurrentHashMap<>();
 
     /**
+     * 默认模型ID缓存，避免每次调用 getDefaultModel() 都查询数据库
+     */
+    private volatile String defaultModelId = null;
+
+    /**
      * 获取 EmbeddingModel
      *
      * @param modelId 模型ID
@@ -77,17 +82,17 @@ public class EmbeddingModelManager {
 
     /**
      * 获取默认的 EmbeddingModel
+     * <p>
+     * 优先使用缓存的 defaultModelId，避免遍历缓存执行 N 次数据库查询。
      *
      * @return 默认 EmbeddingModel
      * @throws IllegalStateException 如果没有默认模型
      */
     public EmbeddingModel getDefaultModel() {
-        // 先从缓存查找默认模型
-        for (Map.Entry<String, EmbeddingModel> entry : modelCache.entrySet()) {
-            LlmModelEntity entity = llmModelMapper.selectByModelId(entry.getKey());
-            if (entity != null && Boolean.TRUE.equals(entity.getIsDefault())) {
-                return entry.getValue();
-            }
+        // 优先使用缓存的 defaultModelId
+        if (defaultModelId != null && modelCache.containsKey(defaultModelId)) {
+            log.debug("Returning cached default EmbeddingModel: {}", defaultModelId);
+            return modelCache.get(defaultModelId);
         }
 
         // 从数据库加载默认模型
@@ -97,10 +102,14 @@ public class EmbeddingModelManager {
             throw new IllegalStateException("No default EMBEDDING model configured");
         }
 
-        // 创建并缓存
-        EmbeddingModel model = createModel(defaultModel);
-        modelCache.put(defaultModel.getModelId(), model);
-        log.info("Created and cached default EmbeddingModel: {}", defaultModel.getModelId());
+        // 缓存 defaultModelId
+        defaultModelId = defaultModel.getModelId();
+
+        // 创建并缓存模型
+        EmbeddingModel model = modelCache.computeIfAbsent(defaultModelId, id -> {
+            log.info("Created and cached default EmbeddingModel: {}", id);
+            return createModel(defaultModel);
+        });
 
         return model;
     }
@@ -193,6 +202,10 @@ public class EmbeddingModelManager {
     public void clearCache(String modelId) {
         if (modelId != null) {
             modelCache.remove(modelId);
+            // 如果清除的是默认模型，重置 defaultModelId
+            if (modelId.equals(defaultModelId)) {
+                defaultModelId = null;
+            }
             log.info("Cleared EmbeddingModel cache for modelId: {}", modelId);
         }
     }
@@ -202,6 +215,7 @@ public class EmbeddingModelManager {
      */
     public void clearAllCache() {
         modelCache.clear();
+        defaultModelId = null;
         log.info("Cleared all EmbeddingModel cache");
     }
 

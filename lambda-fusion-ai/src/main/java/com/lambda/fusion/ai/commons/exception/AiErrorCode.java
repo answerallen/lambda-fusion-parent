@@ -168,6 +168,11 @@ public enum AiErrorCode implements ErrorCode {
     SYSTEM_TEMPLATE_NOT_EDITABLE(30504, "系统模板不允许修改或删除"),
 
     /**
+     * 模板渲染失败
+     */
+    TEMPLATE_RENDER_FAILED(30506, "模板渲染失败"),
+
+    /**
      * RAG增强失败
      */
     RAG_ENHANCEMENT_FAILED(30505, "RAG增强失败"),

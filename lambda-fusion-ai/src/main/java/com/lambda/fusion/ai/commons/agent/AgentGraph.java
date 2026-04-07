@@ -246,7 +246,15 @@ public class AgentGraph {
                 : executable.stream(LangGraphRuntimeState.toInput(state), runnableConfig);
     }
 
-    public void compiledGraph() {
+    /**
+     * 预编译工作流图
+     * <p>
+     * 触发图的编译过程，用于验证工作流配置是否有效。
+     * 如果图结构无效（如缺少入口点、节点未定义等），将抛出异常。
+     * <p>
+     * 此方法主要用于配置验证场景，实际执行时会自动触发编译。
+     */
+    public void precompile() {
         getOrBuildCompiledGraph();
     }
 
