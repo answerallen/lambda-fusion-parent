@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.controller;
 
 import com.lambda.fusion.ai.model.CreateTemplate;
-import com.lambda.fusion.ai.model.PromptTemplate;
+import com.lambda.fusion.ai.model.PromptDefinition;
 import com.lambda.fusion.ai.model.UpdateTemplate;
 import com.lambda.fusion.ai.service.PromptTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,19 +23,19 @@ public class PromptTemplateController {
 
     @PostMapping
     @Operation(summary = "创建模板")
-    public PromptTemplate create(@Valid @RequestBody CreateTemplate dto) {
+    public PromptDefinition create(@Valid @RequestBody CreateTemplate dto) {
         return promptTemplateService.createTemplate(dto);
     }
 
     @GetMapping
     @Operation(summary = "查询所有模板")
-    public List<PromptTemplate> list(@RequestParam(required = false) String category) {
+    public List<PromptDefinition> list(@RequestParam(required = false) String category) {
         if (category != null) {
             return promptTemplateService.listByCategory(category);
         }
         return promptTemplateService.list().stream()
                 .map(entity -> {
-                    PromptTemplate vo = new PromptTemplate();
+                    PromptDefinition vo = new PromptDefinition();
                     BeanUtils.copyProperties(entity, vo);
                     return vo;
                 })
@@ -44,13 +44,13 @@ public class PromptTemplateController {
 
     @GetMapping("/{id}")
     @Operation(summary = "根据ID查询模板")
-    public PromptTemplate getById(@PathVariable String id) {
+    public PromptDefinition getById(@PathVariable String id) {
         return promptTemplateService.getTemplateById(id);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "更新模板")
-    public PromptTemplate update(@PathVariable String id, @Valid @RequestBody UpdateTemplate dto) {
+    public PromptDefinition update(@PathVariable String id, @Valid @RequestBody UpdateTemplate dto) {
         return promptTemplateService.updateTemplate(id, dto);
     }
 
@@ -62,7 +62,7 @@ public class PromptTemplateController {
 
     @GetMapping("/system")
     @Operation(summary = "查询系统模板")
-    public List<PromptTemplate> listSystem() {
+    public List<PromptDefinition> listSystem() {
         return promptTemplateService.listSystemTemplates();
     }
 

@@ -2,22 +2,22 @@ package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
 import com.lambda.fusion.ai.model.CreateTemplate;
-import com.lambda.fusion.ai.model.PromptTemplate;
+import com.lambda.fusion.ai.model.PromptDefinition;
 import com.lambda.fusion.ai.model.UpdateTemplate;
 import com.lambda.fusion.ai.model.entity.PromptTemplateEntity;
 import com.lambda.fusion.ai.service.PromptTemplateService;
-import java.io.StringWriter;
+import dev.langchain4j.model.input.Prompt;
+import dev.langchain4j.model.input.PromptTemplate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.beetl.core.GroupTemplate;
-import org.beetl.core.Template;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,17 +29,16 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
         implements PromptTemplateService {
 
     private final PromptTemplateMapper promptTemplateMapper;
-    private final GroupTemplate groupTemplate;
 
     @Override
-    public PromptTemplate createTemplate(CreateTemplate dto) {
+    public PromptDefinition createTemplate(CreateTemplate dto) {
         PromptTemplateEntity entity = new PromptTemplateEntity();
         BeanUtils.copyProperties(dto, entity);
         entity.setTemplateId(IdUtil.fastSimpleUUID());
         entity.setEnabled(true);
         entity.setUsageCount(0L);
         promptTemplateMapper.insert(entity);
-        return entityToVO(entity);
+        return toPromptDefinition(entity);
     }
 
     @Override
@@ -56,22 +55,11 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
 
         String templateContent = entity.getTemplateContent();
 
-        // 使用 Beetl 模板引擎渲染
+        // 使用 LangChain4j 的 PromptTemplate 渲染（语法：{{variable}}）
         try {
-            // 将 {{variable}} 格式转换为 ${variable} 格式（Beetl 默认语法）
-            String beetlTemplate = convertToBeetlSyntax(templateContent);
-
-            Template template = groupTemplate.getTemplate(beetlTemplate);
-
-            // 绑定变量
-            if (variables != null) {
-                variables.forEach(template::binding);
-            }
-
-            // 渲染模板
-            StringWriter writer = new StringWriter();
-            template.renderTo(writer);
-            return writer.toString();
+            PromptTemplate promptTemplate = PromptTemplate.from(templateContent);
+            Prompt prompt = promptTemplate.apply(variables);
+            return prompt.text();
 
         } catch (Exception e) {
             log.error("模板渲染失败，templateId: {}, error: {}", templateId, e.getMessage(), e);
@@ -79,34 +67,23 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
         }
     }
 
-    /**
-     * 将 {{variable}} 格式转换为 ${variable} 格式
-     */
-    private String convertToBeetlSyntax(String template) {
-        if (template == null) {
-            return "";
-        }
-        // 将 {{variable}} 替换为 ${variable}
-        return template.replaceAll("\\{\\{(\\w+)\\}\\}", "\\${$1}");
-    }
-
     @Override
-    public List<PromptTemplate> listByCategory(String category) {
+    public List<PromptDefinition> listByCategory(String category) {
         return promptTemplateMapper.listByCategory(category).stream()
-                .map(this::entityToVO)
+                .map(this::toPromptDefinition)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<PromptTemplate> listSystemTemplates() {
+    public List<PromptDefinition> listSystemTemplates() {
         return promptTemplateMapper.listSystemTemplates().stream()
-                .map(this::entityToVO)
+                .map(this::toPromptDefinition)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public PromptTemplate updateTemplate(String id, UpdateTemplate dto) {
+    public PromptDefinition updateTemplate(String id, UpdateTemplate dto) {
         // 查询现有模板
         PromptTemplateEntity entity = promptTemplateMapper.selectById(id);
         if (entity == null) {
@@ -139,7 +116,7 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
         }
 
         promptTemplateMapper.updateById(entity);
-        return entityToVO(entity);
+        return toPromptDefinition(entity);
     }
 
     @Override
@@ -160,17 +137,15 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
     }
 
     @Override
-    public PromptTemplate getTemplateById(String id) {
+    public PromptDefinition getTemplateById(String id) {
         PromptTemplateEntity entity = promptTemplateMapper.selectById(id);
         if (entity == null) {
             throw new AiBusinessException(AiErrorCode.PROMPT_TEMPLATE_NOT_FOUND, id);
         }
-        return entityToVO(entity);
+        return toPromptDefinition(entity);
     }
 
-    private PromptTemplate entityToVO(PromptTemplateEntity entity) {
-        PromptTemplate vo = new PromptTemplate();
-        BeanUtils.copyProperties(entity, vo);
-        return vo;
+    private PromptDefinition toPromptDefinition(PromptTemplateEntity entity) {
+        return ConvertUtils.convert(entity);
     }
 }

@@ -15,7 +15,19 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * 将前端传来的 JSON Schema (GraphDefinition)
- * 转换为真实存在的内存执行引擎 (AgentGraph) 的对象装配工厂表
+ * 转换为真实存在的内存执行引擎 (AgentGraph) 的对象装配工厂
+ * <p>
+ * <strong>节点共享设计</strong>：
+ * 同一类型的多个节点实例将共享同一个 Spring Bean。
+ * 例如，图中两个 {@code LLM_PROCESSOR} 类型的节点将绑定同一个 {@code LlmProcessingNode} Bean。
+ * <p>
+ * <strong>无状态约束</strong>：
+ * 由于节点共享，所有 {@link AgentNode} 实现必须保持无状态。
+ * 节点属性通过 {@link com.lambda.fusion.ai.commons.agent.AgentState#getCurrentNodeProperties()} 获取，
+ * 而不是存储在节点实例中。
+ * <p>
+ * <strong>线程安全</strong>：
+ * 返回的 {@link AgentGraph} 实例是线程安全的，可被多个工作流执行并发使用。
  */
 @Slf4j
 @Component
@@ -42,10 +54,11 @@ public class AgentGraphFactory {
                         .collect(Collectors.toMap(ConditionEvaluator::getType, e -> e));
 
         // 装载各个 Nodes 并按照其唯一 ID 编发
+        // 注意：同类型的节点共享同一个 Spring Bean，属性通过 AgentState 传递
         if (def.getNodes() != null) {
             for (var nodeDef : def.getNodes()) {
                 AgentNode matchedNode = null;
-                // 按 Type 取消对应容器实例，从而实现依赖继承与动态织入
+                // 按 Type 匹配对应的 Bean 实例
                 for (AgentNode bean :
                         applicationContext.getBeansOfType(AgentNode.class).values()) {
                     if (bean.getName().equals(nodeDef.getType())) {
@@ -55,6 +68,8 @@ public class AgentGraphFactory {
                 }
 
                 if (matchedNode != null) {
+                    // 节点 ID 不同，但节点实例可能相同（同类型共享 Bean）
+                    // 属性存储在 AgentGraph.nodeProperties 中，执行时注入 AgentState
                     graph.addNode(nodeDef.getId(), matchedNode, nodeDef.getProperties());
                 } else {
                     log.warn("无法挂载节点 ID:{}, 未找到类型为 {} 的原生 AgentNode 扩展。", nodeDef.getId(), nodeDef.getType());

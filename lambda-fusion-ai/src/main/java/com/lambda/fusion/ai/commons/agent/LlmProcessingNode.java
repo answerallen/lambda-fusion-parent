@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.commons.agent;
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_CIRCUIT_BREAKER;
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RETRY;
 
+import cn.hutool.core.util.StrUtil;
 import com.lambda.fusion.ai.commons.support.factory.ChatModelFactory;
 import com.lambda.fusion.ai.service.PromptTemplateService;
 import dev.langchain4j.agent.tool.ToolSpecification;
@@ -81,7 +82,7 @@ public class LlmProcessingNode implements AgentNode {
         Map<String, Object> nodeProperties = nextState.getCurrentNodeProperties();
         String effectiveModelId = resolveModelId(nextState, nodeProperties);
         String systemPrompt = resolveSystemPrompt(nextState, nodeProperties);
-        Set<String> allowedTools = resolveToolNames(nodeProperties, "allowedTools", "toolNames", "tools");
+        Set<String> allowedTools = resolveToolNames(nodeProperties);
 
         List<ToolSpecification> tools = allowedTools.isEmpty()
                 ? toolProvider.getToolSpecifications()
@@ -219,11 +220,11 @@ public class LlmProcessingNode implements AgentNode {
     }
 
     private String resolveSystemPrompt(AgentState nextState, Map<String, Object> nodeProperties) {
-        String systemPrompt = resolveString(nodeProperties, "systemPrompt", "systemMessage");
+        String systemPrompt = resolveString(nodeProperties);
         if (systemPrompt != null) {
             return systemPrompt;
         }
-        String promptTemplateId = resolveLong(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
+        String promptTemplateId = resolveLong(nodeProperties);
         if (promptTemplateId == null) {
             return null;
         }
@@ -236,7 +237,7 @@ public class LlmProcessingNode implements AgentNode {
         if (configuredModelId instanceof Number number) {
             return number.toString();
         }
-        if (configuredModelId instanceof String value && !value.isBlank()) {
+        if (configuredModelId instanceof String value && StrUtil.isNotBlank(value)) {
             try {
                 return value;
             } catch (NumberFormatException e) {
@@ -246,12 +247,12 @@ public class LlmProcessingNode implements AgentNode {
         return nextState.getLlmModelId();
     }
 
-    private String resolveLong(Map<String, Object> nodeProperties, String... keys) {
-        Object configuredValue = firstNonNull(nodeProperties, keys);
+    private String resolveLong(Map<String, Object> nodeProperties) {
+        Object configuredValue = firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
         if (configuredValue instanceof Number number) {
             return number.toString();
         }
-        if (configuredValue instanceof String value && !value.isBlank()) {
+        if (configuredValue instanceof String value && StrUtil.isNotBlank(value)) {
             try {
                 return value;
             } catch (NumberFormatException e) {
@@ -290,8 +291,8 @@ public class LlmProcessingNode implements AgentNode {
         return variables;
     }
 
-    private String resolveString(Map<String, Object> nodeProperties, String... keys) {
-        Object value = firstNonNull(nodeProperties, keys);
+    private String resolveString(Map<String, Object> nodeProperties) {
+        Object value = firstNonNull(nodeProperties, "systemPrompt", "systemMessage");
         if (value == null) {
             return null;
         }
@@ -299,8 +300,8 @@ public class LlmProcessingNode implements AgentNode {
         return text.isEmpty() ? null : text;
     }
 
-    private Set<String> resolveToolNames(Map<String, Object> nodeProperties, String... keys) {
-        Object value = firstNonNull(nodeProperties, keys);
+    private Set<String> resolveToolNames(Map<String, Object> nodeProperties) {
+        Object value = firstNonNull(nodeProperties, "allowedTools", "toolNames", "tools");
         if (value == null) {
             return Set.of();
         }
