@@ -118,20 +118,27 @@ public class DocumentProcessor {
             EmbeddingModel embeddingModel = embeddingModelManager.getModelByKnowledgeBase(kb.getEmbeddingModel());
             log.info("使用 EmbeddingModel: {} 处理文档", kb.getEmbeddingModel());
 
-            // 6. 批量处理向量和分片
+            // 6. 批量向量化 - 使用 embedAll 批量接口，减少 HTTP 请求次数
+            log.info("开始批量向量化 {} 个分片", segments.size());
+            Response<List<Embedding>> embeddingsResponse = embeddingModel.embedAll(segments);
+            if (embeddingsResponse == null || embeddingsResponse.content() == null) {
+                throw new RuntimeException("批量向量化失败: 返回结果为空");
+            }
+            List<Embedding> embeddings = embeddingsResponse.content();
+            if (embeddings.size() != segments.size()) {
+                throw new RuntimeException("批量向量化失败: 返回向量数量不匹配，期望 " + segments.size() + "，实际 " + embeddings.size());
+            }
+            log.info("批量向量化完成，共 {} 个向量", embeddings.size());
+
+            // 7. 构建分片实体
             List<DocumentChunkEntity> chunkEntities = new ArrayList<>();
             int totalChunks = segments.size();
 
             for (int i = 0; i < totalChunks; i++) {
                 TextSegment segment = segments.get(i);
+                Embedding embedding = embeddings.get(i);
 
-                // 向量化
-                Response<Embedding> embeddingResponse = embeddingModel.embed(segment);
-                if (embeddingResponse == null || embeddingResponse.content() == null) {
-                    throw new RuntimeException("向量化失败: 返回结果为空");
-                }
-
-                List<Double> originalVector = embeddingResponse.content().vectorAsList().stream()
+                List<Double> originalVector = embedding.vectorAsList().stream()
                         .map(Float::doubleValue)
                         .collect(Collectors.toList());
 
@@ -172,11 +179,11 @@ public class DocumentProcessor {
                 if (i % aiProperties.getDocumentChunk().getBatchSize() == 0) {
                     int progress = 40 + (int) ((double) i / totalChunks * 50);
                     updateStatus(
-                            doc, DocumentStatus.PROCESSING, progress, "向量化处理中 (" + (i + 1) + "/" + totalChunks + ")");
+                            doc, DocumentStatus.PROCESSING, progress, "构建分片实体 (" + (i + 1) + "/" + totalChunks + ")");
                 }
             }
 
-            // 6. 执行批量插入 - 在单一事务中完成，使用分批处理防止SQL过长
+            // 8. 执行批量插入 - 在单一事务中完成，使用分批处理防止SQL过长
             if (!chunkEntities.isEmpty()) {
                 log.info(
                         "执行批量存储: {} chunks，批次大小: {}",
@@ -203,7 +210,7 @@ public class DocumentProcessor {
                 });
             }
 
-            // 7. 更新文档统计信息和最终状态
+            // 9. 更新文档统计信息和最终状态
             doc.setChunkCount(totalChunks);
             doc.setVectorCount(totalChunks);
             doc.setProcessStatus(DocumentStatus.COMPLETED.name());
