@@ -237,7 +237,7 @@ public class LlmProcessingNode implements AgentNode {
         if (systemPrompt != null) {
             return systemPrompt;
         }
-        String promptTemplateId = resolveLong(nodeProperties);
+        String promptTemplateId = resolveTemplateId(nodeProperties);
         if (promptTemplateId == null) {
             return null;
         }
@@ -251,26 +251,18 @@ public class LlmProcessingNode implements AgentNode {
             return number.toString();
         }
         if (configuredModelId instanceof String value && StrUtil.isNotBlank(value)) {
-            try {
-                return value;
-            } catch (NumberFormatException e) {
-                log.warn("LlmProcessingNode: 节点 {} 配置了非法模型ID: {}", nextState.getCurrentNodeId(), value);
-            }
+            return value;
         }
         return nextState.getLlmModelId();
     }
 
-    private String resolveLong(Map<String, Object> nodeProperties) {
+    private String resolveTemplateId(Map<String, Object> nodeProperties) {
         Object configuredValue = firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
         if (configuredValue instanceof Number number) {
             return number.toString();
         }
         if (configuredValue instanceof String value && StrUtil.isNotBlank(value)) {
-            try {
-                return value;
-            } catch (NumberFormatException e) {
-                return null;
-            }
+            return value;
         }
         return null;
     }
