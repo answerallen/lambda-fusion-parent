@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.mapper;
 
-import com.baomidou.dynamic.datasource.annotation.DS;
 import com.lambda.fusion.ai.model.VectorSearchResult;
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import java.util.List;
