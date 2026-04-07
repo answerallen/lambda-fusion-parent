@@ -5,6 +5,7 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
+import com.lambda.fusion.ai.AiConstants;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.ChatMessageMapper;
@@ -293,7 +294,9 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
      */
     private List<ChatMessage> buildChatHistory(String sessionId, String excludeMessageId) {
         // Mapper 返回倒序（最新在前），需要反转为正序（最早在前）
-        List<ChatMessageEntity> recentMessages = chatMessageMapper.listBySessionId(sessionId, 11);
+        // 查询 DEFAULT_HISTORY_LIMIT + 1 条消息，预留一条用于排除当前消息
+        List<ChatMessageEntity> recentMessages =
+                chatMessageMapper.listBySessionId(sessionId, AiConstants.DEFAULT_HISTORY_LIMIT + 1);
         List<ChatMessage> history = new java.util.ArrayList<>();
         if (recentMessages != null) {
             for (ChatMessageEntity entity : recentMessages) {

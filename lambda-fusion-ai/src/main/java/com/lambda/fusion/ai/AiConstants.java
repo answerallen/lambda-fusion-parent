@@ -5,6 +5,12 @@ import lombok.Getter;
 
 public interface AiConstants {
 
+
+    /**
+     * 默认历史消息限制数量（用于 LLM 上下文）
+     */
+    int DEFAULT_HISTORY_LIMIT = 10;
+
     @SuppressWarnings("unused")
     interface Enums {
 
