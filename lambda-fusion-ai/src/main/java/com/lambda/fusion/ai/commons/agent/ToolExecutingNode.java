@@ -2,7 +2,6 @@ package com.lambda.fusion.ai.commons.agent;
 
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +36,8 @@ public class ToolExecutingNode implements AgentNode {
             nextState.getPendingToolRequests().clear();
             return new ExecutionResult(nextState, LlmProcessingNode.NAME);
         }
-        Set<String> allowedTools = resolveToolNames(nodeProperties, "allowedTools", "toolNames", "tools");
+        Set<String> allowedTools =
+                AgentNodeUtils.resolveToolNames(nodeProperties, toolProvider, "allowedTools", "toolNames", "tools");
 
         if (requests == null || requests.isEmpty()) {
             return new ExecutionResult(nextState, LlmProcessingNode.NAME);
@@ -64,50 +64,12 @@ public class ToolExecutingNode implements AgentNode {
     }
 
     private Boolean resolveBoolean(Map<String, Object> nodeProperties, String... keys) {
-        Object value = firstNonNull(nodeProperties, keys);
+        Object value = AgentNodeUtils.firstNonNull(nodeProperties, keys);
         if (value instanceof Boolean boolValue) {
             return boolValue;
         }
         if (value instanceof String text && !text.isBlank()) {
             return Boolean.parseBoolean(text.trim());
-        }
-        return null;
-    }
-
-    private Set<String> resolveToolNames(Map<String, Object> nodeProperties, String... keys) {
-        Object value = firstNonNull(nodeProperties, keys);
-        if (value == null) {
-            return Set.of();
-        }
-        Set<String> toolNames = new LinkedHashSet<>();
-        if (value instanceof Iterable<?> iterable) {
-            for (Object item : iterable) {
-                if (item != null && !item.toString().isBlank()) {
-                    String toolName = item.toString().trim();
-                    if (toolProvider.hasTool(toolName)) {
-                        toolNames.add(toolName);
-                    }
-                }
-            }
-        } else {
-            for (String item : value.toString().split(",")) {
-                if (!item.isBlank()) {
-                    String toolName = item.trim();
-                    if (toolProvider.hasTool(toolName)) {
-                        toolNames.add(toolName);
-                    }
-                }
-            }
-        }
-        return toolNames;
-    }
-
-    private Object firstNonNull(Map<String, Object> nodeProperties, String... keys) {
-        for (String key : keys) {
-            Object value = nodeProperties.get(key);
-            if (value != null) {
-                return value;
-            }
         }
         return null;
     }

@@ -25,7 +25,6 @@ import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -246,7 +245,7 @@ public class LlmProcessingNode implements AgentNode {
     }
 
     private String resolveModelId(AgentState nextState, Map<String, Object> nodeProperties) {
-        Object configuredModelId = firstNonNull(nodeProperties, "llmModelId", "modelId");
+        Object configuredModelId = AgentNodeUtils.firstNonNull(nodeProperties, "llmModelId", "modelId");
         if (configuredModelId instanceof Number number) {
             return number.toString();
         }
@@ -257,7 +256,8 @@ public class LlmProcessingNode implements AgentNode {
     }
 
     private String resolveTemplateId(Map<String, Object> nodeProperties) {
-        Object configuredValue = firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
+        Object configuredValue =
+                AgentNodeUtils.firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
         if (configuredValue instanceof Number number) {
             return number.toString();
         }
@@ -280,7 +280,7 @@ public class LlmProcessingNode implements AgentNode {
         if (nextState.getAttributes() != null) {
             variables.putAll(nextState.getAttributes());
         }
-        Object templateVariables = firstNonNull(nodeProperties, "templateVariables", "promptVariables");
+        Object templateVariables = AgentNodeUtils.firstNonNull(nodeProperties, "templateVariables", "promptVariables");
         if (templateVariables instanceof Map<?, ?> map) {
             map.forEach((key, value) -> {
                 if (key != null) {
@@ -297,7 +297,7 @@ public class LlmProcessingNode implements AgentNode {
     }
 
     private String resolveString(Map<String, Object> nodeProperties) {
-        Object value = firstNonNull(nodeProperties, "systemPrompt", "systemMessage");
+        Object value = AgentNodeUtils.firstNonNull(nodeProperties, "systemPrompt", "systemMessage");
         if (value == null) {
             return null;
         }
@@ -306,34 +306,6 @@ public class LlmProcessingNode implements AgentNode {
     }
 
     private Set<String> resolveToolNames(Map<String, Object> nodeProperties) {
-        Object value = firstNonNull(nodeProperties, "allowedTools", "toolNames", "tools");
-        if (value == null) {
-            return Set.of();
-        }
-        Set<String> toolNames = new LinkedHashSet<>();
-        if (value instanceof Iterable<?> iterable) {
-            for (Object item : iterable) {
-                if (item != null && !item.toString().isBlank()) {
-                    toolNames.add(item.toString().trim());
-                }
-            }
-        } else {
-            for (String item : value.toString().split(",")) {
-                if (!item.isBlank()) {
-                    toolNames.add(item.trim());
-                }
-            }
-        }
-        return toolNames;
-    }
-
-    private Object firstNonNull(Map<String, Object> nodeProperties, String... keys) {
-        for (String key : keys) {
-            Object value = nodeProperties.get(key);
-            if (value != null) {
-                return value;
-            }
-        }
-        return null;
+        return AgentNodeUtils.resolveToolNames(nodeProperties, toolProvider, "allowedTools", "toolNames", "tools");
     }
 }

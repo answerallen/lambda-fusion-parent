@@ -56,6 +56,7 @@ public class ConditionalNode implements AgentNode {
             String target = (String) branch.get("target");
 
             if (target == null || target.isEmpty()) {
+                log.warn("条件节点分支配置了空的目标节点，已跳过。condition: {}, conditionType: {}", condition, conditionType);
                 continue;
             }
 
