@@ -12,6 +12,13 @@ public interface ChatMessageMapper extends BaseMapper<ChatMessageEntity> {
 
     /**
      * 按会话ID查询消息列表
+     * <p>
+     * <strong>返回顺序</strong>：按创建时间倒序（最新消息在前）。
+     * 调用方需要根据业务需求决定是否反转顺序。
+     *
+     * @param sessionId 会话ID
+     * @param limit 限制数量（取最近的N条消息）
+     * @return 消息列表，按 created_at DESC 排序
      */
     List<ChatMessageEntity> listBySessionId(@Param("sessionId") String sessionId, @Param("limit") Integer limit);
 

@@ -276,7 +276,23 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         }
     }
 
+    /**
+     * 构建聊天历史消息列表
+     * <p>
+     * <strong>顺序说明</strong>：
+     * <ol>
+     *   <li>Mapper 返回按 created_at DESC 排序的消息（最新在前）</li>
+     *   <li>遍历添加到列表后，顺序仍为倒序（最新在前）</li>
+     *   <li>调用 {@link java.util.Collections#reverse(List)} 反转为正序（最早在前）</li>
+     *   <li>最终返回正序历史，符合对话时间线，供 LLM 正确理解上下文</li>
+     * </ol>
+     *
+     * @param sessionId 会话ID
+     * @param excludeMessageId 需要排除的消息ID（可为null）
+     * @return 正序排列的历史消息列表（最早在前）
+     */
     private List<ChatMessage> buildChatHistory(String sessionId, String excludeMessageId) {
+        // Mapper 返回倒序（最新在前），需要反转为正序（最早在前）
         List<ChatMessageEntity> recentMessages = chatMessageMapper.listBySessionId(sessionId, 11);
         List<ChatMessage> history = new java.util.ArrayList<>();
         if (recentMessages != null) {
@@ -290,6 +306,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                     history.add(new UserMessage(entity.getContent()));
                 }
             }
+            // 反转为正序：确保历史消息按时间正序排列，LLM 能正确理解对话上下文
             java.util.Collections.reverse(history);
         }
         return history;
