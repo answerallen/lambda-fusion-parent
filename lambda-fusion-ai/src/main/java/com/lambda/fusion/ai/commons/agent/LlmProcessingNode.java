@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.commons.agent;
 
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_CIRCUIT_BREAKER;
+import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RATE_LIMITER;
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RETRY;
 
 import cn.hutool.core.util.StrUtil;
@@ -18,6 +19,8 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.ratelimiter.RateLimiter;
+import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
 import java.util.ArrayList;
@@ -37,6 +40,7 @@ import org.springframework.stereotype.Component;
  * 图节点：负责向大语言模型请求分析，决定是回复用户还是调用后续Tool。
  * <p>
  * 容错特性：
+ * - 限流：每分钟最多60次请求，超限自动排队等待
  * - 重试：失败时自动重试最多3次
  * - 熔断：失败率超过50%时熔断30秒
  * - 降级：熔断时返回友好提示
@@ -52,16 +56,19 @@ public class LlmProcessingNode implements AgentNode {
     private final PromptTemplateService promptTemplateService;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final RetryRegistry retryRegistry;
+    private final RateLimiterRegistry rateLimiterRegistry;
 
     public LlmProcessingNode(
             AgentToolProvider toolProvider,
             PromptTemplateService promptTemplateService,
             CircuitBreakerRegistry circuitBreakerRegistry,
-            RetryRegistry retryRegistry) {
+            RetryRegistry retryRegistry,
+            RateLimiterRegistry rateLimiterRegistry) {
         this.toolProvider = toolProvider;
         this.promptTemplateService = promptTemplateService;
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.retryRegistry = retryRegistry;
+        this.rateLimiterRegistry = rateLimiterRegistry;
     }
 
     @Autowired
@@ -112,8 +119,13 @@ public class LlmProcessingNode implements AgentNode {
 
         CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(LLM_CIRCUIT_BREAKER);
         Retry retry = retryRegistry.retry(LLM_RETRY);
+        RateLimiter rateLimiter = rateLimiterRegistry.rateLimiter(LLM_RATE_LIMITER);
 
-        // 使用 Resilience4j 的装饰器链
+        // 使用 Resilience4j 的装饰器链：RateLimiter -> CircuitBreaker -> Retry
+        // 顺序说明：
+        // 1. RateLimiter 在最外层，确保请求先被限流排队
+        // 2. CircuitBreaker 在中间，监控失败率并熔断
+        // 3. Retry 在最内层，失败时自动重试
         Supplier<ChatResponse> decoratedSupplier = CircuitBreaker.decorateSupplier(circuitBreaker, () -> {
             try {
                 return doLlmCall(state, modelId, systemPrompt, tools, handler);
@@ -123,6 +135,7 @@ public class LlmProcessingNode implements AgentNode {
         });
 
         decoratedSupplier = Retry.decorateSupplier(retry, decoratedSupplier);
+        decoratedSupplier = RateLimiter.decorateSupplier(rateLimiter, decoratedSupplier);
 
         try {
             return decoratedSupplier.get();

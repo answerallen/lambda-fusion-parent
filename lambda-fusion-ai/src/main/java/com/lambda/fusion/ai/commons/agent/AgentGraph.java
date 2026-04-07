@@ -280,6 +280,15 @@ public class AgentGraph {
             synchronized (edges) {
                 edgeSnapshot = new ArrayList<>(edges);
             }
+
+            // 构建边索引：按 sourceId 分组，避免每次路由都遍历全部边
+            Map<String, List<Edge>> edgeIndex = new HashMap<>();
+            for (Edge edge : edgeSnapshot) {
+                edgeIndex
+                        .computeIfAbsent(edge.getSourceId(), k -> new ArrayList<>())
+                        .add(edge);
+            }
+
             Map<String, String> routeMap = buildRouteMap(nodeSnapshot);
 
             for (Map.Entry<String, AgentNode> entry : nodeSnapshot.entrySet()) {
@@ -305,7 +314,7 @@ public class AgentGraph {
                 }));
 
                 graph.addConditionalEdges(
-                        nodeId, edge_async(runtimeState -> routeNext(nodeId, runtimeState, edgeSnapshot)), routeMap);
+                        nodeId, edge_async(runtimeState -> routeNext(nodeId, runtimeState, edgeIndex)), routeMap);
             }
 
             graph.addEdge(StateGraph.START, startNodeId);
@@ -335,7 +344,8 @@ public class AgentGraph {
         return routeMap;
     }
 
-    private String routeNext(String currentNodeId, LangGraphRuntimeState runtimeState, List<Edge> edgeSnapshot) {
+    private String routeNext(
+            String currentNodeId, LangGraphRuntimeState runtimeState, Map<String, List<Edge>> edgeIndex) {
         AgentState state = runtimeState.agentState();
         if (state == null || state.isFinished()) {
             recordRouteDecision(state, currentNodeId, END_NODE, "finished", null);
@@ -356,10 +366,10 @@ public class AgentGraph {
             return suggestedNext;
         }
 
-        RouteDecision routeDecision = evaluateEdgesForNext(currentNodeId, state, edgeSnapshot);
+        RouteDecision routeDecision = evaluateEdgesForNext(currentNodeId, state, edgeIndex);
         if (routeDecision == null || !StringUtils.hasText(routeDecision.targetId())) {
-            boolean hasOutgoingEdges =
-                    edgeSnapshot.stream().anyMatch(e -> e.getSourceId().equals(currentNodeId));
+            // 使用索引直接判断是否有出边，O(1) 复杂度
+            boolean hasOutgoingEdges = edgeIndex.containsKey(currentNodeId);
             if (hasOutgoingEdges) {
                 AgentNode currentNode = nodes.get(currentNodeId);
                 if (currentNode != null) {
@@ -623,20 +633,35 @@ public class AgentGraph {
         return new ArrayList<>(nextMessages.subList(previousSize, nextMessages.size()));
     }
 
-    private RouteDecision evaluateEdgesForNext(String currentNodeId, AgentState state, List<Edge> edgeSnapshot) {
-        for (Edge edge : edgeSnapshot) {
-            if (edge.getSourceId().equals(currentNodeId)) {
-                if (edge.getConditionEvaluator() != null && StringUtils.hasText(edge.getConditionExpression())) {
-                    boolean isPass = edge.getConditionEvaluator().evaluate(edge.getConditionExpression(), state);
-                    if (isPass) {
-                        return new RouteDecision(
-                                edge.getTargetId(),
-                                "conditional",
-                                edge.getConditionEvaluator().getType() + ":" + edge.getConditionExpression());
-                    }
-                } else {
-                    return new RouteDecision(edge.getTargetId(), "direct", null);
+    /**
+     * 评估当前节点的出边，决定下一个节点
+     * <p>
+     * 使用边索引直接查找当前节点的出边，O(1) 复杂度。
+     *
+     * @param currentNodeId 当前节点ID
+     * @param state 当前状态
+     * @param edgeIndex 边索引（按 sourceId 分组）
+     * @return 路由决策，如果没有匹配的边则返回 null
+     */
+    private RouteDecision evaluateEdgesForNext(
+            String currentNodeId, AgentState state, Map<String, List<Edge>> edgeIndex) {
+        // 直接从索引获取当前节点的出边，O(1) 复杂度
+        List<Edge> outgoingEdges = edgeIndex.get(currentNodeId);
+        if (outgoingEdges == null || outgoingEdges.isEmpty()) {
+            return null;
+        }
+
+        for (Edge edge : outgoingEdges) {
+            if (edge.getConditionEvaluator() != null && StringUtils.hasText(edge.getConditionExpression())) {
+                boolean isPass = edge.getConditionEvaluator().evaluate(edge.getConditionExpression(), state);
+                if (isPass) {
+                    return new RouteDecision(
+                            edge.getTargetId(),
+                            "conditional",
+                            edge.getConditionEvaluator().getType() + ":" + edge.getConditionExpression());
                 }
+            } else {
+                return new RouteDecision(edge.getTargetId(), "direct", null);
             }
         }
         return null;

@@ -9,6 +9,8 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.core.IntervalFunction;
+import io.github.resilience4j.ratelimiter.RateLimiter;
+import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
@@ -84,6 +86,17 @@ public class AiConfigure {
         @Bean
         public RateLimiterRegistry rateLimiterRegistry() {
             return RateLimiterRegistry.ofDefaults();
+        }
+
+        @Bean
+        public RateLimiter llmRateLimiter(RateLimiterRegistry registry) {
+            RateLimiterConfig config = RateLimiterConfig.custom()
+                    .limitForPeriod(60)
+                    .limitRefreshPeriod(Duration.ofMinutes(1))
+                    .timeoutDuration(Duration.ofSeconds(30))
+                    .build();
+
+            return registry.rateLimiter(LLM_RATE_LIMITER, config);
         }
 
         @Bean
