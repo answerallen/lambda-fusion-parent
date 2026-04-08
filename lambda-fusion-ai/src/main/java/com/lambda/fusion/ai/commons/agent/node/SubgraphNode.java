@@ -8,24 +8,57 @@ import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.factory.AgentGraphFactory;
 import com.lambda.fusion.ai.model.entity.WorkflowEntity;
 import com.lambda.fusion.ai.service.WorkflowService;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+/**
+ * 子图执行节点
+ *
+ * <p>用于在工作流中嵌入执行另一个完整的工作流（子图）。
+ *
+ * <p><b>配置示例</b>：
+ * <pre>
+ * {
+ *   "subgraphId": 123,
+ *   "subgraphName": "legal_review_workflow",
+ *   "inheritContext": false,
+ *   "async": false,
+ *   "propagateErrors": true,
+ *   "inputMapping": {
+ *     "query": "attributes.userQuery",
+ *     "context": "attributes.context"
+ *   },
+ *   "outputMapping": {
+ *     "attributes.legalOpinion": "opinion",
+ *     "attributes.riskLevel": "riskLevel"
+ *   },
+ *   "nextNode": "next_step"
+ * }
+ * </pre>
+ *
+ * <p><b>行为说明</b>：
+ * <ul>
+ *   <li>同步模式（async=false）：在当前线程中执行子图，等待完成后继续</li>
+ *   <li>异步模式（async=true）：在线程池中执行子图，但同步等待完成后再返回</li>
+ *   <li>两种模式都确保子图结果在节点返回前写入 state</li>
+ * </ul>
+ */
 @Slf4j
 @Component
 public class SubgraphNode implements AgentNode {
 
     public static final String NAME = "SUBGRAPH";
 
-    private static final String SUBGRAPH_CONTEXT_KEY = "__subgraph_context__";
-    private static final String SUBGRAPH_RESULT_KEY = "__subgraph_result__";
     private static final String SUBGRAPH_ERROR_KEY = "__subgraph_error__";
     private static final long DEFAULT_ASYNC_TIMEOUT = 30000;
 
@@ -58,7 +91,6 @@ public class SubgraphNode implements AgentNode {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public ExecutionResult execute(AgentState state) {
         Map<String, Object> properties = state.getCurrentNodeProperties();
 
@@ -66,24 +98,6 @@ public class SubgraphNode implements AgentNode {
             log.warn("子图节点缺少配置属性");
             return new ExecutionResult(state, null);
         }
-
-        SubgraphContext context = getOrCreateSubgraphContext(state);
-
-        if (context.isCompleted) {
-            clearSubgraphContext(state);
-            String nextNode = (String) properties.get("nextNode");
-            return new ExecutionResult(state, nextNode);
-        }
-
-        if (context.isExecuting && context.isAsync) {
-            return checkAsyncCompletion(state, context, properties);
-        }
-
-        return startSubgraphExecution(state, context, properties);
-    }
-
-    private ExecutionResult startSubgraphExecution(
-            AgentState state, SubgraphContext context, Map<String, Object> properties) {
 
         String subgraphDefinition = (String) properties.get("subgraphDefinition");
         Long subgraphId = parseSubgraphId(properties.get("subgraphId"));
@@ -107,22 +121,18 @@ public class SubgraphNode implements AgentNode {
 
             AgentState subgraphInputState = prepareSubgraphInput(state, properties, inheritContext);
 
-            context.isExecuting = true;
-            context.isAsync = async;
-            context.startTime = System.currentTimeMillis();
-            context.propagateErrors = propagateErrors;
-            saveSubgraphContext(state, context);
+            long startTime = System.currentTimeMillis();
 
             if (async) {
-                return executeAsync(state, context, subgraph, subgraphInputState, properties);
+                return executeAsync(state, subgraph, subgraphInputState, properties, propagateErrors, startTime);
             } else {
-                return executeSync(state, context, subgraph, subgraphInputState, properties);
+                return executeSync(state, subgraph, subgraphInputState, properties, propagateErrors, startTime);
             }
 
         } catch (Exception e) {
             log.error("子图执行异常", e);
-            handleExecutionError(state, context, e, propagateErrors);
-            return new ExecutionResult(state, null);
+            handleExecutionError(state, e, propagateErrors);
+            return new ExecutionResult(state, (String) properties.get("nextNode"));
         }
     }
 
@@ -154,105 +164,80 @@ public class SubgraphNode implements AgentNode {
     }
 
     private Long parseSubgraphId(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Number number) {
-            return number.longValue();
-        }
-        if (value instanceof String str && !str.isBlank()) {
-            try {
-                return Long.parseLong(str.trim());
-            } catch (NumberFormatException e) {
-                log.warn("无法解析 subgraphId: {}", value);
+        switch (value) {
+            case null -> {
                 return null;
             }
+            case Number number -> {
+                return number.longValue();
+            }
+            case String str
+            when !str.isBlank() -> {
+                try {
+                    return Long.parseLong(str.trim());
+                } catch (NumberFormatException e) {
+                    log.warn("无法解析 subgraphId: {}", value);
+                    return null;
+                }
+            }
+            default -> {}
         }
         return null;
     }
 
     private ExecutionResult executeSync(
             AgentState state,
-            SubgraphContext context,
             AgentGraph subgraph,
             AgentState subgraphInputState,
-            Map<String, Object> properties) {
+            Map<String, Object> properties,
+            boolean propagateErrors,
+            long startTime) {
 
         try {
             AgentState subgraphOutputState = subgraph.invoke(subgraphInputState);
-            return handleSubgraphOutput(state, context, subgraphOutputState, properties);
+            return handleSubgraphOutput(state, subgraphOutputState, properties, startTime);
         } catch (Exception e) {
             log.error("同步子图执行异常", e);
-            handleExecutionError(state, context, e, context.propagateErrors);
-            return new ExecutionResult(state, null);
+            handleExecutionError(state, e, propagateErrors);
+            return new ExecutionResult(state, (String) properties.get("nextNode"));
         }
     }
 
     private ExecutionResult executeAsync(
             AgentState state,
-            SubgraphContext context,
             AgentGraph subgraph,
             AgentState subgraphInputState,
-            Map<String, Object> properties) {
+            Map<String, Object> properties,
+            boolean propagateErrors,
+            long startTime) {
 
         long asyncTimeout = getAsyncTimeout();
-        AtomicReference<SubgraphContext> contextRef = new AtomicReference<>(context);
 
-        CompletableFuture.supplyAsync(
-                        () -> {
-                            try {
-                                return subgraph.invoke(subgraphInputState);
-                            } catch (Exception e) {
-                                log.error("异步子图执行异常", e);
-                                throw new RuntimeException(e);
-                            }
-                        },
-                        executor)
-                .orTimeout(asyncTimeout, java.util.concurrent.TimeUnit.MILLISECONDS)
-                .whenComplete((result, error) -> {
-                    SubgraphContext ctx = contextRef.get();
-                    ctx.isCompleted = true;
-                    ctx.completedAt = System.currentTimeMillis();
+        try {
+            AgentState subgraphOutputState = CompletableFuture.supplyAsync(
+                            () -> subgraph.invoke(subgraphInputState), executor)
+                    .orTimeout(asyncTimeout, TimeUnit.MILLISECONDS)
+                    .get();
 
-                    if (error != null) {
-                        ctx.error = error.getMessage();
-                    } else if (result != null) {
-                        ctx.asyncResult = result;
-                    }
+            return handleSubgraphOutput(state, subgraphOutputState, properties, startTime);
 
-                    log.info("异步子图执行完成，耗时: {}ms", ctx.completedAt - ctx.startTime);
-                });
-
-        log.debug("异步子图已启动，继续执行父图");
-        String nextNode = (String) properties.get("nextNode");
-        return new ExecutionResult(state, nextNode);
-    }
-
-    private ExecutionResult checkAsyncCompletion(
-            AgentState state, SubgraphContext context, Map<String, Object> properties) {
-
-        if (context.isCompleted) {
-            String nextNode = (String) properties.get("nextNode");
-
-            if (context.error != null && context.propagateErrors) {
-                if (state.getAttributes() == null) {
-                    state.setAttributes(new ConcurrentHashMap<>());
-                }
-                state.getAttributes().put(SUBGRAPH_ERROR_KEY, context.error);
+        } catch (CancellationException e) {
+            log.warn("子图异步执行被取消");
+            return new ExecutionResult(state, (String) properties.get("nextNode"));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new ExecutionResult(state, (String) properties.get("nextNode"));
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof TimeoutException) {
+                log.warn("子图异步执行超时 {}ms", asyncTimeout);
+                handleExecutionError(state, new RuntimeException("子图执行超时"), propagateErrors);
+            } else {
+                log.error("子图异步执行异常", cause);
+                handleExecutionError(state, new RuntimeException(cause), propagateErrors);
             }
-
-            if (context.asyncResult != null) {
-                if (state.getAttributes() == null) {
-                    state.setAttributes(new ConcurrentHashMap<>());
-                }
-                state.getAttributes().put(SUBGRAPH_RESULT_KEY, context.asyncResult);
-            }
-
-            clearSubgraphContext(state);
-            return new ExecutionResult(state, nextNode);
+            return new ExecutionResult(state, (String) properties.get("nextNode"));
         }
-
-        return new ExecutionResult(state, null);
     }
 
     private AgentState prepareSubgraphInput(
@@ -287,12 +272,8 @@ public class SubgraphNode implements AgentNode {
         return subgraphState;
     }
 
-    @SuppressWarnings("unchecked")
     private ExecutionResult handleSubgraphOutput(
-            AgentState parentState,
-            SubgraphContext context,
-            AgentState subgraphOutputState,
-            Map<String, Object> properties) {
+            AgentState parentState, AgentState subgraphOutputState, Map<String, Object> properties, long startTime) {
 
         Object outputMappingObj = properties.get("outputMapping");
         if (outputMappingObj instanceof Map<?, ?> outputMapping) {
@@ -313,23 +294,14 @@ public class SubgraphNode implements AgentNode {
             });
         }
 
-        context.isCompleted = true;
-        context.completedAt = System.currentTimeMillis();
-
-        long duration = context.completedAt - context.startTime;
+        long duration = System.currentTimeMillis() - startTime;
         log.info("子图执行完成，耗时: {}ms", duration);
-
-        clearSubgraphContext(subgraphOutputState);
 
         String nextNode = (String) properties.get("nextNode");
         return new ExecutionResult(parentState, nextNode);
     }
 
-    private void handleExecutionError(AgentState state, SubgraphContext context, Exception e, boolean propagateErrors) {
-        context.isCompleted = true;
-        context.error = e.getMessage();
-        saveSubgraphContext(state, context);
-
+    private void handleExecutionError(AgentState state, Exception e, boolean propagateErrors) {
         if (propagateErrors && state.getAttributes() != null) {
             state.getAttributes().put(SUBGRAPH_ERROR_KEY, e.getMessage());
         }
@@ -355,14 +327,16 @@ public class SubgraphNode implements AgentNode {
             };
         }
 
-        if (parts.length >= 2 && "attributes".equals(parts[0])) {
-            if (state.getAttributes() != null) {
-                Object current = state.getAttributes().get(parts[1]);
-                for (int i = 2; i < parts.length && current instanceof Map; i++) {
-                    current = ((Map<String, Object>) current).get(parts[i]);
-                }
-                return current;
-            }
+        if (parts.length >= 2 && "attributes".equals(parts[0]) && state.getAttributes() != null) {
+            // 1. 获取初始节点
+            Object root = state.getAttributes().get(parts[1]);
+            // 2. 使用 reduce 逐层深入
+            return Arrays.stream(parts)
+                    .skip(2)
+                    .reduce(
+                            root,
+                            (current, key) -> (current instanceof Map<?, ?> map) ? map.get(key) : null,
+                            (a, b) -> b);
         }
 
         return null;
@@ -397,67 +371,6 @@ public class SubgraphNode implements AgentNode {
                 current = (Map<String, Object>) next;
             }
             current.put(parts[parts.length - 1], value);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private SubgraphContext getOrCreateSubgraphContext(AgentState state) {
-        if (state.getAttributes() != null) {
-            Object contextObj = state.getAttributes().get(SUBGRAPH_CONTEXT_KEY);
-            if (contextObj instanceof Map<?, ?> contextMap) {
-                return SubgraphContext.fromMap((Map<String, Object>) contextMap);
-            }
-        }
-        return new SubgraphContext();
-    }
-
-    private void saveSubgraphContext(AgentState state, SubgraphContext context) {
-        if (state.getAttributes() != null) {
-            state.getAttributes().put(SUBGRAPH_CONTEXT_KEY, context.toMap());
-        }
-    }
-
-    private void clearSubgraphContext(AgentState state) {
-        if (state.getAttributes() != null) {
-            state.getAttributes().remove(SUBGRAPH_CONTEXT_KEY);
-        }
-    }
-
-    private static class SubgraphContext {
-        boolean isExecuting = false;
-        boolean isCompleted = false;
-        boolean isAsync = false;
-        boolean propagateErrors = true;
-        long startTime = 0;
-        long completedAt = 0;
-        String error = null;
-        transient volatile AgentState asyncResult = null;
-
-        Map<String, Object> toMap() {
-            Map<String, Object> map = new HashMap<>();
-            map.put("isExecuting", isExecuting);
-            map.put("isCompleted", isCompleted);
-            map.put("isAsync", isAsync);
-            map.put("propagateErrors", propagateErrors);
-            map.put("startTime", startTime);
-            map.put("completedAt", completedAt);
-            map.put("error", error);
-            return map;
-        }
-
-        static SubgraphContext fromMap(Map<String, Object> map) {
-            SubgraphContext context = new SubgraphContext();
-            context.isExecuting = Boolean.TRUE.equals(map.get("isExecuting"));
-            context.isCompleted = Boolean.TRUE.equals(map.get("isCompleted"));
-            context.isAsync = Boolean.TRUE.equals(map.get("isAsync"));
-            Object propagateErrorsVal = map.get("propagateErrors");
-            context.propagateErrors = propagateErrorsVal == null || Boolean.TRUE.equals(propagateErrorsVal);
-            Object startTimeVal = map.get("startTime");
-            context.startTime = startTimeVal instanceof Number n ? n.longValue() : 0L;
-            Object completedAtVal = map.get("completedAt");
-            context.completedAt = completedAtVal instanceof Number n ? n.longValue() : 0L;
-            context.error = (String) map.get("error");
-            return context;
         }
     }
 }

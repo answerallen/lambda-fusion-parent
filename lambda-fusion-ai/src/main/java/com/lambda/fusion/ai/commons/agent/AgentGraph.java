@@ -13,8 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -414,61 +412,10 @@ public class AgentGraph {
             log.warn("无法找到节点: {}", nodeId);
             return inputState;
         }
-        AgentState branchState = deepCopyState(inputState);
+        AgentState branchState = AgentNodeUtils.deepCopyState(inputState);
         enrichExecutionContext(branchState, nodeId, targetNode, nodePropertiesSnapshot);
         AgentNode.ExecutionResult result = targetNode.execute(branchState);
         return result != null && result.state() != null ? result.state() : branchState;
-    }
-
-    private AgentState deepCopyState(AgentState original) {
-        AgentState copy = new AgentState();
-        copy.setSessionId(original.getSessionId());
-        copy.setKbId(original.getKbId());
-        copy.setLlmModelId(original.getLlmModelId());
-        copy.setFinished(original.isFinished());
-        copy.setMessages(
-                new CopyOnWriteArrayList<>(original.getMessages() != null ? original.getMessages() : List.of()));
-        copy.setPendingToolRequests(new CopyOnWriteArrayList<>(
-                original.getPendingToolRequests() != null ? original.getPendingToolRequests() : List.of()));
-
-        copy.setNodeExecutor(original.getNodeExecutor());
-
-        if (original.getAvailableNodes() != null) {
-            copy.setAvailableNodes(new ConcurrentHashMap<>(original.getAvailableNodes()));
-        }
-
-        if (original.getAttributes() != null) {
-            Map<String, Object> copiedAttributes = new ConcurrentHashMap<>();
-            original.getAttributes().forEach((key, value) -> {
-                if (value instanceof Map<?, ?> mapValue) {
-                    copiedAttributes.put(key, deepCopyMap(mapValue));
-                } else if (value instanceof List<?> listValue) {
-                    copiedAttributes.put(key, new CopyOnWriteArrayList<>(listValue));
-                } else {
-                    copiedAttributes.put(key, value);
-                }
-            });
-            copy.setAttributes(copiedAttributes);
-        } else {
-            copy.setAttributes(new ConcurrentHashMap<>());
-        }
-
-        return copy;
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> deepCopyMap(Map<?, ?> source) {
-        Map<String, Object> copy = new ConcurrentHashMap<>();
-        source.forEach((key, value) -> {
-            if (value instanceof Map<?, ?> mapValue) {
-                copy.put(String.valueOf(key), deepCopyMap(mapValue));
-            } else if (value instanceof List<?> listValue) {
-                copy.put(String.valueOf(key), new CopyOnWriteArrayList<>(listValue));
-            } else {
-                copy.put(String.valueOf(key), value);
-            }
-        });
-        return copy;
     }
 
     private Map<String, Map<String, Object>> deepCopyNodeProperties(Map<String, Map<String, Object>> source) {

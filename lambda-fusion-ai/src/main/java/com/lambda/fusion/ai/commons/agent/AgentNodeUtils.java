@@ -1,8 +1,11 @@
 package com.lambda.fusion.ai.commons.agent;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,7 +48,7 @@ public class AgentNodeUtils {
                     if (toolProvider.hasTool(toolName)) {
                         toolNames.add(toolName);
                     } else {
-                        log.warn("配置的工具 '{}' 不存在，已跳过", toolName);
+                        log.warn("Iterable 配置的工具 '{}' 不存在，已跳过", toolName);
                     }
                 }
             }
@@ -56,7 +59,7 @@ public class AgentNodeUtils {
                     if (toolProvider.hasTool(toolName)) {
                         toolNames.add(toolName);
                     } else {
-                        log.warn("配置的工具 '{}' 不存在，已跳过", toolName);
+                        log.warn("String 配置的工具 '{}' 不存在，已跳过", toolName);
                     }
                 }
             }
@@ -79,5 +82,80 @@ public class AgentNodeUtils {
             }
         }
         return null;
+    }
+
+    /**
+     * 深拷贝 AgentState 对象
+     * <p>
+     * 创建一个完全独立的 AgentState 副本，包括：
+     * <ul>
+     *   <li>基本属性（sessionId, kbId, llmModelId, finished）</li>
+     *   <li>消息列表（CopyOnWriteArrayList）</li>
+     *   <li>待处理工具请求列表（CopyOnWriteArrayList）</li>
+     *   <li>属性映射（ConcurrentHashMap，递归深拷贝）</li>
+     *   <li>可用节点映射</li>
+     *   <li>节点执行器引用</li>
+     * </ul>
+     *
+     * @param original 原始状态对象
+     * @return 深拷贝后的状态对象
+     */
+    public AgentState deepCopyState(AgentState original) {
+        AgentState copy = new AgentState();
+        copy.setSessionId(original.getSessionId());
+        copy.setKbId(original.getKbId());
+        copy.setLlmModelId(original.getLlmModelId());
+        copy.setFinished(original.isFinished());
+        copy.setMessages(
+                new CopyOnWriteArrayList<>(original.getMessages() != null ? original.getMessages() : List.of()));
+        copy.setPendingToolRequests(new CopyOnWriteArrayList<>(
+                original.getPendingToolRequests() != null ? original.getPendingToolRequests() : List.of()));
+
+        copy.setNodeExecutor(original.getNodeExecutor());
+
+        if (original.getAvailableNodes() != null) {
+            copy.setAvailableNodes(new ConcurrentHashMap<>(original.getAvailableNodes()));
+        }
+
+        if (original.getAttributes() != null) {
+            Map<String, Object> copiedAttributes = new ConcurrentHashMap<>();
+            original.getAttributes().forEach((key, value) -> {
+                if (value instanceof Map<?, ?> mapValue) {
+                    copiedAttributes.put(key, deepCopyMap(mapValue));
+                } else if (value instanceof List<?> listValue) {
+                    copiedAttributes.put(key, new CopyOnWriteArrayList<>(listValue));
+                } else {
+                    copiedAttributes.put(key, value);
+                }
+            });
+            copy.setAttributes(copiedAttributes);
+        } else {
+            copy.setAttributes(new ConcurrentHashMap<>());
+        }
+
+        return copy;
+    }
+
+    /**
+     * 深拷贝 Map 对象
+     * <p>
+     * 递归拷贝 Map 中的所有值，支持嵌套的 Map 和 List 结构。
+     * 使用 ConcurrentHashMap 和 CopyOnWriteArrayList 保证线程安全。
+     *
+     * @param source 原始 Map
+     * @return 深拷贝后的 Map
+     */
+    public Map<String, Object> deepCopyMap(Map<?, ?> source) {
+        Map<String, Object> copy = new ConcurrentHashMap<>();
+        source.forEach((key, value) -> {
+            if (value instanceof Map<?, ?> mapValue) {
+                copy.put(String.valueOf(key), deepCopyMap(mapValue));
+            } else if (value instanceof List<?> listValue) {
+                copy.put(String.valueOf(key), new CopyOnWriteArrayList<>(listValue));
+            } else {
+                copy.put(String.valueOf(key), value);
+            }
+        });
+        return copy;
     }
 }
