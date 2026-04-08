@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.ai.model.Document;
 import com.lambda.fusion.ai.model.DocumentChunk;
 import com.lambda.fusion.ai.model.DocumentChunkQuery;
@@ -32,9 +33,9 @@ public class DocumentController {
     @Operation(summary = "上传文档", description = "上传文档到指定知识库")
     public Document upload(
             @Parameter(description = "知识库ID", required = true) @PathVariable String kbId,
-            @Parameter(description = "文件", required = true) @RequestParam("file") MultipartFile file,
-            @Parameter(description = "上传用户ID", required = true) @RequestParam String uploadedBy) {
-        return documentService.uploadDocument(kbId, file, uploadedBy);
+            @Parameter(description = "文件", required = true) @RequestParam("file") MultipartFile file) {
+        return documentService.uploadDocument(
+                kbId, file, OperatorUtils.getOperator().getName());
     }
 
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})

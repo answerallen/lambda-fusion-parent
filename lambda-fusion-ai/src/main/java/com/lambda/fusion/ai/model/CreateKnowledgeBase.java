@@ -1,5 +1,8 @@
 package com.lambda.fusion.ai.model;
 
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.shared.BaseDTO;
+import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
@@ -10,9 +13,10 @@ import lombok.Data;
  *
  * @author Jin
  */
+@AutoConverter(target = KnowledgeBaseEntity.class)
 @Data
 @Schema(description = "创建知识库DTO")
-public class CreateKnowledgeBase {
+public class CreateKnowledgeBase extends BaseDTO<KnowledgeBaseEntity> {
 
     @NotBlank(message = "知识库名称不能为空")
     @Size(min = 1, max = 100, message = "知识库名称长度必须在1-100字符之间")
@@ -26,14 +30,6 @@ public class CreateKnowledgeBase {
     @Size(max = 50, message = "分类长度不能超过50字符")
     @Schema(description = "分类(技术文档、FAQ、产品手册等)")
     private String category;
-
-    @NotBlank(message = "租户ID不能为空")
-    @Schema(description = "租户ID")
-    private String tenantId;
-
-    @NotBlank(message = "创建者ID不能为空")
-    @Schema(description = "创建者ID")
-    private String ownerUserId;
 
     @NotBlank(message = "Embedding模型不能为空")
     @Size(min = 1, max = 100, message = "Embedding模型名称长度必须在1-100字符之间")

@@ -6,10 +6,8 @@ import jakarta.validation.constraints.Min;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
 @Data
-@Configuration
 @Slf4j
 @ConfigurationProperties(prefix = "lambda.fusion.ai")
 public class AiProperties {
@@ -18,6 +16,11 @@ public class AiProperties {
     private DocumentChunkConfig documentChunk = new DocumentChunkConfig();
     private AiDataSource dataSource = new AiDataSource();
     private AgentConfig agent = new AgentConfig();
+
+    @PostConstruct
+    public void validateConfiguration() {
+        documentChunk.validateConfiguration();
+    }
 
     @Data
     public static class EmbeddingConfig {
@@ -28,7 +31,6 @@ public class AiProperties {
         private Integer dimension = 1536;
     }
 
-    // documentConfig 文档配置项
     private DocumentConfig document = new DocumentConfig();
 
     @Data
@@ -90,14 +92,13 @@ public class AiProperties {
         private int vectorBatchSize = 200;
 
         /**
-         * 在启动时验证配置参数，如有需要则应用修正
+         * 验证配置参数，如有需要则应用修正
          * <p>
          * 此方法确保：
          * 1. 分块重叠小于分块大小
          * 2. 如果检测到无效组合，则应用修正值
          * 3. 对任何修正记录警告日志
          */
-        @PostConstruct
         public void validateConfiguration() {
             log.info("正在验证AI配置参数...");
 
@@ -164,8 +165,7 @@ public class AiProperties {
          */
         public int getValidatedChunkOverlap(Integer configuredOverlap, int chunkSize) {
             if (configuredOverlap == null) {
-                // 使用分块大小的10%作为默认值，最小为10
-                return Math.max(10, chunkSize / 10);
+                return Math.clamp(defaultChunkOverlap, 10, chunkSize / 2);
             }
 
             // 验证范围

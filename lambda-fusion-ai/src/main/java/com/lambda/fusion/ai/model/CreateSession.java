@@ -8,8 +8,6 @@ import lombok.Data;
 public class CreateSession {
     private String title;
     private String kbId;
-    private String userId;
-    private String tenantId;
     private String llmModelId;
     private String robotId;
     private String systemPrompt;

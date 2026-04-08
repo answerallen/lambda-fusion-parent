@@ -35,11 +35,11 @@ public interface VectorRepository {
      */
     void insertVector(
             @Param("dimension") Integer dimension,
-            @Param("id") Long id,
+            @Param("id") String id,
             @Param("vectorId") String vectorId,
-            @Param("kbId") Long kbId,
-            @Param("documentId") Long documentId,
-            @Param("chunkId") Long chunkId,
+            @Param("kbId") String kbId,
+            @Param("documentId") String documentId,
+            @Param("chunkId") String chunkId,
             @Param("collectionName") String collectionName,
             @Param("content") String content,
             @Param("metadata") String metadata,

@@ -160,6 +160,7 @@ public class DocumentProcessor {
 
                 // 构建实体
                 DocumentChunkEntity chunk = new DocumentChunkEntity();
+                chunk.setId(IdUtil.fastSimpleUUID());
                 chunk.setChunkId(IdUtil.fastSimpleUUID());
                 chunk.setDocumentId(doc.getId());
                 chunk.setKbId(kb.getId());
@@ -171,6 +172,7 @@ public class DocumentProcessor {
                 chunk.setMetadata(JSONUtil.toJsonStr(segment.metadata()));
                 chunk.setEmbedding(storageVector);
                 chunk.setDimension(storageDimension);
+                chunk.setTenantId(doc.getTenantId());
 
                 chunkEntities.add(chunk);
 

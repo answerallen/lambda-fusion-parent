@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.controller;
 
+import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.ai.model.ChatSession;
 import com.lambda.fusion.ai.model.CreateSession;
 import com.lambda.fusion.ai.service.ChatSessionService;
@@ -25,8 +26,8 @@ public class ChatSessionController {
 
     @GetMapping
     @Operation(summary = "查询用户会话列表")
-    public List<ChatSession> list(@RequestParam String userId) {
-        return chatSessionService.listUserSessions(userId);
+    public List<ChatSession> list() {
+        return chatSessionService.listUserSessions(OperatorUtils.getOperator().getName());
     }
 
     @PostMapping("/{sessionId}/archive")

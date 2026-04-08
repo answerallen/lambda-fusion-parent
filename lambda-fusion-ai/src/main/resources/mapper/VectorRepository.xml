@@ -4,20 +4,20 @@
 
     <insert id="insertVector">
         INSERT INTO ai_vector_store_${dimension}
-        (id, vector_id, kb_id, document_id, chunk_id, collection_name, content, metadata, embedding, created_at)
+        (vector_id, kb_id, document_id, chunk_id, collection_name, content, metadata, embedding, created_at)
         VALUES
-        (#{id}, #{vectorId}, #{kbId}, #{documentId}, #{chunkId}, #{collectionName}, #{content}, #{metadata}::jsonb, 
-         #{embedding, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler}, CURRENT_TIMESTAMP)
+        (#{vectorId}, #{kbId}, #{documentId}, #{id}, #{collectionName}, #{content}, #{metadata}::jsonb,
+         #{embedding, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler}, CURRENT_TIMESTAMP)
     </insert>
 
     <insert id="batchInsertVectors">
         INSERT INTO ai_vector_store_${dimension}
-        (id, vector_id, kb_id, document_id, chunk_id, collection_name, content, metadata, embedding, created_at)
+        (vector_id, kb_id, document_id, chunk_id, collection_name, content, metadata, embedding, created_at)
         VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.id}, #{item.vectorId}, #{kbId}, #{item.documentId}, #{item.chunkId}, #{collectionName}, 
-             #{item.content}, #{item.metadata}::jsonb, 
-             #{item.embedding, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler}, 
+            (#{item.vectorId}, #{kbId}, #{item.documentId}, #{item.id}, #{collectionName},
+             #{item.content}, #{item.metadata}::jsonb,
+             #{item.embedding, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler},
              CURRENT_TIMESTAMP)
         </foreach>
     </insert>
@@ -28,11 +28,11 @@
             vector_id,
             content,
             metadata,
-            (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler})) as score,
-            (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler}) as distance
+            (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler})) as score,
+            (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler}) as distance
         FROM ai_vector_store_${dimension}
         WHERE kb_id = #{kbId}
-          AND (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.handler.PgVectorHandler})) > #{minScore}
+          AND (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler})) > #{minScore}
         ORDER BY score DESC
         LIMIT #{topK}
     </select>

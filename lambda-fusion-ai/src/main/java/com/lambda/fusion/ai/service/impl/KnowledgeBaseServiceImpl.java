@@ -17,12 +17,12 @@ import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
 import com.lambda.fusion.core.service.AbstractCrudService;
+import com.lambda.fusion.core.utils.AuthUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,15 +45,15 @@ public class KnowledgeBaseServiceImpl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public KnowledgeBase createKnowledgeBase(CreateKnowledgeBase dto) {
-        log.info("创建知识库: {}", dto.getName());
+    public KnowledgeBase createKnowledgeBase(CreateKnowledgeBase createKnowledgeBase) {
+        log.info("创建知识库: {}", createKnowledgeBase.getName());
 
         // 创建实体
-        KnowledgeBaseEntity entity = new KnowledgeBaseEntity();
-        BeanUtils.copyProperties(dto, entity);
+        KnowledgeBaseEntity entity = createKnowledgeBase.toEntity();
 
-        // 生成kbId(UUID)
         entity.setKbId(IdUtil.fastSimpleUUID());
+        entity.setTenantId(AuthUtils.getTenantId());
+        entity.setOwnerUserId(AuthUtils.getUser().getName());
 
         // 设置默认值
         entity.setStatus("ACTIVE");
@@ -74,6 +74,10 @@ public class KnowledgeBaseServiceImpl
     @Transactional(rollbackFor = Exception.class)
     public void updateKnowledgeBase(String id, UpdateKnowledgeBase updateKnowledgeBase) {
         log.info("更新知识库, id: {}", id);
+        KnowledgeBaseEntity existing = knowledgeBaseMapper.selectById(id);
+        if (existing == null) {
+            throw AiBusinessException.knowledgeBaseNotFound(id);
+        }
         KnowledgeBaseEntity entity = updateKnowledgeBase.toEntity();
         entity.setId(id);
         int updated = knowledgeBaseMapper.updateById(entity);
@@ -86,7 +90,6 @@ public class KnowledgeBaseServiceImpl
         if (knowledgeBase == null) {
             throw AiBusinessException.knowledgeBaseNotFound(id);
         }
-
         return knowledgeBase;
     }
 

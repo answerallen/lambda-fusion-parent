@@ -90,6 +90,9 @@ public class RagServiceImpl implements RagService {
 
         // 获取存储维度，用于选择分表
         int storageDimension = vectorDimensionProcessor.getNearestSupportedDimension(embeddingDimension);
+        if (queryVector.size() != storageDimension) {
+            queryVector = vectorDimensionProcessor.normalizeToDimension(queryVector, storageDimension);
+        }
 
         // 使用分表存储进行搜索
         List<VectorSearchResult> vectorResults =

@@ -12,6 +12,7 @@ import com.lambda.fusion.ai.model.CreateSession;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.model.entity.RobotEntity;
 import com.lambda.fusion.ai.service.ChatSessionService;
+import com.lambda.fusion.core.utils.AuthUtils;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,9 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
     public ChatSession createSession(CreateSession dto) {
         ChatSessionEntity entity = new ChatSessionEntity();
         BeanUtils.copyProperties(dto, entity);
+
+        entity.setUserId(AuthUtils.getUser().getName());
+        entity.setTenantId(AuthUtils.getTenantId());
 
         // 挂载机器人参数
         if (dto.getRobotId() != null) {

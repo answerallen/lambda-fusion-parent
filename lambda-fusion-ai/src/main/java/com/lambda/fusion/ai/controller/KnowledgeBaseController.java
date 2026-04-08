@@ -72,9 +72,7 @@ public class KnowledgeBaseController {
 
     @GetMapping("/list")
     @Operation(summary = "查询知识库列表", description = "根据租户ID查询知识库列表")
-    public List<KnowledgeBase> list(
-            @Parameter(description = "租户ID", required = true) @RequestParam String tenantId,
-            @Parameter(description = "状态") @RequestParam(required = false) String status) {
-        return knowledgeBaseService.listByTenantId(tenantId, status);
+    public List<KnowledgeBase> list(@Parameter(description = "状态") @RequestParam(required = false) String status) {
+        return knowledgeBaseService.listByTenantId(OperatorUtils.getOperator().getTenantId(), status);
     }
 }

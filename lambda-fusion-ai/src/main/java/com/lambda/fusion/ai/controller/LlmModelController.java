@@ -20,8 +20,8 @@ public class LlmModelController {
 
     @PostMapping
     @Operation(summary = "注册模型")
-    public LlmModel register(@Valid @RequestBody RegisterModel dto) {
-        return llmModelService.registerModel(dto);
+    public LlmModel register(@Valid @RequestBody RegisterModel registerModel) {
+        return llmModelService.registerModel(registerModel);
     }
 
     @GetMapping

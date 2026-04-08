@@ -41,15 +41,15 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
      * 批量插入文档块
      */
     @Insert("<script>" + "INSERT INTO ai_document_chunk "
-            + "(chunk_id, document_id, kb_id, content, content_hash, chunk_index, "
+            + "(id, chunk_id, document_id, kb_id, content, content_hash, chunk_index, "
             + "start_offset, end_offset, page_number, vector_id, embedding_status, "
-            + "metadata, char_count, token_count, created_at, updated_at) "
+            + "dimension, metadata, char_count, token_count, tenant_id, created_at, updated_at) "
             + "VALUES "
             + "<foreach collection='list' item='item' separator=','> "
-            + "(#{item.chunkId}, #{item.documentId}, #{item.kbId}, #{item.content}, "
+            + "(#{item.id}, #{item.chunkId}, #{item.documentId}, #{item.kbId}, #{item.content}, "
             + "#{item.contentHash}, #{item.chunkIndex}, #{item.startOffset}, #{item.endOffset}, "
-            + "#{item.pageNumber}, #{item.vectorId}, #{item.embeddingStatus}, #{item.metadata}, "
-            + "#{item.charCount}, #{item.tokenCount}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) "
+            + "#{item.pageNumber}, #{item.vectorId}, #{item.embeddingStatus}, #{item.dimension}, #{item.metadata}, "
+            + "#{item.charCount}, #{item.tokenCount}, #{item.tenantId}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) "
             + "</foreach>"
             + "</script>")
     int batchInsert(@Param("list") List<DocumentChunkEntity> chunkList);

@@ -12,6 +12,7 @@ import com.lambda.cloud.oss.client.OssClient;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.cloud.oss.model.UploadObjectResult;
 import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
+import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.commons.support.processor.DocumentProcessor;
@@ -37,10 +38,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -59,16 +58,13 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final VectorRepository vectorRepository;
     private final DocumentProcessor documentProcessor;
-    private final TransactionTemplate transactionTemplate;
+    private final AiProperties aiProperties;
     private OssClient ossClient;
 
     @Autowired
     public void setOssClient(OssClientManager ossClientManager) {
-        this.ossClient = ossClientManager.get("default");
+        this.ossClient = ossClientManager.get(aiProperties.getDocument().getOssClientName());
     }
-
-    @Value("${lambda.fusion.ai.document.max-file-size:10485760}")
-    private Long maxFileSize;
 
     @Override
     public Document uploadDocument(String kbId, MultipartFile file, String uploadedBy) {
@@ -83,6 +79,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
             throw AiBusinessException.knowledgeBaseNotFound(kbId);
         }
 
+        long maxFileSize = aiProperties.getDocumentChunk().getMaxFileSize();
         if (file.getSize() > maxFileSize) {
             throw new IllegalArgumentException("文件大小超过限制: " + maxFileSize + " bytes");
         }
@@ -133,6 +130,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
             entity.setProcessStatus(DocumentStatus.PENDING.name());
             entity.setProcessProgress(0);
             entity.setUploadedBy(uploadedBy);
+            entity.setTenantId(kb.getTenantId());
 
             // 在同一事务中保存文档
             documentMapper.insert(entity);

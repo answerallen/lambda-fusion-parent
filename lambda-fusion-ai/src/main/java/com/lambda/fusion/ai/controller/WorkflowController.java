@@ -59,23 +59,29 @@ public class WorkflowController {
         String clientId = "workflow_" + id + "_" + System.currentTimeMillis();
         SseEmitter emitter = sseEmitterManager.createEmitter(clientId);
 
-        workflowExecutionService.executeStream(
-                id, request, new dev.langchain4j.model.chat.response.StreamingChatResponseHandler() {
-                    @Override
-                    public void onPartialResponse(String token) {
-                        sseEmitterManager.sendEvent(clientId, "token", token);
-                    }
+        Thread.ofVirtual().start(() -> {
+            try {
+                workflowExecutionService.executeStream(
+                        id, request, new dev.langchain4j.model.chat.response.StreamingChatResponseHandler() {
+                            @Override
+                            public void onPartialResponse(String token) {
+                                sseEmitterManager.sendEvent(clientId, "token", token);
+                            }
 
-                    @Override
-                    public void onCompleteResponse(dev.langchain4j.model.chat.response.ChatResponse response) {
-                        sseEmitterManager.sendEvent(clientId, "finish", response);
-                    }
+                            @Override
+                            public void onCompleteResponse(dev.langchain4j.model.chat.response.ChatResponse response) {
+                                sseEmitterManager.sendEvent(clientId, "finish", response);
+                            }
 
-                    @Override
-                    public void onError(Throwable error) {
-                        sseEmitterManager.sendEvent(clientId, "error", error.getMessage());
-                    }
-                });
+                            @Override
+                            public void onError(Throwable error) {
+                                sseEmitterManager.sendEvent(clientId, "error", error.getMessage());
+                            }
+                        });
+            } catch (Exception e) {
+                sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
+            }
+        });
 
         return emitter;
     }
