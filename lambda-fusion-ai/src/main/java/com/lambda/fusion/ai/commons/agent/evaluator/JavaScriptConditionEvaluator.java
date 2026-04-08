@@ -65,11 +65,6 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
             return engine;
         }
 
-        engine = tryCreateNashornEngine();
-        if (engine != null) {
-            return engine;
-        }
-
         engine = tryCreateGraalJsViaManager();
         if (engine != null) {
             return engine;
@@ -83,40 +78,27 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
         try {
             log.info("正在通过显式构造器创建 GraalJS 引擎");
 
-            Class<?> graalJsClass = Class.forName("com.oracle.truffle.js.scriptengine.GraalJSScriptEngine");
-            Method createMethod = graalJsClass.getMethod("create", Object.class, Context.class);
-
             HostAccess restrictedAccess = HostAccess.newBuilder()
+                    .allowPublicAccess(true)
                     .allowListAccess(true)
                     .allowMapAccess(true)
-                    .allowArrayAccess(true)
                     .build();
 
-            Context context = Context.newBuilder("js")
-                    .allowHostAccess(restrictedAccess)
-                    .allowHostClassLookup(s -> false)
-                    .build();
+            Context.Builder contextBuilder =
+                    Context.newBuilder("js").allowHostAccess(restrictedAccess).allowHostClassLookup(s -> false);
 
-            return (ScriptEngine) createMethod.invoke(null, null, context);
+            Class<?> graalJsClass = Class.forName("com.oracle.truffle.js.scriptengine.GraalJSScriptEngine");
+
+            Method createMethod = graalJsClass.getMethod(
+                    "create", Class.forName("org.graalvm.polyglot.Engine"), contextBuilder.getClass());
+
+            return (ScriptEngine) createMethod.invoke(null, null, contextBuilder);
         } catch (ClassNotFoundException e) {
             log.debug("GraalJSScriptEngine 类未找到");
         } catch (NoClassDefFoundError e) {
             log.warn("GraalJSScriptEngine 类初始化失败: {}", e.getMessage());
         } catch (Exception e) {
             log.warn("无法创建 GraalJS 引擎: {}", e.getMessage());
-        }
-        return null;
-    }
-
-    private ScriptEngine tryCreateNashornEngine() {
-        try {
-            ScriptEngine nashorn = manager.getEngineByName("Nashorn");
-            if (nashorn != null) {
-                log.info("成功使用 Nashorn 引擎作为替代");
-                return nashorn;
-            }
-        } catch (Exception e) {
-            log.debug("Nashorn 引擎获取失败: {}", e.getMessage());
         }
         return null;
     }
