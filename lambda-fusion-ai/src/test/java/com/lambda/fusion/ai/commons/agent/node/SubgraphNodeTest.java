@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
+import static com.lambda.fusion.ai.commons.agent.AgentGraph.CURRENT_NODE_PROPERTIES_ATTRIBUTE;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -30,7 +31,7 @@ class SubgraphNodeTest {
     private AiProperties mockAiProperties;
 
     private void setNodeProperties(AgentState state, Map<String, Object> properties) {
-        state.getAttributes().put(AgentGraph.CURRENT_NODE_PROPERTIES_ATTRIBUTE, properties);
+        state.getAttributes().put(CURRENT_NODE_PROPERTIES_ATTRIBUTE, properties);
     }
 
     @BeforeEach
@@ -178,7 +179,7 @@ class SubgraphNodeTest {
 
         subgraphNode.execute(state);
 
-        Object context = state.getAttributes().get("__subgraph_context__");
+        Object context = state.getAttributes().get(CURRENT_NODE_PROPERTIES_ATTRIBUTE);
         assertThat(context).isNotNull();
         assertThat(context).isInstanceOf(Map.class);
     }

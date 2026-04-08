@@ -91,8 +91,8 @@ class JavaScriptConditionEvaluatorTest {
     void testArrayOperations() {
         state.getAttributes().put("items", Arrays.asList(1, 2, 3, 4, 5));
 
-        assertThat(evaluator.evaluate("items.length == 5", state)).isTrue();
-        assertThat(evaluator.evaluate("items[0] == 1", state)).isTrue();
+        assertThat(evaluator.evaluate("attrs.items.length == 5", state)).isTrue();
+        assertThat(evaluator.evaluate("attrs.items[0] == 1", state)).isTrue();
     }
 
     @Test
