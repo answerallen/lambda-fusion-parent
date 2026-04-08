@@ -302,7 +302,10 @@ public class SubgraphNode implements AgentNode {
     }
 
     private void handleExecutionError(AgentState state, Exception e, boolean propagateErrors) {
-        if (propagateErrors && state.getAttributes() != null) {
+        if (propagateErrors) {
+            if (state.getAttributes() == null) {
+                state.setAttributes(new HashMap<>());
+            }
             state.getAttributes().put(SUBGRAPH_ERROR_KEY, e.getMessage());
         }
     }

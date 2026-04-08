@@ -187,6 +187,7 @@ public class ParallelNode implements AgentNode {
             } else {
                 CompletableFuture.anyOf(futures.toArray(new CompletableFuture[0]))
                         .get(timeout, TimeUnit.MILLISECONDS);
+                futures.forEach(f -> f.cancel(true));
             }
         } catch (TimeoutException e) {
             log.warn("并行节点执行超时 {}ms，强制取消所有分支", timeout);
