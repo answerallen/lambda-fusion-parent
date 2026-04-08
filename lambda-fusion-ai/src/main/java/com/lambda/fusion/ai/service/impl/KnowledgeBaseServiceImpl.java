@@ -4,7 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
-import com.lambda.fusion.ai.commons.support.vector.VectorDimensionService;
+import com.lambda.fusion.ai.commons.support.vector.VectorDimensionProcessor;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
@@ -104,7 +104,7 @@ public class KnowledgeBaseServiceImpl
                     documents.stream().map(DocumentEntity::getId).collect(Collectors.toList());
 
             // 删除所有维度分表中的向量数据
-            for (Integer dimension : VectorDimensionService.SUPPORTED_DIMENSIONS) {
+            for (Integer dimension : VectorDimensionProcessor.SUPPORTED_DIMENSIONS) {
                 vectorRepository.deleteByKbId(dimension, id);
             }
 

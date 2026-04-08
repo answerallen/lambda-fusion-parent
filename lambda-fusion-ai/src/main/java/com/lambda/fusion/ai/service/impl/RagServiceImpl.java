@@ -8,7 +8,7 @@ import com.lambda.fusion.ai.commons.agent.ToolExecutingNode;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
-import com.lambda.fusion.ai.commons.support.vector.VectorDimensionService;
+import com.lambda.fusion.ai.commons.support.vector.VectorDimensionProcessor;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
 import com.lambda.fusion.ai.mapper.VectorRepository;
@@ -47,7 +47,7 @@ public class RagServiceImpl implements RagService {
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final PromptTemplateMapper promptTemplateMapper;
     private final EmbeddingModelManager embeddingModelManager;
-    private final VectorDimensionService vectorDimensionService;
+    private final VectorDimensionProcessor vectorDimensionProcessor;
 
     private final LlmProcessingNode llmProcessingNode;
     private final ToolExecutingNode toolExecutingNode;
@@ -89,7 +89,7 @@ public class RagServiceImpl implements RagService {
                         : 0.6);
 
         // 获取存储维度，用于选择分表
-        int storageDimension = vectorDimensionService.getNearestSupportedDimension(embeddingDimension);
+        int storageDimension = vectorDimensionProcessor.getNearestSupportedDimension(embeddingDimension);
 
         // 使用分表存储进行搜索
         List<VectorSearchResult> vectorResults =

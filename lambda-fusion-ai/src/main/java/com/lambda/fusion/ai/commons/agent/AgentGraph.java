@@ -201,12 +201,11 @@ public class AgentGraph {
         return this;
     }
 
-    public AgentGraph setMaxIterations(int maxIterations) {
+    public void setMaxIterations(int maxIterations) {
         if (maxIterations <= 0) {
             throw new IllegalArgumentException("maxIterations must be greater than 0");
         }
         this.maxIterations = maxIterations;
-        return this;
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.commons.support.batch;
+package com.lambda.fusion.ai.commons.support.processor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
  * @author Jin
  */
 @Slf4j
-public class BatchInsertUtils {
+public class ListPartitionUtils {
 
     /**
      * 默认批次大小

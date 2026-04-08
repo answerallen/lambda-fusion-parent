@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
-public class VectorDimensionService {
+public class VectorDimensionProcessor {
 
     /**
      * 最大支持的向量维度

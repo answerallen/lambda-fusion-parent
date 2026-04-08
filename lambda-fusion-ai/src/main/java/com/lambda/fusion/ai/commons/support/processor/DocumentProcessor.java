@@ -10,9 +10,8 @@ import com.lambda.cloud.oss.client.OssClient;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.AiProperties;
-import com.lambda.fusion.ai.commons.support.batch.BatchInsertUtils;
 import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
-import com.lambda.fusion.ai.commons.support.vector.VectorDimensionService;
+import com.lambda.fusion.ai.commons.support.vector.VectorDimensionProcessor;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
@@ -64,7 +63,7 @@ public class DocumentProcessor {
     private final EmbeddingModelManager embeddingModelManager;
     private final AiProperties aiProperties;
     private final TransactionTemplate transactionTemplate;
-    private final VectorDimensionService vectorDimensionService;
+    private final VectorDimensionProcessor vectorDimensionProcessor;
 
     private OssClientManager ossClientManager;
 
@@ -148,12 +147,12 @@ public class DocumentProcessor {
                 }
 
                 // 获取最接近的支持维度，用于选择分表
-                int storageDimension = vectorDimensionService.getNearestSupportedDimension(actualDimension);
+                int storageDimension = vectorDimensionProcessor.getNearestSupportedDimension(actualDimension);
 
                 // 如果实际维度与存储维度不同，需要归一化
                 List<Double> storageVector;
                 if (actualDimension != storageDimension) {
-                    storageVector = vectorDimensionService.normalizeToDimension(originalVector, storageDimension);
+                    storageVector = vectorDimensionProcessor.normalizeToDimension(originalVector, storageDimension);
                     log.debug("向量维度从 {} 归一化到 {}", actualDimension, storageDimension);
                 } else {
                     storageVector = originalVector;
@@ -193,7 +192,7 @@ public class DocumentProcessor {
                 int vectorBatchSize = aiProperties.getDocumentChunk().getVectorBatchSize();
 
                 // 分批处理向量插入
-                BatchInsertUtils.batchProcess(chunkEntities, vectorBatchSize, batch -> {
+                ListPartitionUtils.batchProcess(chunkEntities, vectorBatchSize, batch -> {
                     transactionTemplate.execute(status -> {
                         try {
                             documentChunkMapper.batchInsert(batch);

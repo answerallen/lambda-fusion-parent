@@ -15,7 +15,7 @@ import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.commons.support.processor.DocumentProcessor;
-import com.lambda.fusion.ai.commons.support.vector.VectorDimensionService;
+import com.lambda.fusion.ai.commons.support.vector.VectorDimensionProcessor;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
@@ -183,7 +183,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
         // 2. 删除向量数据（遍历所有维度分表）
         if (kb != null) {
-            for (Integer dimension : VectorDimensionService.SUPPORTED_DIMENSIONS) {
+            for (Integer dimension : VectorDimensionProcessor.SUPPORTED_DIMENSIONS) {
                 vectorRepository.deleteByDocumentId(dimension, id);
             }
         }
@@ -235,7 +235,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         log.info("重新处理文档: kbId={}, docId={}", kbId, id);
 
         // 删除所有维度分表中的向量数据
-        for (Integer dimension : VectorDimensionService.SUPPORTED_DIMENSIONS) {
+        for (Integer dimension : VectorDimensionProcessor.SUPPORTED_DIMENSIONS) {
             vectorRepository.deleteByDocumentId(dimension, id);
         }
         documentChunkMapper.deleteByDocumentIds(Collections.singletonList(id));

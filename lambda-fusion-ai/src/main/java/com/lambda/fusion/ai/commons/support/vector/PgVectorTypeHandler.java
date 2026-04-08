@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.commons.support.handler;
+package com.lambda.fusion.ai.commons.support.vector;
 
 import com.pgvector.PGvector;
 import java.sql.*;
@@ -15,7 +15,7 @@ import org.apache.ibatis.type.MappedTypes;
  * @author Jin
  */
 @MappedTypes(List.class)
-public class PgVectorHandler extends BaseTypeHandler<List<Double>> {
+public class PgVectorTypeHandler extends BaseTypeHandler<List<Double>> {
 
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, List<Double> parameter, JdbcType jdbcType)
