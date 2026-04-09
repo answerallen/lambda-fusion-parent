@@ -19,9 +19,6 @@ public class RobotEntity {
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
-    @Schema(description = "对外暴露的唯一机器人标识")
-    private String robotId;
-
     @Schema(description = "机器人名称")
     private String name;
 

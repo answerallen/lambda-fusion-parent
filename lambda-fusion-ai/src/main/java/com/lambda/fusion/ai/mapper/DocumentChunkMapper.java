@@ -41,12 +41,12 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
      * 批量插入文档块
      */
     @Insert("<script>" + "INSERT INTO ai_document_chunk "
-            + "(id, chunk_id, document_id, kb_id, content, content_hash, chunk_index, "
+            + "(id, document_id, kb_id, content, content_hash, chunk_index, "
             + "start_offset, end_offset, page_number, vector_id, embedding_status, "
             + "dimension, metadata, char_count, token_count, tenant_id, created_at, updated_at) "
             + "VALUES "
             + "<foreach collection='list' item='item' separator=','> "
-            + "(#{item.id}, #{item.chunkId}, #{item.documentId}, #{item.kbId}, #{item.content}, "
+            + "(#{item.id}, #{item.documentId}, #{item.kbId}, #{item.content}, "
             + "#{item.contentHash}, #{item.chunkIndex}, #{item.startOffset}, #{item.endOffset}, "
             + "#{item.pageNumber}, #{item.vectorId}, #{item.embeddingStatus}, #{item.dimension}, #{item.metadata}, "
             + "#{item.charCount}, #{item.tokenCount}, #{item.tenantId}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) "

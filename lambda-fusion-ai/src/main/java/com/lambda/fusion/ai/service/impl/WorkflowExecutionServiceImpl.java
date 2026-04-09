@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.service.impl;
 
-import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
@@ -10,12 +9,16 @@ import com.lambda.fusion.ai.commons.agent.model.GraphDefinition;
 import com.lambda.fusion.ai.commons.agent.model.NodeDefinition;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
+import com.lambda.fusion.ai.commons.utils.CostCalculator;
+import com.lambda.fusion.ai.mapper.LlmModelMapper;
 import com.lambda.fusion.ai.mapper.WorkflowExecutionMapper;
 import com.lambda.fusion.ai.mapper.WorkflowMapper;
 import com.lambda.fusion.ai.model.WorkflowExecutionRequest;
 import com.lambda.fusion.ai.model.WorkflowExecutionResult;
+import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.model.entity.WorkflowEntity;
 import com.lambda.fusion.ai.model.entity.WorkflowExecutionEntity;
+import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
 import com.lambda.fusion.ai.service.WorkflowExecutionService;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -25,6 +28,7 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,6 +50,9 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     private final WorkflowExecutionMapper executionMapper;
     private final AgentGraphFactory agentGraphFactory;
     private final ObjectMapper objectMapper;
+    private final AtomicSessionUpdateService atomicSessionUpdateService;
+    private final CostCalculator costCalculator;
+    private final LlmModelMapper llmModelMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -66,7 +73,10 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             WorkflowExecutionResult result = mapToExecutionResult(state, execution, duration);
             updateExecutionSuccess(execution, result);
 
-            log.info("工作流执行完成, executionId={}, duration={}ms", execution.getExecutionId(), duration);
+            // 独立调用才结算，聊天触发由消息层负责
+            settleAfterExecution(request, result, "workflow-sync");
+
+            log.info("工作流执行完成, executionId={}, duration={}ms", execution.getId(), duration);
             return result;
 
         } catch (Exception e) {
@@ -107,6 +117,9 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             updateExecutionSuccess(execution, result);
             ChatResponse chatResponse = buildChatResponse(state);
             idempotentHandler.onCompleteResponse(chatResponse);
+
+            // 独立调用才结算，聊天触发由消息层负责
+            settleAfterExecution(request, result, "workflow-stream");
 
         } catch (Exception e) {
             log.error("流式执行工作流失败, workflowId={}", workflowId, e);
@@ -161,7 +174,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "执行ID不能为空");
         }
 
-        WorkflowExecutionEntity entity = executionMapper.selectByExecutionId(executionId);
+        WorkflowExecutionEntity entity = executionMapper.selectById(executionId);
         if (entity == null) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_NOT_FOUND, "执行记录不存在: " + executionId);
         }
@@ -200,7 +213,6 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
 
     private WorkflowExecutionEntity createExecutionRecord(WorkflowEntity workflow, WorkflowExecutionRequest request) {
         WorkflowExecutionEntity execution = new WorkflowExecutionEntity();
-        execution.setExecutionId(IdUtil.fastSimpleUUID());
         execution.setPipelineId(workflow.getId());
         execution.setPipelineVersion(1);
         execution.setUserId(request.getUserId());
@@ -228,7 +240,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         state.setLlmModelId(request.getLlmModelId());
 
         Map<String, Object> attributes = new HashMap<>();
-        attributes.put("executionId", execution.getExecutionId());
+        attributes.put("executionId", execution.getId());
         attributes.put("userId", request.getUserId());
         attributes.put("tenantId", request.getTenantId());
         attributes.put(AgentGraph.TRACE_ENABLED_ATTRIBUTE, request.getTraceEnabled());
@@ -244,7 +256,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     private WorkflowExecutionResult mapToExecutionResult(
             AgentState state, WorkflowExecutionEntity execution, long duration) {
         WorkflowExecutionResult.WorkflowExecutionResultBuilder builder = WorkflowExecutionResult.builder()
-                .executionId(execution.getExecutionId())
+                .id(execution.getId())
                 .finished(state.isFinished())
                 .durationMs(duration)
                 .executionTrace(state.getExecutionTrace())
@@ -377,12 +389,96 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
 
     private WorkflowExecutionResult entityToResult(WorkflowExecutionEntity entity) {
         return WorkflowExecutionResult.builder()
-                .executionId(entity.getExecutionId())
+                .id(entity.getId())
                 .status(entity.getStatus())
                 .durationMs(
                         entity.getDurationMs() != null ? entity.getDurationMs().longValue() : null)
                 .errorMessage(entity.getErrorMessage())
                 .build();
+    }
+
+    /**
+     * 工作流执行完成后进行结算（仅在独立入口调用时执行）。
+     * <p>当 {@link WorkflowExecutionRequest#getCalledFromChat()} 为 {@code true} 时，
+     * 表明由聊天消息层({@code ChatMessageServiceImpl.persistStreamMessages})负责结算，
+     * 本方法将跳过以避免双重计费。</p>
+     *
+     * @param request  工作流执行请求信息
+     * @param result   执行结果
+     * @param scene    场景标识（用于日志区分同步/流式）
+     */
+    private void settleAfterExecution(WorkflowExecutionRequest request, WorkflowExecutionResult result, String scene) {
+        // 聊天触发的工作流跳过，由消息层统一结算
+        if (Boolean.TRUE.equals(request.getCalledFromChat())) {
+            log.debug("[ACCOUNTING] scene={} 聊天触发模式，跳过工作流结算", scene);
+            return;
+        }
+
+        String sessionId = request.getSessionId();
+        String llmModelId = request.getLlmModelId();
+        int totalTokens = result.getTotalTokens() != null ? result.getTotalTokens() : 0;
+        BigDecimal cost = calculateWorkflowCost(llmModelId, result);
+
+        // 更新会话统计（若有 sessionId）
+        if (StringUtils.hasText(sessionId)) {
+            try {
+                // 工作流仅一条 AI 回复，不计入用户消息数
+                atomicSessionUpdateService.updateSessionStatistics(sessionId, 1, totalTokens, cost);
+                log.info(
+                        "[ACCOUNTING] scene={} sessionId={} modelId={} tokens={} cost={}",
+                        scene,
+                        sessionId,
+                        llmModelId,
+                        totalTokens,
+                        cost);
+            } catch (Exception e) {
+                log.warn("[ACCOUNTING] 更新会话统计失败 scene={} sessionId={}: {}", scene, sessionId, e.getMessage());
+            }
+        }
+
+        // 原子更新模型统计（若有 llmModelId）
+        if (StringUtils.hasText(llmModelId)) {
+            try {
+                BigDecimal safeCost = cost != null ? cost : BigDecimal.ZERO;
+                int rows = llmModelMapper.atomicUpdateStatistics(llmModelId, totalTokens, safeCost);
+                if (rows == 0) {
+                    log.warn("[ACCOUNTING] 模型统计更新失败，模型不存在 scene={} modelId={}", scene, llmModelId);
+                } else {
+                    log.debug(
+                            "[ACCOUNTING] 模型统计原子更新成功 scene={} modelId={} +tokens={} +cost={}",
+                            scene,
+                            llmModelId,
+                            totalTokens,
+                            safeCost);
+                }
+            } catch (Exception e) {
+                log.warn("[ACCOUNTING] 更新模型统计失败 scene={} modelId={}: {}", scene, llmModelId, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 计算工作流执行成本。
+     * 若模型信息不存在或价格未配置，返回 ZERO。
+     */
+    private BigDecimal calculateWorkflowCost(String llmModelId, WorkflowExecutionResult result) {
+        if (!StringUtils.hasText(llmModelId)) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            LlmModelEntity model = llmModelMapper.selectById(llmModelId);
+            if (model == null || model.getInputTokenPrice() == null || model.getOutputTokenPrice() == null) {
+                return BigDecimal.ZERO;
+            }
+            int promptTokens = result.getPromptTokens() != null ? result.getPromptTokens() : 0;
+            int completionTokens = result.getCompletionTokens() != null ? result.getCompletionTokens() : 0;
+            var costResult = costCalculator.calculateCost(
+                    promptTokens, completionTokens, model.getInputTokenPrice(), model.getOutputTokenPrice());
+            return costResult.getTotalCost();
+        } catch (Exception e) {
+            log.warn("计算工作流成本失败, modelId={}: {}", llmModelId, e.getMessage());
+            return BigDecimal.ZERO;
+        }
     }
 
     private ChatResponse buildChatResponse(AgentState state) {

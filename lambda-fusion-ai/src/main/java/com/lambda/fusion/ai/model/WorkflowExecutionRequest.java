@@ -33,4 +33,13 @@ public class WorkflowExecutionRequest {
 
     @Schema(description = "是否启用追踪")
     private Boolean traceEnabled = true;
+
+    /**
+     * 是否由聊天消息层触发（内部字段，前端无需传入）。
+     * <p>当为 {@code true} 时，工作流执行服务跳过会话和模型统计结算，
+     * 由 {@code ChatMessageServiceImpl.persistStreamMessages} 统一负责；
+     * 当为 {@code false}（默认）时，工作流执行服务在完成后自行结算。</p>
+     */
+    @Schema(description = "是否由聊天层触发（内部使用）", hidden = true)
+    private Boolean calledFromChat = false;
 }

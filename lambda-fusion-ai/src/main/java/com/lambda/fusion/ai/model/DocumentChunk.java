@@ -14,9 +14,6 @@ public class DocumentChunk {
     @Schema(description = "ID")
     private String id;
 
-    @Schema(description = "块唯一标识")
-    private String chunkId;
-
     @Schema(description = "所属文档ID")
     private String documentId;
 

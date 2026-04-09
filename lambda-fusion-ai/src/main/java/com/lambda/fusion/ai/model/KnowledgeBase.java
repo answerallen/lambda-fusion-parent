@@ -20,9 +20,6 @@ public class KnowledgeBase {
     @Schema(description = "知识库ID")
     private String id;
 
-    @Schema(description = "知识库唯一标识")
-    private String kbId;
-
     @Schema(description = "知识库名称")
     private String name;
 

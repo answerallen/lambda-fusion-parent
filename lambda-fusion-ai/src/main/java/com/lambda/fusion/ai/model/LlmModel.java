@@ -9,7 +9,6 @@ import lombok.Data;
 @Schema(description = "LLM模型VO")
 public class LlmModel {
     private String id;
-    private String modelId;
     private String name;
     private String displayName;
     private String modelType;

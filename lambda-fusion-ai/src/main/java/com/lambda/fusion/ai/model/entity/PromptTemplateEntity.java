@@ -22,7 +22,6 @@ public class PromptTemplateEntity {
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
-    private String templateId;
     private String name;
     private String description;
     private String category;

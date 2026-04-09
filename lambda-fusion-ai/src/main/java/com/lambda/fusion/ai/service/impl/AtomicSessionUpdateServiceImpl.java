@@ -5,6 +5,7 @@ import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
@@ -33,23 +34,48 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateSessionStatistics(String sessionId, int messageIncrement, int tokenIncrement) {
+        updateSessionStatistics(sessionId, messageIncrement, tokenIncrement, BigDecimal.ZERO);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateSessionStatistics(
+            String sessionId, int messageIncrement, int tokenIncrement, BigDecimal costIncrement) {
         if (sessionId == null) {
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "会话ID不能为空");
         }
 
+        if (costIncrement == null) {
+            costIncrement = BigDecimal.ZERO;
+        }
+
         LocalDateTime now = LocalDateTime.now();
-        int updatedRows = chatSessionMapper.atomicUpdateStatistics(sessionId, messageIncrement, tokenIncrement, now);
+        int updatedRows;
+
+        if (costIncrement.compareTo(BigDecimal.ZERO) > 0) {
+            updatedRows = chatSessionMapper.atomicUpdateStatisticsWithCost(
+                    sessionId, messageIncrement, tokenIncrement, costIncrement, now);
+        } else {
+            updatedRows = chatSessionMapper.atomicUpdateStatistics(sessionId, messageIncrement, tokenIncrement, now);
+        }
 
         if (updatedRows == 0) {
             log.warn("更新会话统计失败，会话ID: {}，会话可能不存在", sessionId);
             throw AiBusinessException.sessionNotFound(sessionId);
         }
 
-        log.debug("成功更新会话{}统计: 消息 +{}, token +{}", sessionId, messageIncrement, tokenIncrement);
+        log.debug(
+                "成功更新会话{}统计: 消息 +{}, token +{}, cost +{}", sessionId, messageIncrement, tokenIncrement, costIncrement);
     }
 
     @Override
     public void updateSessionStatisticsOptimistic(String sessionId, int messageIncrement, int tokenIncrement) {
+        updateSessionStatisticsOptimistic(sessionId, messageIncrement, tokenIncrement, BigDecimal.ZERO);
+    }
+
+    @Override
+    public void updateSessionStatisticsOptimistic(
+            String sessionId, int messageIncrement, int tokenIncrement, BigDecimal costIncrement) {
         if (sessionId == null) {
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "会话ID不能为空");
         }
@@ -57,6 +83,11 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
         int maxRetries = 3;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             int finalAttempt = attempt;
+            if (costIncrement == null) {
+                costIncrement = BigDecimal.ZERO;
+            }
+            BigDecimal finalCostIncrement = costIncrement;
+
             Boolean success = transactionTemplate.execute(status -> {
                 try {
                     ChatSessionEntity session = chatSessionMapper.selectByIdWithVersion(sessionId);
@@ -66,11 +97,20 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
 
                     session.setMessageCount(session.getMessageCount() + messageIncrement);
                     session.setTotalTokens(session.getTotalTokens() + tokenIncrement);
+                    if (session.getTotalCost() == null) {
+                        session.setTotalCost(BigDecimal.ZERO);
+                    }
+                    session.setTotalCost(session.getTotalCost().add(finalCostIncrement));
                     session.setLastMessageAt(LocalDateTime.now());
 
                     int updatedRows = chatSessionMapper.updateByIdWithVersion(session);
                     if (updatedRows > 0) {
-                        log.debug("使用乐观锁成功更新会话{}统计: 消息 +{}, token +{}", sessionId, messageIncrement, tokenIncrement);
+                        log.debug(
+                                "使用乐观锁成功更新会话{}统计: 消息 +{}, token +{}, cost +{}",
+                                sessionId,
+                                messageIncrement,
+                                tokenIncrement,
+                                finalCostIncrement);
                         return true;
                     }
 

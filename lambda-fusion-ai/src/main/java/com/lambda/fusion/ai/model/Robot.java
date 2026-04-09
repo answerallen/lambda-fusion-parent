@@ -15,9 +15,6 @@ public class Robot {
 
     private String id;
 
-    @Schema(description = "机器人对外标识")
-    private String robotId;
-
     @Schema(description = "名称")
     private String name;
 

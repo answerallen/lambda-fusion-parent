@@ -18,12 +18,6 @@
         ORDER BY created_at DESC
     </select>
 
-    <!-- 按templateId查询 -->
-    <select id="selectByTemplateId" resultType="com.lambda.fusion.ai.model.entity.PromptTemplateEntity">
-        SELECT * FROM ai_prompt_template
-        WHERE template_id = #{templateId}
-        LIMIT 1
-    </select>
 
     <!-- 按租户查询 -->
     <select id="selectByTenantId" resultType="com.lambda.fusion.ai.model.entity.PromptTemplateEntity">
@@ -55,7 +49,7 @@
             UPDATE ai_prompt_template
             SET usage_count = usage_count + #{item.usageIncrement},
                 updated_at = NOW()
-            WHERE id = #{item.templateId}
+            WHERE id = #{item.id}
         </foreach>
     </update>
 

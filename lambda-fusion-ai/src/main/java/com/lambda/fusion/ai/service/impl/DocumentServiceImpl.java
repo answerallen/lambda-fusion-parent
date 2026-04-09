@@ -1,7 +1,6 @@
 package com.lambda.fusion.ai.service.impl;
 
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -96,7 +95,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
         DocumentEntity existingDoc = documentMapper.selectByFileHash(fileHash, kbId);
         if (existingDoc != null) {
-            log.warn("文档已存在, fileHash={}, documentId={}", fileHash, existingDoc.getDocumentId());
+            log.warn("文档已存在, fileHash={}, documentId={}", fileHash, existingDoc.getId());
             return toVO(existingDoc);
         }
 
@@ -117,7 +116,6 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
             DocumentEntity entity = new DocumentEntity();
             entity.setKbId(kbId);
-            entity.setDocumentId(IdUtil.fastSimpleUUID());
             entity.setFileName(originalFilename);
             entity.setFileType(StrUtil.toUpperCase(fileExtension));
             entity.setFileSize(file.getSize());
@@ -134,7 +132,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
             // 在同一事务中保存文档
             documentMapper.insert(entity);
-            log.info("文档上传成功, documentId={}, id={}", entity.getDocumentId(), entity.getId());
+            log.info("文档上传成功, documentId={}", entity.getId());
 
             // 异步处理文档
             documentProcessor.processDocument(entity.getId());

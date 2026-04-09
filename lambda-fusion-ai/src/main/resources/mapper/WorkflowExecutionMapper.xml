@@ -4,7 +4,6 @@
 
     <resultMap id="BaseResultMap" type="com.lambda.fusion.ai.model.entity.WorkflowExecutionEntity">
         <id column="id" property="id"/>
-        <result column="execution_id" property="executionId"/>
         <result column="pipeline_id" property="pipelineId"/>
         <result column="pipeline_version" property="pipelineVersion"/>
         <result column="user_id" property="userId"/>
@@ -24,9 +23,6 @@
         <result column="created_at" property="createdAt"/>
     </resultMap>
 
-    <select id="selectByExecutionId" resultMap="BaseResultMap">
-        SELECT * FROM ai_workflow_execution WHERE execution_id = #{executionId}
-    </select>
 
     <update id="updateStatus">
         UPDATE ai_workflow_execution

@@ -19,14 +19,13 @@ public class ChatSessionEntity {
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
-    @Version
-    private Long version;
-
-    private String sessionId;
     private String title;
     private String kbId;
     private String userId;
     private String llmModelId;
+
+    @Version
+    private Long version;
 
     @Schema(description = "关联的机器人ID")
     private String robotId;

@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.service.impl;
 
-import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.fusion.ai.AiConstants.Enums.SessionStatus;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
@@ -48,9 +47,9 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
             if (robot.getKbId() != null) entity.setKbId(robot.getKbId());
             if (robot.getWorkflowId() != null) entity.setWorkflowId(robot.getWorkflowId());
         }
-        entity.setSessionId(IdUtil.fastSimpleUUID());
         entity.setMessageCount(0);
         entity.setTotalTokens(0);
+        entity.setTotalCost(java.math.BigDecimal.ZERO);
         entity.setStatus(SessionStatus.ACTIVE.name());
         chatSessionMapper.insert(entity);
         return entityToVO(entity);

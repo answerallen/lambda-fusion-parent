@@ -26,12 +26,6 @@ public class DocumentChunkEntity {
     private String id;
 
     /**
-     * 块唯一标识
-     */
-    @Schema(description = "块唯一标识(UUID)")
-    private String chunkId;
-
-    /**
      * 所属文档ID
      */
     @Schema(description = "所属文档ID")

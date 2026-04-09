@@ -306,7 +306,7 @@ public class RagServiceImpl implements RagService {
 
         // 2. 备选方案：加载默认RAG模板
         template = promptTemplateMapper.selectOne(new LambdaQueryWrapper<PromptTemplateEntity>()
-                .eq(PromptTemplateEntity::getTemplateId, "system_rag_default")
+                .eq(PromptTemplateEntity::getId, "system_rag_default")
                 .eq(PromptTemplateEntity::getEnabled, true)
                 .last("LIMIT 1"));
 

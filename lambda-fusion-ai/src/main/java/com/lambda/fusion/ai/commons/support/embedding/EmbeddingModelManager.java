@@ -61,7 +61,7 @@ public class EmbeddingModelManager {
         }
 
         // 从数据库加载
-        LlmModelEntity modelEntity = llmModelMapper.selectByModelId(modelId);
+        LlmModelEntity modelEntity = llmModelMapper.selectById(modelId);
         if (modelEntity == null) {
             log.warn("Embedding model not found for modelId: {}, using default", modelId);
             return getDefaultModel();
@@ -103,7 +103,7 @@ public class EmbeddingModelManager {
         }
 
         // 缓存 defaultModelId
-        defaultModelId = defaultModel.getModelId();
+        defaultModelId = defaultModel.getId();
 
         // 创建并缓存模型
         EmbeddingModel model = modelCache.computeIfAbsent(defaultModelId, id -> {
@@ -136,7 +136,7 @@ public class EmbeddingModelManager {
         // 尝试查找匹配的模型
         LlmModelEntity matchedModel = findModelByName(embeddingModel);
         if (matchedModel != null) {
-            return getModel(matchedModel.getModelId());
+            return getModel(matchedModel.getId());
         }
 
         log.warn("No matching embedding model found for: {}, using default", embeddingModel);

@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.service.impl;
 
-import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
@@ -34,7 +33,6 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
     public PromptDefinition createTemplate(CreateTemplate dto) {
         PromptTemplateEntity entity = new PromptTemplateEntity();
         BeanUtils.copyProperties(dto, entity);
-        entity.setTemplateId(IdUtil.fastSimpleUUID());
         entity.setEnabled(true);
         entity.setUsageCount(0L);
         promptTemplateMapper.insert(entity);

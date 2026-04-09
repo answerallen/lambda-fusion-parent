@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.service.impl;
 
-import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
@@ -8,8 +7,10 @@ import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.ai.AiConstants;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
+import com.lambda.fusion.ai.commons.utils.CostCalculator;
 import com.lambda.fusion.ai.mapper.ChatMessageMapper;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
+import com.lambda.fusion.ai.mapper.LlmModelMapper;
 import com.lambda.fusion.ai.model.ChatHistory;
 import com.lambda.fusion.ai.model.SendMessage;
 import com.lambda.fusion.ai.model.VectorSearchResult;
@@ -25,6 +26,7 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,15 +50,16 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
     private final ChatMessageMapper chatMessageMapper;
     private final ChatSessionMapper chatSessionMapper;
+    private final LlmModelMapper llmModelMapper;
     private final RagService ragService;
     private final WorkflowExecutionService workflowExecutionService;
     private final AtomicSessionUpdateService atomicSessionUpdateService;
     private final SseEmitterManager sseEmitterManager;
     private final TransactionTemplate transactionTemplate;
+    private final CostCalculator costCalculator;
 
     private @NonNull ChatMessageEntity getChatMessageEntity(String sessionId, SendMessage sendMessage) {
         ChatMessageEntity userMsg = new ChatMessageEntity();
-        userMsg.setMessageId(IdUtil.fastSimpleUUID());
         userMsg.setSessionId(sessionId);
         userMsg.setRole("user");
         userMsg.setContent(sendMessage.getContent());
@@ -107,7 +110,6 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                                     fullAnswer.isEmpty() && aiText != null ? aiText : fullAnswer.toString();
 
                             ChatMessageEntity aiMsg = new ChatMessageEntity();
-                            aiMsg.setMessageId(IdUtil.fastSimpleUUID());
                             aiMsg.setSessionId(sessionId);
                             aiMsg.setRole("assistant");
                             aiMsg.setContent(finalContent);
@@ -117,8 +119,8 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                             applyTokenUsage(response, aiMsg);
 
                             try {
-                                persistStreamMessages(sessionId, userMsg, aiMsg);
-                                sseEmitterManager.sendEvent(clientId, "finish", aiMsg.getMessageId());
+                                persistStreamMessages(sessionId, userMsg, aiMsg, session.getLlmModelId());
+                                sseEmitterManager.sendEvent(clientId, "finish", aiMsg.getId());
                             } catch (Exception e) {
                                 log.error("流式消息持久化失败", e);
                                 sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
@@ -174,8 +176,8 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                                 createAssistantMessageEntity(session.getId(), finalContent, false);
                         applyTokenUsage(response, messageId);
                         try {
-                            persistStreamMessages(session.getId(), userMsg, messageId);
-                            sseEmitterManager.sendEvent(clientId, "finish", messageId.getMessageId());
+                            persistStreamMessages(session.getId(), userMsg, messageId, session.getLlmModelId());
+                            sseEmitterManager.sendEvent(clientId, "finish", messageId.getId());
                         } catch (Exception e) {
                             log.error("工作流流式消息持久化失败", e);
                             sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
@@ -198,19 +200,20 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         request.setSessionId(session.getId());
         request.setKbId(session.getKbId());
         request.setLlmModelId(session.getLlmModelId());
-        List<ChatMessage> history = buildChatHistory(session.getId(), userMsg.getMessageId());
+        List<ChatMessage> history = buildChatHistory(session.getId(), userMsg.getId());
         history.add(new UserMessage(dto.getContent()));
         request.setMessages(history);
         Map<String, Object> inputParams = new HashMap<>();
         inputParams.put("question", dto.getContent());
         request.setInputParams(inputParams);
         request.setTraceEnabled(traceEnabled);
+        // 聊天层触发：统计结算由 persistStreamMessages 负责，工作流服务跳过结算
+        request.setCalledFromChat(true);
         return request;
     }
 
     private ChatMessageEntity createAssistantMessageEntity(String sessionId, String content, boolean ragEnhanced) {
         ChatMessageEntity chatMessageEntity = new ChatMessageEntity();
-        chatMessageEntity.setMessageId(IdUtil.fastSimpleUUID());
         chatMessageEntity.setSessionId(sessionId);
         chatMessageEntity.setRole("assistant");
         chatMessageEntity.setContent(content);
@@ -227,19 +230,19 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     }
 
     @Override
-    public void submitFeedback(String sessionId, String messageId, Integer feedback) {
+    public void submitFeedback(String sessionId, String id, Integer feedback) {
         if (sessionId == null) {
             throw new AiBusinessException(AiErrorCode.SESSION_NOT_FOUND, "会话ID不能为空");
         }
-        if (messageId == null) {
+        if (id == null) {
             throw new AiBusinessException(AiErrorCode.MESSAGE_NOT_FOUND, "消息标识不能为空");
         }
         ChatMessageEntity entity = this.lambdaQuery()
                 .eq(ChatMessageEntity::getSessionId, sessionId)
-                .eq(ChatMessageEntity::getMessageId, messageId)
+                .eq(ChatMessageEntity::getId, id)
                 .one();
         if (entity == null) {
-            throw new AiBusinessException(AiErrorCode.MESSAGE_NOT_FOUND, "消息不存在: " + messageId);
+            throw new AiBusinessException(AiErrorCode.MESSAGE_NOT_FOUND, "消息不存在: " + id);
         }
         entity.setUserFeedback(feedback);
         chatMessageMapper.updateById(entity);
@@ -260,12 +263,76 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         return session;
     }
 
-    private void persistStreamMessages(String sessionId, ChatMessageEntity userMsg, ChatMessageEntity aiMsg) {
+    private void persistStreamMessages(
+            String sessionId, ChatMessageEntity userMsg, ChatMessageEntity aiMsg, String llmModelId) {
         transactionTemplate.executeWithoutResult(status -> {
             chatMessageMapper.insert(userMsg);
             chatMessageMapper.insert(aiMsg);
-            atomicSessionUpdateService.updateSessionStatistics(sessionId, 2, aiMsg.getTotalTokens());
+
+            // 计算成本
+            BigDecimal cost = calculateMessageCost(aiMsg, llmModelId);
+
+            // 更新会话统计（原子增量，包含成本）
+            atomicSessionUpdateService.updateSessionStatistics(sessionId, 2, aiMsg.getTotalTokens(), cost);
+
+            // 原子更新模型统计（并发安全）
+            updateModelStatisticsAtomic(llmModelId, aiMsg.getTotalTokens(), cost);
+
+            // [ACCOUNTING] 结构化记账日志
+            log.info(
+                    "[ACCOUNTING] scene=chat sessionId={} modelId={} tokens={} cost={}",
+                    sessionId,
+                    llmModelId,
+                    aiMsg.getTotalTokens(),
+                    cost);
         });
+    }
+
+    private BigDecimal calculateMessageCost(ChatMessageEntity aiMsg, String llmModelId) {
+        if (llmModelId == null) {
+            return BigDecimal.ZERO;
+        }
+
+        try {
+            var model = llmModelMapper.selectById(llmModelId);
+            if (model == null) {
+                log.warn("模型不存在，无法计算成本: {}", llmModelId);
+                return BigDecimal.ZERO;
+            }
+
+            var costResult = costCalculator.calculateCost(
+                    aiMsg.getPromptTokens() != null ? aiMsg.getPromptTokens() : 0,
+                    aiMsg.getCompletionTokens() != null ? aiMsg.getCompletionTokens() : 0,
+                    model.getInputTokenPrice(),
+                    model.getOutputTokenPrice());
+
+            return costResult.getTotalCost();
+        } catch (Exception e) {
+            log.error("计算消息成本失败, modelId={}", llmModelId, e);
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /**
+     * 原子增量更新模型统计（并发安全）。
+     * <p>直接使用数据库 SET 原子操作，避免先查后改在并发场景下的统计丢失问题。
+     * 不抛出异常，失败时仅记录 WARN 日志，保证主流程不受影响。</p>
+     */
+    private void updateModelStatisticsAtomic(String llmModelId, int tokenCount, BigDecimal cost) {
+        if (llmModelId == null) {
+            return;
+        }
+        try {
+            BigDecimal safeCost = cost != null ? cost : BigDecimal.ZERO;
+            int rows = llmModelMapper.atomicUpdateStatistics(llmModelId, tokenCount, safeCost);
+            if (rows == 0) {
+                log.warn("[ACCOUNTING] 模型统计更新失败，模型可能不存在: modelId={}", llmModelId);
+            } else {
+                log.debug("[ACCOUNTING] 模型统计原子更新成功: modelId={} +tokens={} +cost={}", llmModelId, tokenCount, safeCost);
+            }
+        } catch (Exception e) {
+            log.error("[ACCOUNTING] 原子更新模型统计异常, modelId={}", llmModelId, e);
+        }
     }
 
     private void validateSessionActive(ChatSessionEntity session) {
@@ -300,7 +367,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         List<ChatMessage> history = new java.util.ArrayList<>();
         if (recentMessages != null) {
             for (ChatMessageEntity entity : recentMessages) {
-                if (excludeMessageId != null && excludeMessageId.equals(entity.getMessageId())) {
+                if (excludeMessageId != null && excludeMessageId.equals(entity.getId())) {
                     continue;
                 }
                 if ("assistant".equals(entity.getRole())) {

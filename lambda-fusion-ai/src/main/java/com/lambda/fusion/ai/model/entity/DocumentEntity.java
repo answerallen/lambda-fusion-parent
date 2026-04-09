@@ -29,12 +29,6 @@ public class DocumentEntity {
     private String kbId;
 
     /**
-     * 文档唯一标识
-     */
-    @Schema(description = "文档唯一标识(UUID)")
-    private String documentId;
-
-    /**
      * 文件名
      */
     @Schema(description = "文件名")

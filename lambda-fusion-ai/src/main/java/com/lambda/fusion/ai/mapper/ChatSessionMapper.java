@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
@@ -28,6 +29,22 @@ public interface ChatSessionMapper extends BaseMapper<ChatSessionEntity> {
             @Param("sessionId") String sessionId,
             @Param("messageIncrement") int messageIncrement,
             @Param("tokenIncrement") int tokenIncrement,
+            @Param("lastMessageAt") LocalDateTime lastMessageAt);
+
+    /**
+     * 原子性更新会话统计（包含成本）
+     */
+    @Update("UPDATE ai_chat_session SET " + "message_count = message_count + #{messageIncrement}, "
+            + "total_tokens = total_tokens + #{tokenIncrement}, "
+            + "total_cost = total_cost + #{costIncrement}, "
+            + "last_message_at = #{lastMessageAt}, "
+            + "updated_at = NOW() "
+            + "WHERE id = #{sessionId}")
+    int atomicUpdateStatisticsWithCost(
+            @Param("sessionId") String sessionId,
+            @Param("messageIncrement") int messageIncrement,
+            @Param("tokenIncrement") int tokenIncrement,
+            @Param("costIncrement") BigDecimal costIncrement,
             @Param("lastMessageAt") LocalDateTime lastMessageAt);
 
     /**

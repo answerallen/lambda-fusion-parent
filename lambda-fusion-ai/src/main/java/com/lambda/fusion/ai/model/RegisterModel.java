@@ -30,4 +30,10 @@ public class RegisterModel {
 
     private BigDecimal defaultTemperature;
     private Integer defaultMaxTokens;
+
+    @Schema(description = "输入Token单价")
+    private BigDecimal inputTokenPrice;
+
+    @Schema(description = "输出Token单价")
+    private BigDecimal outputTokenPrice;
 }

@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.service.impl;
 
-import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
@@ -51,7 +50,6 @@ public class KnowledgeBaseServiceImpl
         // 创建实体
         KnowledgeBaseEntity entity = createKnowledgeBase.toEntity();
 
-        entity.setKbId(IdUtil.fastSimpleUUID());
         entity.setTenantId(AuthUtils.getTenantId());
         entity.setOwnerUserId(AuthUtils.getUser().getName());
 
@@ -64,8 +62,7 @@ public class KnowledgeBaseServiceImpl
 
         // 保存
         knowledgeBaseMapper.insert(entity);
-
-        log.info("知识库创建成功, kbId: {}, id: {}", entity.getKbId(), entity.getId());
+        log.info("知识库创建成功, id: {}", entity.getId());
 
         return ConvertUtils.convert(entity);
     }

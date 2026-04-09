@@ -9,7 +9,6 @@ import lombok.Data;
 @Schema(description = "提示词模板VO")
 public class PromptDefinition {
     private String id;
-    private String templateId;
     private String name;
     private String description;
     private String category;

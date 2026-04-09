@@ -25,13 +25,6 @@ public interface PromptTemplateMapper extends BaseMapper<PromptTemplateEntity> {
     List<PromptTemplateEntity> listSystemTemplates();
 
     /**
-     * 按templateId查询
-     * @param templateId 模板唯一标识
-     * @return 模板
-     */
-    PromptTemplateEntity selectByTemplateId(@Param("templateId") String templateId);
-
-    /**
      * 按租户查询模板
      * @param tenantId 租户ID
      * @return 模板列表

@@ -16,9 +16,6 @@ public class Document {
     @Schema(description = "文档ID")
     private String id;
 
-    @Schema(description = "文档唯一标识")
-    private String documentId;
-
     @Schema(description = "所属知识库ID")
     private String kbId;
 

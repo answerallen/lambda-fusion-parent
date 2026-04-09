@@ -22,7 +22,6 @@ public class ChatMessageEntity {
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
-    private String messageId;
     private String sessionId;
     private String role;
     private String content;

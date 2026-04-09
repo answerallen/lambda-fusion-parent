@@ -9,7 +9,6 @@ import lombok.Data;
 @Schema(description = "对话会话VO")
 public class ChatSession {
     private String id;
-    private String sessionId;
     private String title;
     private String kbId;
     private String userId;

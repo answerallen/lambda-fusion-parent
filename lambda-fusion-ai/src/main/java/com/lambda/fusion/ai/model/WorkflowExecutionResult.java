@@ -12,7 +12,7 @@ import lombok.Data;
 public class WorkflowExecutionResult {
 
     @Schema(description = "执行ID")
-    private String executionId;
+    private String id;
 
     @Schema(description = "是否完成")
     private Boolean finished;

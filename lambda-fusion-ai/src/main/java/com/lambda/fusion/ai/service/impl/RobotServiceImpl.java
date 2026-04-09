@@ -11,7 +11,6 @@ import com.lambda.fusion.ai.model.UpdateRobot;
 import com.lambda.fusion.ai.model.entity.RobotEntity;
 import com.lambda.fusion.ai.service.RobotService;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,9 +29,8 @@ public class RobotServiceImpl extends ServiceImpl<RobotMapper, RobotEntity> impl
         log.info("创建AI机器人: {}", dto.getName());
         RobotEntity entity = new RobotEntity();
         BeanUtils.copyProperties(dto, entity);
-        entity.setRobotId(UUID.randomUUID().toString().replace("-", ""));
         this.save(entity);
-        log.info("AI机器人创建成功, robotId: {}, id: {}", entity.getRobotId(), entity.getId());
+        log.info("AI机器人创建成功, id: {}", entity.getId());
         return ConvertUtils.convert(entity);
     }
 
@@ -50,7 +48,7 @@ public class RobotServiceImpl extends ServiceImpl<RobotMapper, RobotEntity> impl
             throw AiBusinessException.robotNotFound(updateRobot.getId());
         }
 
-        BeanUtils.copyProperties(updateRobot, entity, "id", "robotId");
+        BeanUtils.copyProperties(updateRobot, entity, "id");
         this.updateById(entity);
         log.info("AI机器人更新成功, id: {}", entity.getId());
         return ConvertUtils.convert(entity);

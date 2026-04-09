@@ -12,6 +12,7 @@ import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.commons.support.vector.VectorDimensionProcessor;
+import com.lambda.fusion.ai.commons.utils.BatchProcessor;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
@@ -161,7 +162,6 @@ public class DocumentProcessor {
                 // 构建实体
                 DocumentChunkEntity chunk = new DocumentChunkEntity();
                 chunk.setId(IdUtil.fastSimpleUUID());
-                chunk.setChunkId(IdUtil.fastSimpleUUID());
                 chunk.setDocumentId(doc.getId());
                 chunk.setKbId(kb.getId());
                 chunk.setContent(segment.text());
@@ -194,7 +194,7 @@ public class DocumentProcessor {
                 int vectorBatchSize = aiProperties.getDocumentChunk().getVectorBatchSize();
 
                 // 分批处理向量插入
-                ListPartitionUtils.batchProcess(chunkEntities, vectorBatchSize, batch -> {
+                BatchProcessor.batchProcess(chunkEntities, vectorBatchSize, batch -> {
                     transactionTemplate.execute(status -> {
                         try {
                             documentChunkMapper.batchInsert(batch);

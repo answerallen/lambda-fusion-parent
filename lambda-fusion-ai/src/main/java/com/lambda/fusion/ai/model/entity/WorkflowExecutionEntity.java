@@ -13,9 +13,6 @@ public class WorkflowExecutionEntity {
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
-    @Schema(description = "执行唯一标识")
-    private String executionId;
-
     @Schema(description = "工作流定义ID")
     private String pipelineId;
 

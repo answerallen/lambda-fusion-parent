@@ -25,12 +25,6 @@
         LIMIT 1
     </select>
 
-    <!-- 按modelId查询 -->
-    <select id="selectByModelId" resultType="com.lambda.fusion.ai.model.entity.LlmModelEntity">
-        SELECT * FROM ai_llm_model
-        WHERE model_id = #{modelId}
-        LIMIT 1
-    </select>
 
     <!-- 查询启用的模型 -->
     <select id="selectEnabledModels" resultType="com.lambda.fusion.ai.model.entity.LlmModelEntity">
@@ -51,6 +45,16 @@
         ORDER BY is_default DESC, created_at DESC
     </select>
 
+    <!-- 单条原子增量更新（并发安全，直接 SET field = field + delta） -->
+    <update id="atomicUpdateStatistics">
+        UPDATE ai_llm_model
+        SET total_calls = total_calls + 1,
+            total_tokens = total_tokens + #{tokenIncrement},
+            total_cost = total_cost + #{costIncrement},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
     <!-- 批量更新调用统计 -->
     <update id="updateTotalCallsBatch">
         <foreach collection="list" item="item" separator=";">
@@ -59,7 +63,7 @@
                 total_tokens = total_tokens + #{item.tokenCount},
                 total_cost = total_cost + #{item.cost},
                 updated_at = NOW()
-            WHERE id = #{item.modelId}
+            WHERE id = #{item.id}
         </foreach>
     </update>
 

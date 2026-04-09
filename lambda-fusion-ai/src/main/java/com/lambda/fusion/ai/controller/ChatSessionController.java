@@ -10,6 +10,14 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 对话会话管理 Controller
+ *
+ * <p><strong>sessionId 语义说明</strong>:
+ * URL 路径中的 {@code {sessionId}} 为会话表主键（即 {@code ChatSessionEntity.id}），
+ * 而非表内业务字段 {@code sessionId}。
+ * 后续版本计划将路径参数改名为 {@code id} 以统一语义。</p>
+ */
 @RestController
 @RequestMapping("/v1/chat/sessions")
 @Tag(name = "对话会话管理")
@@ -32,7 +40,9 @@ public class ChatSessionController {
 
     @PostMapping("/{sessionId}/archive")
     @Operation(summary = "归档会话")
-    public void archive(@PathVariable String sessionId) {
+    public void archive(
+            /** 会话主键 id（路径参数名沿用 sessionId，实为主键，后续计划统一改名） */
+            @PathVariable String sessionId) {
         chatSessionService.archiveSession(sessionId);
     }
 }

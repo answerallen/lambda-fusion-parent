@@ -27,12 +27,6 @@ public class KnowledgeBaseEntity {
     private String id;
 
     /**
-     * 知识库唯一标识
-     */
-    @Schema(description = "知识库唯一标识(UUID)")
-    private String kbId;
-
-    /**
      * 知识库名称
      */
     @Schema(description = "知识库名称")

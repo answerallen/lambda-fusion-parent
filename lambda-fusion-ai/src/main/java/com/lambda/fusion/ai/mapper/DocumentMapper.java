@@ -50,12 +50,6 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
     DocumentEntity selectByFileHash(@Param("fileHash") String fileHash, @Param("kbId") String kbId);
 
     /**
-     * 根据documentId查询文档
-     */
-    @Select("SELECT * FROM ai_document WHERE document_id = #{documentId} AND deleted_at IS NULL LIMIT 1")
-    DocumentEntity selectByDocumentId(@Param("documentId") String documentId);
-
-    /**
      * 更新处理状态
      */
     @Update("UPDATE ai_document SET process_status = #{processStatus}, process_progress = #{processProgress}, "

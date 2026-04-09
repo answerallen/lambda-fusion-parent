@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.service.impl;
 
-import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
@@ -36,11 +35,11 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
         LlmModelEntity entity = new LlmModelEntity();
         BeanUtils.copyProperties(dto, entity);
         normalizeApiKey(entity);
-        entity.setModelId(IdUtil.fastSimpleUUID());
         entity.setEnabled(true);
         entity.setIsDefault(false);
         entity.setTotalCalls(0L);
         entity.setTotalTokens(0L);
+        entity.setTotalCost(java.math.BigDecimal.ZERO);
         llmModelMapper.insert(entity);
         return toLlmModel(entity);
     }

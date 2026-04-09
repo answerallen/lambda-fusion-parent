@@ -8,8 +8,6 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface WorkflowExecutionMapper extends BaseMapper<WorkflowExecutionEntity> {
 
-    WorkflowExecutionEntity selectByExecutionId(@Param("executionId") String executionId);
-
     int updateStatus(@Param("id") Long id, @Param("status") String status, @Param("progress") Integer progress);
 
     int updateCompletion(

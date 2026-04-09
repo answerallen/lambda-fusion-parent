@@ -6,7 +6,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】知识库表 ai_knowledge_base -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-2026020300101-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260203001011-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -18,9 +18,6 @@
         <createTable tableName="ai_knowledge_base" remarks="知识库表">
             <column name="id" type="varchar(64)">
                 <constraints primaryKey="true"/>
-            </column>
-            <column name="kb_id" type="varchar(100)">
-                <constraints nullable="false" unique="true"/>
             </column>
             <column name="name" type="varchar(200)">
                 <constraints nullable="false"/>
@@ -77,7 +74,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】文档表 ai_document -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-2026020300201-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260203002011-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -92,9 +89,6 @@
             </column>
             <column name="kb_id" type="varchar(64)">
                 <constraints nullable="false" foreignKeyName="fk_document_kb" references="ai_knowledge_base(id)"/>
-            </column>
-            <column name="document_id" type="varchar(100)">
-                <constraints nullable="false" unique="true"/>
             </column>
             <column name="file_name" type="varchar(500)">
                 <constraints nullable="false"/>
@@ -153,7 +147,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】文档块表 ai_document_chunk -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-2026020300301-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260203003011-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -165,9 +159,6 @@
         <createTable tableName="ai_document_chunk" remarks="文档块表">
             <column name="id" type="varchar(64)">
                 <constraints primaryKey="true"/>
-            </column>
-            <column name="chunk_id" type="varchar(100)">
-                <constraints nullable="false" unique="true"/>
             </column>
             <column name="document_id" type="varchar(64)">
                 <constraints nullable="false" foreignKeyName="fk_chunk_document" references="ai_document(id)"/>
@@ -220,7 +211,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】LLM模型配置表 ai_llm_model -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-2026020300401-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260203004011-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -232,9 +223,6 @@
         <createTable tableName="ai_llm_model" remarks="LLM模型配置表">
             <column name="id" type="varchar(64)">
                 <constraints primaryKey="true"/>
-            </column>
-            <column name="model_id" type="varchar(100)">
-                <constraints nullable="false" unique="true"/>
             </column>
             <column name="name" type="varchar(200)">
                 <constraints nullable="false"/>
@@ -289,7 +277,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】为 ai_llm_model 添加 tenant_id 字段 -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604050010-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026040500101-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <dbms type="postgresql"/>
@@ -310,7 +298,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】对话会话表 ai_chat_session -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-2026020300501-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260203005011-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -322,9 +310,6 @@
         <createTable tableName="ai_chat_session" remarks="对话会话表">
             <column name="id" type="varchar(64)">
                 <constraints primaryKey="true"/>
-            </column>
-            <column name="session_id" type="varchar(100)">
-                <constraints nullable="false" unique="true"/>
             </column>
             <column name="title" type="varchar(500)"/>
             <column name="kb_id" type="varchar(64)"/>
@@ -373,7 +358,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】对话消息表 ai_chat_message -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-2026020300601-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260203006011-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -385,9 +370,6 @@
         <createTable tableName="ai_chat_message" remarks="对话消息表">
             <column name="id" type="varchar(64)">
                 <constraints primaryKey="true"/>
-            </column>
-            <column name="message_id" type="varchar(100)">
-                <constraints nullable="false" unique="true"/>
             </column>
             <column name="session_id" type="varchar(64)">
                 <constraints nullable="false"/>
@@ -430,7 +412,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】流程执行表 ai_workflow_execution -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-2026020300801-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260203008011-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -442,9 +424,6 @@
         <createTable tableName="ai_workflow_execution" remarks="流程执行记录表">
             <column name="id" type="varchar(64)">
                 <constraints primaryKey="true"/>
-            </column>
-            <column name="execution_id" type="varchar(100)">
-                <constraints nullable="false" unique="true"/>
             </column>
             <column name="pipeline_id" type="varchar(64)">
                 <constraints nullable="false"/>
@@ -492,7 +471,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】提示词模板表 ai_prompt_template -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-2026020300901-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260203009011-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -504,9 +483,6 @@
         <createTable tableName="ai_prompt_template" remarks="提示词模板表">
             <column name="id" type="varchar(64)">
                 <constraints primaryKey="true"/>
-            </column>
-            <column name="template_id" type="varchar(100)">
-                <constraints nullable="false" unique="true"/>
             </column>
             <column name="name" type="varchar(200)">
                 <constraints nullable="false"/>
@@ -557,7 +533,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】Agent工作流配置表 ai_agent_workflow -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-20260301001011-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-202603010010111-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -608,17 +584,16 @@
     <!-- ========================================== -->
     <!-- 【仅 PostgreSQL】初始化系统提示词模板数据 -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-2026020300911" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260203009111" author="Jin">
         <preConditions onFail="MARK_RAN">
             <dbms type="postgresql"/>
             <tableExists tableName="ai_prompt_template"/>
             <sqlCheck expectedResult="0">
-                SELECT COUNT(*) FROM ai_prompt_template WHERE template_id = 'system_rag_default'
+                SELECT COUNT(*) FROM ai_prompt_template WHERE id = 'sys_prompt_rag_default'
             </sqlCheck>
         </preConditions>
         <insert tableName="ai_prompt_template">
             <column name="id" value="sys_prompt_rag_default"/>
-            <column name="template_id" value="system_rag_default"/>
             <column name="name" value="默认RAG问答模板"/>
             <column name="description" value="基于检索到的上下文回答用户问题"/>
             <column name="category" value="RAG"/>
@@ -646,7 +621,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】AI 工作流模板表 ai_workflow_template -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604010020-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026040100201-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -720,7 +695,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】AI 工作流模板版本表 ai_workflow_template_version -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-202604010021-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-2026040100211-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -764,7 +739,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】AI机器人表 ai_robot -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-2026040600101-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260406001011-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -776,9 +751,6 @@
         <createTable tableName="ai_robot" remarks="AI机器人表">
             <column name="id" type="varchar(64)">
                 <constraints primaryKey="true"/>
-            </column>
-            <column name="robot_id" type="varchar(64)">
-                <constraints nullable="false" unique="true"/>
             </column>
             <column name="name" type="varchar(200)">
                 <constraints nullable="false"/>

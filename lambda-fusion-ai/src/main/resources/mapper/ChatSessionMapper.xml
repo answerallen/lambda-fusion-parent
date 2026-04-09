@@ -6,7 +6,6 @@
     <resultMap id="BaseResultMap" type="com.lambda.fusion.ai.model.entity.ChatSessionEntity">
         <id column="id" property="id" jdbcType="VARCHAR"/>
         <result column="version" property="version" jdbcType="BIGINT"/>
-        <result column="session_id" property="sessionId" jdbcType="VARCHAR"/>
         <result column="title" property="title" jdbcType="VARCHAR"/>
         <result column="kb_id" property="kbId" jdbcType="VARCHAR"/>
         <result column="user_id" property="userId" jdbcType="VARCHAR"/>
@@ -26,7 +25,7 @@
 
     <!-- Select session by ID with version for optimistic locking -->
     <select id="selectByIdWithVersion" resultMap="BaseResultMap">
-        SELECT id, version, session_id, title, kb_id, user_id, tenant_id, llm_model_id,
+        SELECT id, version, title, kb_id, user_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
         FROM ai_chat_session
@@ -37,7 +36,6 @@
     <update id="updateByIdWithVersion">
         UPDATE ai_chat_session
         SET version = version + 1,
-            session_id = #{sessionId},
             title = #{title},
             kb_id = #{kbId},
             user_id = #{userId},
@@ -57,7 +55,7 @@
 
     <!-- 按用户ID和状态查询会话 -->
     <select id="selectByUserIdAndStatus" resultMap="BaseResultMap">
-        SELECT id, version, session_id, title, kb_id, user_id, tenant_id, llm_model_id,
+        SELECT id, version, title, kb_id, user_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
         FROM ai_chat_session
@@ -70,7 +68,7 @@
 
     <!-- 按租户ID查询会话 -->
     <select id="selectByTenantId" resultMap="BaseResultMap">
-        SELECT id, version, session_id, title, kb_id, user_id, tenant_id, llm_model_id,
+        SELECT id, version, title, kb_id, user_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
         FROM ai_chat_session
@@ -83,7 +81,7 @@
 
     <!-- 查询过期会话(超过30天未活动) -->
     <select id="selectExpiredSessions" resultMap="BaseResultMap">
-        SELECT id, version, session_id, title, kb_id, user_id, tenant_id, llm_model_id,
+        SELECT id, version, title, kb_id, user_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
         FROM ai_chat_session

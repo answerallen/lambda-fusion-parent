@@ -31,12 +31,6 @@ public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
             Page<KnowledgeBaseEntity> page, @Param("tenantId") Long tenantId, @Param("status") String status);
 
     /**
-     * 根据kbId查询知识库
-     */
-    @Select("SELECT * FROM ai_knowledge_base WHERE kb_id = #{kbId} AND deleted_at IS NULL LIMIT 1")
-    KnowledgeBaseEntity selectByKbId(@Param("kbId") String kbId);
-
-    /**
      * 根据租户ID查询知识库列表
      */
     @Select("<script>" + "SELECT * FROM ai_knowledge_base "

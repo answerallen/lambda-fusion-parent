@@ -67,7 +67,7 @@ lambda:
         name: ai-postgres
   oss:
     clients:
-      #### Redis 环境变量 ####
+      #### Oss 环境变量 ####
       - name: default
         type: QINIU
         cdn: ${QINIU_CDN}

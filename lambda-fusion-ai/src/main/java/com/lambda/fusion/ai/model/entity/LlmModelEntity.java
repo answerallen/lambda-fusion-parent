@@ -20,9 +20,6 @@ public class LlmModelEntity {
     @Schema(description = "模型ID")
     private String id;
 
-    @Schema(description = "模型唯一标识")
-    private String modelId;
-
     @Schema(description = "模型名称")
     private String name;
 
