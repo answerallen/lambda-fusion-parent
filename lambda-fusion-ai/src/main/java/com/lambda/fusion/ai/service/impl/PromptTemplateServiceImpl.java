@@ -1,7 +1,5 @@
 package com.lambda.fusion.ai.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
@@ -10,6 +8,7 @@ import com.lambda.fusion.ai.model.PromptDefinition;
 import com.lambda.fusion.ai.model.UpdateTemplate;
 import com.lambda.fusion.ai.model.entity.PromptTemplateEntity;
 import com.lambda.fusion.ai.service.PromptTemplateService;
+import com.lambda.fusion.core.service.AbstractCrudService;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import java.util.List;
@@ -17,26 +16,25 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper, PromptTemplateEntity>
+public class PromptTemplateServiceImpl
+        extends AbstractCrudService<PromptTemplateEntity, PromptDefinition, PromptTemplateMapper>
         implements PromptTemplateService {
 
     private final PromptTemplateMapper promptTemplateMapper;
 
     @Override
-    public PromptDefinition createTemplate(CreateTemplate dto) {
-        PromptTemplateEntity entity = new PromptTemplateEntity();
-        BeanUtils.copyProperties(dto, entity);
+    public PromptDefinition createTemplate(CreateTemplate createTemplate) {
+        PromptTemplateEntity entity = createTemplate.toEntity();
         entity.setEnabled(true);
         entity.setUsageCount(0L);
         promptTemplateMapper.insert(entity);
-        return toPromptDefinition(entity);
+        return toVO(entity);
     }
 
     @Override
@@ -68,20 +66,25 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
     @Override
     public List<PromptDefinition> listByCategory(String category) {
         return promptTemplateMapper.listByCategory(category).stream()
-                .map(this::toPromptDefinition)
+                .map(this::toVO)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<PromptDefinition> listSystemTemplates() {
         return promptTemplateMapper.listSystemTemplates().stream()
-                .map(this::toPromptDefinition)
+                .map(this::toVO)
                 .collect(Collectors.toList());
     }
 
     @Override
+    public List<PromptDefinition> listAll() {
+        return listForVO();
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
-    public PromptDefinition updateTemplate(String id, UpdateTemplate dto) {
+    public PromptDefinition updateTemplate(String id, UpdateTemplate updateTemplate) {
         // 查询现有模板
         PromptTemplateEntity entity = promptTemplateMapper.selectById(id);
         if (entity == null) {
@@ -93,28 +96,10 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
             throw new AiBusinessException(AiErrorCode.SYSTEM_TEMPLATE_NOT_EDITABLE);
         }
 
-        // 更新字段
-        if (dto.getName() != null) {
-            entity.setName(dto.getName());
-        }
-        if (dto.getDescription() != null) {
-            entity.setDescription(dto.getDescription());
-        }
-        if (dto.getCategory() != null) {
-            entity.setCategory(dto.getCategory());
-        }
-        if (dto.getTemplateContent() != null) {
-            entity.setTemplateContent(dto.getTemplateContent());
-        }
-        if (dto.getVariables() != null) {
-            entity.setVariables(dto.getVariables());
-        }
-        if (dto.getIsPublic() != null) {
-            entity.setIsPublic(dto.getIsPublic());
-        }
+        entity = updateTemplate.toEntity();
 
         promptTemplateMapper.updateById(entity);
-        return toPromptDefinition(entity);
+        return toVO(entity);
     }
 
     @Override
@@ -140,10 +125,6 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
         if (entity == null) {
             throw new AiBusinessException(AiErrorCode.PROMPT_TEMPLATE_NOT_FOUND, id);
         }
-        return toPromptDefinition(entity);
-    }
-
-    private PromptDefinition toPromptDefinition(PromptTemplateEntity entity) {
-        return ConvertUtils.convert(entity);
+        return toVO(entity);
     }
 }

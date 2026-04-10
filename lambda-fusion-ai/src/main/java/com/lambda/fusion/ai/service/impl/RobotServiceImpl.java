@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,10 +24,9 @@ public class RobotServiceImpl extends ServiceImpl<RobotMapper, RobotEntity> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Robot createRobot(CreateRobot dto) {
-        log.info("创建AI机器人: {}", dto.getName());
-        RobotEntity entity = new RobotEntity();
-        BeanUtils.copyProperties(dto, entity);
+    public Robot createRobot(CreateRobot createRobot) {
+        log.info("创建AI机器人: {}", createRobot.getName());
+        RobotEntity entity = createRobot.toEntity();
         this.save(entity);
         log.info("AI机器人创建成功, id: {}", entity.getId());
         return ConvertUtils.convert(entity);
@@ -42,13 +40,7 @@ public class RobotServiceImpl extends ServiceImpl<RobotMapper, RobotEntity> impl
         if (updateRobot.getId() == null) {
             throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "机器人ID不能为空");
         }
-
-        RobotEntity entity = this.getById(updateRobot.getId());
-        if (entity == null) {
-            throw AiBusinessException.robotNotFound(updateRobot.getId());
-        }
-
-        BeanUtils.copyProperties(updateRobot, entity, "id");
+        RobotEntity entity = updateRobot.toEntity();
         this.updateById(entity);
         log.info("AI机器人更新成功, id: {}", entity.getId());
         return ConvertUtils.convert(entity);

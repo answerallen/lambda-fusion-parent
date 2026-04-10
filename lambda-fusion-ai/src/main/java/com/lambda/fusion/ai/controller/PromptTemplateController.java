@@ -10,7 +10,6 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -33,13 +32,7 @@ public class PromptTemplateController {
         if (category != null) {
             return promptTemplateService.listByCategory(category);
         }
-        return promptTemplateService.list().stream()
-                .map(entity -> {
-                    PromptDefinition vo = new PromptDefinition();
-                    BeanUtils.copyProperties(entity, vo);
-                    return vo;
-                })
-                .toList();
+        return promptTemplateService.listAll();
     }
 
     @GetMapping("/{id}")

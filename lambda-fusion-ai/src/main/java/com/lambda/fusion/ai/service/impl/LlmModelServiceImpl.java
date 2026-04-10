@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.commons.support.factory.ChatModelFactory;
@@ -10,11 +11,11 @@ import com.lambda.fusion.ai.model.LlmModel;
 import com.lambda.fusion.ai.model.RegisterModel;
 import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.service.LlmModelService;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,32 +32,26 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public LlmModel registerModel(RegisterModel dto) {
-        LlmModelEntity entity = new LlmModelEntity();
-        BeanUtils.copyProperties(dto, entity);
+    public LlmModel registerModel(RegisterModel registerModel) {
+        LlmModelEntity entity = registerModel.toEntity();
         normalizeApiKey(entity);
         entity.setEnabled(true);
         entity.setIsDefault(false);
         entity.setTotalCalls(0L);
         entity.setTotalTokens(0L);
-        entity.setTotalCost(java.math.BigDecimal.ZERO);
+        entity.setTotalCost(BigDecimal.ZERO);
         llmModelMapper.insert(entity);
         return toLlmModel(entity);
     }
 
     @Override
-    public void updateModel(String id, RegisterModel dto) {
+    public void updateModel(String id, RegisterModel registerModel) {
         // 验证输入参数
         if (id == null) {
             throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
         }
-
-        LlmModelEntity entity = llmModelMapper.selectById(id);
-        if (entity == null) {
-            throw AiBusinessException.llmModelNotFound(id);
-        }
-
-        BeanUtils.copyProperties(dto, entity);
+        LlmModelEntity entity = registerModel.toEntity();
+        entity.setId(id);
         normalizeApiKey(entity);
         llmModelMapper.updateById(entity);
         chatModelFactory.invalidateModelCache(id);
@@ -99,10 +94,9 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
     }
 
     private LlmModel toLlmModel(LlmModelEntity entity) {
-        LlmModel vo = new LlmModel();
-        BeanUtils.copyProperties(entity, vo);
-        vo.setApiKeyEncrypted(null); // 不返回加密的API Key
-        return vo;
+        LlmModel llmModel = ConvertUtils.convert(entity);
+        llmModel.setApiKeyEncrypted(null);
+        return llmModel;
     }
 
     private void normalizeApiKey(LlmModelEntity entity) {

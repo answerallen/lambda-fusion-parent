@@ -1,13 +1,19 @@
 package com.lambda.fusion.ai.model;
 
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.cloud.core.shared.BaseDTO;
+import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
+@EqualsAndHashCode(callSuper = true)
+@AutoConverter(target = LlmModelEntity.class)
 @Data
 @Schema(description = "注册LLM模型DTO")
-public class RegisterModel {
+public class RegisterModel extends BaseDTO<LlmModelEntity> {
     @NotBlank
     private String name;
 

@@ -22,4 +22,6 @@ public interface PromptTemplateService extends IService<PromptTemplateEntity> {
     List<PromptDefinition> listByCategory(String category);
 
     List<PromptDefinition> listSystemTemplates();
+
+    List<PromptDefinition> listAll();
 }

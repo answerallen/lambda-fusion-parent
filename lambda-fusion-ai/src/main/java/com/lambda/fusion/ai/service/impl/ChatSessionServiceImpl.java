@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.AiConstants.Enums.SessionStatus;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
@@ -12,11 +13,11 @@ import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.model.entity.RobotEntity;
 import com.lambda.fusion.ai.service.ChatSessionService;
 import com.lambda.fusion.core.utils.AuthUtils;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,18 +30,17 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
     private final RobotMapper robotMapper;
 
     @Override
-    public ChatSession createSession(CreateSession dto) {
-        ChatSessionEntity entity = new ChatSessionEntity();
-        BeanUtils.copyProperties(dto, entity);
+    public ChatSession createSession(CreateSession createSession) {
+        ChatSessionEntity entity = createSession.toEntity();
 
         entity.setUserId(AuthUtils.getUser().getName());
         entity.setTenantId(AuthUtils.getTenantId());
 
         // 挂载机器人参数
-        if (dto.getRobotId() != null) {
-            RobotEntity robot = robotMapper.selectById(dto.getRobotId());
+        if (createSession.getRobotId() != null) {
+            RobotEntity robot = robotMapper.selectById(createSession.getRobotId());
             if (robot == null) {
-                throw AiBusinessException.robotNotFound(dto.getRobotId());
+                throw AiBusinessException.robotNotFound(createSession.getRobotId());
             }
             if (robot.getLlmModelId() != null) entity.setLlmModelId(robot.getLlmModelId());
             if (robot.getSystemPrompt() != null) entity.setSystemPrompt(robot.getSystemPrompt());
@@ -49,7 +49,7 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
         }
         entity.setMessageCount(0);
         entity.setTotalTokens(0);
-        entity.setTotalCost(java.math.BigDecimal.ZERO);
+        entity.setTotalCost(BigDecimal.ZERO);
         entity.setStatus(SessionStatus.ACTIVE.name());
         chatSessionMapper.insert(entity);
         return entityToVO(entity);
@@ -88,8 +88,6 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
     }
 
     private ChatSession entityToVO(ChatSessionEntity entity) {
-        ChatSession vo = new ChatSession();
-        BeanUtils.copyProperties(entity, vo);
-        return vo;
+        return ConvertUtils.convert(entity);
     }
 }

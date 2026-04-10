@@ -1,18 +1,24 @@
 package com.lambda.fusion.ai.model;
 
+import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.annotation.FieldMapping;
+import com.lambda.cloud.core.shared.BaseDTO;
+import com.lambda.fusion.ai.model.entity.RobotEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 更新 AI机器人 DTO
  */
+@EqualsAndHashCode(callSuper = true)
+@AutoConverter(target = RobotEntity.class)
 @Data
 @Schema(description = "更新AI机器人请求体")
-public class UpdateRobot {
+public class UpdateRobot extends BaseDTO<RobotEntity> {
 
     @NotBlank(message = "ID不能为空")
     @Schema(description = "主键ID", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -72,7 +78,7 @@ public class UpdateRobot {
     @Schema(description = "开场白/欢迎语")
     private String welcomeMessage;
 
-    @FieldMapping(target = "suggestedQuestions", qualifiedByName = "")
+    @FieldMapping(target = "suggestedQuestions", qualifiedByName = "listToString")
     @Schema(description = "预设问题列表")
     private List<String> suggestedQuestions;
 
@@ -81,7 +87,7 @@ public class UpdateRobot {
 
     // ========== 发布配置 ==========
 
-    @FieldMapping(target = "suggestedQuestions", qualifiedByName = "")
+    @FieldMapping(target = "publishChannels", qualifiedByName = "listToString")
     @Schema(description = "发布渠道列表")
     private List<String> publishChannels;
 }

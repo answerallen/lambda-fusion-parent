@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.lambda.cloud.core.annotation.FieldMapping;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -77,6 +78,7 @@ public class RobotEntity {
     private String welcomeMessage;
 
     @Schema(description = "预设问题(JSON数组)")
+    @FieldMapping(target = "suggestedQuestions", qualifiedByName = "stringToList")
     private String suggestedQuestions;
 
     @Schema(description = "是否启用建议追问")
@@ -85,6 +87,7 @@ public class RobotEntity {
     // ========== 发布配置 ==========
 
     @Schema(description = "发布渠道(JSON数组: web/api/wechat等)")
+    @FieldMapping(target = "publishChannels", qualifiedByName = "stringToList")
     private String publishChannels;
 
     @TableField(fill = FieldFill.INSERT)
