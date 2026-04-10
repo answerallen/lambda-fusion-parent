@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.controller;
 
 import com.lambda.fusion.ai.model.LlmModel;
 import com.lambda.fusion.ai.model.RegisterModel;
+import com.lambda.fusion.ai.model.UpdateModel;
 import com.lambda.fusion.ai.service.LlmModelService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,7 +39,7 @@ public class LlmModelController {
 
     @PutMapping("/{id}")
     @Operation(summary = "更新模型")
-    public void update(@PathVariable String id, @Valid @RequestBody RegisterModel dto) {
+    public void update(@PathVariable String id, @Valid @RequestBody UpdateModel dto) {
         llmModelService.updateModel(id, dto);
     }
 

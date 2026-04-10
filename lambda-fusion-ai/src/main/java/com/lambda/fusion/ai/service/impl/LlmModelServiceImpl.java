@@ -9,6 +9,7 @@ import com.lambda.fusion.ai.commons.support.security.KeyEncryptionService;
 import com.lambda.fusion.ai.mapper.LlmModelMapper;
 import com.lambda.fusion.ai.model.LlmModel;
 import com.lambda.fusion.ai.model.RegisterModel;
+import com.lambda.fusion.ai.model.UpdateModel;
 import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.service.LlmModelService;
 import java.math.BigDecimal;
@@ -45,12 +46,12 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
     }
 
     @Override
-    public void updateModel(String id, RegisterModel registerModel) {
+    public void updateModel(String id, UpdateModel updateModel) {
         // 验证输入参数
         if (id == null) {
             throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
         }
-        LlmModelEntity entity = registerModel.toEntity();
+        LlmModelEntity entity = updateModel.toEntity();
         entity.setId(id);
         normalizeApiKey(entity);
         llmModelMapper.updateById(entity);
