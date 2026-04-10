@@ -79,14 +79,6 @@ lambda-fusion-parent/
 
 ## 🎨 预览与体验
 
-<div align="center">
-  <img src="https://gitee.com/westboy/lambda-fusion-example-project/raw/master/assets/screens/s1.png" width="48%" alt="界面预览-1" />
-  <img src="https://gitee.com/westboy/lambda-fusion-example-project/raw/master/assets/screens/s2.png" width="48%" alt="界面预览-2" />
-  <img src="https://gitee.com/westboy/lambda-fusion-example-project/raw/master/assets/screens/s3.png" width="48%" alt="界面预览-3" />
-  <img src="https://gitee.com/westboy/lambda-fusion-example-project/raw/master/assets/screens/s4.png" width="48%" alt="界面预览-4" />
-</div>
-
-
 * **演示地址**：[http://lambda.devcms.cn:20005/index.html](http://lambda.devcms.cn:20005/index.html)
 
 * **账号密码**：`westboy` / `8a30d075d80fad0e799a6ac3a654a214`
