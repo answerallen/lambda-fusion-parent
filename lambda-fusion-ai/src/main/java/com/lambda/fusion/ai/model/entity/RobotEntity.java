@@ -2,20 +2,23 @@ package com.lambda.fusion.ai.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.lambda.cloud.core.annotation.FieldMapping;
+import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * AI机器人实体封装类
  *
  * @author Jin
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("ai_robot")
 @Schema(description = "AI机器人实体")
-public class RobotEntity {
+public class RobotEntity  extends BaseEntity {
 
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
@@ -90,9 +93,4 @@ public class RobotEntity {
     @FieldMapping(target = "publishChannels", qualifiedByName = "stringToList")
     private String publishChannels;
 
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createdAt;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updatedAt;
 }

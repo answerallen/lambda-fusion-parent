@@ -3,21 +3,24 @@ package com.lambda.fusion.ai.model.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.fusion.ai.model.KnowledgeBase;
+import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * AI知识库实体类
  *
  * @author Jin
  */
+@EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = KnowledgeBase.class)
 @Data
 @TableName("ai_knowledge_base")
 @Schema(description = "知识库实体")
-public class KnowledgeBaseEntity {
+public class KnowledgeBaseEntity extends BaseEntity {
 
     /**
      * 主键ID
@@ -146,33 +149,6 @@ public class KnowledgeBaseEntity {
     @Schema(description = "状态(ACTIVE、ARCHIVED、DELETED)")
     private String status;
 
-    // ==================== 审计字段 ====================
-
-    /**
-     * 创建时间
-     */
-    @TableField(fill = FieldFill.INSERT)
-    @Schema(description = "创建时间")
-    private LocalDateTime createdAt;
-
-    /**
-     * 更新时间
-     */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    @Schema(description = "更新时间")
-    private LocalDateTime updatedAt;
-
-    /**
-     * 创建人ID
-     */
-    @Schema(description = "创建人ID")
-    private String createdBy;
-
-    /**
-     * 更新人ID
-     */
-    @Schema(description = "更新人ID")
-    private String updatedBy;
 
     /**
      * 删除时间(软删除)

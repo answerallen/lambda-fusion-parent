@@ -1,14 +1,17 @@
 package com.lambda.fusion.ai.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("ai_agent_workflow")
 @Schema(description = "Agent工作流配置实体")
-public class WorkflowEntity {
+public class WorkflowEntity  extends BaseEntity {
 
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
@@ -46,17 +49,4 @@ public class WorkflowEntity {
     @Schema(description = "租户隔离ID")
     private String tenantId;
 
-    @Schema(description = "创建时间")
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createdAt;
-
-    @Schema(description = "更新时间")
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updatedAt;
-
-    @Schema(description = "创建人ID")
-    private String createdBy;
-
-    @Schema(description = "更新人ID")
-    private String updatedBy;
 }

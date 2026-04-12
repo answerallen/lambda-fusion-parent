@@ -3,21 +3,24 @@ package com.lambda.fusion.ai.model.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.fusion.ai.model.LlmModel;
+import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * LLM模型配置实体类
  *
  * @author Jin
  */
+@EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = LlmModel.class)
 @Data
 @TableName("ai_llm_model")
 @Schema(description = "LLM模型实体")
-public class LlmModelEntity {
+public class LlmModelEntity extends BaseEntity {
 
     @TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "模型ID")
@@ -91,18 +94,4 @@ public class LlmModelEntity {
 
     @Schema(description = "租户ID")
     private String tenantId;
-
-    @TableField(fill = FieldFill.INSERT)
-    @Schema(description = "创建时间")
-    private LocalDateTime createdAt;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    @Schema(description = "更新时间")
-    private LocalDateTime updatedAt;
-
-    @Schema(description = "创建人ID")
-    private String createdBy;
-
-    @Schema(description = "更新人ID")
-    private String updatedBy;
 }

@@ -87,4 +87,19 @@ public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
      * @return 知识库列表
      */
     List<KnowledgeBaseEntity> selectByOwnerUserId(@Param("ownerUserId") Long ownerUserId);
+
+    /**
+     * 更新知识库统计信息
+     * @param id 知识库ID
+     * @param documentCount 文档数量
+     * @param chunkCount 块数量
+     * @param vectorCount 向量数量
+     * @param totalSizeBytes 总大小
+     * @return 更新数量
+     */
+    int updateStatistics(@Param("id") String id,
+                         @Param("documentCount") Integer documentCount,
+                         @Param("chunkCount") Integer chunkCount,
+                         @Param("vectorCount") Long vectorCount,
+                         @Param("totalSizeBytes") Long totalSizeBytes);
 }

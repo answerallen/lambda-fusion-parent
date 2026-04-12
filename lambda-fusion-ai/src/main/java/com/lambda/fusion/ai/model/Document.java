@@ -1,17 +1,23 @@
 package com.lambda.fusion.ai.model;
 
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.fusion.ai.model.entity.DocumentEntity;
+import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 文档VO
  *
  * @author Jin
  */
+@EqualsAndHashCode(callSuper = true)
+@AutoConverter(target = DocumentEntity.class,isReverse = true)
 @Data
 @Schema(description = "文档VO")
-public class Document {
+public class Document extends BaseEntity {
 
     @Schema(description = "文档ID")
     private String id;
@@ -79,9 +85,4 @@ public class Document {
     @Schema(description = "处理完成时间")
     private LocalDateTime processedAt;
 
-    @Schema(description = "创建时间")
-    private LocalDateTime createdAt;
-
-    @Schema(description = "更新时间")
-    private LocalDateTime updatedAt;
 }

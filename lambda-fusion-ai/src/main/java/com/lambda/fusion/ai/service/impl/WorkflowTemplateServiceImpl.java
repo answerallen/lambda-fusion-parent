@@ -149,7 +149,7 @@ public class WorkflowTemplateServiceImpl implements WorkflowTemplateService {
                         .like(WorkflowTemplateEntity::getTemplateCode, keyword)
                         .or()
                         .like(WorkflowTemplateEntity::getDescription, keyword))
-                .orderByDesc(WorkflowTemplateEntity::getCreateTime);
+                .orderByDesc(WorkflowTemplateEntity::getCreatedAt);
         return templateMapper.selectPage(page, wrapper);
     }
 

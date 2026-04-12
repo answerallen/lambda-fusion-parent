@@ -2,15 +2,19 @@ package com.lambda.fusion.ai.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import java.time.LocalDateTime;
+
+import com.lambda.fusion.core.entity.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 工作流模板实体
  * 用于存储可复用的 AI 流程编排模板
  */
+@EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("ai_workflow_template")
-public class WorkflowTemplateEntity {
+public class WorkflowTemplateEntity  extends BaseEntity {
 
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
@@ -99,28 +103,6 @@ public class WorkflowTemplateEntity {
      * 租户ID
      */
     private String tenantId;
-
-    /**
-     * 创建人
-     */
-    private String createBy;
-
-    /**
-     * 创建时间
-     */
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    /**
-     * 更新人
-     */
-    private String updateBy;
-
-    /**
-     * 更新时间
-     */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
 
     /**
      * 是否删除

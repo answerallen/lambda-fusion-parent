@@ -27,7 +27,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
             + "ORDER BY uploaded_at DESC"
             + "</script>")
     Page<DocumentEntity> pageByKbId(
-            Page<DocumentEntity> page, @Param("kbId") Long kbId, @Param("status") String status);
+            Page<DocumentEntity> page, @Param("kbId") String kbId, @Param("status") String status);
 
     /**
      * 根据知识库ID查询文档列表
@@ -66,14 +66,14 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @param processStatus 处理状态
      * @return 文档列表
      */
-    List<DocumentEntity> selectByKbIdAndStatus(@Param("kbId") Long kbId, @Param("processStatus") String processStatus);
+    List<DocumentEntity> selectByKbIdAndStatus(@Param("kbId") String kbId, @Param("processStatus") String processStatus);
 
     /**
      * 统计知识库文档数
      * @param kbId 知识库ID
      * @return 文档数量
      */
-    Integer countByKbId(@Param("kbId") Long kbId);
+    Integer countByKbId(@Param("kbId") String kbId);
 
     /**
      * 按处理状态查询文档
@@ -111,5 +111,5 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return Map<status, count>
      */
     @MapKey("status")
-    List<Map<String, Object>> countByKbIdGroupByStatus(@Param("kbId") Long kbId);
+    List<Map<String, Object>> countByKbIdGroupByStatus(@Param("kbId") String kbId);
 }

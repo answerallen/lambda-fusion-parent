@@ -58,13 +58,13 @@ public class WorkflowTemplateVersionEntity {
     /**
      * 创建此版本的用户
      */
-    private String createBy;
+    private String createdBy;
 
     /**
      * 版本创建时间
      */
     @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
+    private LocalDateTime createdAt;
 
     /**
      * 是否删除

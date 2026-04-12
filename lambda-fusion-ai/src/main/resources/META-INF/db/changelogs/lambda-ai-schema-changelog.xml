@@ -74,7 +74,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】文档表 ai_document -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-20260203002011-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-202602030020111-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -128,6 +128,8 @@
             <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
+            <column name="created_by" type="varchar(64)"/>
+            <column name="updated_by" type="varchar(64)"/>
             <column name="deleted_at" type="timestamp"/>
         </createTable>
         <createIndex tableName="ai_document" indexName="idx_doc_kb_id">
@@ -645,15 +647,15 @@
             <column name="version" type="varchar(32)" defaultValue="1.0.0">
                 <constraints nullable="false"/>
             </column>
-            <column name="definition" type="jsonb">
+            <column name="definition" type="text">
                 <constraints nullable="false"/>
             </column>
             <column name="preview_image" type="varchar(512)"/>
             <column name="icon" type="varchar(64)"/>
             <column name="color" type="varchar(16)"/>
-            <column name="input_schema" type="jsonb"/>
-            <column name="output_schema" type="jsonb"/>
-            <column name="variables" type="jsonb"/>
+            <column name="input_schema" type="text"/>
+            <column name="output_schema" type="text"/>
+            <column name="variables" type="text"/>
             <column name="tags" type="varchar(256)"/>
             <column name="system_template" type="boolean" defaultValueBoolean="false">
                 <constraints nullable="false"/>
@@ -665,12 +667,12 @@
                 <constraints nullable="false"/>
             </column>
             <column name="tenant_id" type="varchar(32)"/>
-            <column name="create_by" type="varchar(64)"/>
-            <column name="create_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="created_by" type="varchar(64)"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="update_by" type="varchar(64)"/>
-            <column name="update_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_by" type="varchar(64)"/>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
             <column name="deleted" type="smallint" defaultValue="0">
                 <constraints nullable="false"/>
             </column>
@@ -715,15 +717,15 @@
                 <constraints nullable="false"/>
             </column>
             <column name="description" type="varchar(256)"/>
-            <column name="definition" type="jsonb">
+            <column name="definition" type="text">
                 <constraints nullable="false"/>
             </column>
-            <column name="input_schema" type="jsonb"/>
-            <column name="output_schema" type="jsonb"/>
-            <column name="variables" type="jsonb"/>
+            <column name="input_schema" type="text"/>
+            <column name="output_schema" type="text"/>
+            <column name="variables" type="text"/>
             <column name="tenant_id" type="varchar(32)"/>
-            <column name="create_by" type="varchar(64)"/>
-            <column name="create_time" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="created_by" type="varchar(64)"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
             <column name="deleted" type="smallint" defaultValue="0">

@@ -3,33 +3,6 @@
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <changeSet id="lambda-authority-202603120001" author="westboy">
-        <preConditions onFail="MARK_RAN">
-            <not>
-                <tableExists tableName="la_api_token"/>
-            </not>
-        </preConditions>
-        <createTable tableName="la_api_token" remarks="Api Token授权信息">
-            <column name="ID" type="varchar(20)" remarks="ID">
-                <constraints primaryKey="true" primaryKeyName="pk_la_api_token_id" nullable="false"/>
-            </column>
-            <column name="API_TOKEN" type="varchar(32)" remarks="Api Token">
-                <constraints nullable="false"/>
-            </column>
-            <column name="DESCRIPTION" type="varchar(255)" remarks="描述"/>
-            <column name="IP_WHITE_LIST" type="varchar(256)" remarks="IP白名单，多个用','分割"/>
-            <column name="ENABLED" type="int" defaultValueNumeric="1" remarks="是否可用 1 启用">
-                <constraints nullable="false"/>
-            </column>
-            <column name="CREATE_TIME" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="创建日期">
-                <constraints nullable="false"/>
-            </column>
-            <column name="EXPIRATION_TIME" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="失效日期">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-    </changeSet>
-
     <changeSet id="lambda-authority-202603120002" author="westboy">
         <preConditions onFail="MARK_RAN">
             <not>

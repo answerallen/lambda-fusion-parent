@@ -71,8 +71,10 @@ public interface DocumentService extends IService<DocumentEntity> {
     void updateProcessStatus(String id, String processStatus, Integer progress, String errorMessage);
     /**
      * 重新处理文档 (重新切分和向量化)
+     * @param kbId 知识库ID
+     * @param documentId 文档ID
      */
-    void reprocessDocument(String docId, String id);
+    void reprocessDocument(String kbId, String documentId);
 
     /**
      * 分页查询文档列表

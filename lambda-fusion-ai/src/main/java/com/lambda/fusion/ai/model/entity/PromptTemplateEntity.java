@@ -1,23 +1,28 @@
 package com.lambda.fusion.ai.model.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.fusion.ai.model.PromptDefinition;
+import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.math.BigDecimal;
 
 /**
  * 提示词模板实体类
  *
  * @author Jin
  */
+@EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = PromptDefinition.class)
 @Data
 @TableName("ai_prompt_template")
 @Schema(description = "提示词模板实体")
-public class PromptTemplateEntity {
+public class PromptTemplateEntity extends BaseEntity {
 
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
@@ -42,13 +47,4 @@ public class PromptTemplateEntity {
     private Boolean enabled;
     private Long usageCount;
     private BigDecimal avgRating;
-
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createdAt;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updatedAt;
-
-    private String createdBy;
-    private String updatedBy;
 }

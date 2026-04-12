@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -48,7 +47,6 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Document, DocumentMapper>
         implements DocumentService {
 
@@ -58,10 +56,22 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     private final VectorRepository vectorRepository;
     private final DocumentProcessor documentProcessor;
     private final AiProperties aiProperties;
-    private OssClient ossClient;
+    private final OssClient ossClient;
 
     @Autowired
-    public void setOssClient(OssClientManager ossClientManager) {
+    public DocumentServiceImpl(DocumentMapper documentMapper,
+                               DocumentChunkMapper documentChunkMapper,
+                               KnowledgeBaseMapper knowledgeBaseMapper,
+                               VectorRepository vectorRepository,
+                               DocumentProcessor documentProcessor,
+                               AiProperties aiProperties,
+                               OssClientManager ossClientManager) {
+        this.documentMapper = documentMapper;
+        this.documentChunkMapper = documentChunkMapper;
+        this.knowledgeBaseMapper = knowledgeBaseMapper;
+        this.vectorRepository = vectorRepository;
+        this.documentProcessor = documentProcessor;
+        this.aiProperties = aiProperties;
         this.ossClient = ossClientManager.get(aiProperties.getDocument().getOssClientName());
     }
 
@@ -128,6 +138,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
             entity.setProcessStatus(DocumentStatus.PENDING.name());
             entity.setProcessProgress(0);
             entity.setUploadedBy(uploadedBy);
+            entity.setUploadedAt(LocalDateTime.now());
             entity.setTenantId(kb.getTenantId());
 
             // 在同一事务中保存文档
@@ -200,6 +211,11 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
                 log.error("OSS文件删除失败: {}", entity.getStoragePath(), e);
             }
         }
+
+        // 6. 更新知识库统计信息
+        if (kb != null) {
+            updateKnowledgeBaseStatistics(kbId);
+        }
     }
 
     @Override
@@ -222,26 +238,26 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void reprocessDocument(String kbId, String id) {
-        if (id == null) {
+    public void reprocessDocument(String kbId, String documentId) {
+        if (documentId == null) {
             throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档ID不能为空");
         }
-        DocumentEntity doc = getDocumentInKnowledgeBase(kbId, id);
+        DocumentEntity doc = getDocumentInKnowledgeBase(kbId, documentId);
 
-        log.info("重新处理文档: kbId={}, docId={}", kbId, id);
+        log.info("重新处理文档: kbId={}, docId={}", kbId, documentId);
 
         // 删除所有维度分表中的向量数据
         for (Integer dimension : VectorDimensionProcessor.SUPPORTED_DIMENSIONS) {
-            vectorRepository.deleteByDocumentId(dimension, id);
+            vectorRepository.deleteByDocumentId(dimension, documentId);
         }
-        documentChunkMapper.deleteByDocumentIds(Collections.singletonList(id));
+        documentChunkMapper.deleteByDocumentIds(Collections.singletonList(documentId));
 
         doc.setProcessStatus(DocumentStatus.PENDING.name());
         doc.setProcessProgress(0);
         doc.setErrorMessage(null);
         documentMapper.updateById(doc);
 
-        documentProcessor.processDocument(id);
+        documentProcessor.processDocument(documentId);
     }
 
     @Override
@@ -301,8 +317,26 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
             throw AiBusinessException.documentNotFound(documentId);
         }
         if (!kbId.equals(entity.getKbId())) {
-            throw new AiBusinessException(AiErrorCode.DOCUMENT_NOT_FOUND, "文档不属于当前知识库: " + documentId);
+            throw AiBusinessException.documentNotFound(documentId);
         }
         return entity;
+    }
+
+    private void updateKnowledgeBaseStatistics(String kbId) {
+        Integer documentCount = documentMapper.countByKbId(kbId);
+        long totalSizeBytes = 0L;
+        long vectorCount = 0L;
+
+        List<DocumentEntity> documents = documentMapper.listByKbId(kbId, null);
+        int chunkCount = 0;
+        for (DocumentEntity doc : documents) {
+            chunkCount += doc.getChunkCount() != null ? doc.getChunkCount() : 0;
+            vectorCount += doc.getVectorCount() != null ? doc.getVectorCount() : 0;
+            totalSizeBytes += doc.getFileSize() != null ? doc.getFileSize() : 0;
+        }
+
+        knowledgeBaseMapper.updateStatistics(kbId, documentCount, chunkCount, vectorCount, totalSizeBytes);
+        log.info("知识库统计信息已更新, kbId={}, documentCount={}, chunkCount={}, vectorCount={}, totalSizeBytes={}",
+                kbId, documentCount, chunkCount, vectorCount, totalSizeBytes);
     }
 }

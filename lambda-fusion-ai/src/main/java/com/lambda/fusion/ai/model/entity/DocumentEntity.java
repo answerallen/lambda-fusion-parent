@@ -1,19 +1,25 @@
 package com.lambda.fusion.ai.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.fusion.ai.model.Document;
+import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * AI文档实体类
  *
  * @author Jin
  */
+@EqualsAndHashCode(callSuper = true)
+@AutoConverter(target = Document.class)
 @Data
 @TableName("ai_document")
 @Schema(description = "文档实体")
-public class DocumentEntity {
+public class DocumentEntity extends BaseEntity {
 
     /**
      * 主键ID
@@ -158,20 +164,6 @@ public class DocumentEntity {
      */
     @Schema(description = "处理完成时间")
     private LocalDateTime processedAt;
-
-    /**
-     * 创建时间
-     */
-    @TableField(fill = FieldFill.INSERT)
-    @Schema(description = "创建时间")
-    private LocalDateTime createdAt;
-
-    /**
-     * 更新时间
-     */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    @Schema(description = "更新时间")
-    private LocalDateTime updatedAt;
 
     /**
      * 删除时间(软删除)

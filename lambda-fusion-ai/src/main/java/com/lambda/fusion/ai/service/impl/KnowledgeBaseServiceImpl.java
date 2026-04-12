@@ -113,8 +113,13 @@ public class KnowledgeBaseServiceImpl
             documentMapper.deleteByKbIdBatch(List.of(id));
         }
 
+        // 重置统计信息
         entity.setStatus("DELETED");
         entity.setDeletedAt(LocalDateTime.now());
+        entity.setDocumentCount(0);
+        entity.setChunkCount(0);
+        entity.setVectorCount(0L);
+        entity.setTotalSizeBytes(0L);
         knowledgeBaseMapper.updateById(entity);
 
         log.info("知识库删除成功, id: {}", id);

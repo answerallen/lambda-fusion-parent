@@ -53,4 +53,15 @@
         ORDER BY created_at DESC
     </select>
 
+    <!-- 更新知识库统计信息 -->
+    <update id="updateStatistics">
+        UPDATE ai_knowledge_base
+        SET document_count = #{documentCount},
+            chunk_count = #{chunkCount},
+            vector_count = #{vectorCount},
+            total_size_bytes = #{totalSizeBytes},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
 </mapper>
