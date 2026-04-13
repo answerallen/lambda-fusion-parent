@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.service.impl;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
@@ -27,9 +28,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -102,13 +101,11 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
                         @Override
                         public void onCompleteResponse(ChatResponse response) {
-                            String aiText = response.aiMessage() != null
-                                            && response.aiMessage().text() != null
-                                    ? response.aiMessage().text()
-                                    : null;
+                            String aiText = Optional.ofNullable(response.aiMessage())
+                                    .map(AiMessage::text)
+                                    .orElse("");
                             String finalContent =
-                                    fullAnswer.isEmpty() && aiText != null ? aiText : fullAnswer.toString();
-
+                                    fullAnswer.isEmpty() && StrUtil.isNotEmpty(aiText) ? aiText : fullAnswer.toString();
                             ChatMessageEntity aiMsg = new ChatMessageEntity();
                             aiMsg.setSessionId(sessionId);
                             aiMsg.setRole("assistant");
@@ -167,10 +164,10 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
                     @Override
                     public void onCompleteResponse(ChatResponse response) {
-                        String aiText = response.aiMessage() != null
-                                        && response.aiMessage().text() != null
-                                ? response.aiMessage().text()
-                                : "";
+                        String aiText = Optional.ofNullable(response.aiMessage())
+                                .map(AiMessage::text)
+                                .orElse("");
+
                         String finalContent = fullAnswer.isEmpty() ? aiText : fullAnswer.toString();
                         ChatMessageEntity messageId =
                                 createAssistantMessageEntity(session.getId(), finalContent, false);
@@ -355,7 +352,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
      *   <li>最终返回正序历史，符合对话时间线，供 LLM 正确理解上下文</li>
      * </ol>
      *
-     * @param sessionId 会话ID
+     * @param sessionId        会话ID
      * @param excludeMessageId 需要排除的消息ID（可为null）
      * @return 正序排列的历史消息列表（最早在前）
      */
@@ -364,7 +361,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         // 查询 DEFAULT_HISTORY_LIMIT + 1 条消息，预留一条用于排除当前消息
         List<ChatMessageEntity> recentMessages =
                 chatMessageMapper.listBySessionId(sessionId, AiConstants.DEFAULT_HISTORY_LIMIT + 1);
-        List<ChatMessage> history = new java.util.ArrayList<>();
+        List<ChatMessage> history = new ArrayList<>();
         if (recentMessages != null) {
             for (ChatMessageEntity entity : recentMessages) {
                 if (excludeMessageId != null && excludeMessageId.equals(entity.getId())) {
@@ -377,7 +374,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                 }
             }
             // 反转为正序：确保历史消息按时间正序排列，LLM 能正确理解对话上下文
-            java.util.Collections.reverse(history);
+            Collections.reverse(history);
         }
         return history;
     }

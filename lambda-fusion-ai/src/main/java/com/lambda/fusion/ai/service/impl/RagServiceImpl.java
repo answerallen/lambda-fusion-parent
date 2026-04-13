@@ -20,14 +20,18 @@ import com.lambda.fusion.ai.service.RagService;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
+import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.output.TokenUsage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,12 +85,12 @@ public class RagServiceImpl implements RagService {
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "知识库向量维度配置无效: " + kbId);
         }
 
-        int limit = topK != null ? topK : (kb.getRetrievalTopK() != null ? kb.getRetrievalTopK() : 5);
-        Double scoreThreshold = minScore != null
-                ? minScore
-                : (kb.getSimilarityThreshold() != null
-                        ? kb.getSimilarityThreshold().doubleValue()
-                        : 0.6);
+        int limit = Optional.ofNullable(topK)
+                .orElseGet(() -> Optional.ofNullable(kb.getRetrievalTopK()).orElse(5));
+
+        Double scoreThreshold = Optional.ofNullable(minScore)
+                .or(() -> Optional.ofNullable(kb.getSimilarityThreshold()).map(Number::doubleValue))
+                .orElse(0.6);
 
         // 获取存储维度，用于选择分表
         int storageDimension = vectorDimensionProcessor.getNearestSupportedDimension(embeddingDimension);
@@ -272,16 +276,14 @@ public class RagServiceImpl implements RagService {
             if (lastMsg instanceof AiMessage) {
                 int pTokens = (int) state.getAttributes().getOrDefault("promptTokens", 0);
                 int cTokens = (int) state.getAttributes().getOrDefault("completionTokens", 0);
-                dev.langchain4j.model.output.TokenUsage finalUsage =
-                        new dev.langchain4j.model.output.TokenUsage(pTokens, cTokens);
+                TokenUsage finalUsage = new TokenUsage(pTokens, cTokens);
 
                 // 伪造最终响应供上层闭环
-                dev.langchain4j.model.chat.response.ChatResponse finalResponse =
-                        dev.langchain4j.model.chat.response.ChatResponse.builder()
-                                .aiMessage((AiMessage) lastMsg)
-                                .tokenUsage(finalUsage)
-                                .finishReason(dev.langchain4j.model.output.FinishReason.STOP)
-                                .build();
+                ChatResponse finalResponse = ChatResponse.builder()
+                        .aiMessage((AiMessage) lastMsg)
+                        .tokenUsage(finalUsage)
+                        .finishReason(FinishReason.STOP)
+                        .build();
 
                 handler.onCompleteResponse(finalResponse);
             } else {
