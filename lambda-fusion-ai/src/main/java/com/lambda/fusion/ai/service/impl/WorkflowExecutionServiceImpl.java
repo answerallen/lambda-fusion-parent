@@ -9,6 +9,7 @@ import com.lambda.fusion.ai.commons.agent.model.GraphDefinition;
 import com.lambda.fusion.ai.commons.agent.model.NodeDefinition;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
+import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
 import com.lambda.fusion.ai.commons.utils.CostCalculator;
 import com.lambda.fusion.ai.mapper.LlmModelMapper;
 import com.lambda.fusion.ai.mapper.WorkflowExecutionMapper;
@@ -281,8 +282,8 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             }
         }
 
-        int promptTokens = (Integer) state.getAttributes().getOrDefault("promptTokens", 0);
-        int completionTokens = (Integer) state.getAttributes().getOrDefault("completionTokens", 0);
+        int promptTokens = AgentNodeUtils.asInt(state.getAttributes().get("promptTokens"));
+        int completionTokens = AgentNodeUtils.asInt(state.getAttributes().get("completionTokens"));
         builder.promptTokens(promptTokens)
                 .completionTokens(completionTokens)
                 .totalTokens(promptTokens + completionTokens);
@@ -501,8 +502,12 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
                 aiMessage = parsedMessage;
             }
         }
-        int promptTokens = state != null ? (Integer) state.getAttributes().getOrDefault("promptTokens", 0) : 0;
-        int completionTokens = state != null ? (Integer) state.getAttributes().getOrDefault("completionTokens", 0) : 0;
+        int promptTokens = state != null && state.getAttributes() != null
+                ? AgentNodeUtils.asInt(state.getAttributes().get("promptTokens"))
+                : 0;
+        int completionTokens = state != null && state.getAttributes() != null
+                ? AgentNodeUtils.asInt(state.getAttributes().get("completionTokens"))
+                : 0;
         return ChatResponse.builder()
                 .aiMessage(aiMessage != null ? aiMessage : AiMessage.from(""))
                 .tokenUsage(new TokenUsage(promptTokens, completionTokens))

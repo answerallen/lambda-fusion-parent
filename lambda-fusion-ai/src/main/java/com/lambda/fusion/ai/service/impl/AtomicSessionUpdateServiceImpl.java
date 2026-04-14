@@ -11,7 +11,6 @@ import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -142,7 +141,6 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
         throw new AiBusinessException(AiErrorCode.CONCURRENT_UPDATE_FAILED, "由于并发修改导致更新会话统计失败");
     }
 
-    @Async
     public CompletableFuture<Void> updateSessionStatisticsAsync(
             String sessionId, int messageIncrement, int tokenIncrement) {
         return CompletableFuture.runAsync(() -> {

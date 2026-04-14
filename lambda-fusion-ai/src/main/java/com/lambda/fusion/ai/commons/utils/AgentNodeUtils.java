@@ -87,6 +87,28 @@ public class AgentNodeUtils {
     }
 
     /**
+     * 将对象安全转换为 int。
+     *
+     * <p>支持 {@link Number} 和数字字符串，无法转换时返回 0。</p>
+     *
+     * @param value 原始值
+     * @return 转换后的 int 值，无法转换时为 0
+     */
+    public int asInt(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String text) {
+            try {
+                return Integer.parseInt(text);
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    /**
      * 深拷贝 AgentState 对象
      * <p>
      * 创建一个完全独立的 AgentState 副本，包括：
