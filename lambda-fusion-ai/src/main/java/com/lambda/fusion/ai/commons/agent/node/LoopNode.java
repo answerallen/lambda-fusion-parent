@@ -27,7 +27,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class LoopNode implements AgentNode {
 
-    private static final String LOOP_CONTEXT_KEY = "__loop_context__";
+    private static final String LEGACY_LOOP_CONTEXT_KEY = "__loop_context__";
+    private static final String LOOP_CONTEXTS_KEY = "__loop_contexts__";
+    private static final String DEFAULT_LOOP_CONTEXT_ID = "__default__";
     private static final int DEFAULT_MAX_ITERATIONS = 100;
 
     private final Map<String, ConditionEvaluator> evaluators;
@@ -316,17 +318,21 @@ public class LoopNode implements AgentNode {
      * 获取或创建循环上下文
      */
     private LoopContext getOrCreateLoopContext(AgentState state) {
+        String contextId = getLoopContextId(state);
         if (state.getAttributes() != null) {
-            Object contextObj = state.getAttributes().get(LOOP_CONTEXT_KEY);
-            if (contextObj instanceof Map<?, ?> contextMap) {
-                LoopContext context = new LoopContext();
-                Object iterCount = contextMap.get("iterationCount");
-                context.iterationCount = iterCount instanceof Number n ? n.intValue() : 0;
-                context.conditionChecked = Boolean.TRUE.equals(contextMap.get("conditionChecked"));
-                context.bodyExecuted = Boolean.TRUE.equals(contextMap.get("bodyExecuted"));
-                context.pendingUpdate = Boolean.TRUE.equals(contextMap.get("pendingUpdate"));
-                context.initialized = Boolean.TRUE.equals(contextMap.get("initialized"));
-                return context;
+            Object contextsObj = state.getAttributes().get(LOOP_CONTEXTS_KEY);
+            if (contextsObj instanceof Map<?, ?> contextsMap) {
+                Object contextObj = contextsMap.get(contextId);
+                if (contextObj instanceof Map<?, ?> contextMap) {
+                    return parseLoopContext(contextMap);
+                }
+                // 已启用多上下文容器时，不再回退到旧全局 key，避免跨节点污染。
+                return new LoopContext();
+            }
+            // 向后兼容：仍支持历史版本单一 key 结构。
+            Object legacyContextObj = state.getAttributes().get(LEGACY_LOOP_CONTEXT_KEY);
+            if (legacyContextObj instanceof Map<?, ?> contextMap) {
+                return parseLoopContext(contextMap);
             }
         }
         return new LoopContext();
@@ -336,15 +342,15 @@ public class LoopNode implements AgentNode {
      * 保存循环上下文
      */
     private void saveLoopContext(AgentState state, LoopContext context) {
-        if (state.getAttributes() != null) {
-            Map<String, Object> contextMap = new java.util.HashMap<>();
-            contextMap.put("iterationCount", context.iterationCount);
-            contextMap.put("conditionChecked", context.conditionChecked);
-            contextMap.put("bodyExecuted", context.bodyExecuted);
-            contextMap.put("pendingUpdate", context.pendingUpdate);
-            contextMap.put("initialized", context.initialized);
-            state.getAttributes().put(LOOP_CONTEXT_KEY, contextMap);
+        if (state.getAttributes() == null) {
+            state.setAttributes(new java.util.HashMap<>());
         }
+        String contextId = getLoopContextId(state);
+        Map<String, Object> contextMap = toContextMap(context);
+        Map<String, Object> contexts = getOrCreateContextsContainer(state);
+        contexts.put(contextId, contextMap);
+        // 保留旧字段，兼容外部依赖该键读取循环上下文的场景。
+        state.getAttributes().put(LEGACY_LOOP_CONTEXT_KEY, contextMap);
     }
 
     /**
@@ -352,8 +358,61 @@ public class LoopNode implements AgentNode {
      */
     private void clearLoopContext(AgentState state) {
         if (state.getAttributes() != null) {
-            state.getAttributes().remove(LOOP_CONTEXT_KEY);
+            Map<String, Object> contexts = getContextsContainer(state);
+            if (contexts != null) {
+                contexts.remove(getLoopContextId(state));
+                if (contexts.isEmpty()) {
+                    state.getAttributes().remove(LOOP_CONTEXTS_KEY);
+                }
+            }
+            state.getAttributes().remove(LEGACY_LOOP_CONTEXT_KEY);
         }
+    }
+
+    private String getLoopContextId(AgentState state) {
+        String nodeId = state.getCurrentNodeId();
+        return nodeId == null || nodeId.isBlank() ? DEFAULT_LOOP_CONTEXT_ID : nodeId;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getOrCreateContextsContainer(AgentState state) {
+        Object existing = state.getAttributes().get(LOOP_CONTEXTS_KEY);
+        if (existing instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        Map<String, Object> contexts = new java.util.HashMap<>();
+        state.getAttributes().put(LOOP_CONTEXTS_KEY, contexts);
+        return contexts;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getContextsContainer(AgentState state) {
+        Object existing = state.getAttributes().get(LOOP_CONTEXTS_KEY);
+        if (existing instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        return null;
+    }
+
+    private LoopContext parseLoopContext(Map<?, ?> contextMap) {
+        LoopContext context = new LoopContext();
+        Object iterCount = contextMap.get("iterationCount");
+        context.iterationCount = iterCount instanceof Number n ? n.intValue() : 0;
+        context.conditionChecked = Boolean.TRUE.equals(contextMap.get("conditionChecked"));
+        context.bodyExecuted = Boolean.TRUE.equals(contextMap.get("bodyExecuted"));
+        context.pendingUpdate = Boolean.TRUE.equals(contextMap.get("pendingUpdate"));
+        context.initialized = Boolean.TRUE.equals(contextMap.get("initialized"));
+        return context;
+    }
+
+    private Map<String, Object> toContextMap(LoopContext context) {
+        Map<String, Object> contextMap = new java.util.HashMap<>();
+        contextMap.put("iterationCount", context.iterationCount);
+        contextMap.put("conditionChecked", context.conditionChecked);
+        contextMap.put("bodyExecuted", context.bodyExecuted);
+        contextMap.put("pendingUpdate", context.pendingUpdate);
+        contextMap.put("initialized", context.initialized);
+        return contextMap;
     }
 
     /**

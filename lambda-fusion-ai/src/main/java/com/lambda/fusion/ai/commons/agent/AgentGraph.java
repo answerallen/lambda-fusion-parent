@@ -205,6 +205,7 @@ public class AgentGraph {
             throw new IllegalArgumentException("maxIterations must be greater than 0");
         }
         this.maxIterations = maxIterations;
+        markDirty();
     }
 
     /**
@@ -219,7 +220,6 @@ public class AgentGraph {
         initializeObservability(state);
         long invokeStartedAt = System.nanoTime();
         CompiledGraph<LangGraphRuntimeState> executable = getOrBuildCompiledGraph();
-        executable.setMaxIterations(maxIterations);
         Optional<LangGraphRuntimeState> output = runnableConfig == null
                 ? executable.invoke(LangGraphRuntimeState.toInput(state))
                 : executable.invoke(LangGraphRuntimeState.toInput(state), runnableConfig);
@@ -238,7 +238,6 @@ public class AgentGraph {
         validateInputState(state);
         initializeObservability(state);
         CompiledGraph<LangGraphRuntimeState> executable = getOrBuildCompiledGraph();
-        executable.setMaxIterations(maxIterations);
         return runnableConfig == null
                 ? executable.stream(LangGraphRuntimeState.toInput(state))
                 : executable.stream(LangGraphRuntimeState.toInput(state), runnableConfig);
@@ -316,7 +315,7 @@ public class AgentGraph {
             }
 
             graph.addEdge(StateGraph.START, startNodeId);
-            compiledGraph = compileConfig == null ? graph.compile() : graph.compile(compileConfig);
+            compiledGraph = graph.compile(buildEffectiveCompileConfig());
             dirty = false;
             return compiledGraph;
         } catch (Exception e) {
@@ -598,6 +597,7 @@ public class AgentGraph {
             return null;
         }
 
+        Edge firstDirectEdge = null;
         for (Edge edge : outgoingEdges) {
             if (edge.getConditionEvaluator() != null && StringUtils.hasText(edge.getConditionExpression())) {
                 boolean isPass = edge.getConditionEvaluator().evaluate(edge.getConditionExpression(), state);
@@ -608,10 +608,22 @@ public class AgentGraph {
                             edge.getConditionEvaluator().getType() + ":" + edge.getConditionExpression());
                 }
             } else {
-                return new RouteDecision(edge.getTargetId(), "direct", null);
+                // 无条件边作为兜底，等待后续条件边全部评估后再决定。
+                if (firstDirectEdge == null) {
+                    firstDirectEdge = edge;
+                }
             }
         }
+        if (firstDirectEdge != null) {
+            return new RouteDecision(firstDirectEdge.getTargetId(), "direct", null);
+        }
         return null;
+    }
+
+    private CompileConfig buildEffectiveCompileConfig() {
+        CompileConfig baseConfig =
+                compileConfig == null ? CompileConfig.builder().build() : compileConfig;
+        return CompileConfig.builder(baseConfig).recursionLimit(maxIterations).build();
     }
 
     private record RouteDecision(String targetId, String reason, Object detail) {}

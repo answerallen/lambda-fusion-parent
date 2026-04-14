@@ -11,6 +11,9 @@ import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.factory.AgentGraphFactory;
 import com.lambda.fusion.ai.service.WorkflowService;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -303,5 +306,66 @@ class SubgraphNodeTest {
         AgentNode.ExecutionResult result = subgraphNode.execute(state);
 
         assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("测试inheritContext时inputMapping优先覆盖")
+    void testInputMappingOverridesInheritedContext() throws Exception {
+        AgentGraph mockGraph = mock(AgentGraph.class);
+        when(mockGraph.invoke(any(AgentState.class))).thenReturn(new AgentState());
+        when(mockGraphFactory.buildFromDefinition(anyString())).thenReturn(mockGraph);
+
+        Map<String, Object> inputMapping = new HashMap<>();
+        inputMapping.put("x", "attributes.overrideX");
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("subgraphDefinition", "{\"nodes\":[],\"edges\":[]}");
+        properties.put("inheritContext", true);
+        properties.put("inputMapping", inputMapping);
+
+        AgentState state = new AgentState();
+        state.getAttributes().put("x", "parent");
+        state.getAttributes().put("overrideX", "mapped");
+        setNodeProperties(state, properties);
+
+        subgraphNode.execute(state);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(AgentState.class);
+        verify(mockGraph).invoke(captor.capture());
+        assertThat(captor.getValue().getAttributes().get("x")).isEqualTo("mapped");
+    }
+
+    @Test
+    @DisplayName("测试异步子图超时后记录错误并返回nextNode")
+    void testAsyncTimeoutStoresErrorAndReturnsNextNode() throws Exception {
+        AgentGraph slowGraph = mock(AgentGraph.class);
+        when(slowGraph.invoke(any(AgentState.class))).thenAnswer(invocation -> {
+            Thread.sleep(300);
+            return new AgentState();
+        });
+        when(mockGraphFactory.buildFromDefinition(anyString())).thenReturn(slowGraph);
+
+        AiProperties props = new AiProperties();
+        props.getAgent().getSubgraph().setAsyncTimeout(30);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        SubgraphNode timeoutNode = new SubgraphNode(mockGraphFactory, mockWorkflowService, executor, props);
+        try {
+            Map<String, Object> nodeProperties = new HashMap<>();
+            nodeProperties.put("subgraphDefinition", "{\"nodes\":[],\"edges\":[]}");
+            nodeProperties.put("async", true);
+            nodeProperties.put("propagateErrors", true);
+            nodeProperties.put("nextNode", "afterTimeout");
+
+            AgentState state = new AgentState();
+            setNodeProperties(state, nodeProperties);
+
+            AgentNode.ExecutionResult result = timeoutNode.execute(state);
+            assertThat(result.nextNode()).isEqualTo("afterTimeout");
+            assertThat(state.getAttributes().get("__subgraph_error__")).isEqualTo("子图执行超时");
+        } finally {
+            executor.shutdownNow();
+            executor.awaitTermination(1, TimeUnit.SECONDS);
+        }
     }
 }

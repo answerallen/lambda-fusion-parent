@@ -142,6 +142,43 @@ class AgentGraphTest {
     }
 
     @Test
+    @DisplayName("测试路由优先条件边，无条件边仅兜底")
+    void testConditionalEdgeTakesPrecedenceOverDirectEdge() {
+        AgentNode startNode = mock(AgentNode.class);
+        AgentNode directNode = mock(AgentNode.class);
+        AgentNode conditionalNode = mock(AgentNode.class);
+        ConditionEvaluator evaluator = mock(ConditionEvaluator.class);
+
+        when(startNode.getName()).thenReturn("start");
+        when(conditionalNode.getName()).thenReturn("conditional");
+        when(startNode.execute(any(AgentState.class))).thenAnswer(invocation -> {
+            AgentState nextState = new AgentState();
+            nextState.setSessionId("test");
+            return new AgentNode.ExecutionResult(nextState, null);
+        });
+        when(conditionalNode.execute(any(AgentState.class))).thenAnswer(invocation -> {
+            AgentState state = new AgentState();
+            state.getAttributes().put("route", "conditional");
+            state.setFinished(true);
+            return new AgentNode.ExecutionResult(state, null);
+        });
+        when(evaluator.getType()).thenReturn("spel");
+        when(evaluator.evaluate(anyString(), any(AgentState.class))).thenReturn(true);
+
+        graph.addNode("start", startNode);
+        graph.addNode("direct", directNode);
+        graph.addNode("conditional", conditionalNode);
+        graph.addEdge("start", "direct", null, null);
+        graph.addEdge("start", "conditional", evaluator, "true");
+        graph.setEntryPoint("start");
+
+        AgentState result = graph.invoke(new AgentState());
+        assertThat(result.getAttributes().get("route")).isEqualTo("conditional");
+        verify(conditionalNode, atLeastOnce()).execute(any(AgentState.class));
+        verify(directNode, never()).execute(any(AgentState.class));
+    }
+
+    @Test
     @DisplayName("测试工作流完成状态")
     void testWorkflowFinishedState() {
         when(mockNode1.getName()).thenReturn("startNode");

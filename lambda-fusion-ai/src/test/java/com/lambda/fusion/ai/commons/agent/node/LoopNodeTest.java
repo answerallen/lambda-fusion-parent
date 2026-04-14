@@ -23,6 +23,10 @@ class LoopNodeTest {
         state.getAttributes().put(AgentGraph.CURRENT_NODE_PROPERTIES_ATTRIBUTE, properties);
     }
 
+    private void setCurrentNodeId(AgentState state, String nodeId) {
+        state.getAttributes().put(AgentGraph.CURRENT_NODE_ID_ATTRIBUTE, nodeId);
+    }
+
     @BeforeEach
     void setUp() {
         mockEvaluator = mock(ConditionEvaluator.class);
@@ -331,5 +335,29 @@ class LoopNodeTest {
         AgentNode.ExecutionResult result = loopNode.execute(state);
 
         assertThat(result.nextNode()).isEqualTo("bodyNode");
+    }
+
+    @Test
+    @DisplayName("测试不同循环节点上下文隔离")
+    void testLoopContextIsolationByNodeId() {
+        when(mockEvaluator.evaluate(anyString(), any(AgentState.class))).thenReturn(true);
+
+        AgentState state = new AgentState();
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("loopType", "while");
+        properties.put("condition", "true");
+        properties.put("conditionType", "spel");
+        properties.put("loopBody", "bodyNode");
+        properties.put("exitNode", "exitNode");
+        properties.put("maxIterations", 1);
+        setNodeProperties(state, properties);
+
+        setCurrentNodeId(state, "loopA");
+        AgentNode.ExecutionResult loopAFirst = loopNode.execute(state);
+        assertThat(loopAFirst.nextNode()).isEqualTo("bodyNode");
+
+        setCurrentNodeId(state, "loopB");
+        AgentNode.ExecutionResult loopBFirst = loopNode.execute(state);
+        assertThat(loopBFirst.nextNode()).isEqualTo("bodyNode");
     }
 }

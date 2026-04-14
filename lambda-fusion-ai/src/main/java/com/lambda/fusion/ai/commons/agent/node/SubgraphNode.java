@@ -212,30 +212,30 @@ public class SubgraphNode implements AgentNode {
             long startTime) {
 
         long asyncTimeout = getAsyncTimeout();
+        CompletableFuture<AgentState> future =
+                CompletableFuture.supplyAsync(() -> subgraph.invoke(subgraphInputState), executor);
 
         try {
-            AgentState subgraphOutputState = CompletableFuture.supplyAsync(
-                            () -> subgraph.invoke(subgraphInputState), executor)
-                    .orTimeout(asyncTimeout, TimeUnit.MILLISECONDS)
-                    .get();
+            AgentState subgraphOutputState = future.get(asyncTimeout, TimeUnit.MILLISECONDS);
 
             return handleSubgraphOutput(state, subgraphOutputState, properties, startTime);
 
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            log.warn("子图异步执行超时 {}ms", asyncTimeout);
+            handleExecutionError(state, new RuntimeException("子图执行超时"), propagateErrors);
+            return new ExecutionResult(state, (String) properties.get("nextNode"));
         } catch (CancellationException e) {
             log.warn("子图异步执行被取消");
             return new ExecutionResult(state, (String) properties.get("nextNode"));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            future.cancel(true);
             return new ExecutionResult(state, (String) properties.get("nextNode"));
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            if (cause instanceof TimeoutException) {
-                log.warn("子图异步执行超时 {}ms", asyncTimeout);
-                handleExecutionError(state, new RuntimeException("子图执行超时"), propagateErrors);
-            } else {
-                log.error("子图异步执行异常", cause);
-                handleExecutionError(state, new RuntimeException(cause), propagateErrors);
-            }
+            log.error("子图异步执行异常", cause);
+            handleExecutionError(state, new RuntimeException(cause), propagateErrors);
             return new ExecutionResult(state, (String) properties.get("nextNode"));
         }
     }
@@ -248,26 +248,21 @@ public class SubgraphNode implements AgentNode {
         subgraphState.setKbId(parentState.getKbId());
         subgraphState.setLlmModelId(parentState.getLlmModelId());
 
+        Map<String, Object> attributes = new HashMap<>();
+        if (inheritContext && parentState.getAttributes() != null) {
+            attributes.putAll(parentState.getAttributes());
+        }
+
         Object inputMappingObj = properties.get("inputMapping");
         if (inputMappingObj instanceof Map<?, ?> inputMapping) {
-            Map<String, Object> attributes = new HashMap<>();
-
             inputMapping.forEach((key, value) -> {
                 String targetKey = String.valueOf(key);
                 String sourcePath = String.valueOf(value);
                 Object sourceValue = extractValueFromState(parentState, sourcePath);
                 attributes.put(targetKey, sourceValue);
             });
-
-            subgraphState.setAttributes(attributes);
         }
-
-        if (inheritContext && parentState.getAttributes() != null) {
-            if (subgraphState.getAttributes() == null) {
-                subgraphState.setAttributes(new HashMap<>());
-            }
-            subgraphState.getAttributes().putAll(parentState.getAttributes());
-        }
+        subgraphState.setAttributes(attributes);
 
         return subgraphState;
     }

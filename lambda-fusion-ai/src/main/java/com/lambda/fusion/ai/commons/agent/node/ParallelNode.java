@@ -1,8 +1,8 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
 import com.lambda.fusion.ai.commons.agent.AgentNode;
-import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
 import com.lambda.fusion.ai.commons.agent.AgentState;
+import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
 import dev.langchain4j.data.message.ChatMessage;
 import java.util.*;
 import java.util.concurrent.*;
@@ -245,6 +245,9 @@ public class ParallelNode implements AgentNode {
             return null;
         }
         Object tokens = state.getAttributes().get("_inputTokens");
+        if (!(tokens instanceof Number)) {
+            tokens = state.getAttributes().get("promptTokens");
+        }
         return tokens instanceof Number n ? n.intValue() : null;
     }
 
@@ -253,6 +256,9 @@ public class ParallelNode implements AgentNode {
             return null;
         }
         Object tokens = state.getAttributes().get("_outputTokens");
+        if (!(tokens instanceof Number)) {
+            tokens = state.getAttributes().get("completionTokens");
+        }
         return tokens instanceof Number n ? n.intValue() : null;
     }
 
