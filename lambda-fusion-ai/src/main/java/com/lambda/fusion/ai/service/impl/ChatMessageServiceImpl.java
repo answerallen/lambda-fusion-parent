@@ -22,6 +22,7 @@ import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
 import com.lambda.fusion.ai.service.ChatMessageService;
 import com.lambda.fusion.ai.service.RagService;
 import com.lambda.fusion.ai.service.WorkflowExecutionService;
+import com.lambda.fusion.core.utils.AuthUtils;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -257,7 +258,23 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         if (session == null) {
             throw AiBusinessException.sessionNotFound(sessionId);
         }
+        validateSessionAccess(session, sessionId);
         return session;
+    }
+
+    private void validateSessionAccess(ChatSessionEntity session, String sessionId) {
+        String currentTenantId = AuthUtils.getTenantId();
+        String currentUserId = AuthUtils.getUser() != null ? AuthUtils.getUser().getName() : null;
+        if (StrUtil.isNotBlank(currentTenantId)
+                && StrUtil.isNotBlank(session.getTenantId())
+                && !currentTenantId.equals(session.getTenantId())) {
+            throw AiBusinessException.sessionNotFound(sessionId);
+        }
+        if (StrUtil.isNotBlank(currentUserId)
+                && StrUtil.isNotBlank(session.getUserId())
+                && !currentUserId.equals(session.getUserId())) {
+            throw AiBusinessException.sessionNotFound(sessionId);
+        }
     }
 
     private void persistStreamMessages(

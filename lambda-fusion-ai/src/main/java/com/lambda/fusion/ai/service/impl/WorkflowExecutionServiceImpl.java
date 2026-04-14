@@ -20,6 +20,7 @@ import com.lambda.fusion.ai.model.entity.WorkflowEntity;
 import com.lambda.fusion.ai.model.entity.WorkflowExecutionEntity;
 import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
 import com.lambda.fusion.ai.service.WorkflowExecutionService;
+import com.lambda.fusion.core.utils.AuthUtils;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -207,8 +208,19 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         if (workflow == null) {
             throw AiBusinessException.workflowNotFound(workflowId);
         }
+        validateWorkflowAccess(workflow, workflowId);
 
         return workflow;
+    }
+
+    private void validateWorkflowAccess(WorkflowEntity workflow, String workflowId) {
+        String currentTenantId = AuthUtils.getTenantId();
+        if (!StringUtils.hasText(currentTenantId)) {
+            return;
+        }
+        if (StringUtils.hasText(workflow.getTenantId()) && !currentTenantId.equals(workflow.getTenantId())) {
+            throw AiBusinessException.workflowNotFound(workflowId);
+        }
     }
 
     private WorkflowExecutionEntity createExecutionRecord(WorkflowEntity workflow, WorkflowExecutionRequest request) {

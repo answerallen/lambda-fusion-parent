@@ -10,6 +10,7 @@ import com.lambda.cloud.oss.client.OssClient;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.commons.datasource.TenantDataSourceHelper;
 import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.commons.support.vector.VectorDimensionProcessor;
 import com.lambda.fusion.ai.commons.utils.BatchProcessor;
@@ -20,6 +21,7 @@ import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
+import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentParser;
 import dev.langchain4j.data.document.DocumentSplitter;
@@ -67,14 +69,31 @@ public class DocumentProcessor {
     private final VectorDimensionProcessor vectorDimensionProcessor;
 
     private OssClientManager ossClientManager;
+    private TenantDataSourceHelper tenantDataSourceHelper;
 
     @Autowired
     public void setOssClientManager(OssClientManager ossClientManager) {
         this.ossClientManager = ossClientManager;
     }
 
+    @Autowired(required = false)
+    public void setTenantDataSourceHelper(TenantDataSourceHelper tenantDataSourceHelper) {
+        this.tenantDataSourceHelper = tenantDataSourceHelper;
+    }
+
+    @Async("documentProcessExecutor")
+    public void processDocument(String tenantId, String documentId) {
+        try (DataSourceSwitcher ignored = switchToProcessingDataSource(tenantId)) {
+            processDocumentInCurrentDataSource(documentId);
+        }
+    }
+
     @Async("documentProcessExecutor")
     public void processDocument(String documentId) {
+        processDocument(null, documentId);
+    }
+
+    private void processDocumentInCurrentDataSource(String documentId) {
         log.info("开始处理文档: {}", documentId);
         DocumentEntity doc = documentMapper.selectById(documentId);
         if (doc == null) {
@@ -229,6 +248,15 @@ public class DocumentProcessor {
                 log.error("更新文档失败状态异常: {}", documentId, updateException);
             }
         }
+    }
+
+    private DataSourceSwitcher switchToProcessingDataSource(String tenantId) {
+        if (StrUtil.isNotBlank(tenantId)
+                && tenantDataSourceHelper != null
+                && tenantDataSourceHelper.tenantDataSourceExists(tenantId)) {
+            return tenantDataSourceHelper.switchToTenantDataSource(tenantId);
+        }
+        return DataSourceSwitcher.switchTo(aiProperties.getDataSource().getName());
     }
 
     private String loadContent(DocumentEntity doc) {

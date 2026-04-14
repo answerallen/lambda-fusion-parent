@@ -147,7 +147,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
             log.info("文档上传成功, documentId={}", entity.getId());
 
             // 异步处理文档
-            documentProcessor.processDocument(entity.getId());
+            documentProcessor.processDocument(kb.getTenantId(), entity.getId());
 
             return toVO(entity);
 
@@ -258,7 +258,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         doc.setErrorMessage(null);
         documentMapper.updateById(doc);
 
-        documentProcessor.processDocument(documentId);
+        documentProcessor.processDocument(doc.getTenantId(), documentId);
     }
 
     @Override

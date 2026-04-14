@@ -29,7 +29,7 @@ import org.springframework.util.StringUtils;
 
 /**
  * 智能体可视化工作流执行引擎
- *
+ * <p>
  * 线程安全设计：
  * - edges 列表使用 Collections.synchronizedList 保证线程安全
  * - nodes 映射使用 Collections.synchronizedMap 保证线程安全
@@ -433,7 +433,7 @@ public class AgentGraph {
         if (state.getAttributes() == null) {
             state.setAttributes(new HashMap<>());
         }
-        if (!isTraceEnabled(state)) {
+        if (isTraceDisabled(state)) {
             return;
         }
         state.getAttributes().putIfAbsent(EXECUTION_TRACE_ATTRIBUTE, new ArrayList<Map<String, Object>>());
@@ -444,7 +444,7 @@ public class AgentGraph {
     }
 
     private void recordWorkflowSummary(AgentState state, long invokeStartedAt) {
-        if (!isTraceEnabled(state)) {
+        if (isTraceDisabled(state)) {
             return;
         }
         Map<String, Object> stats = ensureExecutionStats(state);
@@ -465,7 +465,7 @@ public class AgentGraph {
             String nodeType,
             long nodeStartedAt,
             String suggestedNext) {
-        if (!isTraceEnabled(nextState)) {
+        if (isTraceDisabled(nextState)) {
             return;
         }
         Map<String, Object> event = new LinkedHashMap<>();
@@ -495,7 +495,7 @@ public class AgentGraph {
 
     private void recordRouteDecision(
             AgentState state, String sourceNodeId, String targetNodeId, String reason, Object detail) {
-        if (!isTraceEnabled(state)) {
+        if (isTraceDisabled(state)) {
             return;
         }
         Map<String, Object> event = new LinkedHashMap<>();
@@ -529,18 +529,18 @@ public class AgentGraph {
                 .computeIfAbsent(EXECUTION_STATS_ATTRIBUTE, key -> new LinkedHashMap<String, Object>());
     }
 
-    private boolean isTraceEnabled(AgentState state) {
+    private boolean isTraceDisabled(AgentState state) {
         if (state == null || state.getAttributes() == null) {
-            return false;
+            return true;
         }
         Object enabled = state.getAttributes().get(TRACE_ENABLED_ATTRIBUTE);
         if (enabled instanceof Boolean booleanValue) {
-            return booleanValue;
+            return !booleanValue;
         }
         if (enabled instanceof String text) {
-            return Boolean.parseBoolean(text);
+            return !Boolean.parseBoolean(text);
         }
-        return true;
+        return false;
     }
 
     private long toDurationMs(long startedAtNanos) {

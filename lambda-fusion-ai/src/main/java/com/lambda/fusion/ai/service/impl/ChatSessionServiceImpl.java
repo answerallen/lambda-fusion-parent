@@ -73,6 +73,7 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
         if (entity == null) {
             throw AiBusinessException.sessionNotFound(sessionId);
         }
+        validateSessionAccess(entity, sessionId);
 
         // 使用乐观锁更新，防止并发修改
         entity.setStatus(SessionStatus.ARCHIVED.name());
@@ -85,6 +86,19 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
         }
 
         log.info("会话{}已归档", sessionId);
+    }
+
+    private void validateSessionAccess(ChatSessionEntity session, String sessionId) {
+        String currentTenantId = AuthUtils.getTenantId();
+        String currentUserId = AuthUtils.getUser() != null ? AuthUtils.getUser().getName() : null;
+        if (currentTenantId != null
+                && session.getTenantId() != null
+                && !currentTenantId.equals(session.getTenantId())) {
+            throw AiBusinessException.sessionNotFound(sessionId);
+        }
+        if (currentUserId != null && session.getUserId() != null && !currentUserId.equals(session.getUserId())) {
+            throw AiBusinessException.sessionNotFound(sessionId);
+        }
     }
 
     private ChatSession entityToVO(ChatSessionEntity entity) {

@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.ai.model.WorkflowExecutionRequest;
 import com.lambda.fusion.ai.model.WorkflowExecutionResult;
@@ -50,40 +51,48 @@ public class WorkflowController {
     @PostMapping("/{id}/execute")
     @Operation(summary = "执行工作流")
     public WorkflowExecutionResult execute(@PathVariable String id, @RequestBody WorkflowExecutionRequest request) {
+        sanitizeRequestContext(request);
         return workflowExecutionService.execute(id, request);
     }
 
     @PostMapping("/{id}/execute/stream")
     @Operation(summary = "流式执行工作流")
     public SseEmitter executeStream(@PathVariable String id, @RequestBody WorkflowExecutionRequest request) {
+        sanitizeRequestContext(request);
         String clientId = "workflow_" + id + "_" + System.currentTimeMillis();
         SseEmitter emitter = sseEmitterManager.createEmitter(clientId);
+        try {
+            workflowExecutionService.executeStream(
+                    id, request, new dev.langchain4j.model.chat.response.StreamingChatResponseHandler() {
+                        @Override
+                        public void onPartialResponse(String token) {
+                            sseEmitterManager.sendEvent(clientId, "token", token);
+                        }
 
-        Thread.ofVirtual().start(() -> {
-            try {
-                workflowExecutionService.executeStream(
-                        id, request, new dev.langchain4j.model.chat.response.StreamingChatResponseHandler() {
-                            @Override
-                            public void onPartialResponse(String token) {
-                                sseEmitterManager.sendEvent(clientId, "token", token);
-                            }
+                        @Override
+                        public void onCompleteResponse(dev.langchain4j.model.chat.response.ChatResponse response) {
+                            sseEmitterManager.sendEvent(clientId, "finish", response);
+                        }
 
-                            @Override
-                            public void onCompleteResponse(dev.langchain4j.model.chat.response.ChatResponse response) {
-                                sseEmitterManager.sendEvent(clientId, "finish", response);
-                            }
-
-                            @Override
-                            public void onError(Throwable error) {
-                                sseEmitterManager.sendEvent(clientId, "error", error.getMessage());
-                            }
-                        });
-            } catch (Exception e) {
-                sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
-            }
-        });
+                        @Override
+                        public void onError(Throwable error) {
+                            sseEmitterManager.sendEvent(clientId, "error", error.getMessage());
+                        }
+                    });
+        } catch (Exception e) {
+            sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
+        }
 
         return emitter;
+    }
+
+    private void sanitizeRequestContext(WorkflowExecutionRequest request) {
+        if (request == null) {
+            return;
+        }
+        request.setUserId(OperatorUtils.getOperator().getName());
+        request.setTenantId(OperatorUtils.getOperator().getTenantId());
+        request.setCalledFromChat(false);
     }
 
     @GetMapping("/executions/{executionId}")
