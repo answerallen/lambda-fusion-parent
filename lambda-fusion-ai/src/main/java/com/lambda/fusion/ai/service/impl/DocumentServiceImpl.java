@@ -59,13 +59,14 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     private final OssClient ossClient;
 
     @Autowired
-    public DocumentServiceImpl(DocumentMapper documentMapper,
-                               DocumentChunkMapper documentChunkMapper,
-                               KnowledgeBaseMapper knowledgeBaseMapper,
-                               VectorRepository vectorRepository,
-                               DocumentProcessor documentProcessor,
-                               AiProperties aiProperties,
-                               OssClientManager ossClientManager) {
+    public DocumentServiceImpl(
+            DocumentMapper documentMapper,
+            DocumentChunkMapper documentChunkMapper,
+            KnowledgeBaseMapper knowledgeBaseMapper,
+            VectorRepository vectorRepository,
+            DocumentProcessor documentProcessor,
+            AiProperties aiProperties,
+            OssClientManager ossClientManager) {
         this.documentMapper = documentMapper;
         this.documentChunkMapper = documentChunkMapper;
         this.knowledgeBaseMapper = knowledgeBaseMapper;
@@ -336,7 +337,12 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         }
 
         knowledgeBaseMapper.updateStatistics(kbId, documentCount, chunkCount, vectorCount, totalSizeBytes);
-        log.info("知识库统计信息已更新, kbId={}, documentCount={}, chunkCount={}, vectorCount={}, totalSizeBytes={}",
-                kbId, documentCount, chunkCount, vectorCount, totalSizeBytes);
+        log.info(
+                "知识库统计信息已更新, kbId={}, documentCount={}, chunkCount={}, vectorCount={}, totalSizeBytes={}",
+                kbId,
+                documentCount,
+                chunkCount,
+                vectorCount,
+                totalSizeBytes);
     }
 }

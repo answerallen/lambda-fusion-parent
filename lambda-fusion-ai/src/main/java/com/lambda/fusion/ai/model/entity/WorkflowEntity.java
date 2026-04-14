@@ -3,7 +3,6 @@ package com.lambda.fusion.ai.model.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -11,7 +10,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @TableName("ai_agent_workflow")
 @Schema(description = "Agent工作流配置实体")
-public class WorkflowEntity  extends BaseEntity {
+public class WorkflowEntity extends BaseEntity {
 
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
@@ -48,5 +47,4 @@ public class WorkflowEntity  extends BaseEntity {
 
     @Schema(description = "租户隔离ID")
     private String tenantId;
-
 }

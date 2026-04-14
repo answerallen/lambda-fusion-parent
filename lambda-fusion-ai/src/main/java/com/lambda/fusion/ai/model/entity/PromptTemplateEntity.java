@@ -7,10 +7,9 @@ import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.fusion.ai.model.PromptDefinition;
 import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import java.math.BigDecimal;
 
 /**
  * 提示词模板实体类

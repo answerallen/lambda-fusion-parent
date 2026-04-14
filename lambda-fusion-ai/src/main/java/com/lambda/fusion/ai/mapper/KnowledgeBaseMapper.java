@@ -97,9 +97,10 @@ public interface KnowledgeBaseMapper extends BaseMapper<KnowledgeBaseEntity> {
      * @param totalSizeBytes 总大小
      * @return 更新数量
      */
-    int updateStatistics(@Param("id") String id,
-                         @Param("documentCount") Integer documentCount,
-                         @Param("chunkCount") Integer chunkCount,
-                         @Param("vectorCount") Long vectorCount,
-                         @Param("totalSizeBytes") Long totalSizeBytes);
+    int updateStatistics(
+            @Param("id") String id,
+            @Param("documentCount") Integer documentCount,
+            @Param("chunkCount") Integer chunkCount,
+            @Param("vectorCount") Long vectorCount,
+            @Param("totalSizeBytes") Long totalSizeBytes);
 }

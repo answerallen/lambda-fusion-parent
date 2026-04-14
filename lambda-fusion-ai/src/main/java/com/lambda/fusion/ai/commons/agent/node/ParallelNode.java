@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
 import com.lambda.fusion.ai.commons.agent.AgentNode;
-import com.lambda.fusion.ai.commons.agent.AgentNodeUtils;
+import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import dev.langchain4j.data.message.ChatMessage;
 import java.util.*;

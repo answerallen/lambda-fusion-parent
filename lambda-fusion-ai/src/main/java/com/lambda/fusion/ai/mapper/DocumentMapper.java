@@ -66,7 +66,8 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @param processStatus 处理状态
      * @return 文档列表
      */
-    List<DocumentEntity> selectByKbIdAndStatus(@Param("kbId") String kbId, @Param("processStatus") String processStatus);
+    List<DocumentEntity> selectByKbIdAndStatus(
+            @Param("kbId") String kbId, @Param("processStatus") String processStatus);
 
     /**
      * 统计知识库文档数

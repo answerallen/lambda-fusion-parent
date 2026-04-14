@@ -6,7 +6,6 @@ import com.lambda.fusion.ai.model.LlmModel;
 import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

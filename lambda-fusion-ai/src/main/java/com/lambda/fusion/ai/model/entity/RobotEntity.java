@@ -5,7 +5,6 @@ import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -18,7 +17,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @TableName("ai_robot")
 @Schema(description = "AI机器人实体")
-public class RobotEntity  extends BaseEntity {
+public class RobotEntity extends BaseEntity {
 
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
@@ -92,5 +91,4 @@ public class RobotEntity  extends BaseEntity {
     @Schema(description = "发布渠道(JSON数组: web/api/wechat等)")
     @FieldMapping(target = "publishChannels", qualifiedByName = "stringToList")
     private String publishChannels;
-
 }

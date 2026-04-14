@@ -14,7 +14,7 @@ import lombok.EqualsAndHashCode;
  * @author Jin
  */
 @EqualsAndHashCode(callSuper = true)
-@AutoConverter(target = DocumentEntity.class,isReverse = true)
+@AutoConverter(target = DocumentEntity.class, isReverse = true)
 @Data
 @Schema(description = "文档VO")
 public class Document extends BaseEntity {
@@ -84,5 +84,4 @@ public class Document extends BaseEntity {
 
     @Schema(description = "处理完成时间")
     private LocalDateTime processedAt;
-
 }

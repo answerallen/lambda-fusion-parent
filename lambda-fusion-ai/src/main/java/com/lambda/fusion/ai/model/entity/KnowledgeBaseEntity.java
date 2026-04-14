@@ -149,7 +149,6 @@ public class KnowledgeBaseEntity extends BaseEntity {
     @Schema(description = "状态(ACTIVE、ARCHIVED、DELETED)")
     private String status;
 
-
     /**
      * 删除时间(软删除)
      */

@@ -1,8 +1,6 @@
 package com.lambda.fusion.ai.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import java.time.LocalDateTime;
-
 import com.lambda.fusion.core.entity.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -14,7 +12,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("ai_workflow_template")
-public class WorkflowTemplateEntity  extends BaseEntity {
+public class WorkflowTemplateEntity extends BaseEntity {
 
     @TableId(type = IdType.ASSIGN_ID)
     private String id;
