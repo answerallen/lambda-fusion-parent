@@ -53,6 +53,10 @@ public class AgentState {
      */
     private Map<String, Object> attributes = new ConcurrentHashMap<>();
 
+    private transient BiFunction<String, AgentState, AgentState> nodeExecutor;
+
+    private transient Map<String, AgentNode> availableNodes;
+
     /**
      * 内部标识图是否应该终止
      */
@@ -135,6 +139,12 @@ public class AgentState {
 
     @SuppressWarnings("unchecked")
     public BiFunction<String, AgentState, AgentState> getNodeExecutor() {
+        if (nodeExecutor != null) {
+            return nodeExecutor;
+        }
+        if (this.attributes == null) {
+            return null;
+        }
         Object executor = this.attributes.get(NODE_EXECUTOR_ATTRIBUTE);
         if (executor instanceof BiFunction) {
             return (BiFunction<String, AgentState, AgentState>) executor;
@@ -143,25 +153,31 @@ public class AgentState {
     }
 
     public void setNodeExecutor(BiFunction<String, AgentState, AgentState> executor) {
-        if (this.attributes == null) {
-            this.attributes = new ConcurrentHashMap<>();
+        this.nodeExecutor = executor;
+        if (this.attributes != null) {
+            this.attributes.remove(NODE_EXECUTOR_ATTRIBUTE);
         }
-        this.attributes.put(NODE_EXECUTOR_ATTRIBUTE, executor);
     }
 
     @SuppressWarnings("unchecked")
     public Map<String, AgentNode> getAvailableNodes() {
+        if (availableNodes != null) {
+            return availableNodes;
+        }
+        if (this.attributes == null) {
+            return Map.of();
+        }
         Object nodes = this.attributes.get(AgentGraph.AVAILABLE_NODES_ATTRIBUTE);
-        if (nodes instanceof Map) {
-            return (Map<String, AgentNode>) nodes;
+        if (nodes instanceof Map<?, ?> map) {
+            return (Map<String, AgentNode>) map;
         }
         return Map.of();
     }
 
     public void setAvailableNodes(Map<String, AgentNode> nodes) {
-        if (this.attributes == null) {
-            this.attributes = new ConcurrentHashMap<>();
+        this.availableNodes = nodes;
+        if (this.attributes != null) {
+            this.attributes.remove(AgentGraph.AVAILABLE_NODES_ATTRIBUTE);
         }
-        this.attributes.put(AgentGraph.AVAILABLE_NODES_ATTRIBUTE, nodes);
     }
 }

@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.NodeOutput;
 import org.bsc.langgraph4j.RunnableConfig;
 import org.bsc.langgraph4j.StateGraph;
+import org.bsc.langgraph4j.langchain4j.serializer.std.LC4jStateSerializer;
 import org.bsc.langgraph4j.state.Channel;
 import org.bsc.langgraph4j.state.Channels;
 import org.springframework.util.StringUtils;
@@ -103,9 +105,7 @@ public class AgentGraph {
                     agentState.getPendingToolRequests() == null
                             ? List.of()
                             : new ArrayList<>(agentState.getPendingToolRequests()));
-            input.put(
-                    ATTRIBUTES_KEY,
-                    agentState.getAttributes() == null ? Map.of() : new HashMap<>(agentState.getAttributes()));
+            input.put(ATTRIBUTES_KEY, sanitizeAttributes(agentState.getAttributes()));
             input.put(FINISHED_KEY, agentState.isFinished());
             return input;
         }
@@ -260,8 +260,8 @@ public class AgentGraph {
             return compiledGraph;
         }
         try {
-            StateGraph<LangGraphRuntimeState> graph =
-                    new StateGraph<>(LangGraphRuntimeState.SCHEMA, LangGraphRuntimeState::new);
+            StateGraph<LangGraphRuntimeState> graph = new StateGraph<>(
+                    LangGraphRuntimeState.SCHEMA, new LC4jStateSerializer<>(LangGraphRuntimeState::new));
 
             Map<String, AgentNode> nodeSnapshot;
             synchronized (nodes) {
@@ -296,6 +296,7 @@ public class AgentGraph {
                     if (previousState == null || previousState.isFinished()) {
                         return Map.of();
                     }
+                    AgentState beforeExecutionSnapshot = AgentNodeUtils.deepCopyState(previousState);
                     enrichExecutionContext(previousState, nodeId, node, nodePropertiesSnapshot);
                     log.debug("AgentGraph -> Executing Node ID: {} (Type: {})", nodeId, node.getName());
                     long nodeStartedAt = System.nanoTime();
@@ -306,8 +307,9 @@ public class AgentGraph {
                         nextState = previousState;
                     }
                     String suggestedNext = executionResult == null ? null : executionResult.nextNode();
-                    recordNodeExecution(previousState, nextState, nodeId, node.getName(), nodeStartedAt, suggestedNext);
-                    return toChannelUpdates(previousState, nextState, suggestedNext);
+                    recordNodeExecution(
+                            beforeExecutionSnapshot, nextState, nodeId, node.getName(), nodeStartedAt, suggestedNext);
+                    return toChannelUpdates(beforeExecutionSnapshot, nextState, suggestedNext);
                 }));
 
                 graph.addConditionalEdges(
@@ -557,9 +559,7 @@ public class AgentGraph {
                 nextState.getPendingToolRequests() == null
                         ? List.of()
                         : new ArrayList<>(nextState.getPendingToolRequests()));
-        updates.put(
-                LangGraphRuntimeState.ATTRIBUTES_KEY,
-                nextState.getAttributes() == null ? Map.of() : new HashMap<>(nextState.getAttributes()));
+        updates.put(LangGraphRuntimeState.ATTRIBUTES_KEY, sanitizeAttributes(nextState.getAttributes()));
         updates.put(LangGraphRuntimeState.FINISHED_KEY, nextState.isFinished());
         updates.put(
                 LangGraphRuntimeState.MESSAGES_KEY,
@@ -627,4 +627,59 @@ public class AgentGraph {
     }
 
     private record RouteDecision(String targetId, String reason, Object detail) {}
+
+    private static final Set<String> NON_SERIALIZABLE_ATTRIBUTE_KEYS =
+            Set.of(AgentState.NODE_EXECUTOR_ATTRIBUTE, AVAILABLE_NODES_ATTRIBUTE, "streamHandler");
+
+    private static Map<String, Object> sanitizeAttributes(Map<String, Object> attributes) {
+        if (attributes == null || attributes.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> sanitized = new HashMap<>();
+        attributes.forEach((key, value) -> {
+            if (key == null) {
+                return;
+            }
+            if (NON_SERIALIZABLE_ATTRIBUTE_KEYS.contains(key)) {
+                return;
+            }
+            Object sanitizedValue = sanitizeSerializableValue(value);
+            if (sanitizedValue != SKIP_VALUE) {
+                sanitized.put(key, sanitizedValue);
+            }
+        });
+        return sanitized;
+    }
+
+    private static final Object SKIP_VALUE = new Object();
+
+    private static Object sanitizeSerializableValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof java.io.Serializable) {
+            return value;
+        }
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> sanitizedMap = new LinkedHashMap<>();
+            map.forEach((k, v) -> {
+                Object nested = sanitizeSerializableValue(v);
+                if (nested != SKIP_VALUE) {
+                    sanitizedMap.put(String.valueOf(k), nested);
+                }
+            });
+            return sanitizedMap;
+        }
+        if (value instanceof List<?> list) {
+            List<Object> sanitizedList = new ArrayList<>();
+            for (Object item : list) {
+                Object nested = sanitizeSerializableValue(item);
+                if (nested != SKIP_VALUE) {
+                    sanitizedList.add(nested);
+                }
+            }
+            return sanitizedList;
+        }
+        return SKIP_VALUE;
+    }
 }

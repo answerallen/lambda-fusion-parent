@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.commons.utils;
 
+import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.AgentToolProvider;
 import java.util.LinkedHashSet;
@@ -137,13 +138,20 @@ public class AgentNodeUtils {
 
         copy.setNodeExecutor(original.getNodeExecutor());
 
-        if (original.getAvailableNodes() != null) {
-            copy.setAvailableNodes(new ConcurrentHashMap<>(original.getAvailableNodes()));
+        Map<String, AgentNode> availableNodes = original.getAvailableNodes();
+        if (availableNodes != null && !availableNodes.isEmpty()) {
+            copy.setAvailableNodes(new ConcurrentHashMap<>(availableNodes));
         }
 
         if (original.getAttributes() != null) {
             Map<String, Object> copiedAttributes = new ConcurrentHashMap<>();
             original.getAttributes().forEach((key, value) -> {
+                if (AgentState.NODE_EXECUTOR_ATTRIBUTE.equals(key)) {
+                    return;
+                }
+                if (com.lambda.fusion.ai.commons.agent.AgentGraph.AVAILABLE_NODES_ATTRIBUTE.equals(key)) {
+                    return;
+                }
                 if (value instanceof Map<?, ?> mapValue) {
                     copiedAttributes.put(key, deepCopyMap(mapValue));
                 } else if (value instanceof List<?> listValue) {
