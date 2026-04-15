@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.factory.AgentGraphBuildOptions;
@@ -17,6 +18,8 @@ import com.lambda.fusion.ai.mapper.WorkflowExecutionMapper;
 import com.lambda.fusion.ai.mapper.WorkflowMapper;
 import com.lambda.fusion.ai.model.WorkflowExecutionRequest;
 import com.lambda.fusion.ai.model.WorkflowExecutionResult;
+import com.lambda.fusion.ai.model.WorkflowExecutionStatus;
+import com.lambda.fusion.ai.model.WorkflowResumeRequest;
 import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.model.entity.WorkflowEntity;
 import com.lambda.fusion.ai.model.entity.WorkflowExecutionEntity;
@@ -27,6 +30,7 @@ import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.AuthUtils;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.FinishReason;
@@ -39,13 +43,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompileConfig;
+import org.bsc.langgraph4j.NodeOutput;
 import org.bsc.langgraph4j.RunnableConfig;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
+import org.bsc.langgraph4j.state.StateSnapshot;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +76,8 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     static final String ATTR_IS_TENANT_MANAGER = "isTenantManager";
     static final String ATTR_IS_ANY_MANAGER = "isAnyManager";
     static final String ATTR_THREAD_ID = "threadId";
+    static final String ATTR_INPUT_PARAMS = "inputParams";
+    static final String STATUS_WAITING_FOR_INPUT = "WAITING_FOR_INPUT";
 
     private final WorkflowMapper workflowMapper;
     private final WorkflowExecutionMapper executionMapper;
@@ -96,14 +106,20 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             long startTime = System.currentTimeMillis();
             state = graph.invokeOptional(state, runnableConfig).orElse(state);
             long duration = System.currentTimeMillis() - startTime;
+            Optional<StateSnapshot<AgentGraph.LangGraphRuntimeState>> snapshot = graph.stateSnapshotOf(runnableConfig);
 
-            WorkflowExecutionResult result = mapToExecutionResult(state, execution, duration);
+            WorkflowExecutionResult result = mapToExecutionResult(state, execution, threadId, snapshot, duration);
             updateExecutionSuccess(execution, result);
 
-            // 鐙珛璋冪敤鎵嶇粨绠楋紝鑱婂ぉ瑙﹀彂鐢辨秷鎭眰璐熻矗
-            settleAfterExecution(request, result, "workflow-sync");
+            if (Boolean.TRUE.equals(result.getFinished())) {
+                settleAfterExecution(request, result, "workflow-sync");
+            }
 
-            log.info("工作流执行完成, executionId={}, duration={}ms", execution.getId(), duration);
+            log.info(
+                    "工作流执行完成, executionId={}, status={}, duration={}ms",
+                    execution.getId(),
+                    result.getStatus(),
+                    duration);
             return result;
 
         } catch (Exception e) {
@@ -140,21 +156,66 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             state.getAttributes().put("streamHandler", idempotentHandler);
 
             long startTime = System.currentTimeMillis();
-            state = graph.invokeOptional(state, runnableConfig).orElse(state);
+            state = executeGraphStream(graph, state, runnableConfig);
             long duration = System.currentTimeMillis() - startTime;
+            Optional<StateSnapshot<AgentGraph.LangGraphRuntimeState>> snapshot = graph.stateSnapshotOf(runnableConfig);
 
-            WorkflowExecutionResult result = mapToExecutionResult(state, execution, duration);
+            WorkflowExecutionResult result = mapToExecutionResult(state, execution, threadId, snapshot, duration);
             updateExecutionSuccess(execution, result);
             ChatResponse chatResponse = buildChatResponse(state);
             idempotentHandler.onCompleteResponse(chatResponse);
 
-            // 独立调用才结算，聊天触发由消息层负责
-            settleAfterExecution(request, result, "workflow-stream");
+            if (Boolean.TRUE.equals(result.getFinished())) {
+                settleAfterExecution(request, result, "workflow-stream");
+            }
 
         } catch (Exception e) {
             log.error("流式执行工作流失败, workflowId={}", workflowId, e);
             updateExecutionFailure(execution, e);
             handler.onError(e);
+            throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, e);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public WorkflowExecutionResult resume(String workflowId, WorkflowResumeRequest request) {
+        Assert.notNull(request, "WorkflowResumeRequest 不能为空！");
+        log.info("恢复执行工作流, workflowId={}, threadId={}", workflowId, request.getThreadId());
+        String threadId = requireThreadId(request.getThreadId());
+        WorkflowEntity workflow = loadWorkflow(workflowId);
+        WorkflowExecutionEntity execution = createResumeExecutionRecord(workflow, request);
+
+        try {
+            AgentGraph graph =
+                    agentGraphFactory.buildFromDefinition(workflow.getGraphJson(), buildGraphBuildOptions(request));
+            RunnableConfig lookupConfig = buildRunnableConfig(threadId, request.getCheckpointId(), null);
+            StateSnapshot<AgentGraph.LangGraphRuntimeState> snapshot =
+                    requireStateSnapshot(graph, lookupConfig, threadId, request.getCheckpointId());
+            Map<String, Object> stateUpdate =
+                    buildResumeStateUpdate(snapshot.state().agentState(), request, execution.getId(), threadId);
+            RunnableConfig resumeConfig = buildRunnableConfig(
+                    threadId, snapshot.config().checkPointId().orElse(null), snapshot.next());
+
+            long startTime = System.currentTimeMillis();
+            AgentState state = graph.resumeOptional(stateUpdate, resumeConfig)
+                    .orElse(snapshot.state().agentState());
+            long duration = System.currentTimeMillis() - startTime;
+            Optional<StateSnapshot<AgentGraph.LangGraphRuntimeState>> latestSnapshot =
+                    graph.stateSnapshotOf(buildRunnableConfig(threadId));
+
+            WorkflowExecutionResult result = mapToExecutionResult(state, execution, threadId, latestSnapshot, duration);
+            updateExecutionSuccess(execution, result);
+
+            if (Boolean.TRUE.equals(result.getFinished())) {
+                settleAfterExecution(toExecutionRequest(request, threadId), result, "workflow-resume");
+            }
+            return result;
+        } catch (AiBusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("恢复工作流执行失败, workflowId={}, threadId={}", workflowId, threadId, e);
+            updateExecutionFailure(execution, e);
             throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, e);
         }
     }
@@ -210,6 +271,27 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         }
 
         return entityToResult(entity);
+    }
+
+    @Override
+    public WorkflowExecutionStatus getExecutionStatus(String workflowId, String threadId, String checkpointId) {
+        WorkflowEntity workflow = loadWorkflow(workflowId);
+        String normalizedThreadId = requireThreadId(threadId);
+        try {
+            AgentGraph graph =
+                    agentGraphFactory.buildFromDefinition(workflow.getGraphJson(), buildCheckpointGraphBuildOptions());
+            StateSnapshot<AgentGraph.LangGraphRuntimeState> snapshot = requireStateSnapshot(
+                    graph,
+                    buildRunnableConfig(normalizedThreadId, checkpointId, null),
+                    normalizedThreadId,
+                    checkpointId);
+            return mapToExecutionStatus(snapshot, normalizedThreadId);
+        } catch (AiBusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("查询工作流执行状态失败, workflowId={}, threadId={}", workflowId, normalizedThreadId, e);
+            throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, e);
+        }
     }
 
     @Override
@@ -269,6 +351,33 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             }
         } catch (Exception e) {
             log.warn("序列化输入参数失败", e);
+        }
+
+        executionMapper.insert(execution);
+        return execution;
+    }
+
+    private WorkflowExecutionEntity createResumeExecutionRecord(
+            WorkflowEntity workflow, WorkflowResumeRequest request) {
+        UserDetails currentUser = getCurrentUserSafely();
+        WorkflowExecutionEntity execution = new WorkflowExecutionEntity();
+        execution.setPipelineId(workflow.getId());
+        execution.setPipelineVersion(1);
+        execution.setUserId(currentUser == null ? null : currentUser.getName());
+        execution.setTenantId(currentUser == null ? null : currentUser.getTenantId());
+        execution.setStatus("RUNNING");
+        execution.setProgress(0);
+        execution.setStartedAt(LocalDateTime.now());
+
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("threadId", request.getThreadId());
+            payload.put("checkpointId", request.getCheckpointId());
+            payload.put("message", request.getMessage());
+            payload.put("inputParams", request.getInputParams());
+            execution.setInputParams(objectMapper.writeValueAsString(payload));
+        } catch (Exception e) {
+            log.warn("序列化恢复执行输入参数失败", e);
         }
 
         executionMapper.insert(execution);
@@ -336,8 +445,21 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         if (request == null) {
             return null;
         }
-        CompileConfig compileConfig = buildCompileConfig(request);
-        Integer maxIterations = request.getMaxIterations();
+        return buildGraphBuildOptions(buildCompileConfig(request), request.getMaxIterations());
+    }
+
+    AgentGraphBuildOptions buildGraphBuildOptions(WorkflowResumeRequest request) {
+        if (request == null) {
+            return buildCheckpointGraphBuildOptions();
+        }
+        return buildGraphBuildOptions(buildCompileConfig(request), request.getMaxIterations());
+    }
+
+    AgentGraphBuildOptions buildCheckpointGraphBuildOptions() {
+        return buildGraphBuildOptions(buildCompileConfig(true, null, null, null), null);
+    }
+
+    private AgentGraphBuildOptions buildGraphBuildOptions(CompileConfig compileConfig, Integer maxIterations) {
         if (compileConfig == null && maxIterations == null) {
             return null;
         }
@@ -351,29 +473,40 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         if (request == null) {
             return null;
         }
-        boolean checkpointEnabled = Boolean.TRUE.equals(request.getCheckpointEnabled());
-        String interruptBefore = normalizeText(request.getInterruptBefore());
-        String interruptAfter = normalizeText(request.getInterruptAfter());
-        Boolean releaseThread = request.getReleaseThread();
+        return buildCompileConfig(
+                Boolean.TRUE.equals(request.getCheckpointEnabled()),
+                request.getInterruptBefore(),
+                request.getInterruptAfter(),
+                request.getReleaseThread());
+    }
+
+    CompileConfig buildCompileConfig(WorkflowResumeRequest request) {
+        return buildCompileConfig(
+                true,
+                request == null ? null : request.getInterruptBefore(),
+                request == null ? null : request.getInterruptAfter(),
+                request == null ? null : request.getReleaseThread());
+    }
+
+    private CompileConfig buildCompileConfig(
+            boolean checkpointEnabled, String interruptBefore, String interruptAfter, Boolean releaseThread) {
+        String normalizedInterruptBefore = normalizeText(interruptBefore);
+        String normalizedInterruptAfter = normalizeText(interruptAfter);
         if (!checkpointEnabled
-                && !StringUtils.hasText(interruptBefore)
-                && !StringUtils.hasText(interruptAfter)
+                && !StringUtils.hasText(normalizedInterruptBefore)
+                && !StringUtils.hasText(normalizedInterruptAfter)
                 && releaseThread == null) {
             return null;
         }
         CompileConfig.Builder builder = CompileConfig.builder();
         if (checkpointEnabled) {
-            MemorySaver checkpointSaver = checkpointSaverProvider.getIfAvailable();
-            if (checkpointSaver == null) {
-                throw new AiBusinessException(AiErrorCode.CONFIGURATION_ERROR, "未配置 LangGraph4j checkpoint saver");
-            }
-            builder.checkpointSaver(checkpointSaver);
+            builder.checkpointSaver(resolveCheckpointSaver());
         }
-        if (StringUtils.hasText(interruptBefore)) {
-            builder.interruptBefore(interruptBefore);
+        if (StringUtils.hasText(normalizedInterruptBefore)) {
+            builder.interruptBefore(normalizedInterruptBefore);
         }
-        if (StringUtils.hasText(interruptAfter)) {
-            builder.interruptAfter(interruptAfter);
+        if (StringUtils.hasText(normalizedInterruptAfter)) {
+            builder.interruptAfter(normalizedInterruptAfter);
         }
         if (releaseThread != null) {
             builder.releaseThread(releaseThread);
@@ -381,11 +514,30 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         return builder.build();
     }
 
+    private MemorySaver resolveCheckpointSaver() {
+        MemorySaver checkpointSaver = checkpointSaverProvider.getIfAvailable();
+        if (checkpointSaver == null) {
+            throw new AiBusinessException(AiErrorCode.CONFIGURATION_ERROR, "未配置 LangGraph4j checkpoint saver");
+        }
+        return checkpointSaver;
+    }
+
     RunnableConfig buildRunnableConfig(String threadId) {
+        return buildRunnableConfig(threadId, null, null);
+    }
+
+    RunnableConfig buildRunnableConfig(String threadId, String checkpointId, String nextNode) {
         if (!StringUtils.hasText(threadId)) {
             return null;
         }
-        return RunnableConfig.builder().threadId(threadId).build();
+        RunnableConfig.Builder builder = RunnableConfig.builder().threadId(threadId);
+        if (StringUtils.hasText(checkpointId)) {
+            builder.checkPointId(checkpointId);
+        }
+        if (StringUtils.hasText(nextNode)) {
+            builder.nextNode(nextNode);
+        }
+        return builder.build();
     }
 
     String resolveThreadId(WorkflowExecutionRequest request, String fallbackThreadId) {
@@ -408,6 +560,66 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
 
     private String normalizeText(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    String requireThreadId(String threadId) {
+        String normalizedThreadId = normalizeText(threadId);
+        if (!StringUtils.hasText(normalizedThreadId)) {
+            throw new AiBusinessException(AiErrorCode.WORKFLOW_THREAD_ID_REQUIRED, "工作流线程ID不能为空");
+        }
+        return normalizedThreadId;
+    }
+
+    StateSnapshot<AgentGraph.LangGraphRuntimeState> requireStateSnapshot(
+            AgentGraph graph, RunnableConfig runnableConfig, String threadId, String checkpointId) {
+        return graph.stateSnapshotOf(runnableConfig)
+                .orElseThrow(() -> new AiBusinessException(
+                        AiErrorCode.WORKFLOW_CHECKPOINT_NOT_FOUND,
+                        String.format(
+                                "未找到工作流checkpoint, threadId=%s, checkpointId=%s",
+                                threadId, normalizeText(checkpointId))));
+    }
+
+    WorkflowExecutionRequest toExecutionRequest(WorkflowResumeRequest request, String threadId) {
+        WorkflowExecutionRequest executionRequest = new WorkflowExecutionRequest();
+        executionRequest.setThreadId(threadId);
+        executionRequest.setSessionId(request.getSessionId());
+        executionRequest.setKbId(request.getKbId());
+        executionRequest.setLlmModelId(request.getLlmModelId());
+        executionRequest.setTraceEnabled(request.getTraceEnabled());
+        executionRequest.setCalledFromChat(false);
+        return executionRequest;
+    }
+
+    Map<String, Object> buildResumeStateUpdate(
+            AgentState snapshotState, WorkflowResumeRequest request, String executionId, String threadId) {
+        Map<String, Object> stateUpdate = new LinkedHashMap<>();
+
+        if (StringUtils.hasText(request.getSessionId())) {
+            stateUpdate.put(AgentGraph.LangGraphRuntimeState.SESSION_ID_KEY, request.getSessionId());
+        }
+        if (StringUtils.hasText(request.getKbId())) {
+            stateUpdate.put(AgentGraph.LangGraphRuntimeState.KB_ID_KEY, request.getKbId());
+        }
+        if (StringUtils.hasText(request.getLlmModelId())) {
+            stateUpdate.put(AgentGraph.LangGraphRuntimeState.LLM_MODEL_ID_KEY, request.getLlmModelId());
+        }
+        if (StringUtils.hasText(request.getMessage())) {
+            stateUpdate.put(
+                    AgentGraph.LangGraphRuntimeState.MESSAGES_KEY,
+                    List.of(UserMessage.from(request.getMessage().trim())));
+        }
+
+        Map<String, Object> attributes =
+                snapshotState == null ? new LinkedHashMap<>() : new LinkedHashMap<>(snapshotState.getAttributes());
+        attributes.put("executionId", executionId);
+        attributes.put(ATTR_THREAD_ID, threadId);
+        attributes.put(AgentGraph.TRACE_ENABLED_ATTRIBUTE, request.getTraceEnabled());
+        if (request.getInputParams() != null && !request.getInputParams().isEmpty()) {
+            attributes.put(ATTR_INPUT_PARAMS, new LinkedHashMap<>(request.getInputParams()));
+        }
+        stateUpdate.put(AgentGraph.LangGraphRuntimeState.ATTRIBUTES_KEY, attributes);
+        return stateUpdate;
     }
 
     private String resolveUserId(WorkflowExecutionRequest request, UserDetails currentUser) {
@@ -434,10 +646,27 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     }
 
     private WorkflowExecutionResult mapToExecutionResult(
-            AgentState state, WorkflowExecutionEntity execution, long duration) {
+            AgentState state,
+            WorkflowExecutionEntity execution,
+            String threadId,
+            Optional<StateSnapshot<AgentGraph.LangGraphRuntimeState>> snapshot,
+            long duration) {
+        String nextNode =
+                snapshot.map(StateSnapshot::next).map(this::normalizeText).orElse(null);
+        String checkpointId = snapshot.flatMap(item -> item.config().checkPointId())
+                .map(this::normalizeText)
+                .orElse(null);
+        boolean interrupted = !state.isFinished() && StringUtils.hasText(nextNode);
+        String status = state.isFinished() ? "COMPLETED" : interrupted ? STATUS_WAITING_FOR_INPUT : "RUNNING";
+
         WorkflowExecutionResult.WorkflowExecutionResultBuilder builder = WorkflowExecutionResult.builder()
                 .id(execution.getId())
+                .threadId(threadId)
+                .checkpointId(checkpointId)
+                .nextNode(nextNode)
+                .interrupted(interrupted)
                 .finished(state.isFinished())
+                .status(status)
                 .durationMs(duration)
                 .executionTrace(state.getExecutionTrace())
                 .executionStats(state.getExecutionStats());
@@ -455,21 +684,27 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
                 .completionTokens(completionTokens)
                 .totalTokens(promptTokens + completionTokens);
 
-        builder.status("COMPLETED");
-
         return builder.build();
     }
 
     private void updateExecutionSuccess(WorkflowExecutionEntity execution, WorkflowExecutionResult result) {
         try {
-            execution.setStatus("COMPLETED");
-            execution.setProgress(100);
-            execution.setCompletedAt(LocalDateTime.now());
+            execution.setStatus(result.getStatus());
+            execution.setProgress(Boolean.TRUE.equals(result.getFinished()) ? 100 : 90);
+            execution.setCurrentStep(result.getNextNode());
+            if (Boolean.TRUE.equals(result.getFinished())) {
+                execution.setCompletedAt(LocalDateTime.now());
+            }
             execution.setDurationMs(
                     result.getDurationMs() != null ? result.getDurationMs().intValue() : 0);
 
             Map<String, Object> outputResult = new LinkedHashMap<>();
             outputResult.put("answer", result.getAnswer());
+            outputResult.put("threadId", result.getThreadId());
+            outputResult.put("checkpointId", result.getCheckpointId());
+            outputResult.put("nextNode", result.getNextNode());
+            outputResult.put("interrupted", result.getInterrupted());
+            outputResult.put("finished", result.getFinished());
             outputResult.put("promptTokens", result.getPromptTokens());
             outputResult.put("completionTokens", result.getCompletionTokens());
             outputResult.put("totalTokens", result.getTotalTokens());
@@ -567,14 +802,89 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         return null;
     }
 
+    private AgentState executeGraphStream(AgentGraph graph, AgentState state, RunnableConfig runnableConfig) {
+        NodeOutput<AgentGraph.LangGraphRuntimeState> finalOutput = graph.stream(state, runnableConfig)
+                .<NodeOutput<AgentGraph.LangGraphRuntimeState>>reduce(null, (acc, output) -> output)
+                .join();
+        if (finalOutput == null || finalOutput.state() == null) {
+            return state;
+        }
+        return finalOutput.state().agentState();
+    }
+
+    private WorkflowExecutionStatus mapToExecutionStatus(
+            StateSnapshot<AgentGraph.LangGraphRuntimeState> snapshot, String threadId) {
+        AgentState state = snapshot.state().agentState();
+        String nextNode = normalizeText(snapshot.next());
+        boolean finished = state.isFinished();
+        boolean interrupted = !finished && StringUtils.hasText(nextNode);
+        String status = finished ? "COMPLETED" : interrupted ? STATUS_WAITING_FOR_INPUT : "RUNNING";
+
+        return WorkflowExecutionStatus.builder()
+                .threadId(threadId)
+                .checkpointId(snapshot.config().checkPointId().orElse(null))
+                .executionId(asText(state.getAttributes().get("executionId")))
+                .currentNodeId(asText(state.getAttributes().get(AgentGraph.CURRENT_NODE_ID_ATTRIBUTE)))
+                .nextNode(nextNode)
+                .status(status)
+                .finished(finished)
+                .interrupted(interrupted)
+                .waitingForInput(interrupted)
+                .answer(extractAnswer(state))
+                .executionTrace(state.getExecutionTrace())
+                .executionStats(state.getExecutionStats())
+                .build();
+    }
+
     private WorkflowExecutionResult entityToResult(WorkflowExecutionEntity entity) {
+        Map<String, Object> outputResult = parseJsonObject(entity.getOutputResult());
         return WorkflowExecutionResult.builder()
                 .id(entity.getId())
+                .threadId(asText(outputResult.get("threadId")))
+                .checkpointId(asText(outputResult.get("checkpointId")))
+                .nextNode(asText(outputResult.get("nextNode")))
+                .interrupted(Boolean.TRUE.equals(outputResult.get("interrupted")))
+                .finished(Boolean.TRUE.equals(outputResult.get("finished")) || "COMPLETED".equals(entity.getStatus()))
+                .answer(asText(outputResult.get("answer")))
                 .status(entity.getStatus())
                 .durationMs(
                         entity.getDurationMs() != null ? entity.getDurationMs().longValue() : null)
                 .errorMessage(entity.getErrorMessage())
                 .build();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> parseJsonObject(String json) {
+        if (!StringUtils.hasText(json)) {
+            return Map.of();
+        }
+        try {
+            return objectMapper.readValue(json, Map.class);
+        } catch (Exception e) {
+            log.debug("解析JSON对象失败: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    private String asText(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof String text) {
+            return normalizeText(text);
+        }
+        return String.valueOf(value);
+    }
+
+    private String extractAnswer(AgentState state) {
+        if (state == null || state.getMessages() == null || state.getMessages().isEmpty()) {
+            return null;
+        }
+        ChatMessage lastMessage = state.getMessages().getLast();
+        if (lastMessage instanceof AiMessage aiMessage) {
+            return aiMessage.text();
+        }
+        return null;
     }
 
     /**

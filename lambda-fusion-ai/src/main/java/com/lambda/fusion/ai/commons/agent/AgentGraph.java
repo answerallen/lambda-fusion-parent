@@ -21,12 +21,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.bsc.async.AsyncGenerator;
 import org.bsc.langgraph4j.CompileConfig;
 import org.bsc.langgraph4j.CompiledGraph;
+import org.bsc.langgraph4j.GraphInput;
 import org.bsc.langgraph4j.NodeOutput;
 import org.bsc.langgraph4j.RunnableConfig;
 import org.bsc.langgraph4j.StateGraph;
 import org.bsc.langgraph4j.langchain4j.serializer.std.LC4jStateSerializer;
 import org.bsc.langgraph4j.state.Channel;
 import org.bsc.langgraph4j.state.Channels;
+import org.bsc.langgraph4j.state.StateSnapshot;
 import org.springframework.util.StringUtils;
 
 /**
@@ -110,7 +112,7 @@ public class AgentGraph {
             return input;
         }
 
-        AgentState agentState() {
+        public AgentState agentState() {
             AgentState state = new AgentState();
             state.setSessionId(this.<String>value(SESSION_ID_KEY).orElse(null));
             state.setKbId(this.<String>value(KB_ID_KEY).orElse(null));
@@ -126,7 +128,7 @@ public class AgentGraph {
             return state;
         }
 
-        String nextNode() {
+        public String nextNode() {
             return this.<String>value(NEXT_NODE_KEY).orElse(null);
         }
     }
@@ -230,6 +232,25 @@ public class AgentGraph {
         });
     }
 
+    public Optional<AgentState> resumeOptional(Map<String, Object> stateUpdate, RunnableConfig runnableConfig) {
+        long invokeStartedAt = System.nanoTime();
+        CompiledGraph<LangGraphRuntimeState> executable = getOrBuildCompiledGraph();
+        Optional<LangGraphRuntimeState> output = executable.invoke(
+                stateUpdate == null ? GraphInput.resume() : GraphInput.resume(stateUpdate), runnableConfig);
+        return output.map(runtimeState -> {
+            AgentState finalState = runtimeState.agentState();
+            recordWorkflowSummary(finalState, invokeStartedAt);
+            return finalState;
+        });
+    }
+
+    public Optional<StateSnapshot<LangGraphRuntimeState>> stateSnapshotOf(RunnableConfig runnableConfig) {
+        if (runnableConfig == null) {
+            return Optional.empty();
+        }
+        return getOrBuildCompiledGraph().stateOf(runnableConfig);
+    }
+
     public AsyncGenerator<NodeOutput<LangGraphRuntimeState>> stream(AgentState state) {
         return stream(state, null);
     }
@@ -241,6 +262,13 @@ public class AgentGraph {
         return runnableConfig == null
                 ? executable.stream(LangGraphRuntimeState.toInput(state))
                 : executable.stream(LangGraphRuntimeState.toInput(state), runnableConfig);
+    }
+
+    public AsyncGenerator<NodeOutput<LangGraphRuntimeState>> resumeStream(
+            Map<String, Object> stateUpdate, RunnableConfig runnableConfig) {
+        CompiledGraph<LangGraphRuntimeState> executable = getOrBuildCompiledGraph();
+        return executable.stream(
+                stateUpdate == null ? GraphInput.resume() : GraphInput.resume(stateUpdate), runnableConfig);
     }
 
     /**

@@ -14,6 +14,18 @@ public class WorkflowExecutionResult {
     @Schema(description = "执行ID")
     private String id;
 
+    @Schema(description = "工作线程ID")
+    private String threadId;
+
+    @Schema(description = "当前checkpoint ID")
+    private String checkpointId;
+
+    @Schema(description = "下一跳节点ID")
+    private String nextNode;
+
+    @Schema(description = "是否处于中断状态")
+    private Boolean interrupted;
+
     @Schema(description = "是否完成")
     private Boolean finished;
 

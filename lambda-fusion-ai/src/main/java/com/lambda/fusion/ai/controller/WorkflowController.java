@@ -5,6 +5,8 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.ai.model.WorkflowExecutionRequest;
 import com.lambda.fusion.ai.model.WorkflowExecutionResult;
+import com.lambda.fusion.ai.model.WorkflowExecutionStatus;
+import com.lambda.fusion.ai.model.WorkflowResumeRequest;
 import com.lambda.fusion.ai.model.entity.WorkflowEntity;
 import com.lambda.fusion.ai.service.WorkflowExecutionService;
 import com.lambda.fusion.ai.service.WorkflowService;
@@ -86,6 +88,13 @@ public class WorkflowController {
         return emitter;
     }
 
+    @PostMapping("/{id}/resume")
+    @Operation(summary = "恢复工作流执行")
+    public WorkflowExecutionResult resume(@PathVariable String id, @RequestBody WorkflowResumeRequest request) {
+        sanitizeResumeRequestContext(request);
+        return workflowExecutionService.resume(id, request);
+    }
+
     private void sanitizeRequestContext(WorkflowExecutionRequest request) {
         if (request == null) {
             return;
@@ -95,10 +104,25 @@ public class WorkflowController {
         request.setCalledFromChat(false);
     }
 
+    private void sanitizeResumeRequestContext(WorkflowResumeRequest request) {
+        if (request == null) {
+            return;
+        }
+    }
+
     @GetMapping("/executions/{executionId}")
     @Operation(summary = "查询执行结果")
     public WorkflowExecutionResult getExecutionResult(@PathVariable String executionId) {
         return workflowExecutionService.getExecutionResult(executionId);
+    }
+
+    @GetMapping("/{id}/threads/{threadId}/status")
+    @Operation(summary = "查询工作流线程状态")
+    public WorkflowExecutionStatus getExecutionStatus(
+            @PathVariable String id,
+            @PathVariable String threadId,
+            @Parameter(description = "指定checkpoint ID") @RequestParam(required = false) String checkpointId) {
+        return workflowExecutionService.getExecutionStatus(id, threadId, checkpointId);
     }
 
     @GetMapping("/{id}/executions")

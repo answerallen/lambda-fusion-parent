@@ -257,6 +257,16 @@ public enum AiErrorCode implements ErrorCode {
     WORKFLOW_EXECUTION_NOT_FOUND(30766, "工作流执行记录不存在"),
 
     /**
+     * 工作流线程ID不能为空
+     */
+    WORKFLOW_THREAD_ID_REQUIRED(30767, "工作流线程ID不能为空"),
+
+    /**
+     * 工作流checkpoint不存在
+     */
+    WORKFLOW_CHECKPOINT_NOT_FOUND(30768, "工作流checkpoint不存在"),
+
+    /**
      * 工作流执行超时
      */
     WORKFLOW_EXECUTION_TIMEOUT(30764, "工作流执行超时"),
