@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.commons.support.factory;
 
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
@@ -185,26 +186,25 @@ public class ChatModelFactory {
     }
 
     private ChatModel getDefaultChatModel() {
-        // 简单策略：查询 isDefault=true 的模型
-        LlmModelEntity def = llmModelService
-                .lambdaQuery()
-                .eq(LlmModelEntity::getIsDefault, true)
-                .one();
-        if (def != null) {
-            return getChatModel(def.getId());
-        }
-        throw new RuntimeException("未配置默认模型");
+        LlmModelEntity def = loadDefaultChatModelEntity();
+        return getChatModel(def.getId());
     }
 
     private StreamingChatModel getDefaultStreamingChatModel() {
-        LlmModelEntity def = llmModelService
-                .lambdaQuery()
-                .eq(LlmModelEntity::getIsDefault, true)
+        LlmModelEntity def = loadDefaultChatModelEntity();
+        return getStreamingChatModel(def.getId());
+    }
+
+    private LlmModelEntity loadDefaultChatModelEntity() {
+        LambdaQueryChainWrapper<LlmModelEntity> query = llmModelService.lambdaQuery();
+        LlmModelEntity def = query.eq(LlmModelEntity::getIsDefault, true)
+                .eq(LlmModelEntity::getEnabled, true)
+                .eq(LlmModelEntity::getModelType, "CHAT")
                 .one();
-        if (def != null) {
-            return getStreamingChatModel(def.getId());
+        if (def == null) {
+            throw new AiBusinessException(AiErrorCode.DEFAULT_LLM_MODEL_NOT_CONFIGURED);
         }
-        throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "未配置默认LLM模型");
+        return def;
     }
 
     /**
@@ -213,6 +213,12 @@ public class ChatModelFactory {
     private void validateLlmModelEntity(LlmModelEntity entity) {
         if (entity == null) {
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "LLM模型配置为空");
+        }
+        if (!Boolean.TRUE.equals(entity.getEnabled())) {
+            throw new AiBusinessException(AiErrorCode.LLM_MODEL_DISABLED, entity.getId());
+        }
+        if (!"CHAT".equalsIgnoreCase(entity.getModelType())) {
+            throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "LLM模型类型不是CHAT，模型ID: " + entity.getId());
         }
         if (!StringUtils.hasText(entity.getProvider())) {
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "LLM模型提供商未配置，模型ID: " + entity.getId());

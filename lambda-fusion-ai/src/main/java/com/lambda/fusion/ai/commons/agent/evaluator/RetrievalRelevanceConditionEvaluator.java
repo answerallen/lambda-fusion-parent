@@ -60,6 +60,7 @@ public class RetrievalRelevanceConditionEvaluator implements ConditionEvaluator 
                 double sumRelevance = 0;
                 double maxRelevance = 0;
                 double minRelevance = 1;
+                int scoredDocCount = 0;
 
                 for (Object item : resultList) {
                     if (item instanceof Map<?, ?> doc) {
@@ -68,13 +69,16 @@ public class RetrievalRelevanceConditionEvaluator implements ConditionEvaluator 
                             sumRelevance += relevance;
                             maxRelevance = Math.max(maxRelevance, relevance);
                             minRelevance = Math.min(minRelevance, relevance);
+                            scoredDocCount++;
                         }
                     }
                 }
 
-                metrics.avgRelevance = sumRelevance / metrics.docCount;
-                metrics.maxRelevance = maxRelevance;
-                metrics.minRelevance = minRelevance == 1 ? 0 : minRelevance;
+                if (scoredDocCount > 0) {
+                    metrics.avgRelevance = sumRelevance / scoredDocCount;
+                    metrics.maxRelevance = maxRelevance;
+                    metrics.minRelevance = minRelevance == 1 ? 0 : minRelevance;
+                }
 
                 // 判断是否有相关文档（平均相关性 > 0.5 视为有相关）
                 metrics.hasRelevantDocs = metrics.avgRelevance > 0.5;

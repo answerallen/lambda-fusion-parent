@@ -110,6 +110,18 @@ class RetrievalRelevanceConditionEvaluatorTest {
     }
 
     @Test
+    @DisplayName("测试平均相关性仅按有效分数字段计算")
+    void testAverageRelevanceUsesOnlyScoredDocuments() {
+        List<Map<String, Object>> results = new ArrayList<>();
+        results.add(Map.of("score", 0.9));
+        results.add(Map.of("title", "missing-score"));
+        state.getAttributes().put("retrievalResults", results);
+
+        assertThat(evaluator.evaluate("relevance > 0.8", state)).isTrue();
+        assertThat(evaluator.evaluate("docCount == 2", state)).isTrue();
+    }
+
+    @Test
     @DisplayName("测试similarity字段")
     void testSimilarityField() {
         List<Map<String, Object>> results = new ArrayList<>();
