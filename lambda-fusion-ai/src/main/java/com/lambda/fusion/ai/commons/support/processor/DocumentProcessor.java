@@ -10,9 +10,9 @@ import com.lambda.cloud.oss.client.OssClient;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.commons.datasource.TenantDataSourceHelper;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
-import com.lambda.fusion.ai.commons.datasource.TenantDataSourceHelper;
 import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.commons.support.vector.VectorDimensionProcessor;
 import com.lambda.fusion.ai.commons.utils.BatchProcessor;
@@ -255,8 +255,7 @@ public class DocumentProcessor {
     private DataSourceSwitcher switchToProcessingDataSource(String tenantId) {
         if (StrUtil.isNotBlank(tenantId) && !"default".equalsIgnoreCase(tenantId)) {
             if (tenantDataSourceHelper == null) {
-                throw new AiBusinessException(
-                        AiErrorCode.DATASOURCE_ERROR, "租户数据源助手未启用, tenantId=" + tenantId);
+                throw new AiBusinessException(AiErrorCode.DATASOURCE_ERROR, "租户数据源助手未启用, tenantId=" + tenantId);
             }
             return tenantDataSourceHelper.switchToResolvedDataSource(tenantId);
         }

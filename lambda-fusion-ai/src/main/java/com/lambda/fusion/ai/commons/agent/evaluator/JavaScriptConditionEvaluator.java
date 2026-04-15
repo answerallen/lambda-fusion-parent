@@ -29,11 +29,6 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
 
     private final ScriptEngineManager manager = new ScriptEngineManager();
 
-    /**
-     * ScriptEngine 默认不保证线程安全，这里为每个线程懒加载独立实例。
-     */
-    private final ThreadLocal<ScriptEngine> scriptEngineHolder = ThreadLocal.withInitial(this::resolveScriptEngine);
-
     private static final int MAX_EXPRESSION_LENGTH = 1000;
 
     private static final Set<String> DANGEROUS_KEYWORDS = new HashSet<>();
@@ -52,7 +47,7 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
     }
 
     private ScriptEngine getScriptEngine() {
-        return scriptEngineHolder.get();
+        return resolveScriptEngine();
     }
 
     private ScriptEngine resolveScriptEngine() {

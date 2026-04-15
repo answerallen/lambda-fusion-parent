@@ -73,8 +73,7 @@ public class TenantDataSourceHelper {
             return getDataSourceName();
         }
         if (!tenantDataSourceExists(tenantId)) {
-            throw new AiBusinessException(
-                    AiErrorCode.TENANT_DATASOURCE_NOT_FOUND, "tenantId=" + tenantId);
+            throw new AiBusinessException(AiErrorCode.TENANT_DATASOURCE_NOT_FOUND, "tenantId=" + tenantId);
         }
         return getTenantDataSourceName(tenantId);
     }

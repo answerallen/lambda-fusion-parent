@@ -15,6 +15,7 @@ import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -197,10 +198,13 @@ public class ChatModelFactory {
 
     private LlmModelEntity loadDefaultChatModelEntity() {
         LambdaQueryChainWrapper<LlmModelEntity> query = llmModelService.lambdaQuery();
-        LlmModelEntity def = query.eq(LlmModelEntity::getIsDefault, true)
+        List<LlmModelEntity> defaultModels = query.eq(LlmModelEntity::getIsDefault, true)
                 .eq(LlmModelEntity::getEnabled, true)
-                .eq(LlmModelEntity::getModelType, "CHAT")
-                .one();
+                .list();
+        LlmModelEntity def = defaultModels.stream()
+                .filter(model -> "CHAT".equalsIgnoreCase(model.getModelType()))
+                .findFirst()
+                .orElse(null);
         if (def == null) {
             throw new AiBusinessException(AiErrorCode.DEFAULT_LLM_MODEL_NOT_CONFIGURED);
         }

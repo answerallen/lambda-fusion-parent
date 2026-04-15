@@ -25,8 +25,10 @@ class TenantDataSourceHelperTest {
         AiProperties properties = new AiProperties();
         TenantDataSourceHelper helper = new TenantDataSourceHelper(tenantDataSourceManager, properties);
 
-        assertThat(helper.resolveTargetDataSourceName(null)).isEqualTo(properties.getDataSource().getName());
-        assertThat(helper.resolveTargetDataSourceName("default")).isEqualTo(properties.getDataSource().getName());
+        assertThat(helper.resolveTargetDataSourceName(null))
+                .isEqualTo(properties.getDataSource().getName());
+        assertThat(helper.resolveTargetDataSourceName("default"))
+                .isEqualTo(properties.getDataSource().getName());
     }
 
     @Test
@@ -34,9 +36,11 @@ class TenantDataSourceHelperTest {
     void testResolveTenantDataSource() {
         AiProperties properties = new AiProperties();
         TenantDataSourceHelper helper = new TenantDataSourceHelper(tenantDataSourceManager, properties);
-        when(tenantDataSourceManager.tenantDataSourceExists("tenant-a", properties.getDataSource().getTenantPrefix()))
+        when(tenantDataSourceManager.tenantDataSourceExists(
+                        "tenant-a", properties.getDataSource().getTenantPrefix()))
                 .thenReturn(true);
-        when(tenantDataSourceManager.getTenantDataSourceName("tenant-a", properties.getDataSource().getTenantPrefix()))
+        when(tenantDataSourceManager.getTenantDataSourceName(
+                        "tenant-a", properties.getDataSource().getTenantPrefix()))
                 .thenReturn("ai-tenant-tenant-a");
 
         assertThat(helper.resolveTargetDataSourceName("tenant-a")).isEqualTo("ai-tenant-tenant-a");
@@ -47,7 +51,8 @@ class TenantDataSourceHelperTest {
     void testResolveMissingTenantDataSource() {
         AiProperties properties = new AiProperties();
         TenantDataSourceHelper helper = new TenantDataSourceHelper(tenantDataSourceManager, properties);
-        when(tenantDataSourceManager.tenantDataSourceExists("tenant-missing", properties.getDataSource().getTenantPrefix()))
+        when(tenantDataSourceManager.tenantDataSourceExists(
+                        "tenant-missing", properties.getDataSource().getTenantPrefix()))
                 .thenReturn(false);
 
         assertThatThrownBy(() -> helper.resolveTargetDataSourceName("tenant-missing"))

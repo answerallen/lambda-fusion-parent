@@ -84,8 +84,34 @@ class AgentGraphFactoryTest {
                 .thenReturn(Map.of());
         when(agentNode.getName()).thenReturn("TEST_NODE");
 
-        assertThatThrownBy(() -> factory.buildFromDefinition(definition))
-                .isInstanceOf(AiBusinessException.class);
+        assertThatThrownBy(() -> factory.buildFromDefinition(definition)).isInstanceOf(AiBusinessException.class);
+    }
+
+    @Test
+    @DisplayName("仅配置 conditionExpression 时构图失败")
+    void testBuildFromDefinitionWithConditionExpressionOnly() {
+        AgentGraphFactory factory = new AgentGraphFactory(applicationContext, new ObjectMapper());
+        GraphDefinition definition = new GraphDefinition();
+        NodeDefinition start = new NodeDefinition();
+        start.setId("start");
+        start.setType("TEST_NODE");
+        NodeDefinition end = new NodeDefinition();
+        end.setId("end");
+        end.setType("TEST_NODE");
+        EdgeDefinition edge = new EdgeDefinition();
+        edge.setSource("start");
+        edge.setTarget("end");
+        edge.setConditionExpression("x > 0");
+        definition.setNodes(List.of(start, end));
+        definition.setEdges(List.of(edge));
+        definition.setEntryPoint("start");
+
+        when(applicationContext.getBeansOfType(AgentNode.class)).thenReturn(Map.of("testNode", agentNode));
+        when(applicationContext.getBeansOfType(com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator.class))
+                .thenReturn(Map.of());
+        when(agentNode.getName()).thenReturn("TEST_NODE");
+
+        assertThatThrownBy(() -> factory.buildFromDefinition(definition)).isInstanceOf(AiBusinessException.class);
     }
 
     private Object readField(Object target, String fieldName) throws Exception {

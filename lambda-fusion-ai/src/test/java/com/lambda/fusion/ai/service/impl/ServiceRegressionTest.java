@@ -101,12 +101,13 @@ class ServiceRegressionTest {
 
     @SuppressWarnings("unchecked")
     private static <T> T proxy(Class<T> type, InvocationHandlerWithMethod handler) {
-        return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type}, (proxy, method, args) -> switch (method.getName()) {
-            case "toString" -> type.getSimpleName() + "Proxy";
-            case "hashCode" -> System.identityHashCode(proxy);
-            case "equals" -> proxy == args[0];
-            default -> handler.invoke(method, args);
-        });
+        return (T) Proxy.newProxyInstance(
+                type.getClassLoader(), new Class<?>[] {type}, (proxy, method, args) -> switch (method.getName()) {
+                    case "toString" -> type.getSimpleName() + "Proxy";
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "equals" -> proxy == args[0];
+                    default -> handler.invoke(method, args);
+                });
     }
 
     private static Object defaultValue(Class<?> returnType) {

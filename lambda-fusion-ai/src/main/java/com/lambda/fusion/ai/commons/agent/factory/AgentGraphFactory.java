@@ -3,10 +3,10 @@ package com.lambda.fusion.ai.commons.agent.factory;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator;
-import com.lambda.fusion.ai.commons.exception.AiBusinessException;
-import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.commons.agent.model.EdgeDefinition;
 import com.lambda.fusion.ai.commons.agent.model.GraphDefinition;
+import com.lambda.fusion.ai.commons.exception.AiBusinessException;
+import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompileConfig;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -95,7 +96,17 @@ public class AgentGraphFactory {
         if (def.getEdges() != null) {
             for (EdgeDefinition edge : def.getEdges()) {
                 ConditionEvaluator evaluator = null;
-                if (edge.getConditionType() != null && !edge.getConditionType().isEmpty()) {
+                boolean hasConditionType = StringUtils.hasText(edge.getConditionType());
+                boolean hasConditionExpression = StringUtils.hasText(edge.getConditionExpression());
+                if (hasConditionType != hasConditionExpression) {
+                    throw new AiBusinessException(
+                            AiErrorCode.WORKFLOW_CONFIG_INVALID,
+                            "条件边必须同时配置 conditionType 和 conditionExpression: edge="
+                                    + edge.getSource()
+                                    + "->"
+                                    + edge.getTarget());
+                }
+                if (hasConditionType) {
                     evaluator = evaluators.get(edge.getConditionType());
                     if (evaluator == null) {
                         throw new AiBusinessException(
