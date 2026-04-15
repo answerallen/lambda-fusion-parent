@@ -21,6 +21,8 @@ import com.lambda.fusion.ai.model.entity.WorkflowEntity;
 import com.lambda.fusion.ai.model.entity.WorkflowExecutionEntity;
 import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
 import com.lambda.fusion.ai.service.WorkflowExecutionService;
+import com.lambda.fusion.core.FusionConstants;
+import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.AuthUtils;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -33,9 +35,11 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,6 +51,17 @@ import tools.jackson.databind.ObjectMapper;
 @Service
 @RequiredArgsConstructor
 public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
+
+    static final String ATTR_USER_ID = "userId";
+    static final String ATTR_TENANT_ID = "tenantId";
+    static final String ATTR_USERNAME = "username";
+    static final String ATTR_ORG_ID = "orgId";
+    static final String ATTR_ROLES = "roles";
+    static final String ATTR_IS_ADMIN = "isAdmin";
+    static final String ATTR_IS_DEV = "isDev";
+    static final String ATTR_IS_MANAGER = "isManager";
+    static final String ATTR_IS_TENANT_MANAGER = "isTenantManager";
+    static final String ATTR_IS_ANY_MANAGER = "isAnyManager";
 
     private final WorkflowMapper workflowMapper;
     private final WorkflowExecutionMapper executionMapper;
@@ -225,11 +240,12 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     }
 
     private WorkflowExecutionEntity createExecutionRecord(WorkflowEntity workflow, WorkflowExecutionRequest request) {
+        UserDetails currentUser = getCurrentUserSafely();
         WorkflowExecutionEntity execution = new WorkflowExecutionEntity();
         execution.setPipelineId(workflow.getId());
         execution.setPipelineVersion(1);
-        execution.setUserId(request.getUserId());
-        execution.setTenantId(request.getTenantId());
+        execution.setUserId(resolveUserId(request, currentUser));
+        execution.setTenantId(resolveTenantId(request, currentUser));
         execution.setStatus("RUNNING");
         execution.setProgress(0);
         execution.setStartedAt(LocalDateTime.now());
@@ -252,18 +268,74 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         state.setKbId(request.getKbId());
         state.setLlmModelId(request.getLlmModelId());
 
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put("executionId", execution.getId());
-        attributes.put("userId", request.getUserId());
-        attributes.put("tenantId", request.getTenantId());
-        attributes.put(AgentGraph.TRACE_ENABLED_ATTRIBUTE, request.getTraceEnabled());
-        state.setAttributes(attributes);
+        UserDetails currentUser = getCurrentUserSafely();
+        state.setAttributes(buildExecutionContextAttributes(request, execution.getId(), currentUser));
 
         if (request.getMessages() != null && !request.getMessages().isEmpty()) {
             state.setMessages(new ArrayList<>(request.getMessages()));
         }
 
         return state;
+    }
+
+    Map<String, Object> buildExecutionContextAttributes(
+            WorkflowExecutionRequest request, String executionId, UserDetails currentUser) {
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("executionId", executionId);
+        attributes.put(ATTR_USER_ID, resolveUserId(request, currentUser));
+        attributes.put(ATTR_TENANT_ID, resolveTenantId(request, currentUser));
+        attributes.put(AgentGraph.TRACE_ENABLED_ATTRIBUTE, request.getTraceEnabled());
+
+        if (currentUser != null) {
+            Set<String> roles = currentUser.getRoles();
+            attributes.put(ATTR_USERNAME, currentUser.getUsername());
+            attributes.put(ATTR_ORG_ID, currentUser.getOrgId());
+            attributes.put(ATTR_ROLES, new ArrayList<>(roles));
+            attributes.put(ATTR_IS_ADMIN, roles.contains(FusionConstants.ROLE_ADMIN));
+            attributes.put(ATTR_IS_DEV, roles.contains(FusionConstants.ROLE_DEV));
+            attributes.put(ATTR_IS_MANAGER, roles.contains(FusionConstants.ROLE_MANAGER));
+            attributes.put(
+                    ATTR_IS_TENANT_MANAGER,
+                    roles.stream().anyMatch(role -> role.startsWith(FusionConstants.ROLE_TENANT + FusionConstants.AT)));
+            attributes.put(
+                    ATTR_IS_ANY_MANAGER,
+                    roles.stream()
+                            .anyMatch(role -> role.equals(FusionConstants.ROLE_DEV)
+                                    || role.equals(FusionConstants.ROLE_ADMIN)
+                                    || role.startsWith(FusionConstants.ROLE_TENANT + FusionConstants.AT)));
+        } else {
+            attributes.put(ATTR_ROLES, Collections.emptyList());
+            attributes.put(ATTR_IS_ADMIN, false);
+            attributes.put(ATTR_IS_DEV, false);
+            attributes.put(ATTR_IS_MANAGER, false);
+            attributes.put(ATTR_IS_TENANT_MANAGER, false);
+            attributes.put(ATTR_IS_ANY_MANAGER, false);
+        }
+
+        return attributes;
+    }
+
+    private String resolveUserId(WorkflowExecutionRequest request, UserDetails currentUser) {
+        if (StringUtils.hasText(request.getUserId())) {
+            return request.getUserId();
+        }
+        return currentUser == null ? null : currentUser.getName();
+    }
+
+    private String resolveTenantId(WorkflowExecutionRequest request, UserDetails currentUser) {
+        if (StringUtils.hasText(request.getTenantId())) {
+            return request.getTenantId();
+        }
+        return currentUser == null ? null : currentUser.getTenantId();
+    }
+
+    private UserDetails getCurrentUserSafely() {
+        try {
+            return AuthUtils.getUser();
+        } catch (Exception e) {
+            log.debug("当前线程未获取到登录主体信息: {}", e.getMessage());
+            return null;
+        }
     }
 
     private WorkflowExecutionResult mapToExecutionResult(

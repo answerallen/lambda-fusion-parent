@@ -20,6 +20,20 @@ import org.springframework.stereotype.Component;
 @Component
 public class SpelConditionEvaluator implements ConditionEvaluator {
 
+    private static final String[] EXECUTION_CONTEXT_KEYS = {
+        "executionId",
+        "userId",
+        "tenantId",
+        "username",
+        "orgId",
+        "roles",
+        "isAdmin",
+        "isDev",
+        "isManager",
+        "isTenantManager",
+        "isAnyManager"
+    };
+
     private final ExpressionParser parser = new SpelExpressionParser();
 
     @Override
@@ -49,6 +63,7 @@ public class SpelConditionEvaluator implements ConditionEvaluator {
             context.setVariable("sessionId", state.getSessionId());
             context.setVariable("kbId", state.getKbId());
             context.setVariable("llmModelId", state.getLlmModelId());
+            injectExecutionContextVariables(context, state);
 
             if (state.getAttributes() != null) {
                 state.getAttributes().forEach((key, value) -> {
@@ -78,6 +93,15 @@ public class SpelConditionEvaluator implements ConditionEvaluator {
         } catch (Exception e) {
             log.error("SpEL 表达式执行异常: {}", expression, e);
             return false;
+        }
+    }
+
+    private void injectExecutionContextVariables(SimpleEvaluationContext context, AgentState state) {
+        if (state.getAttributes() == null) {
+            return;
+        }
+        for (String key : EXECUTION_CONTEXT_KEYS) {
+            context.setVariable(key, state.getAttributes().get(key));
         }
     }
 

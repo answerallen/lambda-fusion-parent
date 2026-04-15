@@ -59,6 +59,22 @@ class SpelConditionEvaluatorTest {
     }
 
     @Test
+    @DisplayName("测试访问主体角色上下文")
+    void testAccessExecutionPrincipalContext() {
+        state.getAttributes().put("userId", "alice");
+        state.getAttributes().put("tenantId", "tenant-a");
+        state.getAttributes().put("roles", new ArrayList<>(List.of("ROLE_ADMIN", "ROLE_TENANT@tenant-a")));
+        state.getAttributes().put("isAdmin", true);
+        state.getAttributes().put("isAnyManager", true);
+
+        assertThat(evaluator.evaluate("#userId == 'alice'", state)).isTrue();
+        assertThat(evaluator.evaluate("#tenantId == 'tenant-a'", state)).isTrue();
+        assertThat(evaluator.evaluate("#roles[0] == 'ROLE_ADMIN'", state)).isTrue();
+        assertThat(evaluator.evaluate("#isAdmin == true", state)).isTrue();
+        assertThat(evaluator.evaluate("#isAnyManager == true", state)).isTrue();
+    }
+
+    @Test
     @DisplayName("测试访问currentNodeProperties")
     void testAccessCurrentNodeProperties() {
         Map<String, Object> nodeProps = new HashMap<>();

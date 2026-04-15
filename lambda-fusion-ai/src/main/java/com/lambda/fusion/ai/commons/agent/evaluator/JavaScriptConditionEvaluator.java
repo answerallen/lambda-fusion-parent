@@ -27,6 +27,20 @@ import org.springframework.stereotype.Component;
 @Component
 public class JavaScriptConditionEvaluator implements ConditionEvaluator {
 
+    private static final String[] EXECUTION_CONTEXT_KEYS = {
+        "executionId",
+        "userId",
+        "tenantId",
+        "username",
+        "orgId",
+        "roles",
+        "isAdmin",
+        "isDev",
+        "isManager",
+        "isTenantManager",
+        "isAnyManager"
+    };
+
     private final ScriptEngineManager manager = new ScriptEngineManager();
 
     private static final int MAX_EXPRESSION_LENGTH = 1000;
@@ -144,6 +158,7 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
             bindings.put("sessionId", state.getSessionId());
             bindings.put("kbId", state.getKbId());
             bindings.put("llmModelId", state.getLlmModelId());
+            injectExecutionContextVariables(bindings, state);
 
             if (state.getPendingToolRequests() != null) {
                 bindings.put("hasTools", !state.getPendingToolRequests().isEmpty());
@@ -173,6 +188,15 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
         } catch (Exception e) {
             log.error("JavaScriptConditionEvaluator 未预期的异常: {}", expression, e);
             return false;
+        }
+    }
+
+    private void injectExecutionContextVariables(Bindings bindings, AgentState state) {
+        if (state.getAttributes() == null) {
+            return;
+        }
+        for (String key : EXECUTION_CONTEXT_KEYS) {
+            bindings.put(key, state.getAttributes().get(key));
         }
     }
 
