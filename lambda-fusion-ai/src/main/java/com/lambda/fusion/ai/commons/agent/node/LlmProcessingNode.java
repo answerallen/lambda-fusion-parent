@@ -6,6 +6,7 @@ import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RETRY;
 
 import cn.hutool.core.util.StrUtil;
 import com.lambda.fusion.ai.commons.agent.*;
+import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
 import com.lambda.fusion.ai.commons.support.factory.ChatModelFactory;
 import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
 import com.lambda.fusion.ai.service.PromptTemplateService;

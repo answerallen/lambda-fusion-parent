@@ -2,7 +2,7 @@ package com.lambda.fusion.ai.commons.agent.node;
 
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
-import com.lambda.fusion.ai.commons.agent.AgentToolProvider;
+import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
 import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;

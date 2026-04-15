@@ -2,7 +2,7 @@ package com.lambda.fusion.ai.commons.utils;
 
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
-import com.lambda.fusion.ai.commons.agent.AgentToolProvider;
+import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;

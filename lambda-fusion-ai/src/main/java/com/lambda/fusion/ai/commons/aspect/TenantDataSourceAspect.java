@@ -1,7 +1,5 @@
 package com.lambda.fusion.ai.commons.aspect;
 
-import cn.hutool.core.util.StrUtil;
-import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.commons.datasource.TenantDataSourceHelper;
 import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
@@ -32,7 +30,6 @@ import org.springframework.stereotype.Component;
 public class TenantDataSourceAspect {
 
     private final TenantDataSourceHelper tenantDataSourceHelper;
-    private final AiProperties aiProperties;
 
     @Around("execution(* com.lambda.fusion.ai.service..*.*(..))")
     public Object aroundServiceMethods(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -51,13 +48,6 @@ public class TenantDataSourceAspect {
     }
 
     private String resolveTargetDataSource(String tenantId) {
-        if (StrUtil.isNotBlank(tenantId) && !"default".equals(tenantId)) {
-            String tenantDsName = tenantDataSourceHelper.getTenantDataSourceName(tenantId);
-            if (tenantDataSourceHelper.tenantDataSourceExists(tenantId)) {
-                return tenantDsName;
-            }
-            log.debug("租户数据源不存在，使用默认数据源: tenantId={}, dataSource={}", tenantId, tenantDsName);
-        }
-        return aiProperties.getDataSource().getName();
+        return tenantDataSourceHelper.resolveTargetDataSourceName(tenantId);
     }
 }

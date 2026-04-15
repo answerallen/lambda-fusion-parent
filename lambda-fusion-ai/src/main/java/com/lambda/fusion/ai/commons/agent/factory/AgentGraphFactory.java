@@ -3,12 +3,15 @@ package com.lambda.fusion.ai.commons.agent.factory;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator;
+import com.lambda.fusion.ai.commons.exception.AiBusinessException;
+import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.commons.agent.model.EdgeDefinition;
 import com.lambda.fusion.ai.commons.agent.model.GraphDefinition;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bsc.langgraph4j.CompileConfig;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
@@ -41,11 +44,22 @@ public class AgentGraphFactory {
      * 根据基于图可视化描述JSON构建工作流底座
      */
     public AgentGraph buildFromDefinition(String jsonDef) throws Exception {
+        return buildFromDefinition(jsonDef, null);
+    }
+
+    /**
+     * 根据基于图可视化描述JSON构建工作流底座，并应用图构建参数
+     */
+    public AgentGraph buildFromDefinition(String jsonDef, AgentGraphBuildOptions options) throws Exception {
         GraphDefinition def = objectMapper.readValue(jsonDef, GraphDefinition.class);
-        return buildFromDefinition(def);
+        return buildFromDefinition(def, options);
     }
 
     public AgentGraph buildFromDefinition(GraphDefinition def) {
+        return buildFromDefinition(def, null);
+    }
+
+    public AgentGraph buildFromDefinition(GraphDefinition def, AgentGraphBuildOptions options) {
         AgentGraph graph = new AgentGraph();
 
         // 装载当前系统提供的所有边缘策略解析器
@@ -83,12 +97,37 @@ public class AgentGraphFactory {
                 ConditionEvaluator evaluator = null;
                 if (edge.getConditionType() != null && !edge.getConditionType().isEmpty()) {
                     evaluator = evaluators.get(edge.getConditionType());
+                    if (evaluator == null) {
+                        throw new AiBusinessException(
+                                AiErrorCode.WORKFLOW_CONFIG_INVALID,
+                                "未找到条件评估器类型: "
+                                        + edge.getConditionType()
+                                        + ", edge="
+                                        + edge.getSource()
+                                        + "->"
+                                        + edge.getTarget());
+                    }
                 }
                 graph.addEdge(edge.getSource(), edge.getTarget(), evaluator, edge.getConditionExpression());
             }
         }
 
         graph.setEntryPoint(def.getEntryPoint());
+        applyBuildOptions(graph, options);
         return graph;
+    }
+
+    private void applyBuildOptions(AgentGraph graph, AgentGraphBuildOptions options) {
+        if (graph == null || options == null) {
+            return;
+        }
+        CompileConfig compileConfig = options.getCompileConfig();
+        if (compileConfig != null) {
+            graph.setCompileConfig(compileConfig);
+        }
+        Integer maxIterations = options.getMaxIterations();
+        if (maxIterations != null) {
+            graph.setMaxIterations(maxIterations);
+        }
     }
 }

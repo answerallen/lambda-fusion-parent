@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.commons.agent;
+package com.lambda.fusion.ai.commons.agent.tools;
 
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
