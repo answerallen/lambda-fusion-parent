@@ -4,7 +4,11 @@ import static com.lambda.cloud.test.assertion.LambdaAssertions.*;
 
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.*;
 
 class JavaScriptConditionEvaluatorTest {
@@ -217,5 +221,33 @@ class JavaScriptConditionEvaluatorTest {
         assertThat(evaluator.evaluate("attributes.testKey == 'testValue'", state))
                 .isTrue();
         assertThat(evaluator.evaluate("attrs.testKey == 'testValue'", state)).isTrue();
+    }
+
+    @Test
+    @DisplayName("测试并发执行时互不影响")
+    void testConcurrentEvaluation() throws Exception {
+        var executor = Executors.newFixedThreadPool(2);
+        try {
+            Callable<Boolean> task1 = () -> {
+                AgentState localState = new AgentState();
+                localState.setAttributes(new ConcurrentHashMap<>());
+                localState.getAttributes().put("value", 1);
+                return evaluator.evaluate("value == 1", localState);
+            };
+            Callable<Boolean> task2 = () -> {
+                AgentState localState = new AgentState();
+                localState.setAttributes(new ConcurrentHashMap<>());
+                localState.getAttributes().put("value", 2);
+                return evaluator.evaluate("value == 2", localState);
+            };
+
+            Future<Boolean> future1 = executor.submit(task1);
+            Future<Boolean> future2 = executor.submit(task2);
+
+            assertThat(future1.get(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(future2.get(5, TimeUnit.SECONDS)).isTrue();
+        } finally {
+            executor.shutdownNow();
+        }
     }
 }

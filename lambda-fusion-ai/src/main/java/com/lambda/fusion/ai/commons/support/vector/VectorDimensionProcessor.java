@@ -118,12 +118,12 @@ public class VectorDimensionProcessor {
     }
 
     /**
-     * 获取最接近的支持维度
+     * 获取可容纳当前向量的支持维度。
      * <p>
-     * 用于将非标准维度映射到支持的标准维度
+     * 优先选择不小于原始维度的最小支持维度，避免无谓截断。
      *
      * @param dimension 原始维度
-     * @return 最接近的支持维度
+     * @return 向上兼容后的支持维度
      */
     public int getNearestSupportedDimension(int dimension) {
         if (dimension <= 0) {
@@ -134,19 +134,13 @@ public class VectorDimensionProcessor {
             return MAX_DIMENSION;
         }
 
-        // 找到最接近的支持维度
-        int nearest = SUPPORTED_DIMENSIONS.getFirst();
-        int minDiff = Math.abs(dimension - nearest);
-
         for (int supportedDim : SUPPORTED_DIMENSIONS) {
-            int diff = Math.abs(dimension - supportedDim);
-            if (diff < minDiff) {
-                minDiff = diff;
-                nearest = supportedDim;
+            if (dimension <= supportedDim) {
+                return supportedDim;
             }
         }
 
-        return nearest;
+        return MAX_DIMENSION;
     }
 
     /**
