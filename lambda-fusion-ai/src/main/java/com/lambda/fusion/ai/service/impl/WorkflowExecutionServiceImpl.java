@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentState;
+import com.lambda.fusion.ai.commons.agent.factory.AgentGraphBuildOptions;
 import com.lambda.fusion.ai.commons.agent.factory.AgentGraphFactory;
 import com.lambda.fusion.ai.commons.agent.model.GraphDefinition;
 import com.lambda.fusion.ai.commons.agent.model.NodeDefinition;
@@ -42,6 +43,10 @@ import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bsc.langgraph4j.CompileConfig;
+import org.bsc.langgraph4j.RunnableConfig;
+import org.bsc.langgraph4j.checkpoint.MemorySaver;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -62,6 +67,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     static final String ATTR_IS_MANAGER = "isManager";
     static final String ATTR_IS_TENANT_MANAGER = "isTenantManager";
     static final String ATTR_IS_ANY_MANAGER = "isAnyManager";
+    static final String ATTR_THREAD_ID = "threadId";
 
     private final WorkflowMapper workflowMapper;
     private final WorkflowExecutionMapper executionMapper;
@@ -70,6 +76,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     private final AtomicSessionUpdateService atomicSessionUpdateService;
     private final CostCalculator costCalculator;
     private final LlmModelMapper llmModelMapper;
+    private final ObjectProvider<MemorySaver> checkpointSaverProvider;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -80,17 +87,20 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         WorkflowExecutionEntity execution = createExecutionRecord(workflow, request);
 
         try {
-            AgentGraph graph = agentGraphFactory.buildFromDefinition(workflow.getGraphJson());
-            AgentState state = prepareInitialState(request, execution);
+            String threadId = resolveThreadId(request, execution.getId());
+            AgentGraph graph =
+                    agentGraphFactory.buildFromDefinition(workflow.getGraphJson(), buildGraphBuildOptions(request));
+            AgentState state = prepareInitialState(request, execution, threadId);
+            RunnableConfig runnableConfig = buildRunnableConfig(threadId);
 
             long startTime = System.currentTimeMillis();
-            state = graph.invoke(state);
+            state = graph.invokeOptional(state, runnableConfig).orElse(state);
             long duration = System.currentTimeMillis() - startTime;
 
             WorkflowExecutionResult result = mapToExecutionResult(state, execution, duration);
             updateExecutionSuccess(execution, result);
 
-            // 独立调用才结算，聊天触发由消息层负责
+            // 鐙珛璋冪敤鎵嶇粨绠楋紝鑱婂ぉ瑙﹀彂鐢辨秷鎭眰璐熻矗
             settleAfterExecution(request, result, "workflow-sync");
 
             log.info("工作流执行完成, executionId={}, duration={}ms", execution.getId(), duration);
@@ -106,14 +116,17 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     @Override
     public void executeStream(
             String workflowId, WorkflowExecutionRequest request, StreamingChatResponseHandler handler) {
-        log.info("开始流式执行工作流, workflowId={}", workflowId);
+        log.info("寮€濮嬫祦寮忔墽琛屽伐浣滄祦, workflowId={}", workflowId);
 
         WorkflowEntity workflow = loadWorkflow(workflowId);
         WorkflowExecutionEntity execution = createExecutionRecord(workflow, request);
 
         try {
-            AgentGraph graph = agentGraphFactory.buildFromDefinition(workflow.getGraphJson());
-            AgentState state = prepareInitialState(request, execution);
+            String threadId = resolveThreadId(request, execution.getId());
+            AgentGraph graph =
+                    agentGraphFactory.buildFromDefinition(workflow.getGraphJson(), buildGraphBuildOptions(request));
+            AgentState state = prepareInitialState(request, execution, threadId);
+            RunnableConfig runnableConfig = buildRunnableConfig(threadId);
 
             String modelId = request.getLlmModelId();
             if (modelId == null) {
@@ -127,7 +140,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             state.getAttributes().put("streamHandler", idempotentHandler);
 
             long startTime = System.currentTimeMillis();
-            state = graph.invoke(state);
+            state = graph.invokeOptional(state, runnableConfig).orElse(state);
             long duration = System.currentTimeMillis() - startTime;
 
             WorkflowExecutionResult result = mapToExecutionResult(state, execution, duration);
@@ -262,14 +275,15 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         return execution;
     }
 
-    private AgentState prepareInitialState(WorkflowExecutionRequest request, WorkflowExecutionEntity execution) {
+    private AgentState prepareInitialState(
+            WorkflowExecutionRequest request, WorkflowExecutionEntity execution, String threadId) {
         AgentState state = new AgentState();
         state.setSessionId(request.getSessionId());
         state.setKbId(request.getKbId());
         state.setLlmModelId(request.getLlmModelId());
 
         UserDetails currentUser = getCurrentUserSafely();
-        state.setAttributes(buildExecutionContextAttributes(request, execution.getId(), currentUser));
+        state.setAttributes(buildExecutionContextAttributes(request, execution.getId(), threadId, currentUser));
 
         if (request.getMessages() != null && !request.getMessages().isEmpty()) {
             state.setMessages(new ArrayList<>(request.getMessages()));
@@ -279,12 +293,15 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     }
 
     Map<String, Object> buildExecutionContextAttributes(
-            WorkflowExecutionRequest request, String executionId, UserDetails currentUser) {
+            WorkflowExecutionRequest request, String executionId, String threadId, UserDetails currentUser) {
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("executionId", executionId);
         attributes.put(ATTR_USER_ID, resolveUserId(request, currentUser));
         attributes.put(ATTR_TENANT_ID, resolveTenantId(request, currentUser));
         attributes.put(AgentGraph.TRACE_ENABLED_ATTRIBUTE, request.getTraceEnabled());
+        if (StringUtils.hasText(threadId)) {
+            attributes.put(ATTR_THREAD_ID, threadId);
+        }
 
         if (currentUser != null) {
             Set<String> roles = currentUser.getRoles();
@@ -313,6 +330,84 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         }
 
         return attributes;
+    }
+
+    AgentGraphBuildOptions buildGraphBuildOptions(WorkflowExecutionRequest request) {
+        if (request == null) {
+            return null;
+        }
+        CompileConfig compileConfig = buildCompileConfig(request);
+        Integer maxIterations = request.getMaxIterations();
+        if (compileConfig == null && maxIterations == null) {
+            return null;
+        }
+        AgentGraphBuildOptions options = new AgentGraphBuildOptions();
+        options.setCompileConfig(compileConfig);
+        options.setMaxIterations(maxIterations);
+        return options;
+    }
+
+    CompileConfig buildCompileConfig(WorkflowExecutionRequest request) {
+        if (request == null) {
+            return null;
+        }
+        boolean checkpointEnabled = Boolean.TRUE.equals(request.getCheckpointEnabled());
+        String interruptBefore = normalizeText(request.getInterruptBefore());
+        String interruptAfter = normalizeText(request.getInterruptAfter());
+        Boolean releaseThread = request.getReleaseThread();
+        if (!checkpointEnabled
+                && !StringUtils.hasText(interruptBefore)
+                && !StringUtils.hasText(interruptAfter)
+                && releaseThread == null) {
+            return null;
+        }
+        CompileConfig.Builder builder = CompileConfig.builder();
+        if (checkpointEnabled) {
+            MemorySaver checkpointSaver = checkpointSaverProvider.getIfAvailable();
+            if (checkpointSaver == null) {
+                throw new AiBusinessException(AiErrorCode.CONFIGURATION_ERROR, "未配置 LangGraph4j checkpoint saver");
+            }
+            builder.checkpointSaver(checkpointSaver);
+        }
+        if (StringUtils.hasText(interruptBefore)) {
+            builder.interruptBefore(interruptBefore);
+        }
+        if (StringUtils.hasText(interruptAfter)) {
+            builder.interruptAfter(interruptAfter);
+        }
+        if (releaseThread != null) {
+            builder.releaseThread(releaseThread);
+        }
+        return builder.build();
+    }
+
+    RunnableConfig buildRunnableConfig(String threadId) {
+        if (!StringUtils.hasText(threadId)) {
+            return null;
+        }
+        return RunnableConfig.builder().threadId(threadId).build();
+    }
+
+    String resolveThreadId(WorkflowExecutionRequest request, String fallbackThreadId) {
+        if (request == null) {
+            return null;
+        }
+        String requestThreadId = normalizeText(request.getThreadId());
+        if (StringUtils.hasText(requestThreadId)) {
+            return requestThreadId;
+        }
+        boolean requiresThreadAffinity = Boolean.TRUE.equals(request.getCheckpointEnabled())
+                || StringUtils.hasText(normalizeText(request.getInterruptBefore()))
+                || StringUtils.hasText(normalizeText(request.getInterruptAfter()));
+        if (!requiresThreadAffinity) {
+            return null;
+        }
+        String sessionId = normalizeText(request.getSessionId());
+        return StringUtils.hasText(sessionId) ? sessionId : normalizeText(fallbackThreadId);
+    }
+
+    private String normalizeText(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
     }
 
     private String resolveUserId(WorkflowExecutionRequest request, UserDetails currentUser) {

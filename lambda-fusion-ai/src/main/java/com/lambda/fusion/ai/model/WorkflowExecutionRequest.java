@@ -34,6 +34,18 @@ public class WorkflowExecutionRequest {
     @Schema(description = "是否启用追踪")
     private Boolean traceEnabled = true;
 
+    private String threadId;
+
+    private Boolean checkpointEnabled = false;
+
+    private String interruptBefore;
+
+    private String interruptAfter;
+
+    private Boolean releaseThread;
+
+    private Integer maxIterations;
+
     /**
      * 是否由聊天消息层触发（内部字段，前端无需传入）。
      * <p>当为 {@code true} 时，工作流执行服务跳过会话和模型统计结算，

@@ -22,6 +22,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeoutException;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
+import org.bsc.langgraph4j.checkpoint.MemorySaver;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.ApplicationRunner;
@@ -64,6 +65,11 @@ public class AiConfigure {
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
         return executor;
+    }
+
+    @Bean
+    public MemorySaver workflowCheckpointSaver() {
+        return new MemorySaver();
     }
 
     @Configuration(proxyBeanMethods = false)
