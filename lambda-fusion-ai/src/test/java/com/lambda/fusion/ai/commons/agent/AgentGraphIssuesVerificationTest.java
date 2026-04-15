@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.lambda.fusion.ai.commons.agent.evaluator.ToolResultConditionEvaluator;
 import com.lambda.fusion.ai.commons.agent.node.ParallelNode;
 import com.lambda.fusion.ai.commons.agent.node.ToolExecutingNode;
+import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
