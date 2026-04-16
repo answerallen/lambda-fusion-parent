@@ -85,7 +85,6 @@ public class ToolExecutingNode implements AgentNode {
         return new ExecutionResult(nextState, null);
     }
 
-
     @SuppressWarnings("unchecked")
     private void recordToolResult(
             AgentState state, ToolExecutionRequest request, String result, boolean success, String error) {

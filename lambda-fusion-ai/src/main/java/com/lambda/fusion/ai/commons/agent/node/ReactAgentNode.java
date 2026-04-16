@@ -343,8 +343,7 @@ public class ReactAgentNode implements AgentNode {
     }
 
     private String resolveTemplateId(Map<String, Object> nodeProperties) {
-        Object configuredValue =
-                AgentUtils.firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
+        Object configuredValue = AgentUtils.firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
         if (configuredValue instanceof Number number) {
             return number.toString();
         }
@@ -409,8 +408,6 @@ public class ReactAgentNode implements AgentNode {
         }
         return null;
     }
-
-
 
     private record AgentExecutionResult(
             AgentExecutor.State outputState, String finalResponse, List<String> toolNames, String modelId) {}

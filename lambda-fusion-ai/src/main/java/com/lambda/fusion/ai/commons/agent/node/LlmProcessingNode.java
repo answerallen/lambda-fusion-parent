@@ -259,8 +259,7 @@ public class LlmProcessingNode implements AgentNode {
     }
 
     private String resolveTemplateId(Map<String, Object> nodeProperties) {
-        Object configuredValue =
-                AgentUtils.firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
+        Object configuredValue = AgentUtils.firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
         if (configuredValue instanceof Number number) {
             return number.toString();
         }
