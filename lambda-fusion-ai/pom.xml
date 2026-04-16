@@ -27,6 +27,10 @@
             <artifactId>langgraph4j-langchain4j</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.bsc.langgraph4j</groupId>
+            <artifactId>langgraph4j-agent-executor</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-fusion-core</artifactId>
             <version>${project.version}</version>

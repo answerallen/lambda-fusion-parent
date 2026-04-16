@@ -9,7 +9,7 @@ import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.commons.support.vector.VectorDimensionProcessor;
-import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
+import com.lambda.fusion.ai.commons.utils.AgentUtils;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
 import com.lambda.fusion.ai.mapper.VectorRepository;
@@ -207,8 +207,8 @@ public class RagServiceImpl implements RagService {
         state = graph.invoke(state);
 
         String answer = "No response";
-        int pTokens = AgentNodeUtils.asInt(state.getAttributes().get("promptTokens"));
-        int cTokens = AgentNodeUtils.asInt(state.getAttributes().get("completionTokens"));
+        int pTokens = AgentUtils.asInt(state.getAttributes().get("promptTokens"));
+        int cTokens = AgentUtils.asInt(state.getAttributes().get("completionTokens"));
 
         if (!state.getMessages().isEmpty()) {
             ChatMessage lastMsg = state.getMessages().getLast();
@@ -275,8 +275,8 @@ public class RagServiceImpl implements RagService {
         if (!state.getMessages().isEmpty()) {
             ChatMessage lastMsg = state.getMessages().getLast();
             if (lastMsg instanceof AiMessage) {
-                int pTokens = AgentNodeUtils.asInt(state.getAttributes().get("promptTokens"));
-                int cTokens = AgentNodeUtils.asInt(state.getAttributes().get("completionTokens"));
+                int pTokens = AgentUtils.asInt(state.getAttributes().get("promptTokens"));
+                int cTokens = AgentUtils.asInt(state.getAttributes().get("completionTokens"));
                 TokenUsage finalUsage = new TokenUsage(pTokens, cTokens);
 
                 // 伪造最终响应供上层闭环

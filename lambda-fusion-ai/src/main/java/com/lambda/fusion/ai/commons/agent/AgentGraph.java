@@ -4,7 +4,7 @@ import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
 import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
 import com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator;
-import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
+import com.lambda.fusion.ai.commons.utils.AgentUtils;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ChatMessage;
 import java.util.ArrayList;
@@ -324,7 +324,7 @@ public class AgentGraph {
                     if (previousState == null || previousState.isFinished()) {
                         return Map.of();
                     }
-                    AgentState beforeExecutionSnapshot = AgentNodeUtils.deepCopyState(previousState);
+                    AgentState beforeExecutionSnapshot = AgentUtils.deepCopyState(previousState);
                     enrichExecutionContext(previousState, nodeId, node, nodePropertiesSnapshot);
                     log.debug("AgentGraph -> Executing Node ID: {} (Type: {})", nodeId, node.getName());
                     long nodeStartedAt = System.nanoTime();
@@ -442,7 +442,7 @@ public class AgentGraph {
             log.warn("无法找到节点: {}", nodeId);
             return inputState;
         }
-        AgentState branchState = AgentNodeUtils.deepCopyState(inputState);
+        AgentState branchState = AgentUtils.deepCopyState(inputState);
         enrichExecutionContext(branchState, nodeId, targetNode, nodePropertiesSnapshot);
         AgentNode.ExecutionResult result = targetNode.execute(branchState);
         return result != null && result.state() != null ? result.state() : branchState;

@@ -3,7 +3,7 @@ package com.lambda.fusion.ai.commons.agent.node;
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
-import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
+import com.lambda.fusion.ai.commons.utils.AgentUtils;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import java.util.LinkedHashMap;
@@ -38,13 +38,13 @@ public class ToolExecutingNode implements AgentNode {
         log.info("ToolExecutingNode: 开始执行本地动作回调...");
         List<ToolExecutionRequest> requests = nextState.getPendingToolRequests();
         Map<String, Object> nodeProperties = nextState.getCurrentNodeProperties();
-        if (Boolean.FALSE.equals(resolveBoolean(nodeProperties, "enabled", "toolExecutionEnabled"))) {
+        if (Boolean.FALSE.equals(AgentUtils.resolveBoolean(nodeProperties, "enabled", "toolExecutionEnabled"))) {
             log.info("ToolExecutingNode: 节点 {} 已禁用工具执行", nextState.getCurrentNodeId());
             nextState.getPendingToolRequests().clear();
             return new ExecutionResult(nextState, LlmProcessingNode.NAME);
         }
         Set<String> allowedTools =
-                AgentNodeUtils.resolveToolNames(nodeProperties, toolProvider, "allowedTools", "toolNames", "tools");
+                AgentUtils.resolveToolNames(nodeProperties, toolProvider, "allowedTools", "toolNames", "tools");
 
         if (requests == null || requests.isEmpty()) {
             return new ExecutionResult(nextState, LlmProcessingNode.NAME);
@@ -85,16 +85,6 @@ public class ToolExecutingNode implements AgentNode {
         return new ExecutionResult(nextState, null);
     }
 
-    private Boolean resolveBoolean(Map<String, Object> nodeProperties, String... keys) {
-        Object value = AgentNodeUtils.firstNonNull(nodeProperties, keys);
-        if (value instanceof Boolean boolValue) {
-            return boolValue;
-        }
-        if (value instanceof String text && !text.isBlank()) {
-            return Boolean.parseBoolean(text.trim());
-        }
-        return null;
-    }
 
     @SuppressWarnings("unchecked")
     private void recordToolResult(

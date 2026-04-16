@@ -8,7 +8,7 @@ import cn.hutool.core.util.StrUtil;
 import com.lambda.fusion.ai.commons.agent.*;
 import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
 import com.lambda.fusion.ai.commons.support.factory.ChatModelFactory;
-import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
+import com.lambda.fusion.ai.commons.utils.AgentUtils;
 import com.lambda.fusion.ai.service.PromptTemplateService;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -248,7 +248,7 @@ public class LlmProcessingNode implements AgentNode {
     }
 
     private String resolveModelId(AgentState nextState, Map<String, Object> nodeProperties) {
-        Object configuredModelId = AgentNodeUtils.firstNonNull(nodeProperties, "llmModelId", "modelId");
+        Object configuredModelId = AgentUtils.firstNonNull(nodeProperties, "llmModelId", "modelId");
         if (configuredModelId instanceof Number number) {
             return number.toString();
         }
@@ -260,7 +260,7 @@ public class LlmProcessingNode implements AgentNode {
 
     private String resolveTemplateId(Map<String, Object> nodeProperties) {
         Object configuredValue =
-                AgentNodeUtils.firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
+                AgentUtils.firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
         if (configuredValue instanceof Number number) {
             return number.toString();
         }
@@ -283,7 +283,7 @@ public class LlmProcessingNode implements AgentNode {
         if (nextState.getAttributes() != null) {
             variables.putAll(nextState.getAttributes());
         }
-        Object templateVariables = AgentNodeUtils.firstNonNull(nodeProperties, "templateVariables", "promptVariables");
+        Object templateVariables = AgentUtils.firstNonNull(nodeProperties, "templateVariables", "promptVariables");
         if (templateVariables instanceof Map<?, ?> map) {
             map.forEach((key, value) -> {
                 if (key != null) {
@@ -300,7 +300,7 @@ public class LlmProcessingNode implements AgentNode {
     }
 
     private String resolveString(Map<String, Object> nodeProperties) {
-        Object value = AgentNodeUtils.firstNonNull(nodeProperties, "systemPrompt", "systemMessage");
+        Object value = AgentUtils.firstNonNull(nodeProperties, "systemPrompt", "systemMessage");
         if (value == null) {
             return null;
         }
@@ -309,6 +309,6 @@ public class LlmProcessingNode implements AgentNode {
     }
 
     private Set<String> resolveToolNames(Map<String, Object> nodeProperties) {
-        return AgentNodeUtils.resolveToolNames(nodeProperties, toolProvider, "allowedTools", "toolNames", "tools");
+        return AgentUtils.resolveToolNames(nodeProperties, toolProvider, "allowedTools", "toolNames", "tools");
     }
 }

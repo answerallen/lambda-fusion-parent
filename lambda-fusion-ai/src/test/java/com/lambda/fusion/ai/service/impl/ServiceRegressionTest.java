@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.*;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.commons.support.vector.VectorDimensionProcessor;
-import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
+import com.lambda.fusion.ai.commons.utils.AgentUtils;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
 import com.lambda.fusion.ai.mapper.VectorRepository;
@@ -60,8 +60,8 @@ class ServiceRegressionTest {
     @Test
     @DisplayName("工作流执行服务-Token取值支持字符串数字")
     void agentNodeUtilsAsIntShouldSupportStringNumber() {
-        int value = AgentNodeUtils.asInt("123");
-        int invalid = AgentNodeUtils.asInt("not-a-number");
+        int value = AgentUtils.asInt("123");
+        int invalid = AgentUtils.asInt("not-a-number");
 
         assertThat(value).isEqualTo(123);
         assertThat(invalid).isZero();

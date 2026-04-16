@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @UtilityClass
-public class AgentNodeUtils {
+public class AgentUtils {
 
     /**
      * 从节点配置中解析工具名称列表
@@ -68,6 +68,17 @@ public class AgentNodeUtils {
             }
         }
         return toolNames;
+    }
+
+    public Boolean resolveBoolean(Map<String, Object> nodeProperties, String... keys) {
+        Object value = AgentUtils.firstNonNull(nodeProperties, keys);
+        if (value instanceof Boolean booleanValue) {
+            return booleanValue;
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            return Boolean.parseBoolean(text.trim());
+        }
+        return null;
     }
 
     /**

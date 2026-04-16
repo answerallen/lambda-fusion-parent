@@ -2,7 +2,7 @@ package com.lambda.fusion.ai.commons.agent.node;
 
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
-import com.lambda.fusion.ai.commons.utils.AgentNodeUtils;
+import com.lambda.fusion.ai.commons.utils.AgentUtils;
 import dev.langchain4j.data.message.ChatMessage;
 import java.util.*;
 import java.util.concurrent.*;
@@ -125,7 +125,7 @@ public class ParallelNode implements AgentNode {
 
                         long branchStartedAt = System.currentTimeMillis();
                         try {
-                            AgentState branchState = AgentNodeUtils.deepCopyState(state);
+                            AgentState branchState = AgentUtils.deepCopyState(state);
                             branchState.getAttributes().put("__branch_id__", branch.id());
 
                             log.debug("并行分支 {} 开始执行，目标节点: {}", branch.id(), branch.target());
