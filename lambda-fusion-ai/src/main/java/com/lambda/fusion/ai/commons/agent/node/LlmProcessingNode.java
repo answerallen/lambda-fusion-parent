@@ -4,7 +4,6 @@ import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_CIRCUIT_B
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RATE_LIMITER;
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RETRY;
 
-import cn.hutool.core.util.StrUtil;
 import com.lambda.fusion.ai.commons.agent.*;
 import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
 import com.lambda.fusion.ai.commons.support.factory.ChatModelFactory;
@@ -27,7 +26,6 @@ import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -89,9 +87,13 @@ public class LlmProcessingNode implements AgentNode {
         log.info("LlmProcessingNode: 正在推理决策...");
 
         Map<String, Object> nodeProperties = nextState.getCurrentNodeProperties();
-        String effectiveModelId = resolveModelId(nextState, nodeProperties);
-        String systemPrompt = resolveSystemPrompt(nextState, nodeProperties);
-        Set<String> allowedTools = resolveToolNames(nodeProperties);
+        String effectiveModelId = AgentUtils.resolveModelId(nextState, nodeProperties);
+        String systemPrompt = AgentUtils.resolveSystemPrompt(
+                nodeProperties,
+                promptTemplateService::renderTemplate,
+                () -> AgentUtils.buildBaseTemplateVariables(nextState));
+        Set<String> allowedTools =
+                AgentUtils.resolveToolNames(nodeProperties, toolProvider, "allowedTools", "toolNames", "tools");
 
         List<ToolSpecification> tools = allowedTools.isEmpty()
                 ? toolProvider.getToolSpecifications()
@@ -136,7 +138,10 @@ public class LlmProcessingNode implements AgentNode {
             }
         });
 
-        decoratedSupplier = Retry.decorateSupplier(retry, decoratedSupplier);
+        // 如果是流式输出（handler != null），为了防止流式传输中途失败导致无状态重试产生重复脏数据，不启用 Retry 机制。
+        if (handler == null) {
+            decoratedSupplier = Retry.decorateSupplier(retry, decoratedSupplier);
+        }
         decoratedSupplier = RateLimiter.decorateSupplier(rateLimiter, decoratedSupplier);
 
         try {
@@ -232,82 +237,5 @@ public class LlmProcessingNode implements AgentNode {
             messages.addAll(nextState.getMessages());
         }
         return messages;
-    }
-
-    private String resolveSystemPrompt(AgentState nextState, Map<String, Object> nodeProperties) {
-        String systemPrompt = resolveString(nodeProperties);
-        if (systemPrompt != null) {
-            return systemPrompt;
-        }
-        String promptTemplateId = resolveTemplateId(nodeProperties);
-        if (promptTemplateId == null) {
-            return null;
-        }
-        return promptTemplateService.renderTemplate(
-                promptTemplateId, buildTemplateVariables(nextState, nodeProperties));
-    }
-
-    private String resolveModelId(AgentState nextState, Map<String, Object> nodeProperties) {
-        Object configuredModelId = AgentUtils.firstNonNull(nodeProperties, "llmModelId", "modelId");
-        if (configuredModelId instanceof Number number) {
-            return number.toString();
-        }
-        if (configuredModelId instanceof String value && StrUtil.isNotBlank(value)) {
-            return value;
-        }
-        return nextState.getLlmModelId();
-    }
-
-    private String resolveTemplateId(Map<String, Object> nodeProperties) {
-        Object configuredValue = AgentUtils.firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
-        if (configuredValue instanceof Number number) {
-            return number.toString();
-        }
-        if (configuredValue instanceof String value && StrUtil.isNotBlank(value)) {
-            return value;
-        }
-        return null;
-    }
-
-    private Map<String, Object> buildTemplateVariables(AgentState nextState, Map<String, Object> nodeProperties) {
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("sessionId", nextState.getSessionId());
-        variables.put("kbId", nextState.getKbId());
-        variables.put("llmModelId", nextState.getLlmModelId());
-        variables.put("currentNodeId", nextState.getCurrentNodeId());
-        variables.put("currentNodeType", nextState.getCurrentNodeType());
-        variables.put("currentNodeProperties", nextState.getCurrentNodeProperties());
-        variables.put("graphNodeProperties", nextState.getGraphNodeProperties());
-        variables.put("attributes", nextState.getAttributes());
-        if (nextState.getAttributes() != null) {
-            variables.putAll(nextState.getAttributes());
-        }
-        Object templateVariables = AgentUtils.firstNonNull(nodeProperties, "templateVariables", "promptVariables");
-        if (templateVariables instanceof Map<?, ?> map) {
-            map.forEach((key, value) -> {
-                if (key != null) {
-                    variables.put(String.valueOf(key), value);
-                }
-            });
-        }
-        List<ChatMessage> messages = nextState.getMessages();
-        if (messages != null && !messages.isEmpty()) {
-            variables.put("messageCount", messages.size());
-            variables.put("lastMessage", messages.getLast());
-        }
-        return variables;
-    }
-
-    private String resolveString(Map<String, Object> nodeProperties) {
-        Object value = AgentUtils.firstNonNull(nodeProperties, "systemPrompt", "systemMessage");
-        if (value == null) {
-            return null;
-        }
-        String text = value.toString().trim();
-        return text.isEmpty() ? null : text;
-    }
-
-    private Set<String> resolveToolNames(Map<String, Object> nodeProperties) {
-        return AgentUtils.resolveToolNames(nodeProperties, toolProvider, "allowedTools", "toolNames", "tools");
     }
 }

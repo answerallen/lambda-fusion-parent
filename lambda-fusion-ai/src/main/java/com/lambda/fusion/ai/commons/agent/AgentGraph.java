@@ -196,10 +196,9 @@ public class AgentGraph {
         return this;
     }
 
-    public AgentGraph setCompileConfig(CompileConfig config) {
+    public void setCompileConfig(CompileConfig config) {
         this.compileConfig = config;
         markDirty();
-        return this;
     }
 
     public void setMaxIterations(int maxIterations) {
@@ -399,11 +398,13 @@ public class AgentGraph {
             boolean hasOutgoingEdges = edgeIndex.containsKey(currentNodeId);
             if (hasOutgoingEdges) {
                 AgentNode currentNode = nodes.get(currentNodeId);
-                if (currentNode != null) {
-                    log.warn("当前节点 '{}' 执行完毕后没有匹配到任何有效的出向边，图执行被迫停止。", currentNode.getName());
-                } else {
-                    log.warn("当前节点 '{}' 执行完毕后没有匹配到任何有效的出向边，图执行被迫停止。", currentNodeId);
-                }
+                String nodeName = currentNode != null ? currentNode.getName() : currentNodeId;
+                log.error("当前节点 '{}' 执行完毕后没有匹配到任何有效的出向边，图执行被迫停止。", nodeName);
+                state.getAttributes()
+                        .put("__routing_error__", "No matching outgoing edge found for node: " + currentNodeId);
+                recordRouteDecision(state, currentNodeId, END_NODE, "routing_error", null);
+                throw new IllegalStateException("Node '" + nodeName + "' (ID: " + currentNodeId
+                        + ") finished without matching any conditional edge, and no default edge was provided.");
             }
             recordRouteDecision(state, currentNodeId, END_NODE, "no_match", null);
             return END_NODE;
@@ -682,31 +683,34 @@ public class AgentGraph {
     private static final Object SKIP_VALUE = new Object();
 
     private static Object sanitizeSerializableValue(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof java.io.Serializable) {
-            return value;
-        }
-        if (value instanceof Map<?, ?> map) {
-            Map<String, Object> sanitizedMap = new LinkedHashMap<>();
-            map.forEach((k, v) -> {
-                Object nested = sanitizeSerializableValue(v);
-                if (nested != SKIP_VALUE) {
-                    sanitizedMap.put(String.valueOf(k), nested);
-                }
-            });
-            return sanitizedMap;
-        }
-        if (value instanceof List<?> list) {
-            List<Object> sanitizedList = new ArrayList<>();
-            for (Object item : list) {
-                Object nested = sanitizeSerializableValue(item);
-                if (nested != SKIP_VALUE) {
-                    sanitizedList.add(nested);
-                }
+        switch (value) {
+            case null -> {
+                return null;
             }
-            return sanitizedList;
+            case java.io.Serializable ignored -> {
+                return value;
+            }
+            case Map<?, ?> map -> {
+                Map<String, Object> sanitizedMap = new LinkedHashMap<>();
+                map.forEach((k, v) -> {
+                    Object nested = sanitizeSerializableValue(v);
+                    if (nested != SKIP_VALUE) {
+                        sanitizedMap.put(String.valueOf(k), nested);
+                    }
+                });
+                return sanitizedMap;
+            }
+            case List<?> list -> {
+                List<Object> sanitizedList = new ArrayList<>();
+                for (Object item : list) {
+                    Object nested = sanitizeSerializableValue(item);
+                    if (nested != SKIP_VALUE) {
+                        sanitizedList.add(nested);
+                    }
+                }
+                return sanitizedList;
+            }
+            default -> {}
         }
         return SKIP_VALUE;
     }

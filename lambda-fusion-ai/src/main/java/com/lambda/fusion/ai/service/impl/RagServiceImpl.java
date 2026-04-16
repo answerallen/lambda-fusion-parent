@@ -260,7 +260,7 @@ public class RagServiceImpl implements RagService {
         }
         messages.add(prompt.toUserMessage());
 
-        // 修复：复用 Graph 实例而不是每次创建新的
+        // 复用 Graph 实例而不是每次创建新的
         AgentGraph graph = buildAgentGraph();
 
         AgentState state = new AgentState();
@@ -324,7 +324,7 @@ public class RagServiceImpl implements RagService {
     /**
      * 构建 Agent Graph（单例模式，双重检查锁定）
      * <p>
-     * 修复说明：使用局部变量避免半初始化对象暴露问题
+     * 使用局部变量避免半初始化对象暴露问题
      */
     private AgentGraph buildAgentGraph() {
         AgentGraph graph = cachedAgentGraph;
