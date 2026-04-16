@@ -1,0 +1,94 @@
+{
+  "entryPoint": "parallel_dispatch",
+  "nodes": [
+    {
+      "id": "parallel_dispatch",
+      "type": "PARALLEL",
+      "properties": {
+        "timeout": 30000,
+        "waitAll": true,
+        "errorStrategy": "failFast",
+        "joinNode": "aggregator",
+        "branches": [
+          {
+            "id": "requirements_branch",
+            "target": "requirements_agent"
+          },
+          {
+            "id": "solution_branch",
+            "target": "solution_agent"
+          },
+          {
+            "id": "risk_branch",
+            "target": "risk_agent"
+          }
+        ]
+      }
+    },
+    {
+      "id": "requirements_agent",
+      "type": "REACT_AGENT",
+      "properties": {
+        "modelId": "1001",
+        "finishOnResponse": false,
+        "allowedTools": [
+          "searchWorkflowDefinition",
+          "queryRequirementContext"
+        ],
+        "systemPrompt": "你是需求分析专家。请明确业务目标、输入输出、约束条件、边界范围和验收标准。"
+      }
+    },
+    {
+      "id": "solution_agent",
+      "type": "REACT_AGENT",
+      "properties": {
+        "modelId": "1001",
+        "finishOnResponse": false,
+        "allowedTools": [
+          "searchCodebase",
+          "readJavaClass",
+          "queryApiDefinition"
+        ],
+        "systemPrompt": "你是方案设计专家。请给出可执行的实现思路、关键模块拆分、状态流转设计和最小侵入式改造建议。"
+      }
+    },
+    {
+      "id": "risk_agent",
+      "type": "REACT_AGENT",
+      "properties": {
+        "modelId": "1001",
+        "finishOnResponse": false,
+        "allowedTools": [
+          "searchCodebase",
+          "checkWorkflowConstraint"
+        ],
+        "systemPrompt": "你是风险审查专家。请识别状态污染、兼容性问题、性能瓶颈、并发风险和测试空白。"
+      }
+    },
+    {
+      "id": "aggregator",
+      "type": "AGENT_AGGREGATOR",
+      "properties": {
+        "modelId": "1001",
+        "outputKey": "finalAnswer",
+        "appendMessage": true,
+        "finishOnResponse": true,
+        "includeMessages": true,
+        "includeParallelResults": true,
+        "includeReactAgentResults": true,
+        "sourceAttributes": [
+          "__parallel_results__",
+          "reactAgentResults",
+          "inputParams"
+        ],
+        "systemPrompt": "你是方案设计结论汇总器。请综合需求分析、方案设计和风险审查结果，输出一份完整方案，包含目标、设计、风险和建议实施步骤。"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "parallel_dispatch",
+      "target": "aggregator"
+    }
+  ]
+}
