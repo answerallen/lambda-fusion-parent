@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -135,12 +138,12 @@ public class AgentGraph {
             state.setSessionId(this.<String>value(SESSION_ID_KEY).orElse(null));
             state.setKbId(this.<String>value(KB_ID_KEY).orElse(null));
             state.setLlmModelId(this.<String>value(LLM_MODEL_ID_KEY).orElse(null));
-            state.setMessages(
-                    new ArrayList<>(this.<List<ChatMessage>>value(MESSAGES_KEY).orElse(List.of())));
+            state.setMessages(new CopyOnWriteArrayList<>(
+                    this.<List<ChatMessage>>value(MESSAGES_KEY).orElse(List.of())));
             state.setPendingToolRequests(
-                    new ArrayList<>(this.<List<ToolExecutionRequest>>value(PENDING_TOOL_REQUESTS_KEY)
+                    new CopyOnWriteArrayList<>(this.<List<ToolExecutionRequest>>value(PENDING_TOOL_REQUESTS_KEY)
                             .orElse(List.of())));
-            state.setAttributes(new HashMap<>(
+            state.setAttributes(new ConcurrentHashMap<>(
                     this.<Map<String, Object>>value(ATTRIBUTES_KEY).orElse(Map.of())));
             state.setFinished(this.<Boolean>value(FINISHED_KEY).orElse(false));
             return state;
@@ -286,16 +289,18 @@ public class AgentGraph {
         validateInputState(state);
         initializeObservability(state);
         CompiledGraph<LangGraphRuntimeState> executable = getOrBuildCompiledGraph();
-        return runnableConfig == null
+        AsyncGenerator<NodeOutput<LangGraphRuntimeState>> generator = runnableConfig == null
                 ? executable.stream(LangGraphRuntimeState.toInput(state))
                 : executable.stream(LangGraphRuntimeState.toInput(state), runnableConfig);
+        return normalizeStreamGenerator(generator);
     }
 
     public AsyncGenerator<NodeOutput<LangGraphRuntimeState>> resumeStream(
             Map<String, Object> stateUpdate, RunnableConfig runnableConfig) {
         CompiledGraph<LangGraphRuntimeState> executable = getOrBuildCompiledGraph();
-        return executable.stream(
+        AsyncGenerator<NodeOutput<LangGraphRuntimeState>> generator = executable.stream(
                 stateUpdate == null ? GraphInput.resume() : GraphInput.resume(stateUpdate), runnableConfig);
+        return normalizeStreamGenerator(generator);
     }
 
     /**
@@ -457,7 +462,8 @@ public class AgentGraph {
             state.setAttributes(new HashMap<>());
         }
         state.getAttributes().put(CURRENT_NODE_ID_ATTRIBUTE, nodeId);
-        state.getAttributes().put(CURRENT_NODE_TYPE_ATTRIBUTE, node.getName());
+        String nodeType = node.getName();
+        state.getAttributes().put(CURRENT_NODE_TYPE_ATTRIBUTE, StringUtils.hasText(nodeType) ? nodeType : nodeId);
         state.getAttributes()
                 .put(
                         CURRENT_NODE_PROPERTIES_ATTRIBUTE,
@@ -620,6 +626,45 @@ public class AgentGraph {
             recordWorkflowFailure(failedState, invokeStartedAt, graphException.getMessage());
         }
         return graphException;
+    }
+
+    private AsyncGenerator<NodeOutput<LangGraphRuntimeState>> normalizeStreamGenerator(
+            AsyncGenerator<NodeOutput<LangGraphRuntimeState>> delegate) {
+        return new AsyncGenerator<>() {
+            @Override
+            public Data<NodeOutput<LangGraphRuntimeState>> next() {
+                Data<NodeOutput<LangGraphRuntimeState>> next = delegate.next();
+                if (next == null || next.isDone() || next.embed() != null) {
+                    return next;
+                }
+                return Data.of(next.future().handle((value, throwable) -> {
+                    if (throwable == null) {
+                        return value;
+                    }
+                    throw normalizeStreamException(throwable);
+                }));
+            }
+
+            @Override
+            public java.util.concurrent.Executor executor() {
+                return delegate.executor();
+            }
+        };
+    }
+
+    private RuntimeException normalizeStreamException(Throwable throwable) {
+        Throwable current = throwable;
+        while (current instanceof CompletionException completionException && completionException.getCause() != null) {
+            current = completionException.getCause();
+        }
+        AgentGraphExecutionException graphExecutionException = findExecutionException(current);
+        if (graphExecutionException != null) {
+            return graphExecutionException;
+        }
+        if (current instanceof RuntimeException runtimeException) {
+            return runtimeException;
+        }
+        return new RuntimeException(current);
     }
 
     private AgentGraphExecutionException findExecutionException(Throwable throwable) {

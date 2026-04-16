@@ -5,6 +5,8 @@ import static org.mockito.Mockito.*;
 
 import com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -198,6 +200,27 @@ class AgentGraphTest {
     }
 
     @Test
+    @DisplayName("运行态恢复后的 AgentState 应保持线程安全容器")
+    void testRuntimeStateShouldKeepThreadSafeContainers() {
+        when(mockNode1.getName()).thenReturn("startNode");
+        when(mockNode1.execute(any(AgentState.class))).thenAnswer(invocation -> {
+            AgentState state = invocation.getArgument(0);
+            state.addMessage(dev.langchain4j.data.message.AiMessage.from("done"));
+            state.setFinished(true);
+            return new AgentNode.ExecutionResult(state, AgentGraph.END_NODE);
+        });
+
+        graph.addNode("startNode", mockNode1);
+        graph.setEntryPoint("startNode");
+
+        AgentState result = graph.invoke(new AgentState());
+
+        assertThat(result.getMessages()).isInstanceOf(CopyOnWriteArrayList.class);
+        assertThat(result.getPendingToolRequests()).isInstanceOf(CopyOnWriteArrayList.class);
+        assertThat(result.getAttributes()).isInstanceOf(ConcurrentHashMap.class);
+    }
+
+    @Test
     @DisplayName("无匹配出边时应抛出可携带状态的路由异常")
     void testRouteFailureShouldExposeFailedState() {
         when(mockNode1.getName()).thenReturn("startNode");
@@ -224,6 +247,27 @@ class AgentGraphTest {
         assertThat(exception.getState().getAttributes())
                 .containsEntry("__routing_error__", "No matching outgoing edge found for node: startNode");
         assertThat(exception.getState().getExecutionStats()).containsEntry("failed", true);
+    }
+
+    @Test
+    @DisplayName("stream 路径应归一化为 AgentGraphExecutionException")
+    void testStreamShouldNormalizeAgentGraphExecutionException() {
+        when(mockNode1.getName()).thenReturn("startNode");
+        when(mockNode1.execute(any(AgentState.class))).thenAnswer(invocation -> {
+            AgentState state = invocation.getArgument(0);
+            state.setFinished(false);
+            return new AgentNode.ExecutionResult(state, null);
+        });
+        when(mockEvaluator.evaluate(anyString(), any(AgentState.class))).thenReturn(false);
+
+        graph.addNode("startNode", mockNode1);
+        graph.addNode("fallbackNode", mockNode2);
+        graph.addEdge("startNode", "fallbackNode", mockEvaluator, "false");
+        graph.setEntryPoint("startNode");
+
+        assertThatThrownBy(() ->
+                        graph.stream(new AgentState()).toCompletableFuture().join())
+                .hasRootCauseInstanceOf(AgentGraph.AgentGraphExecutionException.class);
     }
 
     @Test

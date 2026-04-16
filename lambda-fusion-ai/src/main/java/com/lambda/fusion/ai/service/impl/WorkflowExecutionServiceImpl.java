@@ -739,7 +739,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
                 outputResult.put("answer", extractAnswer(failedState));
                 outputResult.put("finished", failedState.isFinished());
                 outputResult.put(
-                        "nextNode", asText(failedState.getAttributes().get(AgentGraph.CURRENT_NODE_ID_ATTRIBUTE)));
+                        "currentNodeId", asText(failedState.getAttributes().get(AgentGraph.CURRENT_NODE_ID_ATTRIBUTE)));
                 outputResult.put(
                         "routingError", asText(failedState.getAttributes().get("__routing_error__")));
                 outputResult.put(
