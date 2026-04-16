@@ -1,5 +1,7 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
+import static com.lambda.fusion.ai.commons.agent.node.ParallelNode.getChatMessages;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
@@ -8,11 +10,15 @@ import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.factory.AgentGraphFactory;
 import com.lambda.fusion.ai.model.entity.WorkflowEntity;
 import com.lambda.fusion.ai.service.WorkflowService;
+import dev.langchain4j.data.message.ChatMessage;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -195,7 +201,7 @@ public class SubgraphNode implements AgentNode {
 
         try {
             AgentState subgraphOutputState = subgraph.invoke(subgraphInputState);
-            return handleSubgraphOutput(state, subgraphOutputState, properties, startTime);
+            return handleSubgraphOutput(state, subgraphInputState, subgraphOutputState, properties, startTime);
         } catch (Exception e) {
             log.error("同步子图执行异常", e);
             handleExecutionError(state, e, propagateErrors);
@@ -218,7 +224,7 @@ public class SubgraphNode implements AgentNode {
         try {
             AgentState subgraphOutputState = future.get(asyncTimeout, TimeUnit.MILLISECONDS);
 
-            return handleSubgraphOutput(state, subgraphOutputState, properties, startTime);
+            return handleSubgraphOutput(state, subgraphInputState, subgraphOutputState, properties, startTime);
 
         } catch (TimeoutException e) {
             future.cancel(true);
@@ -247,6 +253,14 @@ public class SubgraphNode implements AgentNode {
         subgraphState.setSessionId(parentState.getSessionId());
         subgraphState.setKbId(parentState.getKbId());
         subgraphState.setLlmModelId(parentState.getLlmModelId());
+        if (shouldInheritMessages(properties)) {
+            subgraphState.setMessages(new CopyOnWriteArrayList<>(
+                    parentState.getMessages() == null ? List.of() : parentState.getMessages()));
+        }
+        if (shouldInheritPendingToolRequests(properties)) {
+            subgraphState.setPendingToolRequests(new CopyOnWriteArrayList<>(
+                    parentState.getPendingToolRequests() == null ? List.of() : parentState.getPendingToolRequests()));
+        }
 
         Map<String, Object> attributes = new HashMap<>();
         if (inheritContext && parentState.getAttributes() != null) {
@@ -268,7 +282,26 @@ public class SubgraphNode implements AgentNode {
     }
 
     private ExecutionResult handleSubgraphOutput(
-            AgentState parentState, AgentState subgraphOutputState, Map<String, Object> properties, long startTime) {
+            AgentState parentState,
+            AgentState subgraphInputState,
+            AgentState subgraphOutputState,
+            Map<String, Object> properties,
+            long startTime) {
+
+        if (subgraphOutputState != null) {
+            if (shouldAppendMessages(properties)) {
+                parentState.addMessages(extractAppendedMessages(subgraphInputState, subgraphOutputState));
+            }
+            if (shouldPropagatePendingToolRequests(properties)) {
+                parentState.setPendingToolRequests(new ArrayList<>(
+                        subgraphOutputState.getPendingToolRequests() == null
+                                ? List.of()
+                                : subgraphOutputState.getPendingToolRequests()));
+            }
+            if (shouldPropagateFinished(properties)) {
+                parentState.setFinished(subgraphOutputState.isFinished());
+            }
+        }
 
         Object outputMappingObj = properties.get("outputMapping");
         if (outputMappingObj instanceof Map<?, ?> outputMapping) {
@@ -281,7 +314,7 @@ public class SubgraphNode implements AgentNode {
                 String sourceKey = String.valueOf(value);
 
                 Object sourceValue = null;
-                if (subgraphOutputState.getAttributes() != null) {
+                if (subgraphOutputState != null && subgraphOutputState.getAttributes() != null) {
                     sourceValue = subgraphOutputState.getAttributes().get(sourceKey);
                 }
 
@@ -294,6 +327,38 @@ public class SubgraphNode implements AgentNode {
 
         String nextNode = (String) properties.get("nextNode");
         return new ExecutionResult(parentState, nextNode);
+    }
+
+    private boolean shouldInheritMessages(Map<String, Object> properties) {
+        return !Boolean.FALSE.equals(properties.getOrDefault("inheritMessages", true));
+    }
+
+    private boolean shouldInheritPendingToolRequests(Map<String, Object> properties) {
+        return !Boolean.FALSE.equals(properties.getOrDefault("inheritPendingToolRequests", true));
+    }
+
+    private boolean shouldAppendMessages(Map<String, Object> properties) {
+        return !Boolean.FALSE.equals(properties.getOrDefault("appendMessages", true));
+    }
+
+    private boolean shouldPropagatePendingToolRequests(Map<String, Object> properties) {
+        return !Boolean.FALSE.equals(properties.getOrDefault("propagatePendingToolRequests", true));
+    }
+
+    private boolean shouldPropagateFinished(Map<String, Object> properties) {
+        if (properties.containsKey("propagateFinished")) {
+            return Boolean.TRUE.equals(properties.get("propagateFinished"));
+        }
+        return !properties.containsKey("nextNode");
+    }
+
+    private List<ChatMessage> extractAppendedMessages(AgentState inputState, AgentState outputState) {
+        if (outputState == null
+                || outputState.getMessages() == null
+                || outputState.getMessages().isEmpty()) {
+            return List.of();
+        }
+        return getChatMessages(inputState, outputState);
     }
 
     private void handleExecutionError(AgentState state, Exception e, boolean propagateErrors) {

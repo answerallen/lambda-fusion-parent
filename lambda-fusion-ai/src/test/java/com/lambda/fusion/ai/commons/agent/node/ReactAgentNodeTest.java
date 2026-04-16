@@ -1,17 +1,19 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
-import static com.lambda.fusion.ai.commons.agent.AgentGraph.CURRENT_NODE_ID_ATTRIBUTE;
-import static com.lambda.fusion.ai.commons.agent.AgentGraph.CURRENT_NODE_PROPERTIES_ATTRIBUTE;
+import static com.lambda.fusion.ai.commons.utils.AgentUtils.newStateWithCurrentNode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
 import com.lambda.fusion.ai.commons.support.factory.ChatModelFactory;
 import com.lambda.fusion.ai.service.PromptTemplateService;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -60,12 +62,9 @@ class ReactAgentNodeTest {
                         .aiMessage(AiMessage.from("react-agent-answer"))
                         .build());
 
-        AgentState state = new AgentState();
-        state.addMessage(UserMessage.from("帮我分析一下"));
-        state.getAttributes().put(CURRENT_NODE_ID_ATTRIBUTE, "react-node-1");
         Map<String, Object> properties = new HashMap<>();
         properties.put("modelId", "model-1");
-        state.getAttributes().put(CURRENT_NODE_PROPERTIES_ATTRIBUTE, properties);
+        AgentState state = newStateWithCurrentNode("react-node-1", properties, "帮我分析一下");
 
         var result = reactAgentNode.execute(state);
 
@@ -96,17 +95,61 @@ class ReactAgentNodeTest {
                 .thenReturn(
                         ChatResponse.builder().aiMessage(AiMessage.from("done")).build());
 
-        AgentState state = new AgentState();
-        state.addMessage(UserMessage.from("结束流程"));
-        state.getAttributes().put(CURRENT_NODE_ID_ATTRIBUTE, "react-node-2");
         Map<String, Object> properties = new HashMap<>();
         properties.put("modelId", "model-2");
         properties.put("finishOnResponse", true);
-        state.getAttributes().put(CURRENT_NODE_PROPERTIES_ATTRIBUTE, properties);
+        AgentState state = newStateWithCurrentNode("react-node-2", properties, "结束流程");
 
         var result = reactAgentNode.execute(state);
 
         assertThat(state.isFinished()).isTrue();
         assertThat(result.nextNode()).isEqualTo("END");
+    }
+
+    @Test
+    @DisplayName("REACT_AGENT 支持工具调用闭环并回写工具消息")
+    void shouldExecuteToolLoopAndWriteBackToolMessages() {
+        ReactAgentNode reactAgentNode = new ReactAgentNode(
+                toolProvider,
+                promptTemplateService,
+                CircuitBreakerRegistry.ofDefaults(),
+                RetryRegistry.ofDefaults(),
+                RateLimiterRegistry.ofDefaults());
+        reactAgentNode.setChatModelFactory(chatModelFactory);
+
+        ToolExecutionRequest toolRequest = ToolExecutionRequest.builder()
+                .id("tool-call-1")
+                .name("echoTool")
+                .arguments("{\"message\":\"hello\"}")
+                .build();
+        ToolSpecification toolSpecification = ToolSpecification.builder()
+                .name("echoTool")
+                .description("echo tool")
+                .build();
+
+        when(chatModelFactory.getChatModel("model-3")).thenReturn(chatModel);
+        when(toolProvider.getToolSpecifications()).thenReturn(List.of(toolSpecification));
+        when(toolProvider.executeTool(any(ToolExecutionRequest.class))).thenReturn("tool-result");
+        when(chatModel.chat(any(ChatRequest.class)))
+                .thenReturn(ChatResponse.builder()
+                        .aiMessage(AiMessage.from(List.of(toolRequest)))
+                        .build())
+                .thenReturn(ChatResponse.builder()
+                        .aiMessage(AiMessage.from("tool-loop-finished"))
+                        .build());
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("modelId", "model-3");
+        AgentState state = newStateWithCurrentNode("react-node-3", properties, "调用工具并总结");
+
+        var result = reactAgentNode.execute(state);
+
+        assertThat(result.nextNode()).isNull();
+        assertThat(state.getMessages()).anyMatch(message -> message instanceof ToolExecutionResultMessage);
+        assertThat(state.getMessages().getLast()).isInstanceOf(AiMessage.class);
+        assertThat(((AiMessage) state.getMessages().getLast()).text()).isEqualTo("tool-loop-finished");
+        assertThat(((Map<?, ?>) state.getAttributes().get("lastReactAgentResult")).get("toolMessageDelta"))
+                .isEqualTo(1);
+        verify(toolProvider).executeTool(any(ToolExecutionRequest.class));
     }
 }

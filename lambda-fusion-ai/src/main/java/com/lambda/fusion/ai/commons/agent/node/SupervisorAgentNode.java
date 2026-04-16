@@ -4,7 +4,6 @@ import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_CIRCUIT_B
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RATE_LIMITER;
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RETRY;
 
-import cn.hutool.core.util.StrUtil;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
@@ -86,20 +85,20 @@ public class SupervisorAgentNode implements AgentNode {
 
         Map<String, Object> nodeProperties = state.getCurrentNodeProperties();
         List<RouteCandidate> candidates = resolveCandidates(nodeProperties);
-        String defaultTarget = resolveText(nodeProperties, "defaultTarget", "fallbackTarget");
-        String finishToken = resolveText(nodeProperties, "finishToken");
+        String defaultTarget = AgentUtils.resolveText(nodeProperties, "defaultTarget", "fallbackTarget");
+        String finishToken = AgentUtils.resolveText(nodeProperties, "finishToken");
         if (!StringUtils.hasText(finishToken)) {
             finishToken = DEFAULT_FINISH_TOKEN;
         }
-        boolean finishOnEnd =
-                !Boolean.FALSE.equals(resolveBoolean(nodeProperties, "finishOnEnd", "finishWhenEndSelected"));
+        boolean finishOnEnd = !Boolean.FALSE.equals(
+                AgentUtils.resolveBoolean(nodeProperties, "finishOnEnd", "finishWhenEndSelected"));
 
         if (candidates.isEmpty()) {
             log.warn("SupervisorAgentNode: 未配置候选专家，使用默认目标节点 {}", defaultTarget);
             return new ExecutionResult(state, defaultTarget);
         }
 
-        String effectiveModelId = resolveModelId(state, nodeProperties);
+        String effectiveModelId = AgentUtils.resolveModelId(state, nodeProperties);
         String systemPrompt = resolveSystemPrompt(state, nodeProperties, candidates, finishToken);
 
         try {
@@ -109,9 +108,8 @@ public class SupervisorAgentNode implements AgentNode {
             if (result.finish()) {
                 if (finishOnEnd) {
                     state.setFinished(true);
-                    return new ExecutionResult(state, AgentGraph.END_NODE);
                 }
-                return new ExecutionResult(state, null);
+                return new ExecutionResult(state, AgentGraph.END_NODE);
             }
             return new ExecutionResult(state, result.nextNode());
         } catch (CallNotPermittedException e) {
@@ -123,6 +121,7 @@ public class SupervisorAgentNode implements AgentNode {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private DecisionResult executeWithResilience(
             AgentState state,
             String modelId,
@@ -161,8 +160,7 @@ public class SupervisorAgentNode implements AgentNode {
             String systemPrompt,
             List<RouteCandidate> candidates,
             String defaultTarget,
-            String finishToken)
-            throws Exception {
+            String finishToken) {
         ChatModel model = chatModelFactory.getChatModel(modelId);
         ChatRequest request = ChatRequest.builder()
                 .messages(buildMessages(state, systemPrompt))
@@ -228,6 +226,7 @@ public class SupervisorAgentNode implements AgentNode {
         return lineBreak >= 0 ? trimmed.substring(0, lineBreak).trim() : trimmed;
     }
 
+    @SuppressWarnings("unchecked")
     private void recordDecision(AgentState state, DecisionResult result) {
         if (state.getAttributes() == null) {
             state.setAttributes(new HashMap<>());
@@ -242,7 +241,6 @@ public class SupervisorAgentNode implements AgentNode {
             payload.put("status", "finished");
         }
 
-        @SuppressWarnings("unchecked")
         Map<String, Object> decisions = state.getAttributes().get(SUPERVISOR_RESULTS_KEY) instanceof Map<?, ?> map
                 ? new LinkedHashMap<>((Map<String, Object>) map)
                 : new LinkedHashMap<>();
@@ -267,15 +265,15 @@ public class SupervisorAgentNode implements AgentNode {
             if (!(item instanceof Map<?, ?> routeMap)) {
                 continue;
             }
-            String target = asText(routeMap.get("target"));
+            String target = AgentUtils.asText(routeMap.get("target"));
             if (!StringUtils.hasText(target)) {
                 continue;
             }
-            String routeId = asText(AgentUtils.firstNonNull(castMap(routeMap), "id", "name", "routeId"));
+            String routeId = AgentUtils.asText(AgentUtils.firstNonNull(castMap(routeMap), "id", "name", "routeId"));
             if (!StringUtils.hasText(routeId)) {
                 routeId = target;
             }
-            String description = asText(routeMap.get("description"));
+            String description = AgentUtils.asText(routeMap.get("description"));
             candidates.add(new RouteCandidate(routeId, target, description));
         }
         return candidates;
@@ -288,14 +286,10 @@ public class SupervisorAgentNode implements AgentNode {
 
     private String resolveSystemPrompt(
             AgentState state, Map<String, Object> nodeProperties, List<RouteCandidate> candidates, String finishToken) {
-        String basePrompt = resolveText(nodeProperties, "systemPrompt", "systemMessage");
-        if (!StringUtils.hasText(basePrompt)) {
-            String templateId = resolveTemplateId(nodeProperties);
-            if (templateId != null) {
-                basePrompt = promptTemplateService.renderTemplate(
-                        templateId, buildTemplateVariables(state, nodeProperties, candidates, finishToken));
-            }
-        }
+        String basePrompt = AgentUtils.resolveSystemPrompt(
+                nodeProperties,
+                promptTemplateService::renderTemplate,
+                () -> buildTemplateVariables(state, nodeProperties, candidates, finishToken));
         if (!StringUtils.hasText(basePrompt)) {
             basePrompt = "你是多智能体系统的主管。根据对话内容，从候选专家中选择最适合的下一节点。" + " 只能返回一个路由ID，或在任务已完成时返回 " + finishToken + "。";
         }
@@ -322,77 +316,11 @@ public class SupervisorAgentNode implements AgentNode {
 
     private Map<String, Object> buildTemplateVariables(
             AgentState state, Map<String, Object> nodeProperties, List<RouteCandidate> candidates, String finishToken) {
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("sessionId", state.getSessionId());
-        variables.put("kbId", state.getKbId());
-        variables.put("llmModelId", state.getLlmModelId());
-        variables.put("currentNodeId", state.getCurrentNodeId());
-        variables.put("currentNodeProperties", state.getCurrentNodeProperties());
-        variables.put("attributes", state.getAttributes());
+        Map<String, Object> variables = AgentUtils.buildBaseTemplateVariables(state);
         variables.put("candidates", candidates);
         variables.put("finishToken", finishToken);
-        if (state.getAttributes() != null) {
-            variables.putAll(state.getAttributes());
-        }
-        Object templateVariables = AgentUtils.firstNonNull(nodeProperties, "templateVariables", "promptVariables");
-        if (templateVariables instanceof Map<?, ?> map) {
-            map.forEach((key, value) -> {
-                if (key != null) {
-                    variables.put(String.valueOf(key), value);
-                }
-            });
-        }
-        if (state.getMessages() != null && !state.getMessages().isEmpty()) {
-            variables.put("messageCount", state.getMessages().size());
-            variables.put("lastMessage", state.getMessages().getLast());
-        }
+        AgentUtils.mergeTemplateVariables(variables, nodeProperties);
         return variables;
-    }
-
-    private String resolveModelId(AgentState state, Map<String, Object> nodeProperties) {
-        Object configuredModelId = AgentUtils.firstNonNull(nodeProperties, "llmModelId", "modelId");
-        if (configuredModelId instanceof Number number) {
-            return number.toString();
-        }
-        if (configuredModelId instanceof String value && StrUtil.isNotBlank(value)) {
-            return value;
-        }
-        return state.getLlmModelId();
-    }
-
-    private String resolveTemplateId(Map<String, Object> nodeProperties) {
-        Object configuredValue = AgentUtils.firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
-        if (configuredValue instanceof Number number) {
-            return number.toString();
-        }
-        if (configuredValue instanceof String value && StrUtil.isNotBlank(value)) {
-            return value;
-        }
-        return null;
-    }
-
-    private String resolveText(Map<String, Object> nodeProperties, String... keys) {
-        Object value = AgentUtils.firstNonNull(nodeProperties, keys);
-        return asText(value);
-    }
-
-    private Boolean resolveBoolean(Map<String, Object> nodeProperties, String... keys) {
-        Object value = AgentUtils.firstNonNull(nodeProperties, keys);
-        if (value instanceof Boolean booleanValue) {
-            return booleanValue;
-        }
-        if (value instanceof String text && !text.isBlank()) {
-            return Boolean.parseBoolean(text.trim());
-        }
-        return null;
-    }
-
-    private String asText(Object value) {
-        if (value == null) {
-            return null;
-        }
-        String text = value.toString().trim();
-        return text.isEmpty() ? null : text;
     }
 
     private record RouteCandidate(String routeId, String targetNode, String description) {}

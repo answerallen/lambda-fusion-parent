@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
-import static com.lambda.fusion.ai.commons.agent.AgentGraph.CURRENT_NODE_PROPERTIES_ATTRIBUTE;
+import static com.lambda.fusion.ai.commons.utils.AgentUtils.newStateWithCurrentNode;
+import static com.lambda.fusion.ai.commons.utils.AgentUtils.setCurrentNodeProperties;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -10,6 +11,9 @@ import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.factory.AgentGraphFactory;
 import com.lambda.fusion.ai.service.WorkflowService;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.UserMessage;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -32,10 +36,6 @@ class SubgraphNodeTest {
 
     @Mock
     private AiProperties mockAiProperties;
-
-    private void setNodeProperties(AgentState state, Map<String, Object> properties) {
-        state.getAttributes().put(CURRENT_NODE_PROPERTIES_ATTRIBUTE, properties);
-    }
 
     @BeforeEach
     void setUp() {
@@ -64,7 +64,7 @@ class SubgraphNodeTest {
         Map<String, Object> properties = new HashMap<>();
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = subgraphNode.execute(state);
 
@@ -85,7 +85,7 @@ class SubgraphNodeTest {
         properties.put("propagateErrors", true);
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = subgraphNode.execute(state);
 
@@ -106,7 +106,7 @@ class SubgraphNodeTest {
         properties.put("propagateErrors", false);
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = subgraphNode.execute(state);
 
@@ -134,7 +134,7 @@ class SubgraphNodeTest {
         Map<String, Object> properties = new HashMap<>();
         properties.put("subgraphDefinition", "{\"nodes\":[],\"edges\":[]}");
 
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         assertThatCode(() -> subgraphNode.execute(state)).doesNotThrowAnyException();
     }
@@ -160,7 +160,7 @@ class SubgraphNodeTest {
         Map<String, Object> properties = new HashMap<>();
         properties.put("subgraphDefinition", "{\"nodes\":[],\"edges\":[]}");
 
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = subgraphNode.execute(state);
 
@@ -178,11 +178,11 @@ class SubgraphNodeTest {
         properties.put("subgraphDefinition", "{\"nodes\":[],\"edges\":[]}");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         subgraphNode.execute(state);
 
-        Object context = state.getAttributes().get(CURRENT_NODE_PROPERTIES_ATTRIBUTE);
+        Object context = state.getCurrentNodeProperties();
         assertThat(context).isNotNull();
         assertThat(context).isInstanceOf(Map.class);
     }
@@ -198,7 +198,7 @@ class SubgraphNodeTest {
         properties.put("subgraphDefinition", "{\"nodes\":[],\"edges\":[]}");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         assertThatCode(() -> subgraphNode.execute(state)).doesNotThrowAnyException();
     }
@@ -216,7 +216,7 @@ class SubgraphNodeTest {
 
         AgentState state = new AgentState();
         state.getAttributes().put("sharedData", "test");
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = subgraphNode.execute(state);
 
@@ -245,7 +245,7 @@ class SubgraphNodeTest {
         Map<String, Object> properties = new HashMap<>();
         properties.put("subgraphDefinition", "{\"nodes\":[],\"edges\":[]}");
 
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = subgraphNode.execute(state);
 
@@ -259,7 +259,7 @@ class SubgraphNodeTest {
         properties.put("subgraphId", 1L);
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = subgraphNode.execute(state);
 
@@ -273,7 +273,7 @@ class SubgraphNodeTest {
         properties.put("subgraphName", "testSubgraph");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = subgraphNode.execute(state);
 
@@ -287,7 +287,7 @@ class SubgraphNodeTest {
         properties.put("subgraphId", 1);
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = subgraphNode.execute(state);
 
@@ -301,7 +301,7 @@ class SubgraphNodeTest {
         properties.put("subgraphId", "123");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = subgraphNode.execute(state);
 
@@ -326,7 +326,7 @@ class SubgraphNodeTest {
         AgentState state = new AgentState();
         state.getAttributes().put("x", "parent");
         state.getAttributes().put("overrideX", "mapped");
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         subgraphNode.execute(state);
 
@@ -358,7 +358,7 @@ class SubgraphNodeTest {
             nodeProperties.put("nextNode", "afterTimeout");
 
             AgentState state = new AgentState();
-            setNodeProperties(state, nodeProperties);
+            setCurrentNodeProperties(state, nodeProperties);
 
             AgentNode.ExecutionResult result = timeoutNode.execute(state);
             assertThat(result.nextNode()).isEqualTo("afterTimeout");
@@ -367,5 +367,91 @@ class SubgraphNodeTest {
             executor.shutdownNow();
             executor.awaitTermination(1, TimeUnit.SECONDS);
         }
+    }
+
+    @Test
+    @DisplayName("子图默认继承父消息与待执行工具")
+    void shouldInheritMessagesAndPendingToolsByDefault() throws Exception {
+        AgentGraph mockGraph = mock(AgentGraph.class);
+        when(mockGraph.invoke(any(AgentState.class))).thenReturn(new AgentState());
+        when(mockGraphFactory.buildFromDefinition(anyString())).thenReturn(mockGraph);
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("subgraphDefinition", "{\"nodes\":[],\"edges\":[]}");
+
+        AgentState state = newStateWithCurrentNode(null, properties, "父图问题");
+        state.setPendingToolRequests(List.of(mock(ToolExecutionRequest.class)));
+
+        subgraphNode.execute(state);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(AgentState.class);
+        verify(mockGraph).invoke(captor.capture());
+        assertThat(captor.getValue().getMessages()).hasSize(1);
+        assertThat(captor.getValue().getPendingToolRequests()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("子图会回写新增消息并在无 nextNode 时传播 finished")
+    void shouldAppendMessagesAndPropagateFinished() throws Exception {
+        AgentGraph mockGraph = mock(AgentGraph.class);
+        AgentState subgraphOutput = new AgentState();
+        subgraphOutput.addMessage(UserMessage.from("父图问题"));
+        subgraphOutput.addMessage(AiMessage.from("子图答案"));
+        subgraphOutput.setFinished(true);
+        when(mockGraph.invoke(any(AgentState.class))).thenReturn(subgraphOutput);
+        when(mockGraphFactory.buildFromDefinition(anyString())).thenReturn(mockGraph);
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("subgraphDefinition", "{\"nodes\":[],\"edges\":[]}");
+
+        AgentState state = newStateWithCurrentNode(null, properties, "父图问题");
+
+        AgentNode.ExecutionResult result = subgraphNode.execute(state);
+
+        assertThat(result.nextNode()).isNull();
+        assertThat(state.getMessages()).hasSize(2);
+        assertThat(state.getMessages().getLast()).isInstanceOf(AiMessage.class);
+        assertThat(((AiMessage) state.getMessages().getLast()).text()).isEqualTo("子图答案");
+        assertThat(state.isFinished()).isTrue();
+    }
+
+    @Test
+    @DisplayName("配置 nextNode 时默认不传播 finished")
+    void shouldNotPropagateFinishedWhenNextNodeConfigured() throws Exception {
+        AgentGraph mockGraph = mock(AgentGraph.class);
+        AgentState subgraphOutput = new AgentState();
+        subgraphOutput.setFinished(true);
+        when(mockGraph.invoke(any(AgentState.class))).thenReturn(subgraphOutput);
+        when(mockGraphFactory.buildFromDefinition(anyString())).thenReturn(mockGraph);
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("subgraphDefinition", "{\"nodes\":[],\"edges\":[]}");
+        properties.put("nextNode", "afterSubgraph");
+
+        AgentState state = newStateWithCurrentNode(null, properties);
+
+        AgentNode.ExecutionResult result = subgraphNode.execute(state);
+
+        assertThat(result.nextNode()).isEqualTo("afterSubgraph");
+        assertThat(state.isFinished()).isFalse();
+    }
+
+    @Test
+    @DisplayName("子图可回写待执行工具请求")
+    void shouldPropagatePendingToolRequestsFromSubgraph() throws Exception {
+        AgentGraph mockGraph = mock(AgentGraph.class);
+        AgentState subgraphOutput = new AgentState();
+        subgraphOutput.setPendingToolRequests(List.of(mock(ToolExecutionRequest.class)));
+        when(mockGraph.invoke(any(AgentState.class))).thenReturn(subgraphOutput);
+        when(mockGraphFactory.buildFromDefinition(anyString())).thenReturn(mockGraph);
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("subgraphDefinition", "{\"nodes\":[],\"edges\":[]}");
+
+        AgentState state = newStateWithCurrentNode(null, properties);
+
+        subgraphNode.execute(state);
+
+        assertThat(state.getPendingToolRequests()).hasSize(1);
     }
 }

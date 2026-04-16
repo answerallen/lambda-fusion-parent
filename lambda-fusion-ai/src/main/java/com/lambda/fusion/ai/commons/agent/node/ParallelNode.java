@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -119,7 +120,7 @@ public class ParallelNode implements AgentNode {
         for (BranchConfig branch : branches) {
             CompletableFuture<Void> future = CompletableFuture.runAsync(
                     () -> {
-                        if (failFastTriggered.get()) {
+                        if (failFastTriggered.get() || Thread.currentThread().isInterrupted()) {
                             return;
                         }
 
@@ -132,6 +133,11 @@ public class ParallelNode implements AgentNode {
 
                             AgentState branchOutputState = nodeExecutor.apply(branch.target(), branchState);
 
+                            if (Thread.currentThread().isInterrupted()) {
+                                log.warn("并行分支 {} 被中断", branch.id());
+                                throw new InterruptedException("Branch execution was interrupted");
+                            }
+
                             long branchDuration = System.currentTimeMillis() - branchStartedAt;
 
                             BranchResult result = new BranchResult(
@@ -141,7 +147,7 @@ public class ParallelNode implements AgentNode {
                                     branchOutputState,
                                     null,
                                     branchDuration,
-                                    branchOutputState != null ? new ArrayList<>(branchOutputState.getMessages()) : null,
+                                    extractAppendedMessages(state, branchOutputState),
                                     extractInputTokens(branchOutputState),
                                     extractOutputTokens(branchOutputState));
 
@@ -260,6 +266,28 @@ public class ParallelNode implements AgentNode {
             tokens = state.getAttributes().get("completionTokens");
         }
         return tokens instanceof Number n ? n.intValue() : null;
+    }
+
+    private List<ChatMessage> extractAppendedMessages(AgentState inputState, AgentState outputState) {
+        if (outputState == null
+                || outputState.getMessages() == null
+                || outputState.getMessages().isEmpty()) {
+            return null;
+        }
+        return getChatMessages(inputState, outputState);
+    }
+
+    @NonNull
+    static List<ChatMessage> getChatMessages(AgentState inputState, AgentState outputState) {
+        int inputSize = inputState == null || inputState.getMessages() == null
+                ? 0
+                : inputState.getMessages().size();
+        if (outputState.getMessages().size() <= inputSize) {
+            return List.of();
+        }
+        return new ArrayList<>(outputState
+                .getMessages()
+                .subList(inputSize, outputState.getMessages().size()));
     }
 
     private record BranchConfig(String id, String target) {}

@@ -4,7 +4,6 @@ import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_CIRCUIT_B
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RATE_LIMITER;
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RETRY;
 
-import cn.hutool.core.util.StrUtil;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
@@ -96,10 +95,10 @@ public class ReactAgentNode implements AgentNode {
         log.info("ReactAgentNode: 开始执行 LangGraph4j ReAct Agent...");
 
         Map<String, Object> nodeProperties = state.getCurrentNodeProperties();
-        String effectiveModelId = resolveModelId(state, nodeProperties);
+        String effectiveModelId = AgentUtils.resolveModelId(state, nodeProperties);
         String systemPrompt = resolveSystemPrompt(state, nodeProperties);
         Set<String> allowedTools = resolveToolNames(nodeProperties);
-        String nextNode = resolveText(nodeProperties, "nextNode", "afterNode");
+        String nextNode = AgentUtils.resolveText(nodeProperties, "nextNode", "afterNode");
         boolean finishOnResponse = Boolean.TRUE.equals(
                 AgentUtils.resolveBoolean(nodeProperties, "finishOnResponse", "markFinished", "finishWhenDone"));
         StreamingChatResponseHandler streamHandler = resolveStreamHandler(state);
@@ -189,8 +188,8 @@ public class ReactAgentNode implements AgentNode {
         if (StringUtils.hasText(systemPrompt)) {
             builder.systemMessage(SystemMessage.from(systemPrompt.trim()));
         }
-        Integer maxContextMessages =
-                resolveInteger(nodeProperties, "maxContextMessages", "messageWindowSize", "contextWindowSize");
+        Integer maxContextMessages = AgentUtils.resolveInteger(
+                nodeProperties, "maxContextMessages", "messageWindowSize", "contextWindowSize");
         if (maxContextMessages != null && maxContextMessages > 0) {
             builder.conversationContextPolicy(new MessageWindowConversationContextPolicy(maxContextMessages));
         }
@@ -320,93 +319,20 @@ public class ReactAgentNode implements AgentNode {
     }
 
     private String resolveSystemPrompt(AgentState state, Map<String, Object> nodeProperties) {
-        String systemPrompt = resolveText(nodeProperties, "systemPrompt", "systemMessage");
-        if (systemPrompt != null) {
-            return systemPrompt;
-        }
-        String promptTemplateId = resolveTemplateId(nodeProperties);
-        if (promptTemplateId == null) {
-            return null;
-        }
-        return promptTemplateService.renderTemplate(promptTemplateId, buildTemplateVariables(state, nodeProperties));
-    }
-
-    private String resolveModelId(AgentState state, Map<String, Object> nodeProperties) {
-        Object configuredModelId = AgentUtils.firstNonNull(nodeProperties, "llmModelId", "modelId");
-        if (configuredModelId instanceof Number number) {
-            return number.toString();
-        }
-        if (configuredModelId instanceof String value && StrUtil.isNotBlank(value)) {
-            return value;
-        }
-        return state.getLlmModelId();
-    }
-
-    private String resolveTemplateId(Map<String, Object> nodeProperties) {
-        Object configuredValue = AgentUtils.firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
-        if (configuredValue instanceof Number number) {
-            return number.toString();
-        }
-        if (configuredValue instanceof String value && StrUtil.isNotBlank(value)) {
-            return value;
-        }
-        return null;
+        return AgentUtils.resolveSystemPrompt(
+                nodeProperties,
+                promptTemplateService::renderTemplate,
+                () -> buildTemplateVariables(state, nodeProperties));
     }
 
     private Map<String, Object> buildTemplateVariables(AgentState state, Map<String, Object> nodeProperties) {
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("sessionId", state.getSessionId());
-        variables.put("kbId", state.getKbId());
-        variables.put("llmModelId", state.getLlmModelId());
-        variables.put("currentNodeId", state.getCurrentNodeId());
-        variables.put("currentNodeType", state.getCurrentNodeType());
-        variables.put("currentNodeProperties", state.getCurrentNodeProperties());
-        variables.put("graphNodeProperties", state.getGraphNodeProperties());
-        variables.put("attributes", state.getAttributes());
-        if (state.getAttributes() != null) {
-            variables.putAll(state.getAttributes());
-        }
-        Object templateVariables = AgentUtils.firstNonNull(nodeProperties, "templateVariables", "promptVariables");
-        if (templateVariables instanceof Map<?, ?> map) {
-            map.forEach((key, value) -> {
-                if (key != null) {
-                    variables.put(String.valueOf(key), value);
-                }
-            });
-        }
-        if (state.getMessages() != null && !state.getMessages().isEmpty()) {
-            variables.put("messageCount", state.getMessages().size());
-            variables.put("lastMessage", state.getMessages().getLast());
-        }
+        Map<String, Object> variables = AgentUtils.buildBaseTemplateVariables(state);
+        AgentUtils.mergeTemplateVariables(variables, nodeProperties);
         return variables;
     }
 
     private Set<String> resolveToolNames(Map<String, Object> nodeProperties) {
         return AgentUtils.resolveToolNames(nodeProperties, toolProvider, "allowedTools", "toolNames", "tools");
-    }
-
-    private String resolveText(Map<String, Object> nodeProperties, String... keys) {
-        Object value = AgentUtils.firstNonNull(nodeProperties, keys);
-        if (value == null) {
-            return null;
-        }
-        String text = value.toString().trim();
-        return text.isEmpty() ? null : text;
-    }
-
-    private Integer resolveInteger(Map<String, Object> nodeProperties, String... keys) {
-        Object value = AgentUtils.firstNonNull(nodeProperties, keys);
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        if (value instanceof String text && !text.isBlank()) {
-            try {
-                return Integer.parseInt(text.trim());
-            } catch (NumberFormatException e) {
-                log.warn("ReactAgentNode: 无法解析整数配置值 '{}'", text);
-            }
-        }
-        return null;
     }
 
     private record AgentExecutionResult(

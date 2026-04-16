@@ -4,7 +4,6 @@ import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_CIRCUIT_B
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RATE_LIMITER;
 import static com.lambda.fusion.ai.AiConfigure.LlmResilienceConfig.LLM_RETRY;
 
-import cn.hutool.core.util.StrUtil;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
@@ -35,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 多智能体结果聚合节点。
@@ -50,6 +50,7 @@ public class AgentAggregatorNode implements AgentNode {
     public static final String AGGREGATOR_RESULTS_KEY = "aggregatorResults";
     public static final String LAST_AGGREGATOR_RESULT_KEY = "lastAggregatorResult";
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final PromptTemplateService promptTemplateService;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final RetryRegistry retryRegistry;
@@ -83,33 +84,34 @@ public class AgentAggregatorNode implements AgentNode {
         log.info("AgentAggregatorNode: 开始聚合多智能体输出...");
 
         Map<String, Object> nodeProperties = state.getCurrentNodeProperties();
-        String effectiveModelId = resolveModelId(state, nodeProperties);
+        String effectiveModelId = AgentUtils.resolveModelId(state, nodeProperties);
         String systemPrompt = resolveSystemPrompt(state, nodeProperties);
         String aggregationInput = buildAggregationInput(state, nodeProperties);
-        String outputKey = resolveText(nodeProperties, "outputKey", "resultKey", "attributeKey");
+        String outputKey = AgentUtils.resolveText(nodeProperties, "outputKey", "resultKey", "attributeKey");
         if (!StringUtils.hasText(outputKey)) {
             outputKey = "aggregatedResult";
         }
-        String nextNode = resolveText(nodeProperties, "nextNode", "afterNode");
-        boolean appendMessage =
-                !Boolean.FALSE.equals(resolveBoolean(nodeProperties, "appendMessage", "writeMessage", "emitMessage"));
+        String nextNode = AgentUtils.resolveText(nodeProperties, "nextNode", "afterNode");
+        boolean appendMessage = !Boolean.FALSE.equals(
+                AgentUtils.resolveBoolean(nodeProperties, "appendMessage", "writeMessage", "emitMessage"));
         boolean finishOnResponse = !Boolean.FALSE.equals(
-                resolveBoolean(nodeProperties, "finishOnResponse", "markFinished", "finishWhenDone"));
+                AgentUtils.resolveBoolean(nodeProperties, "finishOnResponse", "markFinished", "finishWhenDone"));
 
+        ExecutionResult executionResult = new ExecutionResult(state, finishOnResponse ? AgentGraph.END_NODE : nextNode);
         try {
             String answer = executeWithResilience(state, effectiveModelId, systemPrompt, aggregationInput);
             applyAggregationResult(state, answer, outputKey, appendMessage, finishOnResponse);
-            return new ExecutionResult(state, finishOnResponse ? AgentGraph.END_NODE : nextNode);
+            return executionResult;
         } catch (CallNotPermittedException e) {
             log.warn("AgentAggregatorNode: 熔断器已打开，降级为本地摘要");
             String fallback = buildFallbackSummary(state);
             applyAggregationResult(state, fallback, outputKey, appendMessage, finishOnResponse);
-            return new ExecutionResult(state, finishOnResponse ? AgentGraph.END_NODE : nextNode);
+            return executionResult;
         } catch (Throwable e) {
             log.error("AgentAggregatorNode: 聚合失败", e);
             String fallback = buildFallbackSummary(state);
             applyAggregationResult(state, fallback, outputKey, appendMessage, finishOnResponse);
-            return new ExecutionResult(state, finishOnResponse ? AgentGraph.END_NODE : nextNode);
+            return executionResult;
         }
     }
 
@@ -165,6 +167,7 @@ public class AgentAggregatorNode implements AgentNode {
         return messages;
     }
 
+    @SuppressWarnings("unchecked")
     private void applyAggregationResult(
             AgentState state, String answer, String outputKey, boolean appendMessage, boolean finishOnResponse) {
         if (state.getAttributes() == null) {
@@ -182,7 +185,6 @@ public class AgentAggregatorNode implements AgentNode {
         payload.put("appendMessage", appendMessage);
         payload.put("finishOnResponse", finishOnResponse);
 
-        @SuppressWarnings("unchecked")
         Map<String, Object> results = state.getAttributes().get(AGGREGATOR_RESULTS_KEY) instanceof Map<?, ?> map
                 ? new LinkedHashMap<>((Map<String, Object>) map)
                 : new LinkedHashMap<>();
@@ -202,17 +204,19 @@ public class AgentAggregatorNode implements AgentNode {
         payload.put("llmModelId", state.getLlmModelId());
         payload.put("currentNodeId", state.getCurrentNodeId());
 
-        if (Boolean.FALSE != resolveBoolean(nodeProperties, "includeMessages", "withMessages")) {
+        if (Boolean.FALSE != AgentUtils.resolveBoolean(nodeProperties, "includeMessages", "withMessages")) {
             payload.put("messages", state.getMessages() == null ? List.of() : new ArrayList<>(state.getMessages()));
         }
         if (state.getAttributes() != null) {
-            if (Boolean.FALSE != resolveBoolean(nodeProperties, "includeParallelResults", "withParallelResults")) {
+            if (Boolean.FALSE
+                    != AgentUtils.resolveBoolean(nodeProperties, "includeParallelResults", "withParallelResults")) {
                 Object parallelResults = state.getAttributes().get("__parallel_results__");
                 if (parallelResults != null) {
                     payload.put("parallelResults", parallelResults);
                 }
             }
-            if (Boolean.FALSE != resolveBoolean(nodeProperties, "includeReactAgentResults", "withReactAgentResults")) {
+            if (Boolean.FALSE
+                    != AgentUtils.resolveBoolean(nodeProperties, "includeReactAgentResults", "withReactAgentResults")) {
                 Object reactAgentResults = state.getAttributes().get("reactAgentResults");
                 if (reactAgentResults != null) {
                     payload.put("reactAgentResults", reactAgentResults);
@@ -236,7 +240,7 @@ public class AgentAggregatorNode implements AgentNode {
                 }
             }
         }
-        return payload.toString();
+        return serializeAggregationPayload(payload);
     }
 
     private String buildFallbackSummary(AgentState state) {
@@ -255,80 +259,27 @@ public class AgentAggregatorNode implements AgentNode {
         return "未生成可聚合的结果。";
     }
 
+    private String serializeAggregationPayload(Map<String, Object> payload) {
+        try {
+            return objectMapper.writeValueAsString(payload);
+        } catch (Exception e) {
+            log.warn("AgentAggregatorNode: 聚合输入序列化失败，回退到 toString", e);
+            return payload.toString();
+        }
+    }
+
     private String resolveSystemPrompt(AgentState state, Map<String, Object> nodeProperties) {
-        String systemPrompt = resolveText(nodeProperties, "systemPrompt", "systemMessage");
-        if (StringUtils.hasText(systemPrompt)) {
-            return systemPrompt;
-        }
-        String templateId = resolveTemplateId(nodeProperties);
-        if (templateId != null) {
-            return promptTemplateService.renderTemplate(templateId, buildTemplateVariables(state, nodeProperties));
-        }
-        return "你是多智能体系统的结果汇总器。请结合专家输出、并行结果与对话历史，" + "给出一致、精炼、可直接返回给用户的综合结论。";
+        return AgentUtils.resolveSystemPrompt(
+                nodeProperties,
+                promptTemplateService::renderTemplate,
+                () -> buildTemplateVariables(state, nodeProperties),
+                "你是多智能体系统的结果汇总器。请结合专家输出、并行结果与对话历史，给出一致、精炼、可直接返回给用户的综合结论。");
     }
 
     private Map<String, Object> buildTemplateVariables(AgentState state, Map<String, Object> nodeProperties) {
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("sessionId", state.getSessionId());
-        variables.put("kbId", state.getKbId());
-        variables.put("llmModelId", state.getLlmModelId());
-        variables.put("currentNodeId", state.getCurrentNodeId());
-        variables.put("currentNodeProperties", state.getCurrentNodeProperties());
-        variables.put("attributes", state.getAttributes());
+        Map<String, Object> variables = AgentUtils.buildBaseTemplateVariables(state);
         variables.put("aggregationInput", buildAggregationInput(state, nodeProperties));
-        if (state.getAttributes() != null) {
-            variables.putAll(state.getAttributes());
-        }
-        Object templateVariables = AgentUtils.firstNonNull(nodeProperties, "templateVariables", "promptVariables");
-        if (templateVariables instanceof Map<?, ?> map) {
-            map.forEach((key, value) -> {
-                if (key != null) {
-                    variables.put(String.valueOf(key), value);
-                }
-            });
-        }
+        AgentUtils.mergeTemplateVariables(variables, nodeProperties);
         return variables;
-    }
-
-    private String resolveModelId(AgentState state, Map<String, Object> nodeProperties) {
-        Object configuredModelId = AgentUtils.firstNonNull(nodeProperties, "llmModelId", "modelId");
-        if (configuredModelId instanceof Number number) {
-            return number.toString();
-        }
-        if (configuredModelId instanceof String value && StrUtil.isNotBlank(value)) {
-            return value;
-        }
-        return state.getLlmModelId();
-    }
-
-    private String resolveTemplateId(Map<String, Object> nodeProperties) {
-        Object configuredValue = AgentUtils.firstNonNull(nodeProperties, "promptTemplateId", "systemPromptTemplateId");
-        if (configuredValue instanceof Number number) {
-            return number.toString();
-        }
-        if (configuredValue instanceof String value && StrUtil.isNotBlank(value)) {
-            return value;
-        }
-        return null;
-    }
-
-    private String resolveText(Map<String, Object> nodeProperties, String... keys) {
-        Object value = AgentUtils.firstNonNull(nodeProperties, keys);
-        if (value == null) {
-            return null;
-        }
-        String text = value.toString().trim();
-        return text.isEmpty() ? null : text;
-    }
-
-    private Boolean resolveBoolean(Map<String, Object> nodeProperties, String... keys) {
-        Object value = AgentUtils.firstNonNull(nodeProperties, keys);
-        if (value instanceof Boolean booleanValue) {
-            return booleanValue;
-        }
-        if (value instanceof String text && !text.isBlank()) {
-            return Boolean.parseBoolean(text.trim());
-        }
-        return null;
     }
 }

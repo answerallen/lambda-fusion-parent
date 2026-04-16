@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.StopWatch;
@@ -128,24 +129,7 @@ public class AgentGraphIssuesVerificationTest {
         Executor executor = Executors.newFixedThreadPool(2);
         ParallelNode parallelNode = new ParallelNode(executor);
 
-        AgentState state = new AgentState();
-
-        // 模拟执行器：
-        // 分支 1：立即抛出异常
-        // 分支 2：休眠 1000 毫秒
-        state.setNodeExecutor((target, s) -> {
-            if ("failNode".equals(target)) {
-                throw new RuntimeException("Immediate failure");
-            }
-            if ("sleepNode".equals(target)) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-            return s;
-        });
+        AgentState state = getAgentState();
 
         Map<String, Object> props = new HashMap<>();
         List<Map<String, String>> branches = new ArrayList<>();
@@ -170,5 +154,69 @@ public class AgentGraphIssuesVerificationTest {
         System.out.println("failFast 模式下包含一个立即失败分支和一个 1 秒休眠分支，总耗时: " + duration + " ms");
         // 虽然配置了 failFast，但主线程因为 waitAll=true 依然等待了 1000ms
         assertThat(duration).isGreaterThanOrEqualTo(900);
+    }
+
+    private static @NonNull AgentState getAgentState() {
+        AgentState state = new AgentState();
+
+        // 模拟执行器：
+        // 分支 1：立即抛出异常
+        // 分支 2：休眠 1000 毫秒
+        state.setNodeExecutor((target, s) -> {
+            if ("failNode".equals(target)) {
+                throw new RuntimeException("Immediate failure");
+            }
+            if ("sleepNode".equals(target)) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            return s;
+        });
+        return state;
+    }
+
+    @Test
+    @DisplayName("节点建议 END 时应优先终止而不是继续走默认边")
+    void verifySuggestedEndOverridesOutgoingEdges() {
+        AgentGraph graph = new AgentGraph();
+
+        AgentNode startNode = new AgentNode() {
+            @Override
+            public String getName() {
+                return "START";
+            }
+
+            @Override
+            public ExecutionResult execute(AgentState state) {
+                state.getAttributes().put("stopReason", "supervisor_finish");
+                return new ExecutionResult(state, AgentGraph.END_NODE);
+            }
+        };
+
+        AgentNode shouldNotRunNode = new AgentNode() {
+            @Override
+            public String getName() {
+                return "SHOULD_NOT_RUN";
+            }
+
+            @Override
+            public ExecutionResult execute(AgentState state) {
+                state.getAttributes().put("unexpectedNodeExecuted", true);
+                return new ExecutionResult(state, null);
+            }
+        };
+
+        graph.addNode("start", startNode);
+        graph.addNode("next", shouldNotRunNode);
+        graph.addEdge("start", "next", null, null);
+        graph.setEntryPoint("start");
+
+        AgentState result = graph.invoke(new AgentState());
+
+        assertThat(result.getAttributes().get("stopReason")).isEqualTo("supervisor_finish");
+        assertThat(result.getAttributes()).doesNotContainKey("unexpectedNodeExecuted");
     }
 }

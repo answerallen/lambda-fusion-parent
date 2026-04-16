@@ -1,9 +1,10 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
+import static com.lambda.fusion.ai.commons.utils.AgentUtils.setCurrentNodeId;
+import static com.lambda.fusion.ai.commons.utils.AgentUtils.setCurrentNodeProperties;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator;
@@ -18,14 +19,6 @@ class LoopNodeTest {
     private LoopNode loopNode;
 
     private ConditionEvaluator mockEvaluator;
-
-    private void setNodeProperties(AgentState state, Map<String, Object> properties) {
-        state.getAttributes().put(AgentGraph.CURRENT_NODE_PROPERTIES_ATTRIBUTE, properties);
-    }
-
-    private void setCurrentNodeId(AgentState state, String nodeId) {
-        state.getAttributes().put(AgentGraph.CURRENT_NODE_ID_ATTRIBUTE, nodeId);
-    }
 
     @BeforeEach
     void setUp() {
@@ -68,7 +61,7 @@ class LoopNodeTest {
 
         AgentState state = new AgentState();
         state.getAttributes().put("counter", 0);
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = loopNode.execute(state);
 
@@ -89,7 +82,7 @@ class LoopNodeTest {
         properties.put("maxIterations", 3);
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         loopNode.execute(state);
         loopNode.execute(state);
@@ -116,7 +109,7 @@ class LoopNodeTest {
         properties.put("exitNode", "exitNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = loopNode.execute(state);
 
@@ -137,7 +130,7 @@ class LoopNodeTest {
         properties.put("exitNode", "exitNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = loopNode.execute(state);
 
@@ -155,7 +148,7 @@ class LoopNodeTest {
         properties.put("exitNode", "exitNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         LoopNode nodeWithEmptyEvaluators = new LoopNode(new HashMap<>());
 
@@ -179,7 +172,7 @@ class LoopNodeTest {
         properties.put("exitNode", "exitNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         loopNode.execute(state);
 
@@ -202,7 +195,7 @@ class LoopNodeTest {
         properties.put("exitNode", "exitNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         loopNode.execute(state);
 
@@ -224,7 +217,7 @@ class LoopNodeTest {
         properties.put("exitNode", "exitNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         loopNode.execute(state);
 
@@ -246,7 +239,7 @@ class LoopNodeTest {
         properties.put("exitNode", "exitNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         loopNode.execute(state);
 
@@ -267,7 +260,7 @@ class LoopNodeTest {
         properties.put("exitNode", "exitNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         loopNode.execute(state);
 
@@ -296,7 +289,7 @@ class LoopNodeTest {
         properties.put("loopBody", "bodyNode");
         properties.put("exitNode", "exitNode");
 
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         assertThatCode(() -> loopNode.execute(state)).doesNotThrowAnyException();
     }
@@ -312,7 +305,7 @@ class LoopNodeTest {
         properties.put("exitNode", "exitNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = loopNode.execute(state);
 
@@ -330,7 +323,7 @@ class LoopNodeTest {
         properties.put("exitNode", "exitNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = loopNode.execute(state);
 
@@ -350,7 +343,7 @@ class LoopNodeTest {
         properties.put("loopBody", "bodyNode");
         properties.put("exitNode", "exitNode");
         properties.put("maxIterations", 1);
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         setCurrentNodeId(state, "loopA");
         AgentNode.ExecutionResult loopAFirst = loopNode.execute(state);

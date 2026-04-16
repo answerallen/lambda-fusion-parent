@@ -1,10 +1,12 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
+import static com.lambda.fusion.ai.commons.utils.AgentUtils.setCurrentNodeProperties;
 import static org.assertj.core.api.Assertions.*;
 
-import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.UserMessage;
 import java.util.*;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.*;
@@ -12,10 +14,6 @@ import org.junit.jupiter.api.*;
 class ParallelNodeTest {
 
     private ParallelNode parallelNode;
-
-    private void setNodeProperties(AgentState state, Map<String, Object> properties) {
-        state.getAttributes().put(AgentGraph.CURRENT_NODE_PROPERTIES_ATTRIBUTE, properties);
-    }
 
     @BeforeEach
     void setUp() {
@@ -46,7 +44,7 @@ class ParallelNodeTest {
         properties.put("joinNode", "joinNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = parallelNode.execute(state);
 
@@ -66,7 +64,7 @@ class ParallelNodeTest {
         properties.put("errorStrategy", "failFast");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = parallelNode.execute(state);
 
@@ -95,7 +93,7 @@ class ParallelNodeTest {
         properties.put("branches", branches);
         properties.put("joinNode", "joinNode");
 
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         assertThatCode(() -> parallelNode.execute(state)).doesNotThrowAnyException();
     }
@@ -123,7 +121,7 @@ class ParallelNodeTest {
         properties.put("branches", branches);
         properties.put("joinNode", "joinNode");
 
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = parallelNode.execute(state);
 
@@ -138,7 +136,7 @@ class ParallelNodeTest {
         properties.put("joinNode", "joinNode");
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         assertThatCode(() -> parallelNode.execute(state)).doesNotThrowAnyException();
     }
@@ -153,7 +151,7 @@ class ParallelNodeTest {
         properties.put("waitAll", false);
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         assertThatCode(() -> parallelNode.execute(state)).doesNotThrowAnyException();
     }
@@ -164,7 +162,7 @@ class ParallelNodeTest {
         Map<String, Object> properties = getStringObjectMap();
 
         AgentState state = new AgentState();
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
         // 设置节点执行器，否则并行节点会跳过执行
         state.setNodeExecutor((nodeId, s) -> s);
 
@@ -212,10 +210,46 @@ class ParallelNodeTest {
         properties.put("branches", Collections.emptyList());
         properties.put("joinNode", "finalNode");
 
-        setNodeProperties(state, properties);
+        setCurrentNodeProperties(state, properties);
 
         AgentNode.ExecutionResult result = parallelNode.execute(state);
 
         assertThat(result.nextNode()).isEqualTo("finalNode");
+    }
+
+    @Test
+    @DisplayName("并行结果仅保留分支新增消息")
+    void shouldOnlyKeepDeltaMessagesInParallelResults() {
+        Map<String, String> branch1 = new HashMap<>();
+        branch1.put("id", "branch1");
+        branch1.put("target", "node1");
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("branches", List.of(branch1));
+        properties.put("joinNode", "joinNode");
+
+        AgentState state = new AgentState();
+        state.addMessage(UserMessage.from("父消息"));
+        setCurrentNodeProperties(state, properties);
+        state.setNodeExecutor((nodeId, input) -> {
+            AgentState output = new AgentState();
+            output.setSessionId(input.getSessionId());
+            output.setKbId(input.getKbId());
+            output.setLlmModelId(input.getLlmModelId());
+            output.setAttributes(new HashMap<>(input.getAttributes()));
+            output.setMessages(new ArrayList<>(input.getMessages()));
+            output.addMessage(AiMessage.from("分支新增消息"));
+            return output;
+        });
+
+        AgentNode.ExecutionResult result = parallelNode.execute(state);
+
+        assertThat(result.nextNode()).isEqualTo("joinNode");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parallelResults =
+                (Map<String, Object>) state.getAttributes().get("__parallel_results__");
+        assertThat(parallelResults).containsKey("branch1");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> branchResult = (Map<String, Object>) parallelResults.get("branch1");
+        assertThat((List<?>) branchResult.get("messages")).hasSize(1);
     }
 }

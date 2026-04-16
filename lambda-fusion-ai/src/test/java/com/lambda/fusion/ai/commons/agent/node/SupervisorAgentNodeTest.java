@@ -1,7 +1,6 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
-import static com.lambda.fusion.ai.commons.agent.AgentGraph.CURRENT_NODE_ID_ATTRIBUTE;
-import static com.lambda.fusion.ai.commons.agent.AgentGraph.CURRENT_NODE_PROPERTIES_ATTRIBUTE;
+import static com.lambda.fusion.ai.commons.utils.AgentUtils.newStateWithCurrentNode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -10,7 +9,6 @@ import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.support.factory.ChatModelFactory;
 import com.lambda.fusion.ai.service.PromptTemplateService;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -54,9 +52,6 @@ class SupervisorAgentNodeTest {
                         .aiMessage(AiMessage.from("expert_b"))
                         .build());
 
-        AgentState state = new AgentState();
-        state.addMessage(UserMessage.from("请找代码专家处理"));
-        state.getAttributes().put(CURRENT_NODE_ID_ATTRIBUTE, "supervisor-1");
         Map<String, Object> properties = new HashMap<>();
         properties.put("modelId", "model-supervisor");
         properties.put(
@@ -64,7 +59,7 @@ class SupervisorAgentNodeTest {
                 List.of(
                         Map.of("id", "expert_a", "target", "agentA", "description", "财务专家"),
                         Map.of("id", "expert_b", "target", "agentB", "description", "代码专家")));
-        state.getAttributes().put(CURRENT_NODE_PROPERTIES_ATTRIBUTE, properties);
+        AgentState state = newStateWithCurrentNode("supervisor-1", properties, "请找代码专家处理");
 
         var result = node.execute(state);
 
@@ -91,17 +86,74 @@ class SupervisorAgentNodeTest {
                         .aiMessage(AiMessage.from("FINISH"))
                         .build());
 
-        AgentState state = new AgentState();
-        state.addMessage(UserMessage.from("任务已经完成"));
-        state.getAttributes().put(CURRENT_NODE_ID_ATTRIBUTE, "supervisor-2");
         Map<String, Object> properties = new HashMap<>();
         properties.put("modelId", "model-supervisor");
         properties.put("candidates", List.of(Map.of("id", "expert_a", "target", "agentA", "description", "通用专家")));
-        state.getAttributes().put(CURRENT_NODE_PROPERTIES_ATTRIBUTE, properties);
+        AgentState state = newStateWithCurrentNode("supervisor-2", properties, "任务已经完成");
 
         var result = node.execute(state);
 
         assertThat(state.isFinished()).isTrue();
         assertThat(result.nextNode()).isEqualTo("END");
+    }
+
+    @Test
+    @DisplayName("SUPERVISOR_AGENT 在 finishOnEnd=false 时仍应结束路由但不设置 finished")
+    void shouldEndRouteWithoutMarkingFinishedWhenFinishOnEndDisabled() {
+        SupervisorAgentNode node = new SupervisorAgentNode(
+                promptTemplateService,
+                CircuitBreakerRegistry.ofDefaults(),
+                RetryRegistry.ofDefaults(),
+                RateLimiterRegistry.ofDefaults());
+        node.setChatModelFactory(chatModelFactory);
+
+        when(chatModelFactory.getChatModel("model-supervisor")).thenReturn(chatModel);
+        when(chatModel.chat(any(ChatRequest.class)))
+                .thenReturn(ChatResponse.builder()
+                        .aiMessage(AiMessage.from("FINISH"))
+                        .build());
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("modelId", "model-supervisor");
+        properties.put("finishOnEnd", false);
+        properties.put("candidates", List.of(Map.of("id", "expert_a", "target", "agentA", "description", "通用专家")));
+        AgentState state = newStateWithCurrentNode("supervisor-3", properties, "任务已经完成");
+
+        var result = node.execute(state);
+
+        assertThat(state.isFinished()).isFalse();
+        assertThat(result.nextNode()).isEqualTo("END");
+    }
+
+    @Test
+    @DisplayName("SUPERVISOR_AGENT 支持解析 JSON 决策结果")
+    void shouldParseJsonDecisionPayload() {
+        SupervisorAgentNode node = new SupervisorAgentNode(
+                promptTemplateService,
+                CircuitBreakerRegistry.ofDefaults(),
+                RetryRegistry.ofDefaults(),
+                RateLimiterRegistry.ofDefaults());
+        node.setChatModelFactory(chatModelFactory);
+
+        when(chatModelFactory.getChatModel("model-supervisor")).thenReturn(chatModel);
+        when(chatModel.chat(any(ChatRequest.class)))
+                .thenReturn(ChatResponse.builder()
+                        .aiMessage(AiMessage.from("{\"nextNode\":\"expert_b\"}"))
+                        .build());
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("modelId", "model-supervisor");
+        properties.put(
+                "candidates",
+                List.of(
+                        Map.of("id", "expert_a", "target", "agentA", "description", "财务专家"),
+                        Map.of("id", "expert_b", "target", "agentB", "description", "代码专家")));
+        AgentState state = newStateWithCurrentNode("supervisor-4", properties, "请找代码专家处理");
+
+        var result = node.execute(state);
+
+        assertThat(result.nextNode()).isEqualTo("agentB");
+        assertThat(((Map<?, ?>) state.getAttributes().get("lastSupervisorDecision")).get("decisionSource"))
+                .isEqualTo("candidate");
     }
 }
