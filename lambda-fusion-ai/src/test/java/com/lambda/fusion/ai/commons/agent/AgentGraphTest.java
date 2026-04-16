@@ -198,6 +198,35 @@ class AgentGraphTest {
     }
 
     @Test
+    @DisplayName("无匹配出边时应抛出可携带状态的路由异常")
+    void testRouteFailureShouldExposeFailedState() {
+        when(mockNode1.getName()).thenReturn("startNode");
+        when(mockNode1.execute(any(AgentState.class))).thenAnswer(invocation -> {
+            AgentState state = invocation.getArgument(0);
+            state.setFinished(false);
+            return new AgentNode.ExecutionResult(state, null);
+        });
+        when(mockEvaluator.evaluate(anyString(), any(AgentState.class))).thenReturn(false);
+
+        graph.addNode("startNode", mockNode1);
+        graph.addNode("fallbackNode", mockNode2);
+        graph.addEdge("startNode", "fallbackNode", mockEvaluator, "false");
+        graph.setEntryPoint("startNode");
+
+        AgentState initialState = new AgentState();
+        initialState.getAttributes().put(AgentGraph.TRACE_ENABLED_ATTRIBUTE, true);
+
+        AgentGraph.AgentGraphExecutionException exception =
+                catchThrowableOfType(() -> graph.invoke(initialState), AgentGraph.AgentGraphExecutionException.class);
+
+        assertThat(exception).isNotNull();
+        assertThat(exception.getState()).isNotNull();
+        assertThat(exception.getState().getAttributes())
+                .containsEntry("__routing_error__", "No matching outgoing edge found for node: startNode");
+        assertThat(exception.getState().getExecutionStats()).containsEntry("failed", true);
+    }
+
+    @Test
     @DisplayName("测试未设置入口点抛异常")
     void testNoEntryPointThrowsException() {
         AgentState initialState = new AgentState();

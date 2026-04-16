@@ -63,6 +63,24 @@ public class AgentGraph {
     private volatile int maxIterations = DEFAULT_MAX_ITERATIONS;
     private volatile CompileConfig compileConfig;
 
+    public static class AgentGraphExecutionException extends IllegalStateException {
+        private final transient AgentState state;
+
+        public AgentGraphExecutionException(String message, AgentState state) {
+            super(message);
+            this.state = state;
+        }
+
+        public AgentGraphExecutionException(String message, Throwable cause, AgentState state) {
+            super(message, cause);
+            this.state = state;
+        }
+
+        public AgentState getState() {
+            return state;
+        }
+    }
+
     public static class LangGraphRuntimeState extends org.bsc.langgraph4j.state.AgentState {
         public static final String SESSION_ID_KEY = "sessionId";
         public static final String KB_ID_KEY = "kbId";
@@ -221,9 +239,14 @@ public class AgentGraph {
         initializeObservability(state);
         long invokeStartedAt = System.nanoTime();
         CompiledGraph<LangGraphRuntimeState> executable = getOrBuildCompiledGraph();
-        Optional<LangGraphRuntimeState> output = runnableConfig == null
-                ? executable.invoke(LangGraphRuntimeState.toInput(state))
-                : executable.invoke(LangGraphRuntimeState.toInput(state), runnableConfig);
+        Optional<LangGraphRuntimeState> output;
+        try {
+            output = runnableConfig == null
+                    ? executable.invoke(LangGraphRuntimeState.toInput(state))
+                    : executable.invoke(LangGraphRuntimeState.toInput(state), runnableConfig);
+        } catch (RuntimeException e) {
+            throw propagateExecutionException(e, invokeStartedAt);
+        }
         return output.map(runtimeState -> {
             AgentState finalState = runtimeState.agentState();
             recordWorkflowSummary(finalState, invokeStartedAt);
@@ -234,8 +257,13 @@ public class AgentGraph {
     public Optional<AgentState> resumeOptional(Map<String, Object> stateUpdate, RunnableConfig runnableConfig) {
         long invokeStartedAt = System.nanoTime();
         CompiledGraph<LangGraphRuntimeState> executable = getOrBuildCompiledGraph();
-        Optional<LangGraphRuntimeState> output = executable.invoke(
-                stateUpdate == null ? GraphInput.resume() : GraphInput.resume(stateUpdate), runnableConfig);
+        Optional<LangGraphRuntimeState> output;
+        try {
+            output = executable.invoke(
+                    stateUpdate == null ? GraphInput.resume() : GraphInput.resume(stateUpdate), runnableConfig);
+        } catch (RuntimeException e) {
+            throw propagateExecutionException(e, invokeStartedAt);
+        }
         return output.map(runtimeState -> {
             AgentState finalState = runtimeState.agentState();
             recordWorkflowSummary(finalState, invokeStartedAt);
@@ -399,12 +427,16 @@ public class AgentGraph {
             if (hasOutgoingEdges) {
                 AgentNode currentNode = nodes.get(currentNodeId);
                 String nodeName = currentNode != null ? currentNode.getName() : currentNodeId;
+                if (state.getAttributes() == null) {
+                    state.setAttributes(new HashMap<>());
+                }
                 log.error("当前节点 '{}' 执行完毕后没有匹配到任何有效的出向边，图执行被迫停止。", nodeName);
                 state.getAttributes()
                         .put("__routing_error__", "No matching outgoing edge found for node: " + currentNodeId);
                 recordRouteDecision(state, currentNodeId, END_NODE, "routing_error", null);
-                throw new IllegalStateException("Node '" + nodeName + "' (ID: " + currentNodeId
-                        + ") finished without matching any conditional edge, and no default edge was provided.");
+                String message = "Node '" + nodeName + "' (ID: " + currentNodeId
+                        + ") finished without matching any conditional edge, and no default edge was provided.";
+                throw new AgentGraphExecutionException(message, state);
             }
             recordRouteDecision(state, currentNodeId, END_NODE, "no_match", null);
             return END_NODE;
@@ -576,6 +608,43 @@ public class AgentGraph {
 
     private long toDurationMs(long startedAtNanos) {
         return Math.max(0L, (System.nanoTime() - startedAtNanos) / 1_000_000L);
+    }
+
+    private RuntimeException propagateExecutionException(RuntimeException exception, long invokeStartedAt) {
+        AgentGraphExecutionException graphException = findExecutionException(exception);
+        if (graphException == null) {
+            return exception;
+        }
+        AgentState failedState = graphException.getState();
+        if (failedState != null) {
+            recordWorkflowFailure(failedState, invokeStartedAt, graphException.getMessage());
+        }
+        return graphException;
+    }
+
+    private AgentGraphExecutionException findExecutionException(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof AgentGraphExecutionException executionException) {
+                return executionException;
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    private void recordWorkflowFailure(AgentState state, long invokeStartedAt, String errorMessage) {
+        if (isTraceDisabled(state)) {
+            return;
+        }
+        Map<String, Object> stats = ensureExecutionStats(state);
+        stats.put("mode", "invoke");
+        stats.put("totalDurationMs", toDurationMs(invokeStartedAt));
+        stats.put("finished", state.isFinished());
+        stats.put("failed", true);
+        if (StringUtils.hasText(errorMessage)) {
+            stats.put("errorMessage", errorMessage);
+        }
     }
 
     private Map<String, Object> toChannelUpdates(AgentState previousState, AgentState nextState, String suggestedNext) {

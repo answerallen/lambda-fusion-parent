@@ -88,10 +88,12 @@ public class LlmProcessingNode implements AgentNode {
 
         Map<String, Object> nodeProperties = nextState.getCurrentNodeProperties();
         String effectiveModelId = AgentUtils.resolveModelId(nextState, nodeProperties);
-        String systemPrompt = AgentUtils.resolveSystemPrompt(
-                nodeProperties,
-                promptTemplateService::renderTemplate,
-                () -> AgentUtils.buildBaseTemplateVariables(nextState));
+        String systemPrompt =
+                AgentUtils.resolveSystemPrompt(nodeProperties, promptTemplateService::renderTemplate, () -> {
+                    Map<String, Object> variables = AgentUtils.buildBaseTemplateVariables(nextState);
+                    AgentUtils.mergeTemplateVariables(variables, nodeProperties);
+                    return variables;
+                });
         Set<String> allowedTools =
                 AgentUtils.resolveToolNames(nodeProperties, toolProvider, "allowedTools", "toolNames", "tools");
 

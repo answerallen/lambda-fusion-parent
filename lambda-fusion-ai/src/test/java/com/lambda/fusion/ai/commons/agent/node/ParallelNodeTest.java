@@ -5,9 +5,12 @@ import static org.assertj.core.api.Assertions.*;
 
 import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
+import com.lambda.fusion.ai.commons.utils.AgentUtils;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.*;
 
@@ -251,5 +254,61 @@ class ParallelNodeTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> branchResult = (Map<String, Object>) parallelResults.get("branch1");
         assertThat((List<?>) branchResult.get("messages")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("主动取消的分支不应被记录为失败")
+    void shouldNotTreatCancelledBranchAsFailure() {
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        ParallelNode asyncParallelNode = new ParallelNode(executorService);
+        try {
+            Map<String, Object> properties = getParallelPropertiesForCancellation();
+
+            AgentState state = new AgentState();
+            setCurrentNodeProperties(state, properties);
+            state.setNodeExecutor((nodeId, input) -> {
+                if ("fastNode".equals(nodeId)) {
+                    AgentState output = AgentUtils.deepCopyState(input);
+                    output.addMessage(AiMessage.from("fast"));
+                    return output;
+                }
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return input;
+            });
+
+            AgentNode.ExecutionResult result = asyncParallelNode.execute(state);
+
+            assertThat(result.nextNode()).isEqualTo("joinNode");
+            assertThat(state.getAttributes()).doesNotContainKey("__parallel_errors__");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> parallelResults =
+                    (Map<String, Object>) state.getAttributes().get("__parallel_results__");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> cancelledBranch = (Map<String, Object>) parallelResults.get("slowBranch");
+            assertThat(cancelledBranch).containsEntry("cancelled", true);
+            assertThat(cancelledBranch).containsEntry("success", false);
+        } finally {
+            executorService.shutdownNow();
+        }
+    }
+
+    private static Map<String, Object> getParallelPropertiesForCancellation() {
+        Map<String, String> fastBranch = new HashMap<>();
+        fastBranch.put("id", "fastBranch");
+        fastBranch.put("target", "fastNode");
+        Map<String, String> slowBranch = new HashMap<>();
+        slowBranch.put("id", "slowBranch");
+        slowBranch.put("target", "slowNode");
+
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("branches", List.of(fastBranch, slowBranch));
+        properties.put("joinNode", "joinNode");
+        properties.put("waitAll", false);
+        properties.put("timeout", 3000);
+        return properties;
     }
 }

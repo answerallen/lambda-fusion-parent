@@ -7,7 +7,6 @@ import dev.langchain4j.data.message.ChatMessage;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -112,103 +111,40 @@ public class ParallelNode implements AgentNode {
 
         Map<String, BranchResult> results = new ConcurrentHashMap<>();
         Map<String, Throwable> errors = new ConcurrentHashMap<>();
+        Map<String, String> cancellations = new ConcurrentHashMap<>();
         AtomicBoolean failFastTriggered = new AtomicBoolean(false);
-        AtomicReference<Throwable> firstError = new AtomicReference<>();
-
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        List<BranchTask> branchTasks = new ArrayList<>();
 
         for (BranchConfig branch : branches) {
-            CompletableFuture<Void> future = CompletableFuture.runAsync(
-                    () -> {
-                        if (failFastTriggered.get() || Thread.currentThread().isInterrupted()) {
-                            return;
-                        }
-
-                        long branchStartedAt = System.currentTimeMillis();
-                        try {
-                            AgentState branchState = AgentUtils.deepCopyState(state);
-                            branchState.getAttributes().put("__branch_id__", branch.id());
-
-                            log.debug("并行分支 {} 开始执行，目标节点: {}", branch.id(), branch.target());
-
-                            AgentState branchOutputState = nodeExecutor.apply(branch.target(), branchState);
-
-                            if (Thread.currentThread().isInterrupted()) {
-                                log.warn("并行分支 {} 被中断", branch.id());
-                                throw new InterruptedException("Branch execution was interrupted");
-                            }
-
-                            long branchDuration = System.currentTimeMillis() - branchStartedAt;
-
-                            BranchResult result = new BranchResult(
-                                    branch.id(),
-                                    branch.target(),
-                                    true,
-                                    branchOutputState,
-                                    null,
-                                    branchDuration,
-                                    extractAppendedMessages(state, branchOutputState),
-                                    extractInputTokens(branchOutputState),
-                                    extractOutputTokens(branchOutputState));
-
-                            results.put(branch.id(), result);
-
-                            log.debug("并行分支 {} 执行完成，耗时: {}ms", branch.id(), branchDuration);
-
-                        } catch (Exception e) {
-                            long branchDuration = System.currentTimeMillis() - branchStartedAt;
-                            log.error("并行分支 {} 执行失败，耗时: {}ms", branch.id(), branchDuration, e);
-
-                            errors.put(branch.id(), e);
-                            firstError.compareAndSet(null, e);
-
-                            BranchResult result = new BranchResult(
-                                    branch.id(),
-                                    branch.target(),
-                                    false,
-                                    null,
-                                    e.getMessage(),
-                                    branchDuration,
-                                    null,
-                                    null,
-                                    null);
-
-                            results.put(branch.id(), result);
-
-                            if ("failFast".equals(errorStrategy)) {
-                                failFastTriggered.set(true);
-                            }
-                        }
-                    },
-                    executor);
-
-            futures.add(future);
+            FutureTask<BranchResult> futureTask = new FutureTask<>(
+                    () -> executeBranch(state, nodeExecutor, branch, errorStrategy, failFastTriggered));
+            executor.execute(futureTask);
+            branchTasks.add(new BranchTask(branch, futureTask));
         }
 
         try {
-            CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-
             if (waitAll) {
-                allFutures.get(timeout, TimeUnit.MILLISECONDS);
+                collectAllBranchResults(branchTasks, timeout, results, errors, cancellations);
             } else {
-                CompletableFuture.anyOf(futures.toArray(new CompletableFuture[0]))
-                        .get(timeout, TimeUnit.MILLISECONDS);
-                futures.forEach(f -> f.cancel(true));
+                waitForAnyBranch(branchTasks, timeout);
+                cancelUnfinishedBranches(branchTasks);
+                collectSettledBranchResults(branchTasks, results, errors, cancellations);
             }
         } catch (TimeoutException e) {
             log.warn("并行节点执行超时 {}ms，强制取消所有分支", timeout);
-            futures.forEach(f -> f.cancel(true));
+            cancelUnfinishedBranches(branchTasks);
+            collectSettledBranchResults(branchTasks, results, errors, cancellations);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("并行节点执行被中断", e);
-            futures.forEach(f -> f.cancel(true));
-        } catch (ExecutionException e) {
-            log.error("并行节点执行异常", e.getCause());
+            cancelUnfinishedBranches(branchTasks);
+            collectSettledBranchResults(branchTasks, results, errors, cancellations);
         }
 
         if (failFastTriggered.get() && "failFast".equals(errorStrategy)) {
             log.warn("并行节点因 failFast 策略取消其他分支");
-            futures.forEach(f -> f.cancel(true));
+            cancelUnfinishedBranches(branchTasks);
+            collectSettledBranchResults(branchTasks, results, errors, cancellations);
         }
 
         long totalDuration = System.currentTimeMillis() - startTime;
@@ -225,11 +161,196 @@ public class ParallelNode implements AgentNode {
             Map<String, String> errorMessages = new HashMap<>();
             errors.forEach((id, e) -> errorMessages.put(id, e.getMessage()));
             state.getAttributes().put(PARALLEL_ERRORS_KEY, errorMessages);
+        } else {
+            state.getAttributes().remove(PARALLEL_ERRORS_KEY);
         }
 
-        log.info("并行节点执行完成，成功: {}, 失败: {}, 总耗时: {}ms", results.size() - errors.size(), errors.size(), totalDuration);
+        long successCount =
+                results.values().stream().filter(BranchResult::success).count();
+        long cancelledCount =
+                results.values().stream().filter(BranchResult::cancelled).count();
+        log.info(
+                "并行节点执行完成，成功: {}, 失败: {}, 取消: {}, 总耗时: {}ms",
+                successCount,
+                errors.size(),
+                cancelledCount,
+                totalDuration);
 
         return new ExecutionResult(state, joinNode);
+    }
+
+    private BranchResult executeBranch(
+            AgentState state,
+            BiFunction<String, AgentState, AgentState> nodeExecutor,
+            BranchConfig branch,
+            String errorStrategy,
+            AtomicBoolean failFastTriggered) {
+        long branchStartedAt = System.currentTimeMillis();
+        if (failFastTriggered.get() || Thread.currentThread().isInterrupted()) {
+            return cancelledBranchResult(branch, branchStartedAt, "Branch execution was cancelled before start");
+        }
+        try {
+            AgentState branchState = AgentUtils.deepCopyState(state);
+            branchState.getAttributes().put("__branch_id__", branch.id());
+
+            log.debug("并行分支 {} 开始执行，目标节点: {}", branch.id(), branch.target());
+
+            AgentState branchOutputState = nodeExecutor.apply(branch.target(), branchState);
+
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException("Branch execution was interrupted");
+            }
+
+            long branchDuration = System.currentTimeMillis() - branchStartedAt;
+            log.debug("并行分支 {} 执行完成，耗时: {}ms", branch.id(), branchDuration);
+            return new BranchResult(
+                    branch.id(),
+                    branch.target(),
+                    true,
+                    false,
+                    branchOutputState,
+                    null,
+                    branchDuration,
+                    extractAppendedMessages(state, branchOutputState),
+                    extractInputTokens(branchOutputState),
+                    extractOutputTokens(branchOutputState));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            long branchDuration = System.currentTimeMillis() - branchStartedAt;
+            log.warn("并行分支 {} 被取消，耗时: {}ms", branch.id(), branchDuration);
+            return new BranchResult(
+                    branch.id(), branch.target(), false, true, null, e.getMessage(), branchDuration, null, null, null);
+        } catch (Exception e) {
+            long branchDuration = System.currentTimeMillis() - branchStartedAt;
+            log.error("并行分支 {} 执行失败，耗时: {}ms", branch.id(), branchDuration, e);
+            if ("failFast".equals(errorStrategy)) {
+                failFastTriggered.set(true);
+            }
+            return new BranchResult(
+                    branch.id(), branch.target(), false, false, null, e.getMessage(), branchDuration, null, null, null);
+        }
+    }
+
+    private void collectAllBranchResults(
+            List<BranchTask> branchTasks,
+            long timeout,
+            Map<String, BranchResult> results,
+            Map<String, Throwable> errors,
+            Map<String, String> cancellations)
+            throws InterruptedException, TimeoutException {
+        long deadline = System.currentTimeMillis() + timeout;
+        for (BranchTask branchTask : branchTasks) {
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0) {
+                throw new TimeoutException("Parallel execution timed out");
+            }
+            collectBranchResult(branchTask, remaining, results, errors, cancellations);
+        }
+    }
+
+    private void waitForAnyBranch(List<BranchTask> branchTasks, long timeout)
+            throws InterruptedException, TimeoutException {
+        long deadline = System.currentTimeMillis() + timeout;
+        while (System.currentTimeMillis() < deadline) {
+            for (BranchTask branchTask : branchTasks) {
+                if (branchTask.future().isDone()) {
+                    return;
+                }
+            }
+            TimeUnit.MILLISECONDS.sleep(10);
+        }
+        throw new TimeoutException("Parallel execution timed out");
+    }
+
+    private void cancelUnfinishedBranches(List<BranchTask> branchTasks) {
+        for (BranchTask branchTask : branchTasks) {
+            if (!branchTask.future().isDone()) {
+                branchTask.future().cancel(true);
+            }
+        }
+    }
+
+    private void collectSettledBranchResults(
+            List<BranchTask> branchTasks,
+            Map<String, BranchResult> results,
+            Map<String, Throwable> errors,
+            Map<String, String> cancellations) {
+        for (BranchTask branchTask : branchTasks) {
+            if (results.containsKey(branchTask.branch().id())) {
+                continue;
+            }
+            if (branchTask.future().isCancelled()) {
+                BranchResult cancelled = cancelledBranchResult(
+                        branchTask.branch(), System.currentTimeMillis(), "Branch execution was cancelled");
+                storeBranchResult(cancelled, results, errors, cancellations, null);
+                continue;
+            }
+            if (!branchTask.future().isDone()) {
+                continue;
+            }
+            try {
+                collectBranchResult(branchTask, 1, results, errors, cancellations);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (TimeoutException ignored) {
+                return;
+            }
+        }
+    }
+
+    private void collectBranchResult(
+            BranchTask branchTask,
+            long timeoutMillis,
+            Map<String, BranchResult> results,
+            Map<String, Throwable> errors,
+            Map<String, String> cancellations)
+            throws InterruptedException, TimeoutException {
+        BranchResult result;
+        try {
+            result = branchTask.future().get(timeoutMillis, TimeUnit.MILLISECONDS);
+            storeBranchResult(result, results, errors, cancellations, null);
+        } catch (CancellationException e) {
+            result = cancelledBranchResult(
+                    branchTask.branch(), System.currentTimeMillis(), "Branch execution was cancelled");
+            storeBranchResult(result, results, errors, cancellations, e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            result = new BranchResult(
+                    branchTask.branch().id(),
+                    branchTask.branch().target(),
+                    false,
+                    false,
+                    null,
+                    cause.getMessage(),
+                    0L,
+                    null,
+                    null,
+                    null);
+            storeBranchResult(result, results, errors, cancellations, cause);
+        }
+    }
+
+    private void storeBranchResult(
+            BranchResult result,
+            Map<String, BranchResult> results,
+            Map<String, Throwable> errors,
+            Map<String, String> cancellations,
+            Throwable throwable) {
+        results.put(result.branchId(), result);
+        if (result.cancelled()) {
+            cancellations.put(result.branchId(), result.errorMessage());
+            return;
+        }
+        if (!result.success()) {
+            Throwable error = throwable == null ? new RuntimeException(result.errorMessage()) : throwable;
+            errors.put(result.branchId(), error);
+        }
+    }
+
+    private BranchResult cancelledBranchResult(BranchConfig branch, long startedAt, String message) {
+        long duration = Math.max(0L, System.currentTimeMillis() - startedAt);
+        return new BranchResult(branch.id(), branch.target(), false, true, null, message, duration, null, null, null);
     }
 
     private List<BranchConfig> parseBranches(List<?> branchList) {
@@ -292,6 +413,8 @@ public class ParallelNode implements AgentNode {
 
     private record BranchConfig(String id, String target) {}
 
+    private record BranchTask(BranchConfig branch, FutureTask<BranchResult> future) {}
+
     /**
      * 分支执行结果
      */
@@ -299,6 +422,7 @@ public class ParallelNode implements AgentNode {
             String branchId,
             String targetNode,
             boolean success,
+            boolean cancelled,
             AgentState outputState,
             String errorMessage,
             long durationMs,
@@ -311,6 +435,7 @@ public class ParallelNode implements AgentNode {
             map.put("branchId", branchId);
             map.put("targetNode", targetNode);
             map.put("success", success);
+            map.put("cancelled", cancelled);
             map.put("durationMs", durationMs);
             if (errorMessage != null) {
                 map.put("errorMessage", errorMessage);
