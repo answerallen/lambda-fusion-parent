@@ -25,9 +25,11 @@ import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
 import com.lambda.fusion.core.utils.AuthUtils;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.bsc.langgraph4j.RunnableConfig;
@@ -304,6 +306,92 @@ class WorkflowExecutionServiceImplTest {
             assertThat(status.getInterrupted()).isTrue();
             assertThat(status.getWaitingForInput()).isTrue();
             assertThat(status.getAnswer()).isEqualTo("waiting user input");
+        }
+    }
+
+    @Test
+    void shouldPersistFailedGraphStateWhenExecutionThrowsAgentGraphExecutionException() throws Exception {
+        WorkflowExecutionServiceImpl service = newMockedService(new MemorySaver());
+        WorkflowExecutionRequest request = new WorkflowExecutionRequest();
+        request.setSessionId("session-1");
+
+        try (MockedStatic<AuthUtils> authUtils = org.mockito.Mockito.mockStatic(AuthUtils.class)) {
+            authUtils.when(AuthUtils::getTenantId).thenReturn(null);
+
+            WorkflowEntity workflow = workflow("wf-1");
+            when(workflowMapper.selectById("wf-1")).thenReturn(workflow);
+            when(agentGraphFactory.buildFromDefinition(eq(workflow.getGraphJson()), any()))
+                    .thenReturn(graph);
+            when(executionMapper.insert(any(WorkflowExecutionEntity.class))).thenAnswer(invocation -> {
+                WorkflowExecutionEntity entity = invocation.getArgument(0);
+                entity.setId("exec-1");
+                return 1;
+            });
+
+            AgentState failedState = new AgentState();
+            failedState.setMessages(new ArrayList<>(List.of(AiMessage.from("route failed answer"))));
+            failedState.setAttributes(new HashMap<>(Map.of(
+                    AgentGraph.CURRENT_NODE_ID_ATTRIBUTE,
+                    "startNode",
+                    "__routing_error__",
+                    "No matching outgoing edge found for node: startNode",
+                    AgentGraph.EXECUTION_STATS_ATTRIBUTE,
+                    new HashMap<>(Map.of("failed", true)),
+                    AgentGraph.EXECUTION_TRACE_ATTRIBUTE,
+                    new ArrayList<>(List.of(Map.of("kind", "route"))))));
+
+            when(graph.invokeOptional(any(AgentState.class), any()))
+                    .thenThrow(new AgentGraph.AgentGraphExecutionException("route failed", failedState));
+
+            assertThatThrownBy(() -> service.execute("wf-1", request)).isInstanceOf(AiBusinessException.class);
+
+            ArgumentCaptor<WorkflowExecutionEntity> entityCaptor =
+                    ArgumentCaptor.forClass(WorkflowExecutionEntity.class);
+            verify(executionMapper).updateById(entityCaptor.capture());
+            WorkflowExecutionEntity updated = entityCaptor.getValue();
+            assertThat(updated.getStatus()).isEqualTo("FAILED");
+            assertThat(updated.getErrorMessage()).isEqualTo("route failed");
+            assertThat(updated.getOutputResult()).contains("routingError");
+            assertThat(updated.getExecutionLog()).contains("trace").contains("stats");
+        }
+    }
+
+    @Test
+    void shouldNormalizeGraphExecutionExceptionForStreamExecution() throws Exception {
+        WorkflowExecutionServiceImpl service = newMockedService(new MemorySaver());
+        WorkflowExecutionRequest request = new WorkflowExecutionRequest();
+        request.setSessionId("session-1");
+        StreamingChatResponseHandler handler = org.mockito.Mockito.mock(StreamingChatResponseHandler.class);
+
+        try (MockedStatic<AuthUtils> authUtils = org.mockito.Mockito.mockStatic(AuthUtils.class)) {
+            authUtils.when(AuthUtils::getTenantId).thenReturn(null);
+
+            WorkflowEntity workflow = workflow("wf-1");
+            when(workflowMapper.selectById("wf-1")).thenReturn(workflow);
+            when(agentGraphFactory.buildFromDefinition(eq(workflow.getGraphJson()), any()))
+                    .thenReturn(graph);
+            when(executionMapper.insert(any(WorkflowExecutionEntity.class))).thenAnswer(invocation -> {
+                WorkflowExecutionEntity entity = invocation.getArgument(0);
+                entity.setId("exec-2");
+                return 1;
+            });
+
+            AgentState failedState = new AgentState();
+            failedState.setAttributes(new HashMap<>(Map.of(
+                    AgentGraph.CURRENT_NODE_ID_ATTRIBUTE,
+                    "streamNode",
+                    "__routing_error__",
+                    "No matching outgoing edge found for node: streamNode")));
+
+            RuntimeException wrapped = new RuntimeException(
+                    new AgentGraph.AgentGraphExecutionException("stream route failed", failedState));
+            when(graph.stream(any(AgentState.class), any())).thenThrow(wrapped);
+
+            assertThatThrownBy(() -> service.executeStream("wf-1", request, handler))
+                    .isInstanceOf(AiBusinessException.class)
+                    .hasRootCauseInstanceOf(AgentGraph.AgentGraphExecutionException.class);
+
+            verify(handler).onError(any(AgentGraph.AgentGraphExecutionException.class));
         }
     }
 

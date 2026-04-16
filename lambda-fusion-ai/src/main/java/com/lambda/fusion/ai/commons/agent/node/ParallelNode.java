@@ -124,7 +124,8 @@ public class ParallelNode implements AgentNode {
 
         try {
             if (waitAll) {
-                collectAllBranchResults(branchTasks, timeout, results, errors, cancellations);
+                collectAllBranchResults(
+                        branchTasks, timeout, errorStrategy, failFastTriggered, results, errors, cancellations);
             } else {
                 waitForAnyBranch(branchTasks, timeout);
                 cancelUnfinishedBranches(branchTasks);
@@ -234,17 +235,46 @@ public class ParallelNode implements AgentNode {
     private void collectAllBranchResults(
             List<BranchTask> branchTasks,
             long timeout,
+            String errorStrategy,
+            AtomicBoolean failFastTriggered,
             Map<String, BranchResult> results,
             Map<String, Throwable> errors,
             Map<String, String> cancellations)
             throws InterruptedException, TimeoutException {
         long deadline = System.currentTimeMillis() + timeout;
+        Set<String> pendingBranches = new HashSet<>();
         for (BranchTask branchTask : branchTasks) {
-            long remaining = deadline - System.currentTimeMillis();
-            if (remaining <= 0) {
-                throw new TimeoutException("Parallel execution timed out");
+            pendingBranches.add(branchTask.branch().id());
+        }
+
+        while (!pendingBranches.isEmpty()) {
+            if (failFastTriggered.get() && "failFast".equals(errorStrategy)) {
+                cancelUnfinishedBranches(branchTasks);
+                collectSettledBranchResults(branchTasks, results, errors, cancellations);
+                return;
             }
-            collectBranchResult(branchTask, remaining, results, errors, cancellations);
+
+            boolean progressed = false;
+            for (BranchTask branchTask : branchTasks) {
+                String branchId = branchTask.branch().id();
+                if (!pendingBranches.contains(branchId)) {
+                    continue;
+                }
+                if (!branchTask.future().isDone() && !branchTask.future().isCancelled()) {
+                    continue;
+                }
+                collectBranchResult(branchTask, 1, results, errors, cancellations);
+                pendingBranches.remove(branchId);
+                progressed = true;
+            }
+
+            if (!pendingBranches.isEmpty() && !progressed) {
+                long remaining = deadline - System.currentTimeMillis();
+                if (remaining <= 0) {
+                    throw new TimeoutException("Parallel execution timed out");
+                }
+                TimeUnit.MILLISECONDS.sleep(Math.min(10L, remaining));
+            }
         }
     }
 

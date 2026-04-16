@@ -25,7 +25,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.StopWatch;
 
-public class AgentGraphIssuesVerificationTest {
+public class AgentGraphVerificationTest {
 
     @Test
     @DisplayName("AgentGraph 能正确回写新增消息并记录 messageDelta")
@@ -124,7 +124,7 @@ public class AgentGraphIssuesVerificationTest {
     }
 
     @Test
-    @DisplayName("ParallelNode failFast 并未立即中断主线程等待")
+    @DisplayName("ParallelNode failFast 会尽快中断主线程等待")
     void verifyParallelFailFastSemantics() {
         Executor executor = Executors.newFixedThreadPool(2);
         ParallelNode parallelNode = new ParallelNode(executor);
@@ -152,8 +152,7 @@ public class AgentGraphIssuesVerificationTest {
         long duration = stopWatch.getTotalTimeMillis();
 
         System.out.println("failFast 模式下包含一个立即失败分支和一个 1 秒休眠分支，总耗时: " + duration + " ms");
-        // 虽然配置了 failFast，但主线程因为 waitAll=true 依然等待了 1000ms
-        assertThat(duration).isGreaterThanOrEqualTo(900);
+        assertThat(duration).isLessThan(900);
     }
 
     private static @NonNull AgentState getAgentState() {

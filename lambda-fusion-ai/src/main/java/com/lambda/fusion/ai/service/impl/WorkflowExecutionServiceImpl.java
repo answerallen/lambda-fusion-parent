@@ -124,8 +124,9 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
 
         } catch (Exception e) {
             log.error("工作流执行失败, workflowId={}", workflowId, e);
-            updateExecutionFailure(execution, e);
-            throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, e);
+            Throwable normalized = normalizeExecutionFailure(e);
+            updateExecutionFailure(execution, normalized);
+            throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, normalized);
         }
     }
 
@@ -171,9 +172,10 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
 
         } catch (Exception e) {
             log.error("流式执行工作流失败, workflowId={}", workflowId, e);
-            updateExecutionFailure(execution, e);
-            handler.onError(e);
-            throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, e);
+            Throwable normalized = normalizeExecutionFailure(e);
+            updateExecutionFailure(execution, normalized);
+            handler.onError(normalized);
+            throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, normalized);
         }
     }
 
@@ -215,8 +217,9 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             throw e;
         } catch (Exception e) {
             log.error("恢复工作流执行失败, workflowId={}, threadId={}", workflowId, threadId, e);
-            updateExecutionFailure(execution, e);
-            throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, e);
+            Throwable normalized = normalizeExecutionFailure(e);
+            updateExecutionFailure(execution, normalized);
+            throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, normalized);
         }
     }
 
@@ -730,6 +733,29 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             execution.setErrorCode("EXECUTION_ERROR");
             execution.setErrorMessage(error.getMessage());
 
+            AgentState failedState = extractFailedState(error);
+            if (failedState != null) {
+                Map<String, Object> outputResult = new LinkedHashMap<>();
+                outputResult.put("answer", extractAnswer(failedState));
+                outputResult.put("finished", failedState.isFinished());
+                outputResult.put(
+                        "nextNode", asText(failedState.getAttributes().get(AgentGraph.CURRENT_NODE_ID_ATTRIBUTE)));
+                outputResult.put(
+                        "routingError", asText(failedState.getAttributes().get("__routing_error__")));
+                outputResult.put(
+                        "promptTokens",
+                        AgentUtils.asInt(failedState.getAttributes().get("promptTokens")));
+                outputResult.put(
+                        "completionTokens",
+                        AgentUtils.asInt(failedState.getAttributes().get("completionTokens")));
+                execution.setOutputResult(objectMapper.writeValueAsString(outputResult));
+
+                Map<String, Object> log = new LinkedHashMap<>();
+                log.put("trace", failedState.getExecutionTrace());
+                log.put("stats", failedState.getExecutionStats());
+                execution.setExecutionLog(objectMapper.writeValueAsString(log));
+            }
+
             StringWriter sw = new StringWriter();
             error.printStackTrace(new PrintWriter(sw));
             execution.setErrorStack(sw.toString());
@@ -803,13 +829,43 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     }
 
     private AgentState executeGraphStream(AgentGraph graph, AgentState state, RunnableConfig runnableConfig) {
-        NodeOutput<AgentGraph.LangGraphRuntimeState> finalOutput = graph.stream(state, runnableConfig)
-                .<NodeOutput<AgentGraph.LangGraphRuntimeState>>reduce(null, (acc, output) -> output)
-                .join();
+        NodeOutput<AgentGraph.LangGraphRuntimeState> finalOutput;
+        try {
+            finalOutput = graph.stream(state, runnableConfig)
+                    .<NodeOutput<AgentGraph.LangGraphRuntimeState>>reduce(null, (acc, output) -> output)
+                    .join();
+        } catch (RuntimeException e) {
+            Throwable normalized = normalizeExecutionFailure(e);
+            if (normalized instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw new RuntimeException(normalized);
+        }
         if (finalOutput == null || finalOutput.state() == null) {
             return state;
         }
         return finalOutput.state().agentState();
+    }
+
+    private Throwable normalizeExecutionFailure(Throwable error) {
+        AgentGraph.AgentGraphExecutionException graphExecutionException = findGraphExecutionException(error);
+        return graphExecutionException != null ? graphExecutionException : error;
+    }
+
+    private AgentGraph.AgentGraphExecutionException findGraphExecutionException(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof AgentGraph.AgentGraphExecutionException executionException) {
+                return executionException;
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    private AgentState extractFailedState(Throwable error) {
+        AgentGraph.AgentGraphExecutionException executionException = findGraphExecutionException(error);
+        return executionException != null ? executionException.getState() : null;
     }
 
     private WorkflowExecutionStatus mapToExecutionStatus(
