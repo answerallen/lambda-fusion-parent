@@ -741,7 +741,7 @@
     <!-- ========================================== -->
     <!-- 【PostgreSQL】AI机器人表 ai_robot -->
     <!-- ========================================== -->
-    <changeSet id="lambda-fusion-ai-20260406001011-pg" author="Jin">
+    <changeSet id="lambda-fusion-ai-20260406001091-pg" author="Jin">
         <preConditions onFail="MARK_RAN">
             <and>
                 <not>
@@ -776,6 +776,8 @@
             <column name="suggested_questions" type="jsonb"/>
             <column name="enable_follow_up" type="boolean" defaultValueBoolean="true"/>
             <column name="publish_channels" type="jsonb"/>
+            <column name="created_by" type="varchar(64)"/>
+            <column name="updated_by" type="varchar(64)"/>
             <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>

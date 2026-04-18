@@ -7,12 +7,12 @@ import com.lambda.fusion.datasource.commons.tenant.TenantIsolationResolver;
 import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-@ConditionalOnClass(TenantSchemaInitializer.class)
+@ConditionalOnBean({TenantDataSourceManager.class, DynamicRoutingDataSource.class, TenantSchemaInitializer.class})
 public class TenantProvisioningProvisioner extends AbstractTenantDataSourceProvisioner {
 
     private final DatabaseSchemaInitializer DatabaseSchemaInitializer;

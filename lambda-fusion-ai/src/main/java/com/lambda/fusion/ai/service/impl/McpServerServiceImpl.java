@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
+import com.lambda.fusion.ai.commons.datasource.TenantDataSourceHelper;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.commons.support.mcp.McpClientManager;
@@ -13,11 +14,13 @@ import com.lambda.fusion.ai.model.UpdateMcpServer;
 import com.lambda.fusion.ai.model.entity.McpServerEntity;
 import com.lambda.fusion.ai.service.McpServerService;
 import com.lambda.fusion.core.utils.AuthUtils;
+import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -39,6 +42,7 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
     private final McpServerMapper mcpServerMapper;
     private final McpClientManager mcpClientManager;
     private final AgentToolProvider agentToolProvider;
+    private final ObjectProvider<TenantDataSourceHelper> tenantDataSourceHelperProvider;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -219,9 +223,10 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
      * 在事务提交后失效缓存并异步刷新 MCP 工具，避免读取到未提交数据。
      */
     private void refreshToolsAfterCommit(String mcpServerId) {
+        String tenantId = AuthUtils.getTenantId();
         Runnable task = () -> {
             mcpClientManager.invalidateCache(mcpServerId);
-            refreshToolsAsync();
+            refreshToolsAsync(tenantId);
         };
         if (TransactionSynchronizationManager.isSynchronizationActive()
                 && TransactionSynchronizationManager.isActualTransactionActive()) {
@@ -236,11 +241,18 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
         task.run();
     }
 
-    private void refreshToolsAsync() {
+    private void refreshToolsAsync(String tenantId) {
         try {
             Thread.ofVirtual().name("mcp-refresh").start(() -> {
+                TenantDataSourceHelper tenantDataSourceHelper = tenantDataSourceHelperProvider.getIfAvailable();
                 try {
-                    agentToolProvider.refreshMcpTools();
+                    if (tenantDataSourceHelper == null) {
+                        agentToolProvider.refreshMcpTools();
+                        return;
+                    }
+                    try (DataSourceSwitcher ignored = tenantDataSourceHelper.switchToResolvedDataSource(tenantId)) {
+                        agentToolProvider.refreshMcpTools();
+                    }
                 } catch (Exception e) {
                     log.warn("McpServerServiceImpl: 异步刷新 MCP 工具列表失败: {}", e.getMessage());
                 }

@@ -1,13 +1,14 @@
 package com.lambda.fusion.ai.commons.aspect;
 
+import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.ai.commons.datasource.TenantDataSourceHelper;
-import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -29,12 +30,16 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TenantDataSourceAspect {
 
-    private final TenantDataSourceHelper tenantDataSourceHelper;
+    private final ObjectProvider<TenantDataSourceHelper> tenantDataSourceHelperProvider;
 
     @Around("execution(* com.lambda.fusion.ai.service..*.*(..))")
     public Object aroundServiceMethods(ProceedingJoinPoint joinPoint) throws Throwable {
-        String tenantId = AuthUtils.getTenantId();
-        String targetDataSource = resolveTargetDataSource(tenantId);
+        TenantDataSourceHelper tenantDataSourceHelper = tenantDataSourceHelperProvider.getIfAvailable();
+        if (tenantDataSourceHelper == null) {
+            return joinPoint.proceed();
+        }
+        String tenantId = OperatorUtils.getSafeOperator().getTenantId();
+        String targetDataSource = tenantDataSourceHelper.resolveTargetDataSourceName(tenantId);
 
         log.debug(
                 "AI Service 数据源切换: 方法={}, 租户ID={}, 目标数据源={}",
@@ -45,9 +50,5 @@ public class TenantDataSourceAspect {
         try (DataSourceSwitcher ignored = DataSourceSwitcher.switchTo(targetDataSource)) {
             return joinPoint.proceed();
         }
-    }
-
-    private String resolveTargetDataSource(String tenantId) {
-        return tenantDataSourceHelper.resolveTargetDataSourceName(tenantId);
     }
 }

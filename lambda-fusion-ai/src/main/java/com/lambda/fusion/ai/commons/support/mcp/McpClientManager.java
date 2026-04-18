@@ -2,10 +2,12 @@ package com.lambda.fusion.ai.commons.support.mcp;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.McpServerMapper;
 import com.lambda.fusion.ai.model.entity.McpServerEntity;
+import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;
@@ -50,6 +52,7 @@ public class McpClientManager {
 
     private final McpServerMapper mcpServerMapper;
     private final ObjectMapper objectMapper;
+    private final AiProperties aiProperties;
 
     /**
      * McpClient 实例缓存（key = McpServer.id）
@@ -74,15 +77,18 @@ public class McpClientManager {
      */
     public McpClient getClient(String mcpServerId) {
         return clientCache.get(mcpServerId, id -> {
-            McpServerEntity entity = mcpServerMapper.selectById(id);
-            if (entity == null) {
-                throw new AiBusinessException(AiErrorCode.MCP_SERVER_NOT_FOUND, "MCP服务器不存在: " + id);
+            try (DataSourceSwitcher ignored =
+                    DataSourceSwitcher.switchTo(aiProperties.getDataSource().getName())) {
+                McpServerEntity entity = mcpServerMapper.selectById(id);
+                if (entity == null) {
+                    throw new AiBusinessException(AiErrorCode.MCP_SERVER_NOT_FOUND, "MCP服务器不存在: " + id);
+                }
+                if (!Boolean.TRUE.equals(entity.getEnabled())) {
+                    throw new AiBusinessException(AiErrorCode.MCP_SERVER_DISABLED, "MCP服务器已禁用: " + id);
+                }
+                log.info("McpClientManager: 创建新 McpClient，服务器: {} ({})", entity.getName(), entity.getTransportType());
+                return buildClient(entity);
             }
-            if (!Boolean.TRUE.equals(entity.getEnabled())) {
-                throw new AiBusinessException(AiErrorCode.MCP_SERVER_DISABLED, "MCP服务器已禁用: " + id);
-            }
-            log.info("McpClientManager: 创建新 McpClient，服务器: {} ({})", entity.getName(), entity.getTransportType());
-            return buildClient(entity);
         });
     }
 
@@ -94,23 +100,26 @@ public class McpClientManager {
      * @return 所有已启用并成功连接的 McpClient 列表（若某个服务器连接失败则跳过）
      */
     public List<McpClient> getAllEnabledClients() {
-        List<McpServerEntity> servers = mcpServerMapper.selectEnabled();
-        if (servers == null || servers.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<McpClient> clients = new ArrayList<>();
-        for (McpServerEntity server : servers) {
-            try {
-                McpClient client = getClient(server.getId());
-                client.checkHealth();
-                clients.add(client);
-            } catch (Exception e) {
-                invalidateCache(server.getId());
-                log.warn("McpClientManager: 加载 MCP 服务器 '{}' 失败，已跳过: {}", server.getName(), e.getMessage());
+        try (DataSourceSwitcher ignored =
+                DataSourceSwitcher.switchTo(aiProperties.getDataSource().getName())) {
+            List<McpServerEntity> servers = mcpServerMapper.selectEnabled();
+            if (servers == null || servers.isEmpty()) {
+                return Collections.emptyList();
             }
+            List<McpClient> clients = new ArrayList<>();
+            for (McpServerEntity server : servers) {
+                try {
+                    McpClient client = getClient(server.getId());
+                    client.checkHealth();
+                    clients.add(client);
+                } catch (Exception e) {
+                    invalidateCache(server.getId());
+                    log.warn("McpClientManager: 加载 MCP 服务器 '{}' 失败，已跳过: {}", server.getName(), e.getMessage());
+                }
+            }
+            log.info("McpClientManager: 共加载 {}/{} 个 MCP 服务器客户端", clients.size(), servers.size());
+            return clients;
         }
-        log.info("McpClientManager: 共加载 {}/{} 个 MCP 服务器客户端", clients.size(), servers.size());
-        return clients;
     }
 
     /**

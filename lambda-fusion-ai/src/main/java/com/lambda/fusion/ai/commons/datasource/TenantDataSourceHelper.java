@@ -9,12 +9,12 @@ import com.lambda.fusion.datasource.commons.tenant.TenantDataSourceManager;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-@ConditionalOnClass(TenantDataSourceManager.class)
+@ConditionalOnBean(TenantDataSourceManager.class)
 public class TenantDataSourceHelper {
 
     private final TenantDataSourceManager tenantDataSourceManager;
