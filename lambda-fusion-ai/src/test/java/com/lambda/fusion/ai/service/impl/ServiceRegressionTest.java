@@ -49,7 +49,6 @@ class ServiceRegressionTest {
                 promptTemplateMapper,
                 embeddingModelManager,
                 new VectorDimensionProcessor(),
-                null,
                 null);
 
         assertThatThrownBy(() -> service.retrieve("hello", "kb-1", null, null))

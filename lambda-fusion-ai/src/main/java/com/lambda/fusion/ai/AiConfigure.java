@@ -68,6 +68,20 @@ public class AiConfigure {
     }
 
     @Bean
+    public Executor agentStreamExecutor(AiProperties aiProperties) {
+        AiProperties.ParallelExecutorConfig config = aiProperties.getAgent().getParallelExecutor();
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setMaxPoolSize(config.getMaxPoolSize());
+        executor.setCorePoolSize(config.getCorePoolSize());
+        executor.setQueueCapacity(config.getQueueCapacity());
+        executor.setThreadNamePrefix(config.getThreadNamePrefix() + "stream-");
+        executor.setKeepAliveSeconds(config.getKeepAliveSeconds());
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean
     public MemorySaver workflowCheckpointSaver() {
         return new MemorySaver();
     }
@@ -99,7 +113,7 @@ public class AiConfigure {
             RateLimiterConfig config = RateLimiterConfig.custom()
                     .limitForPeriod(60)
                     .limitRefreshPeriod(Duration.ofMinutes(1))
-                    .timeoutDuration(Duration.ofSeconds(30))
+                    .timeoutDuration(Duration.ofSeconds(1))
                     .build();
 
             return registry.rateLimiter(LLM_RATE_LIMITER, config);

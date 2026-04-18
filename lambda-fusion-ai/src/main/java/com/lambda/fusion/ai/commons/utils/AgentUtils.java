@@ -8,11 +8,7 @@ import com.lambda.fusion.ai.commons.agent.AgentNode;
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
 import dev.langchain4j.data.message.UserMessage;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
@@ -28,6 +24,17 @@ import org.springframework.util.StringUtils;
 @Slf4j
 @UtilityClass
 public class AgentUtils {
+
+    public <T> T get(Supplier<T> supplier) throws Throwable {
+        try {
+            return supplier.get();
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof Exception) {
+                throw e.getCause();
+            }
+            throw e;
+        }
+    }
 
     public Integer resolveInteger(Map<String, Object> nodeProperties, String... keys) {
         Object value = AgentUtils.firstNonNull(nodeProperties, keys);

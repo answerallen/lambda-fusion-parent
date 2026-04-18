@@ -26,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 
 @ExtendWith(MockitoExtension.class)
 class AgentAggregatorNodeTest {
@@ -43,11 +44,11 @@ class AgentAggregatorNodeTest {
     @DisplayName("AGENT_AGGREGATOR 会汇总结果并写回消息与属性")
     void shouldAggregateResultsAndWriteBackState() {
         AgentAggregatorNode node = new AgentAggregatorNode(
+                chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
-        node.setChatModelFactory(chatModelFactory);
 
         when(chatModelFactory.getChatModel("model-agg")).thenReturn(chatModel);
         when(chatModel.chat(any(ChatRequest.class)))
@@ -77,11 +78,11 @@ class AgentAggregatorNodeTest {
     @DisplayName("AGENT_AGGREGATOR 可作为中间汇总节点继续路由")
     void shouldContinueWorkflowWhenFinishDisabled() {
         AgentAggregatorNode node = new AgentAggregatorNode(
+                chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
-        node.setChatModelFactory(chatModelFactory);
 
         when(chatModelFactory.getChatModel("model-agg")).thenReturn(chatModel);
         when(chatModel.chat(any(ChatRequest.class)))
@@ -105,11 +106,11 @@ class AgentAggregatorNodeTest {
     @DisplayName("AGENT_AGGREGATOR 使用结构化 JSON 构造聚合输入")
     void shouldBuildStructuredJsonAggregationInput() {
         AgentAggregatorNode node = new AgentAggregatorNode(
+                chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
-        node.setChatModelFactory(chatModelFactory);
 
         when(chatModelFactory.getChatModel("model-agg")).thenReturn(chatModel);
         when(chatModel.chat(any(ChatRequest.class)))
@@ -134,5 +135,12 @@ class AgentAggregatorNodeTest {
         assertThat(prompt).contains("\"parallelResults\"");
         assertThat(prompt).contains("\"reactAgentResults\"");
         assertThat(prompt).contains("\"currentNodeId\":\"aggregator-3\"");
+    }
+
+    private ObjectProvider<ChatModelFactory> chatModelFactoryProvider() {
+        @SuppressWarnings("unchecked")
+        ObjectProvider<ChatModelFactory> provider = org.mockito.Mockito.mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(chatModelFactory);
+        return provider;
     }
 }

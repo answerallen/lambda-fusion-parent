@@ -32,8 +32,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 /**
@@ -51,7 +50,7 @@ public class LlmProcessingNode implements AgentNode {
 
     public static final String NAME = "LLM_PROCESSOR";
 
-    private ChatModelFactory chatModelFactory;
+    private final ObjectProvider<ChatModelFactory> chatModelFactoryProvider;
     private final AgentToolProvider toolProvider;
     private final PromptTemplateService promptTemplateService;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
@@ -59,22 +58,18 @@ public class LlmProcessingNode implements AgentNode {
     private final RateLimiterRegistry rateLimiterRegistry;
 
     public LlmProcessingNode(
+            ObjectProvider<ChatModelFactory> chatModelFactoryProvider,
             AgentToolProvider toolProvider,
             PromptTemplateService promptTemplateService,
             CircuitBreakerRegistry circuitBreakerRegistry,
             RetryRegistry retryRegistry,
             RateLimiterRegistry rateLimiterRegistry) {
+        this.chatModelFactoryProvider = chatModelFactoryProvider;
         this.toolProvider = toolProvider;
         this.promptTemplateService = promptTemplateService;
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.retryRegistry = retryRegistry;
         this.rateLimiterRegistry = rateLimiterRegistry;
-    }
-
-    @Autowired
-    @Lazy
-    public void setChatModelFactory(ChatModelFactory chatModelFactory) {
-        this.chatModelFactory = chatModelFactory;
     }
 
     @Override
@@ -171,7 +166,7 @@ public class LlmProcessingNode implements AgentNode {
         ChatRequest request = requestBuilder.build();
 
         if (handler != null) {
-            StreamingChatModel streamingModel = chatModelFactory.getStreamingChatModel(modelId);
+            StreamingChatModel streamingModel = getChatModelFactory().getStreamingChatModel(modelId);
             CompletableFuture<ChatResponse> future = new CompletableFuture<>();
 
             StreamingChatResponseHandler innerHandler = new StreamingChatResponseHandler() {
@@ -183,6 +178,11 @@ public class LlmProcessingNode implements AgentNode {
                 @Override
                 public void onCompleteResponse(ChatResponse res) {
                     future.complete(res);
+                    if (res != null
+                            && res.aiMessage() != null
+                            && !res.aiMessage().hasToolExecutionRequests()) {
+                        handler.onCompleteResponse(res);
+                    }
                 }
 
                 @Override
@@ -195,9 +195,17 @@ public class LlmProcessingNode implements AgentNode {
             streamingModel.chat(request, innerHandler);
             return future.join();
         } else {
-            ChatModel chatModel = chatModelFactory.getChatModel(modelId);
+            ChatModel chatModel = getChatModelFactory().getChatModel(modelId);
             return chatModel.chat(request);
         }
+    }
+
+    private ChatModelFactory getChatModelFactory() {
+        ChatModelFactory factory = chatModelFactoryProvider.getIfAvailable();
+        if (factory == null) {
+            throw new IllegalStateException("ChatModelFactory 未初始化");
+        }
+        return factory;
     }
 
     private ExecutionResult handleResponse(AgentState nextState, ChatResponse response) {

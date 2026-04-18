@@ -29,8 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
@@ -51,27 +50,23 @@ public class SupervisorAgentNode implements AgentNode {
     private static final String DEFAULT_FINISH_TOKEN = "FINISH";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectProvider<ChatModelFactory> chatModelFactoryProvider;
     private final PromptTemplateService promptTemplateService;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final RetryRegistry retryRegistry;
     private final RateLimiterRegistry rateLimiterRegistry;
-    private ChatModelFactory chatModelFactory;
 
     public SupervisorAgentNode(
+            ObjectProvider<ChatModelFactory> chatModelFactoryProvider,
             PromptTemplateService promptTemplateService,
             CircuitBreakerRegistry circuitBreakerRegistry,
             RetryRegistry retryRegistry,
             RateLimiterRegistry rateLimiterRegistry) {
+        this.chatModelFactoryProvider = chatModelFactoryProvider;
         this.promptTemplateService = promptTemplateService;
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.retryRegistry = retryRegistry;
         this.rateLimiterRegistry = rateLimiterRegistry;
-    }
-
-    @Autowired
-    @Lazy
-    public void setChatModelFactory(ChatModelFactory chatModelFactory) {
-        this.chatModelFactory = chatModelFactory;
     }
 
     @Override
@@ -121,7 +116,6 @@ public class SupervisorAgentNode implements AgentNode {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private DecisionResult executeWithResilience(
             AgentState state,
             String modelId,
@@ -144,14 +138,7 @@ public class SupervisorAgentNode implements AgentNode {
         decoratedSupplier = Retry.decorateSupplier(retry, decoratedSupplier);
         decoratedSupplier = RateLimiter.decorateSupplier(rateLimiter, decoratedSupplier);
 
-        try {
-            return decoratedSupplier.get();
-        } catch (RuntimeException e) {
-            if (e.getCause() instanceof Exception) {
-                throw e.getCause();
-            }
-            throw e;
-        }
+        return AgentUtils.get(decoratedSupplier);
     }
 
     private DecisionResult doRouteDecision(
@@ -161,7 +148,7 @@ public class SupervisorAgentNode implements AgentNode {
             List<RouteCandidate> candidates,
             String defaultTarget,
             String finishToken) {
-        ChatModel model = chatModelFactory.getChatModel(modelId);
+        ChatModel model = getChatModelFactory().getChatModel(modelId);
         ChatRequest request = ChatRequest.builder()
                 .messages(buildMessages(state, systemPrompt))
                 .build();
@@ -326,4 +313,12 @@ public class SupervisorAgentNode implements AgentNode {
     private record RouteCandidate(String routeId, String targetNode, String description) {}
 
     private record DecisionResult(String nextNode, boolean finish, String rawDecision, String decisionSource) {}
+
+    private ChatModelFactory getChatModelFactory() {
+        ChatModelFactory factory = chatModelFactoryProvider.getIfAvailable();
+        if (factory == null) {
+            throw new IllegalStateException("ChatModelFactory 未初始化");
+        }
+        return factory;
+    }
 }

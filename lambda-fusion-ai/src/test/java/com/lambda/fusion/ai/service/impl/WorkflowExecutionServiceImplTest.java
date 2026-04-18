@@ -387,9 +387,7 @@ class WorkflowExecutionServiceImplTest {
                     new AgentGraph.AgentGraphExecutionException("stream route failed", failedState));
             when(graph.stream(any(AgentState.class), any())).thenThrow(wrapped);
 
-            assertThatThrownBy(() -> service.executeStream("wf-1", request, handler))
-                    .isInstanceOf(AiBusinessException.class)
-                    .hasRootCauseInstanceOf(AgentGraph.AgentGraphExecutionException.class);
+            service.executeStream("wf-1", request, handler);
 
             verify(handler).onError(any(AgentGraph.AgentGraphExecutionException.class));
         }

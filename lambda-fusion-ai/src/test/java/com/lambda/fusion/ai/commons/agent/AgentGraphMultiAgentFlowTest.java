@@ -34,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 
 @ExtendWith(MockitoExtension.class)
 class AgentGraphMultiAgentFlowTest {
@@ -66,25 +67,24 @@ class AgentGraphMultiAgentFlowTest {
     @DisplayName("AgentGraph 支持 SUPERVISOR_AGENT -> REACT_AGENT -> AGGREGATOR 端到端流转")
     void shouldExecuteSupervisorReactAggregatorFlow() {
         SupervisorAgentNode supervisor = new SupervisorAgentNode(
+                chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
         ReactAgentNode reactAgent = new ReactAgentNode(
+                chatModelFactoryProvider(),
                 toolProvider,
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
         AgentAggregatorNode aggregator = new AgentAggregatorNode(
+                chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
-
-        supervisor.setChatModelFactory(chatModelFactory);
-        reactAgent.setChatModelFactory(chatModelFactory);
-        aggregator.setChatModelFactory(chatModelFactory);
 
         when(toolProvider.getToolSpecifications()).thenReturn(List.of());
         when(chatModelFactory.getChatModel("supervisor-model")).thenReturn(supervisorModel);
@@ -143,11 +143,11 @@ class AgentGraphMultiAgentFlowTest {
     void shouldExecuteParallelAggregatorFlow() {
         ParallelNode parallelNode = new ParallelNode(Runnable::run);
         AgentAggregatorNode aggregator = new AgentAggregatorNode(
+                chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
-        aggregator.setChatModelFactory(chatModelFactory);
 
         when(chatModelFactory.getChatModel("aggregator-model")).thenReturn(aggregatorModel);
         when(aggregatorModel.chat(any(ChatRequest.class)))
@@ -230,20 +230,19 @@ class AgentGraphMultiAgentFlowTest {
     @DisplayName("AgentGraph 支持 SUBGRAPH 嵌套 REACT_AGENT 与 AGGREGATOR 的端到端流转")
     void shouldExecuteSubgraphWithReactAndAggregatorFlow() throws Exception {
         ReactAgentNode reactAgent = new ReactAgentNode(
+                chatModelFactoryProvider(),
                 toolProvider,
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
         AgentAggregatorNode aggregator = new AgentAggregatorNode(
+                chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
         SubgraphNode subgraphNode = new SubgraphNode(graphFactory, workflowService, Runnable::run, new AiProperties());
-
-        reactAgent.setChatModelFactory(chatModelFactory);
-        aggregator.setChatModelFactory(chatModelFactory);
 
         when(toolProvider.getToolSpecifications()).thenReturn(List.of());
         when(chatModelFactory.getChatModel("react-model")).thenReturn(reactModel);
@@ -290,5 +289,12 @@ class AgentGraphMultiAgentFlowTest {
         assertThat(result.getMessages().getLast()).isInstanceOf(AiMessage.class);
         assertThat(((AiMessage) result.getMessages().getLast()).text()).isEqualTo("子图最终结论");
         assertThat(result.getAttributes().get("subgraphAnswer")).isEqualTo("子图最终结论");
+    }
+
+    private ObjectProvider<ChatModelFactory> chatModelFactoryProvider() {
+        @SuppressWarnings("unchecked")
+        ObjectProvider<ChatModelFactory> provider = org.mockito.Mockito.mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(chatModelFactory);
+        return provider;
     }
 }

@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 
 @ExtendWith(MockitoExtension.class)
 class ReactAgentNodeTest {
@@ -48,12 +49,12 @@ class ReactAgentNodeTest {
     @DisplayName("REACT_AGENT 节点会回写 ReAct 执行结果到 AgentState")
     void shouldWriteBackReactAgentResult() {
         ReactAgentNode reactAgentNode = new ReactAgentNode(
+                chatModelFactoryProvider(),
                 toolProvider,
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
-        reactAgentNode.setChatModelFactory(chatModelFactory);
 
         when(chatModelFactory.getChatModel("model-1")).thenReturn(chatModel);
         when(toolProvider.getToolSpecifications()).thenReturn(List.of());
@@ -82,12 +83,12 @@ class ReactAgentNodeTest {
     @DisplayName("配置 finishOnResponse 时 REACT_AGENT 会结束当前工作流")
     void shouldFinishWorkflowWhenConfigured() {
         ReactAgentNode reactAgentNode = new ReactAgentNode(
+                chatModelFactoryProvider(),
                 toolProvider,
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
-        reactAgentNode.setChatModelFactory(chatModelFactory);
 
         when(chatModelFactory.getChatModel("model-2")).thenReturn(chatModel);
         when(toolProvider.getToolSpecifications()).thenReturn(List.of());
@@ -110,12 +111,12 @@ class ReactAgentNodeTest {
     @DisplayName("REACT_AGENT 支持工具调用闭环并回写工具消息")
     void shouldExecuteToolLoopAndWriteBackToolMessages() {
         ReactAgentNode reactAgentNode = new ReactAgentNode(
+                chatModelFactoryProvider(),
                 toolProvider,
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
-        reactAgentNode.setChatModelFactory(chatModelFactory);
 
         ToolExecutionRequest toolRequest = ToolExecutionRequest.builder()
                 .id("tool-call-1")
@@ -151,5 +152,12 @@ class ReactAgentNodeTest {
         assertThat(((Map<?, ?>) state.getAttributes().get("lastReactAgentResult")).get("toolMessageDelta"))
                 .isEqualTo(1);
         verify(toolProvider).executeTool(any(ToolExecutionRequest.class));
+    }
+
+    private ObjectProvider<ChatModelFactory> chatModelFactoryProvider() {
+        @SuppressWarnings("unchecked")
+        ObjectProvider<ChatModelFactory> provider = org.mockito.Mockito.mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(chatModelFactory);
+        return provider;
     }
 }

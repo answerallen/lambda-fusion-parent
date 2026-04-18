@@ -3,8 +3,7 @@ package com.lambda.fusion.ai.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.fusion.ai.commons.agent.AgentGraph;
 import com.lambda.fusion.ai.commons.agent.AgentState;
-import com.lambda.fusion.ai.commons.agent.node.LlmProcessingNode;
-import com.lambda.fusion.ai.commons.agent.node.ToolExecutingNode;
+import com.lambda.fusion.ai.commons.agent.factory.AgentGraphProvider;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
@@ -21,14 +20,11 @@ import com.lambda.fusion.ai.service.RagService;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
-import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.Response;
-import dev.langchain4j.model.output.TokenUsage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,11 +49,7 @@ public class RagServiceImpl implements RagService {
     private final PromptTemplateMapper promptTemplateMapper;
     private final EmbeddingModelManager embeddingModelManager;
     private final VectorDimensionProcessor vectorDimensionProcessor;
-
-    private final LlmProcessingNode llmProcessingNode;
-    private final ToolExecutingNode toolExecutingNode;
-
-    private volatile AgentGraph cachedAgentGraph;
+    private final AgentGraphProvider agentGraphProvider;
 
     @Override
     public List<VectorSearchResult> retrieve(String query, String kbId, Integer topK, Double minScore) {
@@ -196,8 +188,7 @@ public class RagServiceImpl implements RagService {
         }
         messages.add(prompt.toUserMessage());
 
-        // 复用 Graph 实例而不是每次创建新的
-        AgentGraph graph = buildAgentGraph();
+        AgentGraph graph = agentGraphProvider.getGraph();
 
         AgentState state = new AgentState();
         state.setLlmModelId(llmModelId);
@@ -236,7 +227,7 @@ public class RagServiceImpl implements RagService {
             StreamingChatResponseHandler handler) {
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(kbId);
         if (kb == null) {
-            throw new RuntimeException("知识库不存在");
+            throw new AiBusinessException(AiErrorCode.KNOWLEDGE_BASE_NOT_FOUND, "知识库不存在: " + kbId);
         }
 
         List<VectorSearchResult> searchResults = retrievedChunks;
@@ -260,8 +251,7 @@ public class RagServiceImpl implements RagService {
         }
         messages.add(prompt.toUserMessage());
 
-        // 复用 Graph 实例而不是每次创建新的
-        AgentGraph graph = buildAgentGraph();
+        AgentGraph graph = agentGraphProvider.getGraph();
 
         AgentState state = new AgentState();
         state.setLlmModelId(llmModelId);
@@ -271,26 +261,7 @@ public class RagServiceImpl implements RagService {
 
         state = graph.invoke(state);
 
-        // 当整个Graph退出时，意味着大模型多轮交涉彻底借束，此时我们手动调用真正的 Complete 供上层切断 SSE 发送
-        if (!state.getMessages().isEmpty()) {
-            ChatMessage lastMsg = state.getMessages().getLast();
-            if (lastMsg instanceof AiMessage) {
-                int pTokens = AgentUtils.asInt(state.getAttributes().get("promptTokens"));
-                int cTokens = AgentUtils.asInt(state.getAttributes().get("completionTokens"));
-                TokenUsage finalUsage = new TokenUsage(pTokens, cTokens);
-
-                // 伪造最终响应供上层闭环
-                ChatResponse finalResponse = ChatResponse.builder()
-                        .aiMessage((AiMessage) lastMsg)
-                        .tokenUsage(finalUsage)
-                        .finishReason(FinishReason.STOP)
-                        .build();
-
-                handler.onCompleteResponse(finalResponse);
-            } else {
-                handler.onError(new RuntimeException("AI未能产生最终响应"));
-            }
-        } else {
+        if (state.getMessages().isEmpty()) {
             handler.onError(new RuntimeException("Graph无响应状态"));
         }
     }
@@ -319,30 +290,5 @@ public class RagServiceImpl implements RagService {
 
         // 3. 最后保底：硬编码模板（不推荐，但为容错提供）
         return "基于以下背景回答问题:\n{{context}}\n\n问题: {{question}}";
-    }
-
-    /**
-     * 构建 Agent Graph（单例模式，双重检查锁定）
-     * <p>
-     * 使用局部变量避免半初始化对象暴露问题
-     */
-    private AgentGraph buildAgentGraph() {
-        AgentGraph graph = cachedAgentGraph;
-        if (graph == null) {
-            synchronized (this) {
-                graph = cachedAgentGraph;
-                if (graph == null) {
-                    log.info("初始化 AgentGraph 实例");
-                    AgentGraph newGraph = new AgentGraph()
-                            .addNode(LlmProcessingNode.NAME, llmProcessingNode)
-                            .addNode(ToolExecutingNode.NAME, toolExecutingNode)
-                            .addEdge(LlmProcessingNode.NAME, ToolExecutingNode.NAME, null, null)
-                            .addEdge(ToolExecutingNode.NAME, LlmProcessingNode.NAME, null, null)
-                            .setEntryPoint(LlmProcessingNode.NAME);
-                    cachedAgentGraph = graph = newGraph;
-                }
-            }
-        }
-        return graph;
     }
 }

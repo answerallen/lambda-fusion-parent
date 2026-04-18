@@ -30,10 +30,13 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -58,6 +61,10 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     private final TransactionTemplate transactionTemplate;
     private final CostCalculator costCalculator;
 
+    @Autowired(required = false)
+    @Qualifier("agentStreamExecutor")
+    private Executor agentParallelExecutor;
+
     private @NonNull ChatMessageEntity getChatMessageEntity(String sessionId, SendMessage sendMessage) {
         ChatMessageEntity userMsg = new ChatMessageEntity();
         userMsg.setSessionId(sessionId);
@@ -76,6 +83,22 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
         ChatMessageEntity userMsg = getChatMessageEntity(sessionId, sendMessage);
 
+        try {
+            resolveStreamExecutor()
+                    .execute(() -> doSendMessageStream(sessionId, sendMessage, session, userMsg, clientId));
+        } catch (Exception e) {
+            log.error("流式消息发送失败", e);
+            sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
+            throw new AiBusinessException(AiErrorCode.MESSAGE_SEND_FAILED, e);
+        }
+    }
+
+    private void doSendMessageStream(
+            String sessionId,
+            SendMessage sendMessage,
+            ChatSessionEntity session,
+            ChatMessageEntity userMsg,
+            String clientId) {
         try {
             if (session.getWorkflowId() != null) {
                 executeWorkflowStream(session, sendMessage, userMsg, clientId);
@@ -134,8 +157,11 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         } catch (Exception e) {
             log.error("流式消息发送失败", e);
             sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
-            throw new AiBusinessException(AiErrorCode.MESSAGE_SEND_FAILED, e);
         }
+    }
+
+    private Executor resolveStreamExecutor() {
+        return agentParallelExecutor != null ? agentParallelExecutor : Runnable::run;
     }
 
     private void applyTokenUsage(ChatResponse response, ChatMessageEntity chatMessageEntity) {

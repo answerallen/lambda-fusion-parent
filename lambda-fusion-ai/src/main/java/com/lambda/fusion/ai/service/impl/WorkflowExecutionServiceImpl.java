@@ -33,8 +33,6 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-import dev.langchain4j.model.output.FinishReason;
-import dev.langchain4j.model.output.TokenUsage;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.math.BigDecimal;
@@ -47,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompileConfig;
@@ -55,8 +54,9 @@ import org.bsc.langgraph4j.RunnableConfig;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
 import org.bsc.langgraph4j.state.StateSnapshot;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import tools.jackson.databind.ObjectMapper;
 
@@ -88,12 +88,15 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     private final LlmModelMapper llmModelMapper;
     private final ObjectProvider<MemorySaver> checkpointSaverProvider;
 
+    @Autowired(required = false)
+    @Qualifier("agentStreamExecutor")
+    private Executor agentParallelExecutor;
+
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public WorkflowExecutionResult execute(String workflowId, WorkflowExecutionRequest request) {
         log.info("开始执行工作流, workflowId={}", workflowId);
 
-        WorkflowEntity workflow = loadWorkflow(workflowId);
+        WorkflowEntity workflow = loadWorkflow(workflowId, request == null ? null : request.getTenantId());
         WorkflowExecutionEntity execution = createExecutionRecord(workflow, request);
 
         try {
@@ -135,8 +138,24 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             String workflowId, WorkflowExecutionRequest request, StreamingChatResponseHandler handler) {
         log.info("寮€濮嬫祦寮忔墽琛屽伐浣滄祦, workflowId={}", workflowId);
 
-        WorkflowEntity workflow = loadWorkflow(workflowId);
+        WorkflowEntity workflow = loadWorkflow(workflowId, request == null ? null : request.getTenantId());
         WorkflowExecutionEntity execution = createExecutionRecord(workflow, request);
+        try {
+            resolveStreamingExecutor()
+                    .execute(() -> doExecuteStream(workflowId, workflow, execution, request, handler));
+        } catch (RuntimeException e) {
+            log.error("提交工作流流式执行任务失败, workflowId={}", workflowId, e);
+            updateExecutionFailure(execution, e);
+            throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, e);
+        }
+    }
+
+    private void doExecuteStream(
+            String workflowId,
+            WorkflowEntity workflow,
+            WorkflowExecutionEntity execution,
+            WorkflowExecutionRequest request,
+            StreamingChatResponseHandler handler) {
 
         try {
             String threadId = resolveThreadId(request, execution.getId());
@@ -163,8 +182,6 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
 
             WorkflowExecutionResult result = mapToExecutionResult(state, execution, threadId, snapshot, duration);
             updateExecutionSuccess(execution, result);
-            ChatResponse chatResponse = buildChatResponse(state);
-            idempotentHandler.onCompleteResponse(chatResponse);
 
             if (Boolean.TRUE.equals(result.getFinished())) {
                 settleAfterExecution(request, result, "workflow-stream");
@@ -175,12 +192,10 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             Throwable normalized = normalizeExecutionFailure(e);
             updateExecutionFailure(execution, normalized);
             handler.onError(normalized);
-            throw new AiBusinessException(AiErrorCode.WORKFLOW_EXECUTION_FAILED, normalized);
         }
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public WorkflowExecutionResult resume(String workflowId, WorkflowResumeRequest request) {
         Assert.notNull(request, "WorkflowResumeRequest 不能为空！");
         log.info("恢复执行工作流, workflowId={}, threadId={}", workflowId, request.getThreadId());
@@ -313,7 +328,15 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         return resultPage;
     }
 
+    private Executor resolveStreamingExecutor() {
+        return agentParallelExecutor != null ? agentParallelExecutor : Runnable::run;
+    }
+
     private WorkflowEntity loadWorkflow(String workflowId) {
+        return loadWorkflow(workflowId, null);
+    }
+
+    private WorkflowEntity loadWorkflow(String workflowId, String tenantId) {
         if (workflowId == null) {
             throw new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, "工作流ID不能为空");
         }
@@ -322,13 +345,16 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         if (workflow == null) {
             throw AiBusinessException.workflowNotFound(workflowId);
         }
-        validateWorkflowAccess(workflow, workflowId);
+        validateWorkflowAccess(workflow, workflowId, tenantId);
 
         return workflow;
     }
 
-    private void validateWorkflowAccess(WorkflowEntity workflow, String workflowId) {
-        String currentTenantId = AuthUtils.getTenantId();
+    private void validateWorkflowAccess(WorkflowEntity workflow, String workflowId, String tenantId) {
+        String currentTenantId = normalizeText(tenantId);
+        if (!StringUtils.hasText(currentTenantId)) {
+            currentTenantId = getCurrentTenantIdSafely();
+        }
         if (!StringUtils.hasText(currentTenantId)) {
             return;
         }
@@ -644,6 +670,15 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             return AuthUtils.getUser();
         } catch (Exception e) {
             log.debug("当前线程未获取到登录主体信息: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String getCurrentTenantIdSafely() {
+        try {
+            return AuthUtils.getTenantId();
+        } catch (Exception e) {
+            log.debug("当前线程未获取到租户信息: {}", e.getMessage());
             return null;
         }
     }
@@ -1025,26 +1060,5 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
             log.warn("计算工作流成本失败, modelId={}: {}", llmModelId, e.getMessage());
             return BigDecimal.ZERO;
         }
-    }
-
-    private ChatResponse buildChatResponse(AgentState state) {
-        AiMessage aiMessage = null;
-        if (state != null && state.getMessages() != null && !state.getMessages().isEmpty()) {
-            ChatMessage lastMessage = state.getMessages().getLast();
-            if (lastMessage instanceof AiMessage parsedMessage) {
-                aiMessage = parsedMessage;
-            }
-        }
-        int promptTokens = state != null && state.getAttributes() != null
-                ? AgentUtils.asInt(state.getAttributes().get("promptTokens"))
-                : 0;
-        int completionTokens = state != null && state.getAttributes() != null
-                ? AgentUtils.asInt(state.getAttributes().get("completionTokens"))
-                : 0;
-        return ChatResponse.builder()
-                .aiMessage(aiMessage != null ? aiMessage : AiMessage.from(""))
-                .tokenUsage(new TokenUsage(promptTokens, completionTokens))
-                .finishReason(FinishReason.STOP)
-                .build();
     }
 }

@@ -75,7 +75,10 @@ public class ToolExecutingNode implements AgentNode {
             }
             log.debug("执行结果：{}", result);
 
-            ToolExecutionResultMessage resultMessage = ToolExecutionResultMessage.from(request, result);
+            ToolExecutionResultMessage resultMessage = null;
+            if (result != null) {
+                resultMessage = ToolExecutionResultMessage.from(request, result);
+            }
             nextState.addMessage(resultMessage);
             recordToolResult(nextState, request, result, success, error);
         }

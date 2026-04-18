@@ -39,8 +39,7 @@ import org.bsc.langgraph4j.agentexecutor.AgentExecutor;
 import org.bsc.langgraph4j.agentexecutor.MessageWindowConversationContextPolicy;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
 import org.bsc.langgraph4j.streaming.StreamingOutput;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -59,7 +58,7 @@ public class ReactAgentNode implements AgentNode {
     private static final String REACT_AGENT_RESULTS_KEY = "reactAgentResults";
     private static final String LAST_REACT_AGENT_RESULT_KEY = "lastReactAgentResult";
 
-    private ChatModelFactory chatModelFactory;
+    private final ObjectProvider<ChatModelFactory> chatModelFactoryProvider;
     private final AgentToolProvider toolProvider;
     private final PromptTemplateService promptTemplateService;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
@@ -67,22 +66,18 @@ public class ReactAgentNode implements AgentNode {
     private final RateLimiterRegistry rateLimiterRegistry;
 
     public ReactAgentNode(
+            ObjectProvider<ChatModelFactory> chatModelFactoryProvider,
             AgentToolProvider toolProvider,
             PromptTemplateService promptTemplateService,
             CircuitBreakerRegistry circuitBreakerRegistry,
             RetryRegistry retryRegistry,
             RateLimiterRegistry rateLimiterRegistry) {
+        this.chatModelFactoryProvider = chatModelFactoryProvider;
         this.toolProvider = toolProvider;
         this.promptTemplateService = promptTemplateService;
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.retryRegistry = retryRegistry;
         this.rateLimiterRegistry = rateLimiterRegistry;
-    }
-
-    @Autowired
-    @Lazy
-    public void setChatModelFactory(ChatModelFactory chatModelFactory) {
-        this.chatModelFactory = chatModelFactory;
     }
 
     @Override
@@ -181,9 +176,9 @@ public class ReactAgentNode implements AgentNode {
 
         AgentExecutor.Builder builder = AgentExecutor.builder();
         if (streamingEnabled) {
-            builder.chatModel(chatModelFactory.getStreamingChatModel(modelId));
+            builder.chatModel(getChatModelFactory().getStreamingChatModel(modelId));
         } else {
-            builder.chatModel(chatModelFactory.getChatModel(modelId));
+            builder.chatModel(getChatModelFactory().getChatModel(modelId));
         }
         if (StringUtils.hasText(systemPrompt)) {
             builder.systemMessage(SystemMessage.from(systemPrompt.trim()));
@@ -333,6 +328,14 @@ public class ReactAgentNode implements AgentNode {
 
     private Set<String> resolveToolNames(Map<String, Object> nodeProperties) {
         return AgentUtils.resolveToolNames(nodeProperties, toolProvider, "allowedTools", "toolNames", "tools");
+    }
+
+    private ChatModelFactory getChatModelFactory() {
+        ChatModelFactory factory = chatModelFactoryProvider.getIfAvailable();
+        if (factory == null) {
+            throw new IllegalStateException("ChatModelFactory 未初始化");
+        }
+        return factory;
     }
 
     private record AgentExecutionResult(
