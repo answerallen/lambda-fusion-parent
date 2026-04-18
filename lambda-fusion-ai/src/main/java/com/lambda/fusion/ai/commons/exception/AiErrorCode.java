@@ -331,7 +331,43 @@ public enum AiErrorCode implements ErrorCode {
     /**
      * 并发更新失败
      */
-    CONCURRENT_UPDATE_FAILED(30904, "并发更新失败，请重试");
+    CONCURRENT_UPDATE_FAILED(30904, "并发更新失败，请重试"),
+
+    // ========== MCP 相关错误 (30950-30979) ==========
+    /**
+     * MCP Server 不存在
+     */
+    MCP_SERVER_NOT_FOUND(30950, "MCP服务器不存在"),
+
+    /**
+     * MCP Server 已禁用
+     */
+    MCP_SERVER_DISABLED(30951, "MCP服务器已禁用"),
+
+    /**
+     * MCP Server 连接失败
+     */
+    MCP_SERVER_CONNECTION_FAILED(30952, "MCP服务器连接失败"),
+
+    /**
+     * MCP 工具执行失败
+     */
+    MCP_TOOL_EXECUTION_FAILED(30953, "MCP工具执行失败"),
+
+    /**
+     * MCP 工具不存在
+     */
+    MCP_TOOL_NOT_FOUND(30954, "MCP工具不存在"),
+
+    /**
+     * MCP Server 传输类型不支持
+     */
+    MCP_TRANSPORT_NOT_SUPPORTED(30955, "不支持的MCP传输类型"),
+
+    /**
+     * MCP Server 名称已存在
+     */
+    MCP_SERVER_NAME_EXISTS(30956, "MCP服务器名称已存在");
 
     /**
      * 错误码

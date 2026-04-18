@@ -120,6 +120,11 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai</artifactId>
         </dependency>
+        <!-- MCP（Model Context Protocol）客户端支持 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-mcp</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.graalvm.js</groupId>
             <artifactId>js-language</artifactId>

@@ -797,4 +797,62 @@
         </createIndex>
     </changeSet>
 
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】MCP Server 配置表 ai_mcp_server -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-20260418001011-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_mcp_server"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_mcp_server" remarks="MCP（Model Context Protocol）Server 配置表">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="name" type="varchar(64)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="display_name" type="varchar(128)"/>
+            <column name="description" type="text"/>
+            <column name="transport_type" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- STDIO 模式：启动命令，JSON 数组格式，如 ["node", "server.js"] -->
+            <column name="command" type="text"/>
+            <!-- HTTP 模式：MCP Server URL -->
+            <column name="url" type="varchar(512)"/>
+            <!-- 环境变量，JSON 对象格式，如 {"KEY": "VALUE"} -->
+            <column name="env_vars" type="jsonb"/>
+            <column name="timeout_seconds" type="integer" defaultValue="30"/>
+            <column name="enabled" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="varchar(64)"/>
+            <column name="updated_by" type="varchar(64)"/>
+        </createTable>
+        <createIndex tableName="ai_mcp_server" indexName="idx_mcp_server_name">
+            <column name="name"/>
+        </createIndex>
+        <createIndex tableName="ai_mcp_server" indexName="idx_mcp_server_enabled">
+            <column name="enabled"/>
+        </createIndex>
+        <createIndex tableName="ai_mcp_server" indexName="idx_mcp_server_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        <createIndex tableName="ai_mcp_server" indexName="idx_mcp_server_transport_type">
+            <column name="transport_type"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>
