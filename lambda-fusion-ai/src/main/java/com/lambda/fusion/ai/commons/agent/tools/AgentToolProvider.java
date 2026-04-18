@@ -1,7 +1,5 @@
 package com.lambda.fusion.ai.commons.agent.tools;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lambda.fusion.ai.commons.support.mcp.McpClientManager;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -21,6 +19,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Agent 工具提供者
@@ -41,7 +41,7 @@ public class AgentToolProvider implements ApplicationContextAware {
 
     private ApplicationContext applicationContext;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     // ===== 本地 @Tool 缓存 =====
     private final List<ToolSpecification> localToolSpecifications = new ArrayList<>();
@@ -52,6 +52,10 @@ public class AgentToolProvider implements ApplicationContextAware {
     private volatile Map<String, McpToolExecutor> mcpMethodMap = new HashMap<>();
 
     private McpClientManager mcpClientManager;
+
+    public AgentToolProvider(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Lazy
     @Autowired(required = false)

@@ -49,7 +49,7 @@ public class SupervisorAgentNode implements AgentNode {
     public static final String LAST_SUPERVISOR_RESULT_KEY = "lastSupervisorDecision";
     private static final String DEFAULT_FINISH_TOKEN = "FINISH";
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
     private final ObjectProvider<ChatModelFactory> chatModelFactoryProvider;
     private final PromptTemplateService promptTemplateService;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
@@ -57,11 +57,13 @@ public class SupervisorAgentNode implements AgentNode {
     private final RateLimiterRegistry rateLimiterRegistry;
 
     public SupervisorAgentNode(
+            ObjectMapper objectMapper,
             ObjectProvider<ChatModelFactory> chatModelFactoryProvider,
             PromptTemplateService promptTemplateService,
             CircuitBreakerRegistry circuitBreakerRegistry,
             RetryRegistry retryRegistry,
             RateLimiterRegistry rateLimiterRegistry) {
+        this.objectMapper = objectMapper;
         this.chatModelFactoryProvider = chatModelFactoryProvider;
         this.promptTemplateService = promptTemplateService;
         this.circuitBreakerRegistry = circuitBreakerRegistry;

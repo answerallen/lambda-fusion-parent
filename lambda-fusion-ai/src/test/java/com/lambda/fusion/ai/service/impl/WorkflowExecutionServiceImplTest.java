@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.bsc.langgraph4j.RunnableConfig;
 import org.bsc.langgraph4j.checkpoint.Checkpoint;
 import org.bsc.langgraph4j.checkpoint.MemorySaver;
@@ -71,7 +72,7 @@ class WorkflowExecutionServiceImplTest {
     private AgentGraph graph;
 
     @Test
-    void shouldBuildGraphOptionsFromRequest() throws Exception {
+    void shouldBuildGraphOptionsFromRequest() {
         WorkflowExecutionServiceImpl service = newService(new MemorySaver());
         WorkflowExecutionRequest request = new WorkflowExecutionRequest();
         request.setCheckpointEnabled(true);
@@ -101,7 +102,7 @@ class WorkflowExecutionServiceImplTest {
     }
 
     @Test
-    void shouldResolveThreadIdFromRequestOrSession() throws Exception {
+    void shouldResolveThreadIdFromRequestOrSession() {
         WorkflowExecutionServiceImpl service = newService(new MemorySaver());
         WorkflowExecutionRequest explicit = new WorkflowExecutionRequest();
         explicit.setThreadId("thread-1");
@@ -167,7 +168,7 @@ class WorkflowExecutionServiceImplTest {
         assertThat(update).containsEntry(AgentGraph.LangGraphRuntimeState.KB_ID_KEY, "kb-1");
         assertThat(update).containsEntry(AgentGraph.LangGraphRuntimeState.LLM_MODEL_ID_KEY, "model-1");
         assertThat(update.get(AgentGraph.LangGraphRuntimeState.MESSAGES_KEY))
-                .asList()
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
                 .singleElement()
                 .isInstanceOf(UserMessage.class);
         assertThat(update.get(AgentGraph.LangGraphRuntimeState.ATTRIBUTES_KEY))
@@ -199,7 +200,7 @@ class WorkflowExecutionServiceImplTest {
         try (MockedStatic<AuthUtils> authUtils = org.mockito.Mockito.mockStatic(AuthUtils.class)) {
             authUtils.when(AuthUtils::getTenantId).thenReturn(null);
 
-            WorkflowEntity workflow = workflow("wf-1");
+            WorkflowEntity workflow = workflow();
             when(workflowMapper.selectById("wf-1")).thenReturn(workflow);
             when(agentGraphFactory.buildFromDefinition(eq(workflow.getGraphJson()), any()))
                     .thenReturn(graph);
@@ -259,7 +260,7 @@ class WorkflowExecutionServiceImplTest {
         try (MockedStatic<AuthUtils> authUtils = org.mockito.Mockito.mockStatic(AuthUtils.class)) {
             authUtils.when(AuthUtils::getTenantId).thenReturn(null);
 
-            WorkflowEntity workflow = workflow("wf-1");
+            WorkflowEntity workflow = workflow();
             when(workflowMapper.selectById("wf-1")).thenReturn(workflow);
             when(agentGraphFactory.buildFromDefinition(eq(workflow.getGraphJson()), any()))
                     .thenReturn(graph);
@@ -282,7 +283,7 @@ class WorkflowExecutionServiceImplTest {
         try (MockedStatic<AuthUtils> authUtils = org.mockito.Mockito.mockStatic(AuthUtils.class)) {
             authUtils.when(AuthUtils::getTenantId).thenReturn(null);
 
-            WorkflowEntity workflow = workflow("wf-1");
+            WorkflowEntity workflow = workflow();
             when(workflowMapper.selectById("wf-1")).thenReturn(workflow);
             when(agentGraphFactory.buildFromDefinition(eq(workflow.getGraphJson()), any()))
                     .thenReturn(graph);
@@ -318,7 +319,7 @@ class WorkflowExecutionServiceImplTest {
         try (MockedStatic<AuthUtils> authUtils = org.mockito.Mockito.mockStatic(AuthUtils.class)) {
             authUtils.when(AuthUtils::getTenantId).thenReturn(null);
 
-            WorkflowEntity workflow = workflow("wf-1");
+            WorkflowEntity workflow = workflow();
             when(workflowMapper.selectById("wf-1")).thenReturn(workflow);
             when(agentGraphFactory.buildFromDefinition(eq(workflow.getGraphJson()), any()))
                     .thenReturn(graph);
@@ -366,7 +367,7 @@ class WorkflowExecutionServiceImplTest {
         try (MockedStatic<AuthUtils> authUtils = org.mockito.Mockito.mockStatic(AuthUtils.class)) {
             authUtils.when(AuthUtils::getTenantId).thenReturn(null);
 
-            WorkflowEntity workflow = workflow("wf-1");
+            WorkflowEntity workflow = workflow();
             when(workflowMapper.selectById("wf-1")).thenReturn(workflow);
             when(agentGraphFactory.buildFromDefinition(eq(workflow.getGraphJson()), any()))
                     .thenReturn(graph);
@@ -419,7 +420,6 @@ class WorkflowExecutionServiceImplTest {
                 provider);
     }
 
-    @SuppressWarnings("unchecked")
     private StateSnapshot<AgentGraph.LangGraphRuntimeState> snapshot(
             String checkpointId, String nextNode, AgentState state) {
         Checkpoint checkpoint = Checkpoint.builder()
@@ -429,14 +429,12 @@ class WorkflowExecutionServiceImplTest {
                 .nextNodeId(nextNode)
                 .build();
         return StateSnapshot.of(
-                checkpoint,
-                RunnableConfig.builder().threadId("thread").build(),
-                initData -> newRuntimeState((Map<String, Object>) initData));
+                checkpoint, RunnableConfig.builder().threadId("thread").build(), this::newRuntimeState);
     }
 
-    private WorkflowEntity workflow(String id) {
+    private WorkflowEntity workflow() {
         WorkflowEntity workflow = new WorkflowEntity();
-        workflow.setId(id);
+        workflow.setId("wf-1");
         workflow.setGraphJson("{\"nodes\":[],\"edges\":[]}");
         workflow.setTenantId(null);
         return workflow;
@@ -448,7 +446,6 @@ class WorkflowExecutionServiceImplTest {
         return data;
     }
 
-    @SuppressWarnings("unchecked")
     private AgentGraph.LangGraphRuntimeState newRuntimeState(Map<String, Object> initData) {
         try {
             var constructor = AgentGraph.LangGraphRuntimeState.class.getDeclaredConstructor(Map.class);

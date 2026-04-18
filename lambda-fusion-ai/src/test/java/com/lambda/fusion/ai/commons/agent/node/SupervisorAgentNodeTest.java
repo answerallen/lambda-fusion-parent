@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
+import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class SupervisorAgentNodeTest {
@@ -41,6 +42,7 @@ class SupervisorAgentNodeTest {
     @DisplayName("SUPERVISOR_AGENT 会选择目标专家节点")
     void shouldRouteToTargetExpert() {
         SupervisorAgentNode node = new SupervisorAgentNode(
+                new ObjectMapper(),
                 chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
@@ -75,6 +77,7 @@ class SupervisorAgentNodeTest {
     @DisplayName("SUPERVISOR_AGENT 选择 FINISH 时结束工作流")
     void shouldFinishWhenModelReturnsFinish() {
         SupervisorAgentNode node = new SupervisorAgentNode(
+                new ObjectMapper(),
                 chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
@@ -102,6 +105,7 @@ class SupervisorAgentNodeTest {
     @DisplayName("SUPERVISOR_AGENT 在 finishOnEnd=false 时仍应结束路由但不设置 finished")
     void shouldEndRouteWithoutMarkingFinishedWhenFinishOnEndDisabled() {
         SupervisorAgentNode node = new SupervisorAgentNode(
+                new ObjectMapper(),
                 chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
@@ -130,6 +134,7 @@ class SupervisorAgentNodeTest {
     @DisplayName("SUPERVISOR_AGENT 支持解析 JSON 决策结果")
     void shouldParseJsonDecisionPayload() {
         SupervisorAgentNode node = new SupervisorAgentNode(
+                new ObjectMapper(),
                 chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),

@@ -27,6 +27,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
+import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class AgentAggregatorNodeTest {
@@ -44,6 +45,7 @@ class AgentAggregatorNodeTest {
     @DisplayName("AGENT_AGGREGATOR 会汇总结果并写回消息与属性")
     void shouldAggregateResultsAndWriteBackState() {
         AgentAggregatorNode node = new AgentAggregatorNode(
+                new ObjectMapper(),
                 chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
@@ -78,6 +80,7 @@ class AgentAggregatorNodeTest {
     @DisplayName("AGENT_AGGREGATOR 可作为中间汇总节点继续路由")
     void shouldContinueWorkflowWhenFinishDisabled() {
         AgentAggregatorNode node = new AgentAggregatorNode(
+                new ObjectMapper(),
                 chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
@@ -106,6 +109,7 @@ class AgentAggregatorNodeTest {
     @DisplayName("AGENT_AGGREGATOR 使用结构化 JSON 构造聚合输入")
     void shouldBuildStructuredJsonAggregationInput() {
         AgentAggregatorNode node = new AgentAggregatorNode(
+                new ObjectMapper(),
                 chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),

@@ -35,6 +35,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
+import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class AgentGraphMultiAgentFlowTest {
@@ -66,7 +67,9 @@ class AgentGraphMultiAgentFlowTest {
     @Test
     @DisplayName("AgentGraph 支持 SUPERVISOR_AGENT -> REACT_AGENT -> AGGREGATOR 端到端流转")
     void shouldExecuteSupervisorReactAggregatorFlow() {
+        ObjectMapper objectMapper = new ObjectMapper();
         SupervisorAgentNode supervisor = new SupervisorAgentNode(
+                objectMapper,
                 chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
@@ -80,6 +83,7 @@ class AgentGraphMultiAgentFlowTest {
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
         AgentAggregatorNode aggregator = new AgentAggregatorNode(
+                objectMapper,
                 chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
@@ -143,6 +147,7 @@ class AgentGraphMultiAgentFlowTest {
     void shouldExecuteParallelAggregatorFlow() {
         ParallelNode parallelNode = new ParallelNode(Runnable::run);
         AgentAggregatorNode aggregator = new AgentAggregatorNode(
+                new ObjectMapper(),
                 chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),
@@ -237,6 +242,7 @@ class AgentGraphMultiAgentFlowTest {
                 RetryRegistry.ofDefaults(),
                 RateLimiterRegistry.ofDefaults());
         AgentAggregatorNode aggregator = new AgentAggregatorNode(
+                new ObjectMapper(),
                 chatModelFactoryProvider(),
                 promptTemplateService,
                 CircuitBreakerRegistry.ofDefaults(),

@@ -36,11 +36,10 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServerEntity> implements McpServerService {
 
-    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
-
     private final McpServerMapper mcpServerMapper;
     private final McpClientManager mcpClientManager;
     private final AgentToolProvider agentToolProvider;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -197,7 +196,7 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
 
     private void validateJsonArray(String json, String fieldName) {
         try {
-            List<String> parsed = JSON_MAPPER.readValue(json, new TypeReference<>() {});
+            List<String> parsed = objectMapper.readValue(json, new TypeReference<>() {});
             if (parsed == null || parsed.isEmpty()) {
                 throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, fieldName + " 不能为空数组");
             }
@@ -210,7 +209,7 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
 
     private void validateJsonObject(String json, String fieldName) {
         try {
-            JSON_MAPPER.readValue(json, new TypeReference<Map<String, String>>() {});
+            objectMapper.readValue(json, new TypeReference<Map<String, String>>() {});
         } catch (Exception e) {
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, fieldName + " 必须是合法 JSON 对象");
         }

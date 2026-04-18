@@ -49,7 +49,7 @@ public class AgentAggregatorNode implements AgentNode {
     public static final String AGGREGATOR_RESULTS_KEY = "aggregatorResults";
     public static final String LAST_AGGREGATOR_RESULT_KEY = "lastAggregatorResult";
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
     private final ObjectProvider<ChatModelFactory> chatModelFactoryProvider;
     private final PromptTemplateService promptTemplateService;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
@@ -57,11 +57,13 @@ public class AgentAggregatorNode implements AgentNode {
     private final RateLimiterRegistry rateLimiterRegistry;
 
     public AgentAggregatorNode(
+            ObjectMapper objectMapper,
             ObjectProvider<ChatModelFactory> chatModelFactoryProvider,
             PromptTemplateService promptTemplateService,
             CircuitBreakerRegistry circuitBreakerRegistry,
             RetryRegistry retryRegistry,
             RateLimiterRegistry rateLimiterRegistry) {
+        this.objectMapper = objectMapper;
         this.chatModelFactoryProvider = chatModelFactoryProvider;
         this.promptTemplateService = promptTemplateService;
         this.circuitBreakerRegistry = circuitBreakerRegistry;
