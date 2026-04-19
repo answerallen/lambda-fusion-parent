@@ -13,12 +13,15 @@ import java.lang.reflect.Type;
 import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.EventListener;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
@@ -69,7 +72,11 @@ public class AgentToolProvider implements ApplicationContextAware {
     public void setApplicationContext(@NonNull ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
         scanLocalTools();
-        // 应用启动后异步加载 MCP 工具（Spring 上下文就绪后才能获取 McpClientManager）
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        // MCP 工具加载延迟到 ApplicationReadyEvent，避免早于 AI schema 初始化访问 mcp 表
         loadMcpTools();
     }
 
@@ -160,7 +167,7 @@ public class AgentToolProvider implements ApplicationContextAware {
             }
 
             // 获取非 AOP 代理类的 Class
-            Class<?> targetClass = org.springframework.aop.support.AopUtils.getTargetClass(bean);
+            Class<?> targetClass = AopUtils.getTargetClass(bean);
 
             // 使用 LangChain4j 的规范提取该类下的所有 @Tool 规格
             List<ToolSpecification> specs;
