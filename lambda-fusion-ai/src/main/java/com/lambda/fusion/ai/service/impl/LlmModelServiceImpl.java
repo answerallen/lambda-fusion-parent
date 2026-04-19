@@ -1,7 +1,10 @@
 package com.lambda.fusion.ai.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
+import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.commons.support.factory.ChatModelFactory;
@@ -32,6 +35,7 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
     private final @Lazy ChatModelFactory chatModelFactory;
     private final KeyEncryptionService keyEncryptionService;
     private final LlmProviderService llmProviderService;
+    private final EmbeddingModelManager embeddingModelManager;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -68,7 +72,49 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
         entity.setId(id);
         normalizeApiKey(entity);
         llmModelMapper.updateById(entity);
-        chatModelFactory.invalidateModelCache(id);
+        clearRuntimeCache(existing.getModelType(), id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void setDefaultModel(String id) {
+        if (!StringUtils.hasText(id)) {
+            throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
+        }
+
+        LlmModelEntity target = llmModelMapper.selectById(id);
+        if (target == null) {
+            throw AiBusinessException.llmModelNotFound(id);
+        }
+        if (!Boolean.TRUE.equals(target.getEnabled())) {
+            throw new AiBusinessException(AiErrorCode.LLM_MODEL_DISABLED, id);
+        }
+
+        List<LlmModelEntity> previousDefaults = llmModelMapper.selectList(new LambdaQueryWrapper<LlmModelEntity>()
+                .eq(LlmModelEntity::getModelType, target.getModelType())
+                .eq(LlmModelEntity::getIsDefault, true)
+                .eq(StringUtils.hasText(target.getTenantId()), LlmModelEntity::getTenantId, target.getTenantId())
+                .isNull(!StringUtils.hasText(target.getTenantId()), LlmModelEntity::getTenantId));
+
+        llmModelMapper.update(
+                null,
+                new LambdaUpdateWrapper<LlmModelEntity>()
+                        .eq(LlmModelEntity::getModelType, target.getModelType())
+                        .eq(StringUtils.hasText(target.getTenantId()), LlmModelEntity::getTenantId, target.getTenantId())
+                        .isNull(!StringUtils.hasText(target.getTenantId()), LlmModelEntity::getTenantId)
+                        .set(LlmModelEntity::getIsDefault, false));
+
+        llmModelMapper.update(
+                null,
+                new LambdaUpdateWrapper<LlmModelEntity>()
+                        .eq(LlmModelEntity::getId, id)
+                        .set(LlmModelEntity::getIsDefault, true));
+
+        previousDefaults.stream()
+                .map(LlmModelEntity::getId)
+                .filter(previousId -> !id.equals(previousId))
+                .forEach(previousId -> clearRuntimeCache(target.getModelType(), previousId));
+        clearRuntimeCache(target.getModelType(), id);
     }
 
     @Override
@@ -104,7 +150,7 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
         }
 
         llmModelMapper.deleteById(id);
-        chatModelFactory.invalidateModelCache(id);
+        clearRuntimeCache(entity.getModelType(), id);
     }
 
     private LlmModel toLlmModel(LlmModelEntity entity) {
@@ -118,5 +164,12 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
             return;
         }
         entity.setApiKeyEncrypted(keyEncryptionService.encrypt(entity.getApiKeyEncrypted()));
+    }
+
+    private void clearRuntimeCache(String modelType, String modelId) {
+        chatModelFactory.invalidateModelCache(modelId);
+        if ("EMBEDDING".equalsIgnoreCase(modelType)) {
+            embeddingModelManager.clearCache(modelId);
+        }
     }
 }

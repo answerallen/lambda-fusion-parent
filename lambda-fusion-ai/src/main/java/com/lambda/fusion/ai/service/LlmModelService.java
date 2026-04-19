@@ -12,6 +12,8 @@ public interface LlmModelService extends IService<LlmModelEntity> {
 
     void updateModel(String id, UpdateModel dto);
 
+    void setDefaultModel(String id);
+
     LlmModel getModelById(String id);
 
     List<LlmModel> listAll();

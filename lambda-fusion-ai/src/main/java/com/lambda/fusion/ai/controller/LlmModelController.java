@@ -43,6 +43,12 @@ public class LlmModelController {
         llmModelService.updateModel(id, dto);
     }
 
+    @PutMapping("/{id}/default")
+    @Operation(summary = "设置默认模型")
+    public void setDefault(@PathVariable String id) {
+        llmModelService.setDefaultModel(id);
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "删除模型")
     public void delete(@PathVariable String id) {
