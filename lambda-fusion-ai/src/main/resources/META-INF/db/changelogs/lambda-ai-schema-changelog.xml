@@ -857,4 +857,308 @@
         </createIndex>
     </changeSet>
 
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】LLM 提供商表 ai_llm_provider -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-2026041900101-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_llm_provider"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_llm_provider" remarks="LLM提供商表">
+            <column name="code" type="varchar(64)">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="display_name" type="varchar(128)"/>
+            <column name="description" type="text"/>
+            <column name="enabled" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sort" type="integer" defaultValue="0"/>
+            <column name="tenant_id" type="varchar(32)"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="varchar(64)"/>
+            <column name="updated_by" type="varchar(64)"/>
+        </createTable>
+        <createIndex tableName="ai_llm_provider" indexName="idx_llm_provider_enabled">
+            <column name="enabled"/>
+        </createIndex>
+        <createIndex tableName="ai_llm_provider" indexName="idx_llm_provider_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        <createIndex tableName="ai_llm_provider" indexName="idx_llm_provider_sort">
+            <column name="sort"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】模型类型-提供商关系表 ai_llm_model_type_provider -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-2026041900102-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="ai_llm_model_type_provider"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
+        </preConditions>
+        <createTable tableName="ai_llm_model_type_provider" remarks="模型类型与提供商绑定关系表">
+            <column name="id" type="varchar(64)">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="model_type" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_code" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enabled" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sort" type="integer" defaultValue="0"/>
+            <column name="tenant_id" type="varchar(32)"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="varchar(64)"/>
+            <column name="updated_by" type="varchar(64)"/>
+        </createTable>
+        <addUniqueConstraint tableName="ai_llm_model_type_provider"
+                             columnNames="model_type, provider_code, tenant_id"
+                             constraintName="uk_llm_model_type_provider"/>
+        <createIndex tableName="ai_llm_model_type_provider" indexName="idx_llm_mtp_provider">
+            <column name="provider_code"/>
+        </createIndex>
+        <createIndex tableName="ai_llm_model_type_provider" indexName="idx_llm_mtp_model_type">
+            <column name="model_type"/>
+        </createIndex>
+        <createIndex tableName="ai_llm_model_type_provider" indexName="idx_llm_mtp_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】初始化默认 LLM 提供商 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-2026041900103-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <dbms type="postgresql"/>
+                <tableExists tableName="ai_llm_provider"/>
+                <sqlCheck expectedResult="0">
+                    SELECT COUNT(*) FROM ai_llm_provider
+                </sqlCheck>
+            </and>
+        </preConditions>
+        <insert tableName="ai_llm_provider">
+            <column name="code" value="OPENAI"/>
+            <column name="display_name" value="OpenAI"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="10"/>
+        </insert>
+        <insert tableName="ai_llm_provider">
+            <column name="code" value="OLLAMA"/>
+            <column name="display_name" value="Ollama"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="20"/>
+        </insert>
+        <insert tableName="ai_llm_provider">
+            <column name="code" value="AZURE_OPENAI"/>
+            <column name="display_name" value="Azure OpenAI"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="30"/>
+        </insert>
+        <insert tableName="ai_llm_provider">
+            <column name="code" value="ANTHROPIC"/>
+            <column name="display_name" value="Anthropic"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="40"/>
+        </insert>
+        <insert tableName="ai_llm_provider">
+            <column name="code" value="GOOGLE"/>
+            <column name="display_name" value="Google"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="50"/>
+        </insert>
+        <insert tableName="ai_llm_provider">
+            <column name="code" value="ZHIPU"/>
+            <column name="display_name" value="智谱AI"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="60"/>
+        </insert>
+        <insert tableName="ai_llm_provider">
+            <column name="code" value="BAIDU"/>
+            <column name="display_name" value="百度文心"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="70"/>
+        </insert>
+        <insert tableName="ai_llm_provider">
+            <column name="code" value="ALIBABA"/>
+            <column name="display_name" value="阿里通义"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="80"/>
+        </insert>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【PostgreSQL】初始化默认模型类型-提供商绑定 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-2026041900104-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <dbms type="postgresql"/>
+                <tableExists tableName="ai_llm_model_type_provider"/>
+                <sqlCheck expectedResult="0">
+                    SELECT COUNT(*) FROM ai_llm_model_type_provider
+                </sqlCheck>
+            </and>
+        </preConditions>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_openai_chat"/>
+            <column name="model_type" value="CHAT"/>
+            <column name="provider_code" value="OPENAI"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="10"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_openai_embedding"/>
+            <column name="model_type" value="EMBEDDING"/>
+            <column name="provider_code" value="OPENAI"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="11"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_openai_image"/>
+            <column name="model_type" value="IMAGE"/>
+            <column name="provider_code" value="OPENAI"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="12"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_ollama_chat"/>
+            <column name="model_type" value="CHAT"/>
+            <column name="provider_code" value="OLLAMA"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="20"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_ollama_embedding"/>
+            <column name="model_type" value="EMBEDDING"/>
+            <column name="provider_code" value="OLLAMA"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="21"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_azure_chat"/>
+            <column name="model_type" value="CHAT"/>
+            <column name="provider_code" value="AZURE_OPENAI"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="30"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_azure_embedding"/>
+            <column name="model_type" value="EMBEDDING"/>
+            <column name="provider_code" value="AZURE_OPENAI"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="31"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_azure_image"/>
+            <column name="model_type" value="IMAGE"/>
+            <column name="provider_code" value="AZURE_OPENAI"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="32"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_anthropic_chat"/>
+            <column name="model_type" value="CHAT"/>
+            <column name="provider_code" value="ANTHROPIC"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="40"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_google_chat"/>
+            <column name="model_type" value="CHAT"/>
+            <column name="provider_code" value="GOOGLE"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="50"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_google_embedding"/>
+            <column name="model_type" value="EMBEDDING"/>
+            <column name="provider_code" value="GOOGLE"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="51"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_google_image"/>
+            <column name="model_type" value="IMAGE"/>
+            <column name="provider_code" value="GOOGLE"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="52"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_zhipu_chat"/>
+            <column name="model_type" value="CHAT"/>
+            <column name="provider_code" value="ZHIPU"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="60"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_zhipu_embedding"/>
+            <column name="model_type" value="EMBEDDING"/>
+            <column name="provider_code" value="ZHIPU"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="61"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_zhipu_image"/>
+            <column name="model_type" value="IMAGE"/>
+            <column name="provider_code" value="ZHIPU"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="62"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_baidu_chat"/>
+            <column name="model_type" value="CHAT"/>
+            <column name="provider_code" value="BAIDU"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="70"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_baidu_embedding"/>
+            <column name="model_type" value="EMBEDDING"/>
+            <column name="provider_code" value="BAIDU"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="71"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_alibaba_chat"/>
+            <column name="model_type" value="CHAT"/>
+            <column name="provider_code" value="ALIBABA"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="80"/>
+        </insert>
+        <insert tableName="ai_llm_model_type_provider">
+            <column name="id" value="llm_mtp_alibaba_embedding"/>
+            <column name="model_type" value="EMBEDDING"/>
+            <column name="provider_code" value="ALIBABA"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="sort" valueNumeric="81"/>
+        </insert>
+    </changeSet>
+
 </databaseChangeLog>

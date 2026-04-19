@@ -1,5 +1,8 @@
 package com.lambda.fusion.ai;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
+import com.lambda.fusion.core.annotation.DictMapper;
+import com.lambda.fusion.core.dict.DictEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -144,33 +147,27 @@ public interface AiConstants {
      */
     @Getter
     @AllArgsConstructor
-    enum ModelType {
+    @DictMapper(dictName = "LLM_MODEL_TYPE", dictUsage = 0, dictDesc = "模型类型")
+    enum ModelType implements DictEnum<Integer> {
 
         /**
          * 对话模型，支持多轮上下文交互（聊天/问答/补全统一接口）
          */
-        CHAT("对话模型"),
+        CHAT(1, "对话模型"),
 
         /**
          * 文本向量化模型，用于语义搜索和RAG检索
          */
-        EMBEDDING("Embedding模型"),
-
-        /**
-         * 视觉模型，支持图像理解和分析
-         */
-        VISION("视觉模型"),
+        EMBEDDING(2, "Embedding模型"),
 
         /**
          * 图像生成模型，根据文本描述生成图像
          */
-        IMAGE("图像生成模型"),
+        IMAGE(3, "图像生成模型");
 
-        /**
-         * 多模态模型，支持文本+图像+音频等多种输入
-         */
-        MULTIMODAL("多模态模型");
+        @EnumValue
+        private final Integer code;
 
-        private final String description;
+        private final String label;
     }
 }

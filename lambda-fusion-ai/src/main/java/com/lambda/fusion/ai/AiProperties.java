@@ -12,7 +12,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "lambda.fusion.ai")
 public class AiProperties {
 
-    private EmbeddingConfig embedding = new EmbeddingConfig();
     private DocumentChunkConfig documentChunk = new DocumentChunkConfig();
     private AiDataSource dataSource = new AiDataSource();
     private AgentConfig agent = new AgentConfig();
@@ -20,15 +19,6 @@ public class AiProperties {
     @PostConstruct
     public void validateConfiguration() {
         documentChunk.validateConfiguration();
-    }
-
-    @Data
-    public static class EmbeddingConfig {
-        private String provider = "openai";
-        private String apiKey;
-        private String modelName = "text-embedding-3-small";
-        private String baseUrl;
-        private Integer dimension = 1536;
     }
 
     private DocumentConfig document = new DocumentConfig();

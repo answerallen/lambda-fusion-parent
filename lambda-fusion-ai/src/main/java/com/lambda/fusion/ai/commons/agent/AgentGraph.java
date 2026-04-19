@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 import lombok.Data;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.async.AsyncGenerator;
 import org.bsc.langgraph4j.CompileConfig;
@@ -66,6 +67,7 @@ public class AgentGraph {
     private volatile int maxIterations = DEFAULT_MAX_ITERATIONS;
     private volatile CompileConfig compileConfig;
 
+    @Getter
     public static class AgentGraphExecutionException extends IllegalStateException {
         private final transient AgentState state;
 
@@ -77,10 +79,6 @@ public class AgentGraph {
         public AgentGraphExecutionException(String message, Throwable cause, AgentState state) {
             super(message, cause);
             this.state = state;
-        }
-
-        public AgentState getState() {
-            return state;
         }
     }
 

@@ -12,6 +12,7 @@ import com.lambda.fusion.ai.model.RegisterModel;
 import com.lambda.fusion.ai.model.UpdateModel;
 import com.lambda.fusion.ai.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.service.LlmModelService;
+import com.lambda.fusion.ai.service.LlmProviderService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,11 +31,13 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
     private final LlmModelMapper llmModelMapper;
     private final @Lazy ChatModelFactory chatModelFactory;
     private final KeyEncryptionService keyEncryptionService;
+    private final LlmProviderService llmProviderService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public LlmModel registerModel(RegisterModel registerModel) {
         LlmModelEntity entity = registerModel.toEntity();
+        llmProviderService.validateProviderSupport(entity.getProvider(), entity.getModelType());
         normalizeApiKey(entity);
         entity.setEnabled(true);
         entity.setIsDefault(false);
@@ -47,10 +50,20 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
 
     @Override
     public void updateModel(String id, UpdateModel updateModel) {
-        // 验证输入参数
         if (id == null) {
             throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
         }
+        LlmModelEntity existing = llmModelMapper.selectById(id);
+        if (existing == null) {
+            throw AiBusinessException.llmModelNotFound(id);
+        }
+
+        String targetProvider =
+                StringUtils.hasText(updateModel.getProvider()) ? updateModel.getProvider() : existing.getProvider();
+        String targetModelType =
+                StringUtils.hasText(updateModel.getModelType()) ? updateModel.getModelType() : existing.getModelType();
+        llmProviderService.validateProviderSupport(targetProvider, targetModelType);
+
         LlmModelEntity entity = updateModel.toEntity();
         entity.setId(id);
         normalizeApiKey(entity);
