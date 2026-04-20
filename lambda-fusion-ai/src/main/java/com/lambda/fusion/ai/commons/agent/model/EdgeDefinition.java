@@ -24,4 +24,24 @@ public class EdgeDefinition {
      * 控制源是否能路由到目标的脚本表达式本体
      */
     private String conditionExpression;
+
+    /**
+     * 连线标签，供前端画布回显。
+     */
+    private String label;
+
+    /**
+     * 连线样式类型，供前端画布回显。
+     */
+    private String type;
+
+    /**
+     * 连线颜色，供前端画布回显。
+     */
+    private String color;
+
+    /**
+     * 是否启用流动动画，供前端画布回显。
+     */
+    private Boolean animated;
 }
