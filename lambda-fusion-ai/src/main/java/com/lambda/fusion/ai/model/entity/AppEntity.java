@@ -17,7 +17,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @TableName("ai_robot")
 @Schema(description = "AI机器人实体")
-public class RobotEntity extends BaseEntity {
+public class AppEntity extends BaseEntity {
 
     @TableId(type = IdType.ASSIGN_ID)
     private String id;

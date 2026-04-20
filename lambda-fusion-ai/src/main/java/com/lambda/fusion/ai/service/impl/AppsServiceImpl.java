@@ -4,12 +4,12 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
-import com.lambda.fusion.ai.mapper.RobotMapper;
-import com.lambda.fusion.ai.model.CreateRobot;
+import com.lambda.fusion.ai.mapper.AppsMapper;
+import com.lambda.fusion.ai.model.CreateApp;
 import com.lambda.fusion.ai.model.Robot;
-import com.lambda.fusion.ai.model.UpdateRobot;
-import com.lambda.fusion.ai.model.entity.RobotEntity;
-import com.lambda.fusion.ai.service.RobotService;
+import com.lambda.fusion.ai.model.UpdateApp;
+import com.lambda.fusion.ai.model.entity.AppEntity;
+import com.lambda.fusion.ai.service.AppsService;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -20,39 +20,39 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RobotServiceImpl extends ServiceImpl<RobotMapper, RobotEntity> implements RobotService {
+public class AppsServiceImpl extends ServiceImpl<AppsMapper, AppEntity> implements AppsService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Robot createRobot(CreateRobot createRobot) {
-        log.info("创建AI机器人: {}", createRobot.getName());
-        RobotEntity entity = createRobot.toEntity();
+    public Robot createApp(CreateApp createApp) {
+        log.info("创建AI应用: {}", createApp.getName());
+        AppEntity entity = createApp.toEntity();
         this.save(entity);
-        log.info("AI机器人创建成功, id: {}", entity.getId());
+        log.info("AI应用创建成功, id: {}", entity.getId());
         return ConvertUtils.convert(entity);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Robot updateRobot(UpdateRobot updateRobot) {
-        log.info("更新AI机器人: {}", updateRobot.getId());
+    public Robot updateApp(UpdateApp updateApp) {
+        log.info("更新AI应用: {}", updateApp.getId());
 
-        if (updateRobot.getId() == null) {
-            throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "机器人ID不能为空");
+        if (updateApp.getId() == null) {
+            throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "应用ID不能为空");
         }
-        RobotEntity entity = updateRobot.toEntity();
+        AppEntity entity = updateApp.toEntity();
         this.updateById(entity);
-        log.info("AI机器人更新成功, id: {}", entity.getId());
+        log.info("AI应用更新成功, id: {}", entity.getId());
         return ConvertUtils.convert(entity);
     }
 
     @Override
-    public Robot getRobotById(String id) {
+    public Robot getAppById(String id) {
         if (id == null) {
-            throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "机器人ID不能为空");
+            throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "应用ID不能为空");
         }
 
-        RobotEntity entity = this.getById(id);
+        AppEntity entity = this.getById(id);
         if (entity == null) {
             throw AiBusinessException.robotNotFound(id);
         }
@@ -60,9 +60,9 @@ public class RobotServiceImpl extends ServiceImpl<RobotMapper, RobotEntity> impl
     }
 
     @Override
-    public List<Robot> listAllRobots() {
+    public List<Robot> listApps() {
         return this.list().stream()
-                .map(ConvertUtils::<Robot, RobotEntity>convert)
+                .map(ConvertUtils::<Robot, AppEntity>convert)
                 .collect(Collectors.toList());
     }
 
@@ -70,15 +70,15 @@ public class RobotServiceImpl extends ServiceImpl<RobotMapper, RobotEntity> impl
     @Transactional(rollbackFor = Exception.class)
     public void deleteRobot(String id) {
         if (id == null) {
-            throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "机器人ID不能为空");
+            throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "应用ID不能为空");
         }
 
-        RobotEntity entity = this.getById(id);
+        AppEntity entity = this.getById(id);
         if (entity == null) {
             throw AiBusinessException.robotNotFound(id);
         }
 
         this.removeById(id);
-        log.info("AI机器人删除成功, id: {}", id);
+        log.info("AI应用删除成功, id: {}", id);
     }
 }

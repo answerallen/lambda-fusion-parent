@@ -1,8 +1,8 @@
 package com.lambda.fusion.ai.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.lambda.fusion.ai.model.entity.RobotEntity;
+import com.lambda.fusion.ai.model.entity.AppEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface RobotMapper extends BaseMapper<RobotEntity> {}
+public interface AppsMapper extends BaseMapper<AppEntity> {}

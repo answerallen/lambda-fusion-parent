@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
-import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
+import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.commons.support.factory.ChatModelFactory;
 import com.lambda.fusion.ai.commons.support.security.KeyEncryptionService;
 import com.lambda.fusion.ai.mapper.LlmModelMapper;
@@ -100,7 +100,10 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
                 null,
                 new LambdaUpdateWrapper<LlmModelEntity>()
                         .eq(LlmModelEntity::getModelType, target.getModelType())
-                        .eq(StringUtils.hasText(target.getTenantId()), LlmModelEntity::getTenantId, target.getTenantId())
+                        .eq(
+                                StringUtils.hasText(target.getTenantId()),
+                                LlmModelEntity::getTenantId,
+                                target.getTenantId())
                         .isNull(!StringUtils.hasText(target.getTenantId()), LlmModelEntity::getTenantId)
                         .set(LlmModelEntity::getIsDefault, false));
 

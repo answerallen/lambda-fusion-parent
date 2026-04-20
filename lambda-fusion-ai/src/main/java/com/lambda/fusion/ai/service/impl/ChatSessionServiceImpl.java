@@ -6,11 +6,11 @@ import com.lambda.fusion.ai.AiConstants.Enums.SessionStatus;
 import com.lambda.fusion.ai.commons.exception.AiBusinessException;
 import com.lambda.fusion.ai.commons.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.ChatSessionMapper;
-import com.lambda.fusion.ai.mapper.RobotMapper;
+import com.lambda.fusion.ai.mapper.AppsMapper;
 import com.lambda.fusion.ai.model.ChatSession;
 import com.lambda.fusion.ai.model.CreateSession;
 import com.lambda.fusion.ai.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.model.entity.RobotEntity;
+import com.lambda.fusion.ai.model.entity.AppEntity;
 import com.lambda.fusion.ai.service.ChatSessionService;
 import com.lambda.fusion.core.utils.AuthUtils;
 import java.math.BigDecimal;
@@ -27,7 +27,7 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
         implements ChatSessionService {
 
     private final ChatSessionMapper chatSessionMapper;
-    private final RobotMapper robotMapper;
+    private final AppsMapper appsMapper;
 
     @Override
     public ChatSession createSession(CreateSession createSession) {
@@ -38,7 +38,7 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
 
         // 挂载机器人参数
         if (createSession.getRobotId() != null) {
-            RobotEntity robot = robotMapper.selectById(createSession.getRobotId());
+            AppEntity robot = appsMapper.selectById(createSession.getRobotId());
             if (robot == null) {
                 throw AiBusinessException.robotNotFound(createSession.getRobotId());
             }

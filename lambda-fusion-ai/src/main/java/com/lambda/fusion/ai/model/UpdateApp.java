@@ -3,7 +3,7 @@ package com.lambda.fusion.ai.model;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.cloud.core.shared.BaseDTO;
-import com.lambda.fusion.ai.model.entity.RobotEntity;
+import com.lambda.fusion.ai.model.entity.AppEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
@@ -15,10 +15,10 @@ import lombok.EqualsAndHashCode;
  * 更新 AI机器人 DTO
  */
 @EqualsAndHashCode(callSuper = true)
-@AutoConverter(target = RobotEntity.class)
+@AutoConverter(target = AppEntity.class)
 @Data
 @Schema(description = "更新AI机器人请求体")
-public class UpdateRobot extends BaseDTO<RobotEntity> {
+public class UpdateApp extends BaseDTO<AppEntity> {
 
     @NotBlank(message = "ID不能为空")
     @Schema(description = "主键ID", requiredMode = Schema.RequiredMode.REQUIRED)
