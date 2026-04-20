@@ -13,23 +13,19 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.core.utils.StpLogicUtils;
-import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.commons.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.commons.utils.AuthorityHelper;
 import com.lambda.fusion.authority.commons.utils.PasswordGenerator;
 import com.lambda.fusion.authority.commons.utils.UserInfoConverter;
 import com.lambda.fusion.authority.mapper.*;
-import com.lambda.fusion.authority.model.organization.OrganizationEntity;
 import com.lambda.fusion.authority.model.organization.SimpleOrganization;
 import com.lambda.fusion.authority.model.organization.UserOrganizationEntity;
 import com.lambda.fusion.authority.model.role.SimpleRole;
 import com.lambda.fusion.authority.model.user.*;
 import com.lambda.fusion.authority.service.OrganizationService;
-import com.lambda.fusion.authority.service.UserOnlineLogService;
 import com.lambda.fusion.authority.service.UserService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
@@ -39,14 +35,12 @@ import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang.StringUtils;
-import org.jspecify.annotations.NonNull;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -69,9 +63,8 @@ public class UserServiceImpl implements UserService {
     private final UserOrganizationMapper userOrganizationMapper;
     private final UserPasswordMapper userUpdatePwdLogMapper;
     private final OrganizationService organizationService;
-    private final SseEmitterManager sseEmitterManager;
-    private final UserOnlineLogService userOnlineLogService;
     private final FormLockingStrategy formLockingStrategy;
+    private final UserDetailEnricher userDetailEnricher;
 
     /***
      * @param username 用户账号
@@ -109,7 +102,7 @@ public class UserServiceImpl implements UserService {
         }
         User user = userMapper.selectUserByUsername(username);
         if (user != null) {
-            user.setOnline(isOnline(username));
+            user.setOnline(userDetailEnricher.isOnline(username));
             user.setLocked(user.isLocked());
             UserInfoEntity userInfoEntity = userInfoMapper.getProps(username);
             if (userInfoEntity != null) {
@@ -179,185 +172,11 @@ public class UserServiceImpl implements UserService {
 
         if (CollectionUtils.isNotEmpty(users)) {
             // 补充用户详细信息
-            List<User> enrichedUsers = populateUserDetails(users, tenantId);
+            List<User> enrichedUsers = userDetailEnricher.populateUserDetails(users, tenantId);
             pagination.setRecords(enrichedUsers);
         }
 
         return pagination;
-    }
-
-    /**
-     * 丰富用户详细信息
-     */
-    private List<User> populateUserDetails(List<User> users, String tenantId) {
-        List<User> records = userMapper.selectUsers(users);
-        PopulateUserInfo populateUserInfo = extractUserBatchInfo(records);
-
-        // 批量获取关联数据
-        Map<String, String> orgNames = buildOrgFullNameMap(populateUserInfo.getOrgIds());
-        Map<String, Map<String, Object>> personInfoMap = buildUserPersonFieldMap(populateUserInfo.getUsernames());
-        Map<String, UserInfoEntity> userInfoMap = buildUserInfoMap(populateUserInfo);
-        // 补充用户信息
-        for (User user : records) {
-            assembleUserInfo(user, orgNames, personInfoMap, tenantId, userInfoMap);
-        }
-
-        return records;
-    }
-
-    private Map<String, UserInfoEntity> buildUserInfoMap(PopulateUserInfo populateUserInfo) {
-        List<UserInfoEntity> userInfos = userInfoMapper.selectByIds(populateUserInfo.getUsernames());
-        return userInfos.stream()
-                .collect(Collectors.toMap(UserInfoEntity::getUsername, Function.identity(), (a, b) -> a));
-    }
-
-    /**
-     * 补充单个用户的详细信息
-     */
-    private void assembleUserInfo(
-            User user,
-            Map<String, String> orgNames,
-            Map<String, Map<String, Object>> personInfo,
-            String tenantId,
-            Map<String, UserInfoEntity> userInfoMap) {
-        assembleUserOrgInfo(orgNames, user);
-        assembleUserPersonal(personInfo, user);
-        assembleUserLockState(user);
-        assembleUserPermissionInfo(user, tenantId);
-        assembleUserOnline(user);
-        UserInfoEntity userInfoEntity = userInfoMap.get(user.getUsername());
-        if (userInfoEntity != null) {
-            UserInfo userInfo = ConvertUtils.convert(userInfoEntity);
-            user.setProps(userInfo);
-        }
-        if (CollectionUtils.isNotEmpty(user.getAuthorities())) {
-            user.getAuthorities().sort(Comparator.comparing(SimpleRole::getAuthority));
-        }
-    }
-
-    private void assembleUserOnline(User user) {
-        boolean online = isOnline(user.getUsername());
-        user.setOnline(online);
-    }
-
-    private boolean isOnline(String username) {
-        if (sseEmitterManager.getActiveClients().contains(username)) {
-            return true;
-        }
-        if (Boolean.TRUE.equals(userOnlineLogService.isOnline(username, null))) {
-            userOnlineLogService.offline(username, null);
-        }
-        return false;
-    }
-
-    private Map<String, Map<String, Object>> buildUserPersonFieldMap(Set<String> usernames) {
-        List<UserFieldsEntity> fields = userFieldsMapper.getPersonUser(usernames);
-        return UserInfoConverter.buildUserFieldsMap(fields);
-    }
-
-    /**
-     * 整理用户临时参数
-     */
-    private PopulateUserInfo extractUserBatchInfo(List<User> users) {
-        Set<String> usernames = Sets.newHashSet();
-        Set<String> orgIds = Sets.newHashSet();
-        for (User item : users) {
-            usernames.add(item.getUsername());
-            if (hasOrganization(item)) {
-                orgIds.add(item.getOrganization().getId());
-            }
-        }
-        PopulateUserInfo populateUserInfo = new PopulateUserInfo();
-        populateUserInfo.setUsernames(usernames);
-        populateUserInfo.setOrgIds(orgIds);
-        return populateUserInfo;
-    }
-
-    /**
-     * 补充完善用户权限信息
-     */
-    private void assembleUserPermissionInfo(User user, String tenantId) {
-        if (AuthorityHelper.isTenant(user)) {
-            user.setDisableAssignment(true);
-        }
-        if (StringUtils.isNotBlank(user.getTenantId()) && !Objects.equals(tenantId, user.getTenantId())) {
-            user.setDisableOperations(true);
-        }
-    }
-
-    /**
-     * 补充完善用户锁定信息
-     */
-    private void assembleUserLockState(User user) {
-        // 锁定状态
-        boolean lockedState = formLockingStrategy.getLockedState(user.getUsername());
-        user.setLocked(lockedState);
-    }
-
-    private void assembleUserPersonal(Map<String, Map<String, Object>> allPersonUserMap, User user) {
-        if (allPersonUserMap.containsKey(user.getUsername())) {
-            user.setPersonal(allPersonUserMap.get(user.getUsername()));
-        }
-    }
-
-    /**
-     * 补充完善用户组织信息
-     */
-    private void assembleUserOrgInfo(Map<String, String> orgNames, User user) {
-        if (hasOrganization(user)) {
-            SimpleOrganization org = user.getOrganization();
-            org.setFullName(orgNames.getOrDefault(org.getId(), org.getAlias()));
-        }
-    }
-
-    /**
-     * 是否绑定了组织机构
-     */
-    private boolean hasOrganization(@NonNull User user) {
-        SimpleOrganization org = user.getOrganization();
-        return org != null && StringUtils.isNotBlank(org.getId());
-    }
-
-    /**
-     * 获取组织全名
-     */
-    private Map<String, String> buildOrgFullNameMap(Set<String> orgIds) {
-        if (CollectionUtils.isEmpty(orgIds)) {
-            return Collections.emptyMap();
-        }
-        List<OrganizationEntity> organizations = organizationService.listByIds(orgIds);
-        if (CollectionUtils.isEmpty(organizations)) {
-            return Collections.emptyMap();
-        }
-        Map<String, String> orgNameMap = Maps.newHashMap();
-        Map<String, String> orgParentKeyMap = Maps.newHashMap();
-        Set<String> parentOrgIds = Sets.newHashSet();
-        for (OrganizationEntity item : organizations) {
-            String parentKeys = item.getParentKeys();
-            orgParentKeyMap.put(item.getId(), item.getAlias());
-            orgNameMap.put(item.getId(), parentKeys);
-            if (StringUtils.isNotBlank(parentKeys)) {
-                Collections.addAll(parentOrgIds, parentKeys.split(FusionConstants.TREE_SPLIT));
-            }
-        }
-        Map<String, String> result = Maps.newHashMap();
-        if (CollectionUtils.isEmpty(parentOrgIds)) {
-            return result;
-        }
-        List<OrganizationEntity> parents = organizationService.listByIds(parentOrgIds);
-        Map<String, String> parentNameMap =
-                parents.stream().collect(Collectors.toMap(OrganizationEntity::getId, OrganizationEntity::getName));
-        orgNameMap.forEach((key, value) -> {
-            StringBuilder builder = new StringBuilder();
-            if (StringUtils.isNotBlank(value)) {
-                for (String token : value.split(FusionConstants.TREE_SPLIT)) {
-                    builder.append(parentNameMap.get(token)).append(FusionConstants.TREE_SPLIT);
-                }
-            }
-            builder.append(orgParentKeyMap.get(key));
-            result.put(key, builder.toString());
-        });
-        return result;
     }
 
     @Override

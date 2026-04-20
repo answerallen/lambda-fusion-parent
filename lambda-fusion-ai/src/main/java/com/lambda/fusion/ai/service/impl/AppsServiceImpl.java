@@ -61,9 +61,7 @@ public class AppsServiceImpl extends ServiceImpl<AppsMapper, AppEntity> implemen
 
     @Override
     public List<Robot> listApps() {
-        return this.list().stream()
-                .map(ConvertUtils::<Robot, AppEntity>convert)
-                .collect(Collectors.toList());
+        return this.list().stream().map(ConvertUtils::<Robot, AppEntity>convert).collect(Collectors.toList());
     }
 
     @Override
