@@ -384,22 +384,6 @@
         <if test="parameters != null and parameters.authority != null and parameters.authority != ''">
             LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.USERNAME
         </if>
-        <if test="parameters.userFields != null and parameters.userFields.size >0">
-            INNER JOIN
-            (
-            SELECT USERNAME,
-            <foreach collection="parameters.userFields" item="item" separator=" ">
-                MAX(CASE FIELD_NAME WHEN  #{item.fieldName} then field_value ELSE '' END) AS  ${item.fieldName},
-            </foreach>
-            count(*) NUMS
-            FROM  LA_USER_FIELDS
-            GROUP BY USERNAME
-            )  A ON T.USERNAME = A.USERNAME
-            AND
-            <foreach collection="parameters.userFields" item="item" separator="AND">
-                A.${item.fieldName} = #{item.fieldValue}
-            </foreach>
-        </if>
         <where>
             <if test="parameters != null">
                 <choose>
@@ -435,6 +419,17 @@
                 </if>
                 <if test="parameters.orgIds != null and parameters.orgIds.size > 0">
                     AND O.orgId IN <foreach collection="parameters.orgIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+                </if>
+                <if test="parameters.userFields != null and parameters.userFields.size > 0">
+                    <foreach collection="parameters.userFields" item="item">
+                        AND EXISTS (
+                            SELECT 1 FROM LA_USER_FIELDS UF
+                            WHERE UF.USERNAME = T.USERNAME
+                              AND UF.FIELD_NAME = #{item.fieldName}
+                              AND UF.FIELD_VALUE = #{item.fieldValue}
+                              AND (UF.TENANT_ID IS NULL OR UF.TENANT_ID = T.TENANT_ID)
+                        )
+                    </foreach>
                 </if>
             </if>
         </where>
