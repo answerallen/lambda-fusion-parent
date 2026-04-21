@@ -167,14 +167,6 @@ public interface ResourceMapper extends BaseMapper<ResourceEntity> {
      */
     void updateResourceParentKeys(List<Resource> resources);
 
-    /**
-     * 是否已经执行过
-     *
-     * @param map
-     * @return boolean
-     */
-    boolean hasChangedParentKeys(Map<String, Object> map);
-
     /***
      * 批量更新Rank值
      * @param changed2

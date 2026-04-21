@@ -24,7 +24,7 @@ public class TenantContextInterceptor implements HandlerInterceptor {
 
     private RedisHelper redisHelper;
 
-    @Autowired
+    @Autowired(required = false)
     public void setRedisHelper(RedisHelper redisHelper) {
         this.redisHelper = redisHelper;
     }
@@ -40,7 +40,7 @@ public class TenantContextInterceptor implements HandlerInterceptor {
 
         if (!StringUtils.hasText(tenantId)) {
             String serverName = request.getServerName();
-            if (StringUtils.hasText(serverName)) {
+            if (redisHelper != null && StringUtils.hasText(serverName)) {
                 Object cachedTenantId = redisHelper.hGet(FusionConstants.TENANT_HOST_REDIS_KEY, serverName);
                 if (cachedTenantId != null && StringUtils.hasText(cachedTenantId.toString())) {
                     tenantId = cachedTenantId.toString();

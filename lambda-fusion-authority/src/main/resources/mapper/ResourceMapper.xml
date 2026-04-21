@@ -123,7 +123,7 @@
         ORDER BY T.RES_LEVEL, T.ORDER_NO
     </select>
     <update id="updateResourceParentKeys">
-        UPDATE LA_RESOURCES SET PARENTKEYS = CASE
+        UPDATE LA_RESOURCES SET PARENT_KEYS = CASE
         <foreach collection="list" item="item">
             WHEN ID = #{item.id} THEN #{item.parentKeys, jdbcType=VARCHAR}
         </foreach>
@@ -140,9 +140,5 @@
             T.PARENT_KEYS = #{parentKeys, jdbcType=VARCHAR}
         WHERE T.id = #{id}
     </update>
-
-    <select id="hasChangedParentKeys" resultType="boolean">
-        SELECT 1 - COUNT(1) FROM DUAL WHERE EXISTS(SELECT 1 FROM databasechangelog where ID = #{id})
-    </select>
 
 </mapper>
