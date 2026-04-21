@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -49,6 +51,7 @@ import org.springframework.stereotype.Component;
 public class LlmProcessingNode implements AgentNode {
 
     public static final String NAME = "LLM_PROCESSOR";
+    private static final long STREAMING_CALL_TIMEOUT_SECONDS = 120;
 
     private final ObjectProvider<ChatModelFactory> chatModelFactoryProvider;
     private final AgentToolProvider toolProvider;
@@ -106,7 +109,7 @@ public class LlmProcessingNode implements AgentNode {
             return handleFallback(nextState, "服务暂时不可用，请稍后重试");
         } catch (Throwable e) {
             log.error("LLM 调用失败", e);
-            return handleFallback(nextState, "服务调用失败: " + e.getMessage());
+            return handleFallback(nextState, "服务调用失败，请稍后重试");
         }
     }
 
@@ -168,32 +171,53 @@ public class LlmProcessingNode implements AgentNode {
         if (handler != null) {
             StreamingChatModel streamingModel = getChatModelFactory().getStreamingChatModel(modelId);
             CompletableFuture<ChatResponse> future = new CompletableFuture<>();
+            AtomicBoolean terminalNotified = new AtomicBoolean(false);
 
             StreamingChatResponseHandler innerHandler = new StreamingChatResponseHandler() {
                 @Override
                 public void onPartialResponse(String token) {
+                    if (terminalNotified.get()) {
+                        return;
+                    }
                     handler.onPartialResponse(token);
                 }
 
                 @Override
                 public void onCompleteResponse(ChatResponse res) {
+                    if (terminalNotified.get()) {
+                        return;
+                    }
                     future.complete(res);
                     if (res != null
                             && res.aiMessage() != null
                             && !res.aiMessage().hasToolExecutionRequests()) {
+                        terminalNotified.set(true);
                         handler.onCompleteResponse(res);
                     }
                 }
 
                 @Override
                 public void onError(Throwable error) {
+                    if (terminalNotified.get()) {
+                        return;
+                    }
+                    terminalNotified.set(true);
                     future.completeExceptionally(error);
                     handler.onError(error);
                 }
             };
 
             streamingModel.chat(request, innerHandler);
-            return future.join();
+            future.orTimeout(STREAMING_CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            try {
+                return future.join();
+            } catch (RuntimeException e) {
+                Throwable cause = e.getCause() != null ? e.getCause() : e;
+                if (terminalNotified.compareAndSet(false, true)) {
+                    handler.onError(cause);
+                }
+                throw e;
+            }
         } else {
             ChatModel chatModel = getChatModelFactory().getChatModel(modelId);
             return chatModel.chat(request);
