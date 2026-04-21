@@ -3,10 +3,11 @@ package com.lambda.fusion.ai.commons.agent.evaluator;
 import com.lambda.fusion.ai.commons.agent.AgentState;
 import java.lang.reflect.Method;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import javax.script.Bindings;
 import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import lombok.extern.slf4j.Slf4j;
 import org.graalvm.polyglot.Context;
@@ -27,6 +28,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class JavaScriptConditionEvaluator implements ConditionEvaluator {
 
+    private static final Pattern SAFE_VARIABLE_NAME = Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*");
+
     private static final String[] EXECUTION_CONTEXT_KEYS = {
         "executionId",
         "userId",
@@ -41,11 +44,37 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
         "isAnyManager"
     };
 
-    private final ScriptEngineManager manager = new ScriptEngineManager();
-
     private static final int MAX_EXPRESSION_LENGTH = 1000;
 
     private static final Set<String> DANGEROUS_KEYWORDS = new HashSet<>();
+
+    private static final Set<String> RESERVED_BINDING_NAMES = Set.of(
+            "attributes",
+            "attrs",
+            "currentNodeId",
+            "currentNodeType",
+            "currentNodeProperties",
+            "nodeProps",
+            "graphNodeProperties",
+            "graphProps",
+            "sessionId",
+            "kbId",
+            "llmModelId",
+            "hasTools",
+            "executionId",
+            "userId",
+            "tenantId",
+            "username",
+            "orgId",
+            "roles",
+            "isAdmin",
+            "isDev",
+            "isManager",
+            "isTenantManager",
+            "isAnyManager",
+            "constructor",
+            "prototype",
+            "__proto__");
 
     static {
         DANGEROUS_KEYWORDS.add("java.lang.Runtime");
@@ -70,11 +99,6 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
             return engine;
         }
 
-        engine = tryCreateGraalJsViaManager();
-        if (engine != null) {
-            return engine;
-        }
-
         log.error("所有 JavaScript 引擎均不可用");
         return null;
     }
@@ -83,8 +107,8 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
         try {
             log.info("正在通过显式构造器创建 GraalJS 引擎");
 
-            HostAccess restrictedAccess = HostAccess.newBuilder()
-                    .allowPublicAccess(true)
+            HostAccess restrictedAccess = HostAccess.newBuilder(HostAccess.NONE)
+                    .allowAccessAnnotatedBy(HostAccess.Export.class)
                     .allowListAccess(true)
                     .allowMapAccess(true)
                     .build();
@@ -104,19 +128,6 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
             log.warn("GraalJSScriptEngine 类初始化失败: {}", e.getMessage());
         } catch (Exception e) {
             log.warn("无法创建 GraalJS 引擎: {}", e.getMessage());
-        }
-        return null;
-    }
-
-    private ScriptEngine tryCreateGraalJsViaManager() {
-        try {
-            ScriptEngine graalJs = manager.getEngineByName("graal.js");
-            if (graalJs != null) {
-                log.info("成功使用 graal.js 引擎");
-                return graalJs;
-            }
-        } catch (Exception e) {
-            log.debug("graal.js 引擎获取失败: {}", e.getMessage());
         }
         return null;
     }
@@ -146,9 +157,9 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
         try {
             Bindings bindings = engine.createBindings();
 
-            bindings.put("state", state);
             bindings.put("attributes", state.getAttributes());
             bindings.put("attrs", state.getAttributes());
+            bindings.put("state", new SafeStateView(state));
             bindings.put("currentNodeId", state.getCurrentNodeId());
             bindings.put("currentNodeType", state.getCurrentNodeType());
             bindings.put("currentNodeProperties", state.getCurrentNodeProperties());
@@ -166,13 +177,7 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
                 bindings.put("hasTools", false);
             }
 
-            if (state.getAttributes() != null) {
-                state.getAttributes().forEach((key, value) -> {
-                    if (value != null) {
-                        bindings.put(key, value);
-                    }
-                });
-            }
+            injectSafeAttributeVariables(bindings, state);
 
             Object result = engine.eval(expression, bindings);
             if (result instanceof Boolean) {
@@ -189,6 +194,80 @@ public class JavaScriptConditionEvaluator implements ConditionEvaluator {
             log.error("JavaScriptConditionEvaluator 未预期的异常: {}", expression, e);
             return false;
         }
+    }
+
+    public static final class SafeStateView {
+        private final AgentState delegate;
+
+        public SafeStateView(AgentState delegate) {
+            this.delegate = delegate;
+        }
+
+        @HostAccess.Export
+        public String getSessionId() {
+            return delegate.getSessionId();
+        }
+
+        @HostAccess.Export
+        public String getKbId() {
+            return delegate.getKbId();
+        }
+
+        @HostAccess.Export
+        public String getLlmModelId() {
+            return delegate.getLlmModelId();
+        }
+
+        @HostAccess.Export
+        public String getCurrentNodeId() {
+            return delegate.getCurrentNodeId();
+        }
+
+        @HostAccess.Export
+        public String getCurrentNodeType() {
+            return delegate.getCurrentNodeType();
+        }
+    }
+
+    private void injectSafeAttributeVariables(Bindings bindings, AgentState state) {
+        if (state.getAttributes() == null || state.getAttributes().isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, Object> entry : state.getAttributes().entrySet()) {
+            String key = entry.getKey();
+            if (key == null || key.isBlank()) {
+                continue;
+            }
+            if (!SAFE_VARIABLE_NAME.matcher(key).matches()) {
+                continue;
+            }
+            if (RESERVED_BINDING_NAMES.contains(key)) {
+                continue;
+            }
+            Object value = entry.getValue();
+            if (value == null) {
+                continue;
+            }
+            if (!isAllowedBindingValue(value)) {
+                continue;
+            }
+            bindings.put(key, value);
+        }
+    }
+
+    private boolean isAllowedBindingValue(Object value) {
+        if (value instanceof String
+                || value instanceof Number
+                || value instanceof Boolean
+                || value instanceof Character) {
+            return true;
+        }
+        if (value instanceof Map<?, ?>
+                || value instanceof Iterable<?>
+                || value.getClass().isArray()) {
+            return true;
+        }
+        return false;
     }
 
     private void injectExecutionContextVariables(Bindings bindings, AgentState state) {
