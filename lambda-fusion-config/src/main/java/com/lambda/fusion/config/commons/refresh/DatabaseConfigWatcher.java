@@ -104,11 +104,16 @@ public class DatabaseConfigWatcher {
     }
 
     private boolean isDataSourceChanged(DataSourceProperty property, HikariDataSource dataSource) {
-        if (dataSource == null) {
-            return true;
+        dataSourceLock.readLock().lock();
+        try {
+            if (dataSource == null) {
+                return true;
+            }
+            return !(Objects.equals(property.getUrl(), dataSource.getJdbcUrl())
+                    && Objects.equals(property.getUsername(), dataSource.getUsername()));
+        } finally {
+            dataSourceLock.readLock().unlock();
         }
-        return !(Objects.equals(property.getUrl(), dataSource.getJdbcUrl())
-                && Objects.equals(property.getUsername(), dataSource.getUsername()));
     }
 
     private void rebuildDataSource(DataSourceProperty property) {
@@ -133,52 +138,74 @@ public class DatabaseConfigWatcher {
     }
 
     private boolean isConfigContentChanged() {
-        if (dataSource == null) {
-            return false;
-        }
-        try (Connection connection = dataSource.getConnection()) {
-            String checkSum = DatabaseBasedProperties.getCheckSum(connection, application, configProperties);
-            int newHashcode = checkSum.hashCode();
-            if (hashcode != newHashcode) {
-                hashcode = newHashcode;
-                return true;
+        dataSourceLock.readLock().lock();
+        try {
+            if (dataSource == null) {
+                return false;
             }
-        } catch (SQLException e) {
-            log.warn("Failed to check config changes", e);
+            try (Connection connection = dataSource.getConnection()) {
+                String checkSum = DatabaseBasedProperties.getCheckSum(connection, application, configProperties);
+                int newHashcode = checkSum.hashCode();
+                if (hashcode != newHashcode) {
+                    hashcode = newHashcode;
+                    return true;
+                }
+            } catch (SQLException e) {
+                log.warn("Failed to check config changes", e);
+            }
+            return false;
+        } finally {
+            dataSourceLock.readLock().unlock();
         }
-        return false;
     }
 
     private void updateHashcode() {
-        if (dataSource == null) return;
-        try (Connection connection = dataSource.getConnection()) {
-            String checkSum = DatabaseBasedProperties.getCheckSum(connection, application, configProperties);
-            this.hashcode = checkSum.hashCode();
-        } catch (SQLException e) {
-            log.warn("Failed to update initial config hashcode", e);
+        dataSourceLock.readLock().lock();
+        try {
+            if (dataSource == null) {
+                return;
+            }
+            try (Connection connection = dataSource.getConnection()) {
+                String checkSum = DatabaseBasedProperties.getCheckSum(connection, application, configProperties);
+                this.hashcode = checkSum.hashCode();
+            } catch (SQLException e) {
+                log.warn("Failed to update initial config hashcode", e);
+            }
+        } finally {
+            dataSourceLock.readLock().unlock();
         }
     }
 
     private void refreshPropertySource() {
-        if (configurableEnvironment == null || dataSource == null) {
-            return;
-        }
-        try (Connection connection = dataSource.getConnection()) {
-            DataBaseBasedPropertySource propertySource = new DataBaseBasedPropertySource(
-                    DATABASE_PROPERTY_SOURCE_NAME, connection, application, configProperties);
-            MutablePropertySources propertySources = configurableEnvironment.getPropertySources();
-            if (propertySources.contains(propertySource.getName())) {
-                propertySources.replace(propertySource.getName(), propertySource);
+        dataSourceLock.readLock().lock();
+        try {
+            if (configurableEnvironment == null || dataSource == null) {
                 return;
             }
-            propertySources.addFirst(propertySource);
-        } catch (Exception e) {
-            log.warn("Failed to refresh database property source", e);
+            try (Connection connection = dataSource.getConnection()) {
+                DataBaseBasedPropertySource propertySource = new DataBaseBasedPropertySource(
+                        DATABASE_PROPERTY_SOURCE_NAME, connection, application, configProperties);
+                MutablePropertySources propertySources = configurableEnvironment.getPropertySources();
+                if (propertySources.contains(propertySource.getName())) {
+                    propertySources.replace(propertySource.getName(), propertySource);
+                    return;
+                }
+                propertySources.addFirst(propertySource);
+            } catch (Exception e) {
+                log.warn("Failed to refresh database property source", e);
+            }
+        } finally {
+            dataSourceLock.readLock().unlock();
         }
     }
 
     @PreDestroy
     public void destroy() {
-        closeDataSourceSafely();
+        dataSourceLock.writeLock().lock();
+        try {
+            closeDataSourceSafely();
+        } finally {
+            dataSourceLock.writeLock().unlock();
+        }
     }
 }

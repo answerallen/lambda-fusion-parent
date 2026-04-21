@@ -4,6 +4,7 @@ import static com.lambda.fusion.config.ConfigConstants.THREAD_NAME;
 
 import com.lambda.fusion.config.ConfigProperties;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jakarta.annotation.PreDestroy;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -126,6 +127,19 @@ public class DatabaseContextRefresher implements ApplicationRunner, BeanFactoryA
                 "DatabaseContextRefresher scheduled with {}s initial delay and {}s interval",
                 autoRefresh.getInitialDelaySeconds(),
                 autoRefresh.getIntervalSeconds());
+    }
+
+    @PreDestroy
+    public void destroy() {
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override
