@@ -92,7 +92,7 @@ public class DataSourceChangeDispatcher {
                 listener.onDataSourceChanged(event);
                 log.debug("Notified client: {}", clientId);
             } catch (Exception e) {
-                log.warn("Failed to notify client: {}, error: {}", clientId, e.getMessage());
+                log.warn("Failed to notify client: {}", clientId, e);
             }
         }));
     }
