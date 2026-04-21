@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompiledGraph;
@@ -57,6 +58,7 @@ public class ReactAgentNode implements AgentNode {
     public static final String NAME = "REACT_AGENT";
     private static final String REACT_AGENT_RESULTS_KEY = "reactAgentResults";
     private static final String LAST_REACT_AGENT_RESULT_KEY = "lastReactAgentResult";
+    private static final long STREAMING_EXECUTION_TIMEOUT_SECONDS = 120;
 
     private final ObjectProvider<ChatModelFactory> chatModelFactoryProvider;
     private final AgentToolProvider toolProvider;
@@ -208,6 +210,7 @@ public class ReactAgentNode implements AgentNode {
                         }
                         return output;
                     })
+                    .orTimeout(STREAMING_EXECUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                     .join();
             outputState = finalOutput == null ? null : finalOutput.state();
         } else {

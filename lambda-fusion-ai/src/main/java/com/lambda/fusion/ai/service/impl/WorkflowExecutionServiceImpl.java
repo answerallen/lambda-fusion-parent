@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompileConfig;
@@ -78,6 +79,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
     static final String ATTR_THREAD_ID = "threadId";
     static final String ATTR_INPUT_PARAMS = "inputParams";
     static final String STATUS_WAITING_FOR_INPUT = "WAITING_FOR_INPUT";
+    private static final long GRAPH_STREAM_TIMEOUT_SECONDS = 120;
 
     private final WorkflowMapper workflowMapper;
     private final WorkflowExecutionMapper executionMapper;
@@ -868,6 +870,7 @@ public class WorkflowExecutionServiceImpl implements WorkflowExecutionService {
         try {
             finalOutput = graph.stream(state, runnableConfig)
                     .<NodeOutput<AgentGraph.LangGraphRuntimeState>>reduce(null, (acc, output) -> output)
+                    .orTimeout(GRAPH_STREAM_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                     .join();
         } catch (RuntimeException e) {
             Throwable normalized = normalizeExecutionFailure(e);

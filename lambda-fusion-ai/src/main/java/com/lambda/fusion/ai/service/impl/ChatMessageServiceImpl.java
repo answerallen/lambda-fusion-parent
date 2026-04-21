@@ -88,7 +88,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                     .execute(() -> doSendMessageStream(sessionId, sendMessage, session, userMsg, clientId));
         } catch (Exception e) {
             log.error("流式消息发送失败", e);
-            sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
+            sseEmitterManager.sendEvent(clientId, "error", "系统异常，请稍后重试");
             throw new AiBusinessException(AiErrorCode.MESSAGE_SEND_FAILED, e);
         }
     }
@@ -144,19 +144,19 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                                 sseEmitterManager.sendEvent(clientId, "finish", aiMsg.getId());
                             } catch (Exception e) {
                                 log.error("流式消息持久化失败", e);
-                                sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
+                                sseEmitterManager.sendEvent(clientId, "error", "系统异常，请稍后重试");
                             }
                         }
 
                         @Override
                         public void onError(Throwable error) {
                             log.error("RAG 推理异常", error);
-                            sseEmitterManager.sendEvent(clientId, "error", error.getMessage());
+                            sseEmitterManager.sendEvent(clientId, "error", "系统异常，请稍后重试");
                         }
                     });
         } catch (Exception e) {
             log.error("流式消息发送失败", e);
-            sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
+            sseEmitterManager.sendEvent(clientId, "error", "系统异常，请稍后重试");
         }
     }
 
@@ -204,14 +204,14 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
                             sseEmitterManager.sendEvent(clientId, "finish", messageId.getId());
                         } catch (Exception e) {
                             log.error("工作流流式消息持久化失败", e);
-                            sseEmitterManager.sendEvent(clientId, "error", e.getMessage());
+                            sseEmitterManager.sendEvent(clientId, "error", "系统异常，请稍后重试");
                         }
                     }
 
                     @Override
                     public void onError(Throwable error) {
                         log.error("工作流流式执行异常", error);
-                        sseEmitterManager.sendEvent(clientId, "error", error.getMessage());
+                        sseEmitterManager.sendEvent(clientId, "error", "系统异常，请稍后重试");
                     }
                 });
     }
