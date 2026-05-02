@@ -231,58 +231,6 @@ dict:
     host: 127.0.0.1               # 服务主机地址
 ```
 
-## 数据库表结构
-
-### la_dict_type 表（字典类型表）
-
-```sql
-CREATE TABLE la_dict_type (
-  id VARCHAR(32) PRIMARY KEY,              -- 主键
-  parent_id VARCHAR(32) DEFAULT '0',       -- 父ID，0代表顶级
-  dict_type VARCHAR(20) NOT NULL,          -- 字典编码
-  dict_name VARCHAR(64) NOT NULL,          -- 编码名称
-  dict_usage INT(1) DEFAULT 0,             -- 字典用途（0:系统 1:用户）
-  level INT(1) DEFAULT 0,                  -- 字典层级
-  data_type VARCHAR(64),                   -- 数据类型（0/null:静态 1:URL 2:SQL 3:枚举）
-  data_type_value VARCHAR(1024),           -- 类型参数（URL、SQL查询等）
-  parent_keys VARCHAR(100),                -- 父字段
-  notes VARCHAR(100),                      -- 备注
-  sort INT(11) DEFAULT 0,                  -- 排序编码
-  create_time DATETIME NOT NULL,           -- 创建时间
-  update_time DATETIME,                    -- 更新时间
-  create_user VARCHAR(32) NOT NULL,        -- 创建人ID
-  update_user VARCHAR(32),                 -- 修改人ID
-  del_flag TINYINT(1) DEFAULT 0            -- 删除状态（0:正常 1:删除）
-);
-```
-
-### la_dict_info 表（字典信息表）
-
-```sql
-CREATE TABLE la_dict_info (
-  id VARCHAR(32) PRIMARY KEY,              -- 主键
-  code VARCHAR(20) NOT NULL,               -- 字典编码
-  type INT NOT NULL,                       -- 字典类型（1:系统参数 2:业务参数）
-  dict_type VARCHAR(20) NOT NULL,          -- 字典编码
-  dict_name VARCHAR(40) NOT NULL,          -- 字典名称
-  value INT NOT NULL,                      -- 字典值
-  field_type VARCHAR(100),                 -- 字段类型
-  field_name VARCHAR(100),                 -- 字段名称
-  parent_keys VARCHAR(100),                -- 父字段
-  notes VARCHAR(100),                      -- 备注
-  sort VARCHAR(20) NOT NULL,               -- 排序编码
-  create_time DATETIME NOT NULL,           -- 创建时间
-  update_time DATETIME,                    -- 更新时间
-  create_user VARCHAR(32) NOT NULL,        -- 创建人ID
-  update_user VARCHAR(32),                 -- 修改人ID
-  del_flag TINYINT(1) DEFAULT 0,           -- 删除状态（0:正常 1:删除）
-  enable_state INT DEFAULT 1,              -- 状态（0:禁用 1:启用）
-  select_able INT DEFAULT 1,               -- 状态（0:禁用 1:启用）
-  parent_id VARCHAR(32),                   -- 父节点ID
-  tenant_id VARCHAR(32)                    -- 租户ID
-);
-```
-
 ## 使用说明
 
 ### 1. 添加依赖
