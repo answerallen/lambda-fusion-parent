@@ -35,6 +35,7 @@ build/
 ### VS Code ###
 .vscode/
 ## Evn
+evn
 .evn
 ### Mac OS ###
 .DS_Store

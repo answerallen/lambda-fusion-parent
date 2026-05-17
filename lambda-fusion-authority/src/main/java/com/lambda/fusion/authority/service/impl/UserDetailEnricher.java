@@ -22,6 +22,7 @@ import com.lambda.fusion.authority.service.OrganizationService;
 import com.lambda.fusion.authority.service.UserOnlineLogService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.security.web.form.FormLockingStrategy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Component
 @RequiredArgsConstructor
 public class UserDetailEnricher {
