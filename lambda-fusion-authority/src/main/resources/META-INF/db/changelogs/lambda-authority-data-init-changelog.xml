@@ -114,7 +114,7 @@
             </sqlCheck>
         </preConditions>
         <sql><![CDATA[
-insert into lambda_cloud.la_resources (ID, PARENT_ID, RES_NAME, RES_PATH, RES_LEVEL, RES_TYPE, RES_URL, RES_MODE, METHOD, ICON, HIDDEN, PARENT_KEYS, IS_DEV, REMARK, URL, KEY_NAME, KEEP_ALIVE, EXPAND, BUSINESS_EXPAND, ORDER_NO)
+insert into la_resources (ID, PARENT_ID, RES_NAME, RES_PATH, RES_LEVEL, RES_TYPE, RES_URL, RES_MODE, METHOD, ICON, HIDDEN, PARENT_KEYS, IS_DEV, REMARK, URL, KEY_NAME, KEEP_ALIVE, EXPAND, BUSINESS_EXPAND, ORDER_NO)
 values  ('02qO2Uxa', '4y3OpJFy', '管理键值', 'dict_manage', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-4y3OpJFy', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 4),
         ('0saIaeyh', '9e4sWAdn', '角色分配用户', 'role_set_users', 2147483647, 3, null, 0, '', '', 0, 'jw1MUnwu-9e4sWAdn', 0, null, null, null, 0, '{"strWindowName":"_blank","token":false}"', null, 7),
         ('1uYLUsrN', 'jw1MUnwu', '资源管理', '/system/menu/', 1, 1, null, 0, null, 'lucide:menu', 0, 'jw1MUnwu', 1, null, null, null, 0, null, null, 1),
