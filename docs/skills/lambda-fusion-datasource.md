@@ -46,7 +46,6 @@ description: "面向动态数据源中心（server/client 双模式）、租户�
 ## 数据库与 Liquibase
 
 - Changelog：lambda-datasource-changelog.xml（lambda-fusion-datasource/src/main/resources/META-INF/db/changelogs/）
-- 表结构历史/初始化参考（docs/sql）：docs/sql/la_datasources.sql、docs/sql/la_tenant_datasource.sql
 
 ## 常见改造任务指引
 

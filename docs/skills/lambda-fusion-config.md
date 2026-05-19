@@ -47,7 +47,6 @@ description: "面向数据库配置中心、Spring ConfigData 扩展、自动刷
 ## 数据库与 Liquibase
 
 - Changelog：lambda-config-changelog.xml（lambda-fusion-config/src/main/resources/META-INF/db/changelogs/）
-- 表结构历史/初始化参考（docs/sql）：docs/sql/la_configs.sql、docs/sql/la_config_options.sql
 
 ## 常见改造任务指引
 

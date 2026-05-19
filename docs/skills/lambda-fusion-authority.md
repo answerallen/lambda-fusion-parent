@@ -65,7 +65,6 @@ description: "面向用户/角色/资源/组织/租户/客户端/令牌、登录
 - Changelog：
   - lambda-authority-changelog.xml（lambda-fusion-authority/src/main/resources/META-INF/db/changelogs/）
   - lambda-authority-data-init-changelog.xml（lambda-fusion-authority/src/main/resources/META-INF/db/changelogs/）
-- SQL 模板与历史表结构参考：docs/sql/
 
 ## 常见改造任务指引
 

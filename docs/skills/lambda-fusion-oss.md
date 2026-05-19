@@ -41,7 +41,6 @@ description: "面向附件上传/分组管理、OSS 客户端选择、预签名�
 ## 数据库与 Liquibase
 
 - Changelog：lambda-upload-changelog.xml（lambda-fusion-oss/src/main/resources/META-INF/db/changelogs/）
-- 表结构历史/初始化参考（docs/sql）：docs/sql/
 
 ## 常见改造任务指引
 

@@ -35,7 +35,6 @@ description: "面向字典类型/字典项管理、动态字典解析（SQL/URL/
 ## 数据库与 Liquibase
 
 - Changelog：lambda-dict-changelog.xml（lambda-fusion-dictionary/src/main/resources/META-INF/db/changelogs/）
-- 表结构历史/初始化参考（docs/sql）：docs/sql/la_dict_type.sql、docs/sql/la_dict_info.sql
 
 ## 常见改造任务指引
 

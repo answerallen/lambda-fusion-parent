@@ -62,4 +62,3 @@ description: "面向功能权限（API 鉴权与权限点上报）与数据权�
 ## 数据库与 Liquibase
 
 - datascope changelog：lambda-datascope-changelog.xml（lambda-fusion-permission-datascope/src/main/resources/META-INF/db/changelogs/）
-- 表结构历史/初始化参考（docs/sql）：docs/sql/la_api_resources.sql
