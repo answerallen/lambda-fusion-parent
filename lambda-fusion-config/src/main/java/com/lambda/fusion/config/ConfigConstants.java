@@ -51,6 +51,11 @@ public interface ConfigConstants {
     String THREAD_NAME = "DatabaseContextRefresher";
 
     /**
+     * 网关动态路由配置键
+     */
+    String GATEWAY_DYNAMIC_ROUTES_KEY = "lambda.gateway.dynamic-routes";
+
+    /**
      * Nacos 属性源仓库类名
      */
     String PROPERTY_SOURCE_REPOSITORY_CLASS = "com.alibaba.cloud.nacos.NacosPropertySourceRepository";

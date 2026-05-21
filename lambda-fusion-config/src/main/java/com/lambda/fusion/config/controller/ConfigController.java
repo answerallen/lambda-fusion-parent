@@ -1,12 +1,14 @@
 package com.lambda.fusion.config.controller;
 
+import static com.lambda.fusion.config.ConfigConstants.GATEWAY_DYNAMIC_ROUTES_KEY;
+
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.cloud.logger.context.LogContext;
-import com.lambda.fusion.config.commons.handler.ConfigChangeHandler;
+import com.lambda.fusion.config.ConfigConstants;
 import com.lambda.fusion.config.commons.refresh.DatabaseContextRefresher;
 import com.lambda.fusion.config.mapper.SettingsLayoutMapper;
 import com.lambda.fusion.config.model.*;
@@ -68,11 +70,6 @@ public class ConfigController {
      * 配置服务
      */
     private final ConfigService configService;
-
-    /**
-     * 配置变更服务
-     */
-    private final ConfigChangeHandler configChangeHandler;
 
     private final SettingsLayoutMapper settingsLayoutMapper;
 
@@ -250,6 +247,51 @@ public class ConfigController {
         QueryConfig queryConfig = new QueryConfig();
         queryConfig.setApplication(application);
         return configService.batchQueryConfigs(queryConfig);
+    }
+
+    @GetMapping("/gateway/routes")
+    @Operation(summary = "查询网关动态路由配置", description = "读取当前应用的 Spring Cloud Gateway 动态路由 JSON 配置")
+    public GatewayDynamicRoutesConfig getGatewayRoutes(@RequestParam(required = false) String application) {
+        String currentApplication = resolveApplication(application);
+        ConfigEntity entity = findGatewayRoutesConfig(currentApplication);
+        return GatewayDynamicRoutesConfig.builder()
+                .application(currentApplication)
+                .routesJson(entity == null || StringUtils.isBlank(entity.getValue()) ? "[]" : entity.getValue())
+                .name(entity == null ? "网关动态路由" : entity.getName())
+                .description(entity == null ? "Spring Cloud Gateway 动态路由配置" : entity.getDescription())
+                .build();
+    }
+
+    @PutMapping("/gateway/routes")
+    @Operation(summary = "保存网关动态路由配置", description = "保存当前应用的 Spring Cloud Gateway 动态路由 JSON 配置并触发刷新")
+    public void saveGatewayRoutes(@RequestBody @Valid GatewayDynamicRoutesConfig source) {
+        String currentApplication = resolveApplication(source.getApplication());
+        ConfigEntity existing = findGatewayRoutesConfig(currentApplication);
+        String configName = StringUtils.defaultIfBlank(source.getName(), "网关动态路由");
+        String configDescription = StringUtils.defaultIfBlank(source.getDescription(), "Spring Cloud Gateway 动态路由配置");
+        String routesJson = source.getRoutesJson().trim();
+
+        if (existing == null) {
+            SaveConfig saveConfig = SaveConfig.builder()
+                    .application(currentApplication)
+                    .key(GATEWAY_DYNAMIC_ROUTES_KEY)
+                    .value(routesJson)
+                    .name(configName)
+                    .description(configDescription)
+                    .type(ConfigConstants.RoleType.STRING.getCode())
+                    .build();
+            configService.saveConfigWithOptions(saveConfig);
+            return;
+        }
+
+        UpdateConfig updateConfig = UpdateConfig.builder()
+                .id(existing.getId())
+                .value(routesJson)
+                .name(configName)
+                .description(configDescription)
+                .type(ConfigConstants.RoleType.STRING.getCode())
+                .build();
+        configService.updateConfigWithOptions(updateConfig);
     }
 
     /**
@@ -436,5 +478,14 @@ public class ConfigController {
 
     private String toJson(SettingsLayout layout) {
         return objectMapper.writeValueAsString(layout);
+    }
+
+    private ConfigEntity findGatewayRoutesConfig(String application) {
+        QueryConfig queryConfig = new QueryConfig();
+        queryConfig.setApplication(application);
+        return configService.batchQueryConfigs(queryConfig).stream()
+                .filter(item -> GATEWAY_DYNAMIC_ROUTES_KEY.equals(item.getKey()))
+                .findFirst()
+                .orElse(null);
     }
 }

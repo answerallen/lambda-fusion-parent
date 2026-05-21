@@ -9,7 +9,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Lists;
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.cloud.logger.context.LogContext;
-import com.lambda.fusion.config.commons.handler.ConfigChangeHandler;
 import com.lambda.fusion.config.commons.refresh.DatabaseContextRefresher;
 import com.lambda.fusion.config.mapper.ConfigMapper;
 import com.lambda.fusion.config.mapper.ConfigOptionMapper;
@@ -51,11 +50,6 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
      * 数据库上下文刷新器
      */
     private final DatabaseContextRefresher contextRefresher;
-
-    /**
-     * 配置变更服务
-     */
-    private final ConfigChangeHandler configChangeHandler;
 
     /**
      * 分页查询配置列表的具体实现
@@ -181,7 +175,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
             // 记录操作日志
             LogContext.setDetail("UPDATE: " + batchUpdateConfig);
 
-            Thread.ofVirtual().start(contextRefresher::doRefresh);
+            triggerRefresh();
         }
     }
 
@@ -249,8 +243,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
         LogContext.setDetail("UPDATE: " + target.getKey() + "=" + target.getValue());
 
         // 触发配置刷新
-        configChangeHandler.handle();
-        Thread.ofVirtual().start(contextRefresher::doRefresh);
+        triggerRefresh();
     }
 
     /**
@@ -290,5 +283,11 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, ConfigEntity> i
 
         // 记录创建操作日志
         LogContext.setDetail("CREATE: " + target.getKey() + "=" + target.getValue());
+
+        triggerRefresh();
+    }
+
+    private void triggerRefresh() {
+        Thread.ofVirtual().start(contextRefresher::doRefresh);
     }
 }
