@@ -7,12 +7,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 创建知识库DTO
  *
  * @author Jin
  */
+@EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = KnowledgeBaseEntity.class)
 @Data
 @Schema(description = "创建知识库DTO")
