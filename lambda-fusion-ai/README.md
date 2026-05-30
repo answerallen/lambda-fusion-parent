@@ -1,253 +1,245 @@
-# Lambda Fusion AI 模块
+# 🤖 Lambda Fusion AI 模块
 
-`lambda-fusion-ai` 是一个面向 Spring Boot 的 AI 能力模块，当前代码已经不只是传统的 RAG 知识库问答，还包含：
+`lambda-fusion-ai` 是 Lambda Fusion 体系中的 AI 能力模块，面向 Spring Boot 提供知识库、RAG、流式对话、AI 应用、MCP 工具接入，以及 Agent 工作流编排与执行能力。
 
-- 知识库与文档处理
-- LLM 提供商与模型管理
-- AI 应用/机器人管理
-- 对话会话与 SSE 流式消息
-- Prompt 模板管理
-- MCP Server 与工具装载
-- Agent 工作流编排、模板、执行、恢复与追踪
-- 多租户数据源与 AI Schema 自动初始化
+> 📌 面向对象：需要在业务系统中集成知识库问答、工作流编排、模型管理与 MCP 工具调用能力的 Spring Boot 应用。
 
-本文档以 `src/main/java` 和 `src/main/resources` 中的实际代码为准，覆盖旧版 README 中已经过时的接口、配置和表结构描述。
 
-## 1. 当前代码范围
+## 1. 🧭 模块概览
 
-### 1.1 已落地能力
+### 1.1 核心能力
 
-- Spring Boot 自动装配：`AiAutoConfiguration -> AiConfigure`
-- RAG 检索：向量检索 + 关键词检索，使用 RRF 做混合召回
-- 文档处理：上传到 OSS，异步解析、切分、向量化、入库
-- 对话能力：基于会话上下文的流式聊天，支持知识库或工作流模式
-- AI 应用：`/v1/ai/apps` 与 `/v1/ai/robots` 指向同一套应用管理
-- LLM 管理：提供商、模型注册、默认模型、成本统计
-- Prompt 模板：分类管理、系统模板、变量渲染
-- MCP 工具：支持 STDIO 和 HTTP Streamable 两种传输
-- 工作流引擎：工作流定义、执行、流式执行、checkpoint 恢复、执行状态查询
-- 工作流模板：创建、发布、废弃、复制、回滚、导入导出、校验
-- 多租户：默认数据源与租户数据源下自动执行 AI Liquibase 迁移
+| 能力域 | 当前实现 |
+| --- | --- |
+| 自动装配 | `AiAutoConfiguration -> AiConfigure` |
+| 知识库 | 创建、更新、删除、分页、租户隔离 |
+| 文档处理 | 上传到 OSS，异步解析、切分、向量化、入库 |
+| RAG | 向量检索 + 关键词检索，使用 RRF 做混合召回 |
+| 对话 | 基于会话上下文的 SSE 流式聊天 |
+| AI 应用 | `/v1/ai/apps` 应用管理 |
+| LLM 管理 | 提供商、模型注册、默认模型、调用统计、成本统计 |
+| Prompt 模板 | 分类管理、系统模板、变量渲染 |
+| MCP | STDIO / HTTP Streamable 接入，统一工具装载 |
+| 工作流 | 定义、执行、流式执行、恢复、状态查询、执行历史 |
+| 工作流模板 | 创建、发布、废弃、复制、回滚、导入导出、校验 |
+| 多租户 | 默认数据源与租户数据源自动执行 AI Liquibase 迁移 |
 
-### 1.2 和旧文档相比的重要变化
+## 2. 🗂️ 代码结构
 
-- 旧文档里的 `RobotService`、`CreateRobot` 已不存在，当前统一走 `AppsService` / `AppsController`
-- 对话消息当前公开接口只有流式模式，没有单独的同步发送接口
-- RAG 不再依赖固定的 `ai_vector_store` 单表，而是按维度写入 `ai_vector_store_<dimension>` 分表
-- 当前真实生效的 AI 配置核心来自 `AiProperties`，不是旧文档里的 `embedding.*`、`vector-name` 等字段
-- 工作流图定义字段已是 `source/target + conditionType/conditionExpression`，不是旧版的 `sourceId/targetId/condition`
-
-## 2. 代码结构
-
-`src/main/java/com/lambda/fusion/ai` 主要分层如下：
+主包：`src/main/java/com/lambda/fusion/ai`
 
 | 包 | 作用 |
 | --- | --- |
 | `controller` | REST 接口层 |
 | `service` / `service.impl` | 业务服务与实现 |
 | `mapper` | MyBatis Mapper 与向量仓储访问 |
-| `model` | DTO / VO / 请求响应模型 |
+| `model` | DTO、VO、请求响应模型 |
 | `model.entity` | 数据库实体 |
 | `commons.agent` | Agent 状态、节点、条件评估器、图工厂 |
 | `commons.support` | 文档处理、模型工厂、Embedding、MCP、安全等支撑组件 |
 | `commons.datasource` | 多租户数据源切换与 Schema 初始化 |
 
-## 3. 核心执行链路
+## 3. 🔄 核心执行链路
 
-### 3.1 知识库文档链路
+### 3.1 📄 知识库文档链路
 
 1. `DocumentController.upload`
 2. `DocumentServiceImpl.uploadDocument`
 3. 文件做 SHA-256 去重校验
-4. 文件上传到 OSS，记录 `ai_document`
+4. 上传到 OSS，并写入 `ai_document`
 5. `DocumentProcessor.processDocument(...)` 异步执行
 6. 从 OSS 拉取文件内容并解析
 7. 使用 `DocumentSplitters.recursive(chunkSize, chunkOverlap)` 切分
 8. 使用知识库绑定的 Embedding 模型批量 `embedAll`
-9. 写入 `ai_document_chunk` 和对应维度的向量分表
+9. 写入 `ai_document_chunk` 与对应维度的向量分表
 10. 更新文档与知识库统计
 
-### 3.2 对话链路
+### 3.2 💬 对话链路
 
-- 会话创建：`ChatSessionController.create`
-- 消息发送：`ChatMessageController.startStreamChat`
-- SSE 订阅：`GET /v1/chat/sessions/{sessionId}/messages/stream`
-- 当会话绑定 `workflowId` 时走 `WorkflowExecutionService.executeStream`
-- 否则走 `RagService.retrieve + RagService.streamChat`
-- 消息入库后，原子更新会话 token / cost / messageCount
+| 阶段 | 当前实现 |
+| --- | --- |
+| 会话创建 | `ChatSessionController.create` |
+| SSE 建链 | `GET /v1/chat/sessions/{sessionId}/messages/stream` |
+| 发起消息 | `POST /v1/chat/sessions/{sessionId}/messages/stream` |
+| 工作流模式 | 会话存在 `workflowId` 时走 `WorkflowExecutionService.executeStream` |
+| 知识库模式 | 否则走 `RagService.retrieve + RagService.streamChat` |
+| 持久化与统计 | 消息入库后原子更新会话 token、cost、messageCount |
 
-### 3.3 工作流链路
+### 3.3 🧠 工作流链路
 
-- 工作流定义存储在 `ai_agent_workflow.graph_json`
-- `WorkflowExecutionServiceImpl` 负责：
-  - 同步执行
-  - 流式执行
-  - checkpoint 恢复
-  - 执行历史查询
-  - 执行状态查询
-  - token / cost 结算
-- checkpoint 使用 `MemorySaver`，属于进程内内存状态
+| 项目 | 当前实现 |
+| --- | --- |
+| 工作流定义存储 | `ai_agent_workflow.graph_json` |
+| 执行入口 | `WorkflowExecutionServiceImpl` |
+| 支持能力 | 同步执行、流式执行、checkpoint 恢复、执行历史、执行状态 |
+| 状态保存 | `MemorySaver`，进程内内存状态 |
+| 结算 | token / cost 在执行完成后统一结算 |
 
-## 4. 当前模块能力拆分
+## 4. 🧩 模块能力拆分
 
-### 4.1 知识库与文档
+### 4.1 📚 知识库与文档
 
-- 知识库字段包含：
-  - `embeddingModel`
-  - `embeddingDimension`
-  - `chunkSize`
-  - `chunkOverlap`
-  - `chunkStrategy`
-  - `retrievalTopK`
-  - `similarityThreshold`
-- 文档上传白名单：
-  - `pdf`
-  - `txt`
-  - `doc`
-  - `docx`
-  - `xls`
-  - `xlsx`
-  - `ppt`
-  - `pptx`
-  - `md`
-  - `json`
-  - `xml`
-  - `csv`
-- 文档处理状态：`PENDING / PROCESSING / COMPLETED / FAILED`
+知识库核心字段：
 
-注意：
+| 字段 | 说明 |
+| --- | --- |
+| `embeddingModel` | 使用的 Embedding 模型 |
+| `embeddingDimension` | 向量维度 |
+| `chunkSize` | 切分块大小 |
+| `chunkOverlap` | 切分重叠大小 |
+| `chunkStrategy` | 分段策略 |
+| `retrievalTopK` | 检索返回数量 |
+| `similarityThreshold` | 相似度阈值 |
 
-- `chunkStrategy` 当前会被保存到知识库，但 `DocumentProcessor` 现阶段统一使用递归切分器，尚未按 `FIXED / PARAGRAPH / SENTENCE / SLIDING_WINDOW` 分支切换实现
-- 控制器上传路径默认走 OSS 存储；处理器虽然保留了 `LOCAL` 分支，但当前上传实现实际写入的是 `OSS`
+文档上传白名单：
 
-### 4.2 LLM 提供商与模型
+| 类型 | 扩展名 |
+| --- | --- |
+| 文本类 | `txt` `md` `json` `xml` `csv` |
+| Office / PDF | `pdf` `doc` `docx` `xls` `xlsx` `ppt` `pptx` |
 
-- 提供商管理：`/v1/llm-model-providers`
-- 模型管理：`/v1/llm-models`
-- 模型类型：`CHAT / EMBEDDING / IMAGE`
-- API Key 入库前会经过 `AesKeyEncryptionService` 做 AES-256-GCM 加密
-- `ChatModelFactory` 使用 Caffeine 缓存 ChatModel / StreamingChatModel，TTL 为 1 小时，最大 100 条
+文档处理状态：
 
-当前代码实际运行时支持情况：
+- `PENDING`
+- `PROCESSING`
+- `COMPLETED`
+- `FAILED`
 
-- ChatModel：`OPENAI`、`OLLAMA`
-- StreamingChatModel：`OPENAI`、`OLLAMA`
-- EmbeddingModel：当前仅实现 `OPENAI`
+> 💡 说明
+>
+> - `chunkStrategy` 会保存到知识库，当前文档切分统一使用递归切分器。
+> - 文档上传默认走 OSS 存储。
 
-说明：
+### 4.2 🧪 LLM 提供商与模型
 
-- Liquibase 已初始化多种提供商与模型类型关系
-- 但“支持被注册”不等于“运行时已实现”
-- 生产接入前应以 `ChatModelFactory` 和 `EmbeddingModelManager` 的实现为准
+基础能力：
 
-### 4.3 AI 应用 / 机器人
+| 项目 | 当前实现 |
+| --- | --- |
+| 提供商管理 | `/v1/llm-model-providers` |
+| 模型管理 | `/v1/llm-models` |
+| 模型类型 | `CHAT / EMBEDDING / IMAGE` |
+| 密钥存储 | `AesKeyEncryptionService`，AES-256-GCM |
+| 模型缓存 | Caffeine，TTL 1 小时，最大 100 条 |
 
-控制器：
+运行时实际支持情况：
 
-- `POST /v1/ai/apps`
-- `PUT /v1/ai/apps`
-- `GET /v1/ai/apps/{id}`
-- `GET /v1/ai/apps`
-- `DELETE /v1/ai/apps/{id}`
+| 模型能力 | 当前实现 |
+| --- | --- |
+| `ChatModel` | `OPENAI`、`OLLAMA` |
+| `StreamingChatModel` | `OPENAI`、`OLLAMA` |
+| `EmbeddingModel` | 当前仅实现 `OPENAI` |
 
-兼容路径：
+运行时可用能力以 `ChatModelFactory` 与 `EmbeddingModelManager` 为准。
 
-- 同一控制器也挂在 `/v1/ai/robots`
+### 4.3 🤖 AI 应用
 
-应用实体实际绑定能力：
+控制器路径：
 
-- `llmModelId`
-- `kbId`
-- `workflowId`
-- `systemPrompt`
-- `temperature`
-- `maxTokens`
-- `retrievalTopK`
-- `similarityThreshold`
-- `showCitation`
-- `welcomeMessage`
-- `suggestedQuestions`
-- `enableFollowUp`
-- `publishChannels`
+| Method | Path |
+| --- | --- |
+| `POST` | `/v1/ai/apps` |
+| `PUT` | `/v1/ai/apps` |
+| `GET` | `/v1/ai/apps/{id}` |
+| `GET` | `/v1/ai/apps` |
+| `DELETE` | `/v1/ai/apps/{id}` |
 
-### 4.4 Prompt 模板
+应用实体绑定能力：
 
-接口：
+| 分类 | 字段 |
+| --- | --- |
+| 模型绑定 | `llmModelId` `systemPrompt` `temperature` `maxTokens` |
+| 知识库绑定 | `kbId` `retrievalTopK` `similarityThreshold` `showCitation` |
+| 工作流绑定 | `workflowId` |
+| 对话配置 | `welcomeMessage` `suggestedQuestions` `enableFollowUp` |
+| 发布配置 | `publishChannels` |
 
-- `POST /v1/prompt-templates`
-- `GET /v1/prompt-templates`
-- `GET /v1/prompt-templates/{id}`
-- `PUT /v1/prompt-templates/{id}`
-- `DELETE /v1/prompt-templates/{id}`
-- `GET /v1/prompt-templates/system`
-- `POST /v1/prompt-templates/{templateId}/render`
+### 4.4 📝 Prompt 模板
+
+接口总览：
+
+| Method | Path |
+| --- | --- |
+| `POST` | `/v1/prompt-templates` |
+| `GET` | `/v1/prompt-templates` |
+| `GET` | `/v1/prompt-templates/{id}` |
+| `PUT` | `/v1/prompt-templates/{id}` |
+| `DELETE` | `/v1/prompt-templates/{id}` |
+| `GET` | `/v1/prompt-templates/system` |
+| `POST` | `/v1/prompt-templates/{templateId}/render` |
 
 代码行为：
 
-- 模板渲染使用 LangChain4j `PromptTemplate`
-- 占位符语法为 `{{variable}}`
-- 系统模板不允许修改或删除
-- RAG 默认会优先按知识库 `category` 加载系统模板，找不到时回退到 `system_rag_default`
+| 项目 | 当前实现 |
+| --- | --- |
+| 渲染引擎 | LangChain4j `PromptTemplate` |
+| 占位符语法 | `{{variable}}` |
+| 系统模板 | 不允许修改或删除 |
+| RAG 模板装载 | 优先按知识库 `category` 加载，找不到则回退到 `system_rag_default` |
 
-### 4.5 MCP Server 与工具
+### 4.5 🔌 MCP Server 与工具
 
-接口：
+接口总览：
 
-- `POST /v1/mcp/servers`
-- `GET /v1/mcp/servers`
-- `GET /v1/mcp/servers/{id}`
-- `PUT /v1/mcp/servers/{id}`
-- `DELETE /v1/mcp/servers/{id}`
-- `POST /v1/mcp/servers/{id}/connect/test`
-- `GET /v1/mcp/servers/tools`
-- `POST /v1/mcp/servers/tools/refresh`
+| Method | Path |
+| --- | --- |
+| `POST` | `/v1/mcp/servers` |
+| `GET` | `/v1/mcp/servers` |
+| `GET` | `/v1/mcp/servers/{id}` |
+| `PUT` | `/v1/mcp/servers/{id}` |
+| `DELETE` | `/v1/mcp/servers/{id}` |
+| `POST` | `/v1/mcp/servers/{id}/connect/test` |
+| `GET` | `/v1/mcp/servers/tools` |
+| `POST` | `/v1/mcp/servers/tools/refresh` |
 
-支持的传输类型：
+工具接入规则：
 
-- `STDIO`
-- `HTTP_STREAMABLE`
+| 项目 | 当前实现 |
+| --- | --- |
+| 传输类型 | `STDIO`、`HTTP_STREAMABLE` |
+| 本地工具来源 | Spring Bean 上的 `@Tool` |
+| 远程工具来源 | MCP Server 工具 |
+| 冲突优先级 | 本地 `@Tool` 优先于远程 MCP 同名工具 |
 
-工具装载规则：
-
-- 本地 Spring Bean 上的 `@Tool`
-- 远程 MCP 工具
-- 同名冲突时本地 `@Tool` 优先
-
-### 4.6 工作流与模板
+### 4.6 🕸️ 工作流与模板
 
 工作流接口：
 
-- `POST /v1/ai/workflows`
-- `GET /v1/ai/workflows`
-- `GET /v1/ai/workflows/{id}`
-- `POST /v1/ai/workflows/{id}/execute`
-- `POST /v1/ai/workflows/{id}/execute/stream`
-- `POST /v1/ai/workflows/{id}/resume`
-- `GET /v1/ai/workflows/executions/{executionId}`
-- `GET /v1/ai/workflows/{id}/threads/{threadId}/status`
-- `GET /v1/ai/workflows/{id}/executions`
+| Method | Path |
+| --- | --- |
+| `POST` | `/v1/ai/workflows` |
+| `GET` | `/v1/ai/workflows` |
+| `GET` | `/v1/ai/workflows/{id}` |
+| `POST` | `/v1/ai/workflows/{id}/execute` |
+| `POST` | `/v1/ai/workflows/{id}/execute/stream` |
+| `POST` | `/v1/ai/workflows/{id}/resume` |
+| `GET` | `/v1/ai/workflows/executions/{executionId}` |
+| `GET` | `/v1/ai/workflows/{id}/threads/{threadId}/status` |
+| `GET` | `/v1/ai/workflows/{id}/executions` |
 
 工作流模板接口：
 
-- `POST /v1/ai/workflow-templates`
-- `PUT /v1/ai/workflow-templates/{id}`
-- `DELETE /v1/ai/workflow-templates/{id}`
-- `GET /v1/ai/workflow-templates/{id}`
-- `GET /v1/ai/workflow-templates/code/{code}`
-- `GET /v1/ai/workflow-templates/code/{code}/version/{version}`
-- `GET /v1/ai/workflow-templates/list`
-- `GET /v1/ai/workflow-templates/system`
-- `GET /v1/ai/workflow-templates/categories`
-- `POST /v1/ai/workflow-templates/{id}/publish`
-- `POST /v1/ai/workflow-templates/{id}/deprecate`
-- `POST /v1/ai/workflow-templates/{id}/copy`
-- `GET /v1/ai/workflow-templates/{templateId}/versions`
-- `POST /v1/ai/workflow-templates/{templateId}/rollback`
-- `GET /v1/ai/workflow-templates/{id}/export`
-- `POST /v1/ai/workflow-templates/import`
-- `POST /v1/ai/workflow-templates/validate`
+| Method | Path |
+| --- | --- |
+| `POST` | `/v1/ai/workflow-templates` |
+| `PUT` | `/v1/ai/workflow-templates/{id}` |
+| `DELETE` | `/v1/ai/workflow-templates/{id}` |
+| `GET` | `/v1/ai/workflow-templates/{id}` |
+| `GET` | `/v1/ai/workflow-templates/code/{code}` |
+| `GET` | `/v1/ai/workflow-templates/code/{code}/version/{version}` |
+| `GET` | `/v1/ai/workflow-templates/list` |
+| `GET` | `/v1/ai/workflow-templates/system` |
+| `GET` | `/v1/ai/workflow-templates/categories` |
+| `POST` | `/v1/ai/workflow-templates/{id}/publish` |
+| `POST` | `/v1/ai/workflow-templates/{id}/deprecate` |
+| `POST` | `/v1/ai/workflow-templates/{id}/copy` |
+| `GET` | `/v1/ai/workflow-templates/{templateId}/versions` |
+| `POST` | `/v1/ai/workflow-templates/{templateId}/rollback` |
+| `GET` | `/v1/ai/workflow-templates/{id}/export` |
+| `POST` | `/v1/ai/workflow-templates/import` |
+| `POST` | `/v1/ai/workflow-templates/validate` |
 
-## 5. 工作流图定义
+## 5. 🧱 工作流图定义
 
 ### 5.1 GraphDefinition
 
@@ -281,7 +273,7 @@
 | `LLM_PROCESSOR` | 通用 LLM 推理节点，支持工具调用与流式输出 |
 | `TOOL_EXECUTOR` | 执行本地 `@Tool` 或 MCP 工具 |
 | `CONDITIONAL` | 按条件表达式选择分支 |
-| `PARALLEL` | 并行执行多个分支，汇总后跳转 joinNode |
+| `PARALLEL` | 并行执行多个分支，汇总后跳转 `joinNode` |
 | `LOOP` | `while / doWhile / for` 循环节点 |
 | `REACT_AGENT` | ReAct 风格专家节点 |
 | `SUPERVISOR_AGENT` | 多智能体路由主管节点 |
@@ -290,7 +282,7 @@
 
 ### 5.3 当前条件评估器
 
-从测试和源码可见，至少包含：
+从源码与测试可见，至少包含以下类型：
 
 - `spel`
 - `js`
@@ -305,21 +297,21 @@
 - `src/main/resources/examples/workflows/multi-agent-code-review.json`
 - `src/main/resources/examples/workflows/multi-agent-solution-design.json`
 
-这两个示例分别演示：
+示例覆盖：
 
-- `SUPERVISOR_AGENT + REACT_AGENT + AGENT_AGGREGATOR`
-- `PARALLEL + REACT_AGENT + AGENT_AGGREGATOR`
+| 文件 | 侧重点 |
+| --- | --- |
+| `multi-agent-code-review.json` | `SUPERVISOR_AGENT + REACT_AGENT + AGENT_AGGREGATOR` |
+| `multi-agent-solution-design.json` | `PARALLEL + REACT_AGENT + AGENT_AGGREGATOR` |
 
-## 6. 配置说明
+## 6. ⚙️ 配置说明
 
 ### 6.1 自动装配
 
-引入依赖后，Spring Boot 会通过：
+引入依赖后，Spring Boot 会通过以下入口自动注册 `AiConfigure`：
 
 - `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
 - `AiAutoConfiguration`
-
-自动注册 `AiConfigure`。
 
 Maven 依赖：
 
@@ -331,7 +323,7 @@ Maven 依赖：
 </dependency>
 ```
 
-### 6.2 当前代码真实生效的 AI 配置项
+### 6.2 AI 配置项
 
 ```yaml
 lambda:
@@ -368,15 +360,17 @@ lambda:
         encryption-key: ${AI_ENCRYPTION_KEY:}
 ```
 
-说明：
+补充说明：
 
-- `security.encryption-key` 由 `AesKeyEncryptionService` 直接通过 `@Value` 读取
-- 生产环境未配置该值会拒绝启动
-- `document-chunk.default-chunk-overlap` 会在启动时自动校验并修正不合理值
+| 项目 | 说明 |
+| --- | --- |
+| `security.encryption-key` | 由 `AesKeyEncryptionService` 读取 |
+| 启动约束 | 未配置加密密钥会拒绝启动 |
+| `document-chunk.default-chunk-overlap` | 启动时会自动校验并修正不合理值 |
 
 ### 6.3 数据源配置
 
-模块要求 AI 数据源是 PostgreSQL，并已安装 `pgvector`。
+模块要求 AI 数据源为 PostgreSQL，并已安装 `pgvector`。
 
 典型配置：
 
@@ -399,17 +393,7 @@ spring:
           password: password
 ```
 
-### 6.4 旧配置键名兼容提示
-
-以下写法出现在历史文档或示例文件中，但不是当前 `AiProperties` 的正式绑定字段：
-
-- `lambda.fusion.ai.datasource.default-name`
-- `lambda.fusion.ai.datasource.vector-name`
-- `lambda.fusion.ai.embedding.*`
-
-当前请统一按本 README 的配置项使用。
-
-## 7. 数据库对象
+## 7. 🗄️ 数据库对象
 
 ### 7.1 业务表
 
@@ -426,28 +410,28 @@ spring:
 | `ai_agent_workflow` | 工作流定义 |
 | `ai_workflow_template` | 工作流模板 |
 | `ai_workflow_template_version` | 工作流模板版本历史 |
-| `ai_robot` | AI 应用/机器人 |
+| `ai_robot` | AI 应用 / 机器人 |
 | `ai_mcp_server` | MCP Server 配置 |
 | `ai_llm_provider` | 提供商 |
 | `ai_llm_model_type_provider` | 提供商支持的模型类型 |
 
 ### 7.2 向量分表
 
-Liquibase 会创建 `create_vector_table(dimension)` 存储过程，并默认执行：
+Liquibase 会创建 `create_vector_table(dimension)` 存储过程，并默认创建：
 
 - `ai_vector_store_768`
 - `ai_vector_store_1536`
 - `ai_vector_store_2048`
 - `ai_vector_store_4096`
 
-运行时代码中的 `VectorDimensionProcessor` 当前支持维度常量是：
+运行时支持的维度常量：
 
 - `768`
 - `1536`
 - `3072`
 - `4096`
 
-因此如果要稳定支持 3072 维模型，建议补充执行：
+如需使用 3072 维模型，请额外执行：
 
 ```sql
 SELECT create_vector_table(3072);
@@ -455,11 +439,13 @@ SELECT create_vector_table(3072);
 
 ### 7.3 向量检索策略
 
-- 语义检索：`vectorRepository.searchSimilar(...)`
-- 关键词检索：`vectorRepository.searchKeyword(...)`
-- 结果融合：RRF `reciprocalRankFusion(...)`
+| 阶段 | 当前实现 |
+| --- | --- |
+| 语义检索 | `vectorRepository.searchSimilar(...)` |
+| 关键词检索 | `vectorRepository.searchKeyword(...)` |
+| 结果融合 | RRF `reciprocalRankFusion(...)` |
 
-## 8. 快速开始
+## 8. 🚀 快速开始
 
 ### 8.1 注册模型
 
@@ -538,14 +524,12 @@ Content-Type: application/json
 }
 ```
 
-`robotId` 存在时，服务会自动把应用上的：
+当 `robotId` 存在时，会话会自动继承应用上的以下配置：
 
 - `llmModelId`
 - `systemPrompt`
 - `kbId`
 - `workflowId`
-
-挂载到会话。
 
 ### 8.6 流式对话
 
@@ -601,7 +585,7 @@ Content-Type: application/json
 }
 ```
 
-## 9. 错误码
+## 9. ❗ 错误码
 
 AI 模块错误码使用 `30000-30999` 段，主要分组如下：
 
@@ -622,7 +606,7 @@ AI 模块错误码使用 `30000-30999` 段，主要分组如下：
 
 - `com.lambda.fusion.ai.commons.exception.AiErrorCode`
 
-## 10. 扩展点
+## 10. 🛠️ 扩展点
 
 ### 10.1 自定义本地工具
 
@@ -647,25 +631,19 @@ public class WeatherTools {
 
 实现 `ConditionEvaluator` 并提供唯一的 `getType()`，即可被条件边与 `CONDITIONAL` 节点复用。
 
-## 11. 现阶段实现限制
+## 11. 📍 源码定位
 
-- 工作流 checkpoint 使用 `MemorySaver`，默认不是持久化存储，服务重启后内存状态不会保留
-- Chat/StreamingChatModel 当前只实现 `OPENAI` 和 `OLLAMA`
-- EmbeddingModel 当前只实现 `OPENAI`
-- `chunkStrategy` 已入库，但文档切分当前仍统一使用递归切分器
-- `application-example.yml` 中仍保留了部分历史配置示例，阅读时请以本 README 和源码为准
+建议优先从以下入口阅读：
 
-## 12. 源码定位
-
-建议从以下入口阅读：
-
-- 自动装配：`src/main/java/com/lambda/fusion/autoconfig/AiAutoConfiguration.java`
-- 总配置：`src/main/java/com/lambda/fusion/ai/AiConfigure.java`
-- 属性定义：`src/main/java/com/lambda/fusion/ai/AiProperties.java`
-- 文档处理：`src/main/java/com/lambda/fusion/ai/commons/support/processor/DocumentProcessor.java`
-- RAG：`src/main/java/com/lambda/fusion/ai/service/impl/RagServiceImpl.java`
-- 会话消息：`src/main/java/com/lambda/fusion/ai/service/impl/ChatMessageServiceImpl.java`
-- 工作流执行：`src/main/java/com/lambda/fusion/ai/service/impl/WorkflowExecutionServiceImpl.java`
-- 图工厂：`src/main/java/com/lambda/fusion/ai/commons/agent/factory/AgentGraphFactory.java`
-- MCP：`src/main/java/com/lambda/fusion/ai/service/impl/McpServerServiceImpl.java`
-- 数据库变更：`src/main/resources/META-INF/db/changelogs`
+| 模块 | 路径 |
+| --- | --- |
+| 自动装配 | `src/main/java/com/lambda/fusion/autoconfig/AiAutoConfiguration.java` |
+| 总配置 | `src/main/java/com/lambda/fusion/ai/AiConfigure.java` |
+| 属性定义 | `src/main/java/com/lambda/fusion/ai/AiProperties.java` |
+| 文档处理 | `src/main/java/com/lambda/fusion/ai/commons/support/processor/DocumentProcessor.java` |
+| RAG | `src/main/java/com/lambda/fusion/ai/service/impl/RagServiceImpl.java` |
+| 会话消息 | `src/main/java/com/lambda/fusion/ai/service/impl/ChatMessageServiceImpl.java` |
+| 工作流执行 | `src/main/java/com/lambda/fusion/ai/service/impl/WorkflowExecutionServiceImpl.java` |
+| 图工厂 | `src/main/java/com/lambda/fusion/ai/commons/agent/factory/AgentGraphFactory.java` |
+| MCP | `src/main/java/com/lambda/fusion/ai/service/impl/McpServerServiceImpl.java` |
+| 数据库变更 | `src/main/resources/META-INF/db/changelogs` |
