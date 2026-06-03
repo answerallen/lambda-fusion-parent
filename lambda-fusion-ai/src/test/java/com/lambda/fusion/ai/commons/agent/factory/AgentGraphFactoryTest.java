@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-import com.lambda.fusion.ai.commons.agent.AgentGraph;
-import com.lambda.fusion.ai.commons.agent.AgentNode;
-import com.lambda.fusion.ai.commons.agent.model.EdgeDefinition;
-import com.lambda.fusion.ai.commons.agent.model.GraphDefinition;
-import com.lambda.fusion.ai.commons.agent.model.NodeDefinition;
-import com.lambda.fusion.ai.commons.exception.AiBusinessException;
+import com.lambda.fusion.ai.agent.AgentGraph;
+import com.lambda.fusion.ai.agent.AgentNode;
+import com.lambda.fusion.ai.agent.evaluator.ConditionEvaluator;
+import com.lambda.fusion.ai.agent.factory.AgentGraphBuildOptions;
+import com.lambda.fusion.ai.agent.factory.AgentGraphFactory;
+import com.lambda.fusion.ai.agent.model.EdgeDefinition;
+import com.lambda.fusion.ai.agent.model.GraphDefinition;
+import com.lambda.fusion.ai.agent.model.NodeDefinition;
+import com.lambda.fusion.ai.exception.AiBusinessException;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
@@ -48,8 +51,7 @@ class AgentGraphFactoryTest {
         options.setMaxIterations(42);
 
         when(applicationContext.getBeansOfType(AgentNode.class)).thenReturn(Map.of("testNode", agentNode));
-        when(applicationContext.getBeansOfType(com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator.class))
-                .thenReturn(Map.of());
+        when(applicationContext.getBeansOfType(ConditionEvaluator.class)).thenReturn(Map.of());
         when(agentNode.getName()).thenReturn("TEST_NODE");
 
         AgentGraph graph = factory.buildFromDefinition(definition, options);
@@ -80,8 +82,7 @@ class AgentGraphFactoryTest {
         definition.setEntryPoint("start");
 
         when(applicationContext.getBeansOfType(AgentNode.class)).thenReturn(Map.of("testNode", agentNode));
-        when(applicationContext.getBeansOfType(com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator.class))
-                .thenReturn(Map.of());
+        when(applicationContext.getBeansOfType(ConditionEvaluator.class)).thenReturn(Map.of());
         when(agentNode.getName()).thenReturn("TEST_NODE");
 
         assertThatThrownBy(() -> factory.buildFromDefinition(definition)).isInstanceOf(AiBusinessException.class);
@@ -107,8 +108,7 @@ class AgentGraphFactoryTest {
         definition.setEntryPoint("start");
 
         when(applicationContext.getBeansOfType(AgentNode.class)).thenReturn(Map.of("testNode", agentNode));
-        when(applicationContext.getBeansOfType(com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator.class))
-                .thenReturn(Map.of());
+        when(applicationContext.getBeansOfType(ConditionEvaluator.class)).thenReturn(Map.of());
         when(agentNode.getName()).thenReturn("TEST_NODE");
 
         assertThatThrownBy(() -> factory.buildFromDefinition(definition)).isInstanceOf(AiBusinessException.class);

@@ -5,10 +5,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.lambda.fusion.ai.commons.agent.evaluator.ToolResultConditionEvaluator;
-import com.lambda.fusion.ai.commons.agent.node.ParallelNode;
-import com.lambda.fusion.ai.commons.agent.node.ToolExecutingNode;
-import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
+import com.lambda.fusion.ai.agent.AgentGraph;
+import com.lambda.fusion.ai.agent.AgentNode;
+import com.lambda.fusion.ai.agent.AgentState;
+import com.lambda.fusion.ai.agent.evaluator.ToolResultConditionEvaluator;
+import com.lambda.fusion.ai.agent.node.ParallelNode;
+import com.lambda.fusion.ai.agent.node.ToolExecutingNode;
+import com.lambda.fusion.ai.agent.tools.AgentToolProvider;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;

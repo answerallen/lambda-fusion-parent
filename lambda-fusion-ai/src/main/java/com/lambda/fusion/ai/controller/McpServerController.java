@@ -1,6 +1,6 @@
 package com.lambda.fusion.ai.controller;
 
-import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
+import com.lambda.fusion.ai.agent.tools.AgentToolProvider;
 import com.lambda.fusion.ai.model.CreateMcpServer;
 import com.lambda.fusion.ai.model.McpServer;
 import com.lambda.fusion.ai.model.UpdateMcpServer;

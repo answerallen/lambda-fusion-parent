@@ -2,8 +2,7 @@ package com.lambda.fusion.ai.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.cloud.core.utils.ConvertUtils;
-import com.lambda.fusion.ai.commons.exception.AiBusinessException;
-import com.lambda.fusion.ai.commons.support.vector.VectorDimensionProcessor;
+import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.mapper.DocumentMapper;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
@@ -15,6 +14,7 @@ import com.lambda.fusion.ai.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.service.KnowledgeBaseService;
+import com.lambda.fusion.ai.support.vector.VectorDimensionProcessor;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.utils.AuthUtils;
 import java.time.LocalDateTime;

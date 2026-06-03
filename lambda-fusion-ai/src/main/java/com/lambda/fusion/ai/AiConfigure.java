@@ -2,8 +2,8 @@ package com.lambda.fusion.ai;
 
 import cn.hutool.core.util.StrUtil;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
-import com.lambda.fusion.ai.commons.datasource.DatabaseSchemaInitializer;
-import com.lambda.fusion.ai.commons.datasource.TenantDataSourceHelper;
+import com.lambda.fusion.ai.datasource.DatabaseSchemaInitializer;
+import com.lambda.fusion.ai.datasource.TenantDataSourceHelper;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;

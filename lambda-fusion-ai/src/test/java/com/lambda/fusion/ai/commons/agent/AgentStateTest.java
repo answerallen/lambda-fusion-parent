@@ -2,6 +2,9 @@ package com.lambda.fusion.ai.commons.agent;
 
 import static org.assertj.core.api.Assertions.*;
 
+import com.lambda.fusion.ai.agent.AgentGraph;
+import com.lambda.fusion.ai.agent.AgentNode;
+import com.lambda.fusion.ai.agent.AgentState;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;

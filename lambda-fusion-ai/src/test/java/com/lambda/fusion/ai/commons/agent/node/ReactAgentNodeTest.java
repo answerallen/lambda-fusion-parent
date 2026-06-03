@@ -1,15 +1,16 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
-import static com.lambda.fusion.ai.commons.utils.AgentUtils.newStateWithCurrentNode;
+import static com.lambda.fusion.ai.utils.AgentUtils.newStateWithCurrentNode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.lambda.fusion.ai.commons.agent.AgentState;
-import com.lambda.fusion.ai.commons.agent.tools.AgentToolProvider;
-import com.lambda.fusion.ai.commons.support.factory.ChatModelFactory;
+import com.lambda.fusion.ai.agent.AgentState;
+import com.lambda.fusion.ai.agent.node.ReactAgentNode;
+import com.lambda.fusion.ai.agent.tools.AgentToolProvider;
 import com.lambda.fusion.ai.service.PromptTemplateService;
+import com.lambda.fusion.ai.support.factory.ChatModelFactory;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;

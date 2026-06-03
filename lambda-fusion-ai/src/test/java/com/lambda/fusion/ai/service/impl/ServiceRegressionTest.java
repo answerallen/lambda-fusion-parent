@@ -2,14 +2,14 @@ package com.lambda.fusion.ai.service.impl;
 
 import static org.assertj.core.api.Assertions.*;
 
-import com.lambda.fusion.ai.commons.exception.AiBusinessException;
-import com.lambda.fusion.ai.commons.support.embedding.EmbeddingModelManager;
-import com.lambda.fusion.ai.commons.support.vector.VectorDimensionProcessor;
-import com.lambda.fusion.ai.commons.utils.AgentUtils;
+import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.mapper.KnowledgeBaseMapper;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
 import com.lambda.fusion.ai.mapper.VectorRepository;
 import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
+import com.lambda.fusion.ai.support.embedding.EmbeddingModelManager;
+import com.lambda.fusion.ai.support.vector.VectorDimensionProcessor;
+import com.lambda.fusion.ai.utils.AgentUtils;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

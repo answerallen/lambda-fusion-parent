@@ -2,7 +2,8 @@ package com.lambda.fusion.ai.commons.agent.evaluator;
 
 import static org.assertj.core.api.Assertions.*;
 
-import com.lambda.fusion.ai.commons.agent.AgentState;
+import com.lambda.fusion.ai.agent.AgentState;
+import com.lambda.fusion.ai.agent.evaluator.ConfidenceConditionEvaluator;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.*;

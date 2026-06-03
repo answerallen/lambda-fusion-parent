@@ -1,0 +1,164 @@
+package com.lambda.fusion.ai.support.security;
+
+import cn.hutool.core.util.HexUtil;
+import jakarta.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Service;
+
+/**
+ * 基于 AES-256-GCM 的密钥加密服务实现
+ *
+ * 安全特性：
+ * - 使用 AES-256-GCM 认证加密模式
+ * - 每次加密生成随机 IV（初始化向量）
+ * - 提供 机密性 + 完整性 + 真实性 保证
+ * - 向后兼容未加密的密钥
+ * - 生产环境强制要求配置加密密钥
+ */
+@Slf4j
+@Service
+public class AesKeyEncryptionService implements KeyEncryptionService {
+
+    private static final String ALGORITHM = "AES/GCM/NoPadding";
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 128;
+    private static final String ENCRYPTED_PREFIX = "ENC:";
+    private static final String DEFAULT_DEV_KEY = "default-dev-key-do-not-use-in-production";
+
+    private final Environment environment;
+
+    @Value("${lambda.fusion.ai.security.encryption-key:}")
+    private String encryptionKey;
+
+    private volatile SecretKeySpec secretKey;
+
+    public AesKeyEncryptionService(Environment environment) {
+        this.environment = environment;
+    }
+
+    /**
+     * 启动时验证加密密钥配置
+     * <p>
+     * 生产环境必须配置加密密钥，否则拒绝启动。
+     * 开发/测试环境允许使用默认密钥，但会输出警告日志。
+     */
+    @PostConstruct
+    public void validateKey() {
+        boolean isProduction = isProductionEnvironment();
+        boolean keyNotConfigured = encryptionKey == null || encryptionKey.isEmpty();
+
+        if (isProduction && keyNotConfigured) {
+            String errorMsg = "生产环境必须配置加密密钥！请在配置文件中设置 lambda.fusion.ai.security.encryption-key";
+            log.error(errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+
+        if (keyNotConfigured) {
+            log.warn("未配置加密密钥，将使用默认密钥。生产环境必须配置 lambda.fusion.ai.security.encryption-key");
+        }
+    }
+
+    /**
+     * 判断是否为生产环境
+     */
+    private boolean isProductionEnvironment() {
+        String[] activeProfiles = environment.getActiveProfiles();
+        for (String profile : activeProfiles) {
+            if ("prod".equalsIgnoreCase(profile) || "production".equalsIgnoreCase(profile)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private SecretKeySpec getSecretKey() {
+        if (secretKey == null) {
+            synchronized (this) {
+                if (secretKey == null) {
+                    String key = encryptionKey;
+                    if (key == null || key.isEmpty()) {
+                        key = DEFAULT_DEV_KEY;
+                    }
+
+                    byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+                    keyBytes = Arrays.copyOf(keyBytes, 32);
+                    secretKey = new SecretKeySpec(keyBytes, "AES");
+                }
+            }
+        }
+        return secretKey;
+    }
+
+    @Override
+    public String encrypt(String plaintext) {
+        if (plaintext == null || plaintext.isEmpty()) {
+            return plaintext;
+        }
+
+        if (isEncrypted(plaintext)) {
+            return plaintext;
+        }
+
+        try {
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            SecureRandom.getInstanceStrong().nextBytes(iv);
+
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, getSecretKey(), spec);
+
+            byte[] cipherText = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
+
+            byte[] combined = new byte[iv.length + cipherText.length];
+            System.arraycopy(iv, 0, combined, 0, iv.length);
+            System.arraycopy(cipherText, 0, combined, iv.length, cipherText.length);
+
+            return ENCRYPTED_PREFIX + HexUtil.encodeHexStr(combined);
+        } catch (Exception e) {
+            log.error("密钥加密失败", e);
+            throw new RuntimeException("密钥加密失败", e);
+        }
+    }
+
+    @Override
+    public String decrypt(String ciphertext) {
+        if (ciphertext == null || ciphertext.isEmpty()) {
+            return ciphertext;
+        }
+
+        if (!isEncrypted(ciphertext)) {
+            log.warn("检测到未加密的密钥，建议立即加密存储");
+            return ciphertext;
+        }
+
+        try {
+            String encryptedHex = ciphertext.substring(ENCRYPTED_PREFIX.length());
+            byte[] combined = HexUtil.decodeHex(encryptedHex);
+
+            byte[] iv = Arrays.copyOfRange(combined, 0, GCM_IV_LENGTH);
+            byte[] cipherText = Arrays.copyOfRange(combined, GCM_IV_LENGTH, combined.length);
+
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+            cipher.init(Cipher.DECRYPT_MODE, getSecretKey(), spec);
+
+            return new String(cipher.doFinal(cipherText), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.error("密钥解密失败", e);
+            throw new RuntimeException("密钥解密失败", e);
+        }
+    }
+
+    @Override
+    public boolean isEncrypted(String text) {
+        return text != null && text.startsWith(ENCRYPTED_PREFIX);
+    }
+}

@@ -2,7 +2,8 @@ package com.lambda.fusion.ai.commons.agent.evaluator;
 
 import static com.lambda.cloud.test.assertion.LambdaAssertions.*;
 
-import com.lambda.fusion.ai.commons.agent.AgentState;
+import com.lambda.fusion.ai.agent.AgentState;
+import com.lambda.fusion.ai.agent.evaluator.JavaScriptConditionEvaluator;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;

@@ -1,11 +1,12 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
-import static com.lambda.fusion.ai.commons.utils.AgentUtils.setCurrentNodeProperties;
+import static com.lambda.fusion.ai.utils.AgentUtils.setCurrentNodeProperties;
 import static org.assertj.core.api.Assertions.*;
 
-import com.lambda.fusion.ai.commons.agent.AgentNode;
-import com.lambda.fusion.ai.commons.agent.AgentState;
-import com.lambda.fusion.ai.commons.utils.AgentUtils;
+import com.lambda.fusion.ai.agent.AgentNode;
+import com.lambda.fusion.ai.agent.AgentState;
+import com.lambda.fusion.ai.agent.node.ParallelNode;
+import com.lambda.fusion.ai.utils.AgentUtils;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
 import java.util.*;

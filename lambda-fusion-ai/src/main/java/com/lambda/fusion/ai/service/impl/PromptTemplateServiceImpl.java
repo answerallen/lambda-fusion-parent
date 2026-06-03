@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.service.impl;
 
-import com.lambda.fusion.ai.commons.exception.AiBusinessException;
-import com.lambda.fusion.ai.commons.exception.AiErrorCode;
+import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.PromptTemplateMapper;
 import com.lambda.fusion.ai.model.CreateTemplate;
 import com.lambda.fusion.ai.model.PromptDefinition;

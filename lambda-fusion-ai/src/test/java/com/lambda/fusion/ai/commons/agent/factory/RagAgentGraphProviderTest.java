@@ -2,8 +2,9 @@ package com.lambda.fusion.ai.commons.agent.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.lambda.fusion.ai.commons.agent.node.LlmProcessingNode;
-import com.lambda.fusion.ai.commons.agent.node.ToolExecutingNode;
+import com.lambda.fusion.ai.agent.factory.AgentGraphProvider;
+import com.lambda.fusion.ai.agent.node.LlmProcessingNode;
+import com.lambda.fusion.ai.agent.node.ToolExecutingNode;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 

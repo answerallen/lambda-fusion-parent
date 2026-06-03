@@ -1,15 +1,16 @@
 package com.lambda.fusion.ai.commons.agent.node;
 
-import static com.lambda.fusion.ai.commons.utils.AgentUtils.newStateWithCurrentNode;
-import static com.lambda.fusion.ai.commons.utils.AgentUtils.setCurrentNodeProperties;
+import static com.lambda.fusion.ai.utils.AgentUtils.newStateWithCurrentNode;
+import static com.lambda.fusion.ai.utils.AgentUtils.setCurrentNodeProperties;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.lambda.fusion.ai.AiProperties;
-import com.lambda.fusion.ai.commons.agent.AgentGraph;
-import com.lambda.fusion.ai.commons.agent.AgentNode;
-import com.lambda.fusion.ai.commons.agent.AgentState;
-import com.lambda.fusion.ai.commons.agent.factory.AgentGraphFactory;
+import com.lambda.fusion.ai.agent.AgentGraph;
+import com.lambda.fusion.ai.agent.AgentNode;
+import com.lambda.fusion.ai.agent.AgentState;
+import com.lambda.fusion.ai.agent.factory.AgentGraphFactory;
+import com.lambda.fusion.ai.agent.node.SubgraphNode;
 import com.lambda.fusion.ai.service.WorkflowService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;

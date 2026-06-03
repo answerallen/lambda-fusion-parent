@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.commons.support.vector;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.lambda.fusion.ai.support.vector.VectorDimensionProcessor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

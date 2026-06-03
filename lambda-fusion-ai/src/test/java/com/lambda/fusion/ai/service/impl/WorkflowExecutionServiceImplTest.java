@@ -8,10 +8,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.lambda.fusion.ai.commons.agent.AgentGraph;
-import com.lambda.fusion.ai.commons.agent.AgentState;
-import com.lambda.fusion.ai.commons.exception.AiBusinessException;
-import com.lambda.fusion.ai.commons.utils.CostCalculator;
+import com.lambda.fusion.ai.agent.AgentGraph;
+import com.lambda.fusion.ai.agent.AgentState;
+import com.lambda.fusion.ai.agent.factory.AgentGraphFactory;
+import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.mapper.LlmModelMapper;
 import com.lambda.fusion.ai.mapper.WorkflowExecutionMapper;
 import com.lambda.fusion.ai.mapper.WorkflowMapper;
@@ -22,6 +22,7 @@ import com.lambda.fusion.ai.model.WorkflowResumeRequest;
 import com.lambda.fusion.ai.model.entity.WorkflowEntity;
 import com.lambda.fusion.ai.model.entity.WorkflowExecutionEntity;
 import com.lambda.fusion.ai.service.AtomicSessionUpdateService;
+import com.lambda.fusion.ai.support.cost.CostCalculator;
 import com.lambda.fusion.core.utils.AuthUtils;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -57,7 +58,7 @@ class WorkflowExecutionServiceImplTest {
     private WorkflowExecutionMapper executionMapper;
 
     @Mock
-    private com.lambda.fusion.ai.commons.agent.factory.AgentGraphFactory agentGraphFactory;
+    private AgentGraphFactory agentGraphFactory;
 
     @Mock
     private AtomicSessionUpdateService atomicSessionUpdateService;

@@ -2,8 +2,9 @@ package com.lambda.fusion.ai.commons.agent.evaluator;
 
 import static com.lambda.cloud.test.assertion.LambdaAssertions.*;
 
-import com.lambda.fusion.ai.commons.agent.AgentGraph;
-import com.lambda.fusion.ai.commons.agent.AgentState;
+import com.lambda.fusion.ai.agent.AgentGraph;
+import com.lambda.fusion.ai.agent.AgentState;
+import com.lambda.fusion.ai.agent.evaluator.SpelConditionEvaluator;
 import java.util.*;
 import org.junit.jupiter.api.*;
 

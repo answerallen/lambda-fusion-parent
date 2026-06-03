@@ -3,7 +3,10 @@ package com.lambda.fusion.ai.commons.agent;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.lambda.fusion.ai.commons.agent.evaluator.ConditionEvaluator;
+import com.lambda.fusion.ai.agent.AgentGraph;
+import com.lambda.fusion.ai.agent.AgentNode;
+import com.lambda.fusion.ai.agent.AgentState;
+import com.lambda.fusion.ai.agent.evaluator.ConditionEvaluator;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
