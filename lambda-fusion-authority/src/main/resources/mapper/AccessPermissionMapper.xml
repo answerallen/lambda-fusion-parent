@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.lambda.fusion.authority.mapper.AccessPermissionMapper">
+<mapper namespace="com.lambda.fusion.authority.role.mapper.AccessPermissionMapper">
 
     <delete id="deletePermission">
         DELETE FROM LA_ROLE_RESOURCES WHERE AUTHORITY = #{authority} AND RESOURCE_ID = #{id}

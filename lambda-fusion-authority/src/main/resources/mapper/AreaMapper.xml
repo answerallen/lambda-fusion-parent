@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.lambda.fusion.authority.mapper.AreaMapper">
+<mapper namespace="com.lambda.fusion.authority.area.mapper.AreaMapper">
 
-    <resultMap id="AreaResult" type="com.lambda.fusion.authority.model.area.Area">
+    <resultMap id="AreaResult" type="com.lambda.fusion.authority.area.model.Area">
         <id column="id" property="id"/>
         <result column="parent_code" property="parentCode"/>
         <result column="area_code" property="areaCode"/>
@@ -13,7 +13,7 @@
         <result column="type" property="type"/>
     </resultMap>
 
-    <resultMap id="AreaTreeResult" type="com.lambda.fusion.authority.model.area.AreaTree">
+    <resultMap id="AreaTreeResult" type="com.lambda.fusion.authority.area.model.AreaTree">
         <id column="id" property="dbId"/>
         <result column="area_code" property="areaCode"/>
         <result column="area_name" property="name"/>

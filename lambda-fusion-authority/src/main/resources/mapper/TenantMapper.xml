@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.lambda.fusion.authority.mapper.TenantMapper">
+<mapper namespace="com.lambda.fusion.authority.tenant.mapper.TenantMapper">
 
 	<!-- 可根据自己的需求，是否要使用 -->
-    <resultMap type="com.lambda.fusion.authority.model.tenant.TenantEntity" id="TenantEntity">
+    <resultMap type="com.lambda.fusion.authority.tenant.model.TenantEntity" id="TenantEntity">
         <result property="tenantId" column="TENANT_ID"/>
         <result property="tenantCode" column="TENANT_CODE"/>
         <result property="tenantName" column="TENANT_NAME"/>
@@ -39,7 +39,7 @@
         UPDATE LA_TENANT SET CONFIG = #{configJson} WHERE TENANT_ID = #{id}
     </update>
 
-    <select id="queryTenantList" resultType="com.lambda.fusion.authority.model.tenant.TenantOption">
+    <select id="queryTenantList" resultType="com.lambda.fusion.authority.tenant.model.TenantOption">
         select TENANT_CODE,TENANT_NAME FROM LA_TENANT where status = 1  ORDER BY CREATED_AT DESC
     </select>
     <select id="isExist" resultType="java.lang.Boolean">

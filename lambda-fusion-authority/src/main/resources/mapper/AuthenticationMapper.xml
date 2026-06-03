@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.lambda.fusion.authority.mapper.AuthenticationMapper">
-    <resultMap id="AuthenticationUserDetailMap" type="com.lambda.fusion.authority.model.authentication.AuthUser">
+<mapper namespace="com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper">
+    <resultMap id="AuthenticationUserDetailMap" type="com.lambda.fusion.authority.authentication.model.AuthUser">
         <id column="username" property="username" javaType="String"/>
         <result column="nickname" property="nickname" javaType="String"/>
         <result column="password" property="password" javaType="String"/>
@@ -55,7 +55,7 @@
         ]]>
     </select>
 
-    <select id="selectNavigation" resultType="com.lambda.fusion.authority.model.authentication.MenuRoute">
+    <select id="selectNavigation" resultType="com.lambda.fusion.authority.authentication.model.MenuRoute">
         SELECT
         T1.id,
         T1.res_name as name,
@@ -94,7 +94,7 @@
         ORDER BY T1.RES_LEVEL, T1.parent_id, T1.ORDER_NO
     </select>
     
-    <select id="selectResources" resultType="com.lambda.fusion.authority.model.resource.ResourceTree">
+    <select id="selectResources" resultType="com.lambda.fusion.authority.resource.model.ResourceTree">
         SELECT
             T1.id,
             T1.res_name,
@@ -113,7 +113,7 @@
         ORDER BY T1.RES_LEVEL, T1.parent_Id, T1.ORDER_NO
     </select>
 
-    <select id="selectUserProfileByRoleId" resultType="com.lambda.fusion.authority.model.user.UserProfile">
+    <select id="selectUserProfileByRoleId" resultType="com.lambda.fusion.authority.user.model.UserProfile">
         SELECT U.username,
                U.nickname
         FROM LA_USER_ROLES UR

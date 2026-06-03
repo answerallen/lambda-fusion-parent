@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.lambda.fusion.authority.mapper.ApiResourceMapper">
+<mapper namespace="com.lambda.fusion.authority.resource.mapper.ApiResourceMapper">
 
     <select id="getBoundPermissionIds" resultType="String">
         SELECT PERMISSION_ID FROM LA_API_RESOURCES WHERE RESOURCE_ID = #{resourceId}

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.lambda.fusion.authority.mapper.ClientMapper">
+<mapper namespace="com.lambda.fusion.authority.client.mapper.ClientMapper">
 
-    <resultMap id="HmacUser" type="com.lambda.fusion.authority.model.client.HmacUser">
+    <resultMap id="HmacUser" type="com.lambda.fusion.authority.client.model.HmacUser">
         <id column="appid" property="appid" javaType="String"/>
         <result column="secret" property="secret" javaType="String"/>
         <result column="name" property="nickname" javaType="String"/>
@@ -31,7 +31,7 @@
         WHERE T.id = #{appid}
     </select>
 
-    <select id="getClientPermissions" resultType="com.lambda.fusion.authority.model.resource.UserPermission">
+    <select id="getClientPermissions" resultType="com.lambda.fusion.authority.resource.model.UserPermission">
         SELECT CLIENT_ID AS username, RESOURCE_ID AS permissionId FROM LA_CLIENT_RESOURCES
         WHERE RESOURCE_ID IN
         <foreach collection="list" item="item" separator="," open="(" close=")">
