@@ -2,6 +2,7 @@ package com.lambda.fusion.config.model;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.lambda.fusion.config.model.entity.ConfigEntity;
 import com.lambda.fusion.core.pagination.Pagination;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

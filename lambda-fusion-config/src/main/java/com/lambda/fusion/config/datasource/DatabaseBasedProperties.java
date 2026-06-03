@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.commons.datasource;
+package com.lambda.fusion.config.datasource;
 
 import static com.lambda.fusion.config.ConfigConstants.PUBLIC_APPLICATION;
 

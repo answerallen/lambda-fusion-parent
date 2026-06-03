@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.commons.handler;
+package com.lambda.fusion.config.handler;
 
 public interface ConfigChangeHandler {
     /**

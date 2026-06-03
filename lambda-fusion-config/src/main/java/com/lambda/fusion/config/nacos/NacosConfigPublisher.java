@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.commons.nacos;
+package com.lambda.fusion.config.nacos;
 
 import com.alibaba.nacos.api.config.ConfigService;
 import com.alibaba.nacos.api.exception.NacosException;

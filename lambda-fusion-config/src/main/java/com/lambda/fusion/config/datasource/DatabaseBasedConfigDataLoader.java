@@ -1,9 +1,9 @@
-package com.lambda.fusion.config.commons.datasource;
+package com.lambda.fusion.config.datasource;
 
 import static com.lambda.fusion.config.ConfigConstants.DATABASE_PROPERTY_SOURCE_NAME;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.config.commons.exception.ConfigLoadException;
+import com.lambda.fusion.config.exception.ConfigLoadException;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;

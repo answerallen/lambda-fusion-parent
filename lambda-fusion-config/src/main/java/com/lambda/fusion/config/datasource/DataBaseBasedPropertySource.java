@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.commons.datasource;
+package com.lambda.fusion.config.datasource;
 
 import com.lambda.fusion.config.ConfigProperties;
 import java.sql.Connection;

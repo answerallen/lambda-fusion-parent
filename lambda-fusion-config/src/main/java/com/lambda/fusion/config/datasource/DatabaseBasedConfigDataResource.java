@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.commons.datasource;
+package com.lambda.fusion.config.datasource;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.config.ConfigProperties;

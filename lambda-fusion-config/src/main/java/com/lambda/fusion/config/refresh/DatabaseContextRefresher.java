@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.commons.refresh;
+package com.lambda.fusion.config.refresh;
 
 import static com.lambda.fusion.config.ConfigConstants.THREAD_NAME;
 

@@ -1,4 +1,4 @@
-package com.lambda.fusion.config.commons.exception;
+package com.lambda.fusion.config.exception;
 
 public class ConfigLoadException extends ConfigBusinessException {
     public ConfigLoadException(ConfigErrorCode errorCode) {

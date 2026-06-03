@@ -1,5 +1,6 @@
 package com.lambda.fusion.config.model;
 
+import com.lambda.fusion.config.model.entity.ConfigEntity;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;

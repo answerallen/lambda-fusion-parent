@@ -1,13 +1,13 @@
-package com.lambda.fusion.config.commons.refresh;
+package com.lambda.fusion.config.refresh;
 
 import static com.lambda.fusion.config.ConfigConstants.DATABASE_PROPERTY_SOURCE_NAME;
 import static com.lambda.fusion.config.ConfigConstants.POOL_NAME;
 
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.config.ConfigProperties;
-import com.lambda.fusion.config.commons.datasource.DataBaseBasedPropertySource;
-import com.lambda.fusion.config.commons.datasource.DatabaseBasedProperties;
-import com.lambda.fusion.config.commons.utils.DataSourcePropertyUtils;
+import com.lambda.fusion.config.datasource.DataBaseBasedPropertySource;
+import com.lambda.fusion.config.datasource.DatabaseBasedProperties;
+import com.lambda.fusion.config.utils.DataSourcePropertyUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

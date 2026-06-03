@@ -1,11 +1,11 @@
-package com.lambda.fusion.config.commons.utils;
+package com.lambda.fusion.config.utils;
 
 import static com.lambda.fusion.config.ConfigConstants.*;
 
 import com.alibaba.cloud.nacos.NacosPropertySourceRepository;
 import com.google.common.collect.Lists;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.config.commons.environment.DatabaseBasedEnvironment;
+import com.lambda.fusion.config.environment.DatabaseBasedEnvironment;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nonnull;

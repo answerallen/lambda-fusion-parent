@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(description = "网关动态路由配置")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class GatewayDynamicRoutesConfig {
+public class GatewayDynamicRoutes {
 
     @Schema(description = "应用名称")
     private String application;

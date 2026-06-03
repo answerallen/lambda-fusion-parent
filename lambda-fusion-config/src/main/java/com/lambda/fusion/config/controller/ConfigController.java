@@ -9,9 +9,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.cloud.logger.context.LogContext;
 import com.lambda.fusion.config.ConfigConstants;
-import com.lambda.fusion.config.commons.refresh.DatabaseContextRefresher;
 import com.lambda.fusion.config.mapper.SettingsLayoutMapper;
 import com.lambda.fusion.config.model.*;
+import com.lambda.fusion.config.model.entity.ConfigEntity;
+import com.lambda.fusion.config.model.entity.ConfigOptionEntity;
+import com.lambda.fusion.config.model.entity.SettingsLayoutEntity;
+import com.lambda.fusion.config.refresh.DatabaseContextRefresher;
 import com.lambda.fusion.config.service.ConfigService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
@@ -251,10 +254,10 @@ public class ConfigController {
 
     @GetMapping("/gateway/routes")
     @Operation(summary = "查询网关动态路由配置", description = "读取当前应用的 Spring Cloud Gateway 动态路由 JSON 配置")
-    public GatewayDynamicRoutesConfig getGatewayRoutes(@RequestParam(required = false) String application) {
+    public GatewayDynamicRoutes getGatewayRoutes(@RequestParam(required = false) String application) {
         String currentApplication = resolveApplication(application);
         ConfigEntity entity = findGatewayRoutesConfig(currentApplication);
-        return GatewayDynamicRoutesConfig.builder()
+        return GatewayDynamicRoutes.builder()
                 .application(currentApplication)
                 .routesJson(entity == null || StringUtils.isBlank(entity.getValue()) ? "[]" : entity.getValue())
                 .name(entity == null ? "网关动态路由" : entity.getName())
@@ -264,7 +267,7 @@ public class ConfigController {
 
     @PutMapping("/gateway/routes")
     @Operation(summary = "保存网关动态路由配置", description = "保存当前应用的 Spring Cloud Gateway 动态路由 JSON 配置并触发刷新")
-    public void saveGatewayRoutes(@RequestBody @Valid GatewayDynamicRoutesConfig source) {
+    public void saveGatewayRoutes(@RequestBody @Valid GatewayDynamicRoutes source) {
         String currentApplication = resolveApplication(source.getApplication());
         ConfigEntity existing = findGatewayRoutesConfig(currentApplication);
         String configName = StringUtils.defaultIfBlank(source.getName(), "网关动态路由");

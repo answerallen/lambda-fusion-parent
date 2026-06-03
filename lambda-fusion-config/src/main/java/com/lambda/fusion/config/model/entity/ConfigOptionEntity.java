@@ -1,9 +1,10 @@
-package com.lambda.fusion.config.model;
+package com.lambda.fusion.config.model.entity;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.lambda.fusion.config.model.ConfigOption;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
