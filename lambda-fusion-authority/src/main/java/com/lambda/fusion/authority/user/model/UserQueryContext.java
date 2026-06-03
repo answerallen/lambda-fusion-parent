@@ -1,9 +1,8 @@
 package com.lambda.fusion.authority.user.model;
 
+import com.lambda.fusion.authority.user.model.entity.UserFieldsEntity;
 import java.util.List;
 import java.util.Set;
-
-import com.lambda.fusion.authority.user.model.entity.UserFieldsEntity;
 import lombok.Data;
 import lombok.experimental.Accessors;
 

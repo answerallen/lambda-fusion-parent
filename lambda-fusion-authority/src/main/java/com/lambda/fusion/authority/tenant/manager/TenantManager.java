@@ -22,7 +22,7 @@ import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.entity.UserRoleEntity;
 import com.lambda.fusion.authority.utils.AuthorityHelper;
 import com.lambda.fusion.core.utils.AuthUtils;
-import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
+import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

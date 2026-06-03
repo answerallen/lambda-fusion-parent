@@ -5,10 +5,9 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.authority.user.model.*;
+import com.lambda.fusion.authority.user.model.entity.UserEntity;
 import java.util.List;
 import java.util.Set;
-
-import com.lambda.fusion.authority.user.model.entity.UserEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

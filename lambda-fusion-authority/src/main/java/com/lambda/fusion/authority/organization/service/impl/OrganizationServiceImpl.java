@@ -29,7 +29,7 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.tree.model.TreeDragMode;
 import com.lambda.fusion.core.tree.util.TreeNodeUtils;
 import com.lambda.fusion.core.utils.AuthUtils;
-import com.lambda.fusion.datascope.commons.event.DataScopeObjectChangedEvent;
+import com.lambda.fusion.datascope.event.DataScopeObjectChangedEvent;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 import java.util.stream.Collectors;
