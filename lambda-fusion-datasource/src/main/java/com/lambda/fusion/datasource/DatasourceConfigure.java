@@ -1,18 +1,18 @@
 package com.lambda.fusion.datasource;
 
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
-import com.lambda.fusion.datasource.commons.api.RemoteDataSourceService;
-import com.lambda.fusion.datasource.commons.api.RemoteDataSourceServiceImpl;
-import com.lambda.fusion.datasource.commons.client.ClientDataSourceChangeListener;
-import com.lambda.fusion.datasource.commons.client.ClientDataSourceInitializer;
-import com.lambda.fusion.datasource.commons.dispatcher.DataSourceChangeDispatcher;
-import com.lambda.fusion.datasource.commons.interceptor.TenantDataSourceInterceptor;
-import com.lambda.fusion.datasource.commons.server.ServerDataSourceInitializer;
-import com.lambda.fusion.datasource.commons.tenant.TenantSchemaCleaner;
-import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
+import com.lambda.fusion.datasource.api.RemoteDataSourceApi;
+import com.lambda.fusion.datasource.client.ClientDataSourceChangeListener;
+import com.lambda.fusion.datasource.client.ClientDataSourceInitializer;
+import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
+import com.lambda.fusion.datasource.interceptor.TenantDataSourceInterceptor;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
+import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
+import com.lambda.fusion.datasource.server.ServerDataSourceService;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
+import com.lambda.fusion.datasource.tenant.TenantSchemaCleaner;
+import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.mybatis.spring.annotation.MapperScan;
@@ -52,13 +52,13 @@ public class DatasourceConfigure implements WebMvcConfigurer {
             name = DatasourceConstants.MODE_PROPERTY,
             havingValue = DatasourceConstants.MODE_SERVER,
             matchIfMissing = true)
-    public RemoteDataSourceService remoteDataSourceService(
+    public RemoteDataSourceApi remoteDataSourceService(
             DataSourceManageService dataSourceManageService,
             DataSourceChangeDispatcher callbackManager,
             @Autowired(required = false) DynamicDataSourceService dynamicDataSourceService,
             ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider,
             TenantDataSourceMapper tenantDataSourceMapper) {
-        return new RemoteDataSourceServiceImpl(
+        return new ServerDataSourceService(
                 dataSourceManageService,
                 callbackManager,
                 dynamicDataSourceService,
@@ -77,13 +77,13 @@ public class DatasourceConfigure implements WebMvcConfigurer {
                 name = DatasourceConstants.MODE_PROPERTY,
                 havingValue = DatasourceConstants.MODE_SERVER,
                 matchIfMissing = true)
-        public ServiceBean<RemoteDataSourceService> remoteDataSourceServiceBean(
-                RemoteDataSourceService remoteDataSourceService,
+        public ServiceBean<RemoteDataSourceApi> remoteDataSourceServiceBean(
+                RemoteDataSourceApi remoteDataSourceApi,
                 DatasourceProperties datasourceProperties,
                 ApplicationContext applicationContext) {
-            ServiceBean<RemoteDataSourceService> serviceBean = new ServiceBean<>(applicationContext);
-            serviceBean.setInterface(RemoteDataSourceService.class);
-            serviceBean.setRef(remoteDataSourceService);
+            ServiceBean<RemoteDataSourceApi> serviceBean = new ServiceBean<>(applicationContext);
+            serviceBean.setInterface(RemoteDataSourceApi.class);
+            serviceBean.setRef(remoteDataSourceApi);
             serviceBean.setGroup(datasourceProperties.getDubbo().getGroup());
             serviceBean.setVersion(datasourceProperties.getDubbo().getVersion());
             return serviceBean;

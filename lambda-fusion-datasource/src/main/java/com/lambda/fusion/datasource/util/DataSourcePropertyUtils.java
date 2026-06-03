@@ -1,4 +1,4 @@
-package com.lambda.fusion.datasource.commons.util;
+package com.lambda.fusion.datasource.util;
 
 import cn.hutool.core.codec.Base64;
 import cn.hutool.db.dialect.DriverUtil;

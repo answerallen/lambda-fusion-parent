@@ -1,4 +1,4 @@
-package com.lambda.fusion.datasource.commons.event;
+package com.lambda.fusion.datasource.event;
 
 import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.model.RemoteDataSource;

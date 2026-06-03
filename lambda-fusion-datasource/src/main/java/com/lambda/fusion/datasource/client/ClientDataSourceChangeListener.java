@@ -1,14 +1,14 @@
-package com.lambda.fusion.datasource.commons.client;
+package com.lambda.fusion.datasource.client;
 
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
-import com.lambda.fusion.datasource.commons.api.DataSourceChangeEvent;
-import com.lambda.fusion.datasource.commons.api.DataSourceChangeListener;
-import com.lambda.fusion.datasource.commons.tenant.TenantSchemaCleaner;
-import com.lambda.fusion.datasource.commons.util.DataSourcePropertyUtils;
+import com.lambda.fusion.datasource.api.DataSourceChangeListener;
+import com.lambda.fusion.datasource.dispatcher.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
+import com.lambda.fusion.datasource.tenant.TenantSchemaCleaner;
+import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;

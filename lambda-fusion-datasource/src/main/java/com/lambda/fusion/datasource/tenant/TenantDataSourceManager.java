@@ -1,10 +1,10 @@
-package com.lambda.fusion.datasource.commons.tenant;
+package com.lambda.fusion.datasource.tenant;
 
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.datasource.DatasourceConstants;
-import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
-import com.lambda.fusion.datasource.commons.api.RemoteDataSourceService;
+import com.lambda.fusion.datasource.api.DataSourceSwitcher;
+import com.lambda.fusion.datasource.api.RemoteDataSourceApi;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
@@ -40,7 +40,7 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class TenantDataSourceManager {
 
-    private final RemoteDataSourceService remoteDataSourceService;
+    private final RemoteDataSourceApi remoteDataSourceApi;
 
     private final TenantIsolationResolver tenantIsolationResolver;
 
@@ -94,7 +94,7 @@ public class TenantDataSourceManager {
      */
     public boolean tenantDataSourceExists(String tenantId, String tenantPrefix) {
         String dataSourceName = getTenantDataSourceName(tenantId, tenantPrefix);
-        RemoteDataSource ds = remoteDataSourceService.get(dataSourceName);
+        RemoteDataSource ds = remoteDataSourceApi.get(dataSourceName);
         return ds != null
                 && ds.getStatus() != null
                 && Integer.valueOf(1).equals(ds.getStatus().getCode());
@@ -115,7 +115,7 @@ public class TenantDataSourceManager {
         dataSourceConfig.setTenantId(tenantId);
         dataSourceConfig.setStatus(DatasourceConstants.DatasourceStatus.fromCode(1));
 
-        boolean success = remoteDataSourceService.add(dataSourceConfig);
+        boolean success = remoteDataSourceApi.add(dataSourceConfig);
         if (success) {
             log.info("创建租户数据源成功，名称: {}，租户: {}", dataSourceName, tenantId);
             String cacheKey = tenantPrefix + ":" + tenantId;
@@ -133,11 +133,11 @@ public class TenantDataSourceManager {
      */
     public boolean initTenantDataSource(String tenantId, String tenantPrefix) {
         String dataSourceName = getTenantDataSourceName(tenantId, tenantPrefix);
-        RemoteDataSource ds = remoteDataSourceService.get(dataSourceName);
+        RemoteDataSource ds = remoteDataSourceApi.get(dataSourceName);
         if (ds == null) {
             return false;
         }
-        return remoteDataSourceService.initSchema(ds.getId());
+        return remoteDataSourceApi.initSchema(ds.getId());
     }
 
     /**
@@ -149,11 +149,11 @@ public class TenantDataSourceManager {
      */
     public boolean destroyTenantDataSource(String tenantId, String tenantPrefix) {
         String dataSourceName = getTenantDataSourceName(tenantId, tenantPrefix);
-        RemoteDataSource ds = remoteDataSourceService.get(dataSourceName);
+        RemoteDataSource ds = remoteDataSourceApi.get(dataSourceName);
         if (ds == null) {
             return false;
         }
-        return remoteDataSourceService.removeSchema(ds.getId());
+        return remoteDataSourceApi.removeSchema(ds.getId());
     }
 
     /**
@@ -165,12 +165,12 @@ public class TenantDataSourceManager {
      */
     public boolean deleteTenantDataSource(String tenantId, String tenantPrefix) {
         String dataSourceName = getTenantDataSourceName(tenantId, tenantPrefix);
-        RemoteDataSource ds = remoteDataSourceService.get(dataSourceName);
+        RemoteDataSource ds = remoteDataSourceApi.get(dataSourceName);
         if (ds == null) {
             return false;
         }
 
-        boolean success = remoteDataSourceService.delete(ds.getId());
+        boolean success = remoteDataSourceApi.delete(ds.getId());
         if (success) {
             log.info("删除租户数据源成功，名称: {}，租户: {}", dataSourceName, tenantId);
             String cacheKey = tenantPrefix + ":" + tenantId;
@@ -185,7 +185,7 @@ public class TenantDataSourceManager {
      * @return 租户数据源列表
      */
     public List<RemoteDataSource> listEnabledTenantDataSources() {
-        return remoteDataSourceService.listEnabled().stream()
+        return remoteDataSourceApi.listEnabled().stream()
                 .filter(ds -> ds.getTenantId() != null)
                 .toList();
     }

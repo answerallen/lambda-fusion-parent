@@ -1,7 +1,6 @@
-package com.lambda.fusion.datasource.commons.dispatcher;
+package com.lambda.fusion.datasource.dispatcher;
 
-import com.lambda.fusion.datasource.commons.api.DataSourceChangeEvent;
-import com.lambda.fusion.datasource.commons.api.DataSourceChangeListener;
+import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import jakarta.annotation.PreDestroy;
 import java.util.Map;
 import java.util.concurrent.*;

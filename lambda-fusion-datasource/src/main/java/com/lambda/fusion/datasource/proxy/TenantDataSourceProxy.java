@@ -1,7 +1,7 @@
-package com.lambda.fusion.datasource.commons.proxy;
+package com.lambda.fusion.datasource.proxy;
 
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
-import com.lambda.fusion.datasource.commons.tenant.TenantDataSourceManager;
+import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintWriter;
 import java.sql.Connection;

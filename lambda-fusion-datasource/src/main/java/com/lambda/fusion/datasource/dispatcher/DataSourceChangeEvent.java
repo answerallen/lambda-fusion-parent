@@ -1,4 +1,4 @@
-package com.lambda.fusion.datasource.commons.api;
+package com.lambda.fusion.datasource.dispatcher;
 
 import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.model.RemoteDataSource;

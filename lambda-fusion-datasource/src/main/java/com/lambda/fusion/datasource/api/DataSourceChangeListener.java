@@ -1,4 +1,6 @@
-package com.lambda.fusion.datasource.commons.api;
+package com.lambda.fusion.datasource.api;
+
+import com.lambda.fusion.datasource.dispatcher.DataSourceChangeEvent;
 
 /**
  * 数据源变更回调接口

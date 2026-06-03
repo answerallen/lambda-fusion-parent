@@ -1,18 +1,21 @@
-package com.lambda.fusion.datasource.commons.api;
+package com.lambda.fusion.datasource.server;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
 import com.lambda.fusion.datasource.DatasourceConstants;
-import com.lambda.fusion.datasource.commons.dispatcher.DataSourceChangeDispatcher;
-import com.lambda.fusion.datasource.commons.tenant.TenantSchemaInitializer;
+import com.lambda.fusion.datasource.api.DataSourceChangeListener;
+import com.lambda.fusion.datasource.api.RemoteDataSourceApi;
+import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
+import com.lambda.fusion.datasource.dispatcher.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
+import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,7 +31,7 @@ import org.springframework.util.StringUtils;
  */
 @Slf4j
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
+public class ServerDataSourceService implements RemoteDataSourceApi {
 
     private final DataSourceManageService dataSourceManageService;
     private final DataSourceChangeDispatcher callbackManager;
@@ -36,7 +39,7 @@ public class RemoteDataSourceServiceImpl implements RemoteDataSourceService {
     private final ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider;
     private final TenantDataSourceMapper tenantDataSourceMapper;
 
-    public RemoteDataSourceServiceImpl(
+    public ServerDataSourceService(
             DataSourceManageService dataSourceManageService,
             DataSourceChangeDispatcher callbackManager,
             DynamicDataSourceService dynamicDataSourceService,

@@ -1,4 +1,4 @@
-package com.lambda.fusion.datasource.commons.api;
+package com.lambda.fusion.datasource.api;
 
 import com.baomidou.dynamic.datasource.toolkit.DynamicDataSourceContextHolder;
 import lombok.extern.slf4j.Slf4j;

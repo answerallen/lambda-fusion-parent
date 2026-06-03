@@ -1,9 +1,9 @@
-package com.lambda.fusion.datasource.commons.event;
+package com.lambda.fusion.datasource.event;
 
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.fusion.datasource.DatasourceConstants;
-import com.lambda.fusion.datasource.commons.api.DataSourceChangeEvent;
-import com.lambda.fusion.datasource.commons.dispatcher.DataSourceChangeDispatcher;
+import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
+import com.lambda.fusion.datasource.dispatcher.DataSourceChangeEvent;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.*;

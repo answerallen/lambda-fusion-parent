@@ -1,4 +1,4 @@
-package com.lambda.fusion.datasource.commons.tenant;
+package com.lambda.fusion.datasource.tenant;
 
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.mapper.TenantIsolationMapper;

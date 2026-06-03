@@ -10,14 +10,14 @@ import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.DatasourceConstants;
-import com.lambda.fusion.datasource.commons.api.RemoteDataSourceService;
-import com.lambda.fusion.datasource.commons.event.DataSourceEvent;
-import com.lambda.fusion.datasource.commons.tenant.TenantIsolationResolver;
-import com.lambda.fusion.datasource.commons.util.DataSourcePropertyUtils;
+import com.lambda.fusion.datasource.api.RemoteDataSourceApi;
+import com.lambda.fusion.datasource.event.DataSourceEvent;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
 import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
 import com.lambda.fusion.datasource.model.*;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
+import com.lambda.fusion.datasource.tenant.TenantIsolationResolver;
+import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -41,14 +41,14 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
     private final ApplicationEventPublisher eventPublisher;
     private final TenantDataSourceMapper tenantDataSourceMapper;
     private final TenantIsolationResolver tenantIsolationResolver;
-    private final ObjectProvider<RemoteDataSourceService> remoteDataSourceServiceProvider;
+    private final ObjectProvider<RemoteDataSourceApi> remoteDataSourceServiceProvider;
 
     public DataSourceManageServiceImpl(
             DynamicDataSourceService dynamicDataSourceService,
             ApplicationEventPublisher eventPublisher,
             TenantDataSourceMapper tenantDataSourceMapper,
             TenantIsolationResolver tenantIsolationResolver,
-            ObjectProvider<RemoteDataSourceService> remoteDataSourceServiceProvider) {
+            ObjectProvider<RemoteDataSourceApi> remoteDataSourceServiceProvider) {
         this.dynamicDataSourceService = dynamicDataSourceService;
         this.eventPublisher = eventPublisher;
         this.tenantDataSourceMapper = tenantDataSourceMapper;
@@ -345,9 +345,9 @@ public class DataSourceManageServiceImpl extends ServiceImpl<DataSourceMapper, D
         Assert.notNull(dataSourceEntity, "绑定的数据源不存在");
         Assert.isTrue(dataSourceEntity.getStatus().isOnline(), "数据源未启用，无法初始化");
 
-        RemoteDataSourceService remoteDataSourceService = remoteDataSourceServiceProvider.getIfAvailable();
-        Assert.notNull(remoteDataSourceService, "remoteDataSourceService is not available");
-        boolean initialized = remoteDataSourceService.initSchema(dataSourceEntity.getId());
+        RemoteDataSourceApi remoteDataSourceApi = remoteDataSourceServiceProvider.getIfAvailable();
+        Assert.notNull(remoteDataSourceApi, "remoteDataSourceService is not available");
+        boolean initialized = remoteDataSourceApi.initSchema(dataSourceEntity.getId());
         Assert.isTrue(initialized, "租户主库初始化失败");
 
         markTenantDataSourceInitialized(tenantId);

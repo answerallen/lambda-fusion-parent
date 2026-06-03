@@ -1,11 +1,11 @@
-package com.lambda.fusion.datasource.commons.interceptor;
+package com.lambda.fusion.datasource.interceptor;
 
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.datasource.DatasourceProperties;
-import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
-import com.lambda.fusion.datasource.commons.tenant.TenantDataSourceManager;
-import com.lambda.fusion.datasource.commons.tenant.TenantIsolationResolver;
+import com.lambda.fusion.datasource.api.DataSourceSwitcher;
+import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
+import com.lambda.fusion.datasource.tenant.TenantIsolationResolver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

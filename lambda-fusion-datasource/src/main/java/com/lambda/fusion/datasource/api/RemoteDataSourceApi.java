@@ -1,4 +1,4 @@
-package com.lambda.fusion.datasource.commons.api;
+package com.lambda.fusion.datasource.api;
 
 import com.lambda.fusion.datasource.model.RemoteDataSource;
 import java.util.List;
@@ -9,7 +9,7 @@ import java.util.List;
  * Dubbo RPC服务定义，支持回调通知机制。
  * </p>
  */
-public interface RemoteDataSourceService {
+public interface RemoteDataSourceApi {
 
     /**
      * 查询所有数据源

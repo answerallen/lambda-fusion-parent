@@ -1,12 +1,12 @@
-package com.lambda.fusion.datasource.commons.client;
+package com.lambda.fusion.datasource.client;
 
 import cn.hutool.core.util.IdUtil;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.DatasourceProperties;
-import com.lambda.fusion.datasource.commons.api.RemoteDataSourceService;
-import com.lambda.fusion.datasource.commons.util.DataSourcePropertyUtils;
+import com.lambda.fusion.datasource.api.RemoteDataSourceApi;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
+import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PreDestroy;
 import java.net.InetAddress;
@@ -35,7 +35,7 @@ import org.springframework.retry.support.RetryTemplate;
 public class ClientDataSourceInitializer implements ApplicationRunner {
 
     @DubboReference(version = "1.0.0", group = "datasource", check = false)
-    private RemoteDataSourceService remoteDataSourceService;
+    private RemoteDataSourceApi remoteDataSourceApi;
 
     private final DynamicDataSourceService dynamicDataSourceService;
     private final ClientDataSourceChangeListener callback;
@@ -98,7 +98,7 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
         }
 
         // 1. 拉取全量已启用数据源
-        List<RemoteDataSource> dataSources = remoteDataSourceService.listEnabled();
+        List<RemoteDataSource> dataSources = remoteDataSourceApi.listEnabled();
         if (dataSources != null) {
             log.info("Fetched {} remote datasources.", dataSources.size());
             for (RemoteDataSource dto : dataSources) {
@@ -116,13 +116,13 @@ public class ClientDataSourceInitializer implements ApplicationRunner {
 
         // 2. 订阅变更推送
         String clientId = generateClientId();
-        remoteDataSourceService.subscribe(clientId, callback);
+        remoteDataSourceApi.subscribe(clientId, callback);
         log.info("Subscribed to remote datasource changes. ClientId: {}", clientId);
 
         // 3. 注册 ShutdownHook 取消订阅
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
-                remoteDataSourceService.unsubscribe(clientId);
+                remoteDataSourceApi.unsubscribe(clientId);
                 log.info("Unsubscribed datasource changes.");
             } catch (Exception e) {
                 log.warn("Failed to unsubscribe", e);
