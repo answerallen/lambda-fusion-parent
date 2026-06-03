@@ -1,7 +1,7 @@
-package com.lambda.fusion.datascope.commons.listener;
+package com.lambda.fusion.datascope.listener;
 
 import com.lambda.fusion.datascope.DataScopeProperties;
-import com.lambda.fusion.datascope.commons.event.DataScopeObjectChangedEvent;
+import com.lambda.fusion.datascope.event.DataScopeObjectChangedEvent;
 import com.lambda.fusion.datascope.service.DataScopeSmartService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.ArrayUtils;

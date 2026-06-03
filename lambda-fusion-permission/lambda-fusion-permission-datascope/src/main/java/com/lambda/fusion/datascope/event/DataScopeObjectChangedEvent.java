@@ -1,4 +1,4 @@
-package com.lambda.fusion.datascope.commons.event;
+package com.lambda.fusion.datascope.event;
 
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.datascope.DataScopeConstants;

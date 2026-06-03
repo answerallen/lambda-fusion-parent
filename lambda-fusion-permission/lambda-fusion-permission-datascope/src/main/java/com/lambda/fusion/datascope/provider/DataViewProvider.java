@@ -1,4 +1,4 @@
-package com.lambda.fusion.datascope.commons.provider;
+package com.lambda.fusion.datascope.provider;
 
 import com.lambda.fusion.datascope.model.DataScopeNode;
 import java.util.List;
