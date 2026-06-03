@@ -14,7 +14,7 @@ import com.lambda.fusion.ai.model.entity.McpServerEntity;
 import com.lambda.fusion.ai.service.McpServerService;
 import com.lambda.fusion.ai.support.mcp.McpClientManager;
 import com.lambda.fusion.core.utils.AuthUtils;
-import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
+import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;

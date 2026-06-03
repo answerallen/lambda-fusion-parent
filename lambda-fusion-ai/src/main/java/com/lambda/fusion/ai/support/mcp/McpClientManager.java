@@ -8,7 +8,7 @@ import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mapper.McpServerMapper;
 import com.lambda.fusion.ai.model.entity.McpServerEntity;
 import com.lambda.fusion.ai.support.factory.ChatModelFactory;
-import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
+import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;

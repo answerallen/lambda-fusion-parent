@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.datasource.TenantDataSourceHelper;
 import com.lambda.fusion.ai.exception.AiBusinessException;
-import com.lambda.fusion.datasource.commons.tenant.TenantDataSourceManager;
+import com.lambda.fusion.datasource.tenant.TenantDataSourceManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

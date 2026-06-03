@@ -23,7 +23,7 @@ import com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.support.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.support.vector.VectorDimensionProcessor;
 import com.lambda.fusion.ai.utils.BatchUtils;
-import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
+import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentParser;
 import dev.langchain4j.data.document.DocumentSplitter;

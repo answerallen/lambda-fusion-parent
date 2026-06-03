@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.datasource;
 
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.datasource.commons.api.DataSourceSwitcher;
+import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
