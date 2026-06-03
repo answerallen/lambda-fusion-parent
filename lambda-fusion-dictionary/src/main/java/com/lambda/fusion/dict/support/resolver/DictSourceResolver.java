@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.commons.resolver;
+package com.lambda.fusion.dict.support.resolver;
 
 import com.lambda.fusion.dict.model.DictTypeTree;
 import com.lambda.fusion.dict.model.DynamicDictSource;

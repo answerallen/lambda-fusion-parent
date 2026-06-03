@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.commons.resolver;
+package com.lambda.fusion.dict.support.resolver;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import com.lambda.fusion.dict.DictConstants;

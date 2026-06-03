@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.commons.registry;
+package com.lambda.fusion.dict.support.registry;
 
 import com.lambda.fusion.dict.model.DynamicDictSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

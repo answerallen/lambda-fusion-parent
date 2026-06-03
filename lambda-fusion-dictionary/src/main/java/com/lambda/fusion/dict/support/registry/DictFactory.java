@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.commons.registry;
+package com.lambda.fusion.dict.support.registry;
 
 /**
  * @author jin

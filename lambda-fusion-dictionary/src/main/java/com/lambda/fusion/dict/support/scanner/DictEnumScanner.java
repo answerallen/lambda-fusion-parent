@@ -1,8 +1,8 @@
-package com.lambda.fusion.dict.commons.scanner;
+package com.lambda.fusion.dict.support.scanner;
 
 import com.lambda.fusion.core.annotation.DictMapper;
-import com.lambda.fusion.dict.commons.registry.DictHolder;
-import com.lambda.fusion.dict.commons.registry.DictRegistry;
+import com.lambda.fusion.dict.support.registry.DictHolder;
+import com.lambda.fusion.dict.support.registry.DictRegistry;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

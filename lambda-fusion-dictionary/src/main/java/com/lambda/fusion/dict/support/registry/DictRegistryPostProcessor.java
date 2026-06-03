@@ -1,8 +1,8 @@
-package com.lambda.fusion.dict.commons.registry;
+package com.lambda.fusion.dict.support.registry;
 
 import com.lambda.fusion.core.annotation.DictMapper;
 import com.lambda.fusion.dict.DictConstants;
-import com.lambda.fusion.dict.commons.scanner.DictEnumScanner;
+import com.lambda.fusion.dict.support.scanner.DictEnumScanner;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.NonNull;

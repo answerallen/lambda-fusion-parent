@@ -1,4 +1,4 @@
-package com.lambda.fusion.dict.commons.resolver;
+package com.lambda.fusion.dict.support.resolver;
 
 import static com.lambda.cloud.mvc.WebHttpUtils.X_AUTHORIZED_BEARER;
 import static com.lambda.fusion.dict.DictConstants.*;
