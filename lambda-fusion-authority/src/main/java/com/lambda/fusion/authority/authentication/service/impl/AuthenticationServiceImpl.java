@@ -12,6 +12,7 @@ import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.fusion.authority.AuthorityProperties;
+import com.lambda.fusion.authority.authentication.assembler.MenuRouteAssembler;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
 import com.lambda.fusion.authority.authentication.model.*;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
@@ -24,6 +25,7 @@ import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.mapper.UserThirdPartMapper;
 import com.lambda.fusion.authority.user.model.CreateUser;
 import com.lambda.fusion.authority.user.model.User;
+import com.lambda.fusion.authority.user.model.UserInfo;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.service.UserService;
@@ -73,6 +75,7 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
     private final UserThirdPartMapper userThirdpartMapper;
     private final UserService userService;
     private final UserThirdPartService userThirdPartService;
+    private final MenuRouteAssembler menuRouteAssembler;
 
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
@@ -159,83 +162,8 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
     public List<MenuRoute> getUserMenus(UserDetails userDetails, MenuQuery query) {
         List<MenuRoute> menuRoutes = authenticationMapper.selectNavigation(query);
         List<MenuRoute> menuRouteTree = TreeBuilder.build(menuRoutes);
-        enrichNavigationRoutes(menuRouteTree);
+        menuRouteAssembler.enrich(menuRouteTree);
         return menuRouteTree;
-    }
-
-    private void enrichNavigationRoutes(List<MenuRoute> menuRouteTree) {
-        if (CollUtil.isEmpty(menuRouteTree)) {
-            return;
-        }
-        for (MenuRoute root : menuRouteTree) {
-            enrichNavigationNode(root);
-        }
-    }
-
-    private void enrichNavigationNode(MenuRoute node) {
-        if (node == null) {
-            return;
-        }
-        NavigationRouteMeta meta = node.getMeta();
-        if (meta == null) {
-            meta = new NavigationRouteMeta();
-            node.setMeta(meta);
-        }
-        meta.putIfAbsent("title", node.getName());
-        meta.putIfAbsent("icon", node.getIcon());
-        meta.putIfAbsent("order", node.getOrderNo());
-        meta.putIfAbsent("hideInMenu", node.isHidden());
-        meta.putIfAbsent("keepAlive", node.isKeepAlive());
-        if (StrUtil.isBlank(node.getComponent())) {
-            String component = resolveComponent(node, meta);
-            if (StrUtil.isNotBlank(component)) {
-                node.setComponent(component);
-            } else {
-                String path = StrUtil.removePrefix(node.getPath(), "/");
-                if (StrUtil.endWith(path, "/")) {
-                    path = StrUtil.removeSuffix(path, "/");
-                    path = path + "/index";
-                }
-                node.setComponent(path);
-            }
-        }
-        if (StrUtil.isBlank(node.getRedirect()) && CollUtil.isNotEmpty(node.getChildren())) {
-            MenuRoute firstChild = node.getChildren().getFirst();
-            if (firstChild != null && StrUtil.isNotBlank(firstChild.path)) {
-                node.setRedirect(firstChild.getPath());
-            }
-        }
-        if (CollUtil.isNotEmpty(node.getChildren())) {
-            for (MenuRoute child : node.getChildren()) {
-                enrichNavigationNode(child);
-            }
-        }
-    }
-
-    private String resolveComponent(MenuRoute node, NavigationRouteMeta meta) {
-        if (CollUtil.isNotEmpty(node.getChildren())) {
-            return "BasicLayout";
-        }
-        Integer type = node.getType();
-        if (type == null) {
-            return null;
-        }
-        String url = node.getUrl();
-        if (type.equals(AuthorityConstants.MenuType.EXTERNAL_LINK.getCode())) {
-            if (StrUtil.isNotBlank(url)) {
-                meta.putIfAbsent("link", url);
-                return "IFrameView";
-            }
-            return null;
-        }
-        if (type.equals(AuthorityConstants.MenuType.EMBEDDED_PAGE.getCode())) {
-            if (StrUtil.isNotBlank(url)) {
-                meta.putIfAbsent("iframeSrc", url);
-                return "IFrameView";
-            }
-            return null;
-        }
-        return null;
     }
 
     @Override
@@ -334,7 +262,12 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
         createUser.setUsername(generatedUsername);
         createUser.setNickname(nickname);
         createUser.setEnabled(true);
+
         createUser.setAuthorities(List.of(new SimpleRole(FusionConstants.ROLE_USER)));
+        UserInfo userInfo = new UserInfo();
+        userInfo.setAvatar(thirdPartyInfo.getAvatar());
+        userInfo.setRemark(thirdPartyInfo.getRemark());
+        createUser.setProps(userInfo);
 
         try {
             userService.addUser(createUser, AuthUtils.getUser());
