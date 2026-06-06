@@ -1,5 +1,8 @@
 package com.lambda.fusion.authority.authentication.service.impl;
 
+import static com.lambda.fusion.core.FusionConstants.AT;
+import static com.lambda.fusion.core.FusionConstants.ROLE_TENANT;
+
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
@@ -14,18 +17,17 @@ import com.lambda.fusion.authority.authentication.model.*;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
-import com.lambda.fusion.authority.role.model.UserAuthority;
 import com.lambda.fusion.authority.role.model.SimpleRole;
+import com.lambda.fusion.authority.role.model.UserAuthority;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
-import com.lambda.fusion.authority.user.mapper.UserThirdpartMapper;
+import com.lambda.fusion.authority.user.mapper.UserThirdPartMapper;
 import com.lambda.fusion.authority.user.model.CreateUser;
 import com.lambda.fusion.authority.user.model.User;
-import com.lambda.fusion.authority.user.model.UserInfo;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
-import com.lambda.fusion.authority.user.service.UserThirdPartService;
 import com.lambda.fusion.authority.user.service.UserService;
+import com.lambda.fusion.authority.user.service.UserThirdPartService;
 import com.lambda.fusion.authority.utils.AuthorityHelper;
 import com.lambda.fusion.config.ConfigProperties;
 import com.lambda.fusion.core.FusionConstants;
@@ -38,21 +40,18 @@ import com.lambda.security.provider.ThirdPartLoginResult;
 import com.lambda.security.service.ThirdPartyLoginService;
 import com.lambda.security.service.UserDetailService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Primary;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import static com.lambda.fusion.core.FusionConstants.AT;
-import static com.lambda.fusion.core.FusionConstants.ROLE_TENANT;
 
 /**
  * 认证服务实现类
@@ -71,7 +70,7 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
     private final RoleMapper roleMapper;
     private final ConfigProperties configProperties;
     private final AuthorityProperties authorityProperties;
-    private final UserThirdpartMapper userThirdpartMapper;
+    private final UserThirdPartMapper userThirdpartMapper;
     private final UserService userService;
     private final UserThirdPartService userThirdPartService;
 
@@ -307,14 +306,19 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
     public LoginUser loadByThirdLoginResult(ThirdPartLoginResult thirdLoginResult, String loginType) {
         ThirdPartyInfo thirdPartyInfo = thirdLoginResult.getBody(ThirdPartyInfo.class);
         if (thirdPartyInfo == null) {
-            return null;
+            log.warn("三方登录结果解析失败，无法获取第三方用户信息");
+            throw AuthorityBusinessException.invalidParameter("三方登录信息为空");
         }
-        String username =
-                userThirdpartMapper.findUsernameByLoginTypeAndOpenId(thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
+        String username = userThirdpartMapper.findUsernameByThirdTypeAndOpenId(
+                thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
         if (username == null) {
             if (!authorityProperties.isThirdPartyAutoRegister()) {
-                throw AuthorityBusinessException.userNotFound(username);
+                throw AuthorityBusinessException.authUserNotFound(thirdPartyInfo.getThirdType());
             }
+            log.info(
+                    "三方用户首次登录，自动注册: thirdType={}, openId={}",
+                    thirdPartyInfo.getThirdType(),
+                    thirdPartyInfo.getOpenId());
             username = autoRegisterThirdPartyUser(thirdPartyInfo);
         }
         return loginByUsername(username, loginType);
@@ -324,27 +328,29 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
         AuthorityConstants.ThirdType thirdType = AuthorityConstants.ThirdType.of(thirdPartyInfo.getThirdType());
         String generatedUsername = generateUsername(thirdType, thirdPartyInfo.getOpenId());
 
-        String nickname = StrUtil.isNotBlank(thirdPartyInfo.getNickname())
-                ? thirdPartyInfo.getNickname()
-                : thirdType.getDefaultNickname();
+        String nickname = StrUtil.blankToDefault(thirdPartyInfo.getNickname(), thirdType.getDefaultNickname());
 
         CreateUser createUser = new CreateUser();
         createUser.setUsername(generatedUsername);
         createUser.setNickname(nickname);
         createUser.setEnabled(true);
         createUser.setAuthorities(List.of(new SimpleRole(FusionConstants.ROLE_USER)));
-        createUser.setProps(new UserInfo());
 
         try {
             userService.addUser(createUser, AuthUtils.getUser());
             userThirdPartService.bind(generatedUsername, thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
         } catch (DuplicateKeyException e) {
-            String existingUsername =
-                    userThirdpartMapper.findUsernameByLoginTypeAndOpenId(thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
+            String existingUsername = userThirdpartMapper.findUsernameByThirdTypeAndOpenId(
+                    thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
             if (existingUsername != null) {
                 return existingUsername;
             }
-            throw e;
+            log.warn(
+                    "三方用户自动注册冲突，用户名: {}, thirdType: {}, openId: {}",
+                    generatedUsername,
+                    thirdPartyInfo.getThirdType(),
+                    thirdPartyInfo.getOpenId());
+            throw AuthorityBusinessException.userNameExists(generatedUsername);
         }
 
         return generatedUsername;
@@ -356,9 +362,8 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
         if (candidate.length() <= 32) {
             return candidate;
         }
-        int maxOpenIdLength = 32 - prefix.length() - 1;
-        String truncated = openId.substring(0, maxOpenIdLength - 8);
-        String hashSuffix = Integer.toHexString(openId.hashCode());
-        return prefix + "_" + truncated + hashSuffix;
+        String hash = DigestUtils.md5Hex(openId);
+        int hashLength = 32 - prefix.length() - 1;
+        return prefix + "_" + hash.substring(0, hashLength);
     }
 }

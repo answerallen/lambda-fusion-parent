@@ -10,13 +10,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @TableName("la_user_thirdpart")
-public class UserThirdpartEntity {
+public class UserThirdPartEntity {
 
     @TableField("USERNAME")
     private String username;
 
-    @TableField("LOGIN_TYPE")
-    private String loginType;
+    @TableField("THIRD_TYPE")
+    private String thirdType;
 
     @TableField("OPEN_ID")
     private String openId;

@@ -305,6 +305,16 @@ public class AuthorityBusinessException extends BusinessException {
         return new AuthorityBusinessException(AuthorityErrorCode.AUTH_NO_PERMISSION);
     }
 
+    /**
+     * 便捷方法：认证时用户未找到异常
+     *
+     * @param loginType 登录类型
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException authUserNotFound(String loginType) {
+        return new AuthorityBusinessException(AuthorityErrorCode.AUTH_USER_NOT_FOUND, loginType);
+    }
+
     // ========== 系统错误便捷方法 ==========
 
     /**

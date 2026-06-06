@@ -515,7 +515,7 @@
             <column name="USERNAME" type="varchar(32)">
                 <constraints nullable="false"/>
             </column>
-            <column name="LOGIN_TYPE" type="varchar(11)">
+            <column name="THIRD_TYPE" type="varchar(11)">
                 <constraints nullable="false"/>
             </column>
             <column name="OPEN_ID" type="varchar(50)">
@@ -523,7 +523,7 @@
             </column>
         </createTable>
         <addPrimaryKey tableName="la_user_thirdpart"
-                       columnNames="LOGIN_TYPE,OPEN_ID"
+                       columnNames="THIRD_TYPE,OPEN_ID"
                        constraintName="pk_la_user_thirdpart"/>
     </changeSet>
 
