@@ -33,6 +33,33 @@ public interface AuthorityConstants {
     // ==================== 枚举 ======================
 
     @Getter
+    @AllArgsConstructor
+    @DictMapper(dictName = "THIRD_TYPE", dictDesc = "三方登录类型")
+    enum ThirdType implements DictEnum<String> {
+        WX_MA("wxMa", "微信小程序", "wx", "微信用户"),
+        ALIPAY_MA("alipayMa", "支付宝小程序", "alipay", "支付宝用户"),
+        DING_TALK("dingTalk", "钉钉", "dingTalk", "钉钉用户"),
+        WX_OPEN("wxOpen", "微信开放平台", "wxOpen", "微信用户");
+
+        @EnumValue
+        @JsonValue
+        private final String code;
+
+        private final String label;
+        private final String usernamePrefix;
+        private final String defaultNickname;
+
+        public static ThirdType of(String code) {
+            for (ThirdType type : values()) {
+                if (type.code.equals(code)) {
+                    return type;
+                }
+            }
+            throw new IllegalArgumentException("Unsupported third-party login type: " + code);
+        }
+    }
+
+    @Getter
     @DictMapper(dictName = "ROLE_TYPE", dictUsage = 0, dictDesc = "角色类型")
     @AllArgsConstructor
     enum RoleType implements DictEnum<Integer> {

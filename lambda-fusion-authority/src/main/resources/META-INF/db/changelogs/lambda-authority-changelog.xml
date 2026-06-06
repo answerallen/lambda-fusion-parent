@@ -508,10 +508,10 @@
     <changeSet id="lambda-authority-202603120113" author="westboy">
         <preConditions onFail="MARK_RAN">
             <not>
-                <tableExists tableName="la_user_info_thirdpart"/>
+                <tableExists tableName="la_user_thirdpart"/>
             </not>
         </preConditions>
-        <createTable tableName="la_user_info_thirdpart">
+        <createTable tableName="la_user_thirdpart">
             <column name="USERNAME" type="varchar(32)">
                 <constraints nullable="false"/>
             </column>
@@ -522,9 +522,9 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        <addPrimaryKey tableName="la_user_info_thirdpart"
+        <addPrimaryKey tableName="la_user_thirdpart"
                        columnNames="LOGIN_TYPE,OPEN_ID"
-                       constraintName="pk_la_user_info_thirdpart"/>
+                       constraintName="pk_la_user_thirdpart"/>
     </changeSet>
 
     <changeSet id="lambda-authority-202603150001" author="westboy">

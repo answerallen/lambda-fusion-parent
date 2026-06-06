@@ -1,8 +1,5 @@
 package com.lambda.fusion.authority.authentication.service.impl;
 
-import static com.lambda.fusion.core.FusionConstants.AT;
-import static com.lambda.fusion.core.FusionConstants.ROLE_TENANT;
-
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
@@ -19,6 +16,7 @@ import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.UserAuthority;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
+import com.lambda.fusion.authority.user.mapper.UserThirdpartMapper;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
@@ -30,17 +28,23 @@ import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.security.exception.AuthenticationException;
 import com.lambda.security.exception.UsernameNotFoundException;
+import com.lambda.security.provider.ThirdPartLoginResult;
+import com.lambda.security.service.ThirdPartyLoginService;
 import com.lambda.security.service.UserDetailService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import static com.lambda.fusion.core.FusionConstants.AT;
+import static com.lambda.fusion.core.FusionConstants.ROLE_TENANT;
 
 /**
  * 认证服务实现类
@@ -51,13 +55,14 @@ import org.springframework.stereotype.Service;
 @Service
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @RequiredArgsConstructor
-public class AuthenticationServiceImpl implements AuthenticationService, UserDetailService {
+public class AuthenticationServiceImpl implements AuthenticationService, UserDetailService, ThirdPartyLoginService {
 
     private final AuthenticationMapper authenticationMapper;
     private final UserInfoMapper userInfoMapper;
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
     private final ConfigProperties configProperties;
+    private final UserThirdpartMapper userThirdpartMapper;
 
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
@@ -284,5 +289,20 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
                 .ifPresent(userDetails::setTenantId);
 
         return userDetails;
+    }
+
+    @Override
+    public LoginUser loadByThirdLoginResult(ThirdPartLoginResult thirdLoginResult, String loginType) {
+        ThirdPartyInfo thirdPartyInfo = thirdLoginResult.getBody(ThirdPartyInfo.class);
+        if (thirdPartyInfo == null) {
+            return null;
+        }
+        String username =
+                userThirdpartMapper.findUsernameByLoginTypeAndOpenId(thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
+        if (username == null) {
+            //增加配置开关如果用户不存在，创建新用户
+            return null;
+        }
+        return loginByUsername(username, loginType);
     }
 }

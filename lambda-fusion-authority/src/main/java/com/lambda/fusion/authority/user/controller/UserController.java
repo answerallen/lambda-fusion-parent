@@ -19,6 +19,7 @@ import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.service.UserCenterService;
 import com.lambda.fusion.authority.user.service.UserInfoService;
 import com.lambda.fusion.authority.user.service.UserService;
+import com.lambda.fusion.authority.user.service.UserThirdPartService;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
@@ -53,6 +54,7 @@ public class UserController {
     private final UserQueryAssembler userQueryAssembler;
     private final UserCenterService userCenterService;
     private final UserInfoService userInfoService;
+    private final UserThirdPartService userThirdpartService;
     private TenantManager tenantManager;
 
     @Autowired(required = false)
@@ -239,15 +241,23 @@ public class UserController {
     }
 
     @SaCheckPermission(value = "T1000000082")
+    @GetMapping(value = "/{username}/thirdpart")
+    @Operation(summary = "查询用户第三方绑定列表")
+    public List<ThirdPartBinding> listThirdPartBindings(
+            @PathVariable @Parameter(description = "用户名", required = true) String username) {
+        return userThirdpartService.listByUsername(username);
+    }
+
+    @SaCheckPermission(value = "T1000000082")
     @PatchMapping(value = "/unbind/{username}/{type}")
     @Operation(summary = "解除第三方绑定")
     public void unbind(
             @PathVariable @Parameter(description = "用户编号", required = true) String username,
             @PathVariable
                     @Parameter(
-                            description = "第三方绑定类型(1、钉钉；2、微信)",
+                            description = "第三方绑定类型(ThirdType code，如：dingTalk、wxOpen、wxMa、alipayMa)",
                             required = true,
-                            schema = @Schema(defaultValue = "1"))
+                            schema = @Schema(defaultValue = "dingTalk"))
                     String type) {
         LoginUser operator = OperatorUtils.getOperator();
         userInfoService.unbindUserInfo(operator, type, username);
