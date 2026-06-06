@@ -17,6 +17,11 @@ public class AuthorityProperties {
     private boolean useOrgNameAsId = false;
 
     /**
+     * 第三方登录自动注册用户
+     */
+    private boolean thirdPartyAutoRegister = false;
+
+    /**
      * 密码策略
      */
     private PasswordStrategy passwordStrategy = new PasswordStrategy();

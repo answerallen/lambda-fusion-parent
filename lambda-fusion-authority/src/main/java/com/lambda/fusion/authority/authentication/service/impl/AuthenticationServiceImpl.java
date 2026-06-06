@@ -8,18 +8,24 @@ import com.google.common.collect.Sets;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.web.TenantHolder;
 import com.lambda.fusion.authority.AuthorityConstants;
+import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.authentication.mapper.AuthenticationMapper;
 import com.lambda.fusion.authority.authentication.model.*;
 import com.lambda.fusion.authority.authentication.service.AuthenticationService;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.UserAuthority;
+import com.lambda.fusion.authority.role.model.SimpleRole;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
 import com.lambda.fusion.authority.user.mapper.UserMapper;
 import com.lambda.fusion.authority.user.mapper.UserThirdpartMapper;
+import com.lambda.fusion.authority.user.model.CreateUser;
 import com.lambda.fusion.authority.user.model.User;
+import com.lambda.fusion.authority.user.model.UserInfo;
 import com.lambda.fusion.authority.user.model.UserProfile;
 import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
+import com.lambda.fusion.authority.user.service.UserThirdPartService;
+import com.lambda.fusion.authority.user.service.UserService;
 import com.lambda.fusion.authority.utils.AuthorityHelper;
 import com.lambda.fusion.config.ConfigProperties;
 import com.lambda.fusion.core.FusionConstants;
@@ -36,7 +42,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Primary;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,7 +70,10 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
     private final ConfigProperties configProperties;
+    private final AuthorityProperties authorityProperties;
     private final UserThirdpartMapper userThirdpartMapper;
+    private final UserService userService;
+    private final UserThirdPartService userThirdPartService;
 
     @Override
     public LoginUser loginByUsername(String username, String loginType) {
@@ -292,6 +303,7 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public LoginUser loadByThirdLoginResult(ThirdPartLoginResult thirdLoginResult, String loginType) {
         ThirdPartyInfo thirdPartyInfo = thirdLoginResult.getBody(ThirdPartyInfo.class);
         if (thirdPartyInfo == null) {
@@ -300,9 +312,53 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
         String username =
                 userThirdpartMapper.findUsernameByLoginTypeAndOpenId(thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
         if (username == null) {
-            //增加配置开关如果用户不存在，创建新用户
-            return null;
+            if (!authorityProperties.isThirdPartyAutoRegister()) {
+                throw AuthorityBusinessException.userNotFound(username);
+            }
+            username = autoRegisterThirdPartyUser(thirdPartyInfo);
         }
         return loginByUsername(username, loginType);
+    }
+
+    private String autoRegisterThirdPartyUser(ThirdPartyInfo thirdPartyInfo) {
+        AuthorityConstants.ThirdType thirdType = AuthorityConstants.ThirdType.of(thirdPartyInfo.getThirdType());
+        String generatedUsername = generateUsername(thirdType, thirdPartyInfo.getOpenId());
+
+        String nickname = StrUtil.isNotBlank(thirdPartyInfo.getNickname())
+                ? thirdPartyInfo.getNickname()
+                : thirdType.getDefaultNickname();
+
+        CreateUser createUser = new CreateUser();
+        createUser.setUsername(generatedUsername);
+        createUser.setNickname(nickname);
+        createUser.setEnabled(true);
+        createUser.setAuthorities(List.of(new SimpleRole(FusionConstants.ROLE_USER)));
+        createUser.setProps(new UserInfo());
+
+        try {
+            userService.addUser(createUser, AuthUtils.getUser());
+            userThirdPartService.bind(generatedUsername, thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
+        } catch (DuplicateKeyException e) {
+            String existingUsername =
+                    userThirdpartMapper.findUsernameByLoginTypeAndOpenId(thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
+            if (existingUsername != null) {
+                return existingUsername;
+            }
+            throw e;
+        }
+
+        return generatedUsername;
+    }
+
+    private String generateUsername(AuthorityConstants.ThirdType thirdType, String openId) {
+        String prefix = thirdType.getUsernamePrefix();
+        String candidate = prefix + "_" + openId;
+        if (candidate.length() <= 32) {
+            return candidate;
+        }
+        int maxOpenIdLength = 32 - prefix.length() - 1;
+        String truncated = openId.substring(0, maxOpenIdLength - 8);
+        String hashSuffix = Integer.toHexString(openId.hashCode());
+        return prefix + "_" + truncated + hashSuffix;
     }
 }
