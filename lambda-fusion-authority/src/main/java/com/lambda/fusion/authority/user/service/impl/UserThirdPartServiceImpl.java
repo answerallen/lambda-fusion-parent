@@ -7,10 +7,13 @@ import com.lambda.fusion.authority.user.model.ThirdPartBinding;
 import com.lambda.fusion.authority.user.model.entity.UserThirdPartEntity;
 import com.lambda.fusion.authority.user.service.UserThirdPartService;
 import java.util.List;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 @Service
 @RequiredArgsConstructor
 public class UserThirdPartServiceImpl implements UserThirdPartService {
