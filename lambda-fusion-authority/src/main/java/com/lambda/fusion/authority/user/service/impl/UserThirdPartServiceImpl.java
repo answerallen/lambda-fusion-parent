@@ -6,9 +6,8 @@ import com.lambda.fusion.authority.user.mapper.UserThirdPartMapper;
 import com.lambda.fusion.authority.user.model.ThirdPartBinding;
 import com.lambda.fusion.authority.user.model.entity.UserThirdPartEntity;
 import com.lambda.fusion.authority.user.service.UserThirdPartService;
-import java.util.List;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
