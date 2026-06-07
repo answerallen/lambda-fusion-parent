@@ -27,6 +27,48 @@ public class AuthorityProperties {
     private PasswordStrategy passwordStrategy = new PasswordStrategy();
 
     /**
+     * 三分登录配置
+     */
+    private ThirdPartConfig thirdPart = new ThirdPartConfig();
+
+    @Data
+    public static class ThirdPartConfig {
+
+        private WxMaConfig wxMa = new WxMaConfig();
+        private WxOpenConfig wxOpen = new WxOpenConfig();
+        private AlipayMaConfig alipayMa = new AlipayMaConfig();
+        private DingTalkConfig dingTalk = new DingTalkConfig();
+
+
+        @Data
+        public static class WxMaConfig {
+            private String appId;
+            private String appSecret;
+        }
+
+        @Data
+        public static class AlipayMaConfig {
+            private String appId;
+            private String privateKey;
+            private String appCertPath;
+            private String alipayPublicCertPath;
+            private String rootCertPath;
+        }
+
+        @Data
+        public static class DingTalkConfig {
+            private String appId;
+            private String appSecret;
+        }
+
+        @Data
+        public static class WxOpenConfig {
+            private String appId;
+            private String appSecret;
+        }
+    }
+
+    /**
      * 密码策略
      */
     @Data
