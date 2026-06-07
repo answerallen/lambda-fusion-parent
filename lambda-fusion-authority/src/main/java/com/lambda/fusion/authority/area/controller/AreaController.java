@@ -22,14 +22,14 @@ public class AreaController {
 
     private final AreaService areaService;
 
-    @SaCheckPermission(value = "T1000000005")
+    @SaCheckPermission(value = "authority:area:list")
     @GetMapping
     @Operation(summary = "查询区域列表")
     public List<Area> list(AreaQuery query) {
         return areaService.getAreas(query);
     }
 
-    @SaCheckPermission(value = "T1000000006")
+    @SaCheckPermission(value = "authority:area:tree")
     @GetMapping("tree")
     @Operation(summary = "获取区域树形结构")
     public List<AreaTree> tree(
@@ -37,35 +37,35 @@ public class AreaController {
         return areaService.getAreaTree(parentCode);
     }
 
-    @SaCheckPermission(value = "T1000000007")
+    @SaCheckPermission(value = "authority:area:get")
     @GetMapping("/{areaCode}")
     @Operation(summary = "根据区域编码查询")
     public Area get(@PathVariable @Parameter(description = "区域编码", required = true) String areaCode) {
         return areaService.getByAreaCode(areaCode);
     }
 
-    @SaCheckPermission(value = "T1000000008")
+    @SaCheckPermission(value = "authority:area:children")
     @GetMapping("/{parentCode}/children")
     @Operation(summary = "获取下级区域")
     public List<Area> children(@PathVariable @Parameter(description = "父区域编码", required = true) String parentCode) {
         return areaService.getChildren(parentCode);
     }
 
-    @SaCheckPermission(value = "T1000000009")
+    @SaCheckPermission(value = "authority:area:check")
     @GetMapping("/{areaCode}/check")
     @Operation(summary = "检查区域编码是否存在")
     public Boolean check(@PathVariable @Parameter(description = "区域编码", required = true) String areaCode) {
         return areaService.checkAreaCode(areaCode);
     }
 
-    @SaCheckPermission(value = "T1000000010")
+    @SaCheckPermission(value = "authority:area:add")
     @PostMapping
     @Operation(summary = "新增区域")
     public Area add(@Parameter(description = "区域信息", required = true) @Valid @RequestBody CreateArea createArea) {
         return areaService.addArea(createArea);
     }
 
-    @SaCheckPermission(value = "T1000000011")
+    @SaCheckPermission(value = "authority:area:update")
     @PutMapping("/{areaCode}")
     @Operation(summary = "更新区域")
     public Area update(
@@ -75,7 +75,7 @@ public class AreaController {
         return areaService.updateArea(updateArea);
     }
 
-    @SaCheckPermission(value = "T1000000012")
+    @SaCheckPermission(value = "authority:area:delete")
     @DeleteMapping("/{areaCode}")
     @Operation(summary = "删除区域")
     public void delete(@PathVariable @Parameter(description = "区域编码", required = true) String areaCode) {

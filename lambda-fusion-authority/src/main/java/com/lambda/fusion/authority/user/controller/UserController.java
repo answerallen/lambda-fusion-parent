@@ -62,7 +62,7 @@ public class UserController {
         this.tenantManager = tenantManager;
     }
 
-    @SaCheckPermission(value = "T1000000066")
+    @SaCheckPermission(value = "authority:user:page")
     @GetMapping({"", "/page", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询所有用户列表")
     public Page<User> page(
@@ -79,28 +79,28 @@ public class UserController {
         return userService.getUsers(userQuery.getPage(), userQueryContext);
     }
 
-    @SaCheckPermission(value = "T1000000067")
+    @SaCheckPermission(value = "authority:user:check")
     @GetMapping(value = "/{username}/check")
     @Operation(summary = "检查用户名是否存在")
     public Boolean checkName(@PathVariable @Parameter(description = "用户名", required = true) String username) {
         return userService.checkUserName(StrUtil.trim(username));
     }
 
-    @SaCheckPermission(value = "T1000000068")
+    @SaCheckPermission(value = "authority:user:get")
     @GetMapping(value = "/{username}")
     @Operation(summary = "查询用户信息")
     public User getUser(@PathVariable @Parameter(description = "用户名", required = true) String username) {
         return userService.getByUsername(StrUtil.trim(username));
     }
 
-    @SaCheckPermission(value = "T1000000069")
+    @SaCheckPermission(value = "authority:user:search")
     @GetMapping("/search")
     @Operation(summary = "根据关键字模糊查询用户列表")
     public List<User> search(@Parameter(description = "关键字", required = true) @RequestParam("key") String key) {
         return userService.getUsersByKey(key);
     }
 
-    @SaCheckPermission(value = "T1000000070")
+    @SaCheckPermission(value = "authority:user:list")
     @GetMapping("/allUser")
     @Operation(summary = "查询用户下拉列表")
     public List<UserProfile> allUser(@RequestParam(required = false, defaultValue = "false") Boolean isAll) {
@@ -110,7 +110,7 @@ public class UserController {
         return userService.getUserProfiles(loginUser, orgIds);
     }
 
-    @SaCheckPermission(value = "T1000000071")
+    @SaCheckPermission(value = "authority:user:current")
     @GetMapping("/current")
     @Operation(summary = "查询当前用户的详细信息")
     public User getCurrent() {
@@ -118,7 +118,7 @@ public class UserController {
         return userService.getByUsername(operator.getName());
     }
 
-    @SaCheckPermission(value = "T1000000072")
+    @SaCheckPermission(value = "authority:user:get-by-role")
     @GetMapping("/authority/{authority}")
     @Operation(summary = "根据角色查询用户名", description = "根据角色查询用户")
     public List<String> getNamesByAuthority(@PathVariable String authority) {
@@ -126,7 +126,7 @@ public class UserController {
         return userService.getUserNamesByAuthority(operator.getOrgId(), authority);
     }
 
-    @SaCheckPermission(value = "T1000000073")
+    @SaCheckPermission(value = "authority:user:add")
     @PostMapping
     @Operation(summary = "新增用户信息")
     public User add(@Parameter(description = "用户信息", required = true) @Valid @RequestBody CreateUser createUser) {
@@ -141,7 +141,7 @@ public class UserController {
         return created;
     }
 
-    @SaCheckPermission(value = "T1000000074")
+    @SaCheckPermission(value = "authority:user:update")
     @PutMapping(value = "/{username}")
     @Operation(summary = "更新用户信息")
     public User update(
@@ -156,7 +156,7 @@ public class UserController {
         return updated;
     }
 
-    @SaCheckPermission(value = "T1000000075")
+    @SaCheckPermission(value = "authority:user:delete")
     @DeleteMapping(value = "/{username}")
     @Operation(summary = "删除用户信息")
     public void delete(@PathVariable @Parameter(description = "用户名", required = true) String username) {
@@ -166,7 +166,7 @@ public class UserController {
         userService.deleteUser(AuthUtils.getUser(), username);
     }
 
-    @SaCheckPermission(value = "T1000000076")
+    @SaCheckPermission(value = "authority:user:password-edit")
     @PutMapping("/password/edit")
     @Operation(summary = "修改用户密码", description = "用于用户自己修改密码")
     public void updateUserPassword(
@@ -184,7 +184,7 @@ public class UserController {
         userService.updateUserPassword(operator.getName(), oldPassword, newPassword);
     }
 
-    @SaCheckPermission(value = "T1000000077")
+    @SaCheckPermission(value = "authority:user:password-reset")
     @PutMapping("/password/reset")
     @Operation(summary = "重置用户密码", description = "主要由用户管理员使用")
     public String resetUserPassword(
@@ -201,7 +201,7 @@ public class UserController {
         return password;
     }
 
-    @SaCheckPermission(value = "T1000000078")
+    @SaCheckPermission(value = "authority:user:disable")
     @PatchMapping("/{username}/disabled")
     @Operation(summary = "禁用用户")
     public void disabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
@@ -212,7 +212,7 @@ public class UserController {
         }
     }
 
-    @SaCheckPermission(value = "T1000000079")
+    @SaCheckPermission(value = "authority:user:enable")
     @PatchMapping("/{username}/enabled")
     @Operation(summary = "启用用户")
     public void enabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
@@ -223,14 +223,14 @@ public class UserController {
         }
     }
 
-    @SaCheckPermission(value = "T1000000080")
+    @SaCheckPermission(value = "authority:user:unlock")
     @PatchMapping("/{username}/unlock")
     @Operation(summary = "解锁用户")
     public void unlock(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         userService.unlockUser(username, AuthUtils.getUser());
     }
 
-    @SaCheckPermission(value = "T1000000081")
+    @SaCheckPermission(value = "authority:user:permission")
     @GetMapping("/{username}/permission")
     @Operation(summary = "查询用户所有权限")
     public List<Permission> userPermissions(
@@ -240,7 +240,7 @@ public class UserController {
         return TreeBuilder.build(permissions);
     }
 
-    @SaCheckPermission(value = "T1000000082")
+    @SaCheckPermission(value = "authority:user:third-part")
     @GetMapping(value = "/{username}/thirdpart")
     @Operation(summary = "查询用户第三方绑定列表")
     public List<ThirdPartBinding> listThirdPartBindings(
@@ -248,7 +248,7 @@ public class UserController {
         return userThirdpartService.listByUsername(username);
     }
 
-    @SaCheckPermission(value = "T1000000082")
+    @SaCheckPermission(value = "authority:user:third-part-unbind")
     @PatchMapping(value = "/unbind/{username}/{type}")
     @Operation(summary = "解除第三方绑定")
     public void unbind(
@@ -263,7 +263,7 @@ public class UserController {
         userInfoService.unbindUserInfo(operator, type, username);
     }
 
-    @SaCheckPermission(value = "T1000000083")
+    @SaCheckPermission(value = "authority:user:mobile-update")
     @PutMapping(value = "/update/mobile")
     @Operation(summary = "更新用户手机号")
     public void updateMobile(
@@ -273,7 +273,7 @@ public class UserController {
         userCenterService.updateMobile(operator.getName(), mobile, verifyCode);
     }
 
-    @SaCheckPermission(value = "T1000000084")
+    @SaCheckPermission(value = "authority:user:email-update")
     @PutMapping(value = "/update/email")
     @Operation(summary = "更新用户邮箱")
     public void updateEmail(
@@ -283,7 +283,7 @@ public class UserController {
         userCenterService.updateEmail(operator.getName(), email, verifyCode);
     }
 
-    @SaCheckPermission(value = "T1000000085")
+    @SaCheckPermission(value = "authority:user:info-update")
     @PostMapping(value = "/update/info")
     @Operation(
             summary = "更新个人信息",
@@ -301,7 +301,7 @@ public class UserController {
         return userCenterService.updateInfo(restUserInfo);
     }
 
-    @SaCheckPermission(value = "T1000000086")
+    @SaCheckPermission(value = "authority:user:mobile-code-send")
     @PostMapping(value = "/send/mobile/code")
     @Operation(summary = "发送手机验证码")
     public VerifyCode sendMobileVerifyCode(
@@ -310,14 +310,14 @@ public class UserController {
         return userCenterService.sendMobileVerifyCode(operator.getName(), mobile);
     }
 
-    @SaCheckPermission(value = "T1000000087")
+    @SaCheckPermission(value = "authority:user:tenant-admin-list")
     @GetMapping("/tenant/{tenantId}/admins")
     @Operation(summary = "查询租户管理员")
     public List<User> tenantAdmins(@PathVariable @Parameter(description = "租户ID", required = true) String tenantId) {
         return userService.queryTenantAdmins(tenantId);
     }
 
-    @SaCheckPermission(value = "T1000000088")
+    @SaCheckPermission(value = "authority:user:tenant-admin-add")
     @PutMapping(value = "/tenant/{tenantId}/admins")
     @Operation(summary = "添加租户管理员用户信息")
     public User addTenantUser(
@@ -336,7 +336,7 @@ public class UserController {
         return updated;
     }
 
-    @SaCheckPermission(value = "T1000000089")
+    @SaCheckPermission(value = "authority:user:tenant-admin-update")
     @PutMapping(value = "/tenant/{tenantId}/admins/{username}")
     @Operation(summary = "更新租户管理员用户信息")
     public User updateTenantUser(

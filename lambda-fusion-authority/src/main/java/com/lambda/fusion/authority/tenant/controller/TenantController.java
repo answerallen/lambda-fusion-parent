@@ -37,28 +37,28 @@ public class TenantController {
 
     private final TenantService tenantService;
 
-    @SaCheckPermission(value = "T1000000058")
+    @SaCheckPermission(value = "authority:tenant:page")
     @PostMapping("/page")
     @Operation(summary = "分页查询所有租户数据列表（V2版本）", description = "使用LambdaQueryWrapper进行分页查询，支持更灵活的排序和查询条件")
     public Page<TenantEntity> pageTenant(@RequestBody TenantQuery queryDTO) {
         return tenantService.pageTenant(queryDTO.getPage(), queryDTO.getLambdaQueryWrapper());
     }
 
-    @SaCheckPermission(value = "T1000000059")
+    @SaCheckPermission(value = "authority:tenant:list")
     @GetMapping("/options")
     @Operation(summary = "获取租户下拉列表", description = "查询租户下拉列表")
     public List<TenantOption> tenantOptions() {
         return tenantService.getTenantOptions();
     }
 
-    @SaCheckPermission(value = "T1000000060")
+    @SaCheckPermission(value = "authority:tenant:get")
     @GetMapping("/{id}")
     @Operation(summary = "根据编号查询租户信息信息", description = "根据id查询租户信息信息")
     public TenantEntity getTenant(@Parameter(description = "租户信息编号", required = true) @PathVariable String id) {
         return tenantService.getById(id);
     }
 
-    @SaCheckPermission(value = "T1000000061")
+    @SaCheckPermission(value = "authority:tenant:add")
     @PostMapping
     @Operation(summary = "新增租户信息信息(含LOGO)", description = "新增租户信息信息，支持表单与LOGO同请求提交")
     public TenantEntity saveTenant(
@@ -69,7 +69,7 @@ public class TenantController {
         return tenantService.createTenantWithLogo(tenant, logo, clientName);
     }
 
-    @SaCheckPermission(value = "T1000000062")
+    @SaCheckPermission(value = "authority:tenant:update")
     @PostMapping(value = "/{id}")
     @Operation(summary = "更新租户信息信息(含LOGO)", description = "更新租户信息信息，支持表单与LOGO同请求提交")
     public TenantEntity updateTenant(
@@ -82,28 +82,28 @@ public class TenantController {
         return tenantService.updateTenantWithLogo(id, tenant, logo, clientName);
     }
 
-    @SaCheckPermission(value = "T1000000063")
+    @SaCheckPermission(value = "authority:tenant:delete")
     @DeleteMapping("/{id}")
     @Operation(summary = "删除租户信息信息", description = "删除租户信息信息")
     public void deleteTenant(@Parameter(description = "租户编号", required = true) @PathVariable String id) {
         tenantService.deleteTenant(id);
     }
 
-    @SaCheckPermission(value = "T1000000064")
+    @SaCheckPermission(value = "authority:tenant:enable")
     @PatchMapping("/{id}/enabled")
     @Operation(summary = "启用租户")
     public void enabledTenant(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         tenantService.enableTenant(id);
     }
 
-    @SaCheckPermission(value = "T1000000065")
+    @SaCheckPermission(value = "authority:tenant:disable")
     @PatchMapping("/{id}/disabled")
     @Operation(summary = "禁用租户")
     public void disabledTenant(@PathVariable @Parameter(description = "租户编号", required = true) String id) {
         tenantService.disableTenant(id);
     }
 
-    @SaCheckPermission(value = "T1000000066")
+    @SaCheckPermission(value = "authority:tenant:domain-bind")
     @PutMapping("/{id}/domain")
     @Operation(summary = "绑定租户域名", description = "为指定租户绑定自定义域名，域名全局唯一")
     public void bindDomain(
@@ -112,7 +112,7 @@ public class TenantController {
         tenantService.bindDomain(id, domain);
     }
 
-    @SaCheckPermission(value = "T1000000067")
+    @SaCheckPermission(value = "authority:tenant:domain-unbind")
     @DeleteMapping("/{id}/domain")
     @Operation(summary = "解绑租户域名", description = "解除指定租户的域名绑定")
     public void unbindDomain(@PathVariable @Parameter(description = "租户编号", required = true) String id) {

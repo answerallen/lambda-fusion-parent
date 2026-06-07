@@ -38,7 +38,7 @@ public class RoleController {
 
     private final RoleService roleService;
 
-    @SaCheckPermission(value = "T1000000040")
+    @SaCheckPermission(value = "authority:role:list")
     @GetMapping
     @Operation(description = "获取所有角色列表", summary = "获取所有角色列表")
     public List<Role> list() {
@@ -46,7 +46,7 @@ public class RoleController {
         return roleService.queryRoles(userDetails);
     }
 
-    @SaCheckPermission(value = "T1000000041")
+    @SaCheckPermission(value = "authority:role:grouped")
     @GetMapping("/grouped")
     @Operation(
             description = "获取所有角色分组列表",
@@ -57,7 +57,7 @@ public class RoleController {
         return roleService.groupedRoles(userDetails, userDetails.getTenantId());
     }
 
-    @SaCheckPermission(value = "T1000000042")
+    @SaCheckPermission(value = "authority:role:page")
     @GetMapping({"/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(description = "分页查询所有角色列表", summary = "分页查询所有角色列表")
     public Page<Role> page(
@@ -90,7 +90,7 @@ public class RoleController {
         return roleService.queryRoles(new Page<>(number, size), parameters);
     }
 
-    @SaCheckPermission(value = "T1000000043")
+    @SaCheckPermission(value = "authority:role:check")
     @GetMapping("/check/{authority}")
     @Operation(description = "检查角色名称是否重复", summary = "检查角色名称是否重复")
     public Object check(@Parameter(description = "角色名称", required = true) @PathVariable String authority) {
@@ -99,7 +99,7 @@ public class RoleController {
         return result;
     }
 
-    @SaCheckPermission(value = "T1000000044")
+    @SaCheckPermission(value = "authority:role:get")
     @GetMapping("/{authority}")
     @Operation(description = "查询角色信息", summary = "查询角色信息")
     public Role update(@Parameter(description = "角色名称", required = true) @PathVariable String authority) {
@@ -107,14 +107,14 @@ public class RoleController {
         return roleService.getRoleByAuthority(authority);
     }
 
-    @SaCheckPermission(value = "T1000000045")
+    @SaCheckPermission(value = "authority:role:add")
     @PostMapping
     @Operation(description = "新增角色信息", summary = "新增角色信息")
     public Role add(@Parameter(description = "角色信息", required = true) @RequestBody CreateRole createRole) {
         return roleService.saveRole(AuthUtils.getUser(), createRole);
     }
 
-    @SaCheckPermission(value = "T1000000046")
+    @SaCheckPermission(value = "authority:role:update")
     @PutMapping("/{authority}")
     @Operation(description = "更新角色信息", summary = "更新角色信息")
     public Role update(
@@ -125,7 +125,7 @@ public class RoleController {
         return roleService.updateRole(AuthUtils.getUser(), updateRole);
     }
 
-    @SaCheckPermission(value = "T1000000047")
+    @SaCheckPermission(value = "authority:role:delete")
     @DeleteMapping("/{authority}")
     @Operation(description = "删除角色信息", summary = "删除角色信息")
     public void delete(@Parameter(description = "角色名称", required = true) @PathVariable String authority) {
@@ -135,21 +135,21 @@ public class RoleController {
         }
     }
 
-    @SaCheckPermission(value = "T1000000048")
+    @SaCheckPermission(value = "authority:role:disable")
     @PatchMapping("/{authority}/disabled")
     @Operation(description = "禁用角色", summary = "禁用角色")
     public void disabled(@PathVariable @Parameter(description = "角色名称", required = true) String authority) {
         roleService.prohibitRole(0, authority);
     }
 
-    @SaCheckPermission(value = "T1000000049")
+    @SaCheckPermission(value = "authority:role:enable")
     @PatchMapping("/{authority}/enabled")
     @Operation(description = "启用角色", summary = "启用角色")
     public void enabled(@PathVariable @Parameter(description = "角色名称", required = true) String authority) {
         roleService.prohibitRole(1, authority);
     }
 
-    @SaCheckPermission(value = "T1000000050")
+    @SaCheckPermission(value = "authority:role:permission-list")
     @GetMapping("/{authority}/permissions")
     @Operation(description = "查询指定角色的权限信息", summary = "查询指定角色的权限信息")
     public List<AccessPermission> getAccessPermission(
@@ -158,7 +158,7 @@ public class RoleController {
         return roleService.getAccessPermission(AuthUtils.getUser(), authority, mode);
     }
 
-    @SaCheckPermission(value = "T1000000051")
+    @SaCheckPermission(value = "authority:role:permission-grant")
     @PutMapping("/{authority}/grant/{resourceId}")
     @Operation(description = "授予指定角色的特定权限", summary = "授予指定角色的特定权限")
     public void grantRolePermission(
@@ -170,7 +170,7 @@ public class RoleController {
         roleService.grantRolePermission(authority, resourceId, status, AuthUtils.getUser());
     }
 
-    @SaCheckPermission(value = "T1000000052")
+    @SaCheckPermission(value = "authority:role:permission-revoke")
     @DeleteMapping("/{authority}/grant/{resourceId}")
     @Operation(description = "删除指定角色的特定权限", summary = "删除指定角色的特定权限")
     public void revokeRolePermission(
@@ -179,7 +179,7 @@ public class RoleController {
         roleService.revokeRolePermission(authority, resourceId, AuthUtils.getUser());
     }
 
-    @SaCheckPermission(value = "T1000000053")
+    @SaCheckPermission(value = "authority:role:assign-users")
     @Operation(description = "角色批量分配用户", summary = "角色批量分配用户")
     @PostMapping("/assignUsers")
     public void assignUsersToRole(@Valid @RequestBody BatchAssignUserRole req) {
@@ -187,7 +187,7 @@ public class RoleController {
         roleService.assignUsersToRole(userDetails, req);
     }
 
-    @SaCheckPermission(value = "T1000000054")
+    @SaCheckPermission(value = "authority:role-group:list")
     @Operation(description = "分组列表", summary = "分组列表")
     @GetMapping("/group")
     public List<Group> listGroups() {
@@ -195,21 +195,21 @@ public class RoleController {
         return roleService.listGroups(userDetails);
     }
 
-    @SaCheckPermission(value = "T1000000055")
+    @SaCheckPermission(value = "authority:role-group:add")
     @Operation(description = "新增角色分组", summary = "新增角色分组")
     @PostMapping("/group")
     public Group addGroup(@Parameter Group group) {
         return roleService.addGroup(group);
     }
 
-    @SaCheckPermission(value = "T1000000056")
+    @SaCheckPermission(value = "authority:role-group:update")
     @Operation(description = "修改角色分组", summary = "修改角色分组")
     @PutMapping("/group")
     public Group updateGroup(@Parameter Group group) {
         return roleService.updateGroup(group);
     }
 
-    @SaCheckPermission(value = "T1000000057")
+    @SaCheckPermission(value = "authority:role-group:delete")
     @Operation(description = "删除角色分组", summary = "删除角色分组")
     @DeleteMapping("/group/{groupId}")
     public void deleteGroup(@Parameter(description = "分组ID") @PathVariable String groupId) {

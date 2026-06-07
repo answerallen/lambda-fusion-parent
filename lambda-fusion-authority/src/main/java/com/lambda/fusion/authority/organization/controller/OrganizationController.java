@@ -49,7 +49,7 @@ public class OrganizationController {
 
     private final OrganizationService organizationService;
 
-    @SaCheckPermission(value = "T1000000018")
+    @SaCheckPermission(value = "authority:org:tree")
     @GetMapping("/tree")
     @Operation(summary = "以树形的方式获取组织机构列表", description = "以树形的方式获取组织机构列表")
     public List<Organization> tree(
@@ -71,7 +71,7 @@ public class OrganizationController {
         return organizationService.organizationTreeList(organizationQuery);
     }
 
-    @SaCheckPermission(value = "T1000000019")
+    @SaCheckPermission(value = "authority:org:list")
     @GetMapping("/list")
     @Operation(summary = "获取组织机构树形下拉列表", description = "查询组织机构列表树形下拉列表")
     public List<OrganizationTree> list() {
@@ -80,7 +80,7 @@ public class OrganizationController {
         return organizationService.getOrganizationTree(parameters);
     }
 
-    @SaCheckPermission(value = "T1000000020")
+    @SaCheckPermission(value = "authority:org:add")
     @PostMapping({"", "/{id}"})
     @Operation(summary = "新增组织机构信息", description = "当id为非空时新增其子组织机构信息")
     public Organization addOrganization(
@@ -111,7 +111,7 @@ public class OrganizationController {
         return organizationService.updateOrganization(updateOrganization);
     }
 
-    @SaCheckPermission(value = "T1000000021")
+    @SaCheckPermission(value = "authority:org:delete")
     @DeleteMapping("/{id}")
     @Operation(summary = "删除组织机构信息", description = "根据编号删除指定的组织机构信息")
     public void delete(@Parameter(description = "组织编号", required = true) @PathVariable String id) {
@@ -122,7 +122,7 @@ public class OrganizationController {
         organizationService.deleteOrganization(id);
     }
 
-    @SaCheckPermission(value = "T1000000022")
+    @SaCheckPermission(value = "authority:org:user-get")
     @GetMapping("/user/{username}")
     @Operation(summary = "查询用户组织信息", description = "查询用户组织信息")
     public UserOrganization queryUserOrganization(
@@ -132,7 +132,7 @@ public class OrganizationController {
         return organizationService.queryUserOrganization(resource);
     }
 
-    @SaCheckPermission(value = "T1000000023")
+    @SaCheckPermission(value = "authority:org:user-add")
     @PostMapping("/user/{username}")
     @Operation(summary = "添加用户组织信息", description = "添加用户组织信息")
     public UserOrganization addUserOrganization(
@@ -142,7 +142,7 @@ public class OrganizationController {
         return organizationService.addUserOrganization(resource);
     }
 
-    @SaCheckPermission(value = "T1000000024")
+    @SaCheckPermission(value = "authority:org:user-delete")
     @DeleteMapping("/user/{username}")
     @Operation(summary = "删除用户组织信息", description = "删除用户添加组织信息")
     public void deleteUserOrganization(
@@ -150,7 +150,7 @@ public class OrganizationController {
         organizationService.deleteUserOrganization(username);
     }
 
-    @SaCheckPermission(value = "T1000000025")
+    @SaCheckPermission(value = "authority:org:user-update")
     @PutMapping("/user/{username}")
     @Operation(summary = "更新用户组织关系", description = "更新用户组织关系")
     public UserOrganization updateUserOrganization(
@@ -160,7 +160,7 @@ public class OrganizationController {
         return organizationService.updateUserOrganization(resource);
     }
 
-    @SaCheckPermission(value = "T1000000026")
+    @SaCheckPermission(value = "authority:org:enable")
     @PatchMapping("/{id}/enabled")
     @Operation(summary = "启用组织机构")
     public void enabled(@PathVariable @Parameter(description = "机构Id", required = true) String id) {
@@ -171,7 +171,7 @@ public class OrganizationController {
         organizationService.prohibitOrganization(1, id);
     }
 
-    @SaCheckPermission(value = "T1000000027")
+    @SaCheckPermission(value = "authority:org:disable")
     @PatchMapping("/{id}/disabled")
     @Operation(summary = "禁用组织机构")
     public void disabled(@PathVariable @Parameter(description = "机构Id", required = true) String id) {
@@ -182,14 +182,14 @@ public class OrganizationController {
         organizationService.prohibitOrganization(0, id);
     }
 
-    @SaCheckPermission(value = "T1000000028")
+    @SaCheckPermission(value = "authority:org:import")
     @Operation(summary = "导入excel批量增加组织")
     @PostMapping({"/import"})
     public void importExcel(@RequestParam("file") MultipartFile file) {
         organizationService.addOrganizationByImport(file);
     }
 
-    @SaCheckPermission(value = "T1000000029")
+    @SaCheckPermission(value = "authority:org:move")
     @PatchMapping("/{id}")
     @Operation(
             summary = "移动组织",

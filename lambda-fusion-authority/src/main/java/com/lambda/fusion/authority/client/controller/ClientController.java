@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class ClientController {
     private final ClientService clientService;
 
-    @SaCheckPermission(value = "T1000000013")
+    @SaCheckPermission(value = "authority:client:page")
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询客户端列表", description = "分页查询客户端列表")
     public Page<ClientEntity> page(
@@ -41,14 +41,14 @@ public class ClientController {
         return clientService.page(clientQuery.getPage(), clientQuery.getLambdaQueryWrapper());
     }
 
-    @SaCheckPermission(value = "T1000000014")
+    @SaCheckPermission(value = "authority:client:get")
     @GetMapping("/{id}")
     @Operation(summary = "根据编号查询客户端信息", description = "根据id查询客户端信息")
     public ClientEntity get(@Parameter(description = "编号", required = true) @PathVariable String id) {
         return clientService.getById(id);
     }
 
-    @SaCheckPermission(value = "T1000000015")
+    @SaCheckPermission(value = "authority:client:add")
     @PostMapping
     @Operation(summary = "新增客户端信息", description = "新增客户端信息")
     public void save(@Parameter(description = "客户端信息", required = true) @Valid @RequestBody UpsertClient upsertClient) {
@@ -57,7 +57,7 @@ public class ClientController {
         clientService.save(clientEntity);
     }
 
-    @SaCheckPermission(value = "T1000000014")
+    @SaCheckPermission(value = "authority:client:api-permission-list")
     @GetMapping("/{id}/api-permissions")
     @Operation(summary = "查询客户端接口权限树", description = "按应用与分组返回客户端接口权限树")
     public List<ApiPermissionTreeNode> listApiPermissions(
@@ -67,7 +67,7 @@ public class ClientController {
         return clientService.listApiPermissions(id, application, name);
     }
 
-    @SaCheckPermission(value = "T1000000016")
+    @SaCheckPermission(value = "authority:client:update")
     @PutMapping("/{id}")
     @Operation(summary = "更新客户端信息", description = "更新客户端信息")
     public void update(
@@ -84,7 +84,7 @@ public class ClientController {
         clientService.updateById(clientEntity);
     }
 
-    @SaCheckPermission(value = "T1000000016")
+    @SaCheckPermission(value = "authority:client:api-permission-bind")
     @PutMapping("/{id}/api-permissions/{permissionId}")
     @Operation(summary = "绑定客户端接口权限", description = "将指定接口权限绑定到客户端")
     public void bindApiPermission(
@@ -93,7 +93,7 @@ public class ClientController {
         clientService.bindApiPermission(AuthUtils.getUser(), id, permissionId);
     }
 
-    @SaCheckPermission(value = "T1000000016")
+    @SaCheckPermission(value = "authority:client:api-permission-unbind")
     @DeleteMapping("/{id}/api-permissions/{permissionId}")
     @Operation(summary = "解绑客户端接口权限", description = "将指定接口权限从客户端解绑")
     public void unbindApiPermission(
@@ -102,7 +102,7 @@ public class ClientController {
         clientService.unbindApiPermission(AuthUtils.getUser(), id, permissionId);
     }
 
-    @SaCheckPermission(value = "T1000000017")
+    @SaCheckPermission(value = "authority:client:delete")
     @DeleteMapping("/{id}")
     @Operation(summary = "删除客户端信息", description = "根据编号删除客户端信息")
     public void delete(@Parameter(description = "编号", required = true) @PathVariable String id) {
