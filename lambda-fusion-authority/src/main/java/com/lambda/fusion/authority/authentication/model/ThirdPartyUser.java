@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ThirdPartyInfo implements Serializable {
+public class ThirdPartyUser implements Serializable {
     private String thirdType;
     private String openId;
     private String username;

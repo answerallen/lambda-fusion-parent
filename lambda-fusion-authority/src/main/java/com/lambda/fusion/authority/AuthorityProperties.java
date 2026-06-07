@@ -1,6 +1,8 @@
 package com.lambda.fusion.authority;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,11 +19,6 @@ public class AuthorityProperties {
     private boolean useOrgNameAsId = false;
 
     /**
-     * 第三方登录自动注册用户
-     */
-    private boolean thirdPartyAutoRegister = false;
-
-    /**
      * 密码策略
      */
     private PasswordStrategy passwordStrategy = new PasswordStrategy();
@@ -33,6 +30,16 @@ public class AuthorityProperties {
 
     @Data
     public static class ThirdPartConfig {
+
+        /**
+         * 是否允许第三方登录自动注册
+         */
+        private boolean autoRegister = false;
+
+        /**
+         * 允许第三方登录自动注册的登录类型
+         */
+        private List<String> autoRegisterLoginTypes = new ArrayList<>();
 
         private WxMaConfig wxMa = new WxMaConfig();
         private WxOpenConfig wxOpen = new WxOpenConfig();

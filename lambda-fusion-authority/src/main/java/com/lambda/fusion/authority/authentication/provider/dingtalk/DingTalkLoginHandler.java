@@ -1,21 +1,17 @@
 package com.lambda.fusion.authority.authentication.provider.dingtalk;
 
-import cn.chargemind.auth.AuthConstants;
+import com.lambda.fusion.authority.AuthorityConstants;
 import com.lambda.security.provider.AbstractThirdPartLoginProvider;
 import com.lambda.security.provider.ThirdPartLoginHandler;
-import com.lambda.security.provider.ThirdPartLoginResult;
 import com.lambda.security.service.ThirdPartyLoginService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.stereotype.Component;
 
-@Component
-@ConditionalOnBean(DingTalkLoginAdapter.class)
 public class DingTalkLoginHandler extends AbstractThirdPartLoginProvider<DingTalkLoginHandler> implements ThirdPartLoginHandler {
 
     private final DingTalkLoginAdapter adapter;
 
-    public DingTalkLoginHandler(ThirdPartyLoginService thirdPartyLoginService, DingTalkLoginHandler thirdPartLoginHandler, DingTalkLoginAdapter adapter) {
-        super(thirdPartyLoginService, thirdPartLoginHandler);
+    public DingTalkLoginHandler(ThirdPartyLoginService thirdPartyLoginService, DingTalkLoginAdapter adapter) {
+        super(thirdPartyLoginService);
+        super.setThirdPartLoginHandler(this);
         this.adapter = adapter;
     }
 
@@ -32,11 +28,6 @@ public class DingTalkLoginHandler extends AbstractThirdPartLoginProvider<DingTal
 
     @Override
     public String getThirdType() {
-        return AuthConstants.ThirdType.DINGTALK.getCode();
-    }
-
-    @Override
-    public ThirdPartLoginResult getThirdLoginParam(String code) {
-        return null;
+        return AuthorityConstants.ThirdType.DING_TALK.getCode();
     }
 }

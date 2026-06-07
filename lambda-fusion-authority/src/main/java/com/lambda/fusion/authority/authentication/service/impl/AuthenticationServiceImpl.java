@@ -232,31 +232,38 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
     @Override
     @Transactional(rollbackFor = Exception.class)
     public LoginUser loadByThirdLoginResult(ThirdPartLoginResult thirdLoginResult, String loginType) {
-        ThirdPartyInfo thirdPartyInfo = thirdLoginResult.getBody(ThirdPartyInfo.class);
-        if (thirdPartyInfo == null) {
+        ThirdPartyUser thirdPartyUser = thirdLoginResult.getBody(ThirdPartyUser.class);
+        if (thirdPartyUser == null) {
             log.warn("三方登录结果解析失败，无法获取第三方用户信息");
             throw AuthorityBusinessException.invalidParameter("三方登录信息为空");
         }
         String username = userThirdpartMapper.findUsernameByThirdTypeAndOpenId(
-                thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
+                thirdPartyUser.getThirdType(), thirdPartyUser.getOpenId());
         if (username == null) {
-            if (!authorityProperties.isThirdPartyAutoRegister()) {
-                throw AuthorityBusinessException.authUserNotFound(thirdPartyInfo.getThirdType());
+            if (!supportsThirdPartyAutoRegister(loginType)) {
+                throw AuthorityBusinessException.authUserNotFound(loginType);
             }
             log.info(
-                    "三方用户首次登录，自动注册: thirdType={}, openId={}",
-                    thirdPartyInfo.getThirdType(),
-                    thirdPartyInfo.getOpenId());
-            username = autoRegisterThirdPartyUser(thirdPartyInfo);
+                    "三方用户首次登录，自动注册: loginType={}, thirdType={}, openId={}",
+                    loginType,
+                    thirdPartyUser.getThirdType(),
+                    thirdPartyUser.getOpenId());
+            username = autoRegisterThirdPartyUser(thirdPartyUser);
         }
         return loginByUsername(username, loginType);
     }
 
-    private String autoRegisterThirdPartyUser(ThirdPartyInfo thirdPartyInfo) {
-        AuthorityConstants.ThirdType thirdType = AuthorityConstants.ThirdType.of(thirdPartyInfo.getThirdType());
-        String generatedUsername = generateUsername(thirdType, thirdPartyInfo.getOpenId());
+    private boolean supportsThirdPartyAutoRegister(String loginType) {
+        AuthorityProperties.ThirdPartConfig thirdPartConfig = authorityProperties.getThirdPart();
+        return thirdPartConfig.isAutoRegister()
+                && CollUtil.contains(thirdPartConfig.getAutoRegisterLoginTypes(), loginType);
+    }
 
-        String nickname = StrUtil.blankToDefault(thirdPartyInfo.getNickname(), thirdType.getDefaultNickname());
+    private String autoRegisterThirdPartyUser(ThirdPartyUser thirdPartyUser) {
+        AuthorityConstants.ThirdType thirdType = AuthorityConstants.ThirdType.of(thirdPartyUser.getThirdType());
+        String generatedUsername = generateUsername(thirdType, thirdPartyUser.getOpenId());
+
+        String nickname = StrUtil.blankToDefault(thirdPartyUser.getNickname(), thirdType.getDefaultNickname());
 
         CreateUser createUser = new CreateUser();
         createUser.setUsername(generatedUsername);
@@ -265,24 +272,24 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
 
         createUser.setAuthorities(List.of(new SimpleRole(FusionConstants.ROLE_USER)));
         UserInfo userInfo = new UserInfo();
-        userInfo.setAvatar(thirdPartyInfo.getAvatar());
-        userInfo.setRemark(thirdPartyInfo.getRemark());
+        userInfo.setAvatar(thirdPartyUser.getAvatar());
+        userInfo.setRemark(thirdPartyUser.getRemark());
         createUser.setProps(userInfo);
 
         try {
             userService.addUser(createUser, AuthUtils.getUser());
-            userThirdPartService.bind(generatedUsername, thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
+            userThirdPartService.bind(generatedUsername, thirdPartyUser.getThirdType(), thirdPartyUser.getOpenId());
         } catch (DuplicateKeyException e) {
             String existingUsername = userThirdpartMapper.findUsernameByThirdTypeAndOpenId(
-                    thirdPartyInfo.getThirdType(), thirdPartyInfo.getOpenId());
+                    thirdPartyUser.getThirdType(), thirdPartyUser.getOpenId());
             if (existingUsername != null) {
                 return existingUsername;
             }
             log.warn(
                     "三方用户自动注册冲突，用户名: {}, thirdType: {}, openId: {}",
                     generatedUsername,
-                    thirdPartyInfo.getThirdType(),
-                    thirdPartyInfo.getOpenId());
+                    thirdPartyUser.getThirdType(),
+                    thirdPartyUser.getOpenId());
             throw AuthorityBusinessException.userNameExists(generatedUsername);
         }
 
