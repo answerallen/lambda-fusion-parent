@@ -46,7 +46,6 @@ public class AuthorityProperties {
         private AlipayMaConfig alipayMa = new AlipayMaConfig();
         private DingTalkConfig dingTalk = new DingTalkConfig();
 
-
         @Data
         public static class WxMaConfig {
             private String appId;

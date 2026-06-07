@@ -5,7 +5,8 @@ import com.lambda.security.provider.AbstractThirdPartLoginProvider;
 import com.lambda.security.provider.ThirdPartLoginHandler;
 import com.lambda.security.service.ThirdPartyLoginService;
 
-public class WechatOpenLoginHandler extends AbstractThirdPartLoginProvider<WechatOpenLoginHandler> implements ThirdPartLoginHandler {
+public class WechatOpenLoginHandler extends AbstractThirdPartLoginProvider<WechatOpenLoginHandler>
+        implements ThirdPartLoginHandler {
 
     private final WechatOpenLoginAdapter adapter;
 

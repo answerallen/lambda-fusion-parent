@@ -5,7 +5,8 @@ import com.lambda.security.provider.AbstractThirdPartLoginProvider;
 import com.lambda.security.provider.ThirdPartLoginHandler;
 import com.lambda.security.service.ThirdPartyLoginService;
 
-public class DingTalkLoginHandler extends AbstractThirdPartLoginProvider<DingTalkLoginHandler> implements ThirdPartLoginHandler {
+public class DingTalkLoginHandler extends AbstractThirdPartLoginProvider<DingTalkLoginHandler>
+        implements ThirdPartLoginHandler {
 
     private final DingTalkLoginAdapter adapter;
 
@@ -14,7 +15,6 @@ public class DingTalkLoginHandler extends AbstractThirdPartLoginProvider<DingTal
         super.setThirdPartLoginHandler(this);
         this.adapter = adapter;
     }
-
 
     @Override
     public Object handle(String loginParam) {

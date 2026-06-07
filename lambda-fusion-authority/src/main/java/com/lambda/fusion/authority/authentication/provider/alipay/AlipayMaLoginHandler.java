@@ -12,9 +12,7 @@ public class AlipayMaLoginHandler extends AbstractThirdPartLoginProvider<AlipayM
 
     private final AlipayMaLoginAdapter adapter;
 
-    public AlipayMaLoginHandler(
-            ThirdPartyLoginService thirdPartyLoginService,
-            AlipayMaLoginAdapter adapter) {
+    public AlipayMaLoginHandler(ThirdPartyLoginService thirdPartyLoginService, AlipayMaLoginAdapter adapter) {
         super(thirdPartyLoginService);
         super.setThirdPartLoginHandler(this);
         this.adapter = adapter;

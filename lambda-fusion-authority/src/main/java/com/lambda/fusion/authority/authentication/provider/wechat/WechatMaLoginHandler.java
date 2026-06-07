@@ -10,9 +10,7 @@ public class WechatMaLoginHandler extends AbstractThirdPartLoginProvider<WechatM
 
     private final WechatMaLoginAdapter adapter;
 
-    public WechatMaLoginHandler(
-            ThirdPartyLoginService thirdPartyLoginService,
-            WechatMaLoginAdapter adapter) {
+    public WechatMaLoginHandler(ThirdPartyLoginService thirdPartyLoginService, WechatMaLoginAdapter adapter) {
         super(thirdPartyLoginService);
         super.setThirdPartLoginHandler(this);
         this.adapter = adapter;
