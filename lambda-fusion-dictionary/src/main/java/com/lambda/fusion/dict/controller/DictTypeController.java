@@ -1,5 +1,6 @@
 package com.lambda.fusion.dict.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.utils.AuthUtils;
@@ -34,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 public class DictTypeController {
     private final DictTypeService dictTypeService;
 
+    @SaCheckPermission(value = "dict:dict-type:list")
     @GetMapping("/")
     @Operation(summary = "获取所有字典分类", description = "可以根据字典类型查询")
     public List<DictTypeTree> getDictTypeList(
@@ -41,6 +43,7 @@ public class DictTypeController {
         return dictTypeService.getDictTypeList(type);
     }
 
+    @SaCheckPermission(value = "dict:dict-type:add")
     @PostMapping
     @Operation(summary = "添加字典类型", description = "添加字典类型")
     public DictTypeTree saveDictType(
@@ -57,6 +60,7 @@ public class DictTypeController {
         return dictTypeService.saveDictType(dictTypeTree);
     }
 
+    @SaCheckPermission(value = "dict:dict-type:update")
     @PutMapping
     @Operation(
             summary = "更新字典类型",
@@ -78,12 +82,14 @@ public class DictTypeController {
         return dictTypeService.getById(dictTypeTree.getId());
     }
 
+    @SaCheckPermission(value = "dict:dict-type:delete")
     @DeleteMapping("/{id}")
     @Operation(summary = "删除字典类型信息", description = "删除字典类型信息")
     public void deleteDictType(@Parameter(description = "字典类型编号", required = true) @PathVariable String id) {
         dictTypeService.deleteDictType(id);
     }
 
+    @SaCheckPermission(value = "dict:dict-type:page")
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "字典类型分页查询", description = "字典类型分页查询，支持多条件查询和排序")
     public Page<DictTypeTree> dictTypeList(
@@ -99,12 +105,14 @@ public class DictTypeController {
         return dictTypeService.page(pageQueryDTO.getPage(), pageQueryDTO.getLambdaQueryWrapper());
     }
 
+    @SaCheckPermission(value = "dict:dict-type:tree")
     @GetMapping("/tree/composite")
     @Operation(summary = "查询树形结构的字典类型(动态字典)包含上下级节点", description = "查询树形结构的字典类型")
     public List<DictTypeTree> compositeTree(@Parameter QueryDictTree queryDictTree) {
         return dictTypeService.compositeTreeList(queryDictTree);
     }
 
+    @SaCheckPermission(value = "dict:dict-type:composite-get")
     @GetMapping("/dict/composite")
     @Operation(summary = "动态字典查询", description = "动态字典查询")
     public DictTypeTree compositeDict(
@@ -112,6 +120,7 @@ public class DictTypeController {
         return dictTypeService.compositeDict(dictTypeId);
     }
 
+    @SaCheckPermission(value = "dict:dict-type:enum-list")
     @GetMapping("/dict/enum")
     @Operation(summary = "获取所有枚举字典", description = "获取所有枚举字典")
     public Map<String, DictHolder> getAllEnumDict() {
