@@ -6,6 +6,14 @@ import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
 import com.lambda.cloud.sse.listener.SseEventListener;
 import com.lambda.fusion.authority.api.RemoteAuthenticationService;
 import com.lambda.fusion.authority.authentication.adapter.RemoteAuthenticationServiceAdapter;
+import com.lambda.fusion.authority.authentication.provider.alipay.AlipayMaLoginAdapter;
+import com.lambda.fusion.authority.authentication.provider.alipay.AlipayMaLoginHandler;
+import com.lambda.fusion.authority.authentication.provider.dingtalk.DingTalkLoginAdapter;
+import com.lambda.fusion.authority.authentication.provider.dingtalk.DingTalkLoginHandler;
+import com.lambda.fusion.authority.authentication.provider.wechat.WechatMaLoginAdapter;
+import com.lambda.fusion.authority.authentication.provider.wechat.WechatMaLoginHandler;
+import com.lambda.fusion.authority.authentication.provider.wechat.WechatOpenLoginAdapter;
+import com.lambda.fusion.authority.authentication.provider.wechat.WechatOpenLoginHandler;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.tenant.interceptor.TenantContextInterceptor;
 import com.lambda.fusion.authority.tenant.manager.TenantManager;
@@ -20,6 +28,8 @@ import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
+import com.lambda.security.provider.ThirdPartLoginProvider;
+import com.lambda.security.service.ThirdPartyLoginService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import java.util.concurrent.Executor;
@@ -44,7 +54,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @MapperScan(basePackages = {"com.lambda.fusion.authority.**.mapper"})
 @EnableConfigurationProperties({AuthorityProperties.class})
 @ComponentScan(basePackageClasses = AuthorityConfigure.class)
@@ -62,7 +72,7 @@ public class AuthorityConfigure implements WebMvcConfigurer {
     }
 
     @Slf4j
-    @Configuration
+    @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ServiceBean")
     public static class DubboServiceConfiguration {
 
@@ -71,6 +81,67 @@ public class AuthorityConfigure implements WebMvcConfigurer {
         public RemoteAuthenticationService remoteAuthenticationService(
                 RemoteAuthenticationServiceAdapter remoteAuthenticationServiceAdapter) {
             return remoteAuthenticationServiceAdapter;
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(ThirdPartLoginProvider.class)
+    public static class ThirdPartLoginConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        public AlipayMaLoginAdapter alipayMaLoginAdapter(AuthorityProperties authorityProperties) {
+            return new AlipayMaLoginAdapter(authorityProperties.getThirdPart());
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        @ConditionalOnBean(AlipayMaLoginAdapter.class)
+        public AlipayMaLoginHandler alipayMaLoginHandler(
+                ThirdPartyLoginService thirdPartyLoginService, AlipayMaLoginAdapter alipayMaLoginAdapter) {
+            return new AlipayMaLoginHandler(thirdPartyLoginService, alipayMaLoginAdapter);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        public WechatMaLoginAdapter wechatMaLoginAdapter(AuthorityProperties authorityProperties) {
+            return new WechatMaLoginAdapter(authorityProperties.getThirdPart());
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        @ConditionalOnBean(WechatMaLoginAdapter.class)
+        public WechatMaLoginHandler wechatMaLoginHandler(
+                ThirdPartyLoginService thirdPartyLoginService, WechatMaLoginAdapter wechatMaLoginAdapter) {
+            return new WechatMaLoginHandler(thirdPartyLoginService, wechatMaLoginAdapter);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        public WechatOpenLoginAdapter wechatOpenLoginAdapter(AuthorityProperties authorityProperties) {
+            return new WechatOpenLoginAdapter(authorityProperties.getThirdPart());
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        @ConditionalOnBean(WechatOpenLoginAdapter.class)
+        public WechatOpenLoginHandler wechatOpenLoginHandler(
+                ThirdPartyLoginService thirdPartyLoginService, WechatOpenLoginAdapter wechatOpenLoginAdapter) {
+            return new WechatOpenLoginHandler(thirdPartyLoginService, wechatOpenLoginAdapter);
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        public DingTalkLoginAdapter dingTalkLoginAdapter(AuthorityProperties authorityProperties) {
+            return new DingTalkLoginAdapter(authorityProperties.getThirdPart());
+        }
+
+        @Bean
+        @ConditionalOnMissingBean
+        @ConditionalOnBean(DingTalkLoginAdapter.class)
+        public DingTalkLoginHandler dingTalkLoginHandler(
+                ThirdPartyLoginService thirdPartyLoginService, DingTalkLoginAdapter dingTalkLoginAdapter) {
+            return new DingTalkLoginHandler(thirdPartyLoginService, dingTalkLoginAdapter);
         }
     }
 
