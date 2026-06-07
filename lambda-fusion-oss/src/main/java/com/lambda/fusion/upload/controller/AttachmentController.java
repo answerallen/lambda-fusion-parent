@@ -1,5 +1,6 @@
 package com.lambda.fusion.upload.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.upload.model.AttachmentGroupEntity;
 import com.lambda.fusion.upload.model.AttachmentQuery;
@@ -24,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class AttachmentController {
     private final AttachmentService attachmentService;
 
+    @SaCheckPermission(value = "oss:attachment:upload")
     @PostMapping("/{groupId}/upload")
     @Operation(summary = "上传附件")
     public AttachmentView upload(
@@ -33,18 +35,21 @@ public class AttachmentController {
         return attachmentService.upload(file, groupId, clientName);
     }
 
+    @SaCheckPermission(value = "oss:attachment:delete")
     @DeleteMapping("/{id}")
     @Operation(summary = "删除附件")
     public void delete(@PathVariable @Parameter(description = "附件编号") String id) {
         attachmentService.delete(id);
     }
 
+    @SaCheckPermission(value = "oss:attachment:get")
     @GetMapping("/{id}")
     @Operation(summary = "查询附件")
     public AttachmentView detail(@PathVariable @Parameter(description = "附件编号") String id) {
         return attachmentService.getById(id);
     }
 
+    @SaCheckPermission(value = "oss:attachment:preview-url")
     @GetMapping("/{id}/preview-url")
     @Operation(summary = "获取附件预签名访问地址")
     public String previewUrl(
@@ -53,6 +58,7 @@ public class AttachmentController {
         return attachmentService.previewUrl(id, expirationSeconds);
     }
 
+    @SaCheckPermission(value = "oss:attachment:page")
     @GetMapping({"/page", "/page/{number:\\d+}", "/page/{number:\\d+}/size/{size:\\d+}"})
     @Operation(summary = "分页查询附件")
     public Page<AttachmentView> page(
@@ -62,24 +68,28 @@ public class AttachmentController {
         return attachmentService.page(number, size, query);
     }
 
+    @SaCheckPermission(value = "oss:attachment:client-list")
     @GetMapping("/clients")
     @Operation(summary = "查询可用OSS客户端")
     public List<String> listClients() {
         return attachmentService.listClientNames();
     }
 
+    @SaCheckPermission(value = "oss:attachment-group:list")
     @GetMapping("/groups")
     @Operation(summary = "查询分组列表")
     public List<AttachmentGroupEntity> listGroups() {
         return attachmentService.listGroups();
     }
 
+    @SaCheckPermission(value = "oss:attachment-group:add")
     @PostMapping("/groups")
     @Operation(summary = "新增分组")
     public AttachmentGroupEntity createGroup(@RequestBody @Valid UpsertAttachmentGroup source) {
         return attachmentService.createGroup(source);
     }
 
+    @SaCheckPermission(value = "oss:attachment-group:update")
     @PutMapping("/groups/{id}")
     @Operation(summary = "更新分组")
     public AttachmentGroupEntity updateGroup(
@@ -88,6 +98,7 @@ public class AttachmentController {
         return attachmentService.updateGroup(id, source);
     }
 
+    @SaCheckPermission(value = "oss:attachment-group:delete")
     @DeleteMapping("/groups/{id}")
     @Operation(summary = "删除分组")
     public void deleteGroup(@PathVariable @Parameter(description = "分组编号") String id) {
