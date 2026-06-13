@@ -1,6 +1,7 @@
 package com.lambda.fusion.core.pagination;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.Serial;
 import java.io.Serializable;
@@ -22,6 +23,7 @@ import lombok.NoArgsConstructor;
  *
  * @param <T> 记录类型
  */
+@SuppressFBWarnings("EI_EXPOSE_REP")
 @Getter
 @Builder(toBuilder = true)
 @NoArgsConstructor
@@ -90,7 +92,6 @@ public class PageView<T> implements Serializable {
         Objects.requireNonNull(mapper, "mapper must not be null");
         return PageView.of(page.convert(mapper));
     }
-
 
     /**
      * 是否为空页。
