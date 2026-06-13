@@ -2,7 +2,7 @@ package com.lambda.fusion.dict.model;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.lambda.fusion.core.pagination.Pagination;
+import com.lambda.fusion.core.pagination.PageQuery;
 import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -32,7 +32,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "字典信息分页查询参数")
 @SuppressFBWarnings("EI_EXPOSE_REP")
-public class QueryDictInfoPage extends Pagination<DictInfo> {
+public class QueryDictInfoPage extends PageQuery<DictInfo> {
 
     /**
      * 字典类型

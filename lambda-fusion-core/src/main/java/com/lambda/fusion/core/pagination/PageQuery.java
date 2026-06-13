@@ -52,7 +52,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Schema(description = "分页查询基类")
-public abstract class Pagination<T> extends BasePageDTO<T> {
+public abstract class PageQuery<T> extends BasePageDTO<T> {
 
     /**
      * 排序方向：升序
@@ -240,7 +240,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @throws IllegalArgumentException 当字段名不安全时抛出
      */
     @SuppressWarnings("unchecked")
-    public <Q extends Pagination<T>> Q orderBy(String field, boolean isAsc) {
+    public <Q extends PageQuery<T>> Q orderBy(String field, boolean isAsc) {
         if (StringUtils.isNotBlank(field) && isInvalidFieldName(field)) {
             throw new IllegalArgumentException("Invalid sort field: " + field
                     + ". Field name must contain only letters, numbers and underscores.");
@@ -256,7 +256,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @param field 排序字段
      * @return 当前对象，支持链式调用
      */
-    public <Q extends Pagination<T>> Q orderByAsc(String field) {
+    public <Q extends PageQuery<T>> Q orderByAsc(String field) {
         return orderBy(field, true);
     }
 
@@ -266,7 +266,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @param field 排序字段
      * @return 当前对象，支持链式调用
      */
-    public <Q extends Pagination<T>> Q orderByDesc(String field) {
+    public <Q extends PageQuery<T>> Q orderByDesc(String field) {
         return orderBy(field, false);
     }
 
@@ -279,7 +279,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @throws IllegalArgumentException 当字段名不安全时抛出
      */
     @SuppressWarnings("unchecked")
-    public <Q extends Pagination<T>> Q orderBy(String[] fields, String[] directions) {
+    public <Q extends PageQuery<T>> Q orderBy(String[] fields, String[] directions) {
         if (fields != null && fields.length > 0) {
             // 校验所有字段名的安全性
             for (String field : fields) {
@@ -305,7 +305,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @return 当前对象，支持链式调用
      */
     @SuppressWarnings("unchecked")
-    public <Q extends Pagination<T>> Q disableSearchCount() {
+    public <Q extends PageQuery<T>> Q disableSearchCount() {
         this.searchCount = false;
         return (Q) this;
     }
@@ -316,7 +316,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @return 当前对象，支持链式调用
      */
     @SuppressWarnings("unchecked")
-    public <Q extends Pagination<T>> Q enableSearchCount() {
+    public <Q extends PageQuery<T>> Q enableSearchCount() {
         this.searchCount = true;
         return (Q) this;
     }
@@ -327,7 +327,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @return 当前对象，支持链式调用
      */
     @SuppressWarnings("unchecked")
-    public <Q extends Pagination<T>> Q reset() {
+    public <Q extends PageQuery<T>> Q reset() {
         this.setPageNum(DEFAULT_PAGE_NUM);
         this.setPageSize(DEFAULT_PAGE_SIZE);
         this.orderBy = null;
@@ -344,7 +344,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @throws IllegalArgumentException 当分页大小超出范围时抛出
      */
     @SuppressWarnings("unchecked")
-    public <Q extends Pagination<T>> Q size(Integer size) {
+    public <Q extends PageQuery<T>> Q size(Integer size) {
         if (size != null && (size < MIN_PAGE_SIZE || size > MAX_PAGE_SIZE)) {
             throw new IllegalArgumentException("Page size must be between " + MIN_PAGE_SIZE + " and " + MAX_PAGE_SIZE);
         }
@@ -360,7 +360,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @throws IllegalArgumentException 当页码小于1时抛出
      */
     @SuppressWarnings("unchecked")
-    public <Q extends Pagination<T>> Q page(Integer num) {
+    public <Q extends PageQuery<T>> Q page(Integer num) {
         if (num != null && num < 1) {
             throw new IllegalArgumentException("Page number must be greater than 0");
         }
@@ -377,7 +377,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @throws IllegalArgumentException 当字段名不安全时抛出
      */
     @SuppressWarnings("unchecked")
-    public <Q extends Pagination<T>> Q addOrderBy(String field, boolean isAsc) {
+    public <Q extends PageQuery<T>> Q addOrderBy(String field, boolean isAsc) {
         if (StringUtils.isBlank(field)) {
             return (Q) this;
         }
@@ -406,7 +406,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @param field 排序字段
      * @return 当前对象，支持链式调用
      */
-    public <Q extends Pagination<T>> Q addOrderByAsc(String field) {
+    public <Q extends PageQuery<T>> Q addOrderByAsc(String field) {
         return addOrderBy(field, true);
     }
 
@@ -416,7 +416,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @param field 排序字段
      * @return 当前对象，支持链式调用
      */
-    public <Q extends Pagination<T>> Q addOrderByDesc(String field) {
+    public <Q extends PageQuery<T>> Q addOrderByDesc(String field) {
         return addOrderBy(field, false);
     }
 
@@ -426,7 +426,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
      * @return 当前对象，支持链式调用
      */
     @SuppressWarnings("unchecked")
-    public <Q extends Pagination<T>> Q clearOrder() {
+    public <Q extends PageQuery<T>> Q clearOrder() {
         this.orderBy = null;
         this.orderDirection = ORDER_ASC;
         return (Q) this;

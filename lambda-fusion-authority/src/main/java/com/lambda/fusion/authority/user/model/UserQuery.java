@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.user.model;
 
-import com.lambda.fusion.core.pagination.Pagination;
+import com.lambda.fusion.core.pagination.PageQuery;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -13,7 +13,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "用户分页查询参数")
-public class UserQuery extends Pagination<User> {
+public class UserQuery extends PageQuery<User> {
 
     @Schema(description = "用户名称")
     private String username;

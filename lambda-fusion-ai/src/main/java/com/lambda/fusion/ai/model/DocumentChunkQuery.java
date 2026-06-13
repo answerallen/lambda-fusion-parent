@@ -2,7 +2,7 @@ package com.lambda.fusion.ai.model;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.fusion.ai.model.entity.DocumentChunkEntity;
-import com.lambda.fusion.core.pagination.Pagination;
+import com.lambda.fusion.core.pagination.PageQuery;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -27,7 +27,7 @@ import org.apache.commons.lang.StringUtils;
 @Getter
 @Setter
 @Schema(description = "文档块分页查询参数")
-public class DocumentChunkQuery extends Pagination<DocumentChunkEntity> {
+public class DocumentChunkQuery extends PageQuery<DocumentChunkEntity> {
 
     /**
      * 文档ID

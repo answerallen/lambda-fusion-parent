@@ -3,7 +3,7 @@ package com.lambda.fusion.config.model;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.lambda.fusion.config.model.entity.ConfigEntity;
-import com.lambda.fusion.core.pagination.Pagination;
+import com.lambda.fusion.core.pagination.PageQuery;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -25,7 +25,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "配置分页查询参数")
-public class QueryConfigPage extends Pagination<ConfigEntity> {
+public class QueryConfigPage extends PageQuery<ConfigEntity> {
 
     @Schema(description = "配置信息键，支持模糊查询")
     private String key;
