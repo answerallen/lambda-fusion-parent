@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.agent.tools;
 
 import com.lambda.fusion.ai.agent.node.LlmProcessingNode;
-import com.lambda.fusion.ai.support.mcp.McpClientManager;
+import com.lambda.fusion.ai.mcp.manager.McpClientManager;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;

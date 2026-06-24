@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.lambda.fusion.ai.mapper.KnowledgeBaseMapper">
+<mapper namespace="com.lambda.fusion.ai.knowledge.mapper.KnowledgeBaseMapper">
 
     <!-- 统计租户知识库数 -->
     <select id="countByTenantId" resultType="java.lang.Integer">
@@ -9,7 +9,7 @@
     </select>
 
     <!-- 按租户ID和状态查询(优化版) -->
-    <select id="selectByTenantIdAndStatus" resultType="com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity">
+    <select id="selectByTenantIdAndStatus" resultType="com.lambda.fusion.ai.knowledge.model.entity.KnowledgeBaseEntity">
         SELECT * FROM ai_knowledge_base
         WHERE tenant_id = #{tenantId}
         <if test="status != null and status != ''">
@@ -29,7 +29,7 @@
     </update>
 
     <!-- 查询过期知识库(超过90天未更新) -->
-    <select id="selectExpiredKnowledgeBases" resultType="com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity">
+    <select id="selectExpiredKnowledgeBases" resultType="com.lambda.fusion.ai.knowledge.model.entity.KnowledgeBaseEntity">
         SELECT * FROM ai_knowledge_base
         WHERE status = 'ACTIVE'
         AND updated_at &lt; CURRENT_TIMESTAMP - INTERVAL '90 days'
@@ -46,7 +46,7 @@
     </select>
 
     <!-- 按所有者查询知识库 -->
-    <select id="selectByOwnerUserId" resultType="com.lambda.fusion.ai.model.entity.KnowledgeBaseEntity">
+    <select id="selectByOwnerUserId" resultType="com.lambda.fusion.ai.knowledge.model.entity.KnowledgeBaseEntity">
         SELECT * FROM ai_knowledge_base
         WHERE owner_user_id = #{ownerUserId}
         AND deleted_at IS NULL

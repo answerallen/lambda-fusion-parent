@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.lambda.fusion.ai.mapper.ChatMessageMapper">
+<mapper namespace="com.lambda.fusion.ai.chat.mapper.ChatMessageMapper">
 
     <!-- 按会话ID查询消息列表 -->
-    <select id="listBySessionId" resultType="com.lambda.fusion.ai.model.entity.ChatMessageEntity">
+    <select id="listBySessionId" resultType="com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity">
         SELECT * FROM ai_chat_message
         WHERE session_id = #{sessionId}
         ORDER BY created_at DESC
@@ -13,7 +13,7 @@
     </select>
 
     <!-- 按会话ID和角色查询 -->
-    <select id="selectBySessionIdAndRole" resultType="com.lambda.fusion.ai.model.entity.ChatMessageEntity">
+    <select id="selectBySessionIdAndRole" resultType="com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity">
         SELECT * FROM ai_chat_message
         WHERE session_id = #{sessionId}
         <if test="role != null and role != ''">

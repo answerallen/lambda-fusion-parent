@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.lambda.fusion.ai.mapper.LlmModelMapper">
+<mapper namespace="com.lambda.fusion.ai.llm.mapper.LlmModelMapper">
 
     <!-- 按模型类型查询 -->
-    <select id="listByModelType" resultType="com.lambda.fusion.ai.model.entity.LlmModelEntity">
+    <select id="listByModelType" resultType="com.lambda.fusion.ai.llm.model.entity.LlmModelEntity">
         SELECT * FROM ai_llm_model
         WHERE model_type = #{modelType}
         ORDER BY is_default DESC, created_at DESC
     </select>
 
     <!-- 按提供商查询 -->
-    <select id="listByProvider" resultType="com.lambda.fusion.ai.model.entity.LlmModelEntity">
+    <select id="listByProvider" resultType="com.lambda.fusion.ai.llm.model.entity.LlmModelEntity">
         SELECT * FROM ai_llm_model
         WHERE provider = #{provider}
         ORDER BY is_default DESC, created_at DESC
     </select>
 
     <!-- 查询默认模型 -->
-    <select id="selectDefaultModel" resultType="com.lambda.fusion.ai.model.entity.LlmModelEntity">
+    <select id="selectDefaultModel" resultType="com.lambda.fusion.ai.llm.model.entity.LlmModelEntity">
         SELECT * FROM ai_llm_model
         WHERE model_type = #{modelType}
         AND is_default = true
@@ -27,7 +27,7 @@
 
 
     <!-- 查询启用的模型 -->
-    <select id="selectEnabledModels" resultType="com.lambda.fusion.ai.model.entity.LlmModelEntity">
+    <select id="selectEnabledModels" resultType="com.lambda.fusion.ai.llm.model.entity.LlmModelEntity">
         SELECT * FROM ai_llm_model
         WHERE enabled = true
         <if test="modelType != null and modelType != ''">
@@ -37,7 +37,7 @@
     </select>
 
     <!-- 按模型类型和提供商查询 -->
-    <select id="selectByModelTypeAndProvider" resultType="com.lambda.fusion.ai.model.entity.LlmModelEntity">
+    <select id="selectByModelTypeAndProvider" resultType="com.lambda.fusion.ai.llm.model.entity.LlmModelEntity">
         SELECT * FROM ai_llm_model
         WHERE model_type = #{modelType}
         AND provider = #{provider}

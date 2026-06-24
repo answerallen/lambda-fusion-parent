@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.lambda.fusion.ai.mapper.DocumentMapper">
+<mapper namespace="com.lambda.fusion.ai.knowledge.mapper.DocumentMapper">
 
     <!-- 按知识库ID和处理状态查询 -->
-    <select id="selectByKbIdAndStatus" resultType="com.lambda.fusion.ai.model.entity.DocumentEntity">
+    <select id="selectByKbIdAndStatus" resultType="com.lambda.fusion.ai.knowledge.model.entity.DocumentEntity">
         SELECT * FROM ai_document
         WHERE kb_id = #{kbId}
         <if test="processStatus != null and processStatus != ''">
@@ -20,7 +20,7 @@
     </select>
 
     <!-- 按处理状态查询 -->
-    <select id="selectByProcessStatus" resultType="com.lambda.fusion.ai.model.entity.DocumentEntity">
+    <select id="selectByProcessStatus" resultType="com.lambda.fusion.ai.knowledge.model.entity.DocumentEntity">
         SELECT * FROM ai_document
         WHERE process_status = #{processStatus}
         AND deleted_at IS NULL
@@ -53,7 +53,7 @@
     </update>
 
     <!-- 查询待处理文档 -->
-    <select id="selectPendingDocuments" resultType="com.lambda.fusion.ai.model.entity.DocumentEntity">
+    <select id="selectPendingDocuments" resultType="com.lambda.fusion.ai.knowledge.model.entity.DocumentEntity">
         SELECT * FROM ai_document
         WHERE process_status IN ('PENDING', 'PROCESSING')
         AND deleted_at IS NULL
