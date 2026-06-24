@@ -1,9 +1,11 @@
 package com.lambda.fusion.authority.authentication.provider.wechat;
 
 import com.lambda.fusion.authority.AuthorityConstants;
+import com.lambda.fusion.authority.authentication.model.ThirdPartyUser;
 import com.lambda.security.provider.AbstractThirdPartLoginProvider;
 import com.lambda.security.provider.ThirdPartLoginHandler;
 import com.lambda.security.service.ThirdPartyLoginService;
+import me.zhyd.oauth.model.AuthUser;
 
 public class WechatMaLoginHandler extends AbstractThirdPartLoginProvider<WechatMaLoginHandler>
         implements ThirdPartLoginHandler {
@@ -18,7 +20,14 @@ public class WechatMaLoginHandler extends AbstractThirdPartLoginProvider<WechatM
 
     @Override
     public Object handle(String loginParam) {
-        return adapter.login(loginParam);
+        AuthUser authUser = adapter.login(loginParam);
+        ThirdPartyUser thirdPartyUser = new ThirdPartyUser();
+        thirdPartyUser.setThirdType(AuthorityConstants.ThirdType.WX_MA.getCode());
+        thirdPartyUser.setAvatar(authUser.getAvatar());
+        thirdPartyUser.setNickname(authUser.getNickname());
+        thirdPartyUser.setOpenId(authUser.getUsername());
+        thirdPartyUser.setRemark(authUser.getRemark());
+        return thirdPartyUser;
     }
 
     @Override
