@@ -193,7 +193,7 @@ List<T> changedNodes = TreeNodeUtils.getAllChangedAfterMoved(
 
 **核心特性：**
 ```java
-public abstract class Pagination<T> extends BasePageDTO<T> {
+public abstract class PageQuery<T> extends BasePageDTO<T> {
     // 排序字段和方向
     private String orderBy;
     private String orderDirection = "ASC";
@@ -208,7 +208,7 @@ public abstract class Pagination<T> extends BasePageDTO<T> {
 
 **使用示例：**
 ```java
-public class UserQueryDTO extends Pagination<UserEntity> {
+public class UserQueryDTO extends PageQuery<UserEntity> {
     private String name;
     private String email;
     

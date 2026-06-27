@@ -18,8 +18,14 @@ Content-Type: application/json
 
 {
   "mobile": "18888880000",
-  @Order(-1)  "code": "5312",  "loginMode": "1",
+  "code": "5312",  "loginMode": "1",
   "loginType": "admin"
 }
+
+### 短信验证码登录
+POST http://39.107.158.4:21112
+Content-Type: application/json
+
+{ 	"chargeno": "18210000001246", 	"cmd": "upgrade", 	"type": 3, 	"ip": "39.106.156.108", 	"port": 21, 	"user": "hlc", 	"password": "123123", 	"path": "/cx/ykc/1.6.1.16.bin" }
 
 

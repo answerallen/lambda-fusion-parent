@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lambda.cloud.core.convert.BaseConverter;
 import com.lambda.cloud.core.convert.ConverterResolver;
+import com.lambda.fusion.core.pagination.PageView;
 import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -80,6 +81,35 @@ public abstract class AbstractCrudService<E, V, M extends BaseMapper<E>> extends
     public IPage<V> pageForVO(IPage<E> page) {
         IPage<E> entityPage = super.page(page);
         return convertPageToVO(entityPage);
+    }
+
+    /**
+     * 根据提供的分页对象和查询包装器获取值对象（VO）分页视图。
+     *
+     * <p>
+     * 在 {@link #pageForVO(IPage, Wrapper)} 基础上，将结果转换为不可变的 {@link PageView}，
+     * 便于直接返回给前端。需要继续操作原始分页对象时，请改用 {@link #pageForVO(IPage, Wrapper)}。
+     *
+     * @param page         包含分页信息的分页对象
+     * @param queryWrapper 用于构造查询的包装器
+     * @return 与输入实体对应的值对象分页视图
+     */
+    public PageView<V> pageView(IPage<E> page, Wrapper<E> queryWrapper) {
+        return PageView.of(pageForVO(page, queryWrapper));
+    }
+
+    /**
+     * 根据提供的分页对象获取值对象（VO）分页视图。
+     *
+     * <p>
+     * 在 {@link #pageForVO(IPage)} 基础上，将结果转换为不可变的 {@link PageView}，
+     * 便于直接返回给前端。需要继续操作原始分页对象时，请改用 {@link #pageForVO(IPage)}。
+     *
+     * @param page 包含分页信息的分页对象
+     * @return 与输入实体对应的值对象分页视图
+     */
+    public PageView<V> pageView(IPage<E> page) {
+        return PageView.of(pageForVO(page));
     }
 
     /**
