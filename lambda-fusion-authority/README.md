@@ -68,6 +68,8 @@ com.lambda.fusion.autoconfig.AuthorityAutoConfiguration
 - `password-strategy.customize` 默认 `123456`
 - `password-strategy.enable-period-change` 默认 `false`
 - `password-strategy.period-change-days` 默认 `90`
+- `third-part.enabled` 默认 `false`，为 `true` 时才注册支付宝/微信/钉钉第三方登录 Bean
+- `third-part.auto-register` 默认 `false`
 
 示例：
 

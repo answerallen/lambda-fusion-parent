@@ -32,6 +32,11 @@ public class AuthorityProperties {
     public static class ThirdPartConfig {
 
         /**
+         * 是否启用第三方登录
+         */
+        private boolean enabled = false;
+
+        /**
          * 是否允许第三方登录自动注册
          */
         private boolean autoRegister = false;
