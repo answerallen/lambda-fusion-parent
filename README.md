@@ -100,7 +100,7 @@ lambda-fusion-parent/
 <dependencyManagement>
     <dependencies>
         <dependency>
-            <groupId>com.lambda.fusion</groupId>
+            <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-fusion-bom</artifactId>
             <version>${lambda-fusion.version}</version>
             <type>pom</type>
@@ -117,19 +117,19 @@ lambda-fusion-parent/
 ```xml
 <!-- 权限管理 -->
 <dependency>
-    <groupId>com.lambda.fusion</groupId>
+    <groupId>com.lambda.cloud</groupId>
     <artifactId>lambda-fusion-authority</artifactId>
 </dependency>
 
 <!-- 配置管理 -->
 <dependency>
-    <groupId>com.lambda.fusion</groupId>
+    <groupId>com.lambda.cloud</groupId>
     <artifactId>lambda-fusion-config</artifactId>
 </dependency>
 
 <!-- 数据字典 -->
 <dependency>
-    <groupId>com.lambda.fusion</groupId>
+    <groupId>com.lambda.cloud</groupId>
     <artifactId>lambda-fusion-dictionary</artifactId>
 </dependency>
 ```
