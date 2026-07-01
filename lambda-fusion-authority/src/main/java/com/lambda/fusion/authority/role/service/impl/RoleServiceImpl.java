@@ -18,6 +18,8 @@ import com.lambda.fusion.authority.role.mapper.AccessPermissionMapper;
 import com.lambda.fusion.authority.role.mapper.RoleGroupMapper;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.*;
+import com.lambda.fusion.authority.role.model.entity.RoleEntity;
+import com.lambda.fusion.authority.role.model.entity.RoleGroupEntity;
 import com.lambda.fusion.authority.role.service.RoleService;
 import com.lambda.fusion.authority.tenant.manager.TenantManager;
 import com.lambda.fusion.authority.user.mapper.UserRoleMapper;

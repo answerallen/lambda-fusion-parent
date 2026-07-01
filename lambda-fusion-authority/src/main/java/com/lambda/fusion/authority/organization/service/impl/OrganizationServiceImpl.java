@@ -13,6 +13,8 @@ import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
 import com.lambda.fusion.authority.organization.model.*;
+import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
+import com.lambda.fusion.authority.organization.model.entity.UserOrganizationEntity;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.resource.model.MoveResource;
 import com.lambda.fusion.authority.role.mapper.RoleGroupMapper;

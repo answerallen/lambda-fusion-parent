@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.role.model;
+package com.lambda.fusion.authority.role.model.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -45,9 +45,9 @@ public class RoleEntity {
     @TableField("GROUP_ID")
     private String groupId;
 
-    @TableField("created_BY")
+    @TableField("CREATED_BY")
     private String createdBy;
 
-    @TableField("created_at")
+    @TableField("CREATED_AT")
     private LocalDateTime createdAt;
 }

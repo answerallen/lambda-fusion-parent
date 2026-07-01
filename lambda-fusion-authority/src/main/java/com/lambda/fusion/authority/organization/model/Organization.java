@@ -3,6 +3,7 @@ package com.lambda.fusion.authority.organization.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseVO;
+import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
 import com.lambda.fusion.core.tree.TreeNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -102,7 +103,7 @@ public class Organization extends BaseVO<OrganizationEntity> implements TreeNode
     private Integer type;
 
     @Schema(description = "组织排序号")
-    @JsonProperty("sort")
+    @JsonProperty("SORT")
     private int orderNo;
 
     @Override

@@ -3,7 +3,7 @@
 
 <mapper namespace="com.lambda.fusion.authority.role.mapper.RoleGroupMapper">
 
-    <select id="getAllGroup" resultType="com.lambda.fusion.authority.role.model.RoleGroupEntity">
+    <select id="getAllGroup" resultType="com.lambda.fusion.authority.role.model.entity.RoleGroupEntity">
         SELECT T.GROUP_ID,T.GROUP_NAME,T.TENANT_ID
         FROM la_role_groups T
         <where>

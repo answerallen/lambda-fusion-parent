@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.role.model;
+package com.lambda.fusion.authority.role.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -14,6 +14,8 @@ public class RoleGroupEntity {
     private String groupId;
 
     private String groupName;
+
+
     private String tenantId;
 
     @TableField(exist = false)

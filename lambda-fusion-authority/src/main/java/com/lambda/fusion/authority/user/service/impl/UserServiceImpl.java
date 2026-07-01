@@ -18,7 +18,7 @@ import com.lambda.cloud.core.utils.StpLogicUtils;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.model.SimpleOrganization;
-import com.lambda.fusion.authority.organization.model.UserOrganizationEntity;
+import com.lambda.fusion.authority.organization.model.entity.UserOrganizationEntity;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.role.model.SimpleRole;

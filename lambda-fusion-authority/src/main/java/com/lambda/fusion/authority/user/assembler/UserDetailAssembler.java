@@ -5,7 +5,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
-import com.lambda.fusion.authority.organization.model.OrganizationEntity;
+import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
 import com.lambda.fusion.authority.organization.model.SimpleOrganization;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.model.SimpleRole;

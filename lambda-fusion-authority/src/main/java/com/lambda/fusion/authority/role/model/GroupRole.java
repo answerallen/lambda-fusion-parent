@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.role.model;
 
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseVO;
+import com.lambda.fusion.authority.role.model.entity.RoleGroupEntity;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;

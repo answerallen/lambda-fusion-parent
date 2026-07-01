@@ -31,10 +31,10 @@ public class UserEntity {
     @TableField("TENANT_ID")
     private String tenantId;
 
-    @TableField("created_by")
+    @TableField("CREATED_BY")
     private String createdBy;
 
-    @TableField("created_at")
+    @TableField("CREATED_AT")
     private Date createdAt;
 
     @TableField("EXPIRED_TIME")
