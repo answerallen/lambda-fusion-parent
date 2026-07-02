@@ -17,50 +17,50 @@
     </resultMap>
 
     <select id="getClientById" resultMap="HmacUser">
-        SELECT T.id AS appid,
-               T.secret,
-               T.name,
-               T.expired,
-               T.hosts,
-               T.enabled,
-               T.TENANT_ID,
-               R.AUTHORITY
-        FROM LA_CLIENTS T
-                 LEFT JOIN LA_USER_ROLES UR ON UR.userid = T.id
-                 LEFT JOIN LA_ROLES R ON R.authority = UR.authority
-        WHERE T.id = #{appid}
+        select t.id as appid,
+               t.secret,
+               t.name,
+               t.expired,
+               t.hosts,
+               t.enabled,
+               t.tenant_id,
+               r.authority
+        from la_clients t
+                 left join la_user_roles ur on ur.userid = t.id
+                 left join la_roles r on r.authority = ur.authority
+        where t.id = #{appid}
     </select>
 
     <select id="getClientPermissions" resultType="com.lambda.fusion.authority.resource.model.UserPermission">
-        SELECT CLIENT_ID AS username, RESOURCE_ID AS permissionId FROM LA_CLIENT_RESOURCES
-        WHERE RESOURCE_ID IN
+        select client_id as username, resource_id as permissionId from la_client_resources
+        where resource_id in
         <foreach collection="list" item="item" separator="," open="(" close=")">
             #{item}
         </foreach>
     </select>
 
     <select id="getBoundPermissionIds" resultType="String">
-        SELECT RESOURCE_ID FROM LA_CLIENT_RESOURCES WHERE CLIENT_ID = #{clientId}
+        select resource_id from la_client_resources where client_id = #{clientId}
     </select>
 
     <select id="hasBound" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL
-        WHERE EXISTS(
-            SELECT 1 FROM LA_CLIENT_RESOURCES
-            WHERE CLIENT_ID = #{clientId}
-              AND RESOURCE_ID = #{permissionId}
+        select count(1) from dual
+        where exists(
+            select 1 from la_client_resources
+            where client_id = #{clientId}
+              and resource_id = #{permissionId}
         )
     </select>
 
     <insert id="bind">
-        INSERT INTO LA_CLIENT_RESOURCES (CLIENT_ID, RESOURCE_ID)
-        VALUES (#{clientId}, #{permissionId})
+        insert into la_client_resources (client_id, resource_id)
+        values (#{clientId}, #{permissionId})
     </insert>
 
     <delete id="unbind">
-        DELETE FROM LA_CLIENT_RESOURCES
-        WHERE CLIENT_ID = #{clientId}
-          AND RESOURCE_ID = #{permissionId}
+        delete from la_client_resources
+        where client_id = #{clientId}
+          and resource_id = #{permissionId}
     </delete>
 
 </mapper>

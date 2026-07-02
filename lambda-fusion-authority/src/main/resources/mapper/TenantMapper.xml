@@ -33,31 +33,31 @@
 
     <!--禁用/启用租户-->
     <update id="prohibitTenantByTenantId">
-        UPDATE LA_TENANT SET status = #{status} WHERE TENANT_ID = #{id}
+        update la_tenant set status = #{status} where tenant_id = #{id}
     </update>
     <update id="updateConfig">
-        UPDATE LA_TENANT SET CONFIG = #{configJson} WHERE TENANT_ID = #{id}
+        update la_tenant set config = #{configJson} where tenant_id = #{id}
     </update>
 
     <select id="queryTenantList" resultType="com.lambda.fusion.authority.tenant.model.TenantOption">
-        select TENANT_CODE,TENANT_NAME FROM LA_TENANT where status = 1  ORDER BY CREATED_AT DESC
+        select tenant_code,tenant_name from la_tenant where status = 1  order by created_at desc
     </select>
     <select id="isExist" resultType="java.lang.Boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_TENANT WHERE TENANT_ID = #{id})
+        select count(1) from dual where exists (select 1 from la_tenant where tenant_id = #{id})
     </select>
     <select id="getConfigJson" resultType="java.lang.String">
-        SELECT CONFIG FROM LA_TENANT WHERE TENANT_ID = #{id}
+        select config from la_tenant where tenant_id = #{id}
     </select>
 
     <select id="selectByDomain" resultMap="TenantEntity">
-        SELECT * FROM LA_TENANT WHERE TENANT_DOMAIN = #{domain} AND status = 1 LIMIT 1
+        select * from la_tenant where tenant_domain = #{domain} and status = 1 limit 1
     </select>
 
     <select id="isDomainBound" resultType="java.lang.Boolean">
-        SELECT COUNT(1) > 0 FROM LA_TENANT
-        WHERE TENANT_DOMAIN = #{domain}
+        select count(1) > 0 from la_tenant
+        where tenant_domain = #{domain}
         <if test="excludeTenantId != null and excludeTenantId != ''">
-            AND TENANT_ID != #{excludeTenantId}
+            and tenant_id != #{excludeTenantId}
         </if>
     </select>
 

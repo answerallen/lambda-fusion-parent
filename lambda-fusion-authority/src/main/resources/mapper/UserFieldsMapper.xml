@@ -4,15 +4,15 @@
 <mapper namespace="com.lambda.fusion.authority.user.mapper.UserFieldsMapper">
 
     <select id="getPersonUser" resultType="com.lambda.fusion.authority.user.model.entity.UserFieldsEntity">
-        SELECT  t.USERNAME, t.FIELD_NAME, t.FIELD_VALUE
-        FROM LA_USER_FIELDS t
-        WHERE t.USERNAME IN <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
+        select  t.username, t.field_name, t.field_value
+        from la_user_fields t
+        where t.username in <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
     </select>
 
     <select id="getListByUsername" resultType="com.lambda.fusion.authority.user.model.entity.UserFieldsEntity">
-        SELECT  t.USERNAME, t.FIELD_NAME, t.FIELD_VALUE
-        FROM LA_USER_FIELDS t
-        WHERE t.USERNAME = #{username}
+        select  t.username, t.field_name, t.field_value
+        from la_user_fields t
+        where t.username = #{username}
     </select>
 
 </mapper>

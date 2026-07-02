@@ -3,81 +3,81 @@
 <mapper namespace="com.lambda.fusion.ai.knowledge.mapper.VectorRepository">
 
     <insert id="insertVector">
-        INSERT INTO ai_vector_store_${dimension}
+        insert into ai_vector_store_${dimension}
         (vector_id, kb_id, document_id, chunk_id, collection_name, content, metadata, embedding, created_at)
-        VALUES
+        values
         (#{vectorId}, #{kbId}, #{documentId}, #{id}, #{collectionName}, #{content}, #{metadata}::jsonb,
-         #{embedding, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler}, CURRENT_TIMESTAMP)
+         #{embedding, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler}, current_timestamp)
     </insert>
 
     <insert id="batchInsertVectors">
-        INSERT INTO ai_vector_store_${dimension}
+        insert into ai_vector_store_${dimension}
         (vector_id, kb_id, document_id, chunk_id, collection_name, content, metadata, embedding, created_at)
-        VALUES
+        values
         <foreach collection="list" item="item" separator=",">
             (#{item.vectorId}, #{kbId}, #{item.documentId}, #{item.id}, #{collectionName},
              #{item.content}, #{item.metadata}::jsonb,
              #{item.embedding, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler},
-             CURRENT_TIMESTAMP)
+             current_timestamp)
         </foreach>
     </insert>
 
     <select id="searchSimilar" resultType="com.lambda.fusion.ai.knowledge.model.VectorSearchResult">
-        SELECT
+        select
             id,
             vector_id,
             content,
             metadata,
             (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler})) as score,
             (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler}) as distance
-        FROM ai_vector_store_${dimension}
-        WHERE kb_id = #{kbId}
-          AND (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler})) > #{minScore}
-        ORDER BY score DESC
-        LIMIT #{topK}
+        from ai_vector_store_${dimension}
+        where kb_id = #{kbId}
+          and (1 - (embedding &lt;=&gt; #{queryVector, typeHandler=com.lambda.fusion.ai.commons.support.vector.PgVectorTypeHandler})) > #{minScore}
+        order by score desc
+        limit #{topK}
     </select>
 
     <select id="searchKeyword" resultType="com.lambda.fusion.ai.knowledge.model.VectorSearchResult">
-        SELECT
+        select
             id,
             vector_id,
             content,
             metadata,
             similarity(content, #{keyword}) as score,
             (1 - similarity(content, #{keyword})) as distance
-        FROM ai_vector_store_${dimension}
-        WHERE kb_id = #{kbId}
-          AND content % #{keyword}
-        ORDER BY score DESC
-        LIMIT #{topK}
+        from ai_vector_store_${dimension}
+        where kb_id = #{kbId}
+          and content % #{keyword}
+        order by score desc
+        limit #{topK}
     </select>
 
     <delete id="deleteVector">
-        DELETE FROM ai_vector_store_${dimension}
-        WHERE vector_id = #{vectorId}
+        delete from ai_vector_store_${dimension}
+        where vector_id = #{vectorId}
     </delete>
 
     <delete id="deleteVectors">
-        DELETE FROM ai_vector_store_${dimension}
-        WHERE vector_id IN
+        delete from ai_vector_store_${dimension}
+        where vector_id in
         <foreach collection="vectorIds" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
     </delete>
 
     <delete id="deleteByDocumentId">
-        DELETE FROM ai_vector_store_${dimension}
-        WHERE document_id = #{documentId}
+        delete from ai_vector_store_${dimension}
+        where document_id = #{documentId}
     </delete>
 
     <delete id="deleteByKbId">
-        DELETE FROM ai_vector_store_${dimension}
-        WHERE kb_id = #{kbId}
+        delete from ai_vector_store_${dimension}
+        where kb_id = #{kbId}
     </delete>
 
     <delete id="deleteByCollectionName">
-        DELETE FROM ai_vector_store_${dimension}
-        WHERE collection_name = #{collectionName}
+        delete from ai_vector_store_${dimension}
+        where collection_name = #{collectionName}
     </delete>
 
 </mapper>

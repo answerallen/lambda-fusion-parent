@@ -2,38 +2,38 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.lambda.fusion.datascope.mapper.DataScopeMapper">
     <insert id="batchInsert">
-        INSERT INTO la_datascopes (ID, TID, TARGET_TYPE, DOMAIN_TYPE, RANK_LEVEL, CHECKED, TENANT_ID)
-        VALUES
+        insert into la_datascopes (id, tid, target_type, domain_type, rank_level, checked, tenant_id)
+        values
         <foreach collection="list" item="item" separator=",">
             (#{item.id}, #{item.tid}, #{item.targetType}, #{item.domainType}, #{item.rankLevel}, #{item.checked}, #{item.tenantId})
         </foreach>
     </insert>
-    
+
     <delete id="deleteByTarget">
-        DELETE FROM la_datascopes 
-        WHERE TID = #{targetId} 
-        AND TARGET_TYPE = #{targetType} 
-        AND DOMAIN_TYPE = #{domainType}
+        delete from la_datascopes
+        where tid = #{targetId}
+        and target_type = #{targetType}
+        and domain_type = #{domainType}
     </delete>
 
     <select id="selectByTypeAndId" resultType="com.lambda.fusion.datascope.model.DataScopeEntity">
-        SELECT ID, TID, TARGET_TYPE, DOMAIN_TYPE, RANK_LEVEL, CHECKED, TENANT_ID
-        FROM la_datascopes
-        WHERE DOMAIN_TYPE = #{domainType}
-          AND ID = #{id}
+        select id, tid, target_type, domain_type, rank_level, checked, tenant_id
+        from la_datascopes
+        where domain_type = #{domainType}
+          and id = #{id}
     </select>
 
     <delete id="deleteByTypeAndId">
-        DELETE FROM la_datascopes
-        WHERE DOMAIN_TYPE = #{domainType}
-          AND ID = #{id}
+        delete from la_datascopes
+        where domain_type = #{domainType}
+          and id = #{id}
     </delete>
 
     <delete id="deleteByTypeAndIdAndOwner">
-        DELETE FROM la_datascopes
-        WHERE DOMAIN_TYPE = #{domainType}
-          AND ID = #{id}
-          AND TID = #{targetId}
-          AND TARGET_TYPE = #{targetType}
+        delete from la_datascopes
+        where domain_type = #{domainType}
+          and id = #{id}
+          and tid = #{targetId}
+          and target_type = #{targetType}
     </delete>
 </mapper>

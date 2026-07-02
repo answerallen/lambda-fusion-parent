@@ -4,64 +4,64 @@
 
     <!-- 统计租户知识库数 -->
     <select id="countByTenantId" resultType="java.lang.Integer">
-        SELECT COUNT(*) FROM ai_knowledge_base
-        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
+        select count(*) from ai_knowledge_base
+        where tenant_id = #{tenantId} and deleted_at is null
     </select>
 
     <!-- 按租户ID和状态查询(优化版) -->
     <select id="selectByTenantIdAndStatus" resultType="com.lambda.fusion.ai.knowledge.model.entity.KnowledgeBaseEntity">
-        SELECT * FROM ai_knowledge_base
-        WHERE tenant_id = #{tenantId}
+        select * from ai_knowledge_base
+        where tenant_id = #{tenantId}
         <if test="status != null and status != ''">
-            AND status = #{status}
+            and status = #{status}
         </if>
-        AND deleted_at IS NULL
-        ORDER BY created_at DESC
+        and deleted_at is null
+        order by created_at desc
     </select>
 
     <!-- 批量更新状态 -->
     <update id="updateStatusBatch">
         <foreach collection="kbIds" item="id" separator=";">
-            UPDATE ai_knowledge_base
-            SET status = #{status}, updated_at = NOW()
-            WHERE id = #{id}
+            update ai_knowledge_base
+            set status = #{status}, updated_at = now()
+            where id = #{id}
         </foreach>
     </update>
 
     <!-- 查询过期知识库(超过90天未更新) -->
     <select id="selectExpiredKnowledgeBases" resultType="com.lambda.fusion.ai.knowledge.model.entity.KnowledgeBaseEntity">
-        SELECT * FROM ai_knowledge_base
-        WHERE status = 'ACTIVE'
-        AND updated_at &lt; CURRENT_TIMESTAMP - INTERVAL '90 days'
-        AND deleted_at IS NULL
-        ORDER BY updated_at ASC
+        select * from ai_knowledge_base
+        where status = 'ACTIVE'
+        and updated_at &lt; current_timestamp - interval '90 days'
+        and deleted_at is null
+        order by updated_at asc
     </select>
 
     <!-- 统计租户各状态知识库数 -->
     <select id="countByTenantIdGroupByStatus" resultType="java.util.Map">
-        SELECT status, COUNT(*) as count
-        FROM ai_knowledge_base
-        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
-        GROUP BY status
+        select status, count(*) as count
+        from ai_knowledge_base
+        where tenant_id = #{tenantId} and deleted_at is null
+        group by status
     </select>
 
     <!-- 按所有者查询知识库 -->
     <select id="selectByOwnerUserId" resultType="com.lambda.fusion.ai.knowledge.model.entity.KnowledgeBaseEntity">
-        SELECT * FROM ai_knowledge_base
-        WHERE owner_user_id = #{ownerUserId}
-        AND deleted_at IS NULL
-        ORDER BY created_at DESC
+        select * from ai_knowledge_base
+        where owner_user_id = #{ownerUserId}
+        and deleted_at is null
+        order by created_at desc
     </select>
 
     <!-- 更新知识库统计信息 -->
     <update id="updateStatistics">
-        UPDATE ai_knowledge_base
-        SET document_count = #{documentCount},
+        update ai_knowledge_base
+        set document_count = #{documentCount},
             chunk_count = #{chunkCount},
             vector_count = #{vectorCount},
             total_size_bytes = #{totalSizeBytes},
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = #{id}
+            updated_at = current_timestamp
+        where id = #{id}
     </update>
 
 </mapper>

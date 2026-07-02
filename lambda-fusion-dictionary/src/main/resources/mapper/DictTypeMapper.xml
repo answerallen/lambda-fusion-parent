@@ -15,88 +15,88 @@
     </resultMap>
 
     <select id="getDictTypeList" parameterType="string" resultType="com.lambda.fusion.dict.model.DictTypeTree">
-        SELECT ID, DICT_TYPE, DICT_NAME, DATA_TYPE, DICT_USAGE, DATA_TYPE_VALUE  FROM la_dict_type
+        select id, dict_type, dict_name, data_type, dict_usage, data_type_value  from la_dict_type
         <where>
             <if test="type != null and type != ''">
-                DICT_TYPE LIKE #{type}
+                dict_type like #{type}
             </if>
         </where>
-        ORDER BY DICT_TYPE DESC
+        order by dict_type desc
     </select>
 
 
     <select id="selectParentByType" parameterType="string" resultType="com.lambda.fusion.dict.model.DictTypeTree">
-        SELECT * FROM la_dict_type T WHERE T.ID =
-        (SELECT (CASE WHEN T2.PARENT_ID IS NULL THEN T2.ID ELSE T2.PARENT_ID END) ID  FROM la_dict_type T2 WHERE T2.DICT_TYPE = #{type})
+        select * from la_dict_type t where t.id =
+        (select (case when t2.parent_id is null then t2.id else t2.parent_id end) id  from la_dict_type t2 where t2.dict_type = #{type})
     </select>
 
     <!--suppress MybatisXMapperXmlInspection -->
     <select id="treeList" resultType="com.lambda.fusion.dict.model.DictTypeTree" databaseId="mysql">
-        SELECT T.* FROM la_dict_type T
+        select t.* from la_dict_type t
         <where>
             <if test="parameters.userOnly != null and parameters.userOnly == true">
-                AND T.DICT_USAGE = 1
+                and t.dict_usage = 1
             </if>
             <if test="parameters.id != null and parameters.id != ''">
-                AND T.ID = #{parameters.id}
+                and t.id = #{parameters.id}
             </if>
             <if test="parameters.dataType != null">
-                AND T.DATA_TYPE = #{parameters.dataType}
+                and t.data_type = #{parameters.dataType}
             </if>
             <if test="parameters.name != null and parameters.name != ''">
-                AND T.DICT_NAME LIKE #{parameters.name}
+                and t.dict_name like #{parameters.name}
             </if>
             <if test="parameters.parentKeys != null and parameters.parentKeys != ''">
-                OR T.PARENT_KEYS LIKE #{parameters.parentKeys}
+                or t.parent_keys like #{parameters.parentKeys}
             </if>
         </where>
-        ORDER BY T.SORT, CONVERT(T.DICT_NAME USING gbk)
+        order by t.sort, convert(t.dict_name using gbk)
     </select>
 
     <!--suppress MybatisXMapperXmlInspection -->
     <select id="treeList" resultType="com.lambda.fusion.dict.model.DictTypeTree" databaseId="oracle">
-            SELECT T.* FROM la_dict_type T
+            select t.* from la_dict_type t
             <where>
                 <if test="parameters.userOnly != null and parameters.userOnly == true">
-                    AND T.DICT_USAGE = 1
+                    and t.dict_usage = 1
                 </if>
                 <if test="parameters.id != null and parameters.id != ''">
-                    AND T.ID = #{parameters.id}
+                    and t.id = #{parameters.id}
                 </if>
                 <if test="parameters.dataType != null">
-                    AND T.DATA_TYPE = #{parameters.dataType}
+                    and t.data_type = #{parameters.dataType}
                 </if>
                 <if test="parameters.name != null and parameters.name != ''">
-                    AND T.DICT_NAME LIKE #{parameters.name}
+                    and t.dict_name like #{parameters.name}
                 </if>
                 <if test="parameters.parentKeys != null and parameters.parentKeys != ''">
-                    OR T.PARENT_KEYS LIKE #{parameters.parentKeys}
+                    or t.parent_keys like #{parameters.parentKeys}
                 </if>
             </where>
-            ORDER BY RANK2, NLSSORT(T.DICT_NAME ,'NLS_SORT = SCHINESE_PINYIN_M')
+            order by rank2, nlssort(t.dict_name ,'NLS_SORT = SCHINESE_PINYIN_M')
     </select>
 
     <!--suppress MybatisXMapperXmlInspection -->
     <select id="treeList" resultType="com.lambda.fusion.dict.model.DictTypeTree" databaseId="postgresql">
-            SELECT T.* FROM la_dict_type T
+            select t.* from la_dict_type t
             <where>
                 <if test="parameters.userOnly != null and parameters.userOnly == true">
-                    AND T.DICT_USAGE = 1
+                    and t.dict_usage = 1
                 </if>
                 <if test="parameters.id != null and parameters.id != ''">
-                    AND T.ID = #{parameters.id}
+                    and t.id = #{parameters.id}
                 </if>
                 <if test="parameters.dataType != null">
-                    AND T.DATA_TYPE = #{parameters.dataType}
+                    and t.data_type = #{parameters.dataType}
                 </if>
                 <if test="parameters.name != null and parameters.name != ''">
-                    AND T.DICT_NAME LIKE #{parameters.name}
+                    and t.dict_name like #{parameters.name}
                 </if>
                 <if test="parameters.parentKeys != null and parameters.parentKeys != ''">
-                    OR T.PARENT_KEYS LIKE #{parameters.parentKeys}
+                    or t.parent_keys like #{parameters.parentKeys}
                 </if>
             </where>
-            ORDER BY RANK2, NLSSORT(T.DICT_NAME ,'NLS_SORT = SCHINESE_PINYIN_M')
+            order by rank2, nlssort(t.dict_name ,'NLS_SORT = SCHINESE_PINYIN_M')
     </select>
 
 
@@ -108,19 +108,19 @@
     </resultMap>
 
     <select id="getCascadeDictType" resultMap="cascadeDictType">
-        SELECT ID, DICT_TYPE, DICT_USAGE, DICT_NAME, PARENT_ID, RANK2, PARENT_KEYS, DATA_TYPE, DATA_TYPE_VALUE
-        FROM la_dict_type
+        select id, dict_type, dict_usage, dict_name, parent_id, rank2, parent_keys, data_type, data_type_value
+        from la_dict_type
         <where>
             <if test="id!='' and id!=null">
-                ID = #{id}
+                id = #{id}
             </if>
         </where>
     </select>
 
     <select id="getChildrenDictType" resultMap="cascadeDictType">
-        select ID, DICT_TYPE, DICT_USAGE, DICT_NAME, PARENT_ID, RANK2, PARENT_KEYS, DATA_TYPE, DATA_TYPE_VALUE
+        select id, dict_type, dict_usage, dict_name, parent_id, rank2, parent_keys, data_type, data_type_value
         from la_dict_type
-        WHERE PARENT_ID = #{id}
+        where parent_id = #{id}
     </select>
 
 </mapper>

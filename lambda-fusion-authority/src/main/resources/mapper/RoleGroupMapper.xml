@@ -4,23 +4,23 @@
 <mapper namespace="com.lambda.fusion.authority.role.mapper.RoleGroupMapper">
 
     <select id="getAllGroup" resultType="com.lambda.fusion.authority.role.model.RoleGroupEntity">
-        SELECT T.GROUP_ID,T.GROUP_NAME,T.TENANT_ID
-        FROM la_role_groups T
+        select t.group_id,t.group_name,t.tenant_id
+        from la_role_groups t
         <where>
             <choose>
                 <when test="tenantId != null and tenantId != ''">
-                    AND T.TENANT_ID = #{tenantId}
+                    and t.tenant_id = #{tenantId}
                 </when>
                 <otherwise>
-                    AND T.TENANT_ID IS NULL
+                    and t.tenant_id is null
                 </otherwise>
             </choose>
         </where>
-        ORDER BY T.GROUP_ID
+        order by t.group_id
     </select>
 
     <delete id="deleteGroupByTenantId">
-        DELETE FROM la_role_groups WHERE TENANT_ID IN
+        delete from la_role_groups where tenant_id in
         <foreach collection="tenantIds" open="(" close=")" separator="," item="item">#{item}</foreach>
     </delete>
 </mapper>

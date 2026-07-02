@@ -4,61 +4,61 @@
 
     <!-- 按分类查询 -->
     <select id="listByCategory" resultType="com.lambda.fusion.ai.prompt.model.entity.PromptTemplateEntity">
-        SELECT * FROM ai_prompt_template
-        WHERE category = #{category}
-        AND enabled = true
-        ORDER BY usage_count DESC, created_at DESC
+        select * from ai_prompt_template
+        where category = #{category}
+        and enabled = true
+        order by usage_count desc, created_at desc
     </select>
 
     <!-- 查询系统模板 -->
     <select id="listSystemTemplates" resultType="com.lambda.fusion.ai.prompt.model.entity.PromptTemplateEntity">
-        SELECT * FROM ai_prompt_template
-        WHERE is_system = true
-        AND enabled = true
-        ORDER BY created_at DESC
+        select * from ai_prompt_template
+        where is_system = true
+        and enabled = true
+        order by created_at desc
     </select>
 
 
     <!-- 按租户查询 -->
     <select id="selectByTenantId" resultType="com.lambda.fusion.ai.prompt.model.entity.PromptTemplateEntity">
-        SELECT * FROM ai_prompt_template
-        WHERE tenant_id = #{tenantId}
-        AND enabled = true
-        ORDER BY created_at DESC
+        select * from ai_prompt_template
+        where tenant_id = #{tenantId}
+        and enabled = true
+        order by created_at desc
     </select>
 
     <!-- 查询公开模板 -->
     <select id="selectPublicTemplates" resultType="com.lambda.fusion.ai.prompt.model.entity.PromptTemplateEntity">
-        SELECT * FROM ai_prompt_template
-        WHERE is_public = true
-        AND enabled = true
-        ORDER BY usage_count DESC, created_at DESC
+        select * from ai_prompt_template
+        where is_public = true
+        and enabled = true
+        order by usage_count desc, created_at desc
     </select>
 
     <!-- 按所有者查询 -->
     <select id="selectByOwnerUserId" resultType="com.lambda.fusion.ai.prompt.model.entity.PromptTemplateEntity">
-        SELECT * FROM ai_prompt_template
-        WHERE owner_user_id = #{ownerUserId}
-        AND enabled = true
-        ORDER BY created_at DESC
+        select * from ai_prompt_template
+        where owner_user_id = #{ownerUserId}
+        and enabled = true
+        order by created_at desc
     </select>
 
     <!-- 批量更新使用次数 -->
     <update id="updateUsageCountBatch">
         <foreach collection="list" item="item" separator=";">
-            UPDATE ai_prompt_template
-            SET usage_count = usage_count + #{item.usageIncrement},
-                updated_at = NOW()
-            WHERE id = #{item.id}
+            update ai_prompt_template
+            set usage_count = usage_count + #{item.usageIncrement},
+                updated_at = now()
+            where id = #{item.id}
         </foreach>
     </update>
 
     <!-- 统计各分类模板数 -->
     <select id="countByCategoryGroupByIsSystem" resultType="java.util.Map">
-        SELECT category, is_system, COUNT(*) as count
-        FROM ai_prompt_template
-        WHERE enabled = true
-        GROUP BY category, is_system
+        select category, is_system, count(*) as count
+        from ai_prompt_template
+        where enabled = true
+        group by category, is_system
     </select>
 
 </mapper>

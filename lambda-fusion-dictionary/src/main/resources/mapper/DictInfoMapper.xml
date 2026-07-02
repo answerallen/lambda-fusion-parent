@@ -35,121 +35,121 @@
     </resultMap>
 
     <select id="getAllDictInfoGroup" resultMap="dictInfoGroupMap">
-        SELECT DICT_TYPE AS dictType,
-        FIELD_TYPE AS fieldType,
-        FIELD_NAME AS fieldName,
+        select dict_type as dictType,
+        field_type as fieldType,
+        field_name as fieldName,
         parent_id as parentId,
-        REMARKS,
-        TENANT_ID,
-        SELECT_ABLE,
-        SORT_NO FROM la_dict_info
-        WHERE ENABLE_STATE = 1
-        AND (
-        TENANT_ID IS NULL
+        remarks,
+        tenant_id,
+        select_able,
+        sort_no from la_dict_info
+        where enable_state = 1
+        and (
+        tenant_id is null
         <if test="tenantId != null and tenantId != ''">
-            OR TENANT_ID = #{tenantId}
+            or tenant_id = #{tenantId}
         </if>
         )
         <if test="type !=null and type != ''">
-            AND DICT_TYPE  LIKE #{type}
+            and dict_type  like #{type}
         </if>
-        GROUP BY DICT_TYPE,FIELD_TYPE,FIELD_NAME,parent_id,TENANT_ID,REMARKS,SELECT_ABLE,SORT_NO ORDER BY SORT_NO ASC
+        group by dict_type,field_type,field_name,parent_id,tenant_id,remarks,select_able,sort_no order by sort_no asc
     </select>
 
     <select id="page" parameterType="HashMap" resultType="com.lambda.fusion.dict.model.DictInfo">
-        SELECT DI.ID,
-        DI.DICT_TYPE ,
-        DI.FIELD_TYPE ,
-        DI.FIELD_NAME ,
-        DI.SORT_NO,
-        DI.REMARKS,
-        DI.TENANT_ID,
-        DI.UPDATED_AT ,
-        DI.updated_by ,
-        DI.created_byUSER ,
-        DI.CREATED_AT ,
-        DI.ENABLE_STATE ,
-        DT.DICT_NAME,
-        DI.PARENT_ID,
-        DI.PARENT_KEYS ,
-        DI.EXTRA,
-        DI.SELECT_ABLE
-        FROM la_dict_info DI
-        INNER JOIN la_dict_type DT ON DT.DICT_TYPE = DI.DICT_TYPE
+        select di.id,
+        di.dict_type ,
+        di.field_type ,
+        di.field_name ,
+        di.sort_no,
+        di.remarks,
+        di.tenant_id,
+        di.updated_at ,
+        di.updated_by ,
+        di.created_byuser ,
+        di.created_at ,
+        di.enable_state ,
+        dt.dict_name,
+        di.parent_id,
+        di.parent_keys ,
+        di.extra,
+        di.select_able
+        from la_dict_info di
+        inner join la_dict_type dt on dt.dict_type = di.dict_type
 
     </select>
 
     <select id="getDictInfoList" resultType="com.lambda.fusion.dict.model.DictInfo">
-        SELECT DI.ID,
-        DI.DICT_TYPE ,
-        DI.FIELD_TYPE ,
-        DI.FIELD_NAME ,
-        DI.SORT_NO,
-        DI.REMARKS,
-        DI.TENANT_ID,
-        DI.UPDATED_AT ,
-        DI.updated_by ,
-        DI.created_byUSER ,
-        DI.CREATED_AT ,
-        DI.ENABLE_STATE ,
-        DT.DICT_NAME,
-        DI.EXTRA,
-        DI.SELECT_ABLE
-        FROM la_dict_info DI
-        INNER JOIN la_dict_type DT ON DT.DICT_TYPE = DI.DICT_TYPE
-        WHERE DI.DICT_TYPE = #{dictInfo.dictType}
-        AND (
-            DI.TENANT_ID IS NULL
+        select di.id,
+        di.dict_type ,
+        di.field_type ,
+        di.field_name ,
+        di.sort_no,
+        di.remarks,
+        di.tenant_id,
+        di.updated_at ,
+        di.updated_by ,
+        di.created_byuser ,
+        di.created_at ,
+        di.enable_state ,
+        dt.dict_name,
+        di.extra,
+        di.select_able
+        from la_dict_info di
+        inner join la_dict_type dt on dt.dict_type = di.dict_type
+        where di.dict_type = #{dictInfo.dictType}
+        and (
+            di.tenant_id is null
             <if test="dictInfo.tenantId != null and dictInfo.tenantId != ''">
-                OR DI.TENANT_ID = #{dictInfo.tenantId}
+                or di.tenant_id = #{dictInfo.tenantId}
             </if>
         )
         <if test="dictInfo.id != null and dictInfo.id != ''">
-            AND DI.ID = #{dictInfo.id}
+            and di.id = #{dictInfo.id}
         </if>
         <if test="dictInfo.parentId != null and dictInfo.parentId != ''">
-            OR DI.PARENT_KEYS LIKE #{dictInfo.parentId}
+            or di.parent_keys like #{dictInfo.parentId}
         </if>
         <if test="dictInfo.rank != null and dictInfo.rank != ''">
-            <![CDATA[ AND DI.RANK2 <= #{dictInfo.rank} ]]>
+            <![CDATA[ and di.rank2 <= #{dictInfo.rank} ]]>
         </if>
     </select>
     <select id="treeList" resultType="com.lambda.fusion.dict.model.DictInfo">
-        SELECT DI.ID,
-        DI.DICT_TYPE ,
-        DI.FIELD_TYPE ,
-        DI.FIELD_NAME ,
-        DI.SORT_NO,
-        DI.REMARKS,
-        DI.TENANT_ID,
-        DI.UPDATED_AT ,
-        DI.updated_by ,
-        DI.created_byUSER ,
-        DI.CREATED_AT ,
-        DI.ENABLE_STATE ,
-        DI.PARENT_ID ,
-        DI.PARENT_KEYS ,
-        DI.EXTRA,
-        DI.SELECT_ABLE
-        FROM la_dict_info DI
-        INNER JOIN la_dict_type DT ON DT.DICT_TYPE = DI.DICT_TYPE
-        WHERE DI.ENABLE_STATE = 1
-        AND (
-            DI.TENANT_ID IS NULL
+        select di.id,
+        di.dict_type ,
+        di.field_type ,
+        di.field_name ,
+        di.sort_no,
+        di.remarks,
+        di.tenant_id,
+        di.updated_at ,
+        di.updated_by ,
+        di.created_byuser ,
+        di.created_at ,
+        di.enable_state ,
+        di.parent_id ,
+        di.parent_keys ,
+        di.extra,
+        di.select_able
+        from la_dict_info di
+        inner join la_dict_type dt on dt.dict_type = di.dict_type
+        where di.enable_state = 1
+        and (
+            di.tenant_id is null
             <if test="tenantId != null and tenantId != ''">
-                OR DI.TENANT_ID = #{tenantId}
+                or di.tenant_id = #{tenantId}
             </if>
         )
-        AND DT.ID IN
+        and dt.id in
         <if test="ids != null and ids.size > 0">
             <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
         </if>
     </select>
 
     <select id="selectDictInfo" resultType="com.lambda.fusion.dict.model.DictInfo">
-        SELECT DI.*
-        FROM la_dict_info DI
-        INNER JOIN la_dict_type DT ON DT.DICT_TYPE = DI.DICT_TYPE
+        select di.*
+        from la_dict_info di
+        inner join la_dict_type dt on dt.dict_type = di.dict_type
         ${ew.customSqlSegment}
     </select>
 </mapper>

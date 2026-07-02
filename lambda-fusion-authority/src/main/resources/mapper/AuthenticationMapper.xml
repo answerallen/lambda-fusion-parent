@@ -17,191 +17,191 @@
 
     <select id="selectUserDetailByUsername" parameterType="String" resultMap="AuthenticationUserDetailMap">
         <![CDATA[
-            SELECT
-                T.username,
-                T.nickname,
-                T.password,
-                T.enabled,
-                R.authority,
-                UO.ORGANIZATION_ID AS org_id,
-                T.TENANT_ID AS tenant_id,
-                T.EXPIRED_TIME
-            FROM
-                LA_USERS T
-                LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
-                LEFT JOIN LA_ROLES R ON R.authority = UR.authority AND R.enabled = 1
-                LEFT JOIN LA_USER_ORGANIZATION UO ON UO.USERNAME = T.username
-            WHERE T.username = #{username}
+            select
+                t.username,
+                t.nickname,
+                t.password,
+                t.enabled,
+                r.authority,
+                uo.organization_id as org_id,
+                t.tenant_id as tenant_id,
+                t.expired_time
+            from
+                la_users t
+                left join la_user_roles ur on ur.username = t.username
+                left join la_roles r on r.authority = ur.authority and r.enabled = 1
+                left join la_user_organization uo on uo.username = t.username
+            where t.username = #{username}
         ]]>
     </select>
-    
+
     <select id="selectUserDetailsByMobile" parameterType="String" resultMap="AuthenticationUserDetailMap">
         <![CDATA[
-            SELECT
-                T.username,
-                T.nickname,
-                T.password,
-                T.enabled,
-                R.authority,
-                UO.ORGANIZATION_ID AS orgid,
-                T.TENANT_ID AS tenantId,
-                T.EXPIRED_TIME
-            FROM
-                LA_USERS T
-                LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
-                LEFT JOIN LA_ROLES R ON R.authority = UR.authority AND R.enabled = 1
-                LEFT JOIN LA_USER_ORGANIZATION UO ON UO.USERNAME = T.username
-            WHERE T.mobile = #{mobile}
+            select
+                t.username,
+                t.nickname,
+                t.password,
+                t.enabled,
+                r.authority,
+                uo.organization_id as orgid,
+                t.tenant_id as tenantId,
+                t.expired_time
+            from
+                la_users t
+                left join la_user_roles ur on ur.username = t.username
+                left join la_roles r on r.authority = ur.authority and r.enabled = 1
+                left join la_user_organization uo on uo.username = t.username
+            where t.mobile = #{mobile}
         ]]>
     </select>
 
     <select id="selectNavigation" resultType="com.lambda.fusion.authority.authentication.model.MenuRoute">
-        SELECT
-        T1.id,
-        T1.res_name as name,
-        T1.res_path as path,
-        T1.icon as icon,
-        T1.res_level,
-        T1.order_no,
-        T1.parent_Id as pid,
-        T1.res_type as type,
-        T1.hidden,
-        T1.res_mode,
-        T1.remark,
-        T1.res_url as url,
-        T1.key_name,
-        T1.keep_alive,
-        T1.expand,
-        T1.business_expand
-        FROM LA_RESOURCES T1
-        WHERE T1.res_type != 3
-        AND T1.res_mode = #{query.mode}
+        select
+        t1.id,
+        t1.res_name as name,
+        t1.res_path as path,
+        t1.icon as icon,
+        t1.res_level,
+        t1.order_no,
+        t1.parent_id as pid,
+        t1.res_type as type,
+        t1.hidden,
+        t1.res_mode,
+        t1.remark,
+        t1.res_url as url,
+        t1.key_name,
+        t1.keep_alive,
+        t1.expand,
+        t1.business_expand
+        from la_resources t1
+        where t1.res_type != 3
+        and t1.res_mode = #{query.mode}
         <if test="query.ids != null and query.ids.size > 0">
-            AND T1.ID IN (
-            SELECT DISTINCT T.RESOURCE_ID FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY IN
+            and t1.id in (
+            select distinct t.resource_id from la_role_resources t where t.authority in
             <foreach collection="query.ids" open="(" close=")" separator="," item="item">#{item}</foreach>
             )
         </if>
         <if test="query.level != null">
-            AND T1.RES_LEVEL = #{query.level}
+            and t1.res_level = #{query.level}
         </if>
         <if test="query.parentId != null and query.parentId != ''">
-            AND T1.parent_keys LIKE CONCAT(#{query.parentId}, '%')
+            and t1.parent_keys like concat(#{query.parentId}, '%')
         </if>
         <if test="query.name != null and query.name != ''">
-            AND T1.res_name LIKE CONCAT('%', #{query.name}, '%')
+            and t1.res_name like concat('%', #{query.name}, '%')
         </if>
-        ORDER BY T1.RES_LEVEL, T1.parent_id, T1.ORDER_NO
+        order by t1.res_level, t1.parent_id, t1.order_no
     </select>
-    
+
     <select id="selectResources" resultType="com.lambda.fusion.authority.resource.model.ResourceTree">
-        SELECT
-            T1.id,
-            T1.res_name,
-            T1.parent_Id,
-            T1.business_expand
-        FROM LA_RESOURCES T1
-        inner join la_role_resources T2 on T1.id = T2.RESOURCE_ID
+        select
+            t1.id,
+            t1.res_name,
+            t1.parent_id,
+            t1.business_expand
+        from la_resources t1
+        inner join la_role_resources t2 on t1.id = t2.resource_id
         <where>
             <if test="mode != null">
-                T1.res_mode = #{mode}
+                t1.res_mode = #{mode}
             </if>
             <if test="types != null">
-                AND T1.res_type IN <foreach collection="types" open="(" close=")" separator="," item="item">#{item}</foreach>
+                and t1.res_type in <foreach collection="types" open="(" close=")" separator="," item="item">#{item}</foreach>
             </if>
         </where>
-        ORDER BY T1.RES_LEVEL, T1.parent_Id, T1.ORDER_NO
+        order by t1.res_level, t1.parent_id, t1.order_no
     </select>
 
     <select id="selectUserProfileByRoleId" resultType="com.lambda.fusion.authority.user.model.UserProfile">
-        SELECT U.username,
-               U.nickname
-        FROM LA_USER_ROLES UR
-                 INNER JOIN LA_USERS U ON U.USERNAME = UR.USERNAME
-            AND UR.AUTHORITY = #{roleId}
+        select u.username,
+               u.nickname
+        from la_user_roles ur
+                 inner join la_users u on u.username = ur.username
+            and ur.authority = #{roleId}
     </select>
 
     <select id="selectAuthoritiesByUsername" resultType="java.lang.String">
-        SELECT R.ID
-        FROM LA_RESOURCES R
-        WHERE R.RES_TYPE = 3
-          AND (
-            EXISTS (SELECT 1
-                    FROM LA_ROLE_RESOURCES RR
-                    WHERE RR.RESOURCE_ID = R.ID
-                      AND RR.AUTHORITY IN (SELECT AUTHORITY
-                                           FROM LA_USER_ROLES
-                                           WHERE USERNAME = #{username}
-                                           UNION
-                                           SELECT ORG_R.AUTHORITY
-                                           FROM LA_ORGANIZATION_ROLES ORG_R
-                                                    INNER JOIN LA_USER_ORGANIZATION UO
-                                                               ON ORG_R.ORGANIZATION_ID = UO.ORGANIZATION_ID
-                                           WHERE UO.USERNAME = #{username}))
-                OR EXISTS (SELECT 1
-                           FROM LA_ORGANIZATION_RESOURCES ORG_RES
-                                    INNER JOIN LA_USER_ORGANIZATION UO
-                                               ON ORG_RES.ORGANIZATION_ID = UO.ORGANIZATION_ID
-                           WHERE ORG_RES.RESOURCE_ID = R.ID
-                             AND UO.USERNAME = #{username})
-                OR EXISTS (SELECT 1
-                           FROM LA_ROLE_RESOURCES RR
-                           WHERE RR.RESOURCE_ID = R.ID
-                             AND RR.AUTHORITY IN (SELECT AUTHORITY
-                                                  FROM LA_USER_ROLES
-                                                  WHERE USERNAME = #{username}
-                                                  UNION
-                                                  SELECT ORG_R.AUTHORITY
-                                                  FROM LA_ORGANIZATION_ROLES ORG_R
-                                                           INNER JOIN LA_USER_ORGANIZATION UO
-                                                                      ON ORG_R.ORGANIZATION_ID = UO.ORGANIZATION_ID
-                                                  WHERE UO.USERNAME = #{username}))
+        select r.id
+        from la_resources r
+        where r.res_type = 3
+          and (
+            exists (select 1
+                    from la_role_resources rr
+                    where rr.resource_id = r.id
+                      and rr.authority in (select authority
+                                           from la_user_roles
+                                           where username = #{username}
+                                           union
+                                           select org_r.authority
+                                           from la_organization_roles org_r
+                                                    inner join la_user_organization uo
+                                                               on org_r.organization_id = uo.organization_id
+                                           where uo.username = #{username}))
+                or exists (select 1
+                           from la_organization_resources org_res
+                                    inner join la_user_organization uo
+                                               on org_res.organization_id = uo.organization_id
+                           where org_res.resource_id = r.id
+                             and uo.username = #{username})
+                or exists (select 1
+                           from la_role_resources rr
+                           where rr.resource_id = r.id
+                             and rr.authority in (select authority
+                                                  from la_user_roles
+                                                  where username = #{username}
+                                                  union
+                                                  select org_r.authority
+                                                  from la_organization_roles org_r
+                                                           inner join la_user_organization uo
+                                                                      on org_r.organization_id = uo.organization_id
+                                                  where uo.username = #{username}))
             )
     </select>
 
     <select id="selectPermissionsByUsername" resultType="java.lang.String">
-        SELECT distinct lar.PERMISSION_ID
-        FROM LA_RESOURCES R
-                 JOIN la_api_resources lar on R.ID = lar.RESOURCE_ID
-        WHERE EXISTS (SELECT 1
-                      FROM LA_ROLE_RESOURCES RR
-                      WHERE RR.RESOURCE_ID = R.ID
-                        AND RR.AUTHORITY IN (SELECT AUTHORITY
-                                             FROM LA_USER_ROLES
-                                             WHERE USERNAME = #{username}
-                                             UNION
-                                             SELECT ORG_R.AUTHORITY
-                                             FROM LA_ORGANIZATION_ROLES ORG_R
-                                                      INNER JOIN LA_USER_ORGANIZATION UO
-                                                                 ON ORG_R.ORGANIZATION_ID = UO.ORGANIZATION_ID
-                                             WHERE UO.USERNAME = #{username}))
-           OR EXISTS (SELECT 1
-                      FROM LA_ORGANIZATION_RESOURCES ORG_RES
-                               INNER JOIN LA_USER_ORGANIZATION UO
-                                          ON ORG_RES.ORGANIZATION_ID = UO.ORGANIZATION_ID
-                      WHERE ORG_RES.RESOURCE_ID = R.ID
-                        AND UO.USERNAME = #{username})
+        select distinct lar.permission_id
+        from la_resources r
+                 join la_api_resources lar on r.id = lar.resource_id
+        where exists (select 1
+                      from la_role_resources rr
+                      where rr.resource_id = r.id
+                        and rr.authority in (select authority
+                                             from la_user_roles
+                                             where username = #{username}
+                                             union
+                                             select org_r.authority
+                                             from la_organization_roles org_r
+                                                      inner join la_user_organization uo
+                                                                 on org_r.organization_id = uo.organization_id
+                                             where uo.username = #{username}))
+           or exists (select 1
+                      from la_organization_resources org_res
+                               inner join la_user_organization uo
+                                          on org_res.organization_id = uo.organization_id
+                      where org_res.resource_id = r.id
+                        and uo.username = #{username})
     </select>
 
     <select id="selectTenantAdminPermissions" resultType="java.lang.String">
-        SELECT distinct lar.PERMISSION_ID
-        FROM LA_RESOURCES R
-                 JOIN la_api_resources lar on R.ID = lar.RESOURCE_ID
-        WHERE EXISTS (SELECT 1
-                      FROM LA_ROLE_RESOURCES RR
-                      WHERE RR.RESOURCE_ID = R.ID
-                        AND RR.AUTHORITY IN (#{username}))
+        select distinct lar.permission_id
+        from la_resources r
+                 join la_api_resources lar on r.id = lar.resource_id
+        where exists (select 1
+                      from la_role_resources rr
+                      where rr.resource_id = r.id
+                        and rr.authority in (#{username}))
     </select>
 
     <select id="selectTenantAdminAuthorities" resultType="java.lang.String">
-        SELECT R.ID
-        FROM LA_RESOURCES R
-        WHERE R.RES_TYPE = 3
-          AND (
-            EXISTS (SELECT 1
-                    FROM LA_ROLE_RESOURCES RR
-                    WHERE RR.RESOURCE_ID = R.ID
-                      AND RR.AUTHORITY IN (#{username}))
+        select r.id
+        from la_resources r
+        where r.res_type = 3
+          and (
+            exists (select 1
+                    from la_role_resources rr
+                    where rr.resource_id = r.id
+                      and rr.authority in (#{username}))
             )
     </select>
 </mapper>

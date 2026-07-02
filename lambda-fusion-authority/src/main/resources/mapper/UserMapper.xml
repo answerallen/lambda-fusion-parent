@@ -79,204 +79,204 @@
     </resultMap>
 
     <select id="selectUserPage" resultType="com.lambda.fusion.authority.user.model.User">
-        SELECT T.username, T.nickname, T.mobile, T.email, T.enabled FROM LA_USERS T
+        select t.username, t.nickname, t.mobile, t.email, t.enabled from la_users t
         <where>
             <choose>
                 <when test="parameters.tenantId != null and parameters.tenantId != ''">
-                    T.TENANT_ID = #{parameters.tenantId}
+                    t.tenant_id = #{parameters.tenantId}
                 </when>
                 <otherwise>
-                    T.TENANT_ID IS NULL
+                    t.tenant_id is null
                 </otherwise>
             </choose>
             <choose>
                 <when test="!parameters.dev">
-                    AND T.username NOT IN (SELECT USERNAME FROM LA_USER_ROLES WHERE authority IN ('ROLE_DEV','ROLE_TENANT','ROLE_SYSTEM'))
+                    and t.username not in (select username from la_user_roles where authority in ('ROLE_DEV','ROLE_TENANT','ROLE_SYSTEM'))
                 </when>
                 <otherwise>
-                    AND T.username NOT IN (SELECT USERNAME FROM LA_USER_ROLES WHERE AUTHORITY = 'ROLE_TENANT')
+                    and t.username not in (select username from la_user_roles where authority = 'ROLE_TENANT')
                 </otherwise>
             </choose>
             <if test="parameters.authority != null and parameters.authority != ''">
-                AND T.username IN (SELECT USERNAME FROM LA_USER_ROLES WHERE authority = #{parameters.authority})
+                and t.username in (select username from la_user_roles where authority = #{parameters.authority})
             </if>
             <if test="parameters.usernames != null and parameters.usernames.size > 0">
-                AND T.username IN <foreach collection="parameters.usernames" open="(" close=")" separator="," item="item">#{item}</foreach>
+                and t.username in <foreach collection="parameters.usernames" open="(" close=")" separator="," item="item">#{item}</foreach>
             </if>
             <if test="parameters.nickname != null and parameters.nickname != ''">
-                AND T.nickname LIKE #{parameters.nickname}
+                and t.nickname like #{parameters.nickname}
             </if>
             <if test="parameters.mobile != null and parameters.mobile != ''">
-                AND T.mobile LIKE #{parameters.mobile}
+                and t.mobile like #{parameters.mobile}
             </if>
             <if test="parameters.email != null and parameters.email != ''">
-                AND T.email LIKE #{parameters.email}
+                and t.email like #{parameters.email}
             </if>
             <if test="parameters.orgIds != null and parameters.orgIds.size > 0">
-                AND T.username IN (SELECT USERNAME FROM LA_USER_ORGANIZATION WHERE ORGANIZATION_ID IN <foreach collection="parameters.orgIds" open="(" close=")" separator="," item="item">#{item}</foreach>)
+                and t.username in (select username from la_user_organization where organization_id in <foreach collection="parameters.orgIds" open="(" close=")" separator="," item="item">#{item}</foreach>)
             </if>
             <if test="parameters.userFields != null and parameters.userFields.size > 0">
-                AND T.username IN (SELECT username FROM LA_USER_FIELDS WHERE
-                <foreach collection="parameters.userFields" item="item" separator="OR" open="(" close=")">
-                    field_name = #{item.fieldName} AND field_value = #{item.fieldValue}
+                and t.username in (select username from la_user_fields where
+                <foreach collection="parameters.userFields" item="item" separator="or" open="(" close=")">
+                    field_name = #{item.fieldName} and field_value = #{item.fieldValue}
                 </foreach>
                 <if test="parameters.userFields.size > 1">
-                    GROUP BY username HAVING COUNT(1) = #{parameters.userFields.size}
+                    group by username having count(1) = #{parameters.userFields.size}
                 </if>)
             </if>
             <if test="parameters.isOnline != null">
                 <choose>
                     <when test="parameters.isOnline">
-                        AND T.USERNAME IN (SELECT USERNAME FROM la_user_online_logs WHERE IS_ONLINE = 1)
+                        and t.username in (select username from la_user_online_logs where is_online = 1)
                     </when>
                     <otherwise>
-                        AND T.USERNAME NOT IN (SELECT USERNAME FROM la_user_online_logs WHERE IS_ONLINE = 1)
+                        and t.username not in (select username from la_user_online_logs where is_online = 1)
                     </otherwise>
                 </choose>
             </if>
         </where>
-        ORDER BY T.created_at DESC, T.USERNAME
+        order by t.created_at desc, t.username
     </select>
     <!-- 查询用户列表 -->
     <select id="selectUsers" resultMap="UserResultMap">
-        SELECT
-        T.username, T.nickname, T.mobile, T.email, T.created_at AS created_at, T.enabled,
-        R.AUTHORITY,
-        R.alias, R.tenant_id, O.id As orgId, O.alias As orgAlias, OL.IS_ONLINE, OL.OFFLINE_TIME,
-        TC.NICKNAME As created_by, T.EXPIRED_TIME
-        FROM LA_USERS T
-        LEFT JOIN (SELECT T1.USERNAME,T1.authority, T2.alias, T2.tenant_id FROM LA_USER_ROLES T1
-        INNER JOIN LA_ROLES T2 ON t2.AUTHORITY = T1.authority AND T2.enabled = 1) R ON R.USERNAME = T.username
-        LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
-        LEFT JOIN LA_ORGANIZATION O ON O.id = UO.ORGANIZATION_ID
-        LEFT JOIN la_user_online_logs OL ON  T.USERNAME = OL.USERNAME
-        LEFT JOIN LA_USERS TC ON  T.created_by = TC.USERNAME
-        WHERE T.username IN <foreach collection="list" open="(" close=")" separator="," item="user">#{user.username}</foreach>
-        ORDER BY T.created_at DESC, T.USERNAME
+        select
+        t.username, t.nickname, t.mobile, t.email, t.created_at as created_at, t.enabled,
+        r.authority,
+        r.alias, r.tenant_id, o.id as orgId, o.alias as orgAlias, ol.is_online, ol.offline_time,
+        tc.nickname as created_by, t.expired_time
+        from la_users t
+        left join (select t1.username,t1.authority, t2.alias, t2.tenant_id from la_user_roles t1
+        inner join la_roles t2 on t2.authority = t1.authority and t2.enabled = 1) r on r.username = t.username
+        left join la_user_organization uo on t.username = uo.username
+        left join la_organization o on o.id = uo.organization_id
+        left join la_user_online_logs ol on  t.username = ol.username
+        left join la_users tc on  t.created_by = tc.username
+        where t.username in <foreach collection="list" open="(" close=")" separator="," item="user">#{user.username}</foreach>
+        order by t.created_at desc, t.username
     </select>
 
     <!-- 查询用户列表 -->
     <select id="selectUsersByKey" parameterType="String" resultMap="UserResultMap">
-        SELECT T.username, T.nickname, T.mobile, T.email, T.created_at AS created_at, T.enabled,
-        R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
-        FROM LA_USERS T
-        LEFT JOIN LA_USER_ROLES U ON U.USERNAME = T.username
-        LEFT JOIN LA_ROLES R ON R.authority = U.authority
-        LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
-        LEFT JOIN LA_ORGANIZATION O ON O.id = UO.ORGANIZATION_ID
+        select t.username, t.nickname, t.mobile, t.email, t.created_at as created_at, t.enabled,
+        r.authority, r.alias, o.id as orgId, o.alias as orgAlias, t.expired_time
+        from la_users t
+        left join la_user_roles u on u.username = t.username
+        left join la_roles r on r.authority = u.authority
+        left join la_user_organization uo on t.username = uo.username
+        left join la_organization o on o.id = uo.organization_id
         <where>
             <if test="key != null and key != ''">
-                AND (T.username LIKE CONCAT(CONCAT('%',#{key}),'%')
-                    OR T.nickname LIKE CONCAT(CONCAT('%',#{key}),'%')
-                    OR T.mobile LIKE CONCAT(CONCAT('%',#{key}),'%')
-                    OR T.email LIKE CONCAT(CONCAT('%',#{key}),'%'))
+                and (t.username like concat(concat('%',#{key}),'%')
+                    or t.nickname like concat(concat('%',#{key}),'%')
+                    or t.mobile like concat(concat('%',#{key}),'%')
+                    or t.email like concat(concat('%',#{key}),'%'))
             </if>
         </where>
-        ORDER BY T.USERNAME
+        order by t.username
     </select>
 
     <!-- 根据角色查询用户名结合 -->
     <select id="selectUsernamesByAuthority" resultType="java.lang.String">
-        SELECT
-        T5.USERNAME
-        FROM (SELECT T.AUTHORITY, T.ALIAS FROM LA_ROLES T  ) T1
-        LEFT JOIN (SELECT T3.USERNAME, T2.AUTHORITY, T4.ORGANIZATION_ID AS ORGID, T3.NICKNAME
-        FROM LA_USER_ROLES T2 INNER JOIN la_users T3 ON T2.USERNAME = T3.USERNAME
-        INNER JOIN la_user_organization T4 ON T3.USERNAME = T4.USERNAME)  T5
-        ON T1.AUTHORITY = T5.AUTHORITY
+        select
+        t5.username
+        from (select t.authority, t.alias from la_roles t  ) t1
+        left join (select t3.username, t2.authority, t4.organization_id as orgid, t3.nickname
+        from la_user_roles t2 inner join la_users t3 on t2.username = t3.username
+        inner join la_user_organization t4 on t3.username = t4.username)  t5
+        on t1.authority = t5.authority
         <where>
-            T1.AUTHORITY = #{authority}
+            t1.authority = #{authority}
             <if test="orgId != null and orgId != ''">
-                AND T5.ORGID = #{orgId}
+                and t5.orgid = #{orgId}
             </if>
         </where>
     </select>
 
     <!-- 根据Id查询用户信息 -->
     <select id="selectUserByUsername" resultMap="UserResultMap">
-		SELECT T.username, T.nickname, T.mobile, T.email, T.created_at AS created_at, T.enabled, T.TENANT_ID,
-            R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME, OL.IS_ONLINE, OL.OFFLINE_TIME
-		FROM LA_USERS T
-		LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
-		LEFT JOIN LA_ROLES R ON R.authority = UR.authority
-        LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
-        LEFT JOIN LA_ORGANIZATION O ON O.id = UO.ORGANIZATION_ID
-        LEFT JOIN la_user_online_logs OL ON  T.USERNAME = OL.USERNAME
-		WHERE T.username = #{username}
+		select t.username, t.nickname, t.mobile, t.email, t.created_at as created_at, t.enabled, t.tenant_id,
+            r.authority, r.alias, o.id as orgId, o.alias as orgAlias, t.expired_time, ol.is_online, ol.offline_time
+		from la_users t
+		left join la_user_roles ur on ur.username = t.username
+		left join la_roles r on r.authority = ur.authority
+        left join la_user_organization uo on t.username = uo.username
+        left join la_organization o on o.id = uo.organization_id
+        left join la_user_online_logs ol on  t.username = ol.username
+		where t.username = #{username}
     </select>
 
     <!-- 根据Id查询用户信息 -->
     <select id="getPasswordById" resultType="com.lambda.fusion.authority.user.model.User">
-        SELECT T.username, T.password FROM LA_USERS T WHERE T.username = #{username}
+        select t.username, t.password from la_users t where t.username = #{username}
     </select>
     <!-- 保存用户 -->
     <insert id="insertUser" parameterType="com.lambda.fusion.authority.user.model.User">
-        INSERT INTO LA_USERS (USERNAME, PASSWORD, NICKNAME, MOBILE, EMAIL, created_at, ENABLED, TENANT_ID, created_by, EXPIRED_TIME)
-        VALUES(#{username}, #{password}, #{nickname}, #{mobile,jdbcType=VARCHAR}, #{email, jdbcType=VARCHAR},
+        insert into la_users (username, password, nickname, mobile, email, created_at, enabled, tenant_id, created_by, expired_time)
+        values(#{username}, #{password}, #{nickname}, #{mobile,jdbcType=VARCHAR}, #{email, jdbcType=VARCHAR},
         #{createdAt, jdbcType=TIMESTAMP}, 1, #{tenant_Id, jdbcType=VARCHAR}, #{createdBy, jdbcType=VARCHAR}, #{expiredTime, jdbcType=TIMESTAMP})
     </insert>
     <!-- 更新用户 -->
     <update id="updateUser" parameterType="com.lambda.fusion.authority.user.model.User">
-        UPDATE LA_USERS SET
+        update la_users set
             nickname = #{nickname},
             mobile = #{mobile, jdbcType=VARCHAR},
             email = #{email, jdbcType=VARCHAR},
-            EXPIRED_TIME = #{expiredTime, jdbcType=TIMESTAMP}
+            expired_time = #{expiredTime, jdbcType=TIMESTAMP}
         <if test="tenantId != null and tenantId != ''">
-                ,TENANT_ID = #{tenantId, jdbcType=VARCHAR}
+                ,tenant_id = #{tenantId, jdbcType=VARCHAR}
         </if>
-        WHERE username = #{username}
+        where username = #{username}
     </update>
     <!-- 删除用户 -->
     <delete id="deleteUser" parameterType="HashMap">
-        DELETE FROM LA_USERS WHERE username = #{username}
+        delete from la_users where username = #{username}
     </delete>
     <!-- 删除用户角色 -->
     <delete id="deleteUserRoles" parameterType="HashMap">
-        DELETE FROM LA_USER_ROLES WHERE USERNAME = #{username}
+        delete from la_user_roles where username = #{username}
     </delete>
     <!-- 检查用户名是否存在 -->
     <select id="hasExists" parameterType="String" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_USERS T WHERE T.USERNAME = #{username})
+        select count(1) from dual where exists (select 1 from la_users t where t.username = #{username})
     </select>
     <!-- 更新用户密码 -->
     <update id="updatePassword" parameterType="com.lambda.fusion.authority.user.model.User">
-        UPDATE LA_USERS SET password = #{password} where username = #{username}
+        update la_users set password = #{password} where username = #{username}
     </update>
     <!-- 禁用用户 -->
     <update id="deactivateUser" parameterType="HashMap">
-        UPDATE LA_USERS SET enabled = #{enabled} WHERE username = #{username}
+        update la_users set enabled = #{enabled} where username = #{username}
     </update>
 
     <select id="selectAllUsers" resultMap="UserResultMap">
-        SELECT DISTINCT
-        T.username, T.nickname, T.mobile, T.email, T.created_at AS created_at, T.enabled,
-        R.authority, R.alias, O.id As orgId, O.alias As orgAlias, T.EXPIRED_TIME
-        FROM LA_USERS T
-        LEFT JOIN LA_USER_ROLES U ON U.USERNAME = T.username
-        LEFT JOIN LA_ROLES R ON R.authority = U.authority
-        LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
-        LEFT JOIN LA_ORGANIZATION O ON O.id = UO.ORGANIZATION_ID
+        select distinct
+        t.username, t.nickname, t.mobile, t.email, t.created_at as created_at, t.enabled,
+        r.authority, r.alias, o.id as orgId, o.alias as orgAlias, t.expired_time
+        from la_users t
+        left join la_user_roles u on u.username = t.username
+        left join la_roles r on r.authority = u.authority
+        left join la_user_organization uo on t.username = uo.username
+        left join la_organization o on o.id = uo.organization_id
     </select>
 
     <select id="selectOrgUsers" parameterType="string" resultMap="UserResultMap">
-        SELECT
-        T.username, T.nickname, T.mobile, T.email, T.created_at AS created_at, T.enabled,
-        R.authority, R.alias, O.id As orgId, O.alias As orgAlias
-        FROM LA_USERS T
-        LEFT JOIN LA_USER_ROLES U ON U.USERNAME = T.username
-        LEFT JOIN LA_ROLES R ON R.authority = U.authority
-        LEFT JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
-        LEFT JOIN LA_ORGANIZATION O ON O.id = UO.ORGANIZATION_ID
-        WHERE  UO.ORGANIZATION_ID = #{orgId}
+        select
+        t.username, t.nickname, t.mobile, t.email, t.created_at as created_at, t.enabled,
+        r.authority, r.alias, o.id as orgId, o.alias as orgAlias
+        from la_users t
+        left join la_user_roles u on u.username = t.username
+        left join la_roles r on r.authority = u.authority
+        left join la_user_organization uo on t.username = uo.username
+        left join la_organization o on o.id = uo.organization_id
+        where  uo.organization_id = #{orgId}
     </select>
     <select id="selectUsernamesByOrg" resultType="java.lang.String">
-        SELECT T.username FROM LA_USERS T
-        INNER JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
-        INNER JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
-        WHERE UO.ORGANIZATION_ID = #{orgId}
+        select t.username from la_users t
+        inner join la_user_roles ur on ur.username = t.username
+        inner join la_user_organization uo on t.username = uo.username
+        where uo.organization_id = #{orgId}
         <if test="roleId != null and roleId != ''">
-            AND UR.AUTHORITY = #{roleId}
+            and ur.authority = #{roleId}
         </if>
     </select>
     <resultMap id="Permission" type="com.lambda.fusion.authority.user.model.Permission">
@@ -285,59 +285,59 @@
         <result column="parent_id" property="pid"/>
     </resultMap>
     <select id="selectUserPermissionsByIdsAndMode" resultMap="Permission">
-        SELECT
-            T1.id,
-            T1.res_name,
-            T1.parent_id
-            FROM LA_RESOURCES T1
-        WHERE T1.res_type != 0
+        select
+            t1.id,
+            t1.res_name,
+            t1.parent_id
+            from la_resources t1
+        where t1.res_type != 0
         <if test="ids != null and ids.size > 0">
-            AND T1.ID IN (
-            SELECT DISTINCT  T.RESOURCE_ID  FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY IN
+            and t1.id in (
+            select distinct  t.resource_id  from la_role_resources t where t.authority in
             <foreach collection="ids" open="(" close=")" separator="," item="item">#{item}</foreach>
             )
         </if>
         <if test="mode != null and mode != ''">
-            AND T1.res_mode = #{mode}
+            and t1.res_mode = #{mode}
         </if>
-        ORDER BY T1.RES_LEVEL, T1.parent_id, T1.orderno
+        order by t1.res_level, t1.parent_id, t1.orderno
     </select>
     <select id="selectUserPermissions" resultType="java.lang.String">
-        SELECT DISTINCT  T.RESOURCE_ID  FROM LA_ROLE_RESOURCES T WHERE T.AUTHORITY = #{username}
+        select distinct  t.resource_id  from la_role_resources t where t.authority = #{username}
     </select>
 
 
     <select id="selectRoleResources" resultType="com.lambda.fusion.authority.user.model.RoleResources">
-        SELECT T.RESOURCE_ID,T.LA_MANAGE FROM LA_ROLE_RESOURCES T
+        select t.resource_id,t.la_manage from la_role_resources t
         <where>
             <if test="authority != null and authority !='' ">
-                T.AUTHORITY = #{authority}
+                t.authority = #{authority}
             </if>
             <if test="manage != null and manage !='' ">
-                AND T.LA_MANAGE = #{manage}
+                and t.la_manage = #{manage}
             </if>
             <if test="permissions != null and permissions.size > 0">
-                AND  T.RESOURCE_ID  IN
+                and  t.resource_id  in
                 <foreach collection="permissions" open="(" close=")" separator="," item="item">
                     #{item}
                 </foreach>
             </if>
         </where>
-        group by  T.RESOURCE_ID ,T.LA_MANAGE
+        group by  t.resource_id ,t.la_manage
     </select>
 
     <select id="selectUserProfiles" resultType="com.lambda.fusion.authority.user.model.UserProfile">
-        SELECT DISTINCT
-            T1.USERNAME,
-            T1.NICKNAME
-        FROM LA_USERS T1
-        LEFT JOIN LA_USER_ORGANIZATION T2 ON T1.USERNAME = T2.USERNAME
+        select distinct
+            t1.username,
+            t1.nickname
+        from la_users t1
+        left join la_user_organization t2 on t1.username = t2.username
         <where>
             <if test="tenantId != null and tenantId !='' ">
-                T1.TENANT_ID = #{tenant_id}
+                t1.tenant_id = #{tenant_id}
             </if>
             <if test="orgIds != null and orgIds.size > 0">
-                AND T2.ORGANIZATION_ID IN
+                and t2.organization_id in
                 <foreach collection="orgIds" open="(" close=")" separator="," item="item">
                     #{item}
                 </foreach>
@@ -346,21 +346,21 @@
     </select>
 
     <select id="selectUsernameByOrgId" resultType="java.lang.String">
-        SELECT USERNAME FROM LA_USERS T1 INNER JOIN LA_USER_ORGANIZATION T2 ON T1.USERNAME = T2.USERNAME
+        select username from la_users t1 inner join la_user_organization t2 on t1.username = t2.username
         <where>
             <if test="type != null and type = 1">
-                T2.ORGANIZATION_ID IN (SELECT T.ID FROM LA_ORGANIZATION T WHERE T.PARENT_KEYS LIKE CONCAT(CONCAT('%', #{orgId}), '%') OR T.ID = #{orgId})
+                t2.organization_id in (select t.id from la_organization t where t.parent_keys like concat(concat('%', #{orgId}), '%') or t.id = #{orgId})
             </if>
             <if test="type != null and type = 2">
-               and T2.ORGANIZATION_ID = #{orgId}
+               and t2.organization_id = #{orgId}
             </if>
         </where>
     </select>
 
 
     <select id="selectUsersNoPage" resultMap="UserResultMap">
-        SELECT DISTINCT(T.username), T.nickname, T.mobile, T.email, T.enabled, T.created_at AS created_at,
-        mi.USERNAME AS userid,
+        select distinct(t.username), t.nickname, t.mobile, t.email, t.enabled, t.created_at as created_at,
+        mi.username as userid,
         mi.avatar,
         mi.remark,
         mi.identity_id ,
@@ -375,94 +375,94 @@
         r.authority,
         r.alias,
         mi.extend_param,
-        TC.NICKNAME created_by
-        FROM LA_USERS T
-        LEFT JOIN LA_USER_INFO mi ON T.username = mi.USERNAME
-        LEFT JOIN (SELECT  ur.AUTHORITY,mr.ALIAS,ur.USERNAME	FROM la_user_roles ur LEFT JOIN la_roles mr  ON ur.AUTHORITY = mr.AUTHORITY) R ON T.USERNAME = R.USERNAME
-        LEFT JOIN (SELECT mo.ID orgId, uo.USERNAME, mo.alias FROM LA_USER_ORGANIZATION uo LEFT JOIN la_organization mo ON uo.ORGANIZATION_ID = mo.id WHERE mo.id is not null)  O ON T.USERNAME = O.USERNAME
-        LEFT JOIN (SELECT NICKNAME, USERNAME FROM LA_USERS) TC ON  T.created_by = TC.USERNAME
+        tc.nickname created_by
+        from la_users t
+        left join la_user_info mi on t.username = mi.username
+        left join (select  ur.authority,mr.alias,ur.username	from la_user_roles ur left join la_roles mr  on ur.authority = mr.authority) r on t.username = r.username
+        left join (select mo.id orgid, uo.username, mo.alias from la_user_organization uo left join la_organization mo on uo.organization_id = mo.id where mo.id is not null)  o on t.username = o.username
+        left join (select nickname, username from la_users) tc on  t.created_by = tc.username
         <if test="parameters != null and parameters.authority != null and parameters.authority != ''">
-            LEFT JOIN LA_USER_ROLES UR ON UR.USERNAME = T.USERNAME
+            left join la_user_roles ur on ur.username = t.username
         </if>
         <where>
             <if test="parameters != null">
                 <choose>
                     <when test="parameters.tenantId != null and parameters.tenantId != ''">
-                        T.TENANT_ID = #{parameters.tenantId}
+                        t.tenant_id = #{parameters.tenantId}
                     </when>
                     <otherwise>
-                        T.TENANT_ID is null
+                        t.tenant_id is null
                     </otherwise>
                 </choose>
                 <if test="parameters.usernames != null and parameters.usernames.size > 0">
-                    AND T.username IN <foreach collection="parameters.usernames" open="(" close=")" separator="," item="item">#{item}</foreach>
+                    and t.username in <foreach collection="parameters.usernames" open="(" close=")" separator="," item="item">#{item}</foreach>
                 </if>
                 <choose>
                     <when test="!parameters.dev">
-                        AND T.username NOT IN (SELECT USERNAME FROM LA_USER_ROLES WHERE authority IN ('ROLE_DEV', 'ROLE_SYSTEM') or AUTHORITY LIKE 'ROLE_TENANT@%')
+                        and t.username not in (select username from la_user_roles where authority in ('ROLE_DEV', 'ROLE_SYSTEM') or authority like 'ROLE_TENANT@%')
                     </when>
                     <otherwise>
-                        AND T.username NOT IN (SELECT USERNAME FROM LA_USER_ROLES WHERE AUTHORITY LIKE 'ROLE_TENANT@%')
+                        and t.username not in (select username from la_user_roles where authority like 'ROLE_TENANT@%')
                     </otherwise>
                 </choose>
                 <if test="parameters.nickname != null and parameters.nickname != ''">
-                    AND T.nickname LIKE #{parameters.nickname}
+                    and t.nickname like #{parameters.nickname}
                 </if>
                 <if test="parameters.mobile != null and parameters.mobile != ''">
-                    AND T.mobile LIKE #{parameters.mobile}
+                    and t.mobile like #{parameters.mobile}
                 </if>
                 <if test="parameters.email != null and parameters.email != ''">
-                    AND T.email LIKE #{parameters.email}
+                    and t.email like #{parameters.email}
                 </if>
                 <if test="parameters.authority != null and parameters.authority != ''">
-                    AND UR.authority = #{parameters.authority}
+                    and ur.authority = #{parameters.authority}
                 </if>
                 <if test="parameters.orgIds != null and parameters.orgIds.size > 0">
-                    AND O.orgId IN <foreach collection="parameters.orgIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+                    and o.orgid in <foreach collection="parameters.orgIds" open="(" close=")" separator="," item="item">#{item}</foreach>
                 </if>
                 <if test="parameters.userFields != null and parameters.userFields.size > 0">
                     <foreach collection="parameters.userFields" item="item">
-                        AND EXISTS (
-                            SELECT 1 FROM LA_USER_FIELDS UF
-                            WHERE UF.USERNAME = T.USERNAME
-                              AND UF.FIELD_NAME = #{item.fieldName}
-                              AND UF.FIELD_VALUE = #{item.fieldValue}
-                              AND (UF.TENANT_ID IS NULL OR UF.TENANT_ID = T.TENANT_ID)
+                        and exists (
+                            select 1 from la_user_fields uf
+                            where uf.username = t.username
+                              and uf.field_name = #{item.fieldName}
+                              and uf.field_value = #{item.fieldValue}
+                              and (uf.tenant_id is null or uf.tenant_id = t.tenant_id)
                         )
                     </foreach>
                 </if>
             </if>
         </where>
-        ORDER BY T.created_at DESC, username asc
+        order by t.created_at desc, username asc
     </select>
 
     <!-- 根据租户ID，查询租户管理员用户列表 -->
     <select id="selectUsersByTenantId" parameterType="String" resultMap="TenantUser">
-        SELECT T.username, T.nickname, T.mobile, T.email, T.created_at, T.enabled, T.TENANT_ID,
-        UR.AUTHORITY AS authority, UO.ORGANIZATION_ID AS orgId
-        FROM LA_USERS T
-        INNER JOIN LA_USER_ROLES UR ON UR.USERNAME = T.username
-        INNER JOIN LA_USER_ORGANIZATION UO ON T.username = UO.USERNAME
+        select t.username, t.nickname, t.mobile, t.email, t.created_at, t.enabled, t.tenant_id,
+        ur.authority as authority, uo.organization_id as orgId
+        from la_users t
+        inner join la_user_roles ur on ur.username = t.username
+        inner join la_user_organization uo on t.username = uo.username
         <where>
             <if test="tenantId != null and tenantId != ''">
-                AND UO.ORGANIZATION_ID = #{tenantId}
+                and uo.organization_id = #{tenantId}
             </if>
-            AND UR.AUTHORITY = 'ROLE_TENANT'
+            and ur.authority = 'ROLE_TENANT'
         </where>
-        ORDER BY T.USERNAME
+        order by t.username
     </select>
 
     <!-- 检查手机号是否已经绑定-->
     <select id="checkMobileExists" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS(SELECT 1 FROM LA_USERS T WHERE T.MOBILE = #{mobile})
+        select count(1) from dual where exists(select 1 from la_users t where t.mobile = #{mobile})
     </select>
 
 
     <select id="selectTenantIdByUsername" resultType="java.lang.String">
-        SELECT T.TENANT_ID FROM LA_USER_ORGANIZATION UO
-       INNER JOIN LA_USER_ROLES UR ON UR.USERNAME = UO.USERNAME
-       INNER JOIN LA_TENANT T ON UO.ORGANIZATION_ID = T.TENANT_ID
-        WHERE UR.AUTHORITY = 'ROLE_TENANT'
-          AND UO.USERNAME = #{username}
+        select t.tenant_id from la_user_organization uo
+       inner join la_user_roles ur on ur.username = uo.username
+       inner join la_tenant t on uo.organization_id = t.tenant_id
+        where ur.authority = 'ROLE_TENANT'
+          and uo.username = #{username}
     </select>
 </mapper>

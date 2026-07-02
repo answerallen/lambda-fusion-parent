@@ -37,57 +37,57 @@
     </resultMap>
 
     <select id="selectConfigPage" resultMap="ConfigVOMap">
-        SELECT T1.PROPERTY_ID, T1.PROPERTY_NAME, T1.PROPERTY_KEY, T1.PROPERTY_VALUE, T1.PROPERTY_TYPE, T1.PROPERTY_DESC, T1.APPLICATION
-        FROM LA_CONFIGS T1
+        select t1.property_id, t1.property_name, t1.property_key, t1.property_value, t1.property_type, t1.property_desc, t1.application
+        from la_configs t1
         <where>
             <if test="parameters != null">
                 <if test="parameters.key != null and parameters.key != ''">
-                    T1.PROPERTY_KEY LIKE CONCAT(#{parameters.key}, '%')
+                    t1.property_key like concat(#{parameters.key}, '%')
                 </if>
                 <choose>
                     <when test="parameters.tenantOnly != null and parameters.tenantOnly == 1">
-                        AND T1.APPLICATION IN ('tenant_custom', 'tenant_system')
+                        and t1.application in ('tenant_custom', 'tenant_system')
                     </when>
                     <otherwise>
                         <if test="parameters.application != null and parameters.application != ''">
-                            AND T1.APPLICATION = #{parameters.application}
+                            and t1.application = #{parameters.application}
                         </if>
                     </otherwise>
                 </choose>
                 <if test="parameters.name != null and parameters.name != ''">
-                    AND T1.PROPERTY_NAME LIKE CONCAT('%', #{parameters.name}, '%')
+                    and t1.property_name like concat('%', #{parameters.name}, '%')
                 </if>
             </if>
         </where>
-        ORDER BY T1.PROPERTY_KEY
+        order by t1.property_key
     </select>
 
     <select id="checkExist" resultType="boolean">
-        SELECT CASE WHEN COUNT(1) > 0 THEN 1 ELSE 0 END 
-        FROM LA_CONFIGS 
-        WHERE PROPERTY_KEY = #{key} AND APPLICATION = #{application}
+        select case when count(1) > 0 then 1 else 0 end
+        from la_configs
+        where property_key = #{key} and application = #{application}
     </select>
 
     <select id="selectConfigById" resultMap="ConfigEntityMap">
-        SELECT T1.PROPERTY_ID, T1.PROPERTY_NAME, T1.PROPERTY_KEY, T1.PROPERTY_VALUE, T1.PROPERTY_TYPE, T1.PROPERTY_DESC,
-            T1.APPLICATION, T2.OPTION_ID, T2.OPTION_NAME, T2.OPTION_VALUE, T2.OPTION_DESC
-        FROM LA_CONFIGS T1
-            LEFT JOIN LA_CONFIG_OPTIONS T2 ON T1.PROPERTY_ID = T2.PROPERTY_ID AND T1.APPLICATION = T2.APPLICATION
-        WHERE T1.PROPERTY_ID = #{id}
+        select t1.property_id, t1.property_name, t1.property_key, t1.property_value, t1.property_type, t1.property_desc,
+            t1.application, t2.option_id, t2.option_name, t2.option_value, t2.option_desc
+        from la_configs t1
+            left join la_config_options t2 on t1.property_id = t2.property_id and t1.application = t2.application
+        where t1.property_id = #{id}
     </select>
 
     <select id="selectAllSystemConfigs" resultMap="ConfigEntityMap">
-        SELECT T1.PROPERTY_ID, T1.PROPERTY_NAME, T1.PROPERTY_KEY, T1.PROPERTY_VALUE, T1.PROPERTY_TYPE, T1.PROPERTY_DESC, T1.APPLICATION,
-            T2.OPTION_ID, T2.OPTION_NAME, T2.OPTION_VALUE, T2.OPTION_DESC
-        FROM LA_CONFIGS T1
-            LEFT JOIN LA_CONFIG_OPTIONS T2 ON T1.PROPERTY_ID = T2.PROPERTY_ID AND T1.APPLICATION = T2.APPLICATION
+        select t1.property_id, t1.property_name, t1.property_key, t1.property_value, t1.property_type, t1.property_desc, t1.application,
+            t2.option_id, t2.option_name, t2.option_value, t2.option_desc
+        from la_configs t1
+            left join la_config_options t2 on t1.property_id = t2.property_id and t1.application = t2.application
         <where>
-            <if test="application != null and application != ''">T1.APPLICATION = #{application}</if>
+            <if test="application != null and application != ''">t1.application = #{application}</if>
             <if test="ids != null and ids.size() > 0">
-                AND T1.PROPERTY_ID IN 
+                and t1.property_id in
                 <foreach collection="ids" item="item" separator="," open="(" close=")">#{item}</foreach>
             </if>
         </where>
-        ORDER BY T1.PROPERTY_KEY
+        order by t1.property_key
     </select>
 </mapper>

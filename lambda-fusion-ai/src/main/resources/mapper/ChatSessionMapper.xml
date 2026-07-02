@@ -27,27 +27,27 @@
 
     <!-- Select session by ID with version for optimistic locking -->
     <select id="selectByIdWithVersion" resultMap="BaseResultMap">
-        SELECT id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
+        select id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
-        FROM ai_chat_session
-        WHERE id = #{sessionId}
+        from ai_chat_session
+        where id = #{sessionId}
     </select>
 
     <!-- 按用户ID查询会话列表 -->
     <select id="listByUserId" resultMap="BaseResultMap">
-        SELECT id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
+        select id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
-        FROM ai_chat_session
-        WHERE user_id = #{userId}
-        ORDER BY last_message_at DESC NULLS LAST, created_at DESC
+        from ai_chat_session
+        where user_id = #{userId}
+        order by last_message_at desc nulls last, created_at desc
     </select>
 
     <!-- Update session by ID with version check for optimistic locking -->
     <update id="updateByIdWithVersion">
-        UPDATE ai_chat_session
-        SET version = version + 1,
+        update ai_chat_session
+        set version = version + 1,
             title = #{title},
             kb_id = #{kbId},
             user_id = #{userId},
@@ -60,61 +60,61 @@
             total_tokens = #{totalTokens},
             total_cost = #{totalCost},
             status = #{status},
-            updated_at = NOW(),
+            updated_at = now(),
             last_message_at = #{lastMessageAt}
-        WHERE id = #{id} AND version = #{version}
+        where id = #{id} and version = #{version}
     </update>
 
     <!-- 按用户ID和状态查询会话 -->
     <select id="selectByUserIdAndStatus" resultMap="BaseResultMap">
-        SELECT id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
+        select id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
-        FROM ai_chat_session
-        WHERE user_id = #{userId}
+        from ai_chat_session
+        where user_id = #{userId}
         <if test="status != null and status != ''">
-            AND status = #{status}
+            and status = #{status}
         </if>
-        ORDER BY last_message_at DESC NULLS LAST
+        order by last_message_at desc nulls last
     </select>
 
     <!-- 按租户ID查询会话 -->
     <select id="selectByTenantId" resultMap="BaseResultMap">
-        SELECT id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
+        select id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
-        FROM ai_chat_session
-        WHERE tenant_id = #{tenantId}
+        from ai_chat_session
+        where tenant_id = #{tenantId}
         <if test="status != null and status != ''">
-            AND status = #{status}
+            and status = #{status}
         </if>
-        ORDER BY created_at DESC
+        order by created_at desc
     </select>
 
     <!-- 查询过期会话(超过30天未活动) -->
     <select id="selectExpiredSessions" resultMap="BaseResultMap">
-        SELECT id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
+        select id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
-        FROM ai_chat_session
-        WHERE status = 'ACTIVE'
-        AND (last_message_at IS NULL OR last_message_at &lt; CURRENT_TIMESTAMP - INTERVAL '30 days')
-        ORDER BY last_message_at ASC NULLS FIRST
+        from ai_chat_session
+        where status = 'ACTIVE'
+        and (last_message_at is null or last_message_at &lt; current_timestamp - interval '30 days')
+        order by last_message_at asc nulls first
     </select>
 
     <!-- 批量更新状态 -->
     <update id="updateStatusBatch">
         <foreach collection="sessionIds" item="id" separator=";">
-            UPDATE ai_chat_session
-            SET status = #{status}, updated_at = NOW()
-            WHERE id = #{id}
+            update ai_chat_session
+            set status = #{status}, updated_at = now()
+            where id = #{id}
         </foreach>
     </update>
 
     <!-- 批量删除会话 -->
     <delete id="deleteByUserIdBatch">
-        DELETE FROM ai_chat_session
-        WHERE user_id IN
+        delete from ai_chat_session
+        where user_id in
         <foreach collection="userIds" item="userId" open="(" separator="," close=")">
             #{userId}
         </foreach>
@@ -122,8 +122,8 @@
 
     <!-- 统计用户活跃会话数 -->
     <select id="countActiveSessionsByUserId" resultType="java.lang.Integer">
-        SELECT COUNT(*) FROM ai_chat_session
-        WHERE user_id = #{userId} AND status = 'ACTIVE'
+        select count(*) from ai_chat_session
+        where user_id = #{userId} and status = 'ACTIVE'
     </select>
 
 </mapper>

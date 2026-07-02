@@ -4,45 +4,45 @@
 
     <!-- 按会话ID查询消息列表 -->
     <select id="listBySessionId" resultType="com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity">
-        SELECT * FROM ai_chat_message
-        WHERE session_id = #{sessionId}
-        ORDER BY created_at DESC
+        select * from ai_chat_message
+        where session_id = #{sessionId}
+        order by created_at desc
         <if test="limit != null">
-            LIMIT #{limit}
+            limit #{limit}
         </if>
     </select>
 
     <!-- 按会话ID和角色查询 -->
     <select id="selectBySessionIdAndRole" resultType="com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity">
-        SELECT * FROM ai_chat_message
-        WHERE session_id = #{sessionId}
+        select * from ai_chat_message
+        where session_id = #{sessionId}
         <if test="role != null and role != ''">
-            AND role = #{role}
+            and role = #{role}
         </if>
-        ORDER BY created_at DESC
+        order by created_at desc
         <if test="limit != null">
-            LIMIT #{limit}
+            limit #{limit}
         </if>
     </select>
 
     <!-- 统计会话消息数 -->
     <select id="countBySessionId" resultType="java.lang.Integer">
-        SELECT COUNT(*) FROM ai_chat_message
-        WHERE session_id = #{sessionId}
+        select count(*) from ai_chat_message
+        where session_id = #{sessionId}
     </select>
 
     <!-- 批量删除会话消息 -->
     <delete id="deleteBySessionId">
-        DELETE FROM ai_chat_message
-        WHERE session_id = #{sessionId}
+        delete from ai_chat_message
+        where session_id = #{sessionId}
     </delete>
 
     <!-- 批量更新反馈 -->
     <update id="updateFeedbackBatch">
         <foreach collection="feedbackMap.entrySet()" item="entry" separator=";">
-            UPDATE ai_chat_message
-            SET user_feedback = #{entry.value}
-            WHERE id = #{entry.key}
+            update ai_chat_message
+            set user_feedback = #{entry.value}
+            where id = #{entry.key}
         </foreach>
     </update>
 

@@ -25,30 +25,30 @@
 
 
     <update id="updateStatus">
-        UPDATE ai_workflow_execution
-        SET status = #{status}, progress = #{progress}
-        WHERE id = #{id}
+        update ai_workflow_execution
+        set status = #{status}, progress = #{progress}
+        where id = #{id}
     </update>
 
     <update id="updateCompletion">
-        UPDATE ai_workflow_execution
-        SET status = #{status},
+        update ai_workflow_execution
+        set status = #{status},
             output_result = #{outputResult},
             execution_log = #{executionLog},
             completed_at = #{completedAt},
             duration_ms = #{durationMs},
             progress = 100
-        WHERE id = #{id}
+        where id = #{id}
     </update>
 
     <update id="updateFailure">
-        UPDATE ai_workflow_execution
-        SET status = 'FAILED',
+        update ai_workflow_execution
+        set status = 'FAILED',
             error_code = #{errorCode},
             error_message = #{errorMessage},
             error_stack = #{errorStack},
             completed_at = #{completedAt}
-        WHERE id = #{id}
+        where id = #{id}
     </update>
 
 </mapper>

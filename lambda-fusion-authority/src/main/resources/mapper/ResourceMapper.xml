@@ -3,113 +3,113 @@
 
 <mapper namespace="com.lambda.fusion.authority.resource.mapper.ResourceMapper">
     <select id="getAllChildren" resultType="com.lambda.fusion.authority.resource.model.Resource">
-        SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
-        FROM LA_RESOURCES T
-        WHERE T.IS_DEV = 0
+        select t.id, t.res_name, t.order_no, t.parent_id, t.res_path, t.res_level, t.icon, t.method, t.res_type, t.hidden, t.res_mode
+        from la_resources t
+        where t.is_dev = 0
         <if test="authorities != null and authorities.size > 0">
-            AND T.id IN (
-            SELECT DISTINCT T2.RESOURCE_ID FROM LA_ROLE_RESOURCES T2 WHERE T2.AUTHORITY IN
+            and t.id in (
+            select distinct t2.resource_id from la_role_resources t2 where t2.authority in
             <foreach collection="authorities" item="item" separator="," open="(" close=")">#{item}</foreach>
             )
         </if>
         <if test="parentKeys != null">
-            AND T.PARENT_KEYS LIKE CONCAT(#{parentKeys}, '%')
+            and t.parent_keys like concat(#{parentKeys}, '%')
         </if>
-        ORDER BY T.RES_LEVEL, T.ORDER_NO
+        order by t.res_level, t.order_no
     </select>
     <select id="getAllParents" resultType="com.lambda.fusion.authority.resource.model.Resource">
-        SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
-        FROM LA_RESOURCES T
-        WHERE T.IS_DEV = 0
+        select t.id, t.res_name, t.order_no, t.parent_id, t.res_path, t.res_level, t.icon, t.method, t.res_type, t.hidden, t.res_mode
+        from la_resources t
+        where t.is_dev = 0
         <if test="authorities != null and authorities.size > 0">
-            AND T.id IN (
-            SELECT DISTINCT T2.RESOURCE_ID FROM LA_ROLE_RESOURCES T2 WHERE T2.AUTHORITY IN
+            and t.id in (
+            select distinct t2.resource_id from la_role_resources t2 where t2.authority in
             <foreach collection="authorities" item="item" separator="," open="(" close=")">#{item}</foreach>
             )
         </if>
         <if test="parentKeys != null">
-            AND T.id IN
+            and t.id in
             <foreach collection="parentKeys" item="item" separator="," open="(" close=")">#{item}</foreach>
         </if>
-        ORDER BY T.RES_LEVEL, T.ORDER_NO
+        order by t.res_level, t.order_no
     </select>
     <!-- 递归查询所有资源 -->
     <select id="getDirectChildren" resultType="com.lambda.fusion.authority.resource.model.ResourceTree">
-        SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.RES_MODE
-        FROM LA_RESOURCES T
+        select t.id, t.res_name, t.order_no, t.parent_id, t.res_path, t.res_level, t.icon, t.method, t.res_type, t.hidden, t.res_mode
+        from la_resources t
         <where>
             <if test="id != null">
-                AND T.PARENT_ID = #{id}
+                and t.parent_id = #{id}
             </if>
             <if test="id == null">
-                AND T.PARENT_ID IS NULL
+                and t.parent_id is null
             </if>
         </where>
-        ORDER BY T.ORDER_NO
+        order by t.order_no
     </select>
     <!-- 根据ID查询下级所有资源 -->
     <select id="queryAllChildren" resultType="com.lambda.fusion.authority.resource.model.ResourceTree">
-        SELECT T.ID, T.RES_NAME, T.ORDER_NO, T.PARENT_ID, T.RES_PATH, T.RES_LEVEL, T.ICON, T.METHOD, T.RES_TYPE, T.HIDDEN, T.PARENT_KEYS, T.RES_MODE
-        FROM LA_RESOURCES T
-        WHERE T.PARENT_KEYS LIKE CONCAT(#{parentKeys}, '%')
-        ORDER BY T.RES_LEVEL, T.ORDER_NO
+        select t.id, t.res_name, t.order_no, t.parent_id, t.res_path, t.res_level, t.icon, t.method, t.res_type, t.hidden, t.parent_keys, t.res_mode
+        from la_resources t
+        where t.parent_keys like concat(#{parentKeys}, '%')
+        order by t.res_level, t.order_no
     </select>
 
     <!-- 删除资源相关角色列表 -->
     <delete id="deleteRolesResource">
-        DELETE FROM LA_ROLE_RESOURCES WHERE RESOURCE_ID IN
+        delete from la_role_resources where resource_id in
         <foreach collection="collection" open="(" close=")" separator="," item="id">#{id}</foreach>
     </delete>
     <!-- 是否包含下级资源 -->
     <select id="hasChildren" parameterType="string" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.PARENT_ID = #{id})
+        select count(1) from dual where exists (select 1 from la_resources t where t.parent_id = #{id})
     </select>
 
     <!-- 是否包含下级按钮 -->
     <select id="hasButton" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.PARENT_ID = #{pid} AND T.ID != #{id}
-        AND T.RES_TYPE = 3)
+        select count(1) from dual where exists (select 1 from la_resources t where t.parent_id = #{pid} and t.id != #{id}
+        and t.res_type = 3)
     </select>
 
     <!-- 是否包含下级非按钮资源 -->
     <select id="hasNotButton" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_RESOURCES T WHERE T.PARENT_ID = #{pid} AND T.ID != #{id}
-        AND T.RES_TYPE != 3)
+        select count(1) from dual where exists (select 1 from la_resources t where t.parent_id = #{pid} and t.id != #{id}
+        and t.res_type != 3)
     </select>
 
     <!-- 查询可用的所有资源 -->
     <select id="getAllResourcesByOrderNo"
             resultType="com.lambda.fusion.authority.resource.model.Resource">
-        SELECT ID, RES_NAME, RES_PATH, PARENTID, ICO, METHOD, RES_LEVEL, REMARK, ORDER_NO, RES_TYPE, RES_MODE, HIDDEN, PARENTKEYS FROM LA_RESOURCES ORDER BY ORDER_NO
+        select id, res_name, res_path, parentid, ico, method, res_level, remark, order_no, res_type, res_mode, hidden, parentkeys from la_resources order by order_no
     </select>
     <!-- 批量排序 -->
     <update id="updateResourceOrdered">
-        UPDATE LA_RESOURCES SET ORDER_NO = CASE
+        update la_resources set order_no = case
         <foreach collection="list" item="item">
-            WHEN ID = #{item.id} THEN #{item.orderNo}
+            when id = #{item.id} then #{item.orderNo}
         </foreach>
-        END
-        WHERE id IN
+        end
+        where id in
         <foreach collection="list" item="item" separator="," open="(" close=")">
             #{item.id}
         </foreach>
     </update>
     <!-- 批量隐藏资源 -->
     <update id="updateResourceIsHidden">
-        UPDATE LA_RESOURCES SET hidden = #{status}
-        WHERE id IN
+        update la_resources set hidden = #{status}
+        where id in
         <foreach collection="list" item="item" separator="," open="(" close=")">
             #{item.id}
         </foreach>
     </update>
 
     <update id="updateResourceLevel">
-        UPDATE LA_RESOURCES T SET T.RES_LEVEL = CASE
+        update la_resources t set t.res_level = case
         <foreach collection="list" item="item">
-            WHEN id = #{item.id} THEN #{item.resLevel}
+            when id = #{item.id} then #{item.resLevel}
         </foreach>
-        END
-        WHERE id IN
+        end
+        where id in
         <foreach collection="list" item="item" separator="," open="(" close=")">
             #{item.id}
         </foreach>
@@ -117,28 +117,28 @@
 
     <select id="getAllResources"
             resultType="com.lambda.fusion.authority.resource.model.Resource">
-        SELECT
-            T.ID, T.RES_NAME, T.RES_PATH, T.PARENT_ID, T.ICON, T.METHOD, T.RES_LEVEL, T.ORDER_NO, T.RES_TYPE, T.HIDDEN, T.PARENT_KEYS, T.RES_MODE
-        FROM LA_RESOURCES T
-        ORDER BY T.RES_LEVEL, T.ORDER_NO
+        select
+            t.id, t.res_name, t.res_path, t.parent_id, t.icon, t.method, t.res_level, t.order_no, t.res_type, t.hidden, t.parent_keys, t.res_mode
+        from la_resources t
+        order by t.res_level, t.order_no
     </select>
     <update id="updateResourceParentKeys">
-        UPDATE LA_RESOURCES SET PARENT_KEYS = CASE
+        update la_resources set parent_keys = case
         <foreach collection="list" item="item">
-            WHEN ID = #{item.id} THEN #{item.parentKeys, jdbcType=VARCHAR}
+            when id = #{item.id} then #{item.parentKeys, jdbcType=VARCHAR}
         </foreach>
-        END WHERE id IN
+        end where id in
         <foreach collection="list" item="item" separator="," open="(" close=")">
             #{item.id}
         </foreach>
     </update>
     <update id="updateMovedResource">
-        UPDATE LA_RESOURCES T SET
-            T.ORDER_NO = #{orderNo},
-            T.PARENT_ID = #{parentId, jdbcType=VARCHAR},
-            T.RES_LEVEL = #{resLevel,jdbcType=INTEGER},
-            T.PARENT_KEYS = #{parentKeys, jdbcType=VARCHAR}
-        WHERE T.id = #{id}
+        update la_resources t set
+            t.order_no = #{orderNo},
+            t.parent_id = #{parentId, jdbcType=VARCHAR},
+            t.res_level = #{resLevel,jdbcType=INTEGER},
+            t.parent_keys = #{parentKeys, jdbcType=VARCHAR}
+        where t.id = #{id}
     </update>
 
 </mapper>

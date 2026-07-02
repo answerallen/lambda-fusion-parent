@@ -24,78 +24,78 @@
 
     <!-- 条件查询区域列表 -->
     <select id="selectAreas" resultMap="AreaResult">
-        SELECT ID, PARENT_CODE, AREA_CODE, AREA_NAME, LEVEL, DEPTH, TYPE
-        FROM la_area
+        select id, parent_code, area_code, area_name, level, depth, type
+        from la_area
         <where>
             <choose>
                 <when test="parameters.parentCode  != null and parameters.parentCode  != ''">
-                    PARENT_CODE = #{parameters.parentCode }
+                    parent_code = #{parameters.parentCode }
                 </when>
                 <otherwise>
-                    PARENT_CODE IS NULL
+                    parent_code is null
                 </otherwise>
             </choose>
             <if test="parameters.level != null">
-                AND LEVEL = #{parameters.level}
+                and level = #{parameters.level}
             </if>
             <if test="parameters.depth != null">
-                AND DEPTH = #{parameters.depth}
+                and depth = #{parameters.depth}
             </if>
             <if test="parameters.type != null and parameters.type != ''">
-                AND TYPE = #{parameters.type}
+                and type = #{parameters.type}
             </if>
             <if test="parameters.keyword != null and parameters.keyword != ''">
-                AND AREA_NAME LIKE CONCAT('%', #{parameters.keyword}, '%')
+                and area_name like concat('%', #{parameters.keyword}, '%')
             </if>
         </where>
-        ORDER BY LEVEL, DEPTH, AREA_CODE
+        order by level, depth, area_code
     </select>
 
     <!-- 获取区域树形结构 -->
     <select id="selectAreaTree" resultMap="AreaTreeResult">
-        SELECT ID, AREA_CODE, AREA_NAME, PARENT_CODE, LEVEL, TYPE
-        FROM la_area
+        select id, area_code, area_name, parent_code, level, type
+        from la_area
         <where>
             <choose>
                 <when test="parentCode != null and parentCode != ''">
-                    PARENT_CODE = #{parentCode}
+                    parent_code = #{parentCode}
                 </when>
                 <otherwise>
-                    PARENT_CODE IS NULL
+                    parent_code is null
                 </otherwise>
             </choose>
         </where>
-        ORDER BY LEVEL, AREA_CODE
+        order by level, area_code
     </select>
 
     <!-- 根据区域编码查询 -->
     <select id="selectByAreaCode" resultMap="AreaResult">
-        SELECT ID, PARENT_CODE, AREA_CODE, AREA_NAME, LEVEL, DEPTH, TYPE
-        FROM la_area
-        WHERE AREA_CODE = #{areaCode}
+        select id, parent_code, area_code, area_name, level, depth, type
+        from la_area
+        where area_code = #{areaCode}
     </select>
 
     <!-- 查询下级区域 -->
     <select id="selectChildren" resultMap="AreaResult">
-        SELECT ID, PARENT_CODE, AREA_CODE, AREA_NAME, LEVEL, DEPTH, TYPE
-        FROM la_area
-        WHERE PARENT_CODE = #{parentCode}
-        ORDER BY AREA_CODE
+        select id, parent_code, area_code, area_name, level, depth, type
+        from la_area
+        where parent_code = #{parentCode}
+        order by area_code
     </select>
 
     <!-- 检查区域编码是否存在 -->
     <select id="hasExists" resultType="boolean">
-        SELECT COUNT(1) > 0 FROM la_area WHERE AREA_CODE = #{areaCode}
+        select count(1) > 0 from la_area where area_code = #{areaCode}
     </select>
 
     <!-- 检查是否存在子区域 -->
     <select id="hasChildren" resultType="boolean">
-        SELECT COUNT(1) > 0 FROM la_area WHERE PARENT_CODE = #{parentCode}
+        select count(1) > 0 from la_area where parent_code = #{parentCode}
     </select>
 
     <!-- 根据区域编码删除 -->
     <delete id="deleteByAreaCode">
-        DELETE FROM la_area WHERE AREA_CODE = #{areaCode}
+        delete from la_area where area_code = #{areaCode}
     </delete>
 
 </mapper>

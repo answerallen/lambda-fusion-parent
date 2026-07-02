@@ -12,222 +12,222 @@
     </resultMap>
 
     <select id="queryRoles" resultType="com.lambda.fusion.authority.role.model.Role">
-        SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, (CASE WHEN T.GROUP_ID IS NULL THEN 'default' ELSE T.GROUP_ID END) AS groupId
-        FROM LA_ROLES T WHERE ENABLED = 1
+        select t.authority as authority, t.alias as alias, (case when t.group_id is null then 'default' else t.group_id end) as groupId
+        from la_roles t where enabled = 1
         <if test="excludes != null and excludes.size > 0">
-            AND T.AUTHORITY NOT IN <foreach collection="excludes" item="item" open="(" close=")" separator=",">#{item}</foreach>
+            and t.authority not in <foreach collection="excludes" item="item" open="(" close=")" separator=",">#{item}</foreach>
         </if>
         <choose>
             <when test="tenantId != null and tenantId != ''">
-                AND T.TENANT_ID = #{tenantId}
+                and t.tenant_id = #{tenantId}
             </when>
             <otherwise>
-                AND T.TENANT_ID IS NULL
+                and t.tenant_id is null
             </otherwise>
         </choose>
-        ORDER BY T.ALIAS
+        order by t.alias
     </select>
 
     <select id="pageRoles" resultType="com.lambda.fusion.authority.role.model.Role">
-        SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, T.TENANT_ID AS tenantId, T.ENABLED AS enabled, T.ROLE_TYPE AS roleType, T.DATA_TYPE AS dataType, T.ICON AS icon, T.REMARKS AS remarks, T.created_at AS createdAt,
-               CASE WHEN T.GROUP_ID IS NULL THEN 'default' ELSE T.GROUP_ID END AS groupId
-        FROM LA_ROLES T
+        select t.authority as authority, t.alias as alias, t.tenant_id as tenantId, t.enabled as enabled, t.role_type as roleType, t.data_type as dataType, t.icon as icon, t.remarks as remarks, t.created_at as createdAt,
+               case when t.group_id is null then 'default' else t.group_id end as groupId
+        from la_roles t
         <where>
             <if test="parameters.excludes != null and parameters.excludes.size > 0">
-                AND T.AUTHORITY NOT IN <foreach collection="parameters.excludes" item="item" open="(" close=")" separator=",">#{item}</foreach>
+                and t.authority not in <foreach collection="parameters.excludes" item="item" open="(" close=")" separator=",">#{item}</foreach>
             </if>
             <if test="parameters.groupId != null and parameters.groupId != ''">
-                AND T.GROUP_ID = #{parameters.groupId}
+                and t.group_id = #{parameters.groupId}
             </if>
             <if test="parameters.alias != null and parameters.alias != ''">
-                AND T.ALIAS LIKE #{parameters.alias}
+                and t.alias like #{parameters.alias}
             </if>
             <choose>
                 <when test="parameters.tenantId != null and parameters.tenantId != ''">
-                    AND T.TENANT_ID = #{parameters.tenantId}
+                    and t.tenant_id = #{parameters.tenantId}
                 </when>
                 <otherwise>
-                    AND T.TENANT_ID IS NULL
+                    and t.tenant_id is null
                 </otherwise>
             </choose>
         </where>
-        ORDER BY T.ALIAS
+        order by t.alias
     </select>
 
     <insert id="insertRole" parameterType="com.lambda.fusion.authority.role.model.Role">
-        INSERT INTO LA_ROLES (AUTHORITY, ALIAS, ICON, REMARKS, created_at, TENANT_ID, OWNER, ROLE_TYPE, DATA_TYPE, ENABLED, GROUP_ID)
-        VALUES(
+        insert into la_roles (authority, alias, icon, remarks, created_at, tenant_id, owner, role_type, data_type, enabled, group_id)
+        values(
         #{authority},
         #{alias}, #{icon,jdbcType=VARCHAR}, #{remarks,jdbcType=VARCHAR},
         #{createdAt}, #{tenantId,jdbcType=VARCHAR}, #{owner,jdbcType=VARCHAR}, #{roleType,jdbcType=INTEGER}, #{dataType,jdbcType=INTEGER}, 1, #{groupId})
     </insert>
     <select id="getRoleByAuthority" parameterType="string" resultType="com.lambda.fusion.authority.role.model.Role">
-        SELECT AUTHORITY AS authority, ALIAS AS alias, ROLE_TYPE AS roleType, DATA_TYPE AS dataType, ENABLED AS enabled, ICON AS icon, REMARKS AS remarks, created_at AS createdAt,
-               CASE WHEN GROUP_ID IS NULL THEN 'default' ELSE GROUP_ID END AS groupId
-        FROM LA_ROLES WHERE AUTHORITY = #{authority}
+        select authority as authority, alias as alias, role_type as roleType, data_type as dataType, enabled as enabled, icon as icon, remarks as remarks, created_at as createdAt,
+               case when group_id is null then 'default' else group_id end as groupId
+        from la_roles where authority = #{authority}
     </select>
     <delete id="deleteUserRoleByAuthority" parameterType="string">
-        DELETE FROM LA_USER_ROLES WHERE authority = #{authority}
+        delete from la_user_roles where authority = #{authority}
     </delete>
     <delete id="deleteRoleByAuthority" parameterType="string">
-        DELETE FROM LA_ROLES WHERE authority = #{authority}
+        delete from la_roles where authority = #{authority}
     </delete>
     <update id="updateRole" parameterType="com.lambda.fusion.authority.role.model.Role">
-        UPDATE LA_ROLES SET
-        ALIAS = #{alias,jdbcType=VARCHAR},
-        REMARKS = #{remarks,jdbcType=VARCHAR},
-        ROLE_TYPE = #{roleType,jdbcType=INTEGER},
-        DATA_TYPE = #{dataType,jdbcType=INTEGER},
-        ENABLED = #{enabled,jdbcType=INTEGER},
-        GROUP_ID = #{groupId,jdbcType=VARCHAR}
-        WHERE AUTHORITY = #{authority}
+        update la_roles set
+        alias = #{alias,jdbcType=VARCHAR},
+        remarks = #{remarks,jdbcType=VARCHAR},
+        role_type = #{roleType,jdbcType=INTEGER},
+        data_type = #{dataType,jdbcType=INTEGER},
+        enabled = #{enabled,jdbcType=INTEGER},
+        group_id = #{groupId,jdbcType=VARCHAR}
+        where authority = #{authority}
     </update>
     <!-- 检查角色名是否存在 -->
     <select id="hasExists" parameterType="String" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_ROLES T WHERE T.authority = #{authority})
+        select count(1) from dual where exists (select 1 from la_roles t where t.authority = #{authority})
     </select>
 
     <!-- 删除角色权限 -->
     <delete id="deleteAuthorization">
-        DELETE FROM LA_ROLE_RESOURCES WHERE AUTHORITY = #{authority} AND RESOURCE_ID = #{id}
+        delete from la_role_resources where authority = #{authority} and resource_id = #{id}
     </delete>
     <delete id="batchDeleteAuthorization">
-        DELETE FROM LA_ROLE_RESOURCES WHERE AUTHORITY = #{authority}
-        AND RESOURCE_ID IN
+        delete from la_role_resources where authority = #{authority}
+        and resource_id in
         <foreach collection="ids" item="item" open="(" close=")" separator=",">
             #{item}
         </foreach>
     </delete>
     <!-- 保存角色授权 -->
     <insert id="saveAuthorization">
-        INSERT INTO LA_ROLE_RESOURCES (RESOURCE_ID, AUTHORITY, TENANT_ID) VALUES (#{id}, #{authority}, #{tenantId, jdbcType=VARCHAR})
+        insert into la_role_resources (resource_id, authority, tenant_id) values (#{id}, #{authority}, #{tenantId, jdbcType=VARCHAR})
     </insert>
 
     <insert id="batchSaveAuthorization">
-        INSERT INTO LA_ROLE_RESOURCES (RESOURCE_ID, AUTHORITY, TENANT_ID) VALUES
+        insert into la_role_resources (resource_id, authority, tenant_id) values
         <foreach collection="list" item="item" separator=",">
             (#{item.id}, #{item.authority}, #{item.tenantId, jdbcType=VARCHAR})
         </foreach>
     </insert>
 
     <update id="batchUpdateAuthorization">
-        UPDATE LA_ROLE_RESOURCES SET TENANT_ID = TENANT_ID WHERE AUTHORITY = #{authority} AND RESOURCE_ID IN
+        update la_role_resources set tenant_id = tenant_id where authority = #{authority} and resource_id in
         <foreach collection="ids" item="item" separator="," open="(" close=")">#{item}</foreach>
     </update>
 
     <select id="hasAuthorized" resultType="String">
-        SELECT RESOURCE_ID FROM LA_ROLE_RESOURCES WHERE AUTHORITY = #{authority}
+        select resource_id from la_role_resources where authority = #{authority}
     </select>
 
     <!-- 根据父节点查询子节点是否全部未选中 -->
     <select id="hasChildrenChecked" resultType="String">
-        SELECT ID FROM LA_RESOURCES T
-        INNER JOIN LA_ROLE_RESOURCES TR ON T.ID = TR.RESOURCE_ID AND TR.AUTHORITY = #{authority}
+        select id from la_resources t
+        inner join la_role_resources tr on t.id = tr.resource_id and tr.authority = #{authority}
         <where>
             <if test="pid == null">
-                T.PARENT_ID IS NULL
+                t.parent_id is null
             </if>
             <if test="pid != null">
-                T.PARENT_ID = #{pid}
+                t.parent_id = #{pid}
             </if>
         </where>
     </select>
 
     <!-- 查询角色是否被使用 -->
     <select id="hasUsedAuthority" parameterType="HashMap" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS (SELECT 1 FROM LA_USER_ROLES WHERE AUTHORITY = #{authority} )
+        select count(1) from dual where exists (select 1 from la_user_roles where authority = #{authority} )
     </select>
 
 
     <!-- 查询组织权限 -->
     <select id="getOrganizationAuthorization" parameterType="HashMap" resultType="com.lambda.fusion.authority.role.model.RoleAuthority">
-        SELECT T.id, T.name, T.PARENT_ID,
-        MAX(CASE WHEN T4.RESOURCE_ID IS NOT NULL THEN 1 ELSE 0 END) AS checked,
-        COUNT(T2.ID) AS counts,
-        SUM(CASE WHEN T3.RESOURCE_ID IS NULL THEN 0 ELSE 1 END) AS existed
-        FROM
-        LA_RESOURCES T
-        LEFT JOIN LA_RESOURCES T2 ON T2.PARENT_ID = T.ID
-        LEFT JOIN LA_ORGANIZATION_RESOURCES T3 ON T3.RESOURCE_ID = T2.ID AND T3.ORGANIZATION_ID = #{organizationid}
-        LEFT JOIN LA_ORGANIZATION_RESOURCES T4 ON T4.RESOURCE_ID = T.ID AND T4.ORGANIZATION_ID = #{organizationid}
+        select t.id, t.name, t.parent_id,
+        max(case when t4.resource_id is not null then 1 else 0 end) as checked,
+        count(t2.id) as counts,
+        sum(case when t3.resource_id is null then 0 else 1 end) as existed
+        from
+        la_resources t
+        left join la_resources t2 on t2.parent_id = t.id
+        left join la_organization_resources t3 on t3.resource_id = t2.id and t3.organization_id = #{organizationid}
+        left join la_organization_resources t4 on t4.resource_id = t.id and t4.organization_id = #{organizationid}
         <where>
             <if test="pid == null">
-                T.PARENT_ID IS NULL
+                t.parent_id is null
             </if>
             <if test="pid != null">
-                T.PARENT_ID = #{pid}
+                t.parent_id = #{pid}
             </if>
         </where>
-        GROUP BY T.ID, T.NAME, T.PARENT_ID, T.ORDER_NO
-        ORDER BY T.ORDER_NO
+        group by t.id, t.name, t.parent_id, t.order_no
+        order by t.order_no
     </select>
     <!-- 查询是否已经为组织授权 -->
     <select id="hasOrganizationAuthorized" parameterType="Map" resultType="boolean">
-        SELECT COUNT(1) FROM DUAL WHERE EXISTS( SELECT 1 FROM LA_ORGANIZATION_RESOURCES WHERE RESOURCE_ID = #{resourceid}
-        AND ORGANIZATION_ID = #{organizationid})
+        select count(1) from dual where exists( select 1 from la_organization_resources where resource_id = #{resourceid}
+        and organization_id = #{organizationid})
     </select>
     <!-- 保存组织授权 -->
     <insert id="saveOrganizationAuthorization" parameterType="HashMap">
-        INSERT INTO LA_ORGANIZATION_RESOURCES (RESOURCE_ID, ORGANIZATION_ID) VALUES (#{resourceid}, #{organizationid})
+        insert into la_organization_resources (resource_id, organization_id) values (#{resourceid}, #{organizationid})
     </insert>
     <!-- 删除组织权限 -->
     <delete id="deleteOrganizationAuthorization" parameterType="HashMap">
-        DELETE FROM LA_ORGANIZATION_RESOURCES WHERE ORGANIZATION_ID = #{organizationid} AND RESOURCE_ID = #{resourceid}
+        delete from la_organization_resources where organization_id = #{organizationid} and resource_id = #{resourceid}
     </delete>
 
     <update id="prohibitRole" parameterType="HashMap">
-         UPDATE LA_ROLES SET enabled = #{enabled} WHERE authority = #{authority}
+         update la_roles set enabled = #{enabled} where authority = #{authority}
     </update>
 
 
     <select id="getTenantRolesByOwner" resultType="com.lambda.fusion.authority.role.model.Role">
-        SELECT T.AUTHORITY AS authority, T.ALIAS AS alias, T.ROLE_TYPE AS roleType, T.DATA_TYPE AS dataType FROM LA_ROLES T WHERE T.OWNER = #{owner}
+        select t.authority as authority, t.alias as alias, t.role_type as roleType, t.data_type as dataType from la_roles t where t.owner = #{owner}
     </select>
 
     <select id="getAccessPermission" resultMap="AccessPermission">
-        SELECT DISTINCT
-            T.id,
-            T.res_name,
-            T.PARENT_ID,
-            T.RES_LEVEL,
-            T.res_type,
-            T.icon,
-            (CASE WHEN T3.RESOURCE_ID IS NOT NULL THEN 1 ELSE 0 END ) AS checked,
-            T.ORDER_NO
-        FROM LA_RESOURCES T
+        select distinct
+            t.id,
+            t.res_name,
+            t.parent_id,
+            t.res_level,
+            t.res_type,
+            t.icon,
+            (case when t3.resource_id is not null then 1 else 0 end ) as checked,
+            t.order_no
+        from la_resources t
         <if test="parameters.authorities != null">
-            INNER JOIN LA_ROLE_RESOURCES T2 ON T2.RESOURCE_ID = T.ID
+            inner join la_role_resources t2 on t2.resource_id = t.id
         </if>
-        LEFT JOIN LA_ROLE_RESOURCES T3 ON T3.RESOURCE_ID = T.ID AND T3.AUTHORITY = #{parameters.authority}
-        WHERE T.IS_DEV = 0 AND T.res_type != 0 AND T.res_mode = #{parameters.mode}
+        left join la_role_resources t3 on t3.resource_id = t.id and t3.authority = #{parameters.authority}
+        where t.is_dev = 0 and t.res_type != 0 and t.res_mode = #{parameters.mode}
         <if test="parameters.authorities != null and parameters.authorities.size > 0">
-            AND T2.AUTHORITY IN
+            and t2.authority in
             <foreach collection="parameters.authorities" item="item" open="(" close=")" separator=",">
                 #{item}
             </foreach>
         </if>
-        ORDER BY T.RES_LEVEL, T.PARENT_ID, T.ORDER_NO
+        order by t.res_level, t.parent_id, t.order_no
     </select>
     <select id="hasAuthorizedWithIntersection" resultType="string">
-        SELECT RESOURCE_ID FROM LA_ROLE_RESOURCES WHERE AUTHORITY = #{authority} AND RESOURCE_ID IN
+        select resource_id from la_role_resources where authority = #{authority} and resource_id in
         <foreach collection="ids" item="item" separator="," open="(" close=")">#{item}</foreach>
     </select>
     <select id="getUserAuthorityByUsername" resultType="com.lambda.fusion.authority.role.model.UserAuthority">
-        SELECT
-            T1.AUTHORITY,
-            T2.ORGANIZATION_ID AS orgId
-        FROM
-            LA_USER_ROLES T1
-            LEFT JOIN LA_USER_ORGANIZATION T2 ON T2.USERNAME = T1.USERNAME
-        WHERE T1.USERNAME = #{uid}
+        select
+            t1.authority,
+            t2.organization_id as orgId
+        from
+            la_user_roles t1
+            left join la_user_organization t2 on t2.username = t1.username
+        where t1.username = #{uid}
     </select>
     <delete id="deleteRoleAuthorizeByTenantId">
-        DELETE FROM LA_ROLE_RESOURCES WHERE authority IN (SELECT AUTHORITY FROM LA_ROLES WHERE TENANT_ID IN
+        delete from la_role_resources where authority in (select authority from la_roles where tenant_id in
         <foreach collection="tenantIds" open="(" close=")" separator="," item="item">#{item}</foreach>
         )
     </delete>
     <delete id="deleteRoleByTenantId">
-        DELETE FROM LA_ROLES WHERE TENANT_ID IN
+        delete from la_roles where tenant_id in
         <foreach collection="tenantIds" open="(" close=")" separator="," item="item">#{item}</foreach>
     </delete>
 </mapper>

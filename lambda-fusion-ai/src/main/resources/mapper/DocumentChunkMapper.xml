@@ -4,66 +4,66 @@
 
     <!-- 按知识库ID和向量化状态查询 -->
     <select id="selectByKbIdAndEmbeddingStatus" resultType="com.lambda.fusion.ai.knowledge.model.entity.DocumentChunkEntity">
-        SELECT * FROM ai_document_chunk
-        WHERE kb_id = #{kbId}
+        select * from ai_document_chunk
+        where kb_id = #{kbId}
         <if test="embeddingStatus != null and embeddingStatus != ''">
-            AND embedding_status = #{embeddingStatus}
+            and embedding_status = #{embeddingStatus}
         </if>
-        ORDER BY created_at DESC
+        order by created_at desc
     </select>
 
     <!-- 统计文档块数 -->
     <select id="countByDocumentId" resultType="java.lang.Integer">
-        SELECT COUNT(*) FROM ai_document_chunk
-        WHERE document_id = #{documentId}
+        select count(*) from ai_document_chunk
+        where document_id = #{documentId}
     </select>
 
     <!-- 统计知识库块数 -->
     <select id="countByKbId" resultType="java.lang.Integer">
-        SELECT COUNT(*) FROM ai_document_chunk
-        WHERE kb_id = #{kbId}
+        select count(*) from ai_document_chunk
+        where kb_id = #{kbId}
     </select>
 
     <!-- 按文档ID和向量化状态查询 -->
     <select id="selectByDocumentIdAndEmbeddingStatus" resultType="com.lambda.fusion.ai.knowledge.model.entity.DocumentChunkEntity">
-        SELECT * FROM ai_document_chunk
-        WHERE document_id = #{documentId}
+        select * from ai_document_chunk
+        where document_id = #{documentId}
         <if test="embeddingStatus != null and embeddingStatus != ''">
-            AND embedding_status = #{embeddingStatus}
+            and embedding_status = #{embeddingStatus}
         </if>
-        ORDER BY chunk_index ASC
+        order by chunk_index asc
     </select>
 
     <!-- 按文档ID批量更新向量化状态 -->
     <update id="updateEmbeddingStatusByDocumentId">
-        UPDATE ai_document_chunk
-        SET embedding_status = #{embeddingStatus}, updated_at = NOW()
-        WHERE document_id = #{documentId}
+        update ai_document_chunk
+        set embedding_status = #{embeddingStatus}, updated_at = now()
+        where document_id = #{documentId}
     </update>
 
     <!-- 按内容哈希查询(去重) -->
     <select id="selectByContentHash" resultType="com.lambda.fusion.ai.knowledge.model.entity.DocumentChunkEntity">
-        SELECT * FROM ai_document_chunk
-        WHERE kb_id = #{kbId} AND content_hash = #{contentHash}
-        LIMIT 1
+        select * from ai_document_chunk
+        where kb_id = #{kbId} and content_hash = #{contentHash}
+        limit 1
     </select>
 
     <!-- 查询待向量化块 -->
     <select id="selectPendingEmbeddingChunks" resultType="com.lambda.fusion.ai.knowledge.model.entity.DocumentChunkEntity">
-        SELECT * FROM ai_document_chunk
-        WHERE embedding_status IN ('PENDING', 'PROCESSING')
-        ORDER BY created_at ASC
+        select * from ai_document_chunk
+        where embedding_status in ('PENDING', 'PROCESSING')
+        order by created_at asc
         <if test="limit != null">
-            LIMIT #{limit}
+            limit #{limit}
         </if>
     </select>
 
     <!-- 统计各向量化状态块数 -->
     <select id="countByKbIdGroupByEmbeddingStatus" resultType="java.util.Map">
-        SELECT embedding_status as status, COUNT(*) as count
-        FROM ai_document_chunk
-        WHERE kb_id = #{kbId}
-        GROUP BY embedding_status
+        select embedding_status as status, count(*) as count
+        from ai_document_chunk
+        where kb_id = #{kbId}
+        group by embedding_status
     </select>
 
 </mapper>

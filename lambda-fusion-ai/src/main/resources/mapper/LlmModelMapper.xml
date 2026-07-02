@@ -4,75 +4,75 @@
 
     <!-- 按模型类型查询 -->
     <select id="listByModelType" resultType="com.lambda.fusion.ai.llm.model.entity.LlmModelEntity">
-        SELECT * FROM ai_llm_model
-        WHERE model_type = #{modelType}
-        ORDER BY is_default DESC, created_at DESC
+        select * from ai_llm_model
+        where model_type = #{modelType}
+        order by is_default desc, created_at desc
     </select>
 
     <!-- 按提供商查询 -->
     <select id="listByProvider" resultType="com.lambda.fusion.ai.llm.model.entity.LlmModelEntity">
-        SELECT * FROM ai_llm_model
-        WHERE provider = #{provider}
-        ORDER BY is_default DESC, created_at DESC
+        select * from ai_llm_model
+        where provider = #{provider}
+        order by is_default desc, created_at desc
     </select>
 
     <!-- 查询默认模型 -->
     <select id="selectDefaultModel" resultType="com.lambda.fusion.ai.llm.model.entity.LlmModelEntity">
-        SELECT * FROM ai_llm_model
-        WHERE model_type = #{modelType}
-        AND is_default = true
-        AND enabled = true
-        LIMIT 1
+        select * from ai_llm_model
+        where model_type = #{modelType}
+        and is_default = true
+        and enabled = true
+        limit 1
     </select>
 
 
     <!-- 查询启用的模型 -->
     <select id="selectEnabledModels" resultType="com.lambda.fusion.ai.llm.model.entity.LlmModelEntity">
-        SELECT * FROM ai_llm_model
-        WHERE enabled = true
+        select * from ai_llm_model
+        where enabled = true
         <if test="modelType != null and modelType != ''">
-            AND model_type = #{modelType}
+            and model_type = #{modelType}
         </if>
-        ORDER BY is_default DESC, created_at DESC
+        order by is_default desc, created_at desc
     </select>
 
     <!-- 按模型类型和提供商查询 -->
     <select id="selectByModelTypeAndProvider" resultType="com.lambda.fusion.ai.llm.model.entity.LlmModelEntity">
-        SELECT * FROM ai_llm_model
-        WHERE model_type = #{modelType}
-        AND provider = #{provider}
-        AND enabled = true
-        ORDER BY is_default DESC, created_at DESC
+        select * from ai_llm_model
+        where model_type = #{modelType}
+        and provider = #{provider}
+        and enabled = true
+        order by is_default desc, created_at desc
     </select>
 
-    <!-- 单条原子增量更新（并发安全，直接 SET field = field + delta） -->
+    <!-- 单条原子增量更新（并发安全，直接 set field = field + delta） -->
     <update id="atomicUpdateStatistics">
-        UPDATE ai_llm_model
-        SET total_calls = total_calls + 1,
+        update ai_llm_model
+        set total_calls = total_calls + 1,
             total_tokens = total_tokens + #{tokenIncrement},
             total_cost = total_cost + #{costIncrement},
-            updated_at = NOW()
-        WHERE id = #{id}
+            updated_at = now()
+        where id = #{id}
     </update>
 
     <!-- 批量更新调用统计 -->
     <update id="updateTotalCallsBatch">
         <foreach collection="list" item="item" separator=";">
-            UPDATE ai_llm_model
-            SET total_calls = total_calls + #{item.callCount},
+            update ai_llm_model
+            set total_calls = total_calls + #{item.callCount},
                 total_tokens = total_tokens + #{item.tokenCount},
                 total_cost = total_cost + #{item.cost},
-                updated_at = NOW()
-            WHERE id = #{item.id}
+                updated_at = now()
+            where id = #{item.id}
         </foreach>
     </update>
 
     <!-- 统计各提供商模型数 -->
     <select id="countByProviderGroupByModelType" resultType="java.util.Map">
-        SELECT provider, model_type, COUNT(*) as count
-        FROM ai_llm_model
-        WHERE enabled = true
-        GROUP BY provider, model_type
+        select provider, model_type, count(*) as count
+        from ai_llm_model
+        where enabled = true
+        group by provider, model_type
     </select>
 
 </mapper>
