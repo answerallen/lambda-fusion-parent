@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.authority.authentication.model.MenuQuery;
 import com.lambda.fusion.authority.resource.model.Resource;
-import com.lambda.fusion.authority.resource.model.ResourceEntity;
+import com.lambda.fusion.authority.resource.model.entity.ResourceEntity;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import java.util.List;
 import java.util.Map;

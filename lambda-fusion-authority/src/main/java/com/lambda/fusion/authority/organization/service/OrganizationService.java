@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.organization.service;
 
 import com.baomidou.mybatisplus.extension.repository.IRepository;
 import com.lambda.fusion.authority.organization.model.*;
+import com.lambda.fusion.authority.organization.model.entity.OrganizationEntity;
 import com.lambda.fusion.authority.resource.model.MoveResource;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.core.identity.UserDetails;

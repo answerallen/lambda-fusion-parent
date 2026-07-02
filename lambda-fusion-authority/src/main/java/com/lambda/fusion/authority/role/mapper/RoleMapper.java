@@ -8,7 +8,7 @@ import com.lambda.fusion.authority.role.model.AccessPermission;
 import com.lambda.fusion.authority.role.model.AuthorityPermission;
 import com.lambda.fusion.authority.role.model.Role;
 import com.lambda.fusion.authority.role.model.RoleAuthority;
-import com.lambda.fusion.authority.role.model.RoleEntity;
+import com.lambda.fusion.authority.role.model.entity.RoleEntity;
 import com.lambda.fusion.authority.role.model.UserAuthority;
 import java.util.List;
 import java.util.Map;

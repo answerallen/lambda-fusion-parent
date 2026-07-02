@@ -2,8 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.lambda.fusion.authority.role.mapper.RoleGroupMapper">
-
-    <select id="getAllGroup" resultType="com.lambda.fusion.authority.role.model.RoleGroupEntity">
+    <select id="getAllGroup" resultType="com.lambda.fusion.authority.role.model.entity.RoleGroupEntity">
         select t.group_id,t.group_name,t.tenant_id
         from la_role_groups t
         <where>

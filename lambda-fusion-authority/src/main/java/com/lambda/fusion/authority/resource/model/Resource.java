@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.resource.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.lambda.cloud.core.annotation.AutoConverter;
+import com.lambda.fusion.authority.resource.model.entity.ResourceEntity;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;

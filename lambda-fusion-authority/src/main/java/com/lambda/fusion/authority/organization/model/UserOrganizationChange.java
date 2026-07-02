@@ -2,6 +2,7 @@ package com.lambda.fusion.authority.organization.model;
 
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
+import com.lambda.fusion.authority.organization.model.entity.UserOrganizationEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;

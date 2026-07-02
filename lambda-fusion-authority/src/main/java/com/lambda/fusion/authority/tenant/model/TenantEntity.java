@@ -132,14 +132,14 @@ public class TenantEntity extends BaseEntity {
      * 地区
      */
     @Schema(description = "区域编码")
-    @TableField("area_code")
+    @TableField("AREA_CODE")
     private String areaCode;
 
     /**
      * 隔离模式
      */
     @Schema(description = "隔离模式")
-    @TableField("isolation_mode")
+    @TableField("ISOLATION_MODE")
     private FusionConstants.IsolationMode isolationMode;
 
     /**

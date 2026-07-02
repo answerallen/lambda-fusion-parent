@@ -1,4 +1,4 @@
-package com.lambda.fusion.authority.organization.model;
+package com.lambda.fusion.authority.organization.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import java.util.Date;
@@ -32,7 +32,7 @@ public class OrganizationEntity {
     @TableField("PARENT_ID")
     private String parentId; // 父ID，NULL 代表顶级
 
-    @TableField("created_at")
+    @TableField("CREATED_AT")
     private Date createdAt; // 创建日期，默认为当前时间
 
     @TableField("REMARKS")
