@@ -16,7 +16,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-@TableName("LA_USER_INFO")
+@TableName("la_user_info")
 @Schema(description = "用户扩展信息")
 public class UserInfoEntity {
     @TableId("USERNAME")

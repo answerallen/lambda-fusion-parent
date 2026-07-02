@@ -15,7 +15,6 @@ public class RoleGroupEntity {
 
     private String groupName;
 
-
     private String tenantId;
 
     @TableField(exist = false)

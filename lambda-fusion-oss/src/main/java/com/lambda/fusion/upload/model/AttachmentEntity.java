@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
-@TableName("LA_ATTACHMENTS")
+@TableName("la_attachments")
 @Schema(description = "附件实体")
 public class AttachmentEntity {
     @TableId("ATTACHMENT_ID")

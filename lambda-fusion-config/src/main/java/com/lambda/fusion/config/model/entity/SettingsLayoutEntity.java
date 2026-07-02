@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
-@TableName("LA_SETTINGS_LAYOUT")
+@TableName("la_settings_layout")
 public class SettingsLayoutEntity {
 
     @TableId("LAYOUT_ID")

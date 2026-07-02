@@ -10,7 +10,7 @@ import lombok.Data;
  *
  */
 @Data
-@TableName("LA_USER_FIELDS")
+@TableName("la_user_fields")
 @Schema(description = "用户自定义字段信息")
 public class UserFieldsEntity {
 

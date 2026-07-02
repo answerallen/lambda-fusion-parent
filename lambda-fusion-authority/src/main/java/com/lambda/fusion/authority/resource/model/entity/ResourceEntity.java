@@ -10,7 +10,7 @@ import lombok.Setter;
 @AutoConverter(target = Resource.class)
 @Getter
 @Setter
-@TableName("LA_RESOURCES")
+@TableName("la_resources")
 public class ResourceEntity {
 
     @TableId

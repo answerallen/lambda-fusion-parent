@@ -13,7 +13,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@TableName(value = "LA_CONFIGS", autoResultMap = true)
+@TableName(value = "la_configs", autoResultMap = true)
 @Schema(description = "配置信息")
 @NoArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP")

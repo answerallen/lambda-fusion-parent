@@ -5,7 +5,7 @@ import java.util.Date;
 import lombok.Data;
 
 @Data
-@TableName("LA_ORGANIZATION")
+@TableName("la_organization")
 public class OrganizationEntity {
 
     @TableId(value = "ID", type = IdType.ASSIGN_UUID)

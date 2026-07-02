@@ -15,7 +15,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-@TableName(value = "LA_CONFIG_OPTIONS", autoResultMap = true)
+@TableName(value = "la_config_options", autoResultMap = true)
 @Schema(description = "选项信息")
 @NoArgsConstructor
 public class ConfigOptionEntity {

@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("LA_USER_ORGANIZATION")
+@TableName("la_user_organization")
 @Data
 public class UserOrganizationEntity {
 

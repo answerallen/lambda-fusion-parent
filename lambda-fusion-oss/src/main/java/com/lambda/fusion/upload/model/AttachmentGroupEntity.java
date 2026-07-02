@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
-@TableName("LA_ATTACHMENT_GROUPS")
+@TableName("la_attachment_groups")
 @Schema(description = "附件分组")
 public class AttachmentGroupEntity {
     @TableId("GROUP_ID")

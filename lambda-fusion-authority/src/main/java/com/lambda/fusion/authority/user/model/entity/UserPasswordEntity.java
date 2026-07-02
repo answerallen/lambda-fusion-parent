@@ -9,7 +9,7 @@ import java.util.Date;
 import lombok.Data;
 
 @Data
-@TableName("LA_USER_PASSWORD_LOGS")
+@TableName("la_user_password_logs")
 @SuppressFBWarnings("EI_EXPOSE_REP")
 @Schema(description = "日志表实体类")
 public class UserPasswordEntity {
