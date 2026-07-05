@@ -7,18 +7,19 @@ import me.zhyd.oauth.exception.AuthException;
 import me.zhyd.oauth.model.AuthCallback;
 import me.zhyd.oauth.model.AuthResponse;
 import me.zhyd.oauth.model.AuthUser;
-import me.zhyd.oauth.request.AuthWechatMiniProgramRequest;
+import me.zhyd.oauth.request.AuthWeChatOpenRequest;
 
 public class WechatOpenLoginAdapter {
 
-    private final AuthWechatMiniProgramRequest authRequest;
+    private final AuthWeChatOpenRequest authRequest;
 
     public WechatOpenLoginAdapter(AuthorityProperties.ThirdPartConfig partConfig) {
         AuthConfig config = AuthConfig.builder()
                 .clientId(partConfig.getWxOpen().getAppId())
                 .clientSecret(partConfig.getWxOpen().getAppSecret())
+                .redirectUri(partConfig.getWxOpen().getRedirectUri())
                 .build();
-        this.authRequest = new AuthWechatMiniProgramRequest(config);
+        this.authRequest = new AuthWeChatOpenRequest(config);
     }
 
     public AuthUser login(String code) {

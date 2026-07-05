@@ -28,7 +28,6 @@ import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
-import com.lambda.security.provider.ThirdPartLoginProvider;
 import com.lambda.security.service.ThirdPartyLoginService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
@@ -86,7 +85,6 @@ public class AuthorityConfigure implements WebMvcConfigurer {
     }
 
     @Configuration(proxyBeanMethods = false)
-    @ConditionalOnClass(ThirdPartLoginProvider.class)
     @ConditionalOnProperty(prefix = "lambda.fusion.authorize.third-part", name = "enabled", havingValue = "true")
     public static class ThirdPartLoginConfiguration {
 

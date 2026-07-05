@@ -16,6 +16,7 @@ public class WechatMaLoginAdapter {
         AuthConfig config = AuthConfig.builder()
                 .clientId(partConfig.getWxMa().getAppId())
                 .clientSecret(partConfig.getWxMa().getAppSecret())
+                .redirectUri(partConfig.getWxMa().getRedirectUri())
                 .build();
         this.authRequest = new AuthWechatMiniProgramRequest(config);
     }

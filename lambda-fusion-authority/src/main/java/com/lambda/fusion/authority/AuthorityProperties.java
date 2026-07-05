@@ -55,6 +55,7 @@ public class AuthorityProperties {
         public static class WxMaConfig {
             private String appId;
             private String appSecret;
+            private String redirectUri = "http://localhost:8080/authorize";
         }
 
         @Data
@@ -70,12 +71,14 @@ public class AuthorityProperties {
         public static class DingTalkConfig {
             private String appId;
             private String appSecret;
+            private String redirectUri = "http://localhost:8080/authorize";
         }
 
         @Data
         public static class WxOpenConfig {
             private String appId;
             private String appSecret;
+            private String redirectUri = "http://localhost:8080/authorize";
         }
     }
 
