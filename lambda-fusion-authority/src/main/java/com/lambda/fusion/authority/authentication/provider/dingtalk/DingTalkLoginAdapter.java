@@ -17,6 +17,7 @@ public class DingTalkLoginAdapter {
         AuthConfig config = AuthConfig.builder()
                 .clientId(partConfig.getDingTalk().getAppId())
                 .clientSecret(partConfig.getDingTalk().getAppSecret())
+                .redirectUri(partConfig.getDingTalk().getRedirectUri())
                 .build();
         this.authRequest = new AuthDingTalkV2Request(config);
     }
