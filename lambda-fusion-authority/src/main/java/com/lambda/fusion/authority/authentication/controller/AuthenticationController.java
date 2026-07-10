@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "访问上下文接口", description = "提供当前登录主体的身份信息、权限集合以及可访问的导航菜单")
 @SaCheckLogin
 @RestController
-@RequestMapping("/")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthenticationController {
 
