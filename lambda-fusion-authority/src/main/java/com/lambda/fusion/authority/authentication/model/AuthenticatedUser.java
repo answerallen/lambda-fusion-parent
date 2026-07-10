@@ -1,12 +1,13 @@
 package com.lambda.fusion.authority.authentication.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.io.Serializable;
 import java.util.List;
 import lombok.Data;
 
 @Data
 @Schema(description = "登陆用户信息")
-public class AuthenticatedUser {
+public class AuthenticatedUser implements Serializable {
     /**
      * 头像
      */

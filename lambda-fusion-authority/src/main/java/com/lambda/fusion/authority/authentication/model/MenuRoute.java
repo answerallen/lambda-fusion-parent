@@ -3,12 +3,13 @@ package com.lambda.fusion.authority.authentication.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.lambda.fusion.core.tree.TreeNode;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
 
 @Data
-public class MenuRoute implements TreeNode<MenuRoute> {
+public class MenuRoute implements TreeNode<MenuRoute>, Serializable {
 
     @JsonIgnore
     @Schema(description = "id")
