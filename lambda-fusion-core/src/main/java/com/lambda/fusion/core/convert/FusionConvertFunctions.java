@@ -10,7 +10,7 @@ public interface FusionConvertFunctions {
     @Named("mapAccountExpired")
     static Boolean mapAccountExpired(LocalDateTime expiredTime) {
         if (expiredTime == null) {
-            return false;
+            return true;
         }
         return !expiredTime.isAfter(LocalDateTime.now());
     }
