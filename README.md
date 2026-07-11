@@ -6,7 +6,7 @@
 
 # 🚀 Lambda Fusion Framework
 
-**基于 Spring Boot 4.0 + JDK 21 构建的全栈企业级微服务开发框架**
+**基于 lambda-cloud 构建的全栈企业级微服务业务开发框架**
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2025.1.x-brightblue.svg)](https://spring.io/projects/spring-cloud)
@@ -19,7 +19,7 @@
 
 ## 📋 项目简介
 
-Lambda Fusion 是以 [**lamuda-cloud-parent**](https://gitee.com/westboy/lamuda-cloud-parent) 为基座的企业级业务开发框架，提供开箱即用的权限管理、配置管理、数据字典、AI 智能平台等核心业务功能，助力快速构建微服务应用。
+Lambda Fusion 是以 [**lambda-cloud-parent**](https://gitee.com/westboy/lamuda-cloud-parent) 为基座的企业级业务开发框架，提供开箱即用的权限管理、配置管理、数据字典、AI 智能平台等核心业务功能，助力快速构建微服务应用。
 
 ### ✨ 核心特性
 
