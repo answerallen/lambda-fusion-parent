@@ -30,24 +30,12 @@
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
-            <artifactId>lambda-cloud-starter-datasource</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.lambda.cloud</groupId>
-            <artifactId>lambda-cloud-starter-mybatis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-redis</artifactId>
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-nacos</artifactId>
             <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.lambda.cloud</groupId>
-            <artifactId>lambda-cloud-starter-oss</artifactId>
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
