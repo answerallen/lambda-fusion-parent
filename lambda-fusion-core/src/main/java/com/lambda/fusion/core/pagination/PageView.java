@@ -9,11 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 /**
  * 分页视图对象，用于返回。
@@ -60,7 +56,7 @@ public class PageView<T> implements Serializable {
      * 从 MyBatis Plus 分页对象转换为分页视图。
      *
      * @param page MyBatis Plus 分页对象
-     * @param <T> 记录类型
+     * @param <T>  记录类型
      * @return 分页视图
      */
     public static <T> PageView<T> of(IPage<T> page) {
@@ -82,15 +78,19 @@ public class PageView<T> implements Serializable {
     /**
      * 从 MyBatis Plus 分页对象转换为分页视图，并映射记录类型。
      *
-     * @param page MyBatis Plus 分页对象
+     * @param page   MyBatis Plus 分页对象
      * @param mapper 记录映射函数
-     * @param <S> 源记录类型
-     * @param <T> 目标记录类型
+     * @param <S>    源记录类型
+     * @param <T>    目标记录类型
      * @return 分页视图
      */
     public static <S, T> PageView<T> of(IPage<S> page, Function<? super S, ? extends T> mapper) {
         Objects.requireNonNull(mapper, "mapper must not be null");
         return PageView.of(page.convert(mapper));
+    }
+
+    public static <T> PageView<T> empty() {
+        return new PageView<>(1, 10, 0, 0, Collections.emptyList(), false, false);
     }
 
     /**
