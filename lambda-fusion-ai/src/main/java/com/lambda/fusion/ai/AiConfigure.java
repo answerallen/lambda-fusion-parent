@@ -1,10 +1,7 @@
 package com.lambda.fusion.ai;
 
-import cn.hutool.core.util.StrUtil;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.fusion.ai.datasource.DatabaseSchemaInitializer;
-import com.lambda.fusion.ai.datasource.TenantDataSourceHelper;
-import com.lambda.fusion.datasource.model.RemoteDataSource;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -16,7 +13,6 @@ import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
 import java.time.Duration;
-import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeoutException;
@@ -160,8 +156,7 @@ public class AiConfigure {
     public ApplicationRunner DatabaseSchemaInitializer(
             ObjectProvider<DatabaseSchemaInitializer> schemaInitializerProvider,
             AiProperties aiProperties,
-            DynamicDataSourceService dynamicDataSourceService,
-            ObjectProvider<TenantDataSourceHelper> tenantHelperProvider) {
+            DynamicDataSourceService dynamicDataSourceService) {
         return args -> {
             // 获取 SchemaInitializer；若 Bean 不存在则跳过全部初始化
             DatabaseSchemaInitializer schemaInitializer = schemaInitializerProvider.getIfAvailable();
@@ -170,47 +165,12 @@ public class AiConfigure {
                 return;
             }
 
-            // ── 步骤 1：初始化默认数据源 ─────────────────────────────
+            // 字段级隔离模型下仅初始化共享 AI 数据源（默认 ai-postgres）
             String defaultDsName = aiProperties.getDataSource().getName();
             log.info("Starting AI schema initialization for default datasource: {}", defaultDsName);
             DataSource defaultDataSource = resolveDataSource(dynamicDataSourceService, defaultDsName);
             if (defaultDataSource != null) {
                 runSchemaInit(schemaInitializer, "default", defaultDataSource);
-            }
-
-            // ── 步骤 2：遍历所有已注册租户，补充初始化各租户 Schema ─────────────
-            TenantDataSourceHelper tenantHelper = tenantHelperProvider.getIfAvailable();
-            if (tenantHelper == null) {
-                log.info("TenantDataSourceHelper not available, skipping tenant schema initialization");
-                return;
-            }
-
-            List<RemoteDataSource> tenantDataSources;
-            try {
-                tenantDataSources = tenantHelper.listEnabledTenantDataSources();
-            } catch (Exception e) {
-                log.warn(
-                        "Failed to enumerate tenant datasources, skipping tenant schema initialization: {}",
-                        e.getMessage());
-                return;
-            }
-
-            if (tenantDataSources == null || tenantDataSources.isEmpty()) {
-                log.info("No enabled tenant datasources found, skipping tenant schema initialization");
-                return;
-            }
-
-            log.info("Found {} enabled tenant datasource(s), initializing AI schemas...", tenantDataSources.size());
-            for (RemoteDataSource tenantDs : tenantDataSources) {
-                String tenantId = tenantDs.getTenantId();
-                if (StrUtil.isEmpty(tenantId) || "default".equals(tenantId)) {
-                    continue;
-                }
-                String tenantDsName = tenantHelper.getTenantDataSourceName(tenantId);
-                DataSource tenantDataSource = resolveDataSource(dynamicDataSourceService, tenantDsName);
-                if (tenantDataSource != null) {
-                    runSchemaInit(schemaInitializer, tenantId, tenantDataSource);
-                }
             }
         };
     }

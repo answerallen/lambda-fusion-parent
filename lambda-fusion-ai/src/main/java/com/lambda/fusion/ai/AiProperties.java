@@ -37,8 +37,6 @@ public class AiProperties {
         private Boolean enabled = true;
 
         private String name = "ai-postgres";
-
-        private String tenantPrefix = "ai-tenant-";
     }
 
     @Data

@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.datasource;
 
-import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import javax.sql.DataSource;
 import liquibase.integration.spring.SpringLiquibase;
 import lombok.extern.slf4j.Slf4j;
@@ -10,14 +9,13 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class DatabaseSchemaInitializer implements TenantSchemaInitializer {
+public class DatabaseSchemaInitializer {
 
     private static final String AI_SCHEMA_CHANGELOG_XML =
             "classpath:META-INF/db/changelogs/lambda-ai-schema-changelog.xml";
     private static final String AI_VECTOR_CHANGELOG_PATH =
             "classpath:META-INF/db/changelogs/lambda-ai-vector-changelog.xml";
 
-    @Override
     public void initializeSchema(String tenantId, DataSource dataSource) {
         log.info("Initializing AI schema for tenant: {}", tenantId);
 
@@ -70,7 +68,6 @@ public class DatabaseSchemaInitializer implements TenantSchemaInitializer {
             liquibase.setContexts("ai");
             liquibase.setDefaultSchema(null);
             liquibase.setShouldRun(true);
-            liquibase.setChangeLogParameters(java.util.Map.of("tenantId", tenantId));
             liquibase.afterPropertiesSet();
 
             log.info(

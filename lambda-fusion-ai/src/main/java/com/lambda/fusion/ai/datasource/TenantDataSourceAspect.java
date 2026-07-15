@@ -1,13 +1,12 @@
 package com.lambda.fusion.ai.datasource;
 
-import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -15,11 +14,9 @@ import org.springframework.stereotype.Component;
 /**
  * AI Service 数据源切面
  * <p>
- * 自动为 AI Service 层方法切换数据源：
- * <ul>
- *   <li>如果存在租户ID，切换到租户专属数据源</li>
- *   <li>否则切换到默认 AI 数据源</li>
- * </ul>
+ * 字段级租户隔离模型下，所有 AI Service 层方法统一路由到共享的 AI 数据源（默认
+ * {@code ai-postgres}）；租户隔离由 {@code tenant_id} 字段过滤完成，不再按租户切换
+ * 独立数据源。
  * </p>
  */
 @Slf4j
@@ -29,24 +26,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TenantDataSourceAspect {
 
-    private final ObjectProvider<TenantDataSourceHelper> tenantDataSourceHelperProvider;
+    private final AiProperties aiProperties;
 
-    @Around("execution(* com.lambda.fusion.ai.service..*.*(..))")
+    @Around("execution(* com.lambda.fusion.ai..*.service..*.*(..))")
     public Object aroundServiceMethods(ProceedingJoinPoint joinPoint) throws Throwable {
-        TenantDataSourceHelper tenantDataSourceHelper = tenantDataSourceHelperProvider.getIfAvailable();
-        if (tenantDataSourceHelper == null) {
-            return joinPoint.proceed();
-        }
-        String tenantId = OperatorUtils.getSafeOperator().getTenantId();
-        String targetDataSource = tenantDataSourceHelper.resolveTargetDataSourceName(tenantId);
-
-        log.debug(
-                "AI Service 数据源切换: 方法={}, 租户ID={}, 目标数据源={}",
-                joinPoint.getSignature().toShortString(),
-                tenantId,
-                targetDataSource);
-
-        try (DataSourceSwitcher ignored = DataSourceSwitcher.switchTo(targetDataSource)) {
+        try (DataSourceSwitcher ignored =
+                DataSourceSwitcher.switchTo(aiProperties.getDataSource().getName())) {
             return joinPoint.proceed();
         }
     }

@@ -10,9 +10,6 @@ import com.lambda.cloud.oss.client.OssClient;
 import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.fusion.ai.AiConstants.Enums.DocumentStatus;
 import com.lambda.fusion.ai.AiProperties;
-import com.lambda.fusion.ai.datasource.TenantDataSourceHelper;
-import com.lambda.fusion.ai.exception.AiBusinessException;
-import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.knowledge.embedding.EmbeddingModelManager;
 import com.lambda.fusion.ai.knowledge.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.knowledge.mapper.DocumentMapper;
@@ -71,28 +68,17 @@ public class DocumentProcessor {
     private final VectorDimensionProcessor vectorDimensionProcessor;
 
     private OssClientManager ossClientManager;
-    private TenantDataSourceHelper tenantDataSourceHelper;
 
     @Autowired
     public void setOssClientManager(OssClientManager ossClientManager) {
         this.ossClientManager = ossClientManager;
     }
 
-    @Autowired(required = false)
-    public void setTenantDataSourceHelper(TenantDataSourceHelper tenantDataSourceHelper) {
-        this.tenantDataSourceHelper = tenantDataSourceHelper;
-    }
-
-    @Async("documentProcessExecutor")
-    public void processDocument(String tenantId, String documentId) {
-        try (DataSourceSwitcher ignored = switchToProcessingDataSource(tenantId)) {
-            processDocumentInCurrentDataSource(documentId);
-        }
-    }
-
     @Async("documentProcessExecutor")
     public void processDocument(String documentId) {
-        processDocument(null, documentId);
+        try (DataSourceSwitcher ignored = switchToProcessingDataSource()) {
+            processDocumentInCurrentDataSource(documentId);
+        }
     }
 
     private void processDocumentInCurrentDataSource(String documentId) {
@@ -253,13 +239,7 @@ public class DocumentProcessor {
         }
     }
 
-    private DataSourceSwitcher switchToProcessingDataSource(String tenantId) {
-        if (StrUtil.isNotBlank(tenantId) && !"default".equalsIgnoreCase(tenantId)) {
-            if (tenantDataSourceHelper == null) {
-                throw new AiBusinessException(AiErrorCode.DATASOURCE_ERROR, "租户数据源助手未启用, tenantId=" + tenantId);
-            }
-            return tenantDataSourceHelper.switchToResolvedDataSource(tenantId);
-        }
+    private DataSourceSwitcher switchToProcessingDataSource() {
         return DataSourceSwitcher.switchTo(aiProperties.getDataSource().getName());
     }
 
