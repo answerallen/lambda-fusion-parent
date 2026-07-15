@@ -71,7 +71,7 @@ lambda-fusion-permission (pom)    # 聚合模块，包含下方两个子模块
 lambda-fusion-config              # dbconfig：ConfigData 加载器（数据库作为配置源）+ 配置管理
                                  #   API + 自动刷新 + 可选 Nacos 发布
 lambda-fusion-dictionary          # 字典类型/字典项、树形与动态字典、枚举扫描注册
-lambda-fusion-datasource          # server/client 动态数据源管理、Dubbo 分发、租户绑定
+lambda-fusion-datasource          # server/client 动态数据源管理、Dubbo 分发
 lambda-fusion-oss                 # 附件管理，基于 lambda-cloud-starter-oss（七牛/S3），按租户隔离
 lambda-fusion-ai                  # RAG 知识库、Agent 工作流、聊天、LLM、MCP、提示词管理
 lambda-fusion-startup             # 可运行演示应用，组装上述全部模块
@@ -91,14 +91,14 @@ fusion 模块之间的 `optional=true` 依赖（如 authority -> datasource/conf
 
 为模块新增功能时：优先通过 `@ConditionalOnClass` / `@ConditionalOnProperty` / `ObjectProvider` 扩展其 `Configure`，而不是添加无条件 Bean；并优先定义可供下游应用覆盖的扩展点接口（如 `ConfigChangeHandler`、`DataViewProvider`、`DictSourceResolver`、`TreeDataFilter`）。
 
-### 横切关注点：租户 + 动态数据源
+### 横切关注点：租户隔离
 
-租户隔离由两个拦截器协作完成，其**执行顺序很重要**：
+租户隔离为**单一共享库 + 字段级隔离**模型：所有业务表通过 `tenant_id` 列区分租户，不再有按租户切换独立数据源（DEDICATED）的能力。
 
-- authority 的 `TenantContextInterceptor` 先解析并设置租户上下文；
-- datasource 的 `TenantDataSourceInterceptor` 在其后执行，根据该上下文切换动态数据源。
+- authority 的 `TenantContextInterceptor` 解析并设置租户上下文（`tenant_id`）；
+- 业务侧通过 `tenant_id` 字段过滤实现隔离，请求期不再按租户切换动态数据源。
 
-若改动租户解析或请求期数据源切换，两者都要检查。动态数据源使用 `dynamic-datasource` 库，配合 `p6spy` 记录 SQL；演示中 `mybatis-plus.tenant.enabled` 默认为 `false`（租户隔离在应用/数据源层处理，而非 MP 的租户拦截器）。
+动态数据源（`dynamic-datasource` + `p6spy`）仍用于多数据源/多库类型等通用场景，但与租户上下文解耦；演示中 `mybatis-plus.tenant.enabled` 默认为 `false`（租户隔离在应用层处理，而非 MP 的租户拦截器）。
 
 ### 数据库迁移（Liquibase）
 

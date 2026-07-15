@@ -2,7 +2,6 @@
 
 `lambda-fusion-datasource` 是 Lambda Fusion 的动态数据源模块，提供：
 - **全局数据源管理**（增删改查、启停、连接测试）
-- **租户数据源绑定**（按用途绑定：租户主库 / AI 专属库）
 - **服务端/客户端双模式同步**（基于 Dubbo 与本地事件的变更广播）
 - **运行时动态数据源接入**（集成 `DynamicDataSourceService`）
 
@@ -12,13 +11,11 @@
 
 - **数据源控制面 + 运行时同步层**，不负责具体业务表的增删改查。
 - 统一管理数据源元信息，将变更实时同步到各节点本地连接池。
-- 多租户场景下，提供按用途（TENANT / AI）绑定数据源与 Schema 初始化编排能力。
 
 | 维度 | 说明 |
 |------|------|
-| **负责** | 数据源元数据管理、租户绑定关系管理、动态数据源注册与移除、Dubbo 变更广播 |
+| **负责** | 数据源元数据管理、动态数据源注册与移除、Dubbo 变更广播 |
 | **不负责** | 业务 SQL 执行、领域模型管理、业务数据迁移 |
-| **扩展点** | Schema 初始化 / 清理由业务侧实现 `TenantSchemaInitializer` / `TenantSchemaCleaner` |
 
 ---
 
@@ -35,7 +32,6 @@
 - `ClientDataSourceInitializer` 后台异步初始化，指数退避重试拉取远程数据源。
 - 首次拉取 `listEnabled()` 后注册到本地 `DynamicDataSourceService`。
 - 通过 `subscribe(clientId, callback)` 监听增量变更。
-- 接收 `INIT_SCHEMA` / `REMOVE_SCHEMA` 事件，触发 `TenantSchemaInitializer` / `TenantSchemaCleaner` 执行 DDL。
 
 ---
 
@@ -56,19 +52,9 @@
 | 字段 | 说明 |
 |------|------|
 | `id` | 数据源唯一标识 |
-| `usage_type` | `FusionConstants.DatabaseUsageType`，字典 `DATABASE_USAGE_TYPE`（1=AI, 2=TENANT） |
+| `usage_type` | `FusionConstants.DatabaseUsageType`，字典 `DATABASE_USAGE_TYPE`（1=AI, 3=BUSINESS） |
 | `status` | `DatasourceConstants.DatasourceStatus`，字典 `DATASOURCE_STATUS`（1=在线, 0=下线） |
 | `jdbc_url/username/password` | 标准 JDBC 连接信息 |
-
-### 4.2 租户绑定表 `la_tenant_datasource`
-实体：`TenantDataSourceEntity`
-
-| 字段 | 说明 |
-|------|------|
-| `tenant_id` | 租户 ID |
-| `datasource_key` | 关联数据源 ID（字段名沿用历史命名） |
-| `usage_type` | 用途约束，每个租户每种用途仅可绑定一个数据源 |
-| `schema_status` | 库结构初始化状态（0=未初始化 / 1=已初始化），仅 TENANT 用途生效 |
 
 ---
 
@@ -92,29 +78,16 @@ ClientDataSourceChangeListener -> 同步至本地 DynamicDataSourceService
 
 ---
 
-## 7. 租户隔离
-
-`TenantIsolationResolver` 通过 `LA_TENANT.isolation_mode` 判断隔离模式：
-- `SHARED`：共享库，忽略独立绑定。
-- `DEDICATED`：独立库，需绑定独立数据源。
-
-内部使用 `ConcurrentHashMap` 实现 30 秒本地缓存以降低查询压力。
-
 ---
 
 ## 9. 编程式数据源切换 (`DataSourceSwitcher`)
 
-底层封装 `baomidou` 的 `DynamicDataSourceContextHolder`，支持 `try-with-resources` 自动恢复。
+底层封装 `baomidou` 的 `DynamicDataSourceContextHolder`，支持 `try-with-resources` 自动恢复。用于多数据源/多库类型等通用场景（与租户隔离解耦）。
 
 ```java
-@Autowired
-private TenantDataSourceManager tenantDataSourceManager;
-
-public void doSomethingInTenantDb(String tenantId) {
-    String dsName = tenantDataSourceManager.getTenantDataSourceName(tenantId, "tenant_");
-    try (DataSourceSwitcher switcher = DataSourceSwitcher.switchTo(dsName)) {
-        userMapper.selectList(null);
-    }
+try (DataSourceSwitcher switcher = DataSourceSwitcher.switchTo("ai-postgres")) {
+    // 在指定数据源上执行
+    userMapper.selectList(null);
 }
 ```
 
@@ -165,8 +138,6 @@ lambda:
 ### 10.4 注意事项
 
 - **统一管控**：生产环境建议由 `server` 模式管理中心维护数据源，业务服务配为 `client` 被动订阅。
-- **用途约束**：`bind` 的 `usageType` 必须与目标数据源注册时一致，否则拒绝绑定。
-- **初始化时机**：TENANT 绑定会重置初始化状态，绑定新主库后应调用 `/init` 完成表结构重建。
 
 ---
 
@@ -177,7 +148,6 @@ lambda:
   fusion:
     datasource:
       mode: server                    # server (默认) | client
-      default-tenant-prefix: tenant_  # 租户数据源命名前缀
       dubbo:
         group: datasource
         version: 1.0.0
