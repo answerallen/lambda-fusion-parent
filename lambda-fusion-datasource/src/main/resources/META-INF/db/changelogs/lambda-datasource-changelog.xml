@@ -78,4 +78,11 @@
         <sql>UPDATE la_tenant_datasource SET usage_type = '2' WHERE usage_type IS NULL;</sql>
     </changeSet>
 
+    <changeSet id="lambda-datasource-202607150101" author="zx">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="la_tenant_datasource"/>
+        </preConditions>
+        <dropTable tableName="la_tenant_datasource"/>
+    </changeSet>
+
 </databaseChangeLog>

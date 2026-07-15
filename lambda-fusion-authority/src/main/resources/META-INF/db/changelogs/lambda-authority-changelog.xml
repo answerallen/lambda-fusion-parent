@@ -545,6 +545,13 @@
         </createIndex>
     </changeSet>
 
+    <changeSet id="lambda-authority-202607150101" author="zx">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="la_tenant" columnName="ISOLATION_MODE"/>
+        </preConditions>
+        <dropColumn tableName="la_tenant" columnName="ISOLATION_MODE"/>
+    </changeSet>
+
     <include file="lambda-authority-data-init-changelog.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
