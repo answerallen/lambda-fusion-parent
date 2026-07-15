@@ -62,3 +62,5 @@ evn
 /.idea/uiDesigner.xml
 /.idea/vcs.xml
 /.idea/workspace.xml
+/**/lombok.config
+/**/**/lombok.config
