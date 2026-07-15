@@ -192,7 +192,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         // 2. 删除向量数据（遍历所有维度分表）
         if (kb != null) {
             for (Integer dimension : VectorDimensionProcessor.SUPPORTED_DIMENSIONS) {
-                vectorRepository.deleteByDocumentId(dimension, id);
+                vectorRepository.deleteByDocumentId(dimension, id, entity.getTenantId());
             }
         }
 
@@ -249,7 +249,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
         // 删除所有维度分表中的向量数据
         for (Integer dimension : VectorDimensionProcessor.SUPPORTED_DIMENSIONS) {
-            vectorRepository.deleteByDocumentId(dimension, documentId);
+            vectorRepository.deleteByDocumentId(dimension, documentId, doc.getTenantId());
         }
         documentChunkMapper.deleteByDocumentIds(Collections.singletonList(documentId));
 

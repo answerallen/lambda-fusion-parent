@@ -105,7 +105,7 @@ public class KnowledgeBaseServiceImpl
 
             // 删除所有维度分表中的向量数据
             for (Integer dimension : VectorDimensionProcessor.SUPPORTED_DIMENSIONS) {
-                vectorRepository.deleteByKbId(dimension, id);
+                vectorRepository.deleteByKbId(dimension, id, entity.getTenantId());
             }
 
             documentChunkMapper.deleteByDocumentIds(documentIds);

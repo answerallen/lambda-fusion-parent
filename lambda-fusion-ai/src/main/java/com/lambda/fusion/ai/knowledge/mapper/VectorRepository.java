@@ -32,6 +32,7 @@ public interface VectorRepository {
      * @param content        文本内容
      * @param metadata       元数据(JSON)
      * @param embedding      向量数据
+     * @param tenantId       租户ID（字段级隔离）
      */
     void insertVector(
             @Param("dimension") Integer dimension,
@@ -43,21 +44,24 @@ public interface VectorRepository {
             @Param("collectionName") String collectionName,
             @Param("content") String content,
             @Param("metadata") String metadata,
-            @Param("embedding") List<Double> embedding);
+            @Param("embedding") List<Double> embedding,
+            @Param("tenantId") String tenantId);
 
     /**
      * 批量插入向量数据到分表
      *
-     * @param dimension  向量维度
-     * @param list       文档块实体列表
-     * @param kbId       知识库ID
+     * @param dimension      向量维度
+     * @param list           文档块实体列表
+     * @param kbId           知识库ID
      * @param collectionName 集合名称
+     * @param tenantId       租户ID（字段级隔离）
      */
     void batchInsertVectors(
             @Param("dimension") Integer dimension,
             @Param("list") List<DocumentChunkEntity> list,
             @Param("kbId") String kbId,
-            @Param("collectionName") String collectionName);
+            @Param("collectionName") String collectionName,
+            @Param("tenantId") String tenantId);
 
     /**
      * 向量相似度搜索（分表）
@@ -67,6 +71,7 @@ public interface VectorRepository {
      * @param queryVector 查询向量
      * @param topK        返回数量
      * @param minScore    最小相似度
+     * @param tenantId    租户ID（字段级隔离）
      * @return 搜索结果
      */
     List<VectorSearchResult> searchSimilar(
@@ -74,7 +79,8 @@ public interface VectorRepository {
             @Param("kbId") String kbId,
             @Param("queryVector") List<Double> queryVector,
             @Param("topK") Integer topK,
-            @Param("minScore") Double minScore);
+            @Param("minScore") Double minScore,
+            @Param("tenantId") String tenantId);
 
     /**
      * 关键词搜索（分表）
@@ -83,51 +89,71 @@ public interface VectorRepository {
      * @param kbId      知识库ID
      * @param keyword   关键词
      * @param topK      返回数量
+     * @param tenantId  租户ID（字段级隔离）
      * @return 搜索结果
      */
     List<VectorSearchResult> searchKeyword(
             @Param("dimension") Integer dimension,
             @Param("kbId") String kbId,
             @Param("keyword") String keyword,
-            @Param("topK") Integer topK);
+            @Param("topK") Integer topK,
+            @Param("tenantId") String tenantId);
 
     /**
      * 删除向量（分表）
      *
      * @param dimension 向量维度（用于选择表）
      * @param vectorId  向量ID
+     * @param tenantId  租户ID（字段级隔离）
      */
-    void deleteVector(@Param("dimension") Integer dimension, @Param("vectorId") String vectorId);
+    void deleteVector(
+            @Param("dimension") Integer dimension,
+            @Param("vectorId") String vectorId,
+            @Param("tenantId") String tenantId);
 
     /**
      * 批量删除向量（分表）
      *
      * @param dimension 向量维度（用于选择表）
      * @param vectorIds 向量ID列表
+     * @param tenantId  租户ID（字段级隔离）
      */
-    void deleteVectors(@Param("dimension") Integer dimension, @Param("vectorIds") List<String> vectorIds);
+    void deleteVectors(
+            @Param("dimension") Integer dimension,
+            @Param("vectorIds") List<String> vectorIds,
+            @Param("tenantId") String tenantId);
 
     /**
      * 根据文档ID删除向量（分表）
      *
      * @param dimension  向量维度（用于选择表）
      * @param documentId 文档ID
+     * @param tenantId   租户ID（字段级隔离）
      */
-    void deleteByDocumentId(@Param("dimension") Integer dimension, @Param("documentId") String documentId);
+    void deleteByDocumentId(
+            @Param("dimension") Integer dimension,
+            @Param("documentId") String documentId,
+            @Param("tenantId") String tenantId);
 
     /**
      * 根据知识库ID删除向量（分表）
      *
      * @param dimension 向量维度（用于选择表）
      * @param kbId      知识库ID
+     * @param tenantId  租户ID（字段级隔离）
      */
-    void deleteByKbId(@Param("dimension") Integer dimension, @Param("kbId") String kbId);
+    void deleteByKbId(
+            @Param("dimension") Integer dimension, @Param("kbId") String kbId, @Param("tenantId") String tenantId);
 
     /**
      * 根据集合名称删除向量（分表）
      *
      * @param dimension      向量维度（用于选择表）
      * @param collectionName 集合名称
+     * @param tenantId       租户ID（字段级隔离）
      */
-    void deleteByCollectionName(@Param("dimension") Integer dimension, @Param("collectionName") String collectionName);
+    void deleteByCollectionName(
+            @Param("dimension") Integer dimension,
+            @Param("collectionName") String collectionName,
+            @Param("tenantId") String tenantId);
 }

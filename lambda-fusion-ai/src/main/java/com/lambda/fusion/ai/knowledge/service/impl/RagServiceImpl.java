@@ -92,10 +92,10 @@ public class RagServiceImpl implements RagService {
         }
 
         // 使用分表存储进行搜索
-        List<VectorSearchResult> vectorResults =
-                vectorRepository.searchSimilar(storageDimension, kbId, queryVector, limit * 2, scoreThreshold);
+        List<VectorSearchResult> vectorResults = vectorRepository.searchSimilar(
+                storageDimension, kbId, queryVector, limit * 2, scoreThreshold, kb.getTenantId());
         List<VectorSearchResult> keywordResults =
-                vectorRepository.searchKeyword(storageDimension, kbId, query, limit * 2);
+                vectorRepository.searchKeyword(storageDimension, kbId, query, limit * 2, kb.getTenantId());
 
         return reciprocalRankFusion(vectorResults, keywordResults, limit);
     }

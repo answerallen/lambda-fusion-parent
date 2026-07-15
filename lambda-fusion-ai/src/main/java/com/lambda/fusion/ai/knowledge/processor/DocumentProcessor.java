@@ -221,7 +221,8 @@ public class DocumentProcessor {
                             documentChunkMapper.batchInsert(batch);
                             // 使用分表存储，根据维度选择表
                             Integer dimension = batch.get(0).getDimension();
-                            vectorRepository.batchInsertVectors(dimension, batch, kb.getId(), "default");
+                            vectorRepository.batchInsertVectors(
+                                    dimension, batch, kb.getId(), "default", kb.getTenantId());
                             return null;
                         } catch (Exception e) {
                             log.error("批量插入失败，事务将回滚", e);
