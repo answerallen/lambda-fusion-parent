@@ -3,14 +3,14 @@ package com.lambda.fusion.authority.user.service;
 import com.lambda.fusion.authority.user.model.RestUserInfo;
 import com.lambda.fusion.authority.user.model.User;
 import com.lambda.fusion.authority.user.model.VerifyCode;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 
 public interface UserCenterService {
     /**
      * 发送手机验证码
      *
-     * @param username
-     * @param mobile
+     * @param username 用户名
+     * @param mobile 手机号
      */
     VerifyCode sendMobileVerifyCode(@NonNull String username, @NonNull String mobile);
 

@@ -4,7 +4,6 @@ import static com.lambda.fusion.core.FusionConstants.AT;
 import static com.lambda.fusion.core.FusionConstants.ROLE_TENANT;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.core.principal.LoginUser;
@@ -13,7 +12,6 @@ import com.lambda.cloud.core.utils.OperatorUtils;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.role.model.SimpleRole;
-import com.lambda.fusion.authority.tenant.manager.TenantManager;
 import com.lambda.fusion.authority.user.assembler.UserQueryAssembler;
 import com.lambda.fusion.authority.user.model.*;
 import com.lambda.fusion.authority.user.service.UserCenterService;
@@ -34,7 +32,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -55,12 +52,6 @@ public class UserController {
     private final UserCenterService userCenterService;
     private final UserInfoService userInfoService;
     private final UserThirdPartService userThirdpartService;
-    private TenantManager tenantManager;
-
-    @Autowired(required = false)
-    public void setTenantManager(TenantManager tenantManager) {
-        this.tenantManager = tenantManager;
-    }
 
     @SaCheckPermission(value = "authority:user:page")
     @GetMapping({"", "/page", "/page/{number:\\d+}/size/{size:\\d+}"})
@@ -134,11 +125,7 @@ public class UserController {
         if (MapUtils.isNotEmpty(createUser.getPersonal())) {
             userService.addUserFields(createUser.getPersonal(), createUser.getUsername());
         }
-        User created = userService.getByUsername(createUser.getUsername());
-        if (tenantManager != null) {
-            tenantManager.addUser(BeanUtil.toBean(created, User.class));
-        }
-        return created;
+        return userService.getByUsername(createUser.getUsername());
     }
 
     @SaCheckPermission(value = "authority:user:update")
@@ -149,20 +136,13 @@ public class UserController {
             @Parameter(description = "用户信息", required = true) @Valid @RequestBody UpdateUser updateUser) {
         updateUser.setUsername(username);
         userService.updateUser(updateUser, AuthUtils.getUser());
-        User updated = userService.getByUsername(username);
-        if (tenantManager != null) {
-            tenantManager.updateUser(BeanUtil.toBean(updated, User.class));
-        }
-        return updated;
+        return userService.getByUsername(username);
     }
 
     @SaCheckPermission(value = "authority:user:delete")
     @DeleteMapping(value = "/{username}")
     @Operation(summary = "删除用户信息")
     public void delete(@PathVariable @Parameter(description = "用户名", required = true) String username) {
-        if (tenantManager != null) {
-            tenantManager.deleteUser(username);
-        }
         userService.deleteUser(AuthUtils.getUser(), username);
     }
 
@@ -193,12 +173,7 @@ public class UserController {
         if (username == null) {
             throw AuthorityBusinessException.invalidParameter("username不能为空");
         }
-        String password = userService.resetUserPassword(resetPassword);
-        if (tenantManager != null) {
-            resetPassword.setNewPassword(password);
-            tenantManager.resetPassword(resetPassword);
-        }
-        return password;
+        return userService.resetUserPassword(resetPassword);
     }
 
     @SaCheckPermission(value = "authority:user:disable")
@@ -206,10 +181,6 @@ public class UserController {
     @Operation(summary = "禁用用户")
     public void disabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         userService.deactivateUser(AuthUtils.getUser(), FusionConstants.DISABLED, username);
-
-        if (tenantManager != null) {
-            tenantManager.prohibitUser(FusionConstants.DISABLED, username);
-        }
     }
 
     @SaCheckPermission(value = "authority:user:enable")
@@ -217,10 +188,6 @@ public class UserController {
     @Operation(summary = "启用用户")
     public void enabled(@PathVariable @Parameter(description = "用户名称", required = true) String username) {
         userService.deactivateUser(AuthUtils.getUser(), FusionConstants.ENABLED, username);
-
-        if (tenantManager != null) {
-            tenantManager.prohibitUser(FusionConstants.ENABLED, username);
-        }
     }
 
     @SaCheckPermission(value = "authority:user:unlock")
@@ -328,12 +295,7 @@ public class UserController {
         SimpleRole simpleRole = new SimpleRole(ROLE_TENANT + AT + tenantId);
         createUser.setAuthorities(List.of(simpleRole));
         userService.addUser(createUser, AuthUtils.getUser());
-        User updated = userService.getByUsername(createTenantUser.getUsername());
-        if (tenantManager != null) {
-            User copy = BeanUtil.toBean(updated, User.class);
-            tenantManager.addUser(copy);
-        }
-        return updated;
+        return userService.getByUsername(createTenantUser.getUsername());
     }
 
     @SaCheckPermission(value = "authority:user:tenant-admin-update")
@@ -347,11 +309,6 @@ public class UserController {
         user.setTenantId(tenantId);
         user.setUsername(username);
         userService.updateTenantUser(user, AuthUtils.getUser());
-        User updated = userService.getByUsername(username);
-        if (tenantManager != null) {
-            User copy = BeanUtil.toBean(updated, User.class);
-            tenantManager.updateUser(copy);
-        }
-        return updated;
+        return userService.getByUsername(username);
     }
 }

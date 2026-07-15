@@ -21,7 +21,6 @@ import com.lambda.fusion.authority.role.model.*;
 import com.lambda.fusion.authority.role.model.entity.RoleEntity;
 import com.lambda.fusion.authority.role.model.entity.RoleGroupEntity;
 import com.lambda.fusion.authority.role.service.RoleService;
-import com.lambda.fusion.authority.tenant.manager.TenantManager;
 import com.lambda.fusion.authority.user.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.user.model.entity.UserRoleEntity;
 import com.lambda.fusion.authority.utils.AuthorityHelper;
@@ -37,7 +36,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
@@ -60,13 +58,6 @@ public class RoleServiceImpl implements RoleService {
     private final UserRoleMapper userRoleMapper;
 
     private final AccessPermissionMapper accessPermissionMapper;
-
-    private TenantManager tenantManager;
-
-    @Autowired(required = false)
-    public void setTenantManager(TenantManager tenantManager) {
-        this.tenantManager = tenantManager;
-    }
 
     private @NonNull Set<String> getExcludes(UserDetails userDetails) {
         Set<String> excludes = Sets.newHashSet();
@@ -294,11 +285,6 @@ public class RoleServiceImpl implements RoleService {
             }
             roleMapper.batchSaveAuthorization(list);
         }
-
-        // 处理租户主库
-        if (tenantManager != null) {
-            tenantManager.grantRolePermission(authority, resources, status);
-        }
     }
 
     private @NonNull Resource getResource(String authority, String resourceId, UserDetails userDetails) {
@@ -361,11 +347,6 @@ public class RoleServiceImpl implements RoleService {
                     accessPermissionMapper.deletePermission(parameters);
                 }
             }
-        }
-
-        // 处理租户主库
-        if (tenantManager != null) {
-            tenantManager.revokeRolePermission(authority, resources);
         }
     }
 

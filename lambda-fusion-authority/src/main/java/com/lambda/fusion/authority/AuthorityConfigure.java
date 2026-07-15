@@ -14,15 +14,9 @@ import com.lambda.fusion.authority.authentication.provider.wechat.WechatMaLoginA
 import com.lambda.fusion.authority.authentication.provider.wechat.WechatMaLoginHandler;
 import com.lambda.fusion.authority.authentication.provider.wechat.WechatOpenLoginAdapter;
 import com.lambda.fusion.authority.authentication.provider.wechat.WechatOpenLoginHandler;
-import com.lambda.fusion.authority.role.mapper.RoleMapper;
 import com.lambda.fusion.authority.tenant.interceptor.TenantContextInterceptor;
-import com.lambda.fusion.authority.tenant.manager.TenantManager;
-import com.lambda.fusion.authority.tenant.service.TenantService;
 import com.lambda.fusion.authority.user.listener.UserOnlineLogListener;
 import com.lambda.fusion.authority.user.listener.UserSeeEventListener;
-import com.lambda.fusion.authority.user.mapper.UserInfoMapper;
-import com.lambda.fusion.authority.user.mapper.UserMapper;
-import com.lambda.fusion.authority.user.mapper.UserRoleMapper;
 import com.lambda.fusion.authority.user.service.UserOnlineLogService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
@@ -47,7 +41,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -206,18 +199,6 @@ public class AuthorityConfigure implements WebMvcConfigurer {
     @ConditionalOnMissingBean
     public TreeDataFilter defaultTreeDataFilter() {
         return new DefaultTreeDataFilter();
-    }
-
-    @Bean
-    public TenantManager tenantManager(
-            TenantService tenantService,
-            UserMapper userMapper,
-            UserInfoMapper userInfoMapper,
-            UserRoleMapper userRoleMapper,
-            PasswordEncoder passwordEncoder,
-            RoleMapper roleMapper) {
-        return new TenantManager(
-                tenantService, userMapper, userInfoMapper, userRoleMapper, passwordEncoder, roleMapper);
     }
 
     @Override

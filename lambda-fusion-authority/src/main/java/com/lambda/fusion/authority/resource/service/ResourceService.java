@@ -7,7 +7,7 @@ import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.resource.model.ResourceTree;
 import com.lambda.fusion.core.identity.UserDetails;
 import java.util.List;
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 
 public interface ResourceService {
     /**
@@ -94,8 +94,8 @@ public interface ResourceService {
 
     /***
      * 获取用户拥有的所有上级(直接上级和间接下级)权限,主要用于授权
-     * @param userDetails
-     * @param resource
+     * @param userDetails  当前用户
+     * @param resource 当前节点
      */
     List<Resource> getAllParentsByOperator(@NonNull UserDetails userDetails, @NonNull Resource resource);
 
