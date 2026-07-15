@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.service.knowledge.service.impl;
 
 import static org.assertj.core.api.Assertions.*;
 
+import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.service.impl.AtomicSessionUpdateServiceImpl;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.knowledge.embedding.EmbeddingModelManager;
@@ -71,7 +72,7 @@ class ServiceRegressionTest {
     @Test
     @DisplayName("会话统计异步更新-失败时吞掉异常并完成Future")
     void asyncSessionStatisticsShouldCompleteFutureOnError() {
-        AtomicSessionUpdateServiceImpl service = new AtomicSessionUpdateServiceImpl(null, null) {
+        AtomicSessionUpdateServiceImpl service = new AtomicSessionUpdateServiceImpl(null, null, new AiProperties()) {
             @Override
             public void updateSessionStatisticsOptimistic(String sessionId, int messageIncrement, int tokenIncrement) {
                 throw new IllegalStateException("boom");
@@ -85,7 +86,7 @@ class ServiceRegressionTest {
     @Test
     @DisplayName("会话统计异步更新-成功时返回已完成Future")
     void asyncSessionStatisticsShouldReturnCompletedFutureOnSuccess() {
-        AtomicSessionUpdateServiceImpl service = new AtomicSessionUpdateServiceImpl(null, null) {
+        AtomicSessionUpdateServiceImpl service = new AtomicSessionUpdateServiceImpl(null, null, new AiProperties()) {
             @Override
             public void updateSessionStatisticsOptimistic(String sessionId, int messageIncrement, int tokenIncrement) {
                 // no-op

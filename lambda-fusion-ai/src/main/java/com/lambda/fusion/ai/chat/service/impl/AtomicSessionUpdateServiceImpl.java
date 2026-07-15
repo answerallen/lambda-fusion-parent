@@ -1,10 +1,12 @@
 package com.lambda.fusion.ai.chat.service.impl;
 
+import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.service.AtomicSessionUpdateService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
+import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
@@ -29,6 +31,7 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
 
     private final ChatSessionMapper chatSessionMapper;
     private final TransactionTemplate transactionTemplate;
+    private final AiProperties aiProperties;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -144,7 +147,8 @@ public class AtomicSessionUpdateServiceImpl implements AtomicSessionUpdateServic
     public CompletableFuture<Void> updateSessionStatisticsAsync(
             String sessionId, int messageIncrement, int tokenIncrement) {
         return CompletableFuture.runAsync(() -> {
-            try {
+            try (DataSourceSwitcher ignored =
+                    DataSourceSwitcher.switchTo(aiProperties.getDataSource().getName())) {
                 updateSessionStatisticsOptimistic(sessionId, messageIncrement, tokenIncrement);
             } catch (Exception e) {
                 log.error("异步更新会话统计失败，会话ID: {}", sessionId, e);

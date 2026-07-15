@@ -13,23 +13,21 @@ import org.springframework.stereotype.Component;
 
 /**
  * AI Service 数据源切面
- * <p>
- * 字段级租户隔离模型下，所有 AI Service 层方法统一路由到共享的 AI 数据源（默认
- * {@code ai-postgres}）；租户隔离由 {@code tenant_id} 字段过滤完成，不再按租户切换
- * 独立数据源。
- * </p>
  */
 @Slf4j
 @Aspect
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 @RequiredArgsConstructor
-public class TenantDataSourceAspect {
+public class AiDataSourceAspect {
 
     private final AiProperties aiProperties;
 
     @Around("execution(* com.lambda.fusion.ai..*.service..*.*(..))")
     public Object aroundServiceMethods(ProceedingJoinPoint joinPoint) throws Throwable {
+        if (!Boolean.TRUE.equals(aiProperties.getDataSource().getEnabled())) {
+            return joinPoint.proceed();
+        }
         try (DataSourceSwitcher ignored =
                 DataSourceSwitcher.switchTo(aiProperties.getDataSource().getName())) {
             return joinPoint.proceed();

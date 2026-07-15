@@ -2,7 +2,6 @@ package com.lambda.fusion.ai.mcp.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.agent.tools.AgentToolProvider;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
@@ -14,7 +13,6 @@ import com.lambda.fusion.ai.mcp.model.UpdateMcpServer;
 import com.lambda.fusion.ai.mcp.model.entity.McpServerEntity;
 import com.lambda.fusion.ai.mcp.service.McpServerService;
 import com.lambda.fusion.core.utils.AuthUtils;
-import com.lambda.fusion.datasource.api.DataSourceSwitcher;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -41,7 +39,6 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
     private final McpServerMapper mcpServerMapper;
     private final McpClientManager mcpClientManager;
     private final AgentToolProvider agentToolProvider;
-    private final AiProperties aiProperties;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -242,8 +239,7 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
     private void refreshToolsAsync() {
         try {
             Thread.ofVirtual().name("mcp-refresh").start(() -> {
-                try (DataSourceSwitcher ignored =
-                        DataSourceSwitcher.switchTo(aiProperties.getDataSource().getName())) {
+                try {
                     agentToolProvider.refreshMcpTools();
                 } catch (Exception e) {
                     log.warn("McpServerServiceImpl: 异步刷新 MCP 工具列表失败: {}", e.getMessage());

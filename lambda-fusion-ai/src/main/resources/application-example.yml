@@ -38,7 +38,6 @@ lambda:
         enabled: true
         default-name: ai-postgres
         vector-name: ai-postgres
-        tenant-prefix: ai-tenant-
       
       # 安全配置
       security:

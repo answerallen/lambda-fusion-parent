@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class DatabaseSchemaInitializer {
+public class AiDatabaseSchemaInitializer {
 
     private static final String AI_SCHEMA_CHANGELOG_XML =
             "classpath:META-INF/db/changelogs/lambda-ai-schema-changelog.xml";

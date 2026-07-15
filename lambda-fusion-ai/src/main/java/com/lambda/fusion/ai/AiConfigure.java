@@ -1,7 +1,9 @@
 package com.lambda.fusion.ai;
 
+import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
-import com.lambda.fusion.ai.datasource.DatabaseSchemaInitializer;
+import com.lambda.fusion.ai.datasource.AiDataSourceInterceptor;
+import com.lambda.fusion.ai.datasource.AiDatabaseSchemaInitializer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -82,6 +84,18 @@ public class AiConfigure {
         return new MemorySaver();
     }
 
+    /**
+     * 注册 AI 数据源 SQL 级拦截器，作为 {@link com.lambda.fusion.ai.datasource.AiDataSourceAspect} 之外的逃逸安全网，
+     * 覆盖非事务直接 mapper 调用、虚拟线程 / ForkJoinPool / 自调用等路径。
+     *
+     * @param aiProperties AI 配置（取数据源名称与 enabled 开关）
+     * @return MyBatis-Plus ConfigurationCustomizer
+     */
+    @Bean
+    public ConfigurationCustomizer aiDataSourceInterceptorCustomizer(AiProperties aiProperties) {
+        return configuration -> configuration.addInterceptor(new AiDataSourceInterceptor(aiProperties));
+    }
+
     @Configuration(proxyBeanMethods = false)
     public static class LlmResilienceConfig {
 
@@ -154,12 +168,12 @@ public class AiConfigure {
      */
     @Bean
     public ApplicationRunner DatabaseSchemaInitializer(
-            ObjectProvider<DatabaseSchemaInitializer> schemaInitializerProvider,
+            ObjectProvider<AiDatabaseSchemaInitializer> schemaInitializerProvider,
             AiProperties aiProperties,
             DynamicDataSourceService dynamicDataSourceService) {
         return args -> {
             // 获取 SchemaInitializer；若 Bean 不存在则跳过全部初始化
-            DatabaseSchemaInitializer schemaInitializer = schemaInitializerProvider.getIfAvailable();
+            AiDatabaseSchemaInitializer schemaInitializer = schemaInitializerProvider.getIfAvailable();
             if (schemaInitializer == null) {
                 log.warn("DatabaseSchemaInitializer not available, skipping all AI schema initialization");
                 return;
@@ -202,7 +216,7 @@ public class AiConfigure {
      * @param tenantId    租户 ID（用于日志和 Liquibase 上下文参数）
      * @param dataSource  租户数据源
      */
-    private static void runSchemaInit(DatabaseSchemaInitializer initializer, String tenantId, DataSource dataSource) {
+    private static void runSchemaInit(AiDatabaseSchemaInitializer initializer, String tenantId, DataSource dataSource) {
         try {
             log.info("Executing AI schema initialization for tenant: {}", tenantId);
             initializer.initializeSchema(tenantId, dataSource);
