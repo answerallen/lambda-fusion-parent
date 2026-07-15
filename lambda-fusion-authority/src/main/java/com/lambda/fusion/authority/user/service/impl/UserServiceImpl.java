@@ -232,7 +232,7 @@ public class UserServiceImpl implements UserService {
 
     @CacheEvict(value = "LAResourceOwners", allEntries = true)
     @Override
-    public void addUser(CreateUser createUser, UserDetails operator) {
+    public void addUser(CreateUser createUser, UserDetails userDetails) {
         UserEntity userEntity = createUser.toEntity();
         if (userEntity == null) {
             throw AuthorityBusinessException.invalidParameter("用户信息不能为空");
@@ -257,12 +257,14 @@ public class UserServiceImpl implements UserService {
             userEntity.setExpiredTime(DateUtil.date(now).offset(DateField.YEAR, 99));
         }
         userEntity.setCreatedAt(now);
-        userEntity.setTenantId(operator.getTenantId());
-        userEntity.setCreatedBy(operator.getName());
+        
+        String tenantId = userDetails.getTenantId();
+        userEntity.setTenantId(tenantId);
+        userEntity.setCreatedBy(userDetails.getName());
         userMapper.insert(userEntity);
 
         List<SimpleRole> roles = createUser.getAuthorities();
-        assignRolesToUser(operator.getTenantId(), userEntity.getUsername(), roles);
+        assignRolesToUser(tenantId, userEntity.getUsername(), roles);
 
         if (Objects.isNull(createUser.getProps())) {
             createUser.setProps(new UserInfo());
@@ -275,7 +277,7 @@ public class UserServiceImpl implements UserService {
         SimpleOrganization simpleOrganization = createUser.getOrganization();
         if (simpleOrganization != null && StringUtils.isNotBlank(simpleOrganization.getId())) {
             userOrganizationMapper.insert(new UserOrganizationEntity(
-                    userEntity.getUsername(), simpleOrganization.getId(), operator.getTenantId()));
+                    userEntity.getUsername(), simpleOrganization.getId(), tenantId));
         }
     }
 
@@ -323,6 +325,8 @@ public class UserServiceImpl implements UserService {
             this.userFieldsMapper.insert(fields);
         }
 
+        String tenantId = userDetails.getTenantId();
+
         if (!AuthorityHelper.isTenant(updateUser.getAuthorities())) {
             SimpleOrganization simpleOrganization = updateUser.getOrganization();
             if (simpleOrganization != null) {
@@ -338,13 +342,13 @@ public class UserServiceImpl implements UserService {
                     }
                 } else {
                     userOrganizationMapper.insert(new UserOrganizationEntity(
-                            userEntity.getUsername(), simpleOrganization.getId(), userDetails.getTenantId()));
+                            userEntity.getUsername(), simpleOrganization.getId(), tenantId));
                 }
             }
         }
 
         userRoleMapper.deleteUserRoles(userEntity.getUsername());
-        this.assignRolesToUser(userDetails.getTenantId(), userEntity.getUsername(), updateUser.getAuthorities());
+        this.assignRolesToUser(tenantId, userEntity.getUsername(), updateUser.getAuthorities());
     }
 
     @Override
@@ -504,7 +508,7 @@ public class UserServiceImpl implements UserService {
         userMapper.updateUser(user);
         if (CollUtil.isNotEmpty(user.getAuthorities())) {
             userRoleMapper.deleteUserRoles(username);
-            this.assignRolesToUser(user.getTenantId(), operator.getTenantId(), user.getAuthorities());
+            this.assignRolesToUser(user.getTenantId(), username, user.getAuthorities());
         }
     }
 
