@@ -27,7 +27,6 @@ import com.lambda.fusion.authority.user.service.UserOnlineLogService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.AuthUtils;
-import com.lambda.fusion.datasource.service.DataSourceManageService;
 import com.lambda.security.service.ThirdPartyLoginService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
@@ -210,23 +209,15 @@ public class AuthorityConfigure implements WebMvcConfigurer {
     }
 
     @Bean
-    @ConditionalOnBean(DataSourceManageService.class)
     public TenantManager tenantManager(
             TenantService tenantService,
             UserMapper userMapper,
             UserInfoMapper userInfoMapper,
             UserRoleMapper userRoleMapper,
             PasswordEncoder passwordEncoder,
-            RoleMapper roleMapper,
-            DataSourceManageService dataSourceManageService) {
+            RoleMapper roleMapper) {
         return new TenantManager(
-                tenantService,
-                userMapper,
-                userInfoMapper,
-                userRoleMapper,
-                passwordEncoder,
-                roleMapper,
-                dataSourceManageService);
+                tenantService, userMapper, userInfoMapper, userRoleMapper, passwordEncoder, roleMapper);
     }
 
     @Override

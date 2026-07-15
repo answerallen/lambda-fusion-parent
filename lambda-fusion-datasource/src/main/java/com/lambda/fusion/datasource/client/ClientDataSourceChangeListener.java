@@ -7,13 +7,10 @@ import com.lambda.cloud.datasource.property.DataSourceProperty;
 import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeEvent;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
-import com.lambda.fusion.datasource.tenant.TenantSchemaCleaner;
 import com.lambda.fusion.datasource.util.DataSourcePropertyUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 
 /**
  * 数据源变更回调实现
@@ -27,7 +24,6 @@ import org.springframework.beans.factory.ObjectProvider;
 public class ClientDataSourceChangeListener implements DataSourceChangeListener {
 
     private final DynamicDataSourceService dynamicDataSourceService;
-    private final ObjectProvider<TenantSchemaCleaner> schemaCleaner;
 
     @Override
     public void onDataSourceChanged(DataSourceChangeEvent event) {
@@ -46,12 +42,6 @@ public class ClientDataSourceChangeListener implements DataSourceChangeListener 
                 case DELETE:
                 case DISABLE:
                     handleDeleteOrDisable(event.getDataSourceId(), event.getDataSource());
-                    break;
-                case INIT_SCHEMA:
-                    handleInitSchema(event);
-                    break;
-                case REMOVE_SCHEMA:
-                    handleRemoveSchema(event);
                     break;
                 default:
                     log.warn("Unknown change type: {}", event.getChangeType());
@@ -98,42 +88,5 @@ public class ClientDataSourceChangeListener implements DataSourceChangeListener 
         } catch (Exception e) {
             log.error("Failed to remove datasource: {}", id, e);
         }
-    }
-
-    private void handleInitSchema(DataSourceChangeEvent event) {
-        String dataSourceId = event.getDataSourceId();
-        if (StrUtil.isEmpty(dataSourceId)) {
-            log.warn("Received INIT_SCHEMA event without datasource id");
-            return;
-        }
-        try {
-            DataSource dataSource = dynamicDataSourceService.getDataSource(dataSourceId);
-            if (dataSource == null) {
-                log.warn("Received INIT_SCHEMA event but datasource not found locally. datasourceId={}", dataSourceId);
-                return;
-            }
-            log.info(
-                    "Received INIT_SCHEMA event. datasourceId={}, tenantId={}, client only refreshes local datasource view",
-                    dataSourceId,
-                    event.getTenantId());
-        } catch (Exception e) {
-            log.error("Failed to refresh datasource view after INIT_SCHEMA. datasourceId={}", dataSourceId, e);
-        }
-    }
-
-    private void handleRemoveSchema(DataSourceChangeEvent event) {
-        schemaCleaner.ifAvailable(tenantSchemaCleaner -> {
-            String dataSourceId = event.getDataSourceId();
-            if (StrUtil.isEmpty(dataSourceId)) {
-                log.warn("Received REMOVE_SCHEMA event without datasource id");
-                return;
-            }
-            try {
-                DataSource dataSource = dynamicDataSourceService.getDataSource(dataSourceId);
-                tenantSchemaCleaner.removeSchema(event.getTenantId(), dataSource);
-            } catch (Exception e) {
-                log.error("Failed to remove schema. datasourceId={}", dataSourceId, e);
-            }
-        });
     }
 }

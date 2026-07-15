@@ -5,10 +5,8 @@ import cn.dev33.satoken.annotation.SaMode;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.datasource.model.DataSourceBindingStatus;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
-import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -89,45 +87,5 @@ public class DataSourceController {
     @Operation(summary = "禁用数据源", description = "更新 status=0 并从运行时动态数据源移除")
     public void disable(@Parameter(description = "数据源编号", required = true) @PathVariable String id) {
         dataSourceManageService.disable(id);
-    }
-
-    @GetMapping("/tenant/status")
-    @Operation(summary = "查询租户数据源绑定状态", description = "按租户ID集合查询绑定及初始化状态")
-    public List<TenantDataSourceEntity> tenantStatuses(
-            @Parameter(description = "租户ID集合", required = true) @RequestParam("tenantIds") List<String> tenantIds) {
-        return dataSourceManageService.listTenantDataSources(tenantIds);
-    }
-
-    @GetMapping("/tenant/datasource/status")
-    @Operation(summary = "查询数据源租户绑定汇总", description = "按数据源ID集合查询绑定数量和初始化数量")
-    public List<DataSourceBindingStatus> dataSourceBindingStatuses(
-            @Parameter(description = "数据源ID集合", required = true) @RequestParam("datasourceIds")
-                    List<String> datasourceIds) {
-        return dataSourceManageService.listDataSourceBindingStatuses(datasourceIds);
-    }
-
-    @GetMapping("/tenant/{tenantId}")
-    @Operation(summary = "查询租户数据源绑定", description = "按租户ID查询绑定详情")
-    public List<TenantDataSourceEntity> tenantStatus(
-            @Parameter(description = "租户ID", required = true) @PathVariable String tenantId) {
-        return dataSourceManageService.getTenantDataSources(tenantId);
-    }
-
-    @OperationLog
-    @PutMapping("/tenant/{tenantId}/bind")
-    @Operation(summary = "绑定租户数据源", description = "独立库租户按用途绑定数据源，租户库绑定会重置初始化状态")
-    public void bindTenantDatasource(
-            @Parameter(description = "租户ID", required = true) @PathVariable String tenantId,
-            @Parameter(description = "数据源ID", required = true) @RequestParam("datasourceId") String datasourceId,
-            @Parameter(description = "数据库用途", required = true) @RequestParam("usageType") Integer usageType) {
-        dataSourceManageService.bindTenantDataSource(
-                tenantId, datasourceId, FusionConstants.DatabaseUsageType.fromValue(usageType));
-    }
-
-    @OperationLog
-    @PostMapping("/tenant/{tenantId}/init")
-    @Operation(summary = "初始化租户主库", description = "仅独立库租户可执行，要求先完成数据源绑定")
-    public void initTenantDatasource(@Parameter(description = "租户ID", required = true) @PathVariable String tenantId) {
-        dataSourceManageService.initTenantDataSource(tenantId);
     }
 }

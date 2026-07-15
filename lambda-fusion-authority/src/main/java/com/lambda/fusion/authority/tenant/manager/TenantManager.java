@@ -5,6 +5,7 @@ import static com.lambda.fusion.core.FusionConstants.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.lambda.cloud.core.principal.LoginUser;
+import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.resource.model.Resource;
 import com.lambda.fusion.authority.role.mapper.RoleMapper;
@@ -22,9 +23,6 @@ import com.lambda.fusion.authority.user.model.entity.UserInfoEntity;
 import com.lambda.fusion.authority.user.model.entity.UserRoleEntity;
 import com.lambda.fusion.authority.utils.AuthorityHelper;
 import com.lambda.fusion.core.utils.AuthUtils;
-import com.lambda.fusion.datasource.api.DataSourceSwitcher;
-import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
-import com.lambda.fusion.datasource.service.DataSourceManageService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Date;
@@ -62,7 +60,6 @@ public class TenantManager {
     private final UserRoleMapper userRoleMapper;
     private final PasswordEncoder passwordEncoder;
     private final RoleMapper roleMapper;
-    private final DataSourceManageService dataSourceManageService;
 
     /**
      * 保存租户映射主库中的管理员角色权限
@@ -89,7 +86,7 @@ public class TenantManager {
             return;
         }
         for (String tenantId : resolveTenantIds(authority)) {
-            executeInTenantDataSource(tenantId, () -> processRolePermissionGrant(resourceIds, status));
+            executeInTenantContext(tenantId, () -> processRolePermissionGrant(resourceIds, status));
         }
     }
 
@@ -143,8 +140,7 @@ public class TenantManager {
             return;
         }
         for (String tenantId : resolveTenantIds(authority)) {
-            executeInTenantDataSource(
-                    tenantId, () -> roleMapper.batchDeleteAuthorization(ROLE_ADMIN, resourceIds, null));
+            executeInTenantContext(tenantId, () -> roleMapper.batchDeleteAuthorization(ROLE_ADMIN, resourceIds, null));
         }
     }
 
@@ -155,7 +151,7 @@ public class TenantManager {
             return;
         }
         UserInfoEntity sourceUserInfo = userInfoMapper.selectById(user.getUsername());
-        executeInTenantDataSource(tenantId, () -> syncTenantAdminUser(user, sourceUserInfo));
+        executeInTenantContext(tenantId, () -> syncTenantAdminUser(user, sourceUserInfo));
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -165,7 +161,7 @@ public class TenantManager {
             return;
         }
         UserInfoEntity sourceUserInfo = userInfoMapper.selectById(user.getUsername());
-        executeInTenantDataSource(tenantId, () -> syncTenantAdminUser(user, sourceUserInfo));
+        executeInTenantContext(tenantId, () -> syncTenantAdminUser(user, sourceUserInfo));
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -174,7 +170,7 @@ public class TenantManager {
         if (StringUtils.isBlank(tenantId)) {
             return;
         }
-        executeInTenantDataSource(tenantId, () -> {
+        executeInTenantContext(tenantId, () -> {
             userRoleMapper.deleteUserRoles(username);
             userInfoMapper.deleteById(username);
             userMapper.deleteById(username);
@@ -192,7 +188,7 @@ public class TenantManager {
         if (StringUtils.isBlank(tenantId)) {
             return;
         }
-        executeInTenantDataSource(tenantId, () -> {
+        executeInTenantContext(tenantId, () -> {
             userMapper.updatePassword(username, passwordEncoder.encode(newPassword));
             int count = userInfoMapper.updateStatus(username, true);
             if (count == 0) {
@@ -210,7 +206,7 @@ public class TenantManager {
         if (StringUtils.isBlank(tenantId)) {
             return;
         }
-        executeInTenantDataSource(tenantId, () -> userMapper.deactivateUser(type, username));
+        executeInTenantContext(tenantId, () -> userMapper.deactivateUser(type, username));
     }
 
     private String getTenantIdIfAdmin(String username) {
@@ -265,7 +261,7 @@ public class TenantManager {
         return List.of(tenantId);
     }
 
-    private void executeInTenantDataSource(String tenantId, Runnable command) {
+    private void executeInTenantContext(String tenantId, Runnable command) {
         if (StringUtils.isBlank(tenantId) || command == null) {
             return;
         }
@@ -273,26 +269,14 @@ public class TenantManager {
         if (operator != null) {
             hasOperation(operator, tenantId);
         }
-        String datasourceId = resolveTenantDatasourceId(tenantId);
-        if (StringUtils.isBlank(datasourceId)) {
-            return;
-        }
-        try (DataSourceSwitcher ignored = DataSourceSwitcher.switchTo(datasourceId)) {
-            command.run();
+        try {
+            TenantContextHolder.runWithTenant(tenantId, () -> {
+                command.run();
+                return null;
+            });
         } catch (Exception exception) {
-            log.error("租户主库同步失败 tenantId={} datasourceId={}", tenantId, datasourceId, exception);
-            throw exception;
+            throw new RuntimeException(exception);
         }
-    }
-
-    private String resolveTenantDatasourceId(String tenantId) {
-        TenantDataSourceEntity binding =
-                dataSourceManageService.getTenantDataSource(tenantId, DatabaseUsageType.TENANT);
-        if (binding == null || StringUtils.isBlank(binding.getDatasourceId())) {
-            log.warn("租户主库映射缺失 tenantId={}", tenantId);
-            return null;
-        }
-        return binding.getDatasourceId();
     }
 
     private void syncTenantAdminUser(User source, UserInfoEntity sourceUserInfo) {

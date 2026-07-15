@@ -5,18 +5,13 @@ import com.lambda.fusion.datasource.api.RemoteDataSourceApi;
 import com.lambda.fusion.datasource.client.ClientDataSourceChangeListener;
 import com.lambda.fusion.datasource.client.ClientDataSourceInitializer;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
-import com.lambda.fusion.datasource.interceptor.TenantDataSourceInterceptor;
 import com.lambda.fusion.datasource.mapper.DataSourceMapper;
-import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
 import com.lambda.fusion.datasource.server.ServerDataSourceInitializer;
 import com.lambda.fusion.datasource.server.ServerDataSourceService;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
-import com.lambda.fusion.datasource.tenant.TenantSchemaCleaner;
-import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.mybatis.spring.annotation.MapperScan;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,22 +20,12 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @MapperScan(basePackages = {"com.lambda.fusion.datasource.**.mapper"})
 @ComponentScan(basePackageClasses = DatasourceConfigure.class)
 @EnableConfigurationProperties(DatasourceProperties.class)
-public class DatasourceConfigure implements WebMvcConfigurer {
-
-    private TenantDataSourceInterceptor tenantDataSourceInterceptor;
-
-    @Autowired
-    public void setTenantDataSourceInterceptor(@Lazy TenantDataSourceInterceptor tenantDataSourceInterceptor) {
-        this.tenantDataSourceInterceptor = tenantDataSourceInterceptor;
-    }
+public class DatasourceConfigure {
 
     @Bean
     public DataSourceChangeDispatcher dataSourceCallbackManager() {
@@ -53,17 +38,8 @@ public class DatasourceConfigure implements WebMvcConfigurer {
             havingValue = DatasourceConstants.MODE_SERVER,
             matchIfMissing = true)
     public RemoteDataSourceApi remoteDataSourceService(
-            DataSourceManageService dataSourceManageService,
-            DataSourceChangeDispatcher callbackManager,
-            @Autowired(required = false) DynamicDataSourceService dynamicDataSourceService,
-            ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider,
-            TenantDataSourceMapper tenantDataSourceMapper) {
-        return new ServerDataSourceService(
-                dataSourceManageService,
-                callbackManager,
-                dynamicDataSourceService,
-                schemaInitializerProvider,
-                tenantDataSourceMapper);
+            DataSourceManageService dataSourceManageService, DataSourceChangeDispatcher callbackManager) {
+        return new ServerDataSourceService(dataSourceManageService, callbackManager);
     }
 
     @Slf4j
@@ -103,10 +79,8 @@ public class DatasourceConfigure implements WebMvcConfigurer {
 
     @Bean
     @ConditionalOnProperty(name = DatasourceConstants.MODE_PROPERTY, havingValue = DatasourceConstants.MODE_CLIENT)
-    public ClientDataSourceChangeListener dataSourceChangeListener(
-            DynamicDataSourceService dynamicDataSourceService,
-            ObjectProvider<TenantSchemaCleaner> cleanerObjectProvider) {
-        return new ClientDataSourceChangeListener(dynamicDataSourceService, cleanerObjectProvider);
+    public ClientDataSourceChangeListener dataSourceChangeListener(DynamicDataSourceService dynamicDataSourceService) {
+        return new ClientDataSourceChangeListener(dynamicDataSourceService);
     }
 
     @Bean
@@ -117,13 +91,5 @@ public class DatasourceConfigure implements WebMvcConfigurer {
             DatasourceProperties datasourceProperties) {
         return new ClientDataSourceInitializer(
                 dynamicDataSourceService, dataSourceChangeListener, datasourceProperties);
-    }
-
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(tenantDataSourceInterceptor)
-                .addPathPatterns("/**")
-                // 确保执行顺序在 Core 层的 TenantContextInterceptor 之后
-                .order(Integer.MIN_VALUE + 200);
     }
 }

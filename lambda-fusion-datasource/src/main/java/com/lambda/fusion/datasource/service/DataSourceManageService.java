@@ -2,11 +2,8 @@ package com.lambda.fusion.datasource.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.lambda.fusion.core.FusionConstants;
-import com.lambda.fusion.datasource.model.DataSourceBindingStatus;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.QueryDataSource;
-import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import java.util.List;
 
@@ -27,18 +24,4 @@ public interface DataSourceManageService extends IService<DataSourceEntity> {
     void enable(String id);
 
     void disable(String id);
-
-    TenantDataSourceEntity getTenantDataSource(String tenantId, FusionConstants.DatabaseUsageType usageType);
-
-    List<TenantDataSourceEntity> getTenantDataSources(String tenantId);
-
-    List<TenantDataSourceEntity> listTenantDataSources(List<String> tenantIds);
-
-    List<DataSourceBindingStatus> listDataSourceBindingStatuses(List<String> datasourceIds);
-
-    void bindTenantDataSource(String tenantId, String datasourceId, FusionConstants.DatabaseUsageType usageType);
-
-    void markTenantDataSourceInitialized(String tenantId);
-
-    void initTenantDataSource(String tenantId);
 }

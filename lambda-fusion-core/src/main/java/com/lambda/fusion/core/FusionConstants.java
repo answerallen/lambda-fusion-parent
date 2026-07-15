@@ -265,42 +265,12 @@ public interface FusionConstants {
      */
     String TENANT_ID_HEADER = "X-Tenant-Id";
 
-    /**
-     * 租户切换标识
-     */
-    String SWITCHER_ATTR = "TENANT_DS_SWITCHER";
-
     // ========== 租户相关信息 ==========
-    @Getter
-    @DictMapper(dictName = "ISOLATION_MODE", dictUsage = 0, dictDesc = "隔离模式")
-    @AllArgsConstructor
-    enum IsolationMode implements DictEnum<Integer> {
-        SHARED(1, "共享库"),
-        DEDICATED(2, "独立库");
-
-        @EnumValue
-        @JsonValue
-        private final Integer code;
-
-        private final String label;
-
-        @JsonCreator
-        public static IsolationMode fromValue(Integer val) {
-            for (IsolationMode mode : values()) {
-                if (mode.code.equals(val)) {
-                    return mode;
-                }
-            }
-            throw new IllegalArgumentException("Invalid IsolationMode: " + val);
-        }
-    }
-
     @Getter
     @DictMapper(dictName = "DATABASE_USAGE_TYPE", dictUsage = 0, dictDesc = "数据库用途")
     @AllArgsConstructor
     enum DatabaseUsageType implements DictEnum<Integer> {
         AI(1, "AI库"),
-        TENANT(2, "租户库"),
         BUSINESS(3, "业务库");
 
         @EnumValue

@@ -1,27 +1,18 @@
 package com.lambda.fusion.datasource.server;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.cloud.core.utils.ConvertUtils;
-import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
 import com.lambda.cloud.dubbo.authorize.DubboContextHolder;
-import com.lambda.fusion.datasource.DatasourceConstants;
 import com.lambda.fusion.datasource.api.DataSourceChangeListener;
 import com.lambda.fusion.datasource.api.RemoteDataSourceApi;
 import com.lambda.fusion.datasource.dispatcher.DataSourceChangeDispatcher;
-import com.lambda.fusion.datasource.dispatcher.DataSourceChangeEvent;
-import com.lambda.fusion.datasource.mapper.TenantDataSourceMapper;
 import com.lambda.fusion.datasource.model.DataSourceEntity;
 import com.lambda.fusion.datasource.model.RemoteDataSource;
-import com.lambda.fusion.datasource.model.TenantDataSourceEntity;
 import com.lambda.fusion.datasource.model.UpsertDataSource;
 import com.lambda.fusion.datasource.service.DataSourceManageService;
-import com.lambda.fusion.datasource.tenant.TenantSchemaInitializer;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.util.StringUtils;
 
 /**
@@ -35,21 +26,11 @@ public class ServerDataSourceService implements RemoteDataSourceApi {
 
     private final DataSourceManageService dataSourceManageService;
     private final DataSourceChangeDispatcher callbackManager;
-    private final DynamicDataSourceService dynamicDataSourceService;
-    private final ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider;
-    private final TenantDataSourceMapper tenantDataSourceMapper;
 
     public ServerDataSourceService(
-            DataSourceManageService dataSourceManageService,
-            DataSourceChangeDispatcher callbackManager,
-            DynamicDataSourceService dynamicDataSourceService,
-            ObjectProvider<TenantSchemaInitializer> schemaInitializerProvider,
-            TenantDataSourceMapper tenantDataSourceMapper) {
+            DataSourceManageService dataSourceManageService, DataSourceChangeDispatcher callbackManager) {
         this.dataSourceManageService = dataSourceManageService;
         this.callbackManager = callbackManager;
-        this.dynamicDataSourceService = dynamicDataSourceService;
-        this.schemaInitializerProvider = schemaInitializerProvider;
-        this.tenantDataSourceMapper = tenantDataSourceMapper;
     }
 
     @Override
@@ -178,75 +159,6 @@ public class ServerDataSourceService implements RemoteDataSourceApi {
         callbackManager.removeSubscriber(clientId);
     }
 
-    @Override
-    public boolean initSchema(String id) {
-        try {
-            DataSourceEntity dataSourceEntity = dataSourceManageService.getById(id);
-            if (dataSourceEntity == null) {
-                log.error("initSchema failed: datasource not found, id={}", id);
-                return false;
-            }
-
-            String tenantId = resolveTenantId(id);
-            if (!StringUtils.hasText(tenantId)) {
-                log.error("initSchema failed: tenant context not found for datasourceId={}", id);
-                return false;
-            }
-
-            // 同步执行 Schema 初始化
-            TenantSchemaInitializer initializer = schemaInitializerProvider.getIfAvailable();
-            if (initializer == null) {
-                log.error("initSchema failed: no TenantSchemaInitializer implementation available");
-                return false;
-            }
-
-            DataSource dataSource = dynamicDataSourceService.getDataSource(id);
-            if (dataSource == null) {
-                log.error("initSchema failed: datasource connection not found in dynamic pool, id={}", id);
-                return false;
-            }
-
-            initializer.initializeSchema(tenantId, dataSource);
-            log.info("Schema initialization completed synchronously. datasourceId={}, tenantId={}", id, tenantId);
-
-            // 初始化成功后广播通知 Client 端刷新本地数据源视图
-            DataSourceChangeEvent event = new DataSourceChangeEvent();
-            event.setChangeType(DatasourceConstants.ChangeType.INIT_SCHEMA);
-            event.setDataSourceId(id);
-            event.setTenantId(tenantId);
-            event.setDataSource(toRemoteDataSource(dataSourceEntity));
-            event.setTimestamp(System.currentTimeMillis());
-            callbackManager.broadcast(event);
-
-            return true;
-        } catch (Exception e) {
-            log.error("Failed to init schema: {}", id, e);
-            return false;
-        }
-    }
-
-    @Override
-    public boolean removeSchema(String id) {
-        try {
-            DataSourceEntity dataSourceEntity = dataSourceManageService.getById(id);
-            if (dataSourceEntity != null) {
-                String tenantId = resolveTenantId(id);
-                DataSourceChangeEvent event = new DataSourceChangeEvent();
-                event.setChangeType(DatasourceConstants.ChangeType.REMOVE_SCHEMA);
-                event.setDataSourceId(id);
-                event.setTenantId(tenantId);
-                event.setDataSource(toRemoteDataSource(dataSourceEntity));
-                event.setTimestamp(System.currentTimeMillis());
-                callbackManager.broadcast(event);
-                return true;
-            }
-            return false;
-        } catch (Exception e) {
-            log.error("Failed to remove schema: {}", id, e);
-            return false;
-        }
-    }
-
     private RemoteDataSource toRemoteDataSource(DataSourceEntity entity) {
         RemoteDataSource remoteDataSource = ConvertUtils.convert(entity);
         remoteDataSource.setVersion(System.currentTimeMillis());
@@ -255,17 +167,5 @@ public class ServerDataSourceService implements RemoteDataSourceApi {
 
     private UpsertDataSource toUpsertDataSource(RemoteDataSource dto) {
         return ConvertUtils.convert(dto);
-    }
-
-    private String resolveTenantId(String dataSourceId) {
-        String tenantId = DubboContextHolder.getCurrentTenantId();
-        if (StringUtils.hasText(tenantId)) {
-            return tenantId;
-        }
-        TenantDataSourceEntity binding =
-                tenantDataSourceMapper.selectOne(new LambdaQueryWrapper<TenantDataSourceEntity>()
-                        .eq(TenantDataSourceEntity::getDatasourceId, dataSourceId)
-                        .last("LIMIT 1"));
-        return binding == null ? null : binding.getTenantId();
     }
 }
