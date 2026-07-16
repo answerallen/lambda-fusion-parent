@@ -27,13 +27,6 @@ public class AuthorityHelper {
                 .anyMatch(role -> role.contains(FusionConstants.ROLE_TENANT));
     }
 
-    public static boolean isTenantManager(User user) {
-        return user.getAuthorities().stream()
-                .map(SimpleRole::getAuthority)
-                .filter(StringUtils::isNotBlank)
-                .anyMatch(role -> role.contains(FusionConstants.ROLE_TENANT_MANAGER));
-    }
-
     public static boolean isAdmin(User user) {
         return user.getAuthorities().stream()
                 .map(SimpleRole::getAuthority)
@@ -60,13 +53,6 @@ public class AuthorityHelper {
                 && roles.stream()
                         .map(SimpleRole::getAuthority)
                         .anyMatch(role -> role.startsWith(FusionConstants.ROLE_TENANT));
-    }
-
-    public static boolean isTenantManager(Collection<SimpleRole> roles) {
-        return roles != null
-                && roles.stream()
-                        .map(SimpleRole::getAuthority)
-                        .anyMatch(role -> role.contains(FusionConstants.ROLE_TENANT_MANAGER));
     }
 
     public static boolean isDev(Collection<SimpleRole> roles) {

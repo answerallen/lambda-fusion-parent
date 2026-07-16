@@ -242,10 +242,6 @@ public interface FusionConstants {
      */
     String ROLE_MANAGER = ROLE_PREFIX + "MANAGER";
     /**
-     * 租户管理员角色
-     */
-    String ROLE_TENANT_MANAGER = ROLE_PREFIX + "TENANT_MANAGER";
-    /**
      * 系统角色
      */
     String ROLE_SYSTEM = ROLE_PREFIX + "SYSTEM";

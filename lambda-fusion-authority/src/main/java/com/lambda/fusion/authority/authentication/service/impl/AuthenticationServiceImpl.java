@@ -119,7 +119,7 @@ public class AuthenticationServiceImpl implements AuthenticationService, UserDet
         }
 
         User user = userMapper.selectUserByUsername(loginId.toString());
-        if (AuthorityHelper.isTenantManager(user)) {
+        if (AuthorityHelper.isTenant(user)) {
             List<String> tenantAdminPermissions =
                     authenticationMapper.selectTenantAdminPermissions(ROLE_TENANT + AT + user.getTenantId());
             if (CollUtil.isNotEmpty(tenantAdminPermissions)) {
