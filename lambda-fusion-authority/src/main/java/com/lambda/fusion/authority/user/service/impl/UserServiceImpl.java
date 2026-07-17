@@ -1,5 +1,7 @@
 package com.lambda.fusion.authority.user.service.impl;
 
+import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
+
 import cn.dev33.satoken.stp.StpLogic;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateField;
@@ -33,6 +35,10 @@ import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.security.web.form.FormLockingStrategy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -43,13 +49,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.lambda.fusion.core.FusionConstants.ROLE_DEV;
 
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 @Slf4j
@@ -277,13 +276,15 @@ public class UserServiceImpl implements UserService {
 
         SimpleOrganization simpleOrganization = createUser.getOrganization();
         if (simpleOrganization != null && StringUtils.isNotBlank(simpleOrganization.getId())) {
-            userOrganizationMapper.insert(new UserOrganizationEntity(
-                    userEntity.getUsername(), simpleOrganization.getId(), tenantId));
+            userOrganizationMapper.insert(
+                    new UserOrganizationEntity(userEntity.getUsername(), simpleOrganization.getId(), tenantId));
         }
     }
 
     private static String getTenantId(CreateUser createUser, UserDetails userDetails) {
-        return (userDetails.isAnyManager() && StrUtil.isNotEmpty(createUser.getTenantId())) ? createUser.getTenantId() : userDetails.getTenantId();
+        return (userDetails.isAnyManager() && StrUtil.isNotEmpty(createUser.getTenantId()))
+                ? createUser.getTenantId()
+                : userDetails.getTenantId();
     }
 
     private void assignRolesToUser(String tenantId, String username, List<SimpleRole> roles) {
@@ -346,8 +347,8 @@ public class UserServiceImpl implements UserService {
                                         .eq(UserOrganizationEntity::getUsername, userEntity.getUsername()));
                     }
                 } else {
-                    userOrganizationMapper.insert(new UserOrganizationEntity(
-                            userEntity.getUsername(), simpleOrganization.getId(), tenantId));
+                    userOrganizationMapper.insert(
+                            new UserOrganizationEntity(userEntity.getUsername(), simpleOrganization.getId(), tenantId));
                 }
             }
         }
@@ -518,6 +519,5 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void exportUsers(Page<User> pageable, UserQueryContext parameters) {
-    }
+    public void exportUsers(Page<User> pageable, UserQueryContext parameters) {}
 }

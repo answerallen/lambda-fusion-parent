@@ -27,8 +27,7 @@ public interface AuthorityConstants {
             FusionConstants.ROLE_DEV,
             FusionConstants.ROLE_USER,
             FusionConstants.ROLE_MANAGER,
-            FusionConstants.ROLE_ORG,
-            FusionConstants.ROLE_TENANT_MANAGER);
+            FusionConstants.ROLE_ORG);
 
     // ==================== 枚举 ======================
 
