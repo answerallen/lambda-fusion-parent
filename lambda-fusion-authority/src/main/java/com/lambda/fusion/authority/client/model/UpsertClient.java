@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Size;
 import java.util.Date;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 @AutoConverter(target = ClientEntity.class)
 @EqualsAndHashCode(callSuper = true)

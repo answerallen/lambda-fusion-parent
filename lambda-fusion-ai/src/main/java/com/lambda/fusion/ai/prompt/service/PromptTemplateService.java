@@ -1,6 +1,6 @@
 package com.lambda.fusion.ai.prompt.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.lambda.fusion.ai.prompt.model.CreateTemplate;
 import com.lambda.fusion.ai.prompt.model.PromptDefinition;
 import com.lambda.fusion.ai.prompt.model.UpdateTemplate;

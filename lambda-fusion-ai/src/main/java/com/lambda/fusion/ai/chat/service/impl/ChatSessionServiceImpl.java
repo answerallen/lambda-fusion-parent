@@ -1,6 +1,6 @@
 package com.lambda.fusion.ai.chat.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.AiConstants.Enums.SessionStatus;
 import com.lambda.fusion.ai.apps.mapper.AppsMapper;

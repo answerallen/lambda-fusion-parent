@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.llm.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.AiConstants.ModelType;
 import com.lambda.fusion.ai.exception.AiBusinessException;

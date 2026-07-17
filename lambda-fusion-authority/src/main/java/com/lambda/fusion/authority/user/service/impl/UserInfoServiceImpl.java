@@ -1,7 +1,7 @@
 package com.lambda.fusion.authority.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.AuthorityConstants.ThirdType;
 import com.lambda.fusion.authority.user.mapper.UserInfoMapper;

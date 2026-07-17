@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.client.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.lambda.fusion.authority.client.model.ClientEntity;
 import com.lambda.fusion.authority.resource.model.ApiPermissionTreeNode;
 import com.lambda.fusion.authority.resource.model.UserPermission;

@@ -1,6 +1,6 @@
 package com.lambda.fusion.authority.client.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.fusion.authority.client.mapper.ClientMapper;
 import com.lambda.fusion.authority.client.model.ClientEntity;
@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;

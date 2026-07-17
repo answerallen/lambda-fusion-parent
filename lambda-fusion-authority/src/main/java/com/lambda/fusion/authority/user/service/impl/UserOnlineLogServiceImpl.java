@@ -2,7 +2,7 @@ package com.lambda.fusion.authority.user.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.user.mapper.UserOnlineLogMapper;
 import com.lambda.fusion.authority.user.model.entity.OnlineLogEntity;

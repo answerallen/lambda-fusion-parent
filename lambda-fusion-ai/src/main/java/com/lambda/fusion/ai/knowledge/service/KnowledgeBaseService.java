@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.knowledge.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.lambda.fusion.ai.knowledge.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.knowledge.model.KnowledgeBase;
 import com.lambda.fusion.ai.knowledge.model.KnowledgeBaseQuery;

@@ -1,6 +1,6 @@
 package com.lambda.fusion.ai.llm.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.lambda.fusion.ai.llm.model.CreateLlmProvider;
 import com.lambda.fusion.ai.llm.model.LlmProvider;
 import com.lambda.fusion.ai.llm.model.UpdateLlmProvider;

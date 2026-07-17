@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.knowledge.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.lambda.fusion.ai.knowledge.model.Document;
 import com.lambda.fusion.ai.knowledge.model.DocumentChunk;
 import com.lambda.fusion.ai.knowledge.model.DocumentChunkQuery;

@@ -4,7 +4,7 @@ import com.lambda.fusion.datascope.DataScopeProperties;
 import com.lambda.fusion.datascope.event.DataScopeObjectChangedEvent;
 import com.lambda.fusion.datascope.service.DataScopeSmartService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 

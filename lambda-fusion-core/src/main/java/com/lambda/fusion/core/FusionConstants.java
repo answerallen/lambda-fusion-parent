@@ -9,7 +9,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * 常量定义类

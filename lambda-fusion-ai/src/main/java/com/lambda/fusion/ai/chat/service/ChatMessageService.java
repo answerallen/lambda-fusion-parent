@@ -1,6 +1,6 @@
 package com.lambda.fusion.ai.chat.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.lambda.fusion.ai.chat.model.ChatHistory;
 import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;

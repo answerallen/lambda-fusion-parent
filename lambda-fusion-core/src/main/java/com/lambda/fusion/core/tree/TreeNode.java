@@ -3,7 +3,7 @@ package com.lambda.fusion.core.tree;
 import com.lambda.cloud.core.exception.NotSupportedException;
 import com.lambda.fusion.core.FusionConstants;
 import java.util.List;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * 树元数据标识，使用{@link com.lambda.fusion.core.tree.builder.TreeBuilder#build(List)}

@@ -2,7 +2,7 @@ package com.lambda.fusion.config.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.spring.service.IService;
 import com.lambda.fusion.config.model.*;
 import com.lambda.fusion.config.model.entity.ConfigEntity;
 import com.lambda.fusion.config.model.entity.ConfigOptionEntity;

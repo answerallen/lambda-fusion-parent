@@ -4,7 +4,7 @@ import cn.hutool.core.lang.UUID;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.user.model.Password;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class PasswordGenerator {
 

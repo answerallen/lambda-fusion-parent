@@ -1,6 +1,6 @@
 package com.lambda.fusion.ai.workflow.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.fusion.ai.agent.AgentNode;
 import com.lambda.fusion.ai.agent.evaluator.ConditionEvaluator;
 import com.lambda.fusion.ai.agent.factory.AgentGraphFactory;

@@ -2,7 +2,7 @@ package com.lambda.fusion.ai.chat.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
 import com.lambda.fusion.ai.AiConstants;

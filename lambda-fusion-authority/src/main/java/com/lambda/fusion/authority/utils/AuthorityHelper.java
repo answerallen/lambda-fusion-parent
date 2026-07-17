@@ -11,7 +11,7 @@ import com.lambda.fusion.core.utils.AuthUtils;
 import jakarta.validation.constraints.NotNull;
 import java.util.Collection;
 import java.util.List;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class AuthorityHelper {
 

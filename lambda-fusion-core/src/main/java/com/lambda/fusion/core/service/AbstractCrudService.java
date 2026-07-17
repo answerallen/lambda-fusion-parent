@@ -4,7 +4,7 @@ import cn.hutool.core.util.TypeUtil;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.cloud.core.convert.BaseConverter;
 import com.lambda.cloud.core.convert.ConverterResolver;
 import com.lambda.fusion.core.pagination.PageView;

@@ -1,6 +1,6 @@
 package com.lambda.fusion.ai.apps.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.apps.mapper.AppsMapper;
 import com.lambda.fusion.ai.apps.model.CreateApp;

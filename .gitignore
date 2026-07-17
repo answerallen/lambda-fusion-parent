@@ -64,3 +64,4 @@ evn
 /.idea/workspace.xml
 /**/lombok.config
 /**/**/lombok.config
+/.idea/sqldialects.xml
