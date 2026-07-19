@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  * <p>扫描 Spring 容器中携带 AgentScope {@link Tool} 注解方法的 Bean，构造 AgentScope {@link Toolkit}：
  * <ul>
  *   <li>{@link #buildToolkit()} 创建 {@code new Toolkit()} 并 {@link Toolkit#registerTool(Object)} 注册所有发现的 @Tool bean；</li>
- *   <li>注解是 {@code io.agentscope.core.tool.Tool}（**非** langchain4j 的 {@code dev.langchain4j.agent.tool.Tool}），
+ *   <li>注解是 {@code io.agentscope.core.tool.Tool}（**非** 旧 langchain4j 的 {@code @Tool}），
  *       S9 迁移=改 import 包名（{@link ToolToolkitAdapter} 自动接管，旧 {@code AgentToolProvider} 在 Phase 3 删除）。</li>
  * </ul>
  *
