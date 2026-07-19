@@ -15,22 +15,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.bsc.langgraph4j</groupId>
-            <artifactId>langgraph4j-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.bsc.langgraph4j</groupId>
-            <artifactId>langgraph4j-langchain4j</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.bsc.langgraph4j</groupId>
-            <artifactId>langgraph4j-agent-executor</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-fusion-core</artifactId>
             <version>${project.version}</version>
@@ -92,39 +76,8 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.pgvector</groupId>
-            <artifactId>pgvector</artifactId>
-            <version>0.1.6</version>
-        </dependency>
         <!-- 文档解析器 -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-document-parser-apache-pdfbox</artifactId>
-        </dependency>
-       <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-document-parser-apache-poi</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-ollama</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>jackson-databind</artifactId>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-open-ai</artifactId>
-        </dependency>
         <!-- MCP（Model Context Protocol）客户端支持 -->
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-mcp</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.graalvm.js</groupId>
             <artifactId>js-language</artifactId>
@@ -141,10 +94,38 @@
             <version>23.1.2</version>
         </dependency>
         <!-- Resilience4j 容错机制 -->
+        <!-- ========== AgentScope 2.0 运行时（Phase 3：langgraph4j + langchain4j 已全清零） ========== -->
+        <!-- 版本由父 POM 的 agentscope-bom:2.0.0 管理，此处不写 version -->
         <dependency>
-            <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-spring-boot4</artifactId>
-            <version>2.4.0</version>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-admin-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-harness</artifactId>
+        </dependency>
+        <!-- 模型提供方扩展（DB 驱动 model client 按 provider 选择） -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-model-openai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-model-ollama</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-model-dashscope</artifactId>
+        </dependency>
+        <!-- 分布式会话后端：PG（复用 ai-postgres，D5 一等后端） -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-postgresql</artifactId>
+        </dependency>
+        <!-- RAG 托管型（SimpleKnowledge，Phase 2 接入；本期引入依赖） -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-rag-simple</artifactId>
         </dependency>
     </dependencies>
 

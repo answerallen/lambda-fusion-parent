@@ -1,11 +1,12 @@
 package com.lambda.fusion.ai.mcp.controller;
 
-import com.lambda.fusion.ai.agent.tools.AgentToolProvider;
+import com.lambda.fusion.ai.agent.runtime.McpClientAdapter;
+import com.lambda.fusion.ai.agent.runtime.ToolToolkitAdapter;
 import com.lambda.fusion.ai.mcp.model.CreateMcpServer;
 import com.lambda.fusion.ai.mcp.model.McpServer;
 import com.lambda.fusion.ai.mcp.model.UpdateMcpServer;
 import com.lambda.fusion.ai.mcp.service.McpServerService;
-import dev.langchain4j.agent.tool.ToolSpecification;
+import io.agentscope.core.model.ToolSchema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,7 +33,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class McpServerController {
 
     private final McpServerService mcpServerService;
-    private final AgentToolProvider agentToolProvider;
+    private final ToolToolkitAdapter toolToolkitAdapter;
+    private final McpClientAdapter mcpClientAdapter;
 
     @PostMapping
     @Operation(summary = "注册 MCP 服务器")
@@ -71,14 +73,15 @@ public class McpServerController {
     }
 
     @GetMapping("/tools")
-    @Operation(summary = "查询所有已注册 MCP 工具列表（含本地@Tool）")
-    public List<ToolSpecification> listAllTools() {
-        return agentToolProvider.getToolSpecifications();
+    @Operation(summary = "查询所有已注册本地 @Tool 列表（MCP 工具为 per-agent 装配，不在此列）")
+    public List<ToolSchema> listAllTools() {
+        return toolToolkitAdapter.getToolSchemas();
     }
 
     @PostMapping("/tools/refresh")
-    @Operation(summary = "手动刷新 MCP 工具列表")
+    @Operation(summary = "手动刷新本地 @Tool 扫描 + 清除 MCP 客户端缓存")
     public void refreshTools() {
-        agentToolProvider.refreshMcpTools();
+        toolToolkitAdapter.refresh();
+        mcpClientAdapter.invalidateAll();
     }
 }

@@ -9,10 +9,10 @@ import com.lambda.fusion.ai.prompt.model.UpdateTemplate;
 import com.lambda.fusion.ai.prompt.model.entity.PromptTemplateEntity;
 import com.lambda.fusion.ai.prompt.service.PromptTemplateService;
 import com.lambda.fusion.core.service.AbstractCrudService;
-import dev.langchain4j.model.input.Prompt;
-import dev.langchain4j.model.input.PromptTemplate;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +27,9 @@ public class PromptTemplateServiceImpl
         implements PromptTemplateService {
 
     private final PromptTemplateMapper promptTemplateMapper;
+
+    /** 模板变量占位符 {@code {{variable}}}（与旧 langchain4j PromptTemplate 语法一致）。 */
+    private static final Pattern TEMPLATE_VAR_PATTERN = Pattern.compile("\\{\\{\\s*([^}]+?)\\s*\\}\\}");
 
     @Override
     public PromptDefinition createTemplate(CreateTemplate createTemplate) {
@@ -51,16 +54,34 @@ public class PromptTemplateServiceImpl
 
         String templateContent = entity.getTemplateContent();
 
-        // 使用 LangChain4j 的 PromptTemplate 渲染（语法：{{variable}}）
+        // 中性模板渲染（取代 langchain4j PromptTemplate）：{{variable}} -> variables.get(variable)
         try {
-            PromptTemplate promptTemplate = PromptTemplate.from(templateContent);
-            Prompt prompt = promptTemplate.apply(variables);
-            return prompt.text();
-
+            return render(templateContent, variables);
         } catch (Exception e) {
             log.error("模板渲染失败，templateId: {}, error: {}", templateId, e.getMessage(), e);
             throw new AiBusinessException(AiErrorCode.TEMPLATE_RENDER_FAILED, "模板渲染失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 中性 {@code {{variable}}} 渲染：按 variables Map 替换占位符；未提供变量的占位符保留原样（比旧
+     * langchain4j PromptTemplate 更宽松--后者对缺失变量抛异常，此处保留以容错可选变量）。
+     */
+    private String render(String template, Map<String, Object> variables) {
+        if (template == null || template.isEmpty() || variables == null || variables.isEmpty()) {
+            return template;
+        }
+        Matcher matcher = TEMPLATE_VAR_PATTERN.matcher(template);
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String key = matcher.group(1).trim();
+            Object value = variables.get(key);
+            String replacement =
+                    value != null ? Matcher.quoteReplacement(String.valueOf(value)) : matcher.group(0);
+            matcher.appendReplacement(sb, replacement);
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
     }
 
     @Override

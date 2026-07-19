@@ -4,10 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
-import com.lambda.fusion.ai.agent.factory.ChatModelFactory;
+import com.lambda.fusion.ai.agent.runtime.ModelClientFactory;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
-import com.lambda.fusion.ai.knowledge.embedding.EmbeddingModelManager;
+import com.lambda.fusion.ai.agent.runtime.KnowledgeFactory;
 import com.lambda.fusion.ai.llm.mapper.LlmModelMapper;
 import com.lambda.fusion.ai.llm.model.LlmModel;
 import com.lambda.fusion.ai.llm.model.RegisterModel;
@@ -32,10 +32,10 @@ import org.springframework.util.StringUtils;
 public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEntity> implements LlmModelService {
 
     private final LlmModelMapper llmModelMapper;
-    private final @Lazy ChatModelFactory chatModelFactory;
+    private final @Lazy ModelClientFactory modelClientFactory;
     private final KeyEncryptionService keyEncryptionService;
     private final LlmProviderService llmProviderService;
-    private final EmbeddingModelManager embeddingModelManager;
+    private final @Lazy KnowledgeFactory knowledgeFactory;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -170,9 +170,10 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
     }
 
     private void clearRuntimeCache(String modelType, String modelId) {
-        chatModelFactory.invalidateModelCache(modelId);
+        modelClientFactory.invalidateModelCache(modelId);
         if ("EMBEDDING".equalsIgnoreCase(modelType)) {
-            embeddingModelManager.clearCache(modelId);
+            // embedding 模型配置变更：失效所有 KB 的 SimpleKnowledge 缓存（含旧 EmbeddingModel），下次访问重建
+            knowledgeFactory.invalidateAll();
         }
     }
 }

@@ -36,8 +36,6 @@ public class Robot {
     @Schema(description = "关联知识库ID")
     private String kbId;
 
-    @Schema(description = "关联工作流ID")
-    private String workflowId;
 
     @Schema(description = "所属租户ID")
     private String tenantId;

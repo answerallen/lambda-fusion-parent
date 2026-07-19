@@ -2,25 +2,13 @@ package com.lambda.fusion.ai;
 
 import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;
 import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
+import com.lambda.fusion.ai.agent.runtime.AgentScopeRuntimeProperties;
 import com.lambda.fusion.ai.datasource.AiDataSourceInterceptor;
 import com.lambda.fusion.ai.datasource.AiDatabaseSchemaInitializer;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import io.github.resilience4j.core.IntervalFunction;
-import io.github.resilience4j.ratelimiter.RateLimiter;
-import io.github.resilience4j.ratelimiter.RateLimiterConfig;
-import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
-import io.github.resilience4j.retry.Retry;
-import io.github.resilience4j.retry.RetryConfig;
-import io.github.resilience4j.retry.RetryRegistry;
-import java.time.Duration;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeoutException;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
-import org.bsc.langgraph4j.checkpoint.MemorySaver;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.ApplicationRunner;
@@ -36,7 +24,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configuration
 @MapperScan(basePackages = {"com.lambda.fusion.ai.**.mapper"})
 @ComponentScan(basePackageClasses = AiConfigure.class)
-@EnableConfigurationProperties({AiProperties.class})
+@EnableConfigurationProperties({AiProperties.class, AgentScopeRuntimeProperties.class})
 public class AiConfigure {
 
     @Bean
@@ -79,11 +67,6 @@ public class AiConfigure {
         return executor;
     }
 
-    @Bean
-    public MemorySaver workflowCheckpointSaver() {
-        return new MemorySaver();
-    }
-
     /**
      * 注册 AI 数据源 SQL 级拦截器，作为 {@link com.lambda.fusion.ai.datasource.AiDataSourceAspect} 之外的逃逸安全网，
      * 覆盖非事务直接 mapper 调用、虚拟线程 / ForkJoinPool / 自调用等路径。
@@ -94,73 +77,6 @@ public class AiConfigure {
     @Bean
     public ConfigurationCustomizer aiDataSourceInterceptorCustomizer(AiProperties aiProperties) {
         return configuration -> configuration.addInterceptor(new AiDataSourceInterceptor(aiProperties));
-    }
-
-    @Configuration(proxyBeanMethods = false)
-    public static class LlmResilienceConfig {
-
-        public static final String LLM_CIRCUIT_BREAKER = "llm-call";
-        public static final String LLM_RETRY = "llm-call";
-        public static final String LLM_RATE_LIMITER = "llm-call";
-
-        @Bean
-        public CircuitBreakerRegistry circuitBreakerRegistry() {
-            return CircuitBreakerRegistry.ofDefaults();
-        }
-
-        @Bean
-        public RetryRegistry retryRegistry() {
-            return RetryRegistry.ofDefaults();
-        }
-
-        @Bean
-        public RateLimiterRegistry rateLimiterRegistry() {
-            return RateLimiterRegistry.ofDefaults();
-        }
-
-        @Bean
-        public RateLimiter llmRateLimiter(RateLimiterRegistry registry) {
-            RateLimiterConfig config = RateLimiterConfig.custom()
-                    .limitForPeriod(60)
-                    .limitRefreshPeriod(Duration.ofMinutes(1))
-                    .timeoutDuration(Duration.ofSeconds(1))
-                    .build();
-
-            return registry.rateLimiter(LLM_RATE_LIMITER, config);
-        }
-
-        @Bean
-        public CircuitBreaker llmCircuitBreaker(CircuitBreakerRegistry registry) {
-            CircuitBreakerConfig config = CircuitBreakerConfig.custom()
-                    .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
-                    .slidingWindowSize(10)
-                    .failureRateThreshold(50)
-                    .waitDurationInOpenState(Duration.ofSeconds(30))
-                    .permittedNumberOfCallsInHalfOpenState(3)
-                    .minimumNumberOfCalls(5)
-                    .recordExceptions(
-                            TimeoutException.class,
-                            java.net.SocketTimeoutException.class,
-                            java.io.IOException.class,
-                            RuntimeException.class)
-                    .build();
-
-            return registry.circuitBreaker(LLM_CIRCUIT_BREAKER, config);
-        }
-
-        @Bean
-        public Retry llmRetry(RetryRegistry registry) {
-            IntervalFunction intervalFn = IntervalFunction.ofExponentialBackoff(Duration.ofSeconds(1), 2.0);
-
-            RetryConfig config = RetryConfig.custom()
-                    .maxAttempts(3)
-                    .intervalFunction(intervalFn)
-                    .retryOnException(e -> e instanceof TimeoutException || e instanceof java.io.IOException)
-                    .failAfterMaxAttempts(true)
-                    .build();
-
-            return registry.retry(LLM_RETRY, config);
-        }
     }
 
     /**

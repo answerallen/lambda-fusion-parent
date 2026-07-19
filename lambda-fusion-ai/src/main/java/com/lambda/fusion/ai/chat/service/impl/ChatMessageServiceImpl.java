@@ -1,11 +1,11 @@
 package com.lambda.fusion.ai.chat.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.cloud.sse.SseEmitterManager;
-import com.lambda.fusion.ai.AiConstants;
+import com.lambda.fusion.ai.agent.runtime.AgentRuntimeService;
+import com.lambda.fusion.ai.agent.runtime.EventToSseAdapter;
 import com.lambda.fusion.ai.chat.mapper.ChatMessageMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.chat.model.ChatHistory;
@@ -17,19 +17,10 @@ import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.suooprt.CostCalculator;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
-import com.lambda.fusion.ai.knowledge.model.VectorSearchResult;
-import com.lambda.fusion.ai.knowledge.service.RagService;
 import com.lambda.fusion.ai.llm.mapper.LlmModelMapper;
-import com.lambda.fusion.ai.workflow.model.WorkflowExecutionRequest;
-import com.lambda.fusion.ai.workflow.service.WorkflowExecutionService;
 import com.lambda.fusion.core.utils.AuthUtils;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +34,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * 消息服务实现类
  *
+ * <p>AgentScope 重构后：聊天主路坍缩为单一 {@link AgentRuntimeService#run} -> {@link EventToSseAdapter}
+ * -> SSE 路径（旧 RAG {@code streamChat} + workflow {@code executeWorkflowStream} 二分已移除）。RAG 检索
+ * 改为 agent 的 {@code retrieve_knowledge} 工具（经 {@code KnowledgeRetrievalTools}，在
+ * {@code AgentRuntimeServiceImpl.buildToolkit} 注册），agent 自主决定何时检索；workflow 路径随 workflow
+ * 域退出（Phase 3 cutover 删 workflow 域）。本文件已清零 langchain4j 依赖（6 处耦合之一）。
+ *
  * @author Jin
  */
 @Slf4j
@@ -54,8 +51,8 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     private final ChatMessageMapper chatMessageMapper;
     private final ChatSessionMapper chatSessionMapper;
     private final LlmModelMapper llmModelMapper;
-    private final RagService ragService;
-    private final WorkflowExecutionService workflowExecutionService;
+    private final AgentRuntimeService agentRuntimeService;
+    private final EventToSseAdapter eventToSseAdapter;
     private final AtomicSessionUpdateService atomicSessionUpdateService;
     private final SseEmitterManager sseEmitterManager;
     private final TransactionTemplate transactionTemplate;
@@ -99,150 +96,35 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
             ChatSessionEntity session,
             ChatMessageEntity userMsg,
             String clientId) {
-        try {
-            if (session.getWorkflowId() != null) {
-                executeWorkflowStream(session, sendMessage, userMsg, clientId);
-                return;
-            }
-            List<VectorSearchResult> retrievedChunks =
-                    ragService.retrieve(sendMessage.getContent(), session.getKbId(), null, null);
-
-            StringBuilder fullAnswer = new StringBuilder();
-            List<ChatMessage> history = buildChatHistory(sessionId, null);
-
-            ragService.streamChat(
-                    sendMessage.getContent(),
-                    session.getKbId(),
-                    retrievedChunks,
-                    session.getLlmModelId(),
-                    history,
-                    new StreamingChatResponseHandler() {
-                        @Override
-                        public void onPartialResponse(String token) {
-                            sseEmitterManager.sendEvent(clientId, "message", token);
-                            fullAnswer.append(token);
-                        }
-
-                        @Override
-                        public void onCompleteResponse(ChatResponse response) {
-                            String aiText = Optional.ofNullable(response.aiMessage())
-                                    .map(AiMessage::text)
-                                    .orElse("");
-                            String finalContent =
-                                    fullAnswer.isEmpty() && StrUtil.isNotEmpty(aiText) ? aiText : fullAnswer.toString();
+        String llmModelId = session.getLlmModelId();
+        boolean ragEnhanced = session.getKbId() != null;
+        // 单一路径：AgentRuntimeService.run -> Flux<AgentEvent> -> EventToSseAdapter -> SSE
+        // token 流（message 事件）由 adapter 内部 doOnNext 推送；error 由 adapter doOnError 推送
+        eventToSseAdapter
+                .bridge(clientId, agentRuntimeService.run(session, sendMessage))
+                .subscribe(
+                        outcome -> {
                             ChatMessageEntity aiMsg = new ChatMessageEntity();
                             aiMsg.setSessionId(sessionId);
                             aiMsg.setRole("assistant");
-                            aiMsg.setContent(finalContent);
-                            aiMsg.setIsRagEnhanced(true);
-                            aiMsg.setRetrievedChunks(JSONUtil.toJsonStr(retrievedChunks));
-
-                            applyTokenUsage(response, aiMsg);
-
+                            aiMsg.setContent(outcome.answer());
+                            aiMsg.setIsRagEnhanced(ragEnhanced);
+                            aiMsg.setPromptTokens(outcome.inputTokens());
+                            aiMsg.setCompletionTokens(outcome.outputTokens());
+                            aiMsg.setTotalTokens(outcome.inputTokens() + outcome.outputTokens());
                             try {
-                                persistStreamMessages(sessionId, userMsg, aiMsg, session.getLlmModelId());
+                                persistStreamMessages(sessionId, userMsg, aiMsg, llmModelId);
                                 sseEmitterManager.sendEvent(clientId, "finish", aiMsg.getId());
                             } catch (Exception e) {
                                 log.error("流式消息持久化失败", e);
                                 sseEmitterManager.sendEvent(clientId, "error", "系统异常，请稍后重试");
                             }
-                        }
-
-                        @Override
-                        public void onError(Throwable error) {
-                            log.error("RAG 推理异常", error);
-                            sseEmitterManager.sendEvent(clientId, "error", "系统异常，请稍后重试");
-                        }
-                    });
-        } catch (Exception e) {
-            log.error("流式消息发送失败", e);
-            sseEmitterManager.sendEvent(clientId, "error", "系统异常，请稍后重试");
-        }
+                        },
+                        error -> log.error("AgentScope 聊天流失败, sessionId={}", sessionId, error));
     }
 
     private Executor resolveStreamExecutor() {
         return agentParallelExecutor != null ? agentParallelExecutor : Runnable::run;
-    }
-
-    private void applyTokenUsage(ChatResponse response, ChatMessageEntity chatMessageEntity) {
-        int promptTokens = 0;
-        int completionTokens = 0;
-        if (response.tokenUsage() != null) {
-            promptTokens = response.tokenUsage().inputTokenCount();
-            completionTokens = response.tokenUsage().outputTokenCount();
-        }
-        chatMessageEntity.setPromptTokens(promptTokens);
-        chatMessageEntity.setCompletionTokens(completionTokens);
-        chatMessageEntity.setTotalTokens(promptTokens + completionTokens);
-    }
-
-    private void executeWorkflowStream(
-            ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg, String clientId) {
-        StringBuilder fullAnswer = new StringBuilder();
-        workflowExecutionService.executeStream(
-                session.getWorkflowId(),
-                buildWorkflowExecutionRequest(session, dto, userMsg, true),
-                new StreamingChatResponseHandler() {
-                    @Override
-                    public void onPartialResponse(String token) {
-                        sseEmitterManager.sendEvent(clientId, "message", token);
-                        fullAnswer.append(token);
-                    }
-
-                    @Override
-                    public void onCompleteResponse(ChatResponse response) {
-                        String aiText = Optional.ofNullable(response.aiMessage())
-                                .map(AiMessage::text)
-                                .orElse("");
-
-                        String finalContent = fullAnswer.isEmpty() ? aiText : fullAnswer.toString();
-                        ChatMessageEntity messageId =
-                                createAssistantMessageEntity(session.getId(), finalContent, false);
-                        applyTokenUsage(response, messageId);
-                        try {
-                            persistStreamMessages(session.getId(), userMsg, messageId, session.getLlmModelId());
-                            sseEmitterManager.sendEvent(clientId, "finish", messageId.getId());
-                        } catch (Exception e) {
-                            log.error("工作流流式消息持久化失败", e);
-                            sseEmitterManager.sendEvent(clientId, "error", "系统异常，请稍后重试");
-                        }
-                    }
-
-                    @Override
-                    public void onError(Throwable error) {
-                        log.error("工作流流式执行异常", error);
-                        sseEmitterManager.sendEvent(clientId, "error", "系统异常，请稍后重试");
-                    }
-                });
-    }
-
-    private WorkflowExecutionRequest buildWorkflowExecutionRequest(
-            ChatSessionEntity session, SendMessage dto, ChatMessageEntity userMsg, boolean traceEnabled) {
-        WorkflowExecutionRequest request = new WorkflowExecutionRequest();
-        request.setUserId(session.getUserId());
-        request.setTenantId(session.getTenantId());
-        request.setSessionId(session.getId());
-        request.setKbId(session.getKbId());
-        request.setLlmModelId(session.getLlmModelId());
-        List<ChatMessage> history = buildChatHistory(session.getId(), userMsg.getId());
-        history.add(new UserMessage(dto.getContent()));
-        request.setMessages(history);
-        Map<String, Object> inputParams = new HashMap<>();
-        inputParams.put("question", dto.getContent());
-        request.setInputParams(inputParams);
-        request.setTraceEnabled(traceEnabled);
-        // 聊天层触发：统计结算由 persistStreamMessages 负责，工作流服务跳过结算
-        request.setCalledFromChat(true);
-        return request;
-    }
-
-    private ChatMessageEntity createAssistantMessageEntity(String sessionId, String content, boolean ragEnhanced) {
-        ChatMessageEntity chatMessageEntity = new ChatMessageEntity();
-        chatMessageEntity.setSessionId(sessionId);
-        chatMessageEntity.setRole("assistant");
-        chatMessageEntity.setContent(content);
-        chatMessageEntity.setIsRagEnhanced(ragEnhanced);
-        return chatMessageEntity;
     }
 
     @Override
@@ -382,43 +264,5 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         if ("ARCHIVED".equals(session.getStatus())) {
             throw new AiBusinessException(AiErrorCode.SESSION_ARCHIVED);
         }
-    }
-
-    /**
-     * 构建聊天历史消息列表
-     * <p>
-     * <strong>顺序说明</strong>：
-     * <ol>
-     *   <li>Mapper 返回按 created_at DESC 排序的消息（最新在前）</li>
-     *   <li>遍历添加到列表后，顺序仍为倒序（最新在前）</li>
-     *   <li>调用 {@link java.util.Collections#reverse(List)} 反转为正序（最早在前）</li>
-     *   <li>最终返回正序历史，符合对话时间线，供 LLM 正确理解上下文</li>
-     * </ol>
-     *
-     * @param sessionId        会话ID
-     * @param excludeMessageId 需要排除的消息ID（可为null）
-     * @return 正序排列的历史消息列表（最早在前）
-     */
-    private List<ChatMessage> buildChatHistory(String sessionId, String excludeMessageId) {
-        // Mapper 返回倒序（最新在前），需要反转为正序（最早在前）
-        // 查询 DEFAULT_HISTORY_LIMIT + 1 条消息，预留一条用于排除当前消息
-        List<ChatMessageEntity> recentMessages =
-                chatMessageMapper.listBySessionId(sessionId, AiConstants.DEFAULT_HISTORY_LIMIT + 1);
-        List<ChatMessage> history = new ArrayList<>();
-        if (recentMessages != null) {
-            for (ChatMessageEntity entity : recentMessages) {
-                if (excludeMessageId != null && excludeMessageId.equals(entity.getId())) {
-                    continue;
-                }
-                if ("assistant".equals(entity.getRole())) {
-                    history.add(new AiMessage(entity.getContent()));
-                } else if ("user".equals(entity.getRole()) && entity.getContent() != null) {
-                    history.add(new UserMessage(entity.getContent()));
-                }
-            }
-            // 反转为正序：确保历史消息按时间正序排列，LLM 能正确理解对话上下文
-            Collections.reverse(history);
-        }
-        return history;
     }
 }

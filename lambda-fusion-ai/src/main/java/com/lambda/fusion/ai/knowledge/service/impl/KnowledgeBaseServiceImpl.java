@@ -6,7 +6,7 @@ import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.knowledge.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.knowledge.mapper.DocumentMapper;
 import com.lambda.fusion.ai.knowledge.mapper.KnowledgeBaseMapper;
-import com.lambda.fusion.ai.knowledge.mapper.VectorRepository;
+import com.lambda.fusion.ai.agent.runtime.VectorStoreOps;
 import com.lambda.fusion.ai.knowledge.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.knowledge.model.KnowledgeBase;
 import com.lambda.fusion.ai.knowledge.model.KnowledgeBaseQuery;
@@ -14,7 +14,6 @@ import com.lambda.fusion.ai.knowledge.model.UpdateKnowledgeBase;
 import com.lambda.fusion.ai.knowledge.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.knowledge.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.knowledge.service.KnowledgeBaseService;
-import com.lambda.fusion.ai.knowledge.vector.VectorDimensionProcessor;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.utils.AuthUtils;
 import java.time.LocalDateTime;
@@ -40,7 +39,7 @@ public class KnowledgeBaseServiceImpl
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final DocumentMapper documentMapper;
     private final DocumentChunkMapper documentChunkMapper;
-    private final VectorRepository vectorRepository;
+    private final VectorStoreOps vectorStoreOps;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -103,10 +102,8 @@ public class KnowledgeBaseServiceImpl
             List<String> documentIds =
                     documents.stream().map(DocumentEntity::getId).collect(Collectors.toList());
 
-            // 删除所有维度分表中的向量数据
-            for (Integer dimension : VectorDimensionProcessor.SUPPORTED_DIMENSIONS) {
-                vectorRepository.deleteByKbId(dimension, id, entity.getTenantId());
-            }
+            // 删除知识库向量表（PgVectorStore DROP TABLE）
+            vectorStoreOps.deleteAllForKb(id);
 
             documentChunkMapper.deleteByDocumentIds(documentIds);
 

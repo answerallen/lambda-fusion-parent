@@ -357,6 +357,22 @@
         </createIndex>
     </changeSet>
 
+    <!-- 【PostgreSQL】ai_chat_session 新增检索参数快照列（AgentScope 重构方案 §5.2 session 快照扩展） -->
+    <changeSet id="lambda-fusion-ai-20260719100001-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <columnExists tableName="ai_chat_session" columnName="retrieval_top_k"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
+        </preConditions>
+        <addColumn tableName="ai_chat_session">
+            <column name="retrieval_top_k" type="integer"/>
+            <column name="similarity_threshold" type="decimal(3,2)"/>
+        </addColumn>
+    </changeSet>
+
     <!-- ========================================== -->
     <!-- 【PostgreSQL】对话消息表 ai_chat_message -->
     <!-- ========================================== -->

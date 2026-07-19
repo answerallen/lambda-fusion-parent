@@ -2,10 +2,9 @@ package com.lambda.fusion.ai.mcp.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import com.lambda.fusion.ai.agent.tools.AgentToolProvider;
+import com.lambda.fusion.ai.agent.runtime.McpClientAdapter;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
-import com.lambda.fusion.ai.mcp.manager.McpClientManager;
 import com.lambda.fusion.ai.mcp.mapper.McpServerMapper;
 import com.lambda.fusion.ai.mcp.model.CreateMcpServer;
 import com.lambda.fusion.ai.mcp.model.McpServer;
@@ -37,8 +36,7 @@ import tools.jackson.databind.ObjectMapper;
 public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServerEntity> implements McpServerService {
 
     private final McpServerMapper mcpServerMapper;
-    private final McpClientManager mcpClientManager;
-    private final AgentToolProvider agentToolProvider;
+    private final McpClientAdapter mcpClientAdapter;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -140,7 +138,7 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
     public boolean testConnection(String id) {
         getOrThrow(id);
         try {
-            mcpClientManager.checkConnection(id);
+            mcpClientAdapter.checkConnection(id);
             log.info("McpServerServiceImpl: MCP 服务器连接测试成功，ID: {}", id);
             return true;
         } catch (Exception e) {
@@ -173,7 +171,7 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
             return;
         }
         switch (transportType.toUpperCase()) {
-            case McpClientManager.TRANSPORT_STDIO -> {
+            case McpClientAdapter.TRANSPORT_STDIO -> {
                 if (!StringUtils.hasText(command)) {
                     throw new AiBusinessException(
                             AiErrorCode.INVALID_PARAMETER,
@@ -181,7 +179,7 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
                 }
                 validateJsonArray(command, "command");
             }
-            case McpClientManager.TRANSPORT_HTTP_STREAMABLE -> {
+            case McpClientAdapter.TRANSPORT_HTTP_STREAMABLE -> {
                 if (!StringUtils.hasText(url)) {
                     throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "HTTP_STREAMABLE 传输类型需要配置 url 字段");
                 }
@@ -189,7 +187,7 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
             default ->
                 throw new AiBusinessException(AiErrorCode.MCP_TRANSPORT_NOT_SUPPORTED, "不支持的传输类型: " + transportType);
         }
-        if (StringUtils.hasText(command) && McpClientManager.TRANSPORT_STDIO.equalsIgnoreCase(transportType)) {
+        if (StringUtils.hasText(command) && McpClientAdapter.TRANSPORT_STDIO.equalsIgnoreCase(transportType)) {
             validateJsonArray(command, "command");
         }
     }
@@ -220,7 +218,7 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
      */
     private void refreshToolsAfterCommit(String mcpServerId) {
         Runnable task = () -> {
-            mcpClientManager.invalidateCache(mcpServerId);
+            mcpClientAdapter.invalidateCache(mcpServerId);
             refreshToolsAsync();
         };
         if (TransactionSynchronizationManager.isSynchronizationActive()
@@ -240,7 +238,7 @@ public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServer
         try {
             Thread.ofVirtual().name("mcp-refresh").start(() -> {
                 try {
-                    agentToolProvider.refreshMcpTools();
+                    mcpClientAdapter.invalidateAll();
                 } catch (Exception e) {
                     log.warn("McpServerServiceImpl: 异步刷新 MCP 工具列表失败: {}", e.getMessage());
                 }

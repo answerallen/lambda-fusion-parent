@@ -120,13 +120,4 @@ public class AiBusinessException extends BusinessException {
         return new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, robotId);
     }
 
-    /**
-     * 便捷方法：Agent工作流不存在异常
-     *
-     * @param workflowId 工作流ID
-     * @return AiBusinessException
-     */
-    public static AiBusinessException workflowNotFound(String workflowId) {
-        return new AiBusinessException(AiErrorCode.WORKFLOW_NOT_FOUND, workflowId);
-    }
 }

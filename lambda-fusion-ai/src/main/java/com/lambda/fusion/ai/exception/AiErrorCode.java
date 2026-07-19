@@ -225,52 +225,6 @@ public enum AiErrorCode implements ErrorCode {
      */
     ROBOT_DISABLED(30751, "AI机器人已禁用"),
 
-    // ========== Agent工作流相关错误 (30760-30779) ==========
-    /**
-     * Agent工作流不存在
-     */
-    WORKFLOW_NOT_FOUND(30760, "Agent工作流不存在"),
-
-    /**
-     * Agent工作流配置无效
-     */
-    WORKFLOW_CONFIG_INVALID(30761, "Agent工作流配置无效"),
-
-    /**
-     * 工作流模板编码已存在
-     */
-    WORKFLOW_TEMPLATE_CODE_EXISTS(30762, "工作流模板编码已存在"),
-
-    /**
-     * 工作流模板版本不存在
-     */
-    WORKFLOW_TEMPLATE_VERSION_NOT_FOUND(30763, "工作流模板版本不存在"),
-
-    /**
-     * 工作流执行失败
-     */
-    WORKFLOW_EXECUTION_FAILED(30765, "工作流执行失败"),
-
-    /**
-     * 工作流执行记录不存在
-     */
-    WORKFLOW_EXECUTION_NOT_FOUND(30766, "工作流执行记录不存在"),
-
-    /**
-     * 工作流线程ID不能为空
-     */
-    WORKFLOW_THREAD_ID_REQUIRED(30767, "工作流线程ID不能为空"),
-
-    /**
-     * 工作流checkpoint不存在
-     */
-    WORKFLOW_CHECKPOINT_NOT_FOUND(30768, "工作流checkpoint不存在"),
-
-    /**
-     * 工作流执行超时
-     */
-    WORKFLOW_EXECUTION_TIMEOUT(30764, "工作流执行超时"),
-
     // ========== 数据源相关错误 (30800-30899) ==========
     /**
      * 数据源错误

@@ -43,8 +43,6 @@ public class AppEntity extends BaseEntity {
     @Schema(description = "关联的知识库ID")
     private String kbId;
 
-    @Schema(description = "关联的主体工作流配置ID (如基于多Agent)")
-    private String workflowId;
 
     @Schema(description = "租户隔离ID")
     private String tenantId;

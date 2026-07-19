@@ -33,12 +33,17 @@ public class ChatSessionEntity {
     @Schema(description = "关联的机器人ID")
     private String robotId;
 
-    @Schema(description = "关联的主题工作流配置ID")
-    private String workflowId;
 
     private String systemPrompt;
     private BigDecimal temperature;
     private Integer maxTokens;
+
+    @Schema(description = "检索TopK快照（创建时从 robot 钉住）")
+    private Integer retrievalTopK;
+
+    @Schema(description = "相似度阈值快照（创建时从 robot 钉住）")
+    private BigDecimal similarityThreshold;
+
     private Integer messageCount;
     private Integer totalTokens;
     private BigDecimal totalCost;

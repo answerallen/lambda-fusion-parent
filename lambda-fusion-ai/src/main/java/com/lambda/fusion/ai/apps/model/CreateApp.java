@@ -42,8 +42,6 @@ public class CreateApp extends BaseDTO<AppEntity> {
     @Schema(description = "知识库ID")
     private String kbId;
 
-    @Schema(description = "工作流ID")
-    private String workflowId;
 
     @Schema(description = "开启状态", defaultValue = "true")
     private Boolean enabled = true;

@@ -17,7 +17,7 @@ import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.knowledge.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.knowledge.mapper.DocumentMapper;
 import com.lambda.fusion.ai.knowledge.mapper.KnowledgeBaseMapper;
-import com.lambda.fusion.ai.knowledge.mapper.VectorRepository;
+import com.lambda.fusion.ai.agent.runtime.VectorStoreOps;
 import com.lambda.fusion.ai.knowledge.model.Document;
 import com.lambda.fusion.ai.knowledge.model.DocumentChunk;
 import com.lambda.fusion.ai.knowledge.model.DocumentChunkQuery;
@@ -27,7 +27,6 @@ import com.lambda.fusion.ai.knowledge.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.knowledge.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.knowledge.processor.DocumentProcessor;
 import com.lambda.fusion.ai.knowledge.service.DocumentService;
-import com.lambda.fusion.ai.knowledge.vector.VectorDimensionProcessor;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import java.io.File;
 import java.io.IOException;
@@ -53,7 +52,7 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
     private final DocumentMapper documentMapper;
     private final DocumentChunkMapper documentChunkMapper;
     private final KnowledgeBaseMapper knowledgeBaseMapper;
-    private final VectorRepository vectorRepository;
+    private final VectorStoreOps vectorStoreOps;
     private final DocumentProcessor documentProcessor;
     private final AiProperties aiProperties;
     private final OssClient ossClient;
@@ -63,14 +62,14 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
             DocumentMapper documentMapper,
             DocumentChunkMapper documentChunkMapper,
             KnowledgeBaseMapper knowledgeBaseMapper,
-            VectorRepository vectorRepository,
+            VectorStoreOps vectorStoreOps,
             DocumentProcessor documentProcessor,
             AiProperties aiProperties,
             OssClientManager ossClientManager) {
         this.documentMapper = documentMapper;
         this.documentChunkMapper = documentChunkMapper;
         this.knowledgeBaseMapper = knowledgeBaseMapper;
-        this.vectorRepository = vectorRepository;
+        this.vectorStoreOps = vectorStoreOps;
         this.documentProcessor = documentProcessor;
         this.aiProperties = aiProperties;
         this.ossClient = ossClientManager.get(aiProperties.getDocument().getOssClientName());
@@ -189,11 +188,9 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
         // 1. 获取关联知识库信息以确定向量表
         KnowledgeBaseEntity kb = knowledgeBaseMapper.selectById(entity.getKbId());
 
-        // 2. 删除向量数据（遍历所有维度分表）
+        // 2. 删除向量数据（PgVectorStore 表按 doc_id）
         if (kb != null) {
-            for (Integer dimension : VectorDimensionProcessor.SUPPORTED_DIMENSIONS) {
-                vectorRepository.deleteByDocumentId(dimension, id, entity.getTenantId());
-            }
+            vectorStoreOps.deleteByDocument(entity.getKbId(), id);
         }
 
         // 3. 删除文档块数据
@@ -247,10 +244,8 @@ public class DocumentServiceImpl extends AbstractCrudService<DocumentEntity, Doc
 
         log.info("重新处理文档: kbId={}, docId={}", kbId, documentId);
 
-        // 删除所有维度分表中的向量数据
-        for (Integer dimension : VectorDimensionProcessor.SUPPORTED_DIMENSIONS) {
-            vectorRepository.deleteByDocumentId(dimension, documentId, doc.getTenantId());
-        }
+        // 删除该文档向量（PgVectorStore 表按 doc_id）
+        vectorStoreOps.deleteByDocument(kbId, documentId);
         documentChunkMapper.deleteByDocumentIds(Collections.singletonList(documentId));
 
         doc.setProcessStatus(DocumentStatus.PENDING.name());
