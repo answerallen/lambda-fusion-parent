@@ -34,14 +34,16 @@ public class ToolToolkitAdapter implements ApplicationContextAware {
     }
 
     /**
-     * 构造一个注册了所有本地 @Tool 的 {@link Toolkit}。
-     *
-     * <p>每次构造新 Toolkit（为后续按 app 注入 MCP/Tool Group 留空间）；注册过程防御性吞异常，
-     * 单个 bean 失败不影响其余。无 @Tool bean 时返回空 Toolkit（agent 无工具可用，不影响对话）。
+     * 构造 {@link Toolkit} 并注册本地 @Tool。{@code toolIds} 为空/null 时注册全部；非空时仅注册
+     * 含匹配 name 的 @Tool 的 bean（按 {@link Tool#name()}，空则用方法名）。单 bean 失败不影响其余。
      */
-    public Toolkit buildToolkit() {
+    public Toolkit buildToolkit(List<String> toolIds) {
         Toolkit toolkit = new Toolkit();
+        boolean filter = toolIds != null && !toolIds.isEmpty();
         for (Object bean : toolBeans) {
+            if (filter && !hasMatchingTool(bean, toolIds)) {
+                continue;
+            }
             try {
                 toolkit.registerTool(bean);
             } catch (Exception e) {
@@ -54,11 +56,26 @@ public class ToolToolkitAdapter implements ApplicationContextAware {
         return toolkit;
     }
 
+    /** bean 的任一 @Tool name 在 toolIds 中则 true（name 取 {@link Tool#name()}，空用方法名）。 */
+    private boolean hasMatchingTool(Object bean, List<String> toolIds) {
+        Class<?> targetClass = AopUtils.getTargetClass(bean);
+        for (Method method : targetClass.getDeclaredMethods()) {
+            Tool t = method.getAnnotation(Tool.class);
+            if (t != null) {
+                String name = t.name().isEmpty() ? method.getName() : t.name();
+                if (toolIds.contains(name)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * 列出所有本地 @Tool 的 schema（供管理面查询；MCP 工具为 per-agent 装配，不在此列）。
      */
     public List<ToolSchema> getToolSchemas() {
-        return buildToolkit().getToolSchemas();
+        return buildToolkit(null).getToolSchemas();
     }
 
     /** 刷新本地 @Tool 扫描（工具 bean 增删后调用）。 */

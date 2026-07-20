@@ -44,6 +44,7 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
     private final ObjectProvider<AgentStateStore> agentStateStoreProvider;
     private final ToolToolkitAdapter toolToolkitAdapter;
     private final KnowledgeFactory knowledgeFactory;
+    private final McpClientAdapter mcpClientAdapter;
 
     @Override
     public Flux<AgentEvent> run(ChatSessionEntity session, SendMessage input) {
@@ -99,14 +100,16 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
             String tenantId,
             List<String> kbIds,
             Integer retrievalTopK,
-            String ragMode) {}
+            String ragMode,
+            List<String> toolIds,
+            List<String> mcpServerIds) {}
 
     private HarnessAgent buildAgent(AgentTemplate t, boolean stateful) {
         Model model = modelClientFactory.get(t.modelId());
         List<SimpleKnowledge> kbs = resolveKnowledgeBases(t.kbIds());
         boolean agentic = isAgenticRag(t.ragMode());
         boolean staticRag = isStaticRag(t.ragMode());
-        Toolkit toolkit = buildToolkit(t.kbIds(), t.retrievalTopK(), kbs, agentic);
+        Toolkit toolkit = buildToolkit(t.kbIds(), t.retrievalTopK(), kbs, agentic, t.toolIds(), t.mcpServerIds());
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 .name(StringUtils.hasText(t.name()) ? t.name() : "agent")
                 .description(t.description() != null ? t.description() : "")
@@ -148,7 +151,9 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                 t.tenantId(),
                 input.getKbIds() != null && !input.getKbIds().isEmpty() ? input.getKbIds() : t.kbIds(),
                 t.retrievalTopK(),
-                t.ragMode());
+                t.ragMode(),
+                t.toolIds(),
+                t.mcpServerIds());
     }
 
     /**
@@ -156,11 +161,26 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
      * 非空时注册 {@link KnowledgeRetrievalTool}，agent 自主决定何时检索）。
      */
     private Toolkit buildToolkit(
-            List<String> kbIds, Integer retrievalTopK, List<SimpleKnowledge> kbs, boolean agentic) {
-        Toolkit toolkit = toolToolkitAdapter.buildToolkit();
+            List<String> kbIds,
+            Integer retrievalTopK,
+            List<SimpleKnowledge> kbs,
+            boolean agentic,
+            List<String> toolIds,
+            List<String> mcpServerIds) {
+        Toolkit toolkit = toolToolkitAdapter.buildToolkit(toolIds);
         if (agentic && kbs != null && !kbs.isEmpty()) {
             toolkit.registerTool(new KnowledgeRetrievalTool(kbs, retrievalTopK));
             log.debug("AgentRuntimeServiceImpl: 已注册知识库检索工具，kbIds: {}", kbIds);
+        }
+        if (mcpServerIds != null) {
+            for (String serverId : mcpServerIds) {
+                try {
+                    toolkit.registerMcpClient(mcpClientAdapter.get(serverId)).block();
+                    log.debug("AgentRuntimeServiceImpl: 已注册 MCP 工具，serverId: {}", serverId);
+                } catch (Exception e) {
+                    log.warn("AgentRuntimeServiceImpl: MCP 注册失败，跳过 serverId={}", serverId, e);
+                }
+            }
         }
         return toolkit;
     }
@@ -247,7 +267,9 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                 session.getRetrievalTopK() != null
                         ? session.getRetrievalTopK()
                         : (app != null ? app.getRetrievalTopK() : null),
-                app != null ? app.getRagMode() : null);
+                app != null ? app.getRagMode() : null,
+                app != null ? app.getToolIds() : null,
+                app != null ? app.getMcpServerIds() : null);
     }
 
     private AgentTemplate templateFromApp(AppEntity app) {
@@ -261,7 +283,9 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                 app.getTenantId(),
                 app.getKbIds(),
                 app.getRetrievalTopK(),
-                app.getRagMode());
+                app.getRagMode(),
+                app.getToolIds(),
+                app.getMcpServerIds());
     }
 
     private AppEntity resolveApp(String appId) {
