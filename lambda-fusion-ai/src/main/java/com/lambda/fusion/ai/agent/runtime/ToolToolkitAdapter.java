@@ -6,6 +6,7 @@ import io.agentscope.core.tool.Toolkit;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
@@ -38,14 +39,38 @@ public class ToolToolkitAdapter implements ApplicationContextAware {
      * 含匹配 name 的 @Tool 的 bean（按 {@link Tool#name()}，空则用方法名）。单 bean 失败不影响其余。
      */
     public Toolkit buildToolkit(List<String> toolIds) {
+        return buildToolkit(toolIds, null);
+    }
+
+    /**
+     * 构造 {@link Toolkit} 并注册本地 @Tool，可按 {@code toolGroupBindings}（@Tool name -> 组名）把
+     * bean 绑定到工具组。组须已由 {@code Toolkit.createToolGroup} 创建（注册时校验存在）。
+     */
+    public Toolkit buildToolkit(List<String> toolIds, Map<String, String> toolGroupBindings) {
         Toolkit toolkit = new Toolkit();
+        registerTools(toolkit, toolIds, toolGroupBindings);
+        return toolkit;
+    }
+
+    /**
+     * 注册本地 @Tool 到给定 {@link Toolkit}，可按 {@code toolGroupBindings}（@Tool name -> 组名）把
+     * bean 绑定到工具组。有组的 bean 经 {@code registration().tool(bean).group(name).apply()} 注册，
+     * 无组的走 {@code registerTool(bean)}。bean 级分组：一个 bean 的所有 @Tool 归同一组。
+     */
+    public void registerTools(Toolkit toolkit, List<String> toolIds, Map<String, String> toolGroupBindings) {
         boolean filter = toolIds != null && !toolIds.isEmpty();
+        boolean hasGroups = toolGroupBindings != null && !toolGroupBindings.isEmpty();
         for (Object bean : toolBeans) {
             if (filter && !hasMatchingTool(bean, toolIds)) {
                 continue;
             }
             try {
-                toolkit.registerTool(bean);
+                String groupName = hasGroups ? resolveGroup(bean, toolGroupBindings) : null;
+                if (groupName != null) {
+                    toolkit.registration().tool(bean).group(groupName).apply();
+                } else {
+                    toolkit.registerTool(bean);
+                }
             } catch (Exception e) {
                 log.warn(
                         "ToolToolkitAdapter: 注册 @Tool bean 失败: {}",
@@ -53,7 +78,6 @@ public class ToolToolkitAdapter implements ApplicationContextAware {
                         e);
             }
         }
-        return toolkit;
     }
 
     /** bean 的任一 @Tool name 在 toolIds 中则 true（name 取 {@link Tool#name()}，空用方法名）。 */
@@ -69,6 +93,25 @@ public class ToolToolkitAdapter implements ApplicationContextAware {
             }
         }
         return false;
+    }
+
+    /**
+     * 解析 bean 所属工具组：取 bean 的 @Tool name 中第一个在 bindings 里的映射组名；无匹配返回 null
+     * （工具归默认无组）。
+     */
+    private String resolveGroup(Object bean, Map<String, String> toolGroupBindings) {
+        Class<?> targetClass = AopUtils.getTargetClass(bean);
+        for (Method method : targetClass.getDeclaredMethods()) {
+            Tool t = method.getAnnotation(Tool.class);
+            if (t != null) {
+                String name = t.name().isEmpty() ? method.getName() : t.name();
+                String group = toolGroupBindings.get(name);
+                if (group != null) {
+                    return group;
+                }
+            }
+        }
+        return null;
     }
 
     /**

@@ -119,4 +119,13 @@ public class AiBusinessException extends BusinessException {
     public static AiBusinessException appNotFound(String appId) {
         return new AiBusinessException(AiErrorCode.APP_NOT_FOUND, appId);
     }
+
+    /**
+     * 请求限流（并发/速率超限）
+     *
+     * @return AiBusinessException
+     */
+    public static AiBusinessException tooManyRequests() {
+        return new AiBusinessException(AiErrorCode.RATE_LIMITED);
+    }
 }

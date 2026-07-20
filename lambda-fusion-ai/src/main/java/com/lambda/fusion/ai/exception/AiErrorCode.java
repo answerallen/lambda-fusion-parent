@@ -287,6 +287,11 @@ public enum AiErrorCode implements ErrorCode {
      */
     CONCURRENT_UPDATE_FAILED(30904, "并发更新失败，请重试"),
 
+    /**
+     * 请求限流
+     */
+    RATE_LIMITED(30905, "请求过于频繁，请稍后重试"),
+
     // ========== MCP 相关错误 (30950-30979) ==========
     /**
      * MCP Server 不存在

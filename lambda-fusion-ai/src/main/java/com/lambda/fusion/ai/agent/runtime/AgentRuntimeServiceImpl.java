@@ -9,6 +9,7 @@ import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
+import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.model.ExecutionConfig;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.model.Model;
@@ -21,7 +22,9 @@ import io.agentscope.core.tool.subagent.SubAgentTool;
 import io.agentscope.harness.agent.HarnessAgent;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -49,6 +52,8 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
     private final KnowledgeFactory knowledgeFactory;
     private final McpClientAdapter mcpClientAdapter;
     private final SubagentSpecParser subagentSpecParser;
+    private final ToolGroupSpecParser toolGroupSpecParser;
+    private final MiddlewareFactory middlewareFactory;
 
     @Override
     public Flux<AgentEvent> run(ChatSessionEntity session, SendMessage input) {
@@ -107,7 +112,9 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
             String ragMode,
             List<String> toolIds,
             List<String> mcpServerIds,
-            String subagentSpec) {}
+            String subagentSpec,
+            String toolGroups,
+            String middlewareConfig) {}
 
     private HarnessAgent buildAgent(AgentTemplate t, boolean stateful) {
         Model model = modelClientFactory.get(t.modelId());
@@ -115,7 +122,8 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
         boolean agentic = isAgenticRag(t.ragMode());
         boolean staticRag = isStaticRag(t.ragMode());
         AgentStateStore stateStore = stateful ? agentStateStoreProvider.getIfAvailable() : null;
-        Toolkit toolkit = buildToolkit(t.kbIds(), t.retrievalTopK(), kbs, agentic, t.toolIds(), t.mcpServerIds());
+        Toolkit toolkit =
+                buildToolkit(t.kbIds(), t.retrievalTopK(), kbs, agentic, t.toolIds(), t.mcpServerIds(), t.toolGroups());
         registerSubagents(toolkit, t, stateStore);
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 .name(StringUtils.hasText(t.name()) ? t.name() : "agent")
@@ -133,6 +141,10 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
         }
         if (staticRag && !kbs.isEmpty()) {
             builder.middleware(new RagMiddleware(kbs, t.retrievalTopK()));
+        }
+        List<MiddlewareBase> middlewares = middlewareFactory.build(t.middlewareConfig());
+        if (!middlewares.isEmpty()) {
+            builder.middlewares(middlewares);
         }
         if (stateful && stateStore != null) {
             builder.stateStore(stateStore);
@@ -158,12 +170,14 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                 t.ragMode(),
                 t.toolIds(),
                 t.mcpServerIds(),
-                t.subagentSpec());
+                t.subagentSpec(),
+                t.toolGroups(),
+                t.middlewareConfig());
     }
 
     /**
-     * 构造 Toolkit：本地 @Tool（经 {@link ToolToolkitAdapter}）+ 知识库检索工具（agentic 模式且 kbIds
-     * 非空时注册 {@link KnowledgeRetrievalTool}，agent 自主决定何时检索）。
+     * 构造 Toolkit：工具组（{@code createToolGroup}）+ 本地 @Tool（经 {@link ToolToolkitAdapter#registerTools}
+     * 按组绑定）+ 知识库检索工具（agentic 且 kbIds 非空时注册 {@link KnowledgeRetrievalTool}）+ MCP。
      */
     private Toolkit buildToolkit(
             List<String> kbIds,
@@ -171,8 +185,11 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
             List<SimpleKnowledge> kbs,
             boolean agentic,
             List<String> toolIds,
-            List<String> mcpServerIds) {
-        Toolkit toolkit = toolToolkitAdapter.buildToolkit(toolIds);
+            List<String> mcpServerIds,
+            String toolGroupsSpec) {
+        Toolkit toolkit = new Toolkit();
+        Map<String, String> toolGroupBindings = registerToolGroups(toolkit, toolGroupsSpec);
+        toolToolkitAdapter.registerTools(toolkit, toolIds, toolGroupBindings);
         if (agentic && kbs != null && !kbs.isEmpty()) {
             toolkit.registerTool(new KnowledgeRetrievalTool(kbs, retrievalTopK));
             log.debug("AgentRuntimeServiceImpl: 已注册知识库检索工具，kbIds: {}", kbIds);
@@ -212,6 +229,8 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                     spec.ragMode(),
                     spec.toolIds(),
                     spec.mcpServerIds(),
+                    null,
+                    null,
                     null);
             SubAgentProvider<HarnessAgent> provider = () -> buildAgent(child, false);
             SubAgentConfig.Builder configBuilder = SubAgentConfig.builder()
@@ -225,6 +244,34 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
             toolkit.registerAgentTool(new SubAgentTool(provider, configBuilder.build()));
             log.debug("AgentRuntimeServiceImpl: 已注册子 agent 工具: {}", spec.name());
         }
+    }
+
+    /**
+     * 解析 {@code toolGroups} -> {@link ToolGroupSpecDto} 列表，每个 spec {@code createToolGroup} 创建组
+     * （按 {@code active} 设初始激活态），并产出 toolName -> 组名 的绑定 Map 供
+     * {@link ToolToolkitAdapter#registerTools} 把工具归组。组创建失败跳过不阻断。
+     */
+    private Map<String, String> registerToolGroups(Toolkit toolkit, String toolGroupsSpec) {
+        List<ToolGroupSpecDto> specs = toolGroupSpecParser.parse(toolGroupsSpec);
+        Map<String, String> toolNameToGroup = new HashMap<>();
+        for (ToolGroupSpecDto spec : specs) {
+            if (!StringUtils.hasText(spec.name())) {
+                continue;
+            }
+            boolean active = spec.active() == null || spec.active();
+            try {
+                toolkit.createToolGroup(spec.name(), spec.description() != null ? spec.description() : "", active);
+                if (spec.toolNames() != null) {
+                    for (String toolName : spec.toolNames()) {
+                        toolNameToGroup.put(toolName, spec.name());
+                    }
+                }
+                log.debug("AgentRuntimeServiceImpl: 已创建工具组: {} active={}", spec.name(), active);
+            } catch (Exception e) {
+                log.warn("AgentRuntimeServiceImpl: 工具组创建失败: {}", spec.name(), e);
+            }
+        }
+        return toolNameToGroup;
     }
 
     /** RAG static 模式开关：null/HYBRID/STATIC -> true（null 默认 HYBRID）。 */
@@ -312,7 +359,9 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                 app != null ? app.getRagMode() : null,
                 app != null ? app.getToolIds() : null,
                 app != null ? app.getMcpServerIds() : null,
-                app != null ? app.getSubagentSpec() : null);
+                app != null ? app.getSubagentSpec() : null,
+                app != null ? app.getToolGroups() : null,
+                app != null ? app.getMiddlewareConfig() : null);
     }
 
     private AgentTemplate templateFromApp(AppEntity app) {
@@ -329,7 +378,9 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                 app.getRagMode(),
                 app.getToolIds(),
                 app.getMcpServerIds(),
-                app.getSubagentSpec());
+                app.getSubagentSpec(),
+                app.getToolGroups(),
+                app.getMiddlewareConfig());
     }
 
     private AppEntity resolveApp(String appId) {
