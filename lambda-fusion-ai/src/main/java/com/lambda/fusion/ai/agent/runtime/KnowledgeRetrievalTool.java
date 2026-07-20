@@ -2,19 +2,18 @@ package com.lambda.fusion.ai.agent.runtime;
 
 import io.agentscope.core.rag.knowledge.SimpleKnowledge;
 import io.agentscope.core.rag.model.Document;
-import io.agentscope.core.rag.model.RetrieveConfig;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * 知识库检索工具（agentic @Tool）：per-agent 绑定多 KB，agent 自主调用 {@code retrieve_knowledge}
  * 跨 KB 检索 + 按 score 合并取 topK。非 Spring bean，由 {@link AgentRuntimeServiceImpl} 按 session kbIds 构造。
+ *
+ * <p>同步方法内 {@code block()} 的安全性：AgentScope {@code ToolExecutor} 将同步 @Tool 调用经
+ * {@code Mono.fromCallable(...).subscribeOn(Schedulers.boundedElastic())} 卸载到弹性线程执行
+ * （2.0.0 字节码核实），此处的阻塞发生在 worker 线程而非事件循环。<b>升级 AgentScope 版本时需复核该行为。</b>
  *
  * @author Jin
  */
@@ -25,10 +24,14 @@ public class KnowledgeRetrievalTool {
 
     private final List<SimpleKnowledge> knowledgeBases;
 
+    private final KnowledgeRetriever knowledgeRetriever;
+
     private final int defaultLimit;
 
-    public KnowledgeRetrievalTool(List<SimpleKnowledge> knowledgeBases, Integer defaultLimit) {
+    public KnowledgeRetrievalTool(
+            List<SimpleKnowledge> knowledgeBases, KnowledgeRetriever knowledgeRetriever, Integer defaultLimit) {
         this.knowledgeBases = knowledgeBases != null ? knowledgeBases : List.of();
+        this.knowledgeRetriever = knowledgeRetriever;
         this.defaultLimit = defaultLimit != null && defaultLimit > 0 ? defaultLimit : DEFAULT_LIMIT;
     }
 
@@ -50,24 +53,9 @@ public class KnowledgeRetrievalTool {
             return "知识库为空，无可检索内容。";
         }
         int topK = limit != null && limit > 0 ? limit : defaultLimit;
-        RetrieveConfig config = RetrieveConfig.builder().limit(topK).build();
-        List<Document> merged = Flux.fromIterable(knowledgeBases)
-                .flatMap(kb -> kb.retrieve(query, config).onErrorResume(e -> {
-                    log.warn("KnowledgeRetrievalTool: 单 KB 检索失败，跳过 query={}", query, e);
-                    return Mono.just(List.<Document>of());
-                }))
-                .flatMapIterable(docs -> docs)
-                .collectList()
-                .map(all -> rankAndTrim(all, topK))
-                .block();
+        List<Document> merged =
+                knowledgeRetriever.retrieve(knowledgeBases, query, topK).block();
         return formatResults(merged);
-    }
-
-    private static List<Document> rankAndTrim(List<Document> all, int limit) {
-        List<Document> ranked = new ArrayList<>(all);
-        ranked.sort(
-                Comparator.comparingDouble(KnowledgeRetrievalTool::scoreOrZero).reversed());
-        return ranked.size() > limit ? new ArrayList<>(ranked.subList(0, limit)) : ranked;
     }
 
     private static String formatResults(List<Document> docs) {
@@ -89,9 +77,5 @@ public class KnowledgeRetrievalTool {
             sb.append(text).append("\n\n");
         }
         return sb.toString();
-    }
-
-    private static double scoreOrZero(Document d) {
-        return d.getScore() != null ? d.getScore() : 0.0;
     }
 }

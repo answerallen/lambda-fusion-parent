@@ -312,6 +312,8 @@ AgentScope 2.0 是"面向生产环境运行智能体"的平台，**不是可视�
 
 ## 8. DB 迁移（Liquibase）
 
+> 落地注记（2026-07-20）：开发期无在产数据，§8 中 workflow 相关项按**硬删除**实施——四个建表 changeset（`ai_workflow_execution`/`ai_agent_workflow`/`ai_workflow_template`/`ai_workflow_template_version`）与两处 `workflow_id` 列已从 schema changelog 直接移除，不新增 drop changeset；`ai_workflow_execution` → `ai_agent_run` 取消（执行记录待 Phase 4 再建新表）。已跑过旧脚本的本地库需手工清理这四张表与 `workflow_id` 列。
+
 - **删除图专属表/字段**：`ai_agent_workflow`（`graph_json` 列）、`ai_workflow_template`/`ai_workflow_template_version`（`definition` 图定义）。对应 changelog 加 drop。
 - **`ai_robot`（agent 模板）扩展**：新增 `subagent_spec`/`tool_ids`/`tool_groups`/`mcp_server_ids`/`kb_ids`/`middleware_config` 列；移除 `workflow_id`；`kb_id` 改 `kb_ids`（多 KB）。
 - **`ai_chat_session` 迁移**：drop `workflow_id` 列；`kb_id` → `kb_ids`（JSON 数组，pin 会话 KB 集）；保留 `robot_id` + 标量快照。

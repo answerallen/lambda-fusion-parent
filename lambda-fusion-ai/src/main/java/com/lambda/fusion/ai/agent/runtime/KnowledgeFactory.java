@@ -2,7 +2,6 @@ package com.lambda.fusion.ai.agent.runtime;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.knowledge.mapper.KnowledgeBaseMapper;
@@ -23,7 +22,6 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -41,13 +39,11 @@ public class KnowledgeFactory {
 
     private static final int DEFAULT_DIMENSIONS = 1536;
     private static final String DEFAULT_VECTOR_TABLE = "ai_vector_store_default";
-    private static final String DS_PROPERTY_PREFIX = "spring.datasource.dynamic.datasource.";
 
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final LlmModelService llmModelService;
     private final KeyEncryptionService keyEncryptionService;
-    private final AiProperties aiProperties;
-    private final Environment environment;
+    private final VectorStoreCredentialsProvider credentialsProvider;
 
     private final Cache<String, SimpleKnowledge> knowledgeCache = Caffeine.newBuilder()
             .expireAfterWrite(1, TimeUnit.HOURS)
@@ -169,24 +165,15 @@ public class KnowledgeFactory {
     }
 
     private PgVectorStore buildPgVectorStore(KnowledgeBaseEntity kb) {
-        String dsName = aiProperties.getDataSource().getName();
-        String prefix = DS_PROPERTY_PREFIX + dsName;
-        String jdbcUrl = environment.getProperty(prefix + ".url");
-        String username = environment.getProperty(prefix + ".username");
-        String password = environment.getProperty(prefix + ".password");
-        if (!StringUtils.hasText(jdbcUrl) || !StringUtils.hasText(username)) {
-            throw new AiBusinessException(
-                    AiErrorCode.SYSTEM_ERROR,
-                    "无法解析 ai-postgres JDBC 凭据（属性 " + prefix + ".url/.username），kbId: " + kb.getId());
-        }
+        VectorStoreCredentialsProvider.Credentials credentials = credentialsProvider.resolve();
         int dimensions = kb.getEmbeddingDimension() != null ? kb.getEmbeddingDimension() : DEFAULT_DIMENSIONS;
         String tableName =
                 StringUtils.hasText(kb.getVectorTableName()) ? kb.getVectorTableName() : DEFAULT_VECTOR_TABLE;
         try {
             return PgVectorStore.builder()
-                    .jdbcUrl(jdbcUrl)
-                    .username(username)
-                    .password(password)
+                    .jdbcUrl(credentials.jdbcUrl())
+                    .username(credentials.username())
+                    .password(credentials.password())
                     .schema("public")
                     .tableName(tableName)
                     .dimensions(dimensions)

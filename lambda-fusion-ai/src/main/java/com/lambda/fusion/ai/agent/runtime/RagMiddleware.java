@@ -9,19 +9,20 @@ import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.middleware.ReasoningInput;
 import io.agentscope.core.rag.knowledge.SimpleKnowledge;
 import io.agentscope.core.rag.model.Document;
-import io.agentscope.core.rag.model.RetrieveConfig;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * RAG 检索中间件（static 模式）：{@link #onReasoning} 拦截，每次 reply 首次推理前用 user 消息检索，
- * 结果作 system context 注入 messages。仅首次检索（{@link RuntimeContext} 标记），后续轮交 agentic
- * {@link KnowledgeRetrievalTool}。非 Spring bean，由 {@link AgentRuntimeServiceImpl} 按 session kbIds 构造。
+ * 结果作 system context 注入 messages。仅首次检索（{@link RuntimeContext} 标记），后续推理轮交 agentic
+ * {@link KnowledgeRetrievalTool}。
+ *
+ * <p>检索经 {@link KnowledgeRetriever} 全反应式组合（{@code Mono} 拼接 {@code next}，无阻塞调用）——
+ * middleware 在 agent 反应式管线内执行，阻塞可能卡死事件线程。非 Spring bean，由
+ * {@link AgentRuntimeServiceImpl} 按 session kbIds 构造。
  *
  * @author Jin
  */
@@ -32,10 +33,13 @@ public class RagMiddleware implements MiddlewareBase {
 
     private final List<SimpleKnowledge> knowledgeBases;
 
+    private final KnowledgeRetriever knowledgeRetriever;
+
     private final int topK;
 
-    public RagMiddleware(List<SimpleKnowledge> knowledgeBases, Integer topK) {
+    public RagMiddleware(List<SimpleKnowledge> knowledgeBases, KnowledgeRetriever knowledgeRetriever, Integer topK) {
         this.knowledgeBases = knowledgeBases != null ? knowledgeBases : List.of();
+        this.knowledgeRetriever = knowledgeRetriever;
         this.topK = topK != null && topK > 0 ? topK : 5;
     }
 
@@ -50,10 +54,17 @@ public class RagMiddleware implements MiddlewareBase {
         if (query == null) {
             return next.apply(input);
         }
-        List<Document> docs = retrieve(query);
-        if (docs.isEmpty()) {
-            return next.apply(input);
-        }
+        return knowledgeRetriever.retrieve(knowledgeBases, query, topK).flatMapMany(docs -> {
+            if (docs.isEmpty()) {
+                return next.apply(input);
+            }
+            log.debug("RagMiddleware: static 检索注入，query={} hits={}", query, docs.size());
+            return next.apply(augment(input, docs));
+        });
+    }
+
+    /** 在 messages 头部注入一条检索上下文 SYSTEM 消息。 */
+    private static ReasoningInput augment(ReasoningInput input, List<Document> docs) {
         Msg contextMsg = Msg.builder()
                 .role(MsgRole.SYSTEM)
                 .textContent(formatContext(docs))
@@ -61,9 +72,7 @@ public class RagMiddleware implements MiddlewareBase {
         List<Msg> augmented = new ArrayList<>(input.messages().size() + 1);
         augmented.add(contextMsg);
         augmented.addAll(input.messages());
-        ReasoningInput newInput = new ReasoningInput(augmented, input.tools(), input.options());
-        log.debug("RagMiddleware: static 检索注入，query={} hits={}", query, docs.size());
-        return next.apply(newInput);
+        return new ReasoningInput(augmented, input.tools(), input.options());
     }
 
     private String extractLastUserQuery(List<Msg> messages) {
@@ -80,25 +89,6 @@ public class RagMiddleware implements MiddlewareBase {
         return null;
     }
 
-    private List<Document> retrieve(String query) {
-        RetrieveConfig config = RetrieveConfig.builder().limit(topK).build();
-        return Flux.fromIterable(knowledgeBases)
-                .flatMap(kb -> kb.retrieve(query, config).onErrorResume(e -> {
-                    log.warn("RagMiddleware: 单 KB 检索失败，跳过 query={}", query, e);
-                    return Mono.just(List.<Document>of());
-                }))
-                .flatMapIterable(docs -> docs)
-                .collectList()
-                .map(all -> rankAndTrim(all, topK))
-                .block();
-    }
-
-    private static List<Document> rankAndTrim(List<Document> all, int limit) {
-        List<Document> ranked = new ArrayList<>(all);
-        ranked.sort(Comparator.comparingDouble(RagMiddleware::scoreOrZero).reversed());
-        return ranked.size() > limit ? new ArrayList<>(ranked.subList(0, limit)) : ranked;
-    }
-
     private static String formatContext(List<Document> docs) {
         StringBuilder sb = new StringBuilder();
         sb.append("以下是检索到的相关知识，请结合这些资料回答用户问题：\n\n");
@@ -108,9 +98,5 @@ public class RagMiddleware implements MiddlewareBase {
             sb.append("[").append(i + 1).append("] ").append(text).append("\n\n");
         }
         return sb.toString();
-    }
-
-    private static double scoreOrZero(Document d) {
-        return d.getScore() != null ? d.getScore() : 0.0;
     }
 }

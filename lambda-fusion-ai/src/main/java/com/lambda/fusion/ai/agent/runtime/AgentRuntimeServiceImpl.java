@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * {@link AgentRuntimeService} 实现：按 session（appId -> AppEntity 模板 + 执行参数快照）+ 请求 override
@@ -54,39 +55,46 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
     private final SubagentSpecParser subagentSpecParser;
     private final ToolGroupSpecParser toolGroupSpecParser;
     private final MiddlewareFactory middlewareFactory;
+    private final KnowledgeRetriever knowledgeRetriever;
 
     @Override
     public Flux<AgentEvent> run(ChatSessionEntity session, SendMessage input) {
-        return Flux.defer(() -> {
-                    HarnessAgent agent = buildAgent(mergeOverride(templateFromSession(session), input), true);
-                    RuntimeContext ctx = buildContext(session);
-                    Msg userMsg = Msg.builder()
-                            .role(MsgRole.USER)
-                            .textContent(input.getContent())
-                            .build();
-                    return agent.streamEvents(userMsg, ctx);
-                })
+        // agent 构造含阻塞操作（模型密钥解密、KB 装配、MCP 注册），整体卸载到 boundedElastic，
+        // 不占用订阅线程；构造完成后切换回反应式事件流。
+        return Flux.defer(() -> Mono.fromCallable(() -> {
+                            HarnessAgent agent = buildAgent(mergeOverride(templateFromSession(session), input), true);
+                            Msg userMsg = Msg.builder()
+                                    .role(MsgRole.USER)
+                                    .textContent(input.getContent())
+                                    .build();
+                            return new AgentInvocation(agent, userMsg, buildContext(session));
+                        })
+                        .subscribeOn(Schedulers.boundedElastic())
+                        .flatMapMany(inv -> inv.agent().streamEvents(inv.userMsg(), inv.ctx())))
                 .doOnError(e -> log.error("AgentScope 流式执行失败, sessionId={}", session.getId(), e));
     }
 
     @Override
     public Mono<Msg> call(String appId, String input) {
-        return Mono.defer(() -> {
-                    AppEntity app = appsMapper.selectById(appId);
-                    if (app == null) {
-                        throw AiBusinessException.appNotFound(appId);
-                    }
-                    // one-shot 无 session：stateless（不挂 stateStore），sessionId 留空由 agent 默认
-                    HarnessAgent agent = buildAgent(templateFromApp(app), false);
-                    RuntimeContext.Builder ctxBuilder = RuntimeContext.builder();
-                    if (app.getTenantId() != null) {
-                        ctxBuilder.put("tenantId", app.getTenantId());
-                    }
-                    RuntimeContext ctx = ctxBuilder.build();
-                    Msg userMsg =
-                            Msg.builder().role(MsgRole.USER).textContent(input).build();
-                    return agent.call(userMsg, ctx);
-                })
+        return Mono.defer(() -> Mono.fromCallable(() -> {
+                            AppEntity app = appsMapper.selectById(appId);
+                            if (app == null) {
+                                throw AiBusinessException.appNotFound(appId);
+                            }
+                            // one-shot 无 session：stateless（不挂 stateStore），sessionId 留空由 agent 默认
+                            HarnessAgent agent = buildAgent(templateFromApp(app), false);
+                            RuntimeContext.Builder ctxBuilder = RuntimeContext.builder();
+                            if (app.getTenantId() != null) {
+                                ctxBuilder.put("tenantId", app.getTenantId());
+                            }
+                            Msg userMsg = Msg.builder()
+                                    .role(MsgRole.USER)
+                                    .textContent(input)
+                                    .build();
+                            return new AgentInvocation(agent, userMsg, ctxBuilder.build());
+                        })
+                        .subscribeOn(Schedulers.boundedElastic())
+                        .flatMap(inv -> inv.agent().call(inv.userMsg(), inv.ctx())))
                 .doOnError(e -> log.error("AgentScope one-shot 调用失败, appId={}", appId, e));
     }
 
@@ -95,6 +103,9 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
         // HITL 恢复：同一 sessionId 经 AgentStateStore 恢复状态，streamEvents 接续 HintBlockEvent 中断点
         return run(session, input);
     }
+
+    /** 一次执行的装配产物（agent + 入站消息 + 上下文），供反应式组合传递。 */
+    private record AgentInvocation(HarnessAgent agent, Msg userMsg, RuntimeContext ctx) {}
 
     // ==================== agent 构造 ====================
 
@@ -140,7 +151,7 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
             builder.generateOptions(options);
         }
         if (staticRag && !kbs.isEmpty()) {
-            builder.middleware(new RagMiddleware(kbs, t.retrievalTopK()));
+            builder.middleware(new RagMiddleware(kbs, knowledgeRetriever, t.retrievalTopK()));
         }
         List<MiddlewareBase> middlewares = middlewareFactory.build(t.middlewareConfig());
         if (!middlewares.isEmpty()) {
@@ -191,7 +202,7 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
         Map<String, String> toolGroupBindings = registerToolGroups(toolkit, toolGroupsSpec);
         toolToolkitAdapter.registerTools(toolkit, toolIds, toolGroupBindings);
         if (agentic && kbs != null && !kbs.isEmpty()) {
-            toolkit.registerTool(new KnowledgeRetrievalTool(kbs, retrievalTopK));
+            toolkit.registerTool(new KnowledgeRetrievalTool(kbs, knowledgeRetriever, retrievalTopK));
             log.debug("AgentRuntimeServiceImpl: 已注册知识库检索工具，kbIds: {}", kbIds);
         }
         if (mcpServerIds != null) {

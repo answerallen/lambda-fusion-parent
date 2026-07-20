@@ -74,13 +74,17 @@
 - [x] `pom.xml` 移除 `langgraph4j-*`、`langchain4j-spring-boot-starter`/`-ollama`/`-open-ai`/`-mcp`/`-document-parser-pdfbox`/`-poi`（全删）+ `resilience4j-spring-boot4`
 - [x] 父 POM 移除 `langgraph4j.version`/`langchain4j*` 版本属性与 BOM（`_lambda-cloud-parent/pom.xml`）
 - [x] Resilience4j **整包删**：核实 AgentScope `ExecutionConfig`（maxAttempts+指数退避 initialBackoff/backoffMultiplier+retryOn 内置可重试异常+timeout）+ `maxIters` + `fallbackModel` 原生覆盖 Retry/Timeout/Fallback；CircuitBreaker/RateLimiter AgentScope 无原生支持,但 maxIters 兜底失控+旧配置为旧 langchain4j 量身,故弃用。删 `AiConfigure.LlmResilienceConfig`(6 Bean+常量)+resilience4j imports+`resilience4j-spring-boot4` pom 依赖。`AgentRuntimeServiceImpl.buildAgent` 接 `.modelExecutionConfig(...)`（超时60s/重试3/退避1s*2,经 `AgentScopeRuntimeProperties.modelTimeoutSeconds/modelMaxAttempts` 可调）。
-- [x] DB 迁移 · **workflow 硬废弃部分已落地**（2026-07-19）：
-    - schema changelog `lambda-fusion-ai-20260719110001-pg`：`DROP TABLE` `ai_agent_workflow`/`ai_workflow_template`/`ai_workflow_template_version`/`ai_workflow_execution`（CASCADE）+ `DROP COLUMN workflow_id` on `ai_robot`/`ai_chat_session`（均 `IF EXISTS` 幂等）。
+- [x] DB 迁移 · **workflow 硬废弃部分已落地**（2026-07-20 修正）：开发期无在产数据，不留 drop changeset——schema changelog 中直接**移除** `ai_workflow_execution`/`ai_agent_workflow`/`ai_workflow_template`/`ai_workflow_template_version` 四个建表 changeset + `ai_robot`/`ai_chat_session` 的 `workflow_id` 列定义；`ai_workflow_execution`->`ai_agent_run` 取消（无 `AgentRunEntity` 需求，执行记录待 Phase 4 事件流聚合时再建新表）。注：此前记录的 drop changeset `20260719110001-pg` 实际不存在于 changelog（记录与文件不符，已按现状修正）；已跑过旧建表脚本的本地库需手工 drop 这四张表与两处 `workflow_id` 列。
     - vector changelog `lambda-fusion-ai-20260719001001-pg`：Path 2 弃用自研维度分表管线--移除原 `create_vector_table` 存储过程 + `ai_vector_store_*` 建表/回填 changeset，新增 cleanup `DROP TABLE ai_vector_store_{768,1536,2048,4096}` + `DROP FUNCTION create_vector_table(INTEGER)`；保留 PG 扩展（`vector` 仍为 AgentScope `PgVectorStore` 所需）。
     - `AiErrorCode` 删 9 个 `WORKFLOW_*` 错误码（30760-30779）+ 段头；`AiBusinessException.workflowNotFound` 删。
 - [x] DB 迁移 · `kb_id`->`kb_ids` 已落地（2026-07-19）：schema changelog `lambda-fusion-ai-20260719120001-pg`--`ai_robot`/`ai_chat_session` `kb_id`(varchar)->`kb_ids`(jsonb)，存量 `jsonb_build_array` 迁移，IF EXISTS 幂等。
-- [ ] DB 迁移 · **推迟部分**：`ai_robot` 新增 `subagent_spec`/`tool_ids`/`tool_groups`/`mcp_server_ids`/`middleware_config` 列（Phase 2/3 robot-as-template）；`ai_workflow_execution`->`ai_agent_run` 重命名/改语义（待 `AgentRunEntity` 建表）；`ai_knowledge_base.backend_type`/`store_config`（Phase 4 外部型 RAG，实体未含字段，本期 `vectorTableName` 已够）。
+- [x] DB 迁移 · 推迟部分收口（2026-07-20）：`ai_app` 模板扩展列已建（`20260718150001-pg`：`tool_ids`/`mcp_server_ids`/`subagent_spec`/`tool_groups`/`middleware_config`）；`ai_workflow_execution`->`ai_agent_run` 取消（见上条）；`ai_knowledge_base.backend_type`/`store_config` 仍留 Phase 4 外部型 RAG（本期 `vectorTableName` 已够）。
 - [x] 门禁（已核验 2026-07-19）：`grep org.bsc.langgraph4j` 在 `src/main` = 0；`grep dev.langchain4j` 在 `src/main` = 0（ToolToolkitAdapter javadoc 已去 FQN）；pom.xml langchain4j/langgraph4j `<dependency>` = 0；`resilience4j` = 0。
+- [x] 硬适配修复 · 三处半（2026-07-20，`mvn -pl lambda-fusion-ai install` BUILD SUCCESS 核验）：
+    - `RagMiddleware` 全反应式化：`onReasoning` 内 `.block()` 移除，改 `KnowledgeRetriever.retrieve(...).flatMapMany(next)` 组合；新增共享组件 `KnowledgeRetriever`（多 KB 并行检索 + score 合并 + 10s 超时兜底），`KnowledgeRetrievalTool` 改调它（保留同步 @Tool——`ToolExecutor` 已 `subscribeOn(boundedElastic)`，2.0.0 字节码核实，javadoc 标注升级复核）。
+    - `AgentRuntimeServiceImpl.run/call`：agent 构造（解密/KB 装配/MCP 注册）整体 `Mono.fromCallable(...).subscribeOn(boundedElastic)` 卸载，不再占订阅线程。
+    - PG 凭据收敛：新增 `VectorStoreCredentialsProvider`（受管 DataSource 反射提取 jdbcUrl/username/password 优先，Environment 回落，启动 WARN 预检）；`KnowledgeFactory` 改走它（不再直读 `spring.datasource.dynamic.datasource.*`）；`VectorStoreOps` 复用缓存 `PgVectorStore.getConnection()`（不再独立开连接），`doc_id` 列耦合已注释标注绑 2.0.0。
+    - 遗留：per-request agent 重建的 Toolkit 材料缓存（草案 4 第一步）未做；`resume()` 空语义（HITL 留 Phase 4）；agent 实例缓存需并发实测裁决。
 
 ## Phase 4 — 产品演进 · 持续
 
