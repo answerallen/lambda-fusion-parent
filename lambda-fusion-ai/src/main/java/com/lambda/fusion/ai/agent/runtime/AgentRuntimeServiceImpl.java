@@ -15,6 +15,9 @@ import io.agentscope.core.model.Model;
 import io.agentscope.core.rag.knowledge.SimpleKnowledge;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.core.tool.subagent.SubAgentConfig;
+import io.agentscope.core.tool.subagent.SubAgentProvider;
+import io.agentscope.core.tool.subagent.SubAgentTool;
 import io.agentscope.harness.agent.HarnessAgent;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -45,6 +48,7 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
     private final ToolToolkitAdapter toolToolkitAdapter;
     private final KnowledgeFactory knowledgeFactory;
     private final McpClientAdapter mcpClientAdapter;
+    private final SubagentSpecParser subagentSpecParser;
 
     @Override
     public Flux<AgentEvent> run(ChatSessionEntity session, SendMessage input) {
@@ -102,14 +106,17 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
             Integer retrievalTopK,
             String ragMode,
             List<String> toolIds,
-            List<String> mcpServerIds) {}
+            List<String> mcpServerIds,
+            String subagentSpec) {}
 
     private HarnessAgent buildAgent(AgentTemplate t, boolean stateful) {
         Model model = modelClientFactory.get(t.modelId());
         List<SimpleKnowledge> kbs = resolveKnowledgeBases(t.kbIds());
         boolean agentic = isAgenticRag(t.ragMode());
         boolean staticRag = isStaticRag(t.ragMode());
+        AgentStateStore stateStore = stateful ? agentStateStoreProvider.getIfAvailable() : null;
         Toolkit toolkit = buildToolkit(t.kbIds(), t.retrievalTopK(), kbs, agentic, t.toolIds(), t.mcpServerIds());
+        registerSubagents(toolkit, t, stateStore);
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 .name(StringUtils.hasText(t.name()) ? t.name() : "agent")
                 .description(t.description() != null ? t.description() : "")
@@ -127,11 +134,8 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
         if (staticRag && !kbs.isEmpty()) {
             builder.middleware(new RagMiddleware(kbs, t.retrievalTopK()));
         }
-        if (stateful) {
-            AgentStateStore store = agentStateStoreProvider.getIfAvailable();
-            if (store != null) {
-                builder.stateStore(store);
-            }
+        if (stateful && stateStore != null) {
+            builder.stateStore(stateStore);
         }
         return builder.build();
     }
@@ -153,7 +157,8 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                 t.retrievalTopK(),
                 t.ragMode(),
                 t.toolIds(),
-                t.mcpServerIds());
+                t.mcpServerIds(),
+                t.subagentSpec());
     }
 
     /**
@@ -183,6 +188,43 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
             }
         }
         return toolkit;
+    }
+
+    /**
+     * 解析 {@code subagentSpec} -> {@link SubagentSpecDto} 列表，每个 spec 构造子 {@link HarnessAgent}
+     * （经 {@link SubAgentProvider} 每次调用产出新实例，复用 {@code buildAgent}）并注册为
+     * {@link SubAgentTool}。子 agent 复用主 agent 的 {@link AgentStateStore}（会话隔离），各自
+     * model/toolkit 按 spec 装配；一层不嵌套（子 template 的 subagentSpec=null，避免递归循环）。
+     */
+    private void registerSubagents(Toolkit toolkit, AgentTemplate parent, AgentStateStore stateStore) {
+        List<SubagentSpecDto> specs = subagentSpecParser.parse(parent.subagentSpec());
+        for (SubagentSpecDto spec : specs) {
+            AgentTemplate child = new AgentTemplate(
+                    spec.name(),
+                    spec.description(),
+                    spec.sysPrompt(),
+                    spec.modelId(),
+                    spec.temperature(),
+                    spec.maxTokens(),
+                    parent.tenantId(),
+                    spec.kbIds() != null ? spec.kbIds() : List.of(),
+                    parent.retrievalTopK(),
+                    spec.ragMode(),
+                    spec.toolIds(),
+                    spec.mcpServerIds(),
+                    null);
+            SubAgentProvider<HarnessAgent> provider = () -> buildAgent(child, false);
+            SubAgentConfig.Builder configBuilder = SubAgentConfig.builder()
+                    .description(StringUtils.hasText(spec.description()) ? spec.description() : "");
+            if (StringUtils.hasText(spec.toolName())) {
+                configBuilder.toolName(spec.toolName());
+            }
+            if (stateStore != null) {
+                configBuilder.stateStore(stateStore);
+            }
+            toolkit.registerAgentTool(new SubAgentTool(provider, configBuilder.build()));
+            log.debug("AgentRuntimeServiceImpl: 已注册子 agent 工具: {}", spec.name());
+        }
     }
 
     /** RAG static 模式开关：null/HYBRID/STATIC -> true（null 默认 HYBRID）。 */
@@ -269,7 +311,8 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                         : (app != null ? app.getRetrievalTopK() : null),
                 app != null ? app.getRagMode() : null,
                 app != null ? app.getToolIds() : null,
-                app != null ? app.getMcpServerIds() : null);
+                app != null ? app.getMcpServerIds() : null,
+                app != null ? app.getSubagentSpec() : null);
     }
 
     private AgentTemplate templateFromApp(AppEntity app) {
@@ -285,7 +328,8 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                 app.getRetrievalTopK(),
                 app.getRagMode(),
                 app.getToolIds(),
-                app.getMcpServerIds());
+                app.getMcpServerIds(),
+                app.getSubagentSpec());
     }
 
     private AppEntity resolveApp(String appId) {
