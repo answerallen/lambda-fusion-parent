@@ -28,7 +28,7 @@ public class PromptTemplateServiceImpl
 
     private final PromptTemplateMapper promptTemplateMapper;
 
-    /** 模板变量占位符 {@code {{variable}}}（与旧 langchain4j PromptTemplate 语法一致）。 */
+    /** 模板变量占位符 {@code {{variable}}}。 */
     private static final Pattern TEMPLATE_VAR_PATTERN = Pattern.compile("\\{\\{\\s*([^}]+?)\\s*\\}\\}");
 
     @Override
@@ -54,7 +54,7 @@ public class PromptTemplateServiceImpl
 
         String templateContent = entity.getTemplateContent();
 
-        // 中性模板渲染（取代 langchain4j PromptTemplate）：{{variable}} -> variables.get(variable)
+        // 模板渲染：{{variable}} -> variables.get(variable)
         try {
             return render(templateContent, variables);
         } catch (Exception e) {
@@ -64,8 +64,7 @@ public class PromptTemplateServiceImpl
     }
 
     /**
-     * 中性 {@code {{variable}}} 渲染：按 variables Map 替换占位符；未提供变量的占位符保留原样（比旧
-     * langchain4j PromptTemplate 更宽松--后者对缺失变量抛异常，此处保留以容错可选变量）。
+     * {@code {{variable}}} 渲染：按 variables Map 替换占位符；未提供变量的占位符保留原样（容错可选变量）。
      */
     private String render(String template, Map<String, Object> variables) {
         if (template == null || template.isEmpty() || variables == null || variables.isEmpty()) {
@@ -76,8 +75,7 @@ public class PromptTemplateServiceImpl
         while (matcher.find()) {
             String key = matcher.group(1).trim();
             Object value = variables.get(key);
-            String replacement =
-                    value != null ? Matcher.quoteReplacement(String.valueOf(value)) : matcher.group(0);
+            String replacement = value != null ? Matcher.quoteReplacement(String.valueOf(value)) : matcher.group(0);
             matcher.appendReplacement(sb, replacement);
         }
         matcher.appendTail(sb);

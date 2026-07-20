@@ -13,18 +13,8 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 /**
- * AgentScope 工具适配器（取代旧 {@code AgentToolProvider} 产出 langchain4j {@code ToolSpecification} 的职责）。
- *
- * <p>扫描 Spring 容器中携带 AgentScope {@link Tool} 注解方法的 Bean，构造 AgentScope {@link Toolkit}：
- * <ul>
- *   <li>{@link #buildToolkit()} 创建 {@code new Toolkit()} 并 {@link Toolkit#registerTool(Object)} 注册所有发现的 @Tool bean；</li>
- *   <li>注解是 {@code io.agentscope.core.tool.Tool}（**非** 旧 langchain4j 的 {@code @Tool}），
- *       S9 迁移=改 import 包名（{@link ToolToolkitAdapter} 自动接管，旧 {@code AgentToolProvider} 在 Phase 3 删除）。</li>
- * </ul>
- *
- * <p>Phase 1：提供本地 @Tool 装配能力；按 app {@code toolIds}/{@code toolGroups} 过滤/激活在 Phase 2
- * （待 {@code AppEntity.toolIds}/{@code toolGroups} 字段落地）。MCP 工具经 {@link McpClientAdapter} 产出
- * {@link io.agentscope.core.tool.mcp.McpClientWrapper} 后 {@link Toolkit#registerMcpClient} 注入。
+ * AgentScope 工具适配器：扫描 Spring 容器中带 {@link Tool} 注解方法的 Bean，{@link #buildToolkit()}
+ * 构造 {@link Toolkit} 并注册。MCP 工具经 {@link McpClientAdapter} 产出后注入。
  *
  * @author Jin
  */

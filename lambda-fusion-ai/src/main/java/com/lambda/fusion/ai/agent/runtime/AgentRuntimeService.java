@@ -8,11 +8,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * AgentScope 智能体运行时服务（取代旧 {@code WorkflowExecutionService}）。
+ * AgentScope 智能体运行时服务。
  *
- * <p>契约边界（见 {@code docs/refactor/ai-agentscope-refactor.md} §5.3）：
+ * <p>契约边界：
  * <ul>
- *   <li>{@link #run} 流式（聊天主路，session-centric）：按 session（{@code robotId} -> AppEntity 模板 +
+ *   <li>{@link #run} 流式（聊天主路，session-centric）：按 session（{@code appId} -> AppEntity 模板 +
  *       执行参数快照）+ 请求 override 构造 {@code HarnessAgent}，返回事件流供聊天层桥接 SSE。</li>
  *   <li>{@link #call} 同步 one-shot（可选，app-centric）：无 session，按 appId 模板构造，聚合结果。</li>
  *   <li>{@link #resume} HITL 恢复（session-centric）：经 AgentScope 分布式会话按 sessionId 恢复，
@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
  * </ul>
  *
  * <p>运行时参数覆盖规则：{@code 请求参数（SendMessage override） > session 快照}；结构化配置
- * （{@code subagentSpec}/{@code toolGroups}/{@code mcpServerIds}/{@code middlewareConfig}）从 robot 实时读。
+ * （{@code subagentSpec}/{@code toolGroups}/{@code mcpServerIds}/{@code middlewareConfig}）从 app 实时读。
  *
  * @author Jin
  */

@@ -12,8 +12,7 @@ import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.model.ExecutionConfig;
 import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.model.Model;
-import io.agentscope.core.rag.Knowledge;
-import io.agentscope.core.rag.KnowledgeRetrievalTools;
+import io.agentscope.core.rag.knowledge.SimpleKnowledge;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.harness.agent.HarnessAgent;
@@ -29,17 +28,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * {@link AgentRuntimeService} 实现：按 session（{@code robotId} -> AppEntity 模板 + 执行参数快照）+ 请求 override
- * 构造 AgentScope {@link HarnessAgent}，经 {@code streamEvents}/{@code call} 执行。
- *
- * <p>运行时参数覆盖规则（{@code docs/refactor/ai-agentscope-refactor.md} §5.2/§5.3）：
- * {@code 请求参数（SendMessage override，待 DTO 扩展） > session 快照 > app 模板}。
- * 当前 {@link SendMessage} 仅有 {@code content}，override 字段（temperature/maxTokens/kbIds/llmModelId）
- * 为 Phase 1 DTO 任务，落地后在此合并。
- *
- * <p>每条消息构造一个 {@link HarnessAgent}（model 经 {@link ModelClientFactory} 缓存，stateStore 为共享 Bean）；
- * 会话状态经 {@link AgentStateStore} 按 sessionId 恢复/持久化，故 agent 无需跨消息复用。
- * 不在流结束后 {@code close()} agent，避免误关共享 stateStore/model（lifecycle 缓存留 Phase 1 跟进）。
+ * {@link AgentRuntimeService} 实现：按 session（appId -> AppEntity 模板 + 执行参数快照）+ 请求 override
+ * 构造 {@link HarnessAgent}，经 {@code streamEvents}/{@code call} 执行。
  *
  * @author Jin
  */
@@ -58,7 +48,7 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
     @Override
     public Flux<AgentEvent> run(ChatSessionEntity session, SendMessage input) {
         return Flux.defer(() -> {
-                    HarnessAgent agent = buildAgent(templateFromSession(session), true);
+                    HarnessAgent agent = buildAgent(mergeOverride(templateFromSession(session), input), true);
                     RuntimeContext ctx = buildContext(session);
                     Msg userMsg = Msg.builder()
                             .role(MsgRole.USER)
@@ -74,7 +64,7 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
         return Mono.defer(() -> {
                     AppEntity app = appsMapper.selectById(appId);
                     if (app == null) {
-                        throw AiBusinessException.robotNotFound(appId);
+                        throw AiBusinessException.appNotFound(appId);
                     }
                     // one-shot 无 session：stateless（不挂 stateStore），sessionId 留空由 agent 默认
                     HarnessAgent agent = buildAgent(templateFromApp(app), false);
@@ -107,11 +97,16 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
             BigDecimal temperature,
             Integer maxTokens,
             String tenantId,
-            List<String> kbIds) {}
+            List<String> kbIds,
+            Integer retrievalTopK,
+            String ragMode) {}
 
     private HarnessAgent buildAgent(AgentTemplate t, boolean stateful) {
         Model model = modelClientFactory.get(t.modelId());
-        Toolkit toolkit = buildToolkit(t.kbIds());
+        List<SimpleKnowledge> kbs = resolveKnowledgeBases(t.kbIds());
+        boolean agentic = isAgenticRag(t.ragMode());
+        boolean staticRag = isStaticRag(t.ragMode());
+        Toolkit toolkit = buildToolkit(t.kbIds(), t.retrievalTopK(), kbs, agentic);
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 .name(StringUtils.hasText(t.name()) ? t.name() : "agent")
                 .description(t.description() != null ? t.description() : "")
@@ -126,6 +121,9 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
         if (options != null) {
             builder.generateOptions(options);
         }
+        if (staticRag && !kbs.isEmpty()) {
+            builder.middleware(new RagMiddleware(kbs, t.retrievalTopK()));
+        }
         if (stateful) {
             AgentStateStore store = agentStateStoreProvider.getIfAvailable();
             if (store != null) {
@@ -136,28 +134,66 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
     }
 
     /**
-     * 构造 Toolkit：本地 @Tool（经 {@link ToolToolkitAdapter}）+ 知识库检索工具（若 kbIds 非空，
-     * 注册 {@link KnowledgeRetrievalTools}，agent 自主决定何时检索）。
+     * 合并请求 override 到模板（优先级：请求参数 > session 快照 > app 模板）。仅执行参数
+     * （modelId/temperature/maxTokens/kbIds）可 override；结构化配置（ragMode 等）从 robot 实时读。
      */
-    private Toolkit buildToolkit(List<String> kbIds) {
+    private AgentTemplate mergeOverride(AgentTemplate t, SendMessage input) {
+        return new AgentTemplate(
+                t.name(),
+                t.description(),
+                t.sysPrompt(),
+                input.getLlmModelId() != null ? input.getLlmModelId() : t.modelId(),
+                input.getTemperature() != null ? input.getTemperature() : t.temperature(),
+                input.getMaxTokens() != null ? input.getMaxTokens() : t.maxTokens(),
+                t.tenantId(),
+                input.getKbIds() != null && !input.getKbIds().isEmpty() ? input.getKbIds() : t.kbIds(),
+                t.retrievalTopK(),
+                t.ragMode());
+    }
+
+    /**
+     * 构造 Toolkit：本地 @Tool（经 {@link ToolToolkitAdapter}）+ 知识库检索工具（agentic 模式且 kbIds
+     * 非空时注册 {@link KnowledgeRetrievalTool}，agent 自主决定何时检索）。
+     */
+    private Toolkit buildToolkit(
+            List<String> kbIds, Integer retrievalTopK, List<SimpleKnowledge> kbs, boolean agentic) {
         Toolkit toolkit = toolToolkitAdapter.buildToolkit();
-        if (kbIds != null && !kbIds.isEmpty()) {
-            try {
-                Knowledge knowledge = knowledgeFactory.get(kbIds);
-                if (knowledge != null) {
-                    toolkit.registerTool(new KnowledgeRetrievalTools(knowledge));
-                    log.debug("AgentRuntimeServiceImpl: 已注册知识库检索工具，kbIds: {}", kbIds);
-                }
-            } catch (Exception e) {
-                // RAG 装配失败不阻断对话，agent 降级为无检索能力
-                log.warn("AgentRuntimeServiceImpl: 知识库工具装配失败，kbIds={}，agent 将无 RAG 能力", kbIds, e);
-            }
+        if (agentic && kbs != null && !kbs.isEmpty()) {
+            toolkit.registerTool(new KnowledgeRetrievalTool(kbs, retrievalTopK));
+            log.debug("AgentRuntimeServiceImpl: 已注册知识库检索工具，kbIds: {}", kbIds);
         }
         return toolkit;
     }
 
+    /** RAG static 模式开关：null/HYBRID/STATIC -> true（null 默认 HYBRID）。 */
+    private static boolean isStaticRag(String ragMode) {
+        return ragMode == null || "HYBRID".equalsIgnoreCase(ragMode) || "STATIC".equalsIgnoreCase(ragMode);
+    }
+
+    /** RAG agentic 模式开关：null/HYBRID/AGENTIC -> true（null 默认 HYBRID）。 */
+    private static boolean isAgenticRag(String ragMode) {
+        return ragMode == null || "HYBRID".equalsIgnoreCase(ragMode) || "AGENTIC".equalsIgnoreCase(ragMode);
+    }
+
     /**
-     * 模型调用容错配置（AgentScope 原生 ExecutionConfig，取代旧 Resilience4j Retry/Timeout）：
+     * 解析 session/app kbIds -> {@link SimpleKnowledge} 列表（含单 KB 装配失败跳过）。供 agentic
+     * {@link KnowledgeRetrievalTool} 与 static {@link RagMiddleware} 共享，避免重复装配。全部失败返回
+     * 空列表（agent 无 RAG 能力，对话不阻断）。
+     */
+    private List<SimpleKnowledge> resolveKnowledgeBases(List<String> kbIds) {
+        if (kbIds == null || kbIds.isEmpty()) {
+            return List.of();
+        }
+        try {
+            return knowledgeFactory.get(kbIds);
+        } catch (Exception e) {
+            log.warn("AgentRuntimeServiceImpl: 知识库装配失败，kbIds={}，agent 将无 RAG 能力", kbIds, e);
+            return List.of();
+        }
+    }
+
+    /**
+     * 模型调用容错配置（AgentScope 原生 ExecutionConfig）：
      * 超时 + 重试次数 + 指数退避（1s 起、2 倍）。retryOn 用 AgentScope 内置可重试异常集。
      */
     private ExecutionConfig buildModelExecutionConfig() {
@@ -195,8 +231,8 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
     // ==================== 模板解析 ====================
 
     private AgentTemplate templateFromSession(ChatSessionEntity session) {
-        AppEntity app = resolveApp(session.getRobotId());
-        // 快照优先（快照即稳定性，见 §5.2）；session 未钉住的回落到 app 模板
+        AppEntity app = resolveApp(session.getAppId());
+        // 快照优先（快照即稳定性）；session 未钉住的回落到 app 模板
         return new AgentTemplate(
                 app != null ? app.getName() : "agent",
                 app != null ? app.getDescription() : "",
@@ -207,7 +243,11 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                         : (app != null ? app.getTemperature() : null),
                 session.getMaxTokens() != null ? session.getMaxTokens() : (app != null ? app.getMaxTokens() : null),
                 session.getTenantId() != null ? session.getTenantId() : (app != null ? app.getTenantId() : null),
-                firstNonEmpty(session.getKbIds(), app != null ? app.getKbIds() : null));
+                firstNonEmpty(session.getKbIds(), app != null ? app.getKbIds() : null),
+                session.getRetrievalTopK() != null
+                        ? session.getRetrievalTopK()
+                        : (app != null ? app.getRetrievalTopK() : null),
+                app != null ? app.getRagMode() : null);
     }
 
     private AgentTemplate templateFromApp(AppEntity app) {
@@ -219,14 +259,16 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                 app.getTemperature(),
                 app.getMaxTokens(),
                 app.getTenantId(),
-                app.getKbIds());
+                app.getKbIds(),
+                app.getRetrievalTopK(),
+                app.getRagMode());
     }
 
-    private AppEntity resolveApp(String robotId) {
-        if (!StringUtils.hasText(robotId)) {
+    private AppEntity resolveApp(String appId) {
+        if (!StringUtils.hasText(appId)) {
             return null;
         }
-        return appsMapper.selectById(robotId);
+        return appsMapper.selectById(appId);
     }
 
     private static List<String> firstNonEmpty(List<String> first, List<String> second) {

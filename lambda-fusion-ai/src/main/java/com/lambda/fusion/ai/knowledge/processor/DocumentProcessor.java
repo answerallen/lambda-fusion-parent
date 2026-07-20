@@ -15,7 +15,7 @@ import com.lambda.fusion.ai.knowledge.model.entity.DocumentChunkEntity;
 import com.lambda.fusion.ai.knowledge.model.entity.DocumentEntity;
 import com.lambda.fusion.ai.knowledge.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.datasource.api.DataSourceSwitcher;
-import io.agentscope.core.rag.Knowledge;
+import io.agentscope.core.rag.knowledge.SimpleKnowledge;
 import io.agentscope.core.rag.model.Document;
 import io.agentscope.core.rag.model.DocumentMetadata;
 import io.agentscope.core.rag.reader.PDFReader;
@@ -38,22 +38,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * 文档处理管道（AgentScope 重构版）。
- *
- * <p>引擎从自研 pgvector（langchain4j 解析+分块+embedAll + 维度分表 VectorRepository）改为 AgentScope：
- * <ol>
- *   <li>加载文档（LOCAL/OSS）-> {@link ReaderInput}；</li>
- *   <li>{@link Reader}（PDFReader/WordReader/TikaReader/TextReader，按 KB chunkSize/overlap/strategy）解析+分块
- *       -> {@code List<Document>}；</li>
- *   <li>钉住 {@code DocumentMetadata.docId = 文档ID}（供 {@link com.lambda.fusion.ai.agent.runtime.VectorStoreOps}
- *       按 doc_id 删除）；</li>
- *   <li>{@link KnowledgeFactory#get} 的 {@code SimpleKnowledge.addDocuments} 批量 embed+store 到 PgVectorStore
- *       （表 {@code ai_vector_store_<dim>}，含 doc_id 列）；</li>
- *   <li>同步写 {@link DocumentChunkEntity} 元数据（content/chunkIndex/charCount，供 pageChunks 展示；
- *       向量本身在 PgVectorStore，不入此表）。</li>
- * </ol>
- *
- * <p>清零 langchain4j（6 处耦合之一）；维度分表/归一化（{@code VectorDimensionProcessor}）随 pgvector 管线删除。
+ * 文档处理管道：加载文档（LOCAL/OSS）-> {@link Reader} 解析分块 -> {@link SimpleKnowledge#addDocuments}
+ * 批量 embed+store（钉住 docId 供按文档删除）-> 写 {@link DocumentChunkEntity} 元数据。
  *
  * @author Jin
  */
@@ -109,7 +95,8 @@ public class DocumentProcessor {
 
             // 2. Reader 解析+分块（按 KB chunk 配置）
             int chunkSize = aiProperties.getDocumentChunk().getValidatedChunkSize(kb.getChunkSize());
-            int chunkOverlap = aiProperties.getDocumentChunk().getValidatedChunkOverlap(kb.getChunkOverlap(), chunkSize);
+            int chunkOverlap =
+                    aiProperties.getDocumentChunk().getValidatedChunkOverlap(kb.getChunkOverlap(), chunkSize);
             SplitStrategy strategy = mapStrategy(kb.getChunkStrategy());
             Reader reader = createReader(doc.getFileType(), chunkSize, strategy, chunkOverlap);
 
@@ -158,7 +145,7 @@ public class DocumentProcessor {
             updateStatus(doc, DocumentStatus.PROCESSING, 60, "分块元数据已写");
 
             // 5. SimpleKnowledge 批量 embed + 存入 PgVectorStore（doc_id 列已钉住）
-            Knowledge knowledge = knowledgeFactory.get(doc.getKbId());
+            SimpleKnowledge knowledge = knowledgeFactory.get(doc.getKbId());
             if (knowledge == null) {
                 throw new RuntimeException("知识库 Knowledge 构造失败: " + doc.getKbId());
             }

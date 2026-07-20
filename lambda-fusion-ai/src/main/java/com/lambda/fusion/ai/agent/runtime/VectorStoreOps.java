@@ -15,11 +15,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 /**
- * 向量存储删除操作（取代自研 {@code VectorRepository} 的删除职责）。
+ * 向量存储删除操作。
  *
  * <p>AgentScope {@code SimpleKnowledge}/{@code PgVectorStore} 的 {@code VDBStoreBase.delete(String)}
- * 仅支持按单 id 删，无 delete-by-doc / delete-by-kb。但 PgVectorStore 建表有 **{@code doc_id} 列（带索引）**
- * （spike 核实 {@code CREATE TABLE ... doc_id VARCHAR(256) ...} + {@code idx_<table>_doc_id}），故直接 SQL：
+ * 仅支持按单 id 删，无 delete-by-doc / delete-by-kb。但 PgVectorStore 建表有 **{@code doc_id} 列（带索引）**，故直接 SQL：
  * <ul>
  *   <li>{@link #deleteByDocument}：{@code DELETE FROM public."<table>" WHERE doc_id = ?}（删整篇文档向量）；</li>
  *   <li>{@link #deleteAllForKb}：{@code DROP TABLE IF EXISTS public."<table>"}（删知识库向量表）。</li>
@@ -50,7 +49,8 @@ public class VectorStoreOps {
             return;
         }
         String sql = "DELETE FROM " + SCHEMA + ".\"" + table + "\" WHERE doc_id = ?";
-        try (Connection c = openConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+        try (Connection c = openConnection();
+                PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, documentId);
             int rows = ps.executeUpdate();
             log.info("VectorStoreOps: 删除文档向量 kbId={} docId={} rows={}", kbId, documentId, rows);
@@ -66,7 +66,8 @@ public class VectorStoreOps {
             return;
         }
         String sql = "DROP TABLE IF EXISTS " + SCHEMA + ".\"" + table + "\"";
-        try (Connection c = openConnection(); Statement st = c.createStatement()) {
+        try (Connection c = openConnection();
+                Statement st = c.createStatement()) {
             st.execute(sql);
             log.info("VectorStoreOps: 删除知识库向量表 kbId={} table={}", kbId, table);
         } catch (SQLException e) {
@@ -87,9 +88,11 @@ public class VectorStoreOps {
     }
 
     private Connection openConnection() throws SQLException {
-        DataSource ds = dynamicDataSourceService.getDataSource(aiProperties.getDataSource().getName());
+        DataSource ds = dynamicDataSourceService.getDataSource(
+                aiProperties.getDataSource().getName());
         if (ds == null) {
-            throw new SQLException("ai-postgres 数据源不可用: " + aiProperties.getDataSource().getName());
+            throw new SQLException(
+                    "ai-postgres 数据源不可用: " + aiProperties.getDataSource().getName());
         }
         return ds.getConnection();
     }

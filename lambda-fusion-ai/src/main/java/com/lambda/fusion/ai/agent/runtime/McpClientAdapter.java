@@ -21,19 +21,12 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * AgentScope MCP 客户端适配器（取代旧 {@code McpClientManager} 产出 langchain4j {@code McpClient} 的职责）。
+ * AgentScope MCP 客户端适配器：从 {@link McpServerEntity} 构造 AgentScope {@code McpClientWrapper}。
  *
  * <p>从 {@link McpServerEntity}（{@code ai_mcp_server}）按 serverId 构造 AgentScope
  * {@link McpClientWrapper}（经 {@link McpClientBuilder}），Caffeine 缓存 + 自动关闭。
  * 传输映射：{@code STDIO} -> {@code stdioTransport(cmd, args, env)}、{@code HTTP_STREAMABLE} ->
  * {@code streamableHttpTransport(url)}。底层用官方 MCP SDK（{@code io.modelcontextprotocol}）。
- *
- * <p>spike 已核实 API：{@code McpClientBuilder.create(name).stdioTransport(String,List,Map)/
- * streamableHttpTransport(String).timeout(Duration).buildSync() -> McpClientWrapper}；
- * {@link io.agentscope.core.tool.Toolkit#registerMcpClient(McpClientWrapper)} 注入 Toolkit。
- *
- * <p>Phase 1：提供按 serverId 获取 {@link McpClientWrapper} 的能力；按 app {@code mcpServerIds}
- * 注入 Toolkit 的装配在 Phase 2（待 {@code AppEntity.mcpServerIds} 字段落地）。
  *
  * @author Jin
  */
@@ -52,7 +45,8 @@ public class McpClientAdapter {
     private final Cache<String, McpClientWrapper> clientCache = Caffeine.newBuilder()
             .expireAfterWrite(30, TimeUnit.MINUTES)
             .maximumSize(50)
-            .removalListener((key, client, cause) -> closeSilently(client, String.valueOf(key)))
+            .<String, McpClientWrapper>removalListener(
+                    (key, client, cause) -> closeSilently(client, String.valueOf(key)))
             .build();
 
     /**
@@ -71,7 +65,8 @@ public class McpClientAdapter {
             if (!Boolean.TRUE.equals(entity.getEnabled())) {
                 throw new AiBusinessException(AiErrorCode.MCP_SERVER_DISABLED, "MCP服务器已禁用: " + id);
             }
-            log.info("McpClientAdapter: 创建新 McpClientWrapper，服务器: {} ({})", entity.getName(), entity.getTransportType());
+            log.info(
+                    "McpClientAdapter: 创建新 McpClientWrapper，服务器: {} ({})", entity.getName(), entity.getTransportType());
             return buildClient(entity);
         });
     }
@@ -108,8 +103,7 @@ public class McpClientAdapter {
 
         String type = entity.getTransportType();
         if (!StringUtils.hasText(type)) {
-            throw new AiBusinessException(
-                    AiErrorCode.MCP_TRANSPORT_NOT_SUPPORTED, "MCP传输类型未配置，服务器: " + entity.getId());
+            throw new AiBusinessException(AiErrorCode.MCP_TRANSPORT_NOT_SUPPORTED, "MCP传输类型未配置，服务器: " + entity.getId());
         }
         switch (type.toUpperCase()) {
             case TRANSPORT_STDIO -> configureStdio(builder, entity);
@@ -121,9 +115,9 @@ public class McpClientAdapter {
                 }
                 builder.streamableHttpTransport(entity.getUrl());
             }
-            default -> throw new AiBusinessException(
-                    AiErrorCode.MCP_TRANSPORT_NOT_SUPPORTED,
-                    "不支持的MCP传输类型: " + type + "，服务器: " + entity.getId());
+            default ->
+                throw new AiBusinessException(
+                        AiErrorCode.MCP_TRANSPORT_NOT_SUPPORTED, "不支持的MCP传输类型: " + type + "，服务器: " + entity.getId());
         }
         return builder.buildSync();
     }
@@ -131,8 +125,7 @@ public class McpClientAdapter {
     private void configureStdio(McpClientBuilder builder, McpServerEntity entity) {
         if (!StringUtils.hasText(entity.getCommand())) {
             throw new AiBusinessException(
-                    AiErrorCode.MCP_SERVER_CONNECTION_FAILED,
-                    "STDIO 传输类型需要配置 command 字段，服务器: " + entity.getId());
+                    AiErrorCode.MCP_SERVER_CONNECTION_FAILED, "STDIO 传输类型需要配置 command 字段，服务器: " + entity.getId());
         }
         try {
             List<String> command = objectMapper.readValue(entity.getCommand(), new TypeReference<>() {});

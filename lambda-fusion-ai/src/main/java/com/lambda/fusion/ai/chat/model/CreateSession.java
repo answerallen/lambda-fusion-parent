@@ -16,6 +16,6 @@ public class CreateSession extends BaseDTO<ChatSessionEntity> {
     private String title;
     private List<String> kbIds;
     private String llmModelId;
-    private String robotId;
+    private String appId;
     private String systemPrompt;
 }

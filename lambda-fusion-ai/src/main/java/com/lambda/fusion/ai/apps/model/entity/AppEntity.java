@@ -17,7 +17,7 @@ import lombok.EqualsAndHashCode;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-@TableName(value = "ai_robot", autoResultMap = true)
+@TableName(value = "ai_app", autoResultMap = true)
 @Schema(description = "AI机器人实体")
 public class AppEntity extends BaseEntity {
 
@@ -46,7 +46,6 @@ public class AppEntity extends BaseEntity {
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> kbIds;
 
-
     @Schema(description = "租户隔离ID")
     private String tenantId;
 
@@ -72,6 +71,9 @@ public class AppEntity extends BaseEntity {
     @Schema(description = "相似度阈值(0.0-1.0)")
     private BigDecimal similarityThreshold;
 
+    @Schema(description = "RAG模式：STATIC(自动检索注入)/AGENTIC(agent按需检索工具)/HYBRID(两者,默认)")
+    private String ragMode;
+
     @Schema(description = "是否显示引用来源")
     private Boolean showCitation;
 
@@ -92,4 +94,23 @@ public class AppEntity extends BaseEntity {
     @Schema(description = "发布渠道(JSON数组: web/api/wechat等)")
     @FieldMapping(target = "publishChannels", qualifiedByName = "stringToList")
     private String publishChannels;
+
+    // ========== Agent 模板扩展配置（运行时从 robot 实时读，不入 session 快照） ==========
+
+    @Schema(description = "绑定的本地工具ID列表(空=全部@Tool)")
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> toolIds;
+
+    @Schema(description = "绑定的MCP服务器ID列表")
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> mcpServerIds;
+
+    @Schema(description = "子agent配置(JSON数组)")
+    private String subagentSpec;
+
+    @Schema(description = "Tool Group配置(JSON数组)")
+    private String toolGroups;
+
+    @Schema(description = "中间件配置(JSON)")
+    private String middlewareConfig;
 }

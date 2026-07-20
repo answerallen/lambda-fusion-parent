@@ -1197,4 +1197,66 @@
             ALTER TABLE ai_chat_session DROP COLUMN IF EXISTS kb_id;
         </sql>
     </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【AgentScope 重构】ai_robot 新增 rag_mode 列 -->
+    <!-- RAG 模式：STATIC(自动检索注入)/AGENTIC(agent按需检索工具)/HYBRID(两者,默认) -->
+    <!-- 见 docs/refactor/ai-agentscope-refactor.md §5.3 / D3。IF NOT EXISTS 幂等。 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-20260718130001-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <columnExists tableName="ai_robot" columnName="rag_mode"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
+        </preConditions>
+        <addColumn tableName="ai_robot">
+            <column name="rag_mode" type="varchar(16)" defaultValue="HYBRID" remarks="RAG模式：STATIC/AGENTIC/HYBRID"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【命名统一】robot(旧) -> app(新)：ai_robot 表重命名 ai_app + ai_chat_session.robot_id 列重命名 app_id + 索引重命名 -->
+    <!-- 见 docs/refactor/ai-agentscope-refactor.md。IF EXISTS 幂等；tableExists ai_robot 保证仅存量库执行。 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-20260718140001-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <dbms type="postgresql"/>
+                <tableExists tableName="ai_robot"/>
+            </and>
+        </preConditions>
+        <sql>
+            ALTER TABLE ai_robot RENAME TO ai_app;
+            ALTER TABLE ai_chat_session RENAME COLUMN robot_id TO app_id;
+            ALTER INDEX IF EXISTS idx_robot_tenant_id RENAME TO idx_app_tenant_id;
+            ALTER INDEX IF EXISTS idx_robot_category RENAME TO idx_app_category;
+            ALTER INDEX IF EXISTS idx_robot_llm_model_id RENAME TO idx_app_llm_model_id;
+            ALTER INDEX IF EXISTS idx_robot_enabled RENAME TO idx_app_enabled;
+        </sql>
+    </changeSet>
+
+    <!-- ========================================== -->
+    <!-- 【Agent 模板扩展】ai_app 新增 tool_ids/mcp_server_ids(jsonb) + subagent_spec/tool_groups/middleware_config(text) -->
+    <!-- 见 docs/refactor/ai-agentscope-refactor.md §5.2。IF NOT EXISTS 幂等。 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-20260718150001-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <columnExists tableName="ai_app" columnName="tool_ids"/>
+                </not>
+                <dbms type="postgresql"/>
+            </and>
+        </preConditions>
+        <addColumn tableName="ai_app">
+            <column name="tool_ids" type="jsonb" remarks="绑定的本地工具ID列表"/>
+            <column name="mcp_server_ids" type="jsonb" remarks="绑定的MCP服务器ID列表"/>
+            <column name="subagent_spec" type="text" remarks="子agent配置(JSON数组)"/>
+            <column name="tool_groups" type="text" remarks="Tool Group配置(JSON数组)"/>
+            <column name="middleware_config" type="text" remarks="中间件配置(JSON)"/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

@@ -3,8 +3,8 @@ package com.lambda.fusion.ai.apps.service.impl;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.lambda.cloud.core.utils.ConvertUtils;
 import com.lambda.fusion.ai.apps.mapper.AppsMapper;
+import com.lambda.fusion.ai.apps.model.App;
 import com.lambda.fusion.ai.apps.model.CreateApp;
-import com.lambda.fusion.ai.apps.model.Robot;
 import com.lambda.fusion.ai.apps.model.UpdateApp;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppsService;
@@ -24,7 +24,7 @@ public class AppsServiceImpl extends ServiceImpl<AppsMapper, AppEntity> implemen
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Robot createApp(CreateApp createApp) {
+    public App createApp(CreateApp createApp) {
         log.info("创建AI应用: {}", createApp.getName());
         AppEntity entity = createApp.toEntity();
         this.save(entity);
@@ -34,11 +34,11 @@ public class AppsServiceImpl extends ServiceImpl<AppsMapper, AppEntity> implemen
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Robot updateApp(UpdateApp updateApp) {
+    public App updateApp(UpdateApp updateApp) {
         log.info("更新AI应用: {}", updateApp.getId());
 
         if (updateApp.getId() == null) {
-            throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "应用ID不能为空");
+            throw new AiBusinessException(AiErrorCode.APP_NOT_FOUND, "应用ID不能为空");
         }
         AppEntity entity = updateApp.toEntity();
         this.updateById(entity);
@@ -47,33 +47,33 @@ public class AppsServiceImpl extends ServiceImpl<AppsMapper, AppEntity> implemen
     }
 
     @Override
-    public Robot getAppById(String id) {
+    public App getAppById(String id) {
         if (id == null) {
-            throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "应用ID不能为空");
+            throw new AiBusinessException(AiErrorCode.APP_NOT_FOUND, "应用ID不能为空");
         }
 
         AppEntity entity = this.getById(id);
         if (entity == null) {
-            throw AiBusinessException.robotNotFound(id);
+            throw AiBusinessException.appNotFound(id);
         }
         return ConvertUtils.convert(entity);
     }
 
     @Override
-    public List<Robot> listApps() {
-        return this.list().stream().map(ConvertUtils::<Robot, AppEntity>convert).collect(Collectors.toList());
+    public List<App> listApps() {
+        return this.list().stream().map(ConvertUtils::<App, AppEntity>convert).collect(Collectors.toList());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteRobot(String id) {
+    public void deleteApp(String id) {
         if (id == null) {
-            throw new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, "应用ID不能为空");
+            throw new AiBusinessException(AiErrorCode.APP_NOT_FOUND, "应用ID不能为空");
         }
 
         AppEntity entity = this.getById(id);
         if (entity == null) {
-            throw AiBusinessException.robotNotFound(id);
+            throw AiBusinessException.appNotFound(id);
         }
 
         this.removeById(id);

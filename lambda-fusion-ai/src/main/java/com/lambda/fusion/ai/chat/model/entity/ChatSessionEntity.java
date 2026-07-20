@@ -25,26 +25,27 @@ public class ChatSessionEntity {
     private String id;
 
     private String title;
+
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<String> kbIds;
+
     private String userId;
     private String llmModelId;
 
     @Version
     private Long version;
 
-    @Schema(description = "关联的机器人ID")
-    private String robotId;
-
+    @Schema(description = "关联的应用ID")
+    private String appId;
 
     private String systemPrompt;
     private BigDecimal temperature;
     private Integer maxTokens;
 
-    @Schema(description = "检索TopK快照（创建时从 robot 钉住）")
+    @Schema(description = "检索TopK快照（创建时从 app 钉住）")
     private Integer retrievalTopK;
 
-    @Schema(description = "相似度阈值快照（创建时从 robot 钉住）")
+    @Schema(description = "相似度阈值快照（创建时从 app 钉住）")
     private BigDecimal similarityThreshold;
 
     private Integer messageCount;

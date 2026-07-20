@@ -7,10 +7,8 @@
         <id column="id" property="id" jdbcType="VARCHAR"/>
         <result column="version" property="version" jdbcType="BIGINT"/>
         <result column="title" property="title" jdbcType="VARCHAR"/>
-        <result column="kb_id" property="kbId" jdbcType="VARCHAR"/>
         <result column="user_id" property="userId" jdbcType="VARCHAR"/>
-        <result column="robot_id" property="robotId" jdbcType="VARCHAR"/>
-        <result column="workflow_id" property="workflowId" jdbcType="VARCHAR"/>
+        <result column="app_id" property="appId" jdbcType="VARCHAR"/>
         <result column="tenant_id" property="tenantId" jdbcType="VARCHAR"/>
         <result column="llm_model_id" property="llmModelId" jdbcType="VARCHAR"/>
         <result column="system_prompt" property="systemPrompt" jdbcType="VARCHAR"/>
@@ -27,7 +25,7 @@
 
     <!-- Select session by ID with version for optimistic locking -->
     <select id="selectByIdWithVersion" resultMap="BaseResultMap">
-        select id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
+        select id, version, title, user_id, app_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
         from ai_chat_session
@@ -36,7 +34,7 @@
 
     <!-- 按用户ID查询会话列表 -->
     <select id="listByUserId" resultMap="BaseResultMap">
-        select id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
+        select id, version, title, user_id, app_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
         from ai_chat_session
@@ -49,7 +47,6 @@
         update ai_chat_session
         set version = version + 1,
             title = #{title},
-            kb_id = #{kbId},
             user_id = #{userId},
             tenant_id = #{tenantId},
             llm_model_id = #{llmModelId},
@@ -67,7 +64,7 @@
 
     <!-- 按用户ID和状态查询会话 -->
     <select id="selectByUserIdAndStatus" resultMap="BaseResultMap">
-        select id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
+        select id, version, title, user_id, app_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
         from ai_chat_session
@@ -80,7 +77,7 @@
 
     <!-- 按租户ID查询会话 -->
     <select id="selectByTenantId" resultMap="BaseResultMap">
-        select id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
+        select id, version, title, user_id, app_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
         from ai_chat_session
@@ -93,7 +90,7 @@
 
     <!-- 查询过期会话(超过30天未活动) -->
     <select id="selectExpiredSessions" resultMap="BaseResultMap">
-        select id, version, title, kb_id, user_id, robot_id, workflow_id, tenant_id, llm_model_id,
+        select id, version, title, user_id, app_id, tenant_id, llm_model_id,
                system_prompt, temperature, max_tokens, message_count, total_tokens, total_cost,
                status, created_at, updated_at, last_message_at
         from ai_chat_session

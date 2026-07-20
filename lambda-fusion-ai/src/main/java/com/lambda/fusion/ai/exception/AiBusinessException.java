@@ -111,13 +111,12 @@ public class AiBusinessException extends BusinessException {
     }
 
     /**
-     * 便捷方法：AI机器人不存在异常
+     * 便捷方法：AI应用不存在异常
      *
-     * @param robotId 机器人ID
+     * @param appId 应用ID
      * @return AiBusinessException
      */
-    public static AiBusinessException robotNotFound(String robotId) {
-        return new AiBusinessException(AiErrorCode.ROBOT_NOT_FOUND, robotId);
+    public static AiBusinessException appNotFound(String appId) {
+        return new AiBusinessException(AiErrorCode.APP_NOT_FOUND, appId);
     }
-
 }

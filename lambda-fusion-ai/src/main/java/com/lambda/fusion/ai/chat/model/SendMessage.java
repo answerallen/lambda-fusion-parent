@@ -3,6 +3,8 @@ package com.lambda.fusion.ai.chat.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
+import java.util.List;
 import lombok.Data;
 
 @Data
@@ -13,4 +15,18 @@ public class SendMessage {
     @Size(min = 1, max = 10000, message = "消息长度必须在1-10000字符之间")
     @Schema(description = "消息内容", example = "你好，请帮我解答这个问题")
     private String content;
+
+    // ========== 执行参数 override（请求参数 > session 快照 > app 模板） ==========
+
+    @Schema(description = "模型温度override(覆盖session快照)")
+    private BigDecimal temperature;
+
+    @Schema(description = "最大Token数override")
+    private Integer maxTokens;
+
+    @Schema(description = "知识库ID列表override(非空则覆盖)")
+    private List<String> kbIds;
+
+    @Schema(description = "LLM模型ID override")
+    private String llmModelId;
 }

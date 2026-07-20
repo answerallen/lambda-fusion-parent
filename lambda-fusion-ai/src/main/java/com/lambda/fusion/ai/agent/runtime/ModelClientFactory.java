@@ -23,7 +23,7 @@ import org.springframework.util.StringUtils;
 /**
  * AgentScope 模型客户端工厂。
  *
- * <p>取代旧 {@code ChatModelFactory} 产出 langchain4j {@code ChatModel} 的职责，改为产出 AgentScope
+ * <p>产出 AgentScope
  * {@link Model}（{@code io.agentscope.core.model.Model}）。沿用 DB 驱动 + 密钥加密 + Caffeine 缓存的管理面：
  * <ul>
  *   <li>从 {@link LlmModelEntity}（{@code ai_llm_model}）读取 provider/baseUrl/apiKey/modelName；</li>
@@ -36,9 +36,7 @@ import org.springframework.util.StringUtils;
  * 运行参数经 {@code GenerateOptions} 注入 {@code HarnessAgent.builder()}（见 {@link AgentRuntimeServiceImpl}）。
  * 故本工厂只负责"连接配置"。
  *
- * <p>spike 已核实 API：`OpenAIChatModel.builder().apiKey().baseUrl().modelName().stream().build()`、
- * `OllamaChatModel.builder().baseUrl().modelName().build()`、`DashScopeChatModel.builder().apiKey().modelName().stream().build()`（baseUrl 可选）。
- * GEMINI/ANTHROPIC 待 Phase 1 跟进核实 builder。
+ * GEMINI/ANTHROPIC 暂未核实 builder。
  *
  * @author Jin
  */
@@ -125,18 +123,15 @@ public class ModelClientFactory {
             case "DASHSCOPE" -> {
                 // DashScope 有默认 baseUrl（dashscope.aliyuncs.com），仅在 entity 显式配置时覆盖
                 String apiKey = decryptApiKey(entity);
-                DashScopeChatModel.Builder builder = DashScopeChatModel.builder()
-                        .apiKey(apiKey)
-                        .modelName(entity.getModelName())
-                        .stream(true);
+                DashScopeChatModel.Builder builder =
+                        DashScopeChatModel.builder().apiKey(apiKey).modelName(entity.getModelName()).stream(true);
                 if (StringUtils.hasText(entity.getBaseUrl())) {
                     builder.baseUrl(entity.getBaseUrl());
                 }
                 yield builder.build();
             }
-            // GEMINI/ANTHROPIC 待 Phase 1 跟进核实各自 builder（spike 核实 openai/ollama/dashscope）
-            default ->
-                throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "暂不支持的LLM提供商(待Phase1核实builder): " + provider);
+            // GEMINI/ANTHROPIC 暂未核实 builder
+            default -> throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "暂不支持的LLM提供商: " + provider);
         };
     }
 

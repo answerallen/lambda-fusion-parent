@@ -24,11 +24,7 @@ import reactor.core.publisher.Mono;
  * <p>订阅 {@code Flux<AgentEvent>}，按 {@link AgentEventType} 映射为现有 {@link SseEmitterManager} 事件，
  * 沿用 {@code ChatMessageServiceImpl} 的 {@code clientId = "chat_" + sessionId} 与事件名约定
  * （{@code message}/{@code tool}/{@code hitl}/{@code error}）。聚合全文与最终 usage，返回
- * {@link AgentRunOutcome} 供调用方（Phase 2 重接的 {@code ChatMessageServiceImpl}）持久化后发送 {@code finish}。
- *
- * <p>spike 已核实事件访问器：{@link TextBlockDeltaEvent#getDelta()}、{@link AgentResultEvent#getResult()}、
- * {@link ToolCallStartEvent#getToolCallName()}、{@link ToolResultEndEvent#getState()}、{@link HintBlockEvent#getHint()}、
- * {@link ChatUsage#getInputTokens()}/{@code getOutputTokens()}。
+ * {@link AgentRunOutcome} 供调用方 {@code ChatMessageServiceImpl} 持久化后发送 {@code finish}。
  *
  * @author Jin
  */
@@ -101,7 +97,7 @@ public class EventToSseAdapter {
             case ALL_TOOLS_DENIED -> sseEmitterManager.sendEvent(clientId, "error", "所有工具被拒绝，停止执行");
             default -> {
                 // 其余事件类型（MODEL_CALL_*/TEXT_BLOCK_START/END/THINKING_*/DATA_*/SUBAGENT_EXPOSED 等）
-                // 暂不单独推送 SSE；Phase 2/4 按前端渲染需要再细化。
+                // 暂不单独推送 SSE；按前端渲染需要再细化。
             }
         }
     }

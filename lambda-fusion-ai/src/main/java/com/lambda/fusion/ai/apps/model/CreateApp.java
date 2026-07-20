@@ -42,7 +42,6 @@ public class CreateApp extends BaseDTO<AppEntity> {
     @Schema(description = "知识库ID列表")
     private List<String> kbIds;
 
-
     @Schema(description = "开启状态", defaultValue = "true")
     private Boolean enabled = true;
 
@@ -65,6 +64,9 @@ public class CreateApp extends BaseDTO<AppEntity> {
     @Schema(description = "相似度阈值(0.0-1.0)", defaultValue = "0.7")
     private BigDecimal similarityThreshold;
 
+    @Schema(description = "RAG模式：STATIC/AGENTIC/HYBRID(默认)", defaultValue = "HYBRID")
+    private String ragMode;
+
     @Schema(description = "是否显示引用来源", defaultValue = "true")
     private Boolean showCitation;
 
@@ -84,4 +86,21 @@ public class CreateApp extends BaseDTO<AppEntity> {
     @FieldMapping(target = "publishChannels", qualifiedByName = "listToString")
     @Schema(description = "发布渠道列表")
     private List<String> publishChannels;
+
+    // ========== Agent 模板扩展配置 ==========
+
+    @Schema(description = "绑定的本地工具ID列表(空=全部@Tool)")
+    private List<String> toolIds;
+
+    @Schema(description = "绑定的MCP服务器ID列表")
+    private List<String> mcpServerIds;
+
+    @Schema(description = "子agent配置(JSON数组)")
+    private String subagentSpec;
+
+    @Schema(description = "Tool Group配置(JSON数组)")
+    private String toolGroups;
+
+    @Schema(description = "中间件配置(JSON)")
+    private String middlewareConfig;
 }

@@ -2,11 +2,11 @@ package com.lambda.fusion.ai.knowledge.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.lambda.cloud.core.utils.ConvertUtils;
+import com.lambda.fusion.ai.agent.runtime.VectorStoreOps;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.knowledge.mapper.DocumentChunkMapper;
 import com.lambda.fusion.ai.knowledge.mapper.DocumentMapper;
 import com.lambda.fusion.ai.knowledge.mapper.KnowledgeBaseMapper;
-import com.lambda.fusion.ai.agent.runtime.VectorStoreOps;
 import com.lambda.fusion.ai.knowledge.model.CreateKnowledgeBase;
 import com.lambda.fusion.ai.knowledge.model.KnowledgeBase;
 import com.lambda.fusion.ai.knowledge.model.KnowledgeBaseQuery;

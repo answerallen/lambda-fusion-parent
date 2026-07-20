@@ -37,20 +37,20 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
         entity.setTenantId(AuthUtils.getTenantId());
 
         // 挂载机器人参数
-        if (createSession.getRobotId() != null) {
-            AppEntity robot = appsMapper.selectById(createSession.getRobotId());
-            if (robot == null) {
-                throw AiBusinessException.robotNotFound(createSession.getRobotId());
+        if (createSession.getAppId() != null) {
+            AppEntity app = appsMapper.selectById(createSession.getAppId());
+            if (app == null) {
+                throw AiBusinessException.appNotFound(createSession.getAppId());
             }
-            if (robot.getLlmModelId() != null) entity.setLlmModelId(robot.getLlmModelId());
-            if (robot.getSystemPrompt() != null) entity.setSystemPrompt(robot.getSystemPrompt());
-            if (robot.getKbIds() != null) entity.setKbIds(robot.getKbIds());
-            // 执行参数全量快照（快照即稳定性：robot 后续编辑不影响在途会话，见 refactor 方案 §5.2）
+            if (app.getLlmModelId() != null) entity.setLlmModelId(app.getLlmModelId());
+            if (app.getSystemPrompt() != null) entity.setSystemPrompt(app.getSystemPrompt());
+            if (app.getKbIds() != null) entity.setKbIds(app.getKbIds());
+            // 执行参数全量快照（快照即稳定性：app 后续编辑不影响在途会话）
             // 旧实现仅拷贝 4 项，temperature/maxTokens 虽在 session 却未拷贝、retrievalTopK/similarityThreshold 不在 session
-            if (robot.getTemperature() != null) entity.setTemperature(robot.getTemperature());
-            if (robot.getMaxTokens() != null) entity.setMaxTokens(robot.getMaxTokens());
-            if (robot.getRetrievalTopK() != null) entity.setRetrievalTopK(robot.getRetrievalTopK());
-            if (robot.getSimilarityThreshold() != null) entity.setSimilarityThreshold(robot.getSimilarityThreshold());
+            if (app.getTemperature() != null) entity.setTemperature(app.getTemperature());
+            if (app.getMaxTokens() != null) entity.setMaxTokens(app.getMaxTokens());
+            if (app.getRetrievalTopK() != null) entity.setRetrievalTopK(app.getRetrievalTopK());
+            if (app.getSimilarityThreshold() != null) entity.setSimilarityThreshold(app.getSimilarityThreshold());
         }
         entity.setMessageCount(0);
         entity.setTotalTokens(0);

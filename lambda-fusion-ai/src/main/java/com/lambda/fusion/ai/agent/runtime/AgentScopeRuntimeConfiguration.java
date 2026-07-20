@@ -13,15 +13,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * AgentScope 2.0 运行时装配。
- *
- * <p>条件装配（遵循 AGENTS.md「三件套」约定）：仅当 classpath 存在 {@link PostgresAgentStateStore}
- * 且 {@code lambda.fusion.ai.agentscope.enabled=true}（默认开）时生效。装配分布式会话后端
- * {@link AgentStateStore}（PG 经 {@code agentscope-extensions-postgresql} 一等接入，spike 已核实），
- * 复用 AI 模块现有 ai-postgres {@link DataSource}（与 AI 业务表同库，见方案 §5.5 / D5）。
- *
- * <p>{@link AgentRuntimeServiceImpl} 经 {@code ObjectProvider<AgentStateStore>} 注入；若后端未装配
- * （DS 不可用或 backend 非 pg），HarnessAgent 回落 JsonFile 默认，运行时不中断。
+ * AgentScope 2.0 运行时装配：{@code @ConditionalOnClass(PostgresAgentStateStore)} + {@code enabled=true}
+ * 时装配 PG {@link AgentStateStore}（复用 ai-postgres {@link DataSource}）。DS 不可用时跳过，HarnessAgent
+ * 回落 JsonFile 默认，运行时不中断。
  *
  * @author Jin
  */

@@ -218,12 +218,12 @@ public enum AiErrorCode implements ErrorCode {
     /**
      * AI机器人不存在
      */
-    ROBOT_NOT_FOUND(30750, "AI机器人不存在"),
+    APP_NOT_FOUND(30750, "AI应用不存在"),
 
     /**
      * AI机器人已禁用
      */
-    ROBOT_DISABLED(30751, "AI机器人已禁用"),
+    APP_DISABLED(30751, "AI应用已禁用"),
 
     // ========== 数据源相关错误 (30800-30899) ==========
     /**

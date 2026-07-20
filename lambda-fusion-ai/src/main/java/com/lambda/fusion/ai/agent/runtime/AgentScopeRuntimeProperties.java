@@ -4,12 +4,7 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * AgentScope 2.0 运行时配置。
- *
- * <p>前缀 {@code lambda.fusion.ai.agentscope}。控制 AgentScope 运行时的可调参数：默认迭代上限、
- * 分布式会话后端（PG/Redis）选择与表定位。模型/工具/MCP 等资源仍由各自 DB 驱动的管理面提供。
- *
- * <p>参见 {@code docs/refactor/ai-agentscope-spike.md} 与 {@code docs/refactor/ai-agentscope-refactor.md} §5.5 / D5。
+ * AgentScope 2.0 运行时配置（前缀 {@code lambda.fusion.ai.agentscope}）：默认迭代上限、会话后端（PG/Redis）选择与表定位。
  *
  * @author Jin
  */
@@ -26,7 +21,7 @@ public class AgentScopeRuntimeProperties {
     /** 模型调用超时（秒）。 */
     private int modelTimeoutSeconds = 60;
 
-    /** 模型调用重试次数（含首次；AgentScope ExecutionConfig 原生重试+指数退避，取代旧 Resilience4j Retry）。 */
+    /** 模型调用重试次数（含首次；AgentScope ExecutionConfig 原生重试+指数退避）。 */
     private int modelMaxAttempts = 3;
 
     /** 分布式会话/记忆后端配置。 */

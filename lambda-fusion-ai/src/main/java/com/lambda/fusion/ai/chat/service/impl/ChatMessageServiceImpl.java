@@ -32,13 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * 消息服务实现类
- *
- * <p>AgentScope 重构后：聊天主路坍缩为单一 {@link AgentRuntimeService#run} -> {@link EventToSseAdapter}
- * -> SSE 路径（旧 RAG {@code streamChat} + workflow {@code executeWorkflowStream} 二分已移除）。RAG 检索
- * 改为 agent 的 {@code retrieve_knowledge} 工具（经 {@code KnowledgeRetrievalTools}，在
- * {@code AgentRuntimeServiceImpl.buildToolkit} 注册），agent 自主决定何时检索；workflow 路径随 workflow
- * 域退出（Phase 3 cutover 删 workflow 域）。本文件已清零 langchain4j 依赖（6 处耦合之一）。
+ * 消息服务实现类：经 {@link AgentRuntimeService#run} -> {@link EventToSseAdapter} -> SSE 流式回复。
  *
  * @author Jin
  */

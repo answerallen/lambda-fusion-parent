@@ -14,7 +14,7 @@ public class ChatSession {
     private List<String> kbIds;
     private String userId;
     private String llmModelId;
-    private String robotId;
+    private String appId;
     private String systemPrompt;
     private BigDecimal temperature;
     private Integer maxTokens;
