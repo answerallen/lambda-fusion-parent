@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -32,10 +32,10 @@ import org.springframework.util.StringUtils;
 public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEntity> implements LlmModelService {
 
     private final LlmModelMapper llmModelMapper;
-    private final @Lazy ModelClientFactory modelClientFactory;
+    private final ObjectProvider<ModelClientFactory> modelClientFactoryProvider;
     private final KeyEncryptionService keyEncryptionService;
     private final LlmProviderService llmProviderService;
-    private final @Lazy KnowledgeFactory knowledgeFactory;
+    private final ObjectProvider<KnowledgeFactory> knowledgeFactoryProvider;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -170,10 +170,16 @@ public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEnt
     }
 
     private void clearRuntimeCache(String modelType, String modelId) {
-        modelClientFactory.invalidateModelCache(modelId);
+        ModelClientFactory mcf = modelClientFactoryProvider.getIfAvailable();
+        if (mcf != null) {
+            mcf.invalidateModelCache(modelId);
+        }
         if ("EMBEDDING".equalsIgnoreCase(modelType)) {
             // embedding 模型配置变更：失效所有 KB 的 SimpleKnowledge 缓存（含旧 EmbeddingModel），下次访问重建
-            knowledgeFactory.invalidateAll();
+            KnowledgeFactory kf = knowledgeFactoryProvider.getIfAvailable();
+            if (kf != null) {
+                kf.invalidateAll();
+            }
         }
     }
 }
