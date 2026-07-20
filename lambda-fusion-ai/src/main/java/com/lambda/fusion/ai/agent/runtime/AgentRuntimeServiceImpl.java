@@ -19,6 +19,7 @@ import io.agentscope.core.tool.Toolkit;
 import io.agentscope.harness.agent.HarnessAgent;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -106,11 +107,11 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
             BigDecimal temperature,
             Integer maxTokens,
             String tenantId,
-            String kbId) {}
+            List<String> kbIds) {}
 
     private HarnessAgent buildAgent(AgentTemplate t, boolean stateful) {
         Model model = modelClientFactory.get(t.modelId());
-        Toolkit toolkit = buildToolkit(t.kbId());
+        Toolkit toolkit = buildToolkit(t.kbIds());
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 .name(StringUtils.hasText(t.name()) ? t.name() : "agent")
                 .description(t.description() != null ? t.description() : "")
@@ -135,21 +136,21 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
     }
 
     /**
-     * 构造 Toolkit：本地 @Tool（经 {@link ToolToolkitAdapter}）+ 知识库检索工具（若 kbId 非空，
+     * 构造 Toolkit：本地 @Tool（经 {@link ToolToolkitAdapter}）+ 知识库检索工具（若 kbIds 非空，
      * 注册 {@link KnowledgeRetrievalTools}，agent 自主决定何时检索）。
      */
-    private Toolkit buildToolkit(String kbId) {
+    private Toolkit buildToolkit(List<String> kbIds) {
         Toolkit toolkit = toolToolkitAdapter.buildToolkit();
-        if (StringUtils.hasText(kbId)) {
+        if (kbIds != null && !kbIds.isEmpty()) {
             try {
-                Knowledge knowledge = knowledgeFactory.get(kbId);
+                Knowledge knowledge = knowledgeFactory.get(kbIds);
                 if (knowledge != null) {
                     toolkit.registerTool(new KnowledgeRetrievalTools(knowledge));
-                    log.debug("AgentRuntimeServiceImpl: 已注册知识库检索工具，kbId: {}", kbId);
+                    log.debug("AgentRuntimeServiceImpl: 已注册知识库检索工具，kbIds: {}", kbIds);
                 }
             } catch (Exception e) {
                 // RAG 装配失败不阻断对话，agent 降级为无检索能力
-                log.warn("AgentRuntimeServiceImpl: 知识库工具装配失败，kbId={}，agent 将无 RAG 能力", kbId, e);
+                log.warn("AgentRuntimeServiceImpl: 知识库工具装配失败，kbIds={}，agent 将无 RAG 能力", kbIds, e);
             }
         }
         return toolkit;
@@ -206,7 +207,7 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                         : (app != null ? app.getTemperature() : null),
                 session.getMaxTokens() != null ? session.getMaxTokens() : (app != null ? app.getMaxTokens() : null),
                 session.getTenantId() != null ? session.getTenantId() : (app != null ? app.getTenantId() : null),
-                firstNonBlank(session.getKbId(), app != null ? app.getKbId() : null));
+                firstNonEmpty(session.getKbIds(), app != null ? app.getKbIds() : null));
     }
 
     private AgentTemplate templateFromApp(AppEntity app) {
@@ -218,7 +219,7 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
                 app.getTemperature(),
                 app.getMaxTokens(),
                 app.getTenantId(),
-                app.getKbId());
+                app.getKbIds());
     }
 
     private AppEntity resolveApp(String robotId) {
@@ -226,6 +227,16 @@ public class AgentRuntimeServiceImpl implements AgentRuntimeService {
             return null;
         }
         return appsMapper.selectById(robotId);
+    }
+
+    private static List<String> firstNonEmpty(List<String> first, List<String> second) {
+        if (first != null && !first.isEmpty()) {
+            return first;
+        }
+        if (second != null && !second.isEmpty()) {
+            return second;
+        }
+        return List.of();
     }
 
     private static String firstNonBlank(String... values) {

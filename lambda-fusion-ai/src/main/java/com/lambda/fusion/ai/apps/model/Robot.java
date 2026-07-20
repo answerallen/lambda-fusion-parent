@@ -33,8 +33,8 @@ public class Robot {
     @Schema(description = "系统提示词")
     private String systemPrompt;
 
-    @Schema(description = "关联知识库ID")
-    private String kbId;
+    @Schema(description = "关联知识库ID列表")
+    private List<String> kbIds;
 
 
     @Schema(description = "所属租户ID")

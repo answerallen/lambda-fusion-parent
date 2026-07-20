@@ -1177,4 +1177,24 @@
         </insert>
     </changeSet>
 
+
+    <!-- ========================================== -->
+    <!-- 【AgentScope 重构】多 KB：ai_robot/ai_chat_session 的 kb_id(varchar) -> kb_ids(jsonb) -->
+    <!-- agent/会话可绑多 KB（List<String>，JacksonTypeHandler 序列化为 JSON 数组）。 -->
+    <!-- 存量单 kbId 迁为 ["kbId"]（jsonb_build_array）；开发期无在产数据，IF EXISTS/IF NOT EXISTS 幂等。 -->
+    <!-- ========================================== -->
+    <changeSet id="lambda-fusion-ai-20260719120001-pg" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <dbms type="postgresql"/>
+        </preConditions>
+        <sql>
+            ALTER TABLE ai_robot ADD COLUMN IF NOT EXISTS kb_ids jsonb;
+            UPDATE ai_robot SET kb_ids = jsonb_build_array(kb_id) WHERE kb_id IS NOT NULL AND kb_ids IS NULL;
+            ALTER TABLE ai_robot DROP COLUMN IF EXISTS kb_id;
+
+            ALTER TABLE ai_chat_session ADD COLUMN IF NOT EXISTS kb_ids jsonb;
+            UPDATE ai_chat_session SET kb_ids = jsonb_build_array(kb_id) WHERE kb_id IS NOT NULL AND kb_ids IS NULL;
+            ALTER TABLE ai_chat_session DROP COLUMN IF EXISTS kb_id;
+        </sql>
+    </changeSet>
 </databaseChangeLog>

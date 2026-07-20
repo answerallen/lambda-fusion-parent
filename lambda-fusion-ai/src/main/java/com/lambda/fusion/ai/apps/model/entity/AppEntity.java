@@ -1,10 +1,12 @@
 package com.lambda.fusion.ai.apps.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.lambda.cloud.core.annotation.FieldMapping;
 import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
+import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -15,7 +17,7 @@ import lombok.EqualsAndHashCode;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-@TableName("ai_robot")
+@TableName(value = "ai_robot", autoResultMap = true)
 @Schema(description = "AI机器人实体")
 public class AppEntity extends BaseEntity {
 
@@ -40,8 +42,9 @@ public class AppEntity extends BaseEntity {
     @Schema(description = "系统设定人设与初始提示词")
     private String systemPrompt;
 
-    @Schema(description = "关联的知识库ID")
-    private String kbId;
+    @Schema(description = "关联的知识库ID列表(JSON数组)")
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> kbIds;
 
 
     @Schema(description = "租户隔离ID")

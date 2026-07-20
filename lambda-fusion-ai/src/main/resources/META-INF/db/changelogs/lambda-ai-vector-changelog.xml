@@ -21,6 +21,6 @@
             DROP EXTENSION IF EXISTS vector;
         </rollback>
     </changeSet>
-    
+
 
 </databaseChangeLog>

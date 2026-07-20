@@ -42,8 +42,8 @@ public class UpdateApp extends BaseDTO<AppEntity> {
     @Schema(description = "LLM模型ID")
     private String llmModelId;
 
-    @Schema(description = "知识库ID")
-    private String kbId;
+    @Schema(description = "知识库ID列表")
+    private List<String> kbIds;
 
 
     @Schema(description = "开启状态")

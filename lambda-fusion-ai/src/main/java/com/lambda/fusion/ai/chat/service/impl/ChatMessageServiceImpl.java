@@ -97,7 +97,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
             ChatMessageEntity userMsg,
             String clientId) {
         String llmModelId = session.getLlmModelId();
-        boolean ragEnhanced = session.getKbId() != null;
+        boolean ragEnhanced = session.getKbIds() != null && !session.getKbIds().isEmpty();
         // 单一路径：AgentRuntimeService.run -> Flux<AgentEvent> -> EventToSseAdapter -> SSE
         // token 流（message 事件）由 adapter 内部 doOnNext 推送；error 由 adapter doOnError 推送
         eventToSseAdapter

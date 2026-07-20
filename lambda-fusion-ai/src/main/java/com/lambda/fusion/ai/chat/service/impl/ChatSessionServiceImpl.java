@@ -44,7 +44,7 @@ public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatS
             }
             if (robot.getLlmModelId() != null) entity.setLlmModelId(robot.getLlmModelId());
             if (robot.getSystemPrompt() != null) entity.setSystemPrompt(robot.getSystemPrompt());
-            if (robot.getKbId() != null) entity.setKbId(robot.getKbId());
+            if (robot.getKbIds() != null) entity.setKbIds(robot.getKbIds());
             // 执行参数全量快照（快照即稳定性：robot 后续编辑不影响在途会话，见 refactor 方案 §5.2）
             // 旧实现仅拷贝 4 项，temperature/maxTokens 虽在 session 却未拷贝、retrievalTopK/similarityThreshold 不在 session
             if (robot.getTemperature() != null) entity.setTemperature(robot.getTemperature());

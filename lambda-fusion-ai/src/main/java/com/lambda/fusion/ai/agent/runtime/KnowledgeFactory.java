@@ -19,6 +19,8 @@ import io.agentscope.core.rag.exception.VectorStoreException;
 import io.agentscope.core.rag.knowledge.SimpleKnowledge;
 import io.agentscope.core.rag.store.PgVectorStore;
 import io.agentscope.core.rag.store.VDBStoreBase;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -78,6 +80,37 @@ public class KnowledgeFactory {
             return null;
         }
         return knowledgeCache.get(kbId, this::build);
+    }
+
+    /**
+     * 按 kbIds 获取联邦 {@link Knowledge}（多 KB 检索）：单 KB 直返 {@link SimpleKnowledge}，
+     * 多 KB 返回 {@link FederatedKnowledge}（跨 KB 检索 + 按 score 合并取 topK）；kbIds 为空返回 null。
+     * 单个 KB 装配失败不阻断（跳过），全部失败返回 null（agent 无 RAG）。
+     */
+    public Knowledge get(List<String> kbIds) {
+        if (kbIds == null || kbIds.isEmpty()) {
+            return null;
+        }
+        if (kbIds.size() == 1) {
+            return get(kbIds.get(0));
+        }
+        List<Knowledge> kbs = kbIds.stream()
+                .map(this::getOrNull)
+                .filter(Objects::nonNull)
+                .toList();
+        if (kbs.isEmpty()) {
+            return null;
+        }
+        return new FederatedKnowledge(kbs);
+    }
+
+    private Knowledge getOrNull(String kbId) {
+        try {
+            return get(kbId);
+        } catch (Exception e) {
+            log.warn("KnowledgeFactory: 单 KB 装配失败，跳过，kbId={}", kbId, e.getMessage());
+            return null;
+        }
     }
 
     public void invalidate(String kbId) {

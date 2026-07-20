@@ -1,11 +1,13 @@
 package com.lambda.fusion.ai.chat.model.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.fusion.ai.chat.model.ChatSession;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.Data;
 
 /**
@@ -15,7 +17,7 @@ import lombok.Data;
  */
 @AutoConverter(target = ChatSession.class)
 @Data
-@TableName("ai_chat_session")
+@TableName(value = "ai_chat_session", autoResultMap = true)
 @Schema(description = "对话会话实体")
 public class ChatSessionEntity {
 
@@ -23,7 +25,8 @@ public class ChatSessionEntity {
     private String id;
 
     private String title;
-    private String kbId;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<String> kbIds;
     private String userId;
     private String llmModelId;
 

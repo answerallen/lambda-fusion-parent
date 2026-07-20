@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.chat.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.Data;
 
 @Data
@@ -10,7 +11,7 @@ import lombok.Data;
 public class ChatSession {
     private String id;
     private String title;
-    private String kbId;
+    private List<String> kbIds;
     private String userId;
     private String llmModelId;
     private String robotId;
