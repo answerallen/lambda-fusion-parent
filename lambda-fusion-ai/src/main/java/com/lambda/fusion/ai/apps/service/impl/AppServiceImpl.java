@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.NonNull;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +60,20 @@ public class AppServiceImpl implements AppService {
         String appType = validateAppType(dto.getAppType());
         String sandboxBackend = validateSandboxBackend(dto.getSandboxBackend());
         ensureNameUnique(tenantId, dto.getName(), null);
+        AppEntity entity = getAppEntity(dto, tenantId, appType, sandboxBackend);
+        appMapper.insert(entity);
+        if (AppType.WORKSPACE.getCode().equalsIgnoreCase(appType)) {
+            try {
+                workspaceScaffolder.scaffold(workspacePaths.resolveAppWorkspace(tenantId, entity.getId()), entity);
+            } catch (IOException e) {
+                throw new AiBusinessException(AiErrorCode.CONFIGURATION_ERROR, e);
+            }
+        }
+        eventPublisher.publishEvent(AiConfigChangedEvent.app(entity.getId()));
+        return entity;
+    }
+
+    private static @NonNull AppEntity getAppEntity(CreateApp dto, String tenantId, String appType, String sandboxBackend) {
         AppEntity entity = new AppEntity();
         entity.setId(IdUtil.getSnowflakeNextIdStr());
         entity.setTenantId(tenantId);
@@ -78,15 +93,6 @@ public class AppServiceImpl implements AppService {
         entity.setCreatedBy(AuthUtils.getUser().getUsername());
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
-        appMapper.insert(entity);
-        if (AppType.WORKSPACE.getCode().equalsIgnoreCase(appType)) {
-            try {
-                workspaceScaffolder.scaffold(workspacePaths.resolveAppWorkspace(tenantId, entity.getId()), entity);
-            } catch (IOException e) {
-                throw new AiBusinessException(AiErrorCode.CONFIGURATION_ERROR, e);
-            }
-        }
-        eventPublisher.publishEvent(AiConfigChangedEvent.app(entity.getId()));
         return entity;
     }
 
