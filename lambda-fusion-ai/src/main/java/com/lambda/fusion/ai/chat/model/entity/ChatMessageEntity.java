@@ -1,44 +1,51 @@
 package com.lambda.fusion.ai.chat.model.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
-import com.lambda.cloud.core.annotation.AutoConverter;
-import com.lambda.fusion.ai.chat.model.ChatHistory;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Data;
 
-/**
- * 对话消息实体类
- *
- * @author Jin
- */
-@AutoConverter(target = ChatHistory.class)
 @Data
 @TableName("ai_chat_message")
-@Schema(description = "对话消息实体")
+@Schema(description = "对话消息")
 public class ChatMessageEntity {
 
-    @TableId(type = IdType.ASSIGN_ID)
-    private String id;
+    @TableId(value = "id", type = IdType.AUTO)
+    @Schema(description = "主键")
+    private Long id;
 
-    private String sessionId;
-    private String role;
-    private String content;
-    private Boolean isRagEnhanced;
-    private String retrievedChunks;
-    private String ragContext;
-    private Integer promptTokens;
-    private Integer completionTokens;
-    private Integer totalTokens;
-    private BigDecimal qualityScore;
-    private Integer userFeedback;
-    private Integer latencyMs;
-    private String metadata;
-
-    @Schema(description = "租户隔离ID")
+    @TableField("tenant_id")
+    @Schema(description = "租户ID")
     private String tenantId;
 
-    @TableField(fill = FieldFill.INSERT)
+    @TableField("session_id")
+    @Schema(description = "会话ID")
+    private String sessionId;
+
+    @TableField("role")
+    @Schema(description = "角色: user/assistant/tool/system")
+    private String role;
+
+    @TableField("content")
+    @Schema(description = "消息内容")
+    private String content;
+
+    @TableField("tool_call")
+    @Schema(description = "工具调用 JSON")
+    private String toolCall;
+
+    @TableField("tokens_in")
+    @Schema(description = "输入 token 数")
+    private Integer tokensIn;
+
+    @TableField("tokens_out")
+    @Schema(description = "输出 token 数")
+    private Integer tokensOut;
+
+    @TableField("created_at")
+    @Schema(description = "创建时间")
     private LocalDateTime createdAt;
 }

@@ -1,62 +1,35 @@
 package com.lambda.fusion.ai.mcp.service;
 
-import com.baomidou.mybatisplus.spring.service.IService;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.mcp.model.CreateMcpServer;
-import com.lambda.fusion.ai.mcp.model.McpServer;
+import com.lambda.fusion.ai.mcp.model.McpServerPage;
 import com.lambda.fusion.ai.mcp.model.UpdateMcpServer;
 import com.lambda.fusion.ai.mcp.model.entity.McpServerEntity;
-import java.util.List;
+import io.agentscope.core.tool.mcp.McpClientWrapper;
 
 /**
- * MCP Server 管理服务接口
+ * MCP 服务管理。
  *
  * @author Jin
  */
-public interface McpServerService extends IService<McpServerEntity> {
+public interface McpServerService {
 
-    /**
-     * 创建 MCP 服务器配置
-     *
-     * @param request 创建请求
-     * @return 新创建的服务器ID
-     */
-    String create(CreateMcpServer request);
+    Page<McpServerEntity> page(McpServerPage query);
 
-    /**
-     * 更新 MCP 服务器配置
-     *
-     * @param id      服务器ID
-     * @param request 更新请求
-     */
-    void update(String id, UpdateMcpServer request);
+    McpServerEntity get(String id);
 
-    /**
-     * 删除 MCP 服务器配置
-     *
-     * @param id 服务器ID
-     */
+    McpServerEntity create(CreateMcpServer dto);
+
+    void update(String id, UpdateMcpServer dto);
+
     void delete(String id);
 
-    /**
-     * 根据 ID 查询 MCP 服务器详情
-     *
-     * @param id 服务器ID
-     * @return 服务器 VO
-     */
-    McpServer getServerById(String id);
+    McpServerEntity loadById(String id);
+
+    McpClientWrapper buildWrapper(McpServerEntity entity);
 
     /**
-     * 查询所有 MCP 服务器列表
-     *
-     * @return 服务器VO列表
+     * 测试 MCP 服务连通性，返回发现的工具数量。
      */
-    List<McpServer> listAll();
-
-    /**
-     * 测试 MCP 服务器连接
-     *
-     * @param id 服务器ID
-     * @return 连接是否成功
-     */
-    boolean testConnection(String id);
+    int testConnection(String id);
 }

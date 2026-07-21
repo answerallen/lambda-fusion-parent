@@ -1,15 +1,21 @@
 package com.lambda.fusion.ai.chat.service;
 
-import com.baomidou.mybatisplus.spring.service.IService;
-import com.lambda.fusion.ai.chat.model.ChatHistory;
-import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
+import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import java.util.List;
 
-public interface ChatMessageService extends IService<ChatMessageEntity> {
-    void sendMessageStream(String sessionId, SendMessage dto);
+/**
+ * 对话消息服务。
+ *
+ * @author Jin
+ */
+public interface ChatMessageService {
 
-    List<ChatHistory> listMessages(String sessionId, Integer limit);
+    void saveUserMessage(ChatSessionEntity session, String content);
 
-    void submitFeedback(String sessionId, String messageId, Integer feedback);
+    void saveAssistantMessage(ChatSessionEntity session, String content);
+
+    List<ChatMessageEntity> listBySession(String sessionId);
+
+    void deleteBySession(String sessionId);
 }

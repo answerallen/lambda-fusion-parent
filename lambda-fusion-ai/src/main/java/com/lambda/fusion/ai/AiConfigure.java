@@ -1,144 +1,185 @@
 package com.lambda.fusion.ai;
 
-import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;
-import com.lambda.cloud.datasource.dynamic.DynamicDataSourceService;
-import com.lambda.fusion.ai.agent.runtime.AgentScopeRuntimeProperties;
-import com.lambda.fusion.ai.datasource.AiDataSourceInterceptor;
-import com.lambda.fusion.ai.datasource.AiDatabaseSchemaInitializer;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadPoolExecutor;
-import javax.sql.DataSource;
+import com.lambda.fusion.ai.apps.model.entity.AppEntity;
+import com.lambda.fusion.ai.runtime.sandbox.SandboxBackendProvider;
+import com.lambda.fusion.ai.runtime.sandbox.SandboxSpecResolver;
+import io.agentscope.extensions.sandbox.agentrun.AgentRunFilesystemSpec;
+import io.agentscope.extensions.sandbox.daytona.DaytonaFilesystemSpec;
+import io.agentscope.extensions.sandbox.e2b.E2bFilesystemSpec;
+import io.agentscope.extensions.sandbox.kubernetes.KubernetesFilesystemSpec;
+import io.agentscope.harness.agent.filesystem.spec.SandboxFilesystemSpec;
+import io.agentscope.harness.agent.sandbox.impl.docker.DockerFilesystemSpec;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import java.nio.file.Path;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.mybatis.spring.annotation.MapperScan;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Slf4j
 @EnableAsync
 @Configuration
 @MapperScan(basePackages = {"com.lambda.fusion.ai.**.mapper"})
 @ComponentScan(basePackageClasses = AiConfigure.class)
-@EnableConfigurationProperties({AiProperties.class, AgentScopeRuntimeProperties.class})
+@EnableConfigurationProperties(AiProperties.class)
 public class AiConfigure {
 
-    @Bean
-    public Executor documentProcessExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setMaxPoolSize(10);
-        executor.setCorePoolSize(5);
-        executor.setQueueCapacity(1000);
-        executor.setThreadNamePrefix("documentProcessExecutor" + "-");
-        executor.setKeepAliveSeconds(30);
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        return executor;
-    }
+    @Configuration
+    public static class SandboxConfig {
 
-    @Bean
-    public Executor agentParallelExecutor(AiProperties aiProperties) {
-        AiProperties.ParallelExecutorConfig config = aiProperties.getAgent().getParallelExecutor();
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setMaxPoolSize(config.getMaxPoolSize());
-        executor.setCorePoolSize(config.getCorePoolSize());
-        executor.setQueueCapacity(config.getQueueCapacity());
-        executor.setThreadNamePrefix(config.getThreadNamePrefix());
-        executor.setKeepAliveSeconds(config.getKeepAliveSeconds());
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        executor.initialize();
-        return executor;
-    }
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.extensions.sandbox.agentrun.AgentRunFilesystemSpec")
+        @RequiredArgsConstructor
+        public static class AgentRunSandboxConfiguration {
 
-    @Bean
-    public Executor agentStreamExecutor(AiProperties aiProperties) {
-        AiProperties.ParallelExecutorConfig config = aiProperties.getAgent().getParallelExecutor();
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setMaxPoolSize(config.getMaxPoolSize());
-        executor.setCorePoolSize(config.getCorePoolSize());
-        executor.setQueueCapacity(config.getQueueCapacity());
-        executor.setThreadNamePrefix(config.getThreadNamePrefix() + "stream-");
-        executor.setKeepAliveSeconds(config.getKeepAliveSeconds());
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
-        executor.initialize();
-        return executor;
-    }
+            private final AiProperties aiProperties;
 
-    /**
-     * 注册 AI 数据源 SQL 级拦截器，作为 {@link com.lambda.fusion.ai.datasource.AiDataSourceAspect} 之外的逃逸安全网，
-     * 覆盖非事务直接 mapper 调用、虚拟线程 / ForkJoinPool / 自调用等路径。
-     *
-     * @param aiProperties AI 配置（取数据源名称与 enabled 开关）
-     * @return MyBatis-Plus ConfigurationCustomizer
-     */
-    @Bean
-    public ConfigurationCustomizer aiDataSourceInterceptorCustomizer(AiProperties aiProperties) {
-        return configuration -> configuration.addInterceptor(new AiDataSourceInterceptor(aiProperties));
-    }
+            @Bean
+            public SandboxBackendProvider agentRunSandboxProvider() {
+                return new SandboxBackendProvider() {
+                    @Override
+                    public AiConstants.SandboxBackend backend() {
+                        return AiConstants.SandboxBackend.AGENTRUN;
+                    }
 
-    /**
-     * 应用启动后自动执行 AI Schema 初始化。
-     */
-    @Bean
-    public ApplicationRunner DatabaseSchemaInitializer(
-            ObjectProvider<AiDatabaseSchemaInitializer> schemaInitializerProvider,
-            AiProperties aiProperties,
-            DynamicDataSourceService dynamicDataSourceService) {
-        return args -> {
-            // 获取 SchemaInitializer；若 Bean 不存在则跳过全部初始化
-            AiDatabaseSchemaInitializer schemaInitializer = schemaInitializerProvider.getIfAvailable();
-            if (schemaInitializer == null) {
-                log.warn("DatabaseSchemaInitializer not available, skipping all AI schema initialization");
-                return;
+                    @Override
+                    public SandboxFilesystemSpec create(AppEntity app, Path hostWorkspace) {
+                        AiProperties.Sandbox.AgentRun cfg =
+                                aiProperties.getSandbox().getAgentRun();
+                        return new AgentRunFilesystemSpec()
+                                .apiKey(cfg.getApiKey())
+                                .workspaceRoot(cfg.getWorkspaceRoot())
+                                .isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties));
+                    }
+                };
             }
-
-            // 字段级隔离模型下仅初始化共享 AI 数据源（默认 ai-postgres）
-            String defaultDsName = aiProperties.getDataSource().getName();
-            log.info("Starting AI schema initialization for default datasource: {}", defaultDsName);
-            DataSource defaultDataSource = resolveDataSource(dynamicDataSourceService, defaultDsName);
-            if (defaultDataSource != null) {
-                runSchemaInit(schemaInitializer, "default", defaultDataSource);
-            }
-        };
-    }
-
-    /**
-     * 安全获取数据源，捕获异常并记录警告，不影响其他数据源的初始化流程。
-     *
-     * @param service 动态数据源服务
-     * @param dsName  数据源名称
-     * @return DataSource 实例；不可用时返回 {@code null}
-     */
-    private static DataSource resolveDataSource(DynamicDataSourceService service, String dsName) {
-        try {
-            DataSource ds = service.getDataSource(dsName);
-            if (ds == null) {
-                log.warn("AI datasource '{}' is null, skipping schema initialization", dsName);
-            }
-            return ds;
-        } catch (Exception e) {
-            log.warn("AI datasource '{}' not available, skipping schema initialization: {}", dsName, e.getMessage());
-            return null;
         }
-    }
 
-    /**
-     * 对指定租户执行 Liquibase 迁移，单独捕获异常，不影响其他租户的初始化。
-     *
-     * @param initializer Schema 初始化器
-     * @param tenantId    租户 ID（用于日志和 Liquibase 上下文参数）
-     * @param dataSource  租户数据源
-     */
-    private static void runSchemaInit(AiDatabaseSchemaInitializer initializer, String tenantId, DataSource dataSource) {
-        try {
-            log.info("Executing AI schema initialization for tenant: {}", tenantId);
-            initializer.initializeSchema(tenantId, dataSource);
-            log.info("AI schema initialization completed for tenant: {}", tenantId);
-        } catch (Exception e) {
-            log.error("Failed to initialize AI schema for tenant: {}", tenantId, e);
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.extensions.sandbox.daytona.DaytonaFilesystemSpec")
+        @RequiredArgsConstructor
+        public static class DaytonaSandboxConfiguration {
+
+            private final AiProperties aiProperties;
+
+            @Bean
+            public SandboxBackendProvider daytonaSandboxProvider() {
+                return new SandboxBackendProvider() {
+                    @Override
+                    public AiConstants.SandboxBackend backend() {
+                        return AiConstants.SandboxBackend.DAYTONA;
+                    }
+
+                    @Override
+                    public SandboxFilesystemSpec create(AppEntity app, Path hostWorkspace) {
+                        AiProperties.Sandbox.Daytona cfg =
+                                aiProperties.getSandbox().getDaytona();
+                        return new DaytonaFilesystemSpec()
+                                .apiKey(cfg.getApiKey())
+                                .workspaceRoot(cfg.getWorkspaceRoot())
+                                .isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties));
+                    }
+                };
+            }
+        }
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.harness.agent.sandbox.impl.docker.DockerFilesystemSpec")
+        @RequiredArgsConstructor
+        public static class DockerSandboxConfiguration {
+
+            private final AiProperties aiProperties;
+
+            @Bean
+            public SandboxBackendProvider dockerSandboxProvider() {
+                return new SandboxBackendProvider() {
+                    @Override
+                    public AiConstants.SandboxBackend backend() {
+                        return AiConstants.SandboxBackend.DOCKER;
+                    }
+
+                    @Override
+                    public SandboxFilesystemSpec create(AppEntity app, Path hostWorkspace) {
+                        AiProperties.Sandbox.Docker cfg =
+                                aiProperties.getSandbox().getDocker();
+                        DockerFilesystemSpec spec = new DockerFilesystemSpec()
+                                .image(cfg.getImage())
+                                .workspaceRoot(cfg.getWorkspaceRoot())
+                                .network(cfg.getNetwork());
+                        if (cfg.getCpuCount() != null) {
+                            spec.cpuCount(cfg.getCpuCount());
+                        }
+                        if (cfg.getMemorySizeBytes() != null) {
+                            spec.memorySizeBytes(cfg.getMemorySizeBytes());
+                        }
+                        return spec.isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties));
+                    }
+                };
+            }
+        }
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.extensions.sandbox.e2b.E2bFilesystemSpec")
+        @RequiredArgsConstructor
+        public static class E2bSandboxConfiguration {
+
+            private final AiProperties aiProperties;
+
+            @Bean
+            public SandboxBackendProvider e2bSandboxProvider() {
+                return new SandboxBackendProvider() {
+                    @Override
+                    public AiConstants.SandboxBackend backend() {
+                        return AiConstants.SandboxBackend.E2B;
+                    }
+
+                    @Override
+                    public SandboxFilesystemSpec create(AppEntity app, Path hostWorkspace) {
+                        AiProperties.Sandbox.E2b cfg = aiProperties.getSandbox().getE2b();
+                        return new E2bFilesystemSpec()
+                                .apiKey(cfg.getApiKey())
+                                .templateId(cfg.getTemplateId())
+                                .domain(cfg.getDomain())
+                                .workspaceRoot(cfg.getWorkspaceRoot())
+                                .isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties));
+                    }
+                };
+            }
+        }
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.extensions.sandbox.kubernetes.KubernetesFilesystemSpec")
+        @RequiredArgsConstructor
+        public static class KubernetesSandboxConfiguration {
+
+            private final AiProperties aiProperties;
+
+            @Bean
+            public SandboxBackendProvider kubernetesSandboxProvider() {
+                return new SandboxBackendProvider() {
+                    @Override
+                    public AiConstants.SandboxBackend backend() {
+                        return AiConstants.SandboxBackend.KUBERNETES;
+                    }
+
+                    @Override
+                    public SandboxFilesystemSpec create(AppEntity app, Path hostWorkspace) {
+                        AiProperties.Sandbox.Kubernetes cfg =
+                                aiProperties.getSandbox().getKubernetes();
+                        return new KubernetesFilesystemSpec()
+                                .namespace(cfg.getNamespace())
+                                .image(cfg.getImage())
+                                .workspaceRoot(cfg.getWorkspaceRoot())
+                                .kubernetesClient(new KubernetesClientBuilder().build())
+                                .isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties));
+                    }
+                };
+            }
         }
     }
 }

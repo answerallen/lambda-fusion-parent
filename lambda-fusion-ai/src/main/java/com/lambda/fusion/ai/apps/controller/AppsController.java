@@ -1,52 +1,68 @@
 package com.lambda.fusion.ai.apps.controller;
 
-import com.lambda.fusion.ai.apps.model.App;
+import cn.dev33.satoken.annotation.SaCheckRole;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.cloud.logger.annotation.OperationLog;
+import com.lambda.fusion.ai.apps.model.AppPageQuery;
 import com.lambda.fusion.ai.apps.model.CreateApp;
 import com.lambda.fusion.ai.apps.model.UpdateApp;
-import com.lambda.fusion.ai.apps.service.AppsService;
+import com.lambda.fusion.ai.apps.model.entity.AppEntity;
+import com.lambda.fusion.ai.apps.service.AppService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+@SaCheckRole("ROLE_DEV")
+@Tag(name = "智能应用管理")
 @RestController
 @RequestMapping("/v1/ai/apps")
-@Tag(name = "AI 应用管理")
 @RequiredArgsConstructor
 public class AppsController {
 
-    private final AppsService appsService;
+    private final AppService appService;
 
-    @PostMapping
-    @Operation(summary = "创建新的AI应用")
-    public App createApp(@Valid @RequestBody CreateApp dto) {
-        return appsService.createApp(dto);
+    @Operation(summary = "分页查询智能应用")
+    @GetMapping("/page")
+    public Page<AppEntity> page(@Valid AppPageQuery query) {
+        return appService.page(query);
     }
 
-    @PutMapping
-    @Operation(summary = "更新AI应用")
-    public App updateApp(@Valid @RequestBody UpdateApp dto) {
-        return appsService.updateApp(dto);
-    }
-
+    @Operation(summary = "查询智能应用详情")
     @GetMapping("/{id}")
-    @Operation(summary = "获取AI应用详情")
-    public App getApp(@PathVariable String id) {
-        return appsService.getAppById(id);
+    public AppEntity get(@Parameter(description = "应用ID", required = true) @PathVariable String id) {
+        return appService.get(id);
     }
 
-    @GetMapping
-    @Operation(summary = "获取所有AI应用列表")
-    public List<App> listApps() {
-        return appsService.listApps();
+    @OperationLog
+    @Operation(summary = "新增智能应用")
+    @PostMapping
+    public AppEntity create(@RequestBody @Valid CreateApp dto) {
+        return appService.create(dto);
     }
 
+    @OperationLog
+    @Operation(summary = "更新智能应用")
+    @PutMapping("/{id}")
+    public void update(
+            @Parameter(description = "应用ID", required = true) @PathVariable String id,
+            @RequestBody @Valid UpdateApp dto) {
+        appService.update(id, dto);
+    }
+
+    @OperationLog
+    @Operation(summary = "删除智能应用")
     @DeleteMapping("/{id}")
-    @Operation(summary = "删除AI应用")
-    public Boolean deleteApp(@PathVariable String id) {
-        appsService.deleteApp(id);
-        return true;
+    public void delete(@Parameter(description = "应用ID", required = true) @PathVariable String id) {
+        appService.delete(id);
     }
 }

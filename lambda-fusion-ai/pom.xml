@@ -127,6 +127,28 @@
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-rag-simple</artifactId>
         </dependency>
+        <!-- ========== 沙箱后端（WORKSPACE 型应用执行隔离；optional 供下游按需启用） ========== -->
+        <!-- Docker 后端在 agentscope-harness 内核中，无需额外依赖 -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-sandbox-kubernetes</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-sandbox-e2b</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-sandbox-daytona</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-sandbox-agentrun</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
 </project>

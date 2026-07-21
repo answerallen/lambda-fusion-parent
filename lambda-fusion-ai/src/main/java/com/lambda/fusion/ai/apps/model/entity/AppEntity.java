@@ -1,116 +1,89 @@
 package com.lambda.fusion.ai.apps.model.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import com.lambda.cloud.core.annotation.FieldMapping;
-import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
-/**
- * AI机器人实体封装类
- *
- * @author Jin
- */
-@EqualsAndHashCode(callSuper = true)
 @Data
 @TableName(value = "ai_app", autoResultMap = true)
-@Schema(description = "AI机器人实体")
-public class AppEntity extends BaseEntity {
+@Schema(description = "智能应用")
+public class AppEntity {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId("id")
+    @Schema(description = "主键")
     private String id;
 
-    @Schema(description = "机器人名称")
-    private String name;
-
-    @Schema(description = "机器人头像")
-    private String avatar;
-
-    @Schema(description = "机器人职能描述")
-    private String description;
-
-    @Schema(description = "机器人分类")
-    private String category;
-
-    @Schema(description = "绑定的LLM模型ID")
-    private String llmModelId;
-
-    @Schema(description = "系统设定人设与初始提示词")
-    private String systemPrompt;
-
-    @Schema(description = "关联的知识库ID列表(JSON数组)")
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private List<String> kbIds;
-
-    @Schema(description = "租户隔离ID")
+    @TableField("tenant_id")
+    @Schema(description = "租户ID")
     private String tenantId;
 
+    @TableField("name")
+    @Schema(description = "应用名称")
+    private String name;
+
+    @TableField("description")
+    @Schema(description = "应用描述")
+    private String description;
+
+    @TableField("system_prompt")
+    @Schema(description = "系统提示词")
+    private String systemPrompt;
+
+    @TableField("model_id")
+    @Schema(description = "绑定模型ID")
+    private String modelId;
+
+    @TableField("max_iters")
+    @Schema(description = "ReAct 最大迭代数")
+    private Integer maxIters;
+
+    @TableField("temperature")
+    @Schema(description = "温度")
+    private BigDecimal temperature;
+
+    @TableField("app_type")
+    @Schema(description = "应用类型: CHAT|WORKSPACE")
+    private String appType;
+
+    @TableField("self_evolve")
+    @Schema(description = "是否自演化(WORKSPACE 型): agent 可写 workspace 并自维护记忆/技能")
+    private Boolean selfEvolve;
+
+    @TableField("sandbox_backend")
+    @Schema(description = "沙箱后端(WORKSPACE 型): HOST|DOCKER|KUBERNETES|E2B|DAYTONA|AGENTRUN")
+    private String sandboxBackend;
+
+    @TableField(value = "tools_allow", typeHandler = JacksonTypeHandler.class)
+    @Schema(description = "工具白名单")
+    private List<String> toolsAllow;
+
+    @TableField(value = "tools_deny", typeHandler = JacksonTypeHandler.class)
+    @Schema(description = "工具黑名单")
+    private List<String> toolsDeny;
+
+    @TableField(value = "mcp_server_ids", typeHandler = JacksonTypeHandler.class)
+    @Schema(description = "MCP 服务ID列表")
+    private List<String> mcpServerIds;
+
+    @TableField("enabled")
     @Schema(description = "是否启用")
     private Boolean enabled;
 
-    @Schema(description = "是否系统全局公开")
-    private Boolean isPublic;
+    @TableField("created_by")
+    @Schema(description = "创建人")
+    private String createdBy;
 
-    // ========== 模型参数配置 ==========
+    @TableField("created_at")
+    @Schema(description = "创建时间")
+    private LocalDateTime createdAt;
 
-    @Schema(description = "模型温度参数(0.0-2.0)")
-    private BigDecimal temperature;
-
-    @Schema(description = "最大Token数")
-    private Integer maxTokens;
-
-    // ========== 知识库检索配置 ==========
-
-    @Schema(description = "检索TopK")
-    private Integer retrievalTopK;
-
-    @Schema(description = "相似度阈值(0.0-1.0)")
-    private BigDecimal similarityThreshold;
-
-    @Schema(description = "RAG模式：STATIC(自动检索注入)/AGENTIC(agent按需检索工具)/HYBRID(两者,默认)")
-    private String ragMode;
-
-    @Schema(description = "是否显示引用来源")
-    private Boolean showCitation;
-
-    // ========== 对话配置 ==========
-
-    @Schema(description = "开场白/欢迎语")
-    private String welcomeMessage;
-
-    @Schema(description = "预设问题(JSON数组)")
-    @FieldMapping(target = "suggestedQuestions", qualifiedByName = "stringToList")
-    private String suggestedQuestions;
-
-    @Schema(description = "是否启用建议追问")
-    private Boolean enableFollowUp;
-
-    // ========== 发布配置 ==========
-
-    @Schema(description = "发布渠道(JSON数组: web/api/wechat等)")
-    @FieldMapping(target = "publishChannels", qualifiedByName = "stringToList")
-    private String publishChannels;
-
-    // ========== Agent 模板扩展配置（运行时从 robot 实时读，不入 session 快照） ==========
-
-    @Schema(description = "绑定的本地工具ID列表(空=全部@Tool)")
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private List<String> toolIds;
-
-    @Schema(description = "绑定的MCP服务器ID列表")
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private List<String> mcpServerIds;
-
-    @Schema(description = "子agent配置(JSON数组)")
-    private String subagentSpec;
-
-    @Schema(description = "Tool Group配置(JSON数组)")
-    private String toolGroups;
-
-    @Schema(description = "中间件配置(JSON)")
-    private String middlewareConfig;
+    @TableField("updated_at")
+    @Schema(description = "更新时间")
+    private LocalDateTime updatedAt;
 }

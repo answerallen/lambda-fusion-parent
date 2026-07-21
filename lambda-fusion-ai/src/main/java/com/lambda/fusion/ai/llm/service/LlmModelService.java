@@ -1,22 +1,28 @@
 package com.lambda.fusion.ai.llm.service;
 
-import com.baomidou.mybatisplus.spring.service.IService;
-import com.lambda.fusion.ai.llm.model.LlmModel;
-import com.lambda.fusion.ai.llm.model.RegisterModel;
-import com.lambda.fusion.ai.llm.model.UpdateModel;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.fusion.ai.llm.model.CreateLlmModel;
+import com.lambda.fusion.ai.llm.model.LlmModelPage;
+import com.lambda.fusion.ai.llm.model.UpdateLlmModel;
 import com.lambda.fusion.ai.llm.model.entity.LlmModelEntity;
-import java.util.List;
 
-public interface LlmModelService extends IService<LlmModelEntity> {
-    LlmModel registerModel(RegisterModel dto);
+/**
+ * @author Jin
+ */
+public interface LlmModelService {
 
-    void updateModel(String id, UpdateModel dto);
+    Page<LlmModelEntity> page(LlmModelPage query);
 
-    void setDefaultModel(String id);
+    LlmModelEntity get(String id);
 
-    LlmModel getModelById(String id);
+    LlmModelEntity create(CreateLlmModel dto);
 
-    List<LlmModel> listAll();
+    void update(String id, UpdateLlmModel dto);
 
-    void deleteModel(String id);
+    void delete(String id);
+
+    /**
+     * 按主键加载（含禁用记录），限定当前租户；不存在抛出业务异常。供运行时解析器使用。
+     */
+    LlmModelEntity loadById(String id);
 }

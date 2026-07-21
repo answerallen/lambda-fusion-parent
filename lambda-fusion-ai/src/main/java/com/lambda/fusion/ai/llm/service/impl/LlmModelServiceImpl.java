@@ -1,185 +1,132 @@
 package com.lambda.fusion.ai.llm.service.impl;
 
+import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import com.lambda.cloud.core.utils.ConvertUtils;
-import com.lambda.fusion.ai.agent.runtime.KnowledgeFactory;
-import com.lambda.fusion.ai.agent.runtime.ModelClientFactory;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.llm.mapper.LlmModelMapper;
-import com.lambda.fusion.ai.llm.model.LlmModel;
-import com.lambda.fusion.ai.llm.model.RegisterModel;
-import com.lambda.fusion.ai.llm.model.UpdateModel;
+import com.lambda.fusion.ai.llm.model.CreateLlmModel;
+import com.lambda.fusion.ai.llm.model.LlmModelPage;
+import com.lambda.fusion.ai.llm.model.UpdateLlmModel;
 import com.lambda.fusion.ai.llm.model.entity.LlmModelEntity;
-import com.lambda.fusion.ai.llm.security.KeyEncryptionService;
 import com.lambda.fusion.ai.llm.service.LlmModelService;
 import com.lambda.fusion.ai.llm.service.LlmProviderService;
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.lambda.fusion.ai.runtime.event.AiConfigChangedEvent;
+import com.lambda.fusion.core.utils.AuthUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
-public class LlmModelServiceImpl extends ServiceImpl<LlmModelMapper, LlmModelEntity> implements LlmModelService {
+@SuppressFBWarnings("EI_EXPOSE_REP2")
+public class LlmModelServiceImpl implements LlmModelService {
 
     private final LlmModelMapper llmModelMapper;
-    private final ObjectProvider<ModelClientFactory> modelClientFactoryProvider;
-    private final KeyEncryptionService keyEncryptionService;
     private final LlmProviderService llmProviderService;
-    private final ObjectProvider<KnowledgeFactory> knowledgeFactoryProvider;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Override
+    public Page<LlmModelEntity> page(LlmModelPage query) {
+        return llmModelMapper.selectPage(query.getPage(), query.getLambdaQueryWrapper());
+    }
+
+    @Override
+    public LlmModelEntity get(String id) {
+        return requireOwned(id);
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public LlmModel registerModel(RegisterModel registerModel) {
-        LlmModelEntity entity = registerModel.toEntity();
-        llmProviderService.validateProviderSupport(entity.getProvider(), entity.getModelType());
-        normalizeApiKey(entity);
-        entity.setEnabled(true);
-        entity.setIsDefault(false);
-        entity.setTotalCalls(0L);
-        entity.setTotalTokens(0L);
-        entity.setTotalCost(BigDecimal.ZERO);
+    public LlmModelEntity create(CreateLlmModel dto) {
+        String tenantId = AuthUtils.getTenantId();
+        // 校验提供方存在且属于当前租户
+        llmProviderService.loadById(dto.getProviderId());
+        ensureNameUnique(tenantId, dto.getName(), null);
+        LlmModelEntity entity = new LlmModelEntity();
+        entity.setId(IdUtil.getSnowflakeNextIdStr());
+        entity.setTenantId(tenantId);
+        entity.setProviderId(dto.getProviderId());
+        entity.setName(dto.getName());
+        entity.setModelName(dto.getModelName());
+        entity.setModelType(dto.getModelType());
+        entity.setDefaultTemperature(dto.getDefaultTemperature());
+        entity.setDefaultMaxTokens(dto.getDefaultMaxTokens());
+        entity.setEnabled(dto.getEnabled());
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
         llmModelMapper.insert(entity);
-        return toLlmModel(entity);
-    }
-
-    @Override
-    public void updateModel(String id, UpdateModel updateModel) {
-        if (id == null) {
-            throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
-        }
-        LlmModelEntity existing = llmModelMapper.selectById(id);
-        if (existing == null) {
-            throw AiBusinessException.llmModelNotFound(id);
-        }
-
-        String targetProvider =
-                StringUtils.hasText(updateModel.getProvider()) ? updateModel.getProvider() : existing.getProvider();
-        String targetModelType =
-                StringUtils.hasText(updateModel.getModelType()) ? updateModel.getModelType() : existing.getModelType();
-        llmProviderService.validateProviderSupport(targetProvider, targetModelType);
-
-        LlmModelEntity entity = updateModel.toEntity();
-        entity.setId(id);
-        normalizeApiKey(entity);
-        llmModelMapper.updateById(entity);
-        clearRuntimeCache(existing.getModelType(), id);
+        eventPublisher.publishEvent(AiConfigChangedEvent.all());
+        return entity;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void setDefaultModel(String id) {
-        if (!StringUtils.hasText(id)) {
-            throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
+    public void update(String id, UpdateLlmModel dto) {
+        LlmModelEntity entity = requireOwned(id);
+        if (StringUtils.isNotBlank(dto.getProviderId()) && !dto.getProviderId().equals(entity.getProviderId())) {
+            llmProviderService.loadById(dto.getProviderId());
+            entity.setProviderId(dto.getProviderId());
         }
-
-        LlmModelEntity target = llmModelMapper.selectById(id);
-        if (target == null) {
-            throw AiBusinessException.llmModelNotFound(id);
+        if (StringUtils.isNotBlank(dto.getName()) && !dto.getName().equals(entity.getName())) {
+            ensureNameUnique(entity.getTenantId(), dto.getName(), id);
+            entity.setName(dto.getName());
         }
-        if (!Boolean.TRUE.equals(target.getEnabled())) {
-            throw new AiBusinessException(AiErrorCode.LLM_MODEL_DISABLED, id);
+        if (StringUtils.isNotBlank(dto.getModelName())) {
+            entity.setModelName(dto.getModelName());
         }
-
-        List<LlmModelEntity> previousDefaults = llmModelMapper.selectList(new LambdaQueryWrapper<LlmModelEntity>()
-                .eq(LlmModelEntity::getModelType, target.getModelType())
-                .eq(LlmModelEntity::getIsDefault, true)
-                .eq(StringUtils.hasText(target.getTenantId()), LlmModelEntity::getTenantId, target.getTenantId())
-                .isNull(!StringUtils.hasText(target.getTenantId()), LlmModelEntity::getTenantId));
-
-        llmModelMapper.update(
-                null,
-                new LambdaUpdateWrapper<LlmModelEntity>()
-                        .eq(LlmModelEntity::getModelType, target.getModelType())
-                        .eq(
-                                StringUtils.hasText(target.getTenantId()),
-                                LlmModelEntity::getTenantId,
-                                target.getTenantId())
-                        .isNull(!StringUtils.hasText(target.getTenantId()), LlmModelEntity::getTenantId)
-                        .set(LlmModelEntity::getIsDefault, false));
-
-        llmModelMapper.update(
-                null,
-                new LambdaUpdateWrapper<LlmModelEntity>()
-                        .eq(LlmModelEntity::getId, id)
-                        .set(LlmModelEntity::getIsDefault, true));
-
-        previousDefaults.stream()
-                .map(LlmModelEntity::getId)
-                .filter(previousId -> !id.equals(previousId))
-                .forEach(previousId -> clearRuntimeCache(target.getModelType(), previousId));
-        clearRuntimeCache(target.getModelType(), id);
+        if (dto.getModelType() != null) {
+            entity.setModelType(dto.getModelType());
+        }
+        if (dto.getDefaultTemperature() != null) {
+            entity.setDefaultTemperature(dto.getDefaultTemperature());
+        }
+        if (dto.getDefaultMaxTokens() != null) {
+            entity.setDefaultMaxTokens(dto.getDefaultMaxTokens());
+        }
+        if (dto.getEnabled() != null) {
+            entity.setEnabled(dto.getEnabled());
+        }
+        entity.setUpdatedAt(LocalDateTime.now());
+        llmModelMapper.updateById(entity);
+        eventPublisher.publishEvent(AiConfigChangedEvent.all());
     }
 
     @Override
-    public LlmModel getModelById(String id) {
-        // 验证输入参数
-        if (id == null) {
-            throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
-        }
-
-        LlmModelEntity entity = llmModelMapper.selectById(id);
-        if (entity == null) {
-            throw AiBusinessException.llmModelNotFound(id);
-        }
-
-        return toLlmModel(entity);
-    }
-
-    @Override
-    public List<LlmModel> listAll() {
-        return llmModelMapper.selectList(null).stream().map(this::toLlmModel).collect(Collectors.toList());
-    }
-
-    @Override
-    public void deleteModel(String id) {
-        // 验证输入参数
-        if (id == null) {
-            throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, "模型ID不能为空");
-        }
-
-        LlmModelEntity entity = llmModelMapper.selectById(id);
-        if (entity == null) {
-            throw AiBusinessException.llmModelNotFound(id);
-        }
-
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(String id) {
+        requireOwned(id);
         llmModelMapper.deleteById(id);
-        clearRuntimeCache(entity.getModelType(), id);
+        eventPublisher.publishEvent(AiConfigChangedEvent.all());
     }
 
-    private LlmModel toLlmModel(LlmModelEntity entity) {
-        LlmModel llmModel = ConvertUtils.convert(entity);
-        llmModel.setApiKeyEncrypted(null);
-        return llmModel;
+    @Override
+    public LlmModelEntity loadById(String id) {
+        return requireOwned(id);
     }
 
-    private void normalizeApiKey(LlmModelEntity entity) {
-        if (!StringUtils.hasText(entity.getApiKeyEncrypted())) {
-            return;
+    private LlmModelEntity requireOwned(String id) {
+        LlmModelEntity entity = llmModelMapper.selectOne(new LambdaQueryWrapper<LlmModelEntity>()
+                .eq(LlmModelEntity::getId, id)
+                .eq(LlmModelEntity::getTenantId, AuthUtils.getTenantId()));
+        if (entity == null) {
+            throw new AiBusinessException(AiErrorCode.LLM_MODEL_NOT_FOUND, id);
         }
-        entity.setApiKeyEncrypted(keyEncryptionService.encrypt(entity.getApiKeyEncrypted()));
+        return entity;
     }
 
-    private void clearRuntimeCache(String modelType, String modelId) {
-        ModelClientFactory mcf = modelClientFactoryProvider.getIfAvailable();
-        if (mcf != null) {
-            mcf.invalidateModelCache(modelId);
-        }
-        if ("EMBEDDING".equalsIgnoreCase(modelType)) {
-            // embedding 模型配置变更：失效所有 KB 的 SimpleKnowledge 缓存（含旧 EmbeddingModel），下次访问重建
-            KnowledgeFactory kf = knowledgeFactoryProvider.getIfAvailable();
-            if (kf != null) {
-                kf.invalidateAll();
-            }
+    private void ensureNameUnique(String tenantId, String name, String excludeId) {
+        boolean exists = llmModelMapper.exists(new LambdaQueryWrapper<LlmModelEntity>()
+                .eq(LlmModelEntity::getTenantId, tenantId)
+                .eq(LlmModelEntity::getName, name)
+                .ne(excludeId != null, LlmModelEntity::getId, excludeId));
+        if (exists) {
+            throw new AiBusinessException(AiErrorCode.LLM_MODEL_NAME_EXISTS, name);
         }
     }
 }

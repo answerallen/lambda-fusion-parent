@@ -1,16 +1,17 @@
 package com.lambda.fusion.ai.mcp.controller;
 
-import com.lambda.fusion.ai.agent.runtime.McpClientAdapter;
-import com.lambda.fusion.ai.agent.runtime.ToolToolkitAdapter;
+import cn.dev33.satoken.annotation.SaCheckRole;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.ai.mcp.model.CreateMcpServer;
-import com.lambda.fusion.ai.mcp.model.McpServer;
+import com.lambda.fusion.ai.mcp.model.McpServerPage;
 import com.lambda.fusion.ai.mcp.model.UpdateMcpServer;
+import com.lambda.fusion.ai.mcp.model.entity.McpServerEntity;
 import com.lambda.fusion.ai.mcp.service.McpServerService;
-import io.agentscope.core.model.ToolSchema;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,67 +22,53 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * MCP（Model Context Protocol）Server 管理接口
- *
- * @author Jin
- */
+@SaCheckRole("ROLE_DEV")
+@Tag(name = "MCP 服务管理")
 @RestController
-@RequestMapping("/v1/mcp/servers")
-@Tag(name = "MCP Server 管理")
+@RequestMapping("/v1/ai/mcp-servers")
 @RequiredArgsConstructor
 public class McpServerController {
 
     private final McpServerService mcpServerService;
-    private final ToolToolkitAdapter toolToolkitAdapter;
-    private final McpClientAdapter mcpClientAdapter;
 
-    @PostMapping
-    @Operation(summary = "注册 MCP 服务器")
-    public String create(@Valid @RequestBody CreateMcpServer request) {
-        return mcpServerService.create(request);
+    @Operation(summary = "分页查询 MCP 服务")
+    @GetMapping("/page")
+    public Page<McpServerEntity> page(@Valid McpServerPage query) {
+        return mcpServerService.page(query);
     }
 
-    @GetMapping
-    @Operation(summary = "查询所有 MCP 服务器")
-    public List<McpServer> listAll() {
-        return mcpServerService.listAll();
-    }
-
+    @Operation(summary = "查询 MCP 服务详情")
     @GetMapping("/{id}")
-    @Operation(summary = "查询 MCP 服务器详情")
-    public McpServer getById(@PathVariable String id) {
-        return mcpServerService.getServerById(id);
+    public McpServerEntity get(@Parameter(description = "服务ID", required = true) @PathVariable String id) {
+        return mcpServerService.get(id);
     }
 
+    @OperationLog
+    @Operation(summary = "新增 MCP 服务")
+    @PostMapping
+    public McpServerEntity create(@RequestBody @Valid CreateMcpServer dto) {
+        return mcpServerService.create(dto);
+    }
+
+    @OperationLog
+    @Operation(summary = "更新 MCP 服务")
     @PutMapping("/{id}")
-    @Operation(summary = "更新 MCP 服务器配置")
-    public void update(@PathVariable String id, @Valid @RequestBody UpdateMcpServer request) {
-        mcpServerService.update(id, request);
+    public void update(
+            @Parameter(description = "服务ID", required = true) @PathVariable String id,
+            @RequestBody @Valid UpdateMcpServer dto) {
+        mcpServerService.update(id, dto);
     }
 
+    @OperationLog
+    @Operation(summary = "删除 MCP 服务")
     @DeleteMapping("/{id}")
-    @Operation(summary = "删除 MCP 服务器")
-    public void delete(@PathVariable String id) {
+    public void delete(@Parameter(description = "服务ID", required = true) @PathVariable String id) {
         mcpServerService.delete(id);
     }
 
-    @PostMapping("/{id}/connect/test")
-    @Operation(summary = "测试 MCP 服务器连接")
-    public boolean testConnection(@PathVariable String id) {
+    @Operation(summary = "测试 MCP 服务连通性，返回发现的工具数量")
+    @PostMapping("/{id}/test")
+    public int test(@Parameter(description = "服务ID", required = true) @PathVariable String id) {
         return mcpServerService.testConnection(id);
-    }
-
-    @GetMapping("/tools")
-    @Operation(summary = "查询所有已注册本地 @Tool 列表（MCP 工具为 per-agent 装配，不在此列）")
-    public List<ToolSchema> listAllTools() {
-        return toolToolkitAdapter.getToolSchemas();
-    }
-
-    @PostMapping("/tools/refresh")
-    @Operation(summary = "手动刷新本地 @Tool 扫描 + 清除 MCP 客户端缓存")
-    public void refreshTools() {
-        toolToolkitAdapter.refresh();
-        mcpClientAdapter.invalidateAll();
     }
 }

@@ -1,13 +1,17 @@
 package com.lambda.fusion.ai.llm.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.ai.llm.model.CreateLlmProvider;
-import com.lambda.fusion.ai.llm.model.LlmProvider;
+import com.lambda.fusion.ai.llm.model.LlmProviderPageQuery;
 import com.lambda.fusion.ai.llm.model.UpdateLlmProvider;
+import com.lambda.fusion.ai.llm.model.entity.LlmProviderEntity;
 import com.lambda.fusion.ai.llm.service.LlmProviderService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,35 +22,47 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@SaCheckRole("ROLE_DEV")
+@Tag(name = "LLM 提供方管理")
 @RestController
-@RequestMapping("/v1/llm-model-providers")
-@Tag(name = "LLM提供商管理")
+@RequestMapping("/v1/ai/llm-providers")
 @RequiredArgsConstructor
 public class LlmProviderController {
 
     private final LlmProviderService llmProviderService;
 
-    @GetMapping
-    @Operation(summary = "查询所有提供商")
-    public List<LlmProvider> listAll() {
-        return llmProviderService.listAll();
+    @Operation(summary = "分页查询 LLM 提供方")
+    @GetMapping("/page")
+    public Page<LlmProviderEntity> page(@Valid LlmProviderPageQuery query) {
+        return llmProviderService.page(query);
     }
 
+    @Operation(summary = "查询 LLM 提供方详情")
+    @GetMapping("/{id}")
+    public LlmProviderEntity get(@Parameter(description = "提供方ID", required = true) @PathVariable String id) {
+        return llmProviderService.get(id);
+    }
+
+    @OperationLog
+    @Operation(summary = "新增 LLM 提供方")
     @PostMapping
-    @Operation(summary = "创建提供商")
-    public String create(@Valid @RequestBody CreateLlmProvider request) {
-        return llmProviderService.create(request);
+    public LlmProviderEntity create(@RequestBody @Valid CreateLlmProvider dto) {
+        return llmProviderService.create(dto);
     }
 
-    @PutMapping("/{code}")
-    @Operation(summary = "更新提供商")
-    public void update(@PathVariable String code, @Valid @RequestBody UpdateLlmProvider request) {
-        llmProviderService.update(code, request);
+    @OperationLog
+    @Operation(summary = "更新 LLM 提供方")
+    @PutMapping("/{id}")
+    public void update(
+            @Parameter(description = "提供方ID", required = true) @PathVariable String id,
+            @RequestBody @Valid UpdateLlmProvider dto) {
+        llmProviderService.update(id, dto);
     }
 
-    @DeleteMapping("/{code}")
-    @Operation(summary = "删除提供商")
-    public void delete(@PathVariable String code) {
-        llmProviderService.delete(code);
+    @OperationLog
+    @Operation(summary = "删除 LLM 提供方")
+    @DeleteMapping("/{id}")
+    public void delete(@Parameter(description = "提供方ID", required = true) @PathVariable String id) {
+        llmProviderService.delete(id);
     }
 }

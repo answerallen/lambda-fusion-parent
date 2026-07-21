@@ -1,279 +1,212 @@
 package com.lambda.fusion.ai.mcp.service.impl;
 
-import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import com.lambda.fusion.ai.agent.runtime.McpClientAdapter;
+import cn.hutool.core.util.IdUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.mcp.mapper.McpServerMapper;
 import com.lambda.fusion.ai.mcp.model.CreateMcpServer;
-import com.lambda.fusion.ai.mcp.model.McpServer;
+import com.lambda.fusion.ai.mcp.model.McpServerPage;
 import com.lambda.fusion.ai.mcp.model.UpdateMcpServer;
 import com.lambda.fusion.ai.mcp.model.entity.McpServerEntity;
 import com.lambda.fusion.ai.mcp.service.McpServerService;
+import com.lambda.fusion.ai.runtime.event.AiConfigChangedEvent;
 import com.lambda.fusion.core.utils.AuthUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.agentscope.core.tool.mcp.McpClientBuilder;
+import io.agentscope.core.tool.mcp.McpClientWrapper;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.util.StringUtils;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 
-/**
- * MCP Server 管理服务实现
- *
- * @author Jin
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class McpServerServiceImpl extends ServiceImpl<McpServerMapper, McpServerEntity> implements McpServerService {
+@SuppressFBWarnings("EI_EXPOSE_REP2")
+public class McpServerServiceImpl implements McpServerService {
+
+    private static final String TRANSPORT_STDIO = "stdio";
+    private static final String TRANSPORT_SSE = "sse";
+    private static final String TRANSPORT_HTTP = "http";
+    private static final String TRANSPORT_STREAMABLE_HTTP = "streamable_http";
 
     private final McpServerMapper mcpServerMapper;
-    private final McpClientAdapter mcpClientAdapter;
-    private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public String create(CreateMcpServer request) {
-        String currentTenantId = AuthUtils.getTenantId();
-        // 检查名称唯一性
-        McpServerEntity existing = mcpServerMapper.selectByName(request.getName());
-        if (existing != null && sameTenant(existing.getTenantId(), currentTenantId)) {
-            throw new AiBusinessException(AiErrorCode.MCP_SERVER_NAME_EXISTS, "MCP服务器名称已存在: " + request.getName());
-        }
-        // 参数校验
-        validateTransportParams(request.getTransportType(), request.getCommand(), request.getUrl());
+    public Page<McpServerEntity> page(McpServerPage query) {
+        return mcpServerMapper.selectPage(query.getPage(), query.getLambdaQueryWrapper());
+    }
 
-        McpServerEntity entity = buildEntity(request);
-        applyDefaults(entity);
-        if (!StringUtils.hasText(entity.getTenantId())) {
-            entity.setTenantId(currentTenantId);
-        }
-        mcpServerMapper.insert(entity);
-
-        // 配置变更后刷新工具列表
-        refreshToolsAfterCommit(entity.getId());
-
-        log.info("McpServerServiceImpl: 创建 MCP 服务器成功，ID: {}，名称: {}", entity.getId(), entity.getName());
-        return entity.getId();
+    @Override
+    public McpServerEntity get(String id) {
+        return requireOwned(id);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void update(String id, UpdateMcpServer request) {
-        McpServerEntity entity = getOrThrow(id);
+    public McpServerEntity create(CreateMcpServer dto) {
+        validateTransport(dto.getTransport());
+        String tenantId = AuthUtils.getTenantId();
+        ensureNameUnique(tenantId, dto.getName(), null);
+        McpServerEntity entity = new McpServerEntity();
+        entity.setId(IdUtil.getSnowflakeNextIdStr());
+        entity.setTenantId(tenantId);
+        entity.setName(dto.getName());
+        entity.setTransport(dto.getTransport());
+        entity.setCommand(dto.getCommand());
+        entity.setArgs(dto.getArgs());
+        entity.setEnv(dto.getEnv());
+        entity.setUrl(dto.getUrl());
+        entity.setHeaders(dto.getHeaders());
+        entity.setEnableTools(dto.getEnableTools());
+        entity.setTimeout(dto.getTimeout());
+        entity.setEnabled(dto.getEnabled());
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
+        mcpServerMapper.insert(entity);
+        eventPublisher.publishEvent(AiConfigChangedEvent.all());
+        return entity;
+    }
 
-        // 如果有修改传输类型，校验对应字段
-        String newTransportType = StrUtil.emptyToDefault(request.getTransportType(), entity.getTransportType());
-        String newCommand = StrUtil.emptyToDefault(request.getCommand(), entity.getCommand());
-        String newUrl = StrUtil.emptyToDefault(request.getUrl(), entity.getUrl());
-        validateTransportParams(newTransportType, newCommand, newUrl);
-
-        // 更新字段
-        if (StringUtils.hasText(request.getDisplayName())) {
-            entity.setDisplayName(request.getDisplayName());
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void update(String id, UpdateMcpServer dto) {
+        McpServerEntity entity = requireOwned(id);
+        if (StringUtils.isNotBlank(dto.getTransport())) {
+            validateTransport(dto.getTransport());
+            entity.setTransport(dto.getTransport());
         }
-        if (StringUtils.hasText(request.getDescription())) {
-            entity.setDescription(request.getDescription());
+        if (StringUtils.isNotBlank(dto.getName()) && !dto.getName().equals(entity.getName())) {
+            ensureNameUnique(entity.getTenantId(), dto.getName(), id);
+            entity.setName(dto.getName());
         }
-        if (StringUtils.hasText(request.getTransportType())) {
-            entity.setTransportType(request.getTransportType());
+        if (dto.getCommand() != null) {
+            entity.setCommand(dto.getCommand());
         }
-        if (StringUtils.hasText(request.getCommand())) {
-            entity.setCommand(request.getCommand());
+        if (dto.getArgs() != null) {
+            entity.setArgs(dto.getArgs());
         }
-        if (StringUtils.hasText(request.getUrl())) {
-            entity.setUrl(request.getUrl());
+        if (dto.getEnv() != null) {
+            entity.setEnv(dto.getEnv());
         }
-        if (StringUtils.hasText(request.getEnvVars())) {
-            entity.setEnvVars(request.getEnvVars());
+        if (dto.getUrl() != null) {
+            entity.setUrl(dto.getUrl());
         }
-        if (request.getTimeoutSeconds() != null) {
-            entity.setTimeoutSeconds(request.getTimeoutSeconds());
+        if (dto.getHeaders() != null) {
+            entity.setHeaders(dto.getHeaders());
         }
-        if (request.getEnabled() != null) {
-            entity.setEnabled(request.getEnabled());
+        if (dto.getEnableTools() != null) {
+            entity.setEnableTools(dto.getEnableTools());
         }
-
-        applyDefaults(entity);
+        if (dto.getTimeout() != null) {
+            entity.setTimeout(dto.getTimeout());
+        }
+        if (dto.getEnabled() != null) {
+            entity.setEnabled(dto.getEnabled());
+        }
+        entity.setUpdatedAt(LocalDateTime.now());
         mcpServerMapper.updateById(entity);
-
-        // 使缓存失效并刷新工具
-        refreshToolsAfterCommit(id);
-
-        log.info("McpServerServiceImpl: 更新 MCP 服务器成功，ID: {}", id);
+        eventPublisher.publishEvent(AiConfigChangedEvent.all());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String id) {
-        getOrThrow(id);
+        requireOwned(id);
         mcpServerMapper.deleteById(id);
-
-        // 使缓存失效并刷新工具
-        refreshToolsAfterCommit(id);
-
-        log.info("McpServerServiceImpl: 删除 MCP 服务器成功，ID: {}", id);
+        eventPublisher.publishEvent(AiConfigChangedEvent.all());
     }
 
     @Override
-    public McpServer getServerById(String id) {
-        return toVo(getOrThrow(id));
+    public McpServerEntity loadById(String id) {
+        return requireOwned(id);
     }
 
     @Override
-    public List<McpServer> listAll() {
-        List<McpServerEntity> entities = mcpServerMapper.selectByTenantId(AuthUtils.getTenantId());
-        return entities.stream().map(this::toVo).collect(Collectors.toList());
+    public McpClientWrapper buildWrapper(McpServerEntity entity) {
+        String transport = entity.getTransport();
+        McpClientBuilder builder = McpClientBuilder.create(entity.getName());
+        switch (transport) {
+            case TRANSPORT_STDIO:
+                builder.stdioTransport(
+                        entity.getCommand(),
+                        entity.getArgs() != null ? entity.getArgs() : List.of(),
+                        entity.getEnv() != null ? entity.getEnv() : Map.of());
+                break;
+            case TRANSPORT_SSE:
+                builder.sseTransport(entity.getUrl());
+                if (entity.getHeaders() != null) {
+                    builder.headers(entity.getHeaders());
+                }
+                break;
+            case TRANSPORT_HTTP:
+            case TRANSPORT_STREAMABLE_HTTP:
+                builder.streamableHttpTransport(entity.getUrl());
+                if (entity.getHeaders() != null) {
+                    builder.headers(entity.getHeaders());
+                }
+                break;
+            default:
+                throw new AiBusinessException(AiErrorCode.MCP_TRANSPORT_NOT_SUPPORTED, transport);
+        }
+        if (entity.getTimeout() != null) {
+            builder.timeout(Duration.ofMillis(entity.getTimeout()));
+        }
+        return builder.buildSync();
     }
 
     @Override
-    public boolean testConnection(String id) {
-        getOrThrow(id);
+    public int testConnection(String id) {
+        McpServerEntity entity = requireOwned(id);
+        McpClientWrapper wrapper = buildWrapper(entity);
         try {
-            mcpClientAdapter.checkConnection(id);
-            log.info("McpServerServiceImpl: MCP 服务器连接测试成功，ID: {}", id);
-            return true;
+            var tools = wrapper.listTools().block();
+            return tools == null ? 0 : tools.size();
         } catch (Exception e) {
-            log.warn("McpServerServiceImpl: MCP 服务器连接测试失败，ID: {}，原因: {}", id, e.getMessage());
-            return false;
+            throw new AiBusinessException(AiErrorCode.MCP_SERVER_CONNECTION_FAILED, e);
+        } finally {
+            try {
+                wrapper.close();
+            } catch (Exception ignored) {
+            }
         }
     }
 
-    // ========================== 私有辅助方法 ==========================
-
-    private McpServerEntity getOrThrow(String id) {
-        McpServerEntity entity = mcpServerMapper.selectById(id);
+    private McpServerEntity requireOwned(String id) {
+        McpServerEntity entity = mcpServerMapper.selectOne(new LambdaQueryWrapper<McpServerEntity>()
+                .eq(McpServerEntity::getId, id)
+                .eq(McpServerEntity::getTenantId, AuthUtils.getTenantId()));
         if (entity == null) {
-            throw new AiBusinessException(AiErrorCode.MCP_SERVER_NOT_FOUND, "MCP服务器不存在: " + id);
+            throw new AiBusinessException(AiErrorCode.MCP_SERVER_NOT_FOUND, id);
         }
-        validateTenantAccess(entity);
         return entity;
     }
 
-    private McpServerEntity buildEntity(CreateMcpServer request) {
-        return request.toEntity();
-    }
-
-    private McpServer toVo(McpServerEntity entity) {
-        return McpServer.fromEntity(McpServer.class, entity);
-    }
-
-    private void validateTransportParams(String transportType, String command, String url) {
-        if (!StringUtils.hasText(transportType)) {
-            return;
-        }
-        switch (transportType.toUpperCase()) {
-            case McpClientAdapter.TRANSPORT_STDIO -> {
-                if (!StringUtils.hasText(command)) {
-                    throw new AiBusinessException(
-                            AiErrorCode.INVALID_PARAMETER,
-                            "STDIO 传输类型需要配置 command 字段（JSON数组格式，如 [\"node\", \"server.js\"]）");
-                }
-                validateJsonArray(command, "command");
-            }
-            case McpClientAdapter.TRANSPORT_HTTP_STREAMABLE -> {
-                if (!StringUtils.hasText(url)) {
-                    throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "HTTP_STREAMABLE 传输类型需要配置 url 字段");
-                }
-            }
-            default ->
-                throw new AiBusinessException(AiErrorCode.MCP_TRANSPORT_NOT_SUPPORTED, "不支持的传输类型: " + transportType);
-        }
-        if (StringUtils.hasText(command) && McpClientAdapter.TRANSPORT_STDIO.equalsIgnoreCase(transportType)) {
-            validateJsonArray(command, "command");
+    private void ensureNameUnique(String tenantId, String name, String excludeId) {
+        boolean exists = mcpServerMapper.exists(new LambdaQueryWrapper<McpServerEntity>()
+                .eq(McpServerEntity::getTenantId, tenantId)
+                .eq(McpServerEntity::getName, name)
+                .ne(excludeId != null, McpServerEntity::getId, excludeId));
+        if (exists) {
+            throw new AiBusinessException(AiErrorCode.MCP_SERVER_NAME_EXISTS, name);
         }
     }
 
-    private void validateJsonArray(String json, String fieldName) {
-        try {
-            List<String> parsed = objectMapper.readValue(json, new TypeReference<>() {});
-            if (parsed == null || parsed.isEmpty()) {
-                throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, fieldName + " 不能为空数组");
-            }
-        } catch (AiBusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, fieldName + " 必须是合法 JSON 数组");
+    private void validateTransport(String transport) {
+        if (!TRANSPORT_STDIO.equals(transport)
+                && !TRANSPORT_SSE.equals(transport)
+                && !TRANSPORT_HTTP.equals(transport)
+                && !TRANSPORT_STREAMABLE_HTTP.equals(transport)) {
+            throw new AiBusinessException(AiErrorCode.MCP_TRANSPORT_NOT_SUPPORTED, transport);
         }
-    }
-
-    private void validateJsonObject(String json, String fieldName) {
-        try {
-            objectMapper.readValue(json, new TypeReference<Map<String, String>>() {});
-        } catch (Exception e) {
-            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, fieldName + " 必须是合法 JSON 对象");
-        }
-    }
-
-    /**
-     * 在事务提交后失效缓存并异步刷新 MCP 工具，避免读取到未提交数据。
-     */
-    private void refreshToolsAfterCommit(String mcpServerId) {
-        Runnable task = () -> {
-            mcpClientAdapter.invalidateCache(mcpServerId);
-            refreshToolsAsync();
-        };
-        if (TransactionSynchronizationManager.isSynchronizationActive()
-                && TransactionSynchronizationManager.isActualTransactionActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    task.run();
-                }
-            });
-            return;
-        }
-        task.run();
-    }
-
-    private void refreshToolsAsync() {
-        try {
-            Thread.ofVirtual().name("mcp-refresh").start(() -> {
-                try {
-                    mcpClientAdapter.invalidateAll();
-                } catch (Exception e) {
-                    log.warn("McpServerServiceImpl: 异步刷新 MCP 工具列表失败: {}", e.getMessage());
-                }
-            });
-        } catch (Exception e) {
-            log.warn("McpServerServiceImpl: 启动刷新线程失败: {}", e.getMessage());
-        }
-    }
-
-    private void applyDefaults(McpServerEntity entity) {
-        if (entity.getTimeoutSeconds() == null || entity.getTimeoutSeconds() <= 0) {
-            entity.setTimeoutSeconds(30);
-        }
-        if (entity.getEnabled() == null) {
-            entity.setEnabled(Boolean.TRUE);
-        }
-        if (StringUtils.hasText(entity.getEnvVars())) {
-            validateJsonObject(entity.getEnvVars(), "envVars");
-        }
-    }
-
-    private void validateTenantAccess(McpServerEntity entity) {
-        String currentTenantId = AuthUtils.getTenantId();
-        if (!StringUtils.hasText(currentTenantId)) {
-            return;
-        }
-        if (StringUtils.hasText(entity.getTenantId()) && !currentTenantId.equals(entity.getTenantId())) {
-            throw new AiBusinessException(AiErrorCode.MCP_SERVER_NOT_FOUND, "MCP服务器不存在: " + entity.getId());
-        }
-    }
-
-    private boolean sameTenant(String entityTenantId, String currentTenantId) {
-        if (!StringUtils.hasText(currentTenantId)) {
-            return !StringUtils.hasText(entityTenantId);
-        }
-        return currentTenantId.equals(entityTenantId);
     }
 }

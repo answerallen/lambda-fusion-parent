@@ -1,59 +1,73 @@
 package com.lambda.fusion.ai.mcp.model.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.lambda.fusion.core.entity.BaseEntity;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
-/**
- * MCP（Model Context Protocol）Server 配置实体
- * <p>
- * 支持两种传输类型：
- * - STDIO：通过子进程方式本地运行 MCP Server
- * - HTTP_STREAMABLE：通过 HTTP 远程连接 MCP Server
- *
- * @author Jin
- */
-@EqualsAndHashCode(callSuper = true)
 @Data
-@TableName("ai_mcp_server")
-@Schema(description = "MCP服务器配置实体")
-public class McpServerEntity extends BaseEntity {
+@TableName(value = "ai_mcp_server", autoResultMap = true)
+@Schema(description = "MCP 服务配置")
+public class McpServerEntity {
 
-    @TableId(type = IdType.ASSIGN_ID)
-    @Schema(description = "服务器ID")
+    @TableId("id")
+    @Schema(description = "主键")
     private String id;
 
-    @Schema(description = "服务器名称（唯一，用于标识）")
+    @TableField("tenant_id")
+    @Schema(description = "租户ID")
+    private String tenantId;
+
+    @TableField("name")
+    @Schema(description = "服务名称")
     private String name;
 
-    @Schema(description = "显示名称")
-    private String displayName;
+    @TableField("transport")
+    @Schema(description = "传输类型: stdio/sse/http/streamable_http")
+    private String transport;
 
-    @Schema(description = "描述")
-    private String description;
-
-    @Schema(description = "传输类型：STDIO / HTTP_STREAMABLE")
-    private String transportType;
-
-    @Schema(description = "STDIO 模式：启动命令（JSON 数组格式，例如 [\"npm\", \"exec\", \"@mcp/server\"]）")
+    @TableField("command")
+    @Schema(description = "stdio 命令")
     private String command;
 
-    @Schema(description = "HTTP 模式：MCP Server URL")
+    @TableField(value = "args", typeHandler = JacksonTypeHandler.class)
+    @Schema(description = "stdio 参数列表")
+    private List<String> args;
+
+    @TableField(value = "env", typeHandler = JacksonTypeHandler.class)
+    @Schema(description = "stdio 环境变量")
+    private Map<String, String> env;
+
+    @TableField("url")
+    @Schema(description = "http/sse 服务地址")
     private String url;
 
-    @Schema(description = "环境变量（JSON 对象格式，例如 {\"KEY\": \"VALUE\"}）")
-    private String envVars;
+    @TableField(value = "headers", typeHandler = JacksonTypeHandler.class)
+    @Schema(description = "http/sse 请求头")
+    private Map<String, String> headers;
 
-    @Schema(description = "超时时间（秒），默认30秒")
-    private Integer timeoutSeconds;
+    @TableField("enable_tools")
+    @Schema(description = "是否启用工具")
+    private Boolean enableTools;
 
+    @TableField("timeout")
+    @Schema(description = "超时(毫秒)")
+    private Integer timeout;
+
+    @TableField("enabled")
     @Schema(description = "是否启用")
     private Boolean enabled;
 
-    @Schema(description = "租户ID")
-    private String tenantId;
+    @TableField("created_at")
+    @Schema(description = "创建时间")
+    private LocalDateTime createdAt;
+
+    @TableField("updated_at")
+    @Schema(description = "更新时间")
+    private LocalDateTime updatedAt;
 }

@@ -1,112 +1,89 @@
 package com.lambda.fusion.ai.chat.service.impl;
 
-import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import com.lambda.cloud.core.utils.ConvertUtils;
-import com.lambda.fusion.ai.AiConstants.Enums.SessionStatus;
-import com.lambda.fusion.ai.apps.mapper.AppsMapper;
-import com.lambda.fusion.ai.apps.model.entity.AppEntity;
+import cn.hutool.core.util.IdUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
-import com.lambda.fusion.ai.chat.model.ChatSession;
+import com.lambda.fusion.ai.chat.model.ChatSessionPage;
 import com.lambda.fusion.ai.chat.model.CreateSession;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatSessionService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.core.utils.AuthUtils;
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
-public class ChatSessionServiceImpl extends ServiceImpl<ChatSessionMapper, ChatSessionEntity>
-        implements ChatSessionService {
+@SuppressFBWarnings("EI_EXPOSE_REP2")
+public class ChatSessionServiceImpl implements ChatSessionService {
 
     private final ChatSessionMapper chatSessionMapper;
-    private final AppsMapper appsMapper;
+    private final AppService appService;
+    private final ChatMessageService chatMessageService;
 
     @Override
-    public ChatSession createSession(CreateSession createSession) {
-        ChatSessionEntity entity = createSession.toEntity();
+    public Page<ChatSessionEntity> page(ChatSessionPage query) {
+        return chatSessionMapper.selectPage(query.getPage(), query.getLambdaQueryWrapper());
+    }
 
-        entity.setUserId(AuthUtils.getUser().getName());
-        entity.setTenantId(AuthUtils.getTenantId());
-
-        // 挂载机器人参数
-        if (createSession.getAppId() != null) {
-            AppEntity app = appsMapper.selectById(createSession.getAppId());
-            if (app == null) {
-                throw AiBusinessException.appNotFound(createSession.getAppId());
-            }
-            if (app.getLlmModelId() != null) entity.setLlmModelId(app.getLlmModelId());
-            if (app.getSystemPrompt() != null) entity.setSystemPrompt(app.getSystemPrompt());
-            if (app.getKbIds() != null) entity.setKbIds(app.getKbIds());
-            // 执行参数全量快照（快照即稳定性：app 后续编辑不影响在途会话）
-            // 旧实现仅拷贝 4 项，temperature/maxTokens 虽在 session 却未拷贝、retrievalTopK/similarityThreshold 不在 session
-            if (app.getTemperature() != null) entity.setTemperature(app.getTemperature());
-            if (app.getMaxTokens() != null) entity.setMaxTokens(app.getMaxTokens());
-            if (app.getRetrievalTopK() != null) entity.setRetrievalTopK(app.getRetrievalTopK());
-            if (app.getSimilarityThreshold() != null) entity.setSimilarityThreshold(app.getSimilarityThreshold());
-        }
-        entity.setMessageCount(0);
-        entity.setTotalTokens(0);
-        entity.setTotalCost(BigDecimal.ZERO);
-        entity.setStatus(SessionStatus.ACTIVE.name());
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ChatSessionEntity create(CreateSession dto) {
+        // 校验应用存在且属于当前租户
+        var app = appService.loadById(dto.getAppId());
+        String tenantId = AuthUtils.getTenantId();
+        ChatSessionEntity entity = new ChatSessionEntity();
+        entity.setId(IdUtil.getSnowflakeNextIdStr());
+        entity.setTenantId(tenantId);
+        entity.setAppId(dto.getAppId());
+        entity.setUserId(AuthUtils.getUser().getUsername());
+        entity.setTitle(StringUtils.defaultIfBlank(dto.getTitle(), app.getName()));
+        entity.setCreatedAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
+        entity.setLastMessageAt(LocalDateTime.now());
         chatSessionMapper.insert(entity);
-        return entityToVO(entity);
+        return entity;
     }
 
     @Override
-    public List<ChatSession> listUserSessions(String userId) {
-        return chatSessionMapper.listByUserId(userId).stream()
-                .map(this::entityToVO)
-                .collect(Collectors.toList());
+    public ChatSessionEntity get(String id) {
+        return loadOwned(id);
     }
 
     @Override
-    public void archiveSession(String sessionId) {
-        // 验证输入参数
-        if (sessionId == null) {
-            throw new AiBusinessException(AiErrorCode.SESSION_NOT_FOUND, "会话ID不能为空");
-        }
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(String id) {
+        loadOwned(id);
+        chatMessageService.deleteBySession(id);
+        chatSessionMapper.deleteById(id);
+    }
 
-        ChatSessionEntity entity = chatSessionMapper.selectById(sessionId);
+    @Override
+    public ChatSessionEntity loadOwned(String id) {
+        ChatSessionEntity entity = chatSessionMapper.selectOne(new LambdaQueryWrapper<ChatSessionEntity>()
+                .eq(ChatSessionEntity::getId, id)
+                .eq(ChatSessionEntity::getTenantId, AuthUtils.getTenantId())
+                .eq(ChatSessionEntity::getUserId, AuthUtils.getUser().getUsername()));
         if (entity == null) {
-            throw AiBusinessException.sessionNotFound(sessionId);
+            throw new AiBusinessException(AiErrorCode.CHAT_SESSION_NOT_FOUND, id);
         }
-        validateSessionAccess(entity, sessionId);
-
-        // 使用乐观锁更新，防止并发修改
-        entity.setStatus(SessionStatus.ARCHIVED.name());
-        int updatedRows = chatSessionMapper.updateByIdWithVersion(entity);
-
-        if (updatedRows == 0) {
-            // 版本冲突，说明有其他线程同时修改了该会话
-            log.warn("会话{}存在并发修改，更新失败", sessionId);
-            throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, "会话已被其他操作修改，请重试");
-        }
-
-        log.info("会话{}已归档", sessionId);
+        return entity;
     }
 
-    private void validateSessionAccess(ChatSessionEntity session, String sessionId) {
-        String currentTenantId = AuthUtils.getTenantId();
-        String currentUserId = AuthUtils.getUser() != null ? AuthUtils.getUser().getName() : null;
-        if (currentTenantId != null
-                && session.getTenantId() != null
-                && !currentTenantId.equals(session.getTenantId())) {
-            throw AiBusinessException.sessionNotFound(sessionId);
-        }
-        if (currentUserId != null && session.getUserId() != null && !currentUserId.equals(session.getUserId())) {
-            throw AiBusinessException.sessionNotFound(sessionId);
-        }
-    }
-
-    private ChatSession entityToVO(ChatSessionEntity entity) {
-        return ConvertUtils.convert(entity);
+    @Override
+    public void touchLastMessageAt(String id) {
+        ChatSessionEntity entity = new ChatSessionEntity();
+        entity.setId(id);
+        entity.setLastMessageAt(LocalDateTime.now());
+        entity.setUpdatedAt(LocalDateTime.now());
+        chatSessionMapper.updateById(entity);
     }
 }

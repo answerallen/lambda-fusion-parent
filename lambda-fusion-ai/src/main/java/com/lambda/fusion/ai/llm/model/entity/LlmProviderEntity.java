@@ -1,43 +1,56 @@
 package com.lambda.fusion.ai.llm.model.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.lambda.cloud.core.annotation.AutoConverter;
-import com.lambda.fusion.ai.llm.model.LlmProvider;
-import com.lambda.fusion.core.entity.BaseEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDateTime;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
-/**
- * LLM 提供商配置实体
- *
- * @author Jin
- */
-@AutoConverter(target = LlmProvider.class)
-@EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("ai_llm_provider")
-@Schema(description = "LLM提供商实体")
-public class LlmProviderEntity extends BaseEntity {
+@Schema(description = "LLM 提供方配置")
+public class LlmProviderEntity {
 
-    @TableId(type = IdType.INPUT)
-    @Schema(description = "提供商编码")
-    private String code;
+    @TableId("id")
+    @Schema(description = "主键")
+    private String id;
 
-    @Schema(description = "显示名称")
-    private String displayName;
+    @TableField("tenant_id")
+    @Schema(description = "租户ID")
+    private String tenantId;
 
-    @Schema(description = "描述")
-    private String description;
+    @TableField("name")
+    @Schema(description = "提供方名称")
+    private String name;
 
+    @TableField("provider_type")
+    @Schema(description = "提供方类型: dashscope/openai/ollama")
+    private String providerType;
+
+    @TableField("base_url")
+    @Schema(description = "服务地址")
+    private String baseUrl;
+
+    @TableField("api_key_encrypted")
+    @JsonIgnore
+    @Schema(description = "API Key 密文(AES-GCM)")
+    private String apiKeyEncrypted;
+
+    @TableField("enabled")
     @Schema(description = "是否启用")
     private Boolean enabled;
 
-    @Schema(description = "排序")
-    private Integer sort;
+    @TableField("remark")
+    @Schema(description = "备注")
+    private String remark;
 
-    @Schema(description = "租户ID")
-    private String tenantId;
+    @TableField("created_at")
+    @Schema(description = "创建时间")
+    private LocalDateTime createdAt;
+
+    @TableField("updated_at")
+    @Schema(description = "更新时间")
+    private LocalDateTime updatedAt;
 }

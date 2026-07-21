@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- ========== LLM 提供方 ========== -->
+    <changeSet id="lambda-ai-202607210001" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_llm_provider"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_llm_provider" remarks="LLM 提供方配置">
+            <column name="id" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_llm_provider_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="varchar(128)" remarks="提供方名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_type" type="varchar(32)" remarks="提供方类型: dashscope/openai/ollama">
+                <constraints nullable="false"/>
+            </column>
+            <column name="base_url" type="varchar(512)" remarks="服务地址"/>
+            <column name="api_key_encrypted" type="varchar(1024)" remarks="API Key 密文(AES-GCM)"/>
+            <column name="enabled" type="tinyint(1)" defaultValueNumeric="1" remarks="是否启用">
+                <constraints nullable="false"/>
+            </column>
+            <column name="remark" type="varchar(512)" remarks="备注"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+            <column name="updated_at" type="datetime" remarks="更新时间"/>
+        </createTable>
+        <createIndex tableName="ai_llm_provider" indexName="idx_ai_llm_provider_tenant">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== LLM 模型 ========== -->
+    <changeSet id="lambda-ai-202607210002" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_llm_model"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_llm_model" remarks="LLM 模型配置">
+            <column name="id" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_llm_model_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_id" type="varchar(32)" remarks="所属提供方ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="varchar(128)" remarks="模型显示名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="model_name" type="varchar(128)" remarks="模型实际名称(如 qwen-max)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="model_type" type="tinyint" remarks="模型类型: 1=CHAT, 2=EMBEDDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="default_temperature" type="decimal(3,2)" remarks="默认温度"/>
+            <column name="default_max_tokens" type="int" remarks="默认最大 token 数"/>
+            <column name="enabled" type="tinyint(1)" defaultValueNumeric="1" remarks="是否启用">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+            <column name="updated_at" type="datetime" remarks="更新时间"/>
+        </createTable>
+        <createIndex tableName="ai_llm_model" indexName="idx_ai_llm_model_tenant">
+            <column name="tenant_id"/>
+        </createIndex>
+        <createIndex tableName="ai_llm_model" indexName="idx_ai_llm_model_provider">
+            <column name="provider_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== 智能应用 ========== -->
+    <changeSet id="lambda-ai-202607210003" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_app"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_app" remarks="智能应用">
+            <column name="id" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_app_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="varchar(128)" remarks="应用名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(512)" remarks="应用描述"/>
+            <column name="system_prompt" type="text" remarks="系统提示词"/>
+            <column name="model_id" type="varchar(32)" remarks="绑定模型ID"/>
+            <column name="max_iters" type="int" remarks="ReAct 最大迭代数"/>
+            <column name="temperature" type="decimal(3,2)" remarks="温度"/>
+            <column name="tools_allow" type="text" remarks="工具白名单 JSON 数组"/>
+            <column name="tools_deny" type="text" remarks="工具黑名单 JSON 数组"/>
+            <column name="mcp_server_ids" type="text" remarks="MCP 服务ID JSON 数组"/>
+            <column name="enabled" type="tinyint(1)" defaultValueNumeric="1" remarks="是否启用">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="varchar(64)" remarks="创建人"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+            <column name="updated_at" type="datetime" remarks="更新时间"/>
+        </createTable>
+        <createIndex tableName="ai_app" indexName="idx_ai_app_tenant">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== MCP 服务 ========== -->
+    <changeSet id="lambda-ai-202607210004" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_mcp_server"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_mcp_server" remarks="MCP 服务配置">
+            <column name="id" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_mcp_server_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="varchar(128)" remarks="服务名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="transport" type="varchar(32)" remarks="传输类型: stdio/http/streamable_http/sse">
+                <constraints nullable="false"/>
+            </column>
+            <column name="command" type="varchar(512)" remarks="stdio 命令"/>
+            <column name="args" type="text" remarks="stdio 参数 JSON 数组"/>
+            <column name="env" type="text" remarks="stdio 环境变量 JSON 对象"/>
+            <column name="url" type="varchar(512)" remarks="http/sse 服务地址"/>
+            <column name="headers" type="text" remarks="http/sse 请求头 JSON 对象"/>
+            <column name="enable_tools" type="tinyint(1)" defaultValueNumeric="1" remarks="是否启用工具"/>
+            <column name="timeout" type="int" remarks="超时(毫秒)"/>
+            <column name="enabled" type="tinyint(1)" defaultValueNumeric="1" remarks="是否启用">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+            <column name="updated_at" type="datetime" remarks="更新时间"/>
+        </createTable>
+        <createIndex tableName="ai_mcp_server" indexName="idx_ai_mcp_server_tenant">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== 对话会话 ========== -->
+    <changeSet id="lambda-ai-202607210005" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_chat_session"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_chat_session" remarks="对话会话">
+            <column name="id" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_chat_session_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="app_id" type="varchar(32)" remarks="应用ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="varchar(64)" remarks="用户标识(用户名)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="varchar(256)" remarks="会话标题"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+            <column name="updated_at" type="datetime" remarks="更新时间"/>
+            <column name="last_message_at" type="datetime" remarks="最后消息时间"/>
+        </createTable>
+        <createIndex tableName="ai_chat_session" indexName="idx_ai_chat_session_tenant_user">
+            <column name="tenant_id"/>
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="ai_chat_session" indexName="idx_ai_chat_session_app">
+            <column name="app_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== 对话消息 ========== -->
+    <changeSet id="lambda-ai-202607210006" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_chat_message"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_chat_message" remarks="对话消息">
+            <column name="id" type="bigint" autoIncrement="true" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_chat_message_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="session_id" type="varchar(32)" remarks="会话ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="varchar(16)" remarks="角色: user/assistant/tool/system">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="text" remarks="消息内容"/>
+            <column name="tool_call" type="text" remarks="工具调用 JSON"/>
+            <column name="tokens_in" type="int" remarks="输入 token 数"/>
+            <column name="tokens_out" type="int" remarks="输出 token 数"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+        </createTable>
+        <createIndex tableName="ai_chat_message" indexName="idx_ai_chat_message_session">
+            <column name="session_id"/>
+        </createIndex>
+        <createIndex tableName="ai_chat_message" indexName="idx_ai_chat_message_tenant">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== ai_app 扩展：应用类型 / 自演化 / 沙箱后端 ========== -->
+    <changeSet id="lambda-ai-202607210007" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_app" columnName="app_type"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_app">
+            <column name="app_type" type="varchar(16)" defaultValue="CHAT" remarks="应用类型: CHAT|WORKSPACE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="self_evolve" type="tinyint(1)" defaultValueNumeric="0" remarks="是否自演化(WORKSPACE 型)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sandbox_backend" type="varchar(16)" defaultValue="HOST" remarks="沙箱后端(WORKSPACE 型)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- ========== 自演化审计 ========== -->
+    <changeSet id="lambda-ai-202607210008" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_app_workspace_audit"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_app_workspace_audit" remarks="应用 workspace 自演化审计">
+            <column name="id" type="bigint" autoIncrement="true" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_app_workspace_audit_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="app_id" type="varchar(32)" remarks="应用ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="session_id" type="varchar(32)" remarks="触发会话ID"/>
+            <column name="file_path" type="varchar(512)" remarks="变更文件相对路径">
+                <constraints nullable="false"/>
+            </column>
+            <column name="operation" type="varchar(32)" remarks="操作: MODIFIED/CREATED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="snapshot_path" type="varchar(512)" remarks="快照文件路径"/>
+            <column name="operator" type="varchar(64)" defaultValue="agent" remarks="操作者">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+        </createTable>
+        <createIndex tableName="ai_app_workspace_audit" indexName="idx_ai_app_workspace_audit_app">
+            <column name="tenant_id"/>
+            <column name="app_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
