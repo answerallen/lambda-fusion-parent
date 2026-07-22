@@ -51,6 +51,12 @@ public class CreateApp {
     @Schema(description = "MCP 服务ID列表")
     private List<String> mcpServerIds;
 
+    @Schema(description = "技能白名单(技能名;仅 WORKSPACE 型生效)")
+    private List<String> skillsAllow;
+
+    @Schema(description = "技能黑名单(技能名;仅 WORKSPACE 型生效)")
+    private List<String> skillsDeny;
+
     @Schema(description = "是否启用")
     private Boolean enabled = Boolean.TRUE;
 }

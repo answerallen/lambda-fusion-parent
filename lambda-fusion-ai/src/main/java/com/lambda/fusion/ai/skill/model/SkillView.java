@@ -5,8 +5,11 @@ import java.util.Map;
 import lombok.Data;
 
 @Data
-@Schema(description = "更新技能(字段可选)")
-public class UpdateSkill {
+@Schema(description = "技能视图")
+public class SkillView {
+
+    @Schema(description = "技能名")
+    private String name;
 
     @Schema(description = "描述")
     private String description;
@@ -14,6 +17,6 @@ public class UpdateSkill {
     @Schema(description = "SKILL.md 内容")
     private String markdown;
 
-    @Schema(description = "资源 map(name->content;传则覆盖)")
+    @Schema(description = "资源 map(name->content)")
     private Map<String, String> resources;
 }

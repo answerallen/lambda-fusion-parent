@@ -1,30 +1,25 @@
 package com.lambda.fusion.ai.skill.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.skill.model.CreateSkill;
-import com.lambda.fusion.ai.skill.model.SkillPage;
+import com.lambda.fusion.ai.skill.model.SkillView;
 import com.lambda.fusion.ai.skill.model.UpdateSkill;
-import com.lambda.fusion.ai.skill.model.entity.SkillEntity;
+import java.util.List;
 
 /**
- * 平台技能市场服务：CRUD（admin 管理）。变更后发 {@code ConfigChangedEvent.all()} 失效 agent 缓存，
- * 使 WORKSPACE app 下次构建读取最新市场技能。
+ * 技能市场服务：经配置选定的 {@code AgentSkillRepository} 做 CRUD（list/get/create/update/delete）。
+ * 仓库未配置 -> 抛配置错误；只读仓库 -> 写操作抛不支持。
  *
  * @author Jin
  */
 public interface SkillService {
 
-    Page<SkillEntity> page(SkillPage query);
+    List<SkillView> list();
 
-    SkillEntity get(String id);
+    SkillView get(String name);
 
-    SkillEntity getByName(String name);
+    SkillView create(CreateSkill dto);
 
-    SkillEntity create(CreateSkill dto);
+    void update(String name, UpdateSkill dto);
 
-    void update(String id, UpdateSkill dto);
-
-    void delete(String id);
-
-    SkillEntity loadById(String id);
+    void delete(String name);
 }

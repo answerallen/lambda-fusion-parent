@@ -137,6 +137,27 @@
             <artifactId>agentscope-extensions-channel-wecom</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- ========== 技能仓库后端（optional，按需启用；缺失时技能市场禁用） ========== -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-skill-mysql-repository</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-skill-postgresql-repository</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-skill-git-repository</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-nacos-skill</artifactId>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-rag-simple</artifactId>

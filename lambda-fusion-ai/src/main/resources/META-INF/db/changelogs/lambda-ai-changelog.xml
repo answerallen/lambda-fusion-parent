@@ -320,4 +320,17 @@
         </createIndex>
     </changeSet>
 
+    <!-- ========== ai_app 增技能白/黑名单 ========== -->
+    <changeSet id="lambda-ai-202607220003" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_app" columnName="skills_allow"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_app">
+            <column name="skills_allow" type="text" remarks="技能白名单 JSON 数组(技能名)"/>
+            <column name="skills_deny" type="text" remarks="技能黑名单 JSON 数组(技能名)"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

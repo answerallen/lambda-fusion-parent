@@ -53,6 +53,11 @@ public class AiProperties {
      */
     private StateStore stateStore = new StateStore();
 
+    /**
+     * 技能市场配置（技能仓库源选择）。
+     */
+    private Skill skill = new Skill();
+
     @Data
     public static class Runtime {
 
@@ -270,6 +275,89 @@ public class AiProperties {
 
             // 对象 key 前缀；默认 {@code agentscope/state/}
             private String keyPrefix = "agentscope/state/";
+        }
+    }
+
+    /**
+     * 技能市场配置：技能仓库源按部署形态选择，复用 AgentScope 已有仓库实现。
+     *
+     * <p>MYSQL/POSTGRES：可读写（admin CRUD 经仓库 API）。GIT/NACOS：通常只读 catalog。
+     * 扩展未引入或 {@code type=NONE} 时技能市场禁用（WORKSPACE app 仅用 workspace 本地技能）。
+     */
+    @Data
+    public static class Skill {
+
+        private Repository repository = new Repository();
+
+        /** 技能仓库源配置。 */
+        @Data
+        public static class Repository {
+
+            /** 源类型：MYSQL / POSTGRES / GIT / NACOS / NONE（默认 MYSQL）。 */
+            private String type = "MYSQL";
+
+            private Mysql mysql = new Mysql();
+
+            private Postgres postgres = new Postgres();
+
+            private Git git = new Git();
+
+            private Nacos nacos = new Nacos();
+
+            /** MySQL 技能仓库（复用 MysqlSkillRepository，默认数据源 master）。 */
+            @Data
+            public static class Mysql {
+
+                /** dynamic-datasource 名称；默认 {@code master}。 */
+                private String datasource = "master";
+
+                /** 库/表不存在时自动创建；默认 true。 */
+                private boolean createIfNotExist = true;
+
+                /** 是否可写（admin CRUD）；默认 true。 */
+                private boolean writeable = true;
+            }
+
+            /** PostgreSQL 技能仓库（复用 PostgresSkillRepository，默认数据源 ai-postgres）。 */
+            @Data
+            public static class Postgres {
+
+                /** dynamic-datasource 名称；默认 {@code ai-postgres}。 */
+                private String datasource = "ai-postgres";
+
+                /** schema/表不存在时自动创建；默认 true。 */
+                private boolean createIfNotExist = true;
+
+                /** 是否可写；默认 true。 */
+                private boolean writeable = true;
+            }
+
+            /** Git 技能仓库（复用 GitSkillRepository，只读 catalog）。 */
+            @Data
+            public static class Git {
+
+                private String remoteUrl;
+
+                private String branch;
+
+                /** 本地克隆目录；默认 {@code ${workspace.root}/skill-git}。 */
+                private String localPath;
+
+                private String source;
+            }
+
+            /** Nacos 技能仓库（复用 NacosSkillRepository）。 */
+            @Data
+            public static class Nacos {
+
+                private String serverAddr;
+
+                private String namespaceId;
+
+                private String accessKey;
+
+                private String secretKey;
+            }
         }
     }
 }

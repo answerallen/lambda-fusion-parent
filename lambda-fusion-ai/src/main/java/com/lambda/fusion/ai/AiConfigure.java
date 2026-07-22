@@ -1,5 +1,9 @@
 package com.lambda.fusion.ai;
 
+import com.alibaba.nacos.api.PropertyKeyConst;
+import com.alibaba.nacos.api.ai.AiFactory;
+import com.alibaba.nacos.api.ai.AiService;
+import com.alibaba.nacos.api.exception.NacosException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
@@ -12,10 +16,16 @@ import com.lambda.fusion.ai.runtime.sandbox.SandboxBackendProvider;
 import com.lambda.fusion.ai.runtime.sandbox.SandboxSpecResolver;
 import com.lambda.fusion.ai.runtime.state.StateStoreDataSources;
 import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
+import com.lambda.fusion.ai.skill.SkillRepositoryProvider;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.ClientConfig;
 import com.qcloud.cos.auth.BasicCOSCredentials;
 import com.qcloud.cos.region.Region;
+import io.agentscope.core.nacos.skill.NacosSkillRepository;
+import io.agentscope.core.skill.repository.AgentSkillRepository;
+import io.agentscope.core.skill.repository.GitSkillRepository;
+import io.agentscope.core.skill.repository.mysql.MysqlSkillRepository;
+import io.agentscope.core.skill.repository.postgresql.PostgresSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.extensions.channel.dingtalk.DingTalkChannel;
 import io.agentscope.extensions.channel.feishu.FeishuCallbackController;
@@ -41,9 +51,11 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.mybatis.spring.annotation.MapperScan;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.ObjectProvider;
@@ -494,6 +506,137 @@ public class AiConfigure {
             @Bean
             public WeComCallbackController wecomCallbackController() {
                 return new WeComCallbackController();
+            }
+        }
+    }
+
+    /**
+     * 技能仓库源装配：每个后端一个 {@code @ConditionalOnClass} 嵌套配置，注册 {@link SkillRepositoryProvider}
+     * bean（委托 AgentScope 已有仓库）。扩展未引入时不注册，{@code SkillRepositoryResolver} 对该 type 返回 null。
+     */
+    @Configuration
+    public static class SkillRepositoryConfig {
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.core.skill.repository.mysql.MysqlSkillRepository")
+        @RequiredArgsConstructor
+        public static class MysqlSkillRepositoryConfiguration {
+
+            private final AiProperties aiProperties;
+            private final DataSource dataSource;
+
+            @Bean
+            public SkillRepositoryProvider mysqlSkillRepositoryProvider() {
+                return new SkillRepositoryProvider() {
+                    @Override
+                    public String type() {
+                        return "MYSQL";
+                    }
+
+                    @Override
+                    public AgentSkillRepository create() {
+                        AiProperties.Skill.Repository.Mysql cfg =
+                                aiProperties.getSkill().getRepository().getMysql();
+                        DataSource ds = StateStoreDataSources.resolveNamed(dataSource, cfg.getDatasource());
+                        return new MysqlSkillRepository(ds, cfg.isCreateIfNotExist(), cfg.isWriteable());
+                    }
+                };
+            }
+        }
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.core.skill.repository.postgresql.PostgresSkillRepository")
+        @RequiredArgsConstructor
+        public static class PostgresSkillRepositoryConfiguration {
+
+            private final AiProperties aiProperties;
+            private final DataSource dataSource;
+
+            @Bean
+            public SkillRepositoryProvider postgresSkillRepositoryProvider() {
+                return new SkillRepositoryProvider() {
+                    @Override
+                    public String type() {
+                        return "POSTGRES";
+                    }
+
+                    @Override
+                    public AgentSkillRepository create() {
+                        AiProperties.Skill.Repository.Postgres cfg =
+                                aiProperties.getSkill().getRepository().getPostgres();
+                        DataSource ds = StateStoreDataSources.resolveNamed(dataSource, cfg.getDatasource());
+                        return new PostgresSkillRepository(ds, cfg.isCreateIfNotExist(), cfg.isWriteable());
+                    }
+                };
+            }
+        }
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.core.skill.repository.GitSkillRepository")
+        @RequiredArgsConstructor
+        public static class GitSkillRepositoryConfiguration {
+
+            private final AiProperties aiProperties;
+
+            @Bean
+            public SkillRepositoryProvider gitSkillRepositoryProvider() {
+                return new SkillRepositoryProvider() {
+                    @Override
+                    public String type() {
+                        return "GIT";
+                    }
+
+                    @Override
+                    public AgentSkillRepository create() {
+                        AiProperties.Skill.Repository.Git cfg =
+                                aiProperties.getSkill().getRepository().getGit();
+                        Path localPath =
+                                StringUtils.isNotBlank(cfg.getLocalPath()) ? Path.of(cfg.getLocalPath()) : null;
+                        return new GitSkillRepository(cfg.getRemoteUrl(), cfg.getBranch(), localPath, cfg.getSource());
+                    }
+                };
+            }
+        }
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.core.nacos.skill.NacosSkillRepository")
+        @RequiredArgsConstructor
+        public static class NacosSkillRepositoryConfiguration {
+
+            private final AiProperties aiProperties;
+
+            @Bean
+            public SkillRepositoryProvider nacosSkillRepositoryProvider() {
+                return new SkillRepositoryProvider() {
+                    @Override
+                    public String type() {
+                        return "NACOS";
+                    }
+
+                    @Override
+                    public AgentSkillRepository create() {
+                        AiProperties.Skill.Repository.Nacos cfg =
+                                aiProperties.getSkill().getRepository().getNacos();
+                        Properties props = new Properties();
+                        props.setProperty(PropertyKeyConst.SERVER_ADDR, cfg.getServerAddr());
+                        if (StringUtils.isNotBlank(cfg.getNamespaceId())) {
+                            props.setProperty(PropertyKeyConst.NAMESPACE, cfg.getNamespaceId());
+                        }
+                        if (StringUtils.isNotBlank(cfg.getAccessKey())) {
+                            props.setProperty(PropertyKeyConst.ACCESS_KEY, cfg.getAccessKey());
+                        }
+                        if (StringUtils.isNotBlank(cfg.getSecretKey())) {
+                            props.setProperty(PropertyKeyConst.SECRET_KEY, cfg.getSecretKey());
+                        }
+                        AiService aiService;
+                        try {
+                            aiService = AiFactory.createAiService(props);
+                        } catch (NacosException e) {
+                            throw new IllegalStateException("Nacos AiService 创建失败: " + e.getMessage(), e);
+                        }
+                        return new NacosSkillRepository(aiService, cfg.getNamespaceId());
+                    }
+                };
             }
         }
     }

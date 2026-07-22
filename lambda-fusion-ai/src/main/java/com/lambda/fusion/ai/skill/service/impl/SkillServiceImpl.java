@@ -1,27 +1,26 @@
 package com.lambda.fusion.ai.skill.service.impl;
 
-import cn.hutool.core.util.IdUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
-import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
-import com.lambda.fusion.ai.skill.mapper.SkillMapper;
 import com.lambda.fusion.ai.skill.model.CreateSkill;
-import com.lambda.fusion.ai.skill.model.SkillPage;
+import com.lambda.fusion.ai.skill.model.SkillView;
 import com.lambda.fusion.ai.skill.model.UpdateSkill;
-import com.lambda.fusion.ai.skill.model.entity.SkillEntity;
+import com.lambda.fusion.ai.skill.runtime.SkillRepositoryResolver;
 import com.lambda.fusion.ai.skill.service.SkillService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.time.LocalDateTime;
+import io.agentscope.core.skill.AgentSkill;
+import io.agentscope.core.skill.repository.AgentSkillRepository;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 平台技能市场服务实现（mapper-direct，对标 {@code McpServerServiceImpl}）。
+ * 技能市场服务实现：CRUD 经 {@link SkillRepositoryResolver} 解析的 {@link AgentSkillRepository}。
+ *
+ * <p>仓库未配置 -> {@link AiErrorCode#CONFIGURATION_ERROR}；只读仓库写操作 ->
+ * {@link AiErrorCode#OPERATION_NOT_SUPPORTED}。
  *
  * @author Jin
  */
@@ -31,99 +30,88 @@ import org.springframework.transaction.annotation.Transactional;
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class SkillServiceImpl implements SkillService {
 
-    private final SkillMapper skillMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private static final String SOURCE = "marketplace";
+
+    private final SkillRepositoryResolver skillRepositoryResolver;
 
     @Override
-    public Page<SkillEntity> page(SkillPage query) {
-        return skillMapper.selectPage(query.getPage(), query.getLambdaQueryWrapper());
-    }
-
-    @Override
-    public SkillEntity get(String id) {
-        return requireExists(id);
+    public List<SkillView> list() {
+        AgentSkillRepository repo = requireRepo();
+        return repo.getAllSkills().stream().map(SkillServiceImpl::toView).toList();
     }
 
     @Override
-    public SkillEntity getByName(String name) {
-        return skillMapper.selectOne(new LambdaQueryWrapper<SkillEntity>().eq(SkillEntity::getName, name));
+    public SkillView get(String name) {
+        AgentSkillRepository repo = requireRepo();
+        AgentSkill skill = repo.getSkill(name);
+        if (skill == null) {
+            throw new AiBusinessException(AiErrorCode.SKILL_NOT_FOUND, name);
+        }
+        return toView(skill);
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public SkillEntity create(CreateSkill dto) {
-        ensureNameUnique(dto.getName(), null);
-        SkillEntity entity = new SkillEntity();
-        entity.setId(IdUtil.getSnowflakeNextIdStr());
-        entity.setName(dto.getName());
-        entity.setDescription(dto.getDescription());
-        entity.setVersion(dto.getVersion());
-        entity.setMarkdown(dto.getMarkdown());
-        entity.setResources(dto.getResources());
-        entity.setEnabled(Boolean.TRUE.equals(dto.getEnabled()));
-        entity.setRemark(dto.getRemark());
-        LocalDateTime now = LocalDateTime.now();
-        entity.setCreatedAt(now);
-        entity.setUpdatedAt(now);
-        skillMapper.insert(entity);
-        eventPublisher.publishEvent(ConfigChangedEvent.all());
-        return entity;
+    public SkillView create(CreateSkill dto) {
+        AgentSkillRepository repo = requireWritable();
+        if (repo.skillExists(dto.getName())) {
+            throw new AiBusinessException(AiErrorCode.SKILL_NAME_EXISTS, dto.getName());
+        }
+        AgentSkill skill = toAgentSkill(dto.getName(), dto.getDescription(), dto.getMarkdown(), dto.getResources());
+        repo.save(List.of(skill), false);
+        return toView(skill);
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void update(String id, UpdateSkill dto) {
-        SkillEntity entity = requireExists(id);
-        if (dto.getDescription() != null) {
-            entity.setDescription(dto.getDescription());
+    public void update(String name, UpdateSkill dto) {
+        AgentSkillRepository repo = requireWritable();
+        AgentSkill existing = repo.getSkill(name);
+        if (existing == null) {
+            throw new AiBusinessException(AiErrorCode.SKILL_NOT_FOUND, name);
         }
-        if (dto.getVersion() != null) {
-            entity.setVersion(dto.getVersion());
-        }
-        if (dto.getMarkdown() != null) {
-            entity.setMarkdown(dto.getMarkdown());
-        }
-        if (dto.getResources() != null) {
-            entity.setResources(dto.getResources());
-        }
-        if (dto.getEnabled() != null) {
-            entity.setEnabled(dto.getEnabled());
-        }
-        if (dto.getRemark() != null) {
-            entity.setRemark(dto.getRemark());
-        }
-        entity.setUpdatedAt(LocalDateTime.now());
-        skillMapper.updateById(entity);
-        eventPublisher.publishEvent(ConfigChangedEvent.all());
+        String description = dto.getDescription() != null ? dto.getDescription() : existing.getDescription();
+        String markdown = dto.getMarkdown() != null ? dto.getMarkdown() : existing.getSkillContent();
+        Map<String, String> resources = dto.getResources() != null ? dto.getResources() : existing.getResources();
+        repo.save(List.of(toAgentSkill(name, description, markdown, resources)), true);
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void delete(String id) {
-        requireExists(id);
-        skillMapper.deleteById(id);
-        eventPublisher.publishEvent(ConfigChangedEvent.all());
-    }
-
-    @Override
-    public SkillEntity loadById(String id) {
-        return requireExists(id);
-    }
-
-    private SkillEntity requireExists(String id) {
-        SkillEntity entity = skillMapper.selectOne(new LambdaQueryWrapper<SkillEntity>().eq(SkillEntity::getId, id));
-        if (entity == null) {
-            throw new AiBusinessException(AiErrorCode.SKILL_NOT_FOUND, id);
+    public void delete(String name) {
+        AgentSkillRepository repo = requireWritable();
+        if (!repo.skillExists(name)) {
+            throw new AiBusinessException(AiErrorCode.SKILL_NOT_FOUND, name);
         }
-        return entity;
+        repo.delete(name);
     }
 
-    private void ensureNameUnique(String name, String excludeId) {
-        boolean exists = skillMapper.exists(new LambdaQueryWrapper<SkillEntity>()
-                .eq(SkillEntity::getName, name)
-                .ne(excludeId != null, SkillEntity::getId, excludeId));
-        if (exists) {
-            throw new AiBusinessException(AiErrorCode.SKILL_NAME_EXISTS, name);
+    private AgentSkillRepository requireRepo() {
+        AgentSkillRepository repo = skillRepositoryResolver.resolve();
+        if (repo == null) {
+            throw new AiBusinessException(AiErrorCode.CONFIGURATION_ERROR, "技能仓库未配置");
         }
+        return repo;
+    }
+
+    private AgentSkillRepository requireWritable() {
+        AgentSkillRepository repo = requireRepo();
+        if (!repo.isWriteable()) {
+            throw new AiBusinessException(AiErrorCode.OPERATION_NOT_SUPPORTED, "技能仓库只读，不支持写操作");
+        }
+        return repo;
+    }
+
+    /** DTO 字段 -> harness {@link AgentSkill}（静态可单测；description 非空由调用方保证）。 */
+    static AgentSkill toAgentSkill(String name, String description, String markdown, Map<String, String> resources) {
+        Map<String, String> res = resources == null ? Map.of() : resources;
+        return new AgentSkill(name, description, markdown, res, SOURCE);
+    }
+
+    /** harness {@link AgentSkill} -> {@link SkillView}（静态可单测）。 */
+    static SkillView toView(AgentSkill skill) {
+        SkillView view = new SkillView();
+        view.setName(skill.getName());
+        view.setDescription(skill.getDescription());
+        view.setMarkdown(skill.getSkillContent());
+        view.setResources(skill.getResources());
+        return view;
     }
 }

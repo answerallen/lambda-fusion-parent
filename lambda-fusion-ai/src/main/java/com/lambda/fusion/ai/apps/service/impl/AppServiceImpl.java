@@ -76,6 +76,8 @@ public class AppServiceImpl implements AppService {
         entity.setToolsAllow(dto.getToolsAllow());
         entity.setToolsDeny(dto.getToolsDeny());
         entity.setMcpServerIds(dto.getMcpServerIds());
+        entity.setSkillsAllow(dto.getSkillsAllow());
+        entity.setSkillsDeny(dto.getSkillsDeny());
         entity.setAppType(appType);
         entity.setSelfEvolve(dto.getSelfEvolve());
         entity.setSandboxBackend(sandboxBackend);
@@ -119,6 +121,12 @@ public class AppServiceImpl implements AppService {
         }
         if (dto.getMcpServerIds() != null) {
             entity.setMcpServerIds(dto.getMcpServerIds());
+        }
+        if (dto.getSkillsAllow() != null) {
+            entity.setSkillsAllow(dto.getSkillsAllow());
+        }
+        if (dto.getSkillsDeny() != null) {
+            entity.setSkillsDeny(dto.getSkillsDeny());
         }
         // appType 创建后不可变；selfEvolve / sandboxBackend / audience 可调
         if (dto.getSelfEvolve() != null) {

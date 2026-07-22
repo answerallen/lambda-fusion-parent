@@ -75,6 +75,14 @@ public class AppEntity {
     @Schema(description = "MCP 服务ID列表")
     private List<String> mcpServerIds;
 
+    @TableField(value = "skills_allow", typeHandler = JacksonTypeHandler.class)
+    @Schema(description = "技能白名单(技能名;仅 WORKSPACE 型生效)")
+    private List<String> skillsAllow;
+
+    @TableField(value = "skills_deny", typeHandler = JacksonTypeHandler.class)
+    @Schema(description = "技能黑名单(技能名;仅 WORKSPACE 型生效)")
+    private List<String> skillsDeny;
+
     @TableField("enabled")
     @Schema(description = "是否启用")
     private Boolean enabled;

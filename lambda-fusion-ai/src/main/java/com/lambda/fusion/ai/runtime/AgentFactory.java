@@ -12,9 +12,11 @@ import com.lambda.fusion.ai.runtime.sandbox.SandboxSpecResolver;
 import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
 import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceScaffolder;
-import com.lambda.fusion.ai.skill.runtime.DbSkillRepository;
+import com.lambda.fusion.ai.skill.runtime.SkillRepositoryResolver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.model.Model;
+import io.agentscope.core.skill.SkillFilter;
+import io.agentscope.core.skill.repository.AgentSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.InMemoryAgentStateStore;
 import io.agentscope.core.state.JsonFileAgentStateStore;
@@ -67,7 +69,7 @@ public class AgentFactory {
     private final WorkspaceScaffolder workspaceScaffolder;
     private final SandboxSpecResolver sandboxSpecResolver;
     private final List<StateStoreProvider> stateStoreProviders;
-    private final DbSkillRepository dbSkillRepository;
+    private final SkillRepositoryResolver skillRepositoryResolver;
     private final ObjectProvider<HarnessGateway> gatewayProvider;
 
     private final Map<String, HarnessAgent> cache = new ConcurrentHashMap<>();
@@ -174,6 +176,24 @@ public class AgentFactory {
         return Paths.get(System.getProperty("user.home"), ".agentscope", "fusion", "state");
     }
 
+    /**
+     * 按 app 的 {@code skillsAllow}/{@code skillsDeny} 解析 harness {@link SkillFilter}。
+     *
+     * <p>{@code skillsAllow} 非空 -> 仅这些技能；否则 {@code skillsDeny} 非空 -> 除这些外；均空 -> 全放行。
+     * allow 优先于 deny。作用于所有技能源（市场 DB repo + workspace 文件系统 repo）。
+     */
+    static SkillFilter resolveSkillFilter(AppEntity app) {
+        List<String> allow = app.getSkillsAllow();
+        if (allow != null && !allow.isEmpty()) {
+            return SkillFilter.only(allow.toArray(new String[0]));
+        }
+        List<String> deny = app.getSkillsDeny();
+        if (deny != null && !deny.isEmpty()) {
+            return SkillFilter.except(deny.toArray(new String[0]));
+        }
+        return SkillFilter.all();
+    }
+
     // CHAT 型：纯 DB 配置，关闭所有 workspace 能力
     private HarnessAgent buildChat(AppEntity app, String tenantId, Model model, Toolkit toolkit, int maxIters) {
         log.info("构建 CHAT Agent: app={}, tenant={}", app.getId(), tenantId);
@@ -219,7 +239,12 @@ public class AgentFactory {
                 .toolkit(toolkit)
                 .stateStore(resolveStateStore(aiProperties, stateStoreProviders))
                 .workspace(hostWorkspace)
-                .skillRepository(dbSkillRepository);
+                .skillFilter(resolveSkillFilter(app));
+        // 市场技能仓库（按配置选定；未启用则仅用 workspace 本地技能）
+        AgentSkillRepository skillRepo = skillRepositoryResolver.resolve();
+        if (skillRepo != null) {
+            builder.skillRepository(skillRepo);
+        }
         // 沙箱后端优先；HOST 或后端扩展未安装时回退 LocalFilesystemSpec
         Optional<SandboxFilesystemSpec> sandboxSpec = sandboxSpecResolver.resolve(app, hostWorkspace);
         if (sandboxSpec.isPresent()) {
