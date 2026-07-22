@@ -70,6 +70,8 @@ public enum AiErrorCode implements ErrorCode {
 
     APP_DISABLED(30753, "智能应用已禁用"),
 
+    APP_RAG_MODE_INVALID(30754, "非法的知识库检索模式(GENERIC/AGENTIC/BOTH)"),
+
     KB_NOT_FOUND(30801, "知识库不存在"),
 
     KB_NAME_EXISTS(30802, "知识库名称已存在"),

@@ -51,6 +51,9 @@ public class UpdateApp {
     @Schema(description = "知识库ID列表(对话时自动检索注入)")
     private List<String> knowledgeBaseIds;
 
+    @Schema(description = "知识库检索模式: GENERIC(自动注入)|AGENTIC(工具自主检索)|BOTH;空=GENERIC")
+    private String ragMode;
+
     @Schema(description = "技能白名单(技能名;仅 WORKSPACE 型生效)")
     private List<String> skillsAllow;
 

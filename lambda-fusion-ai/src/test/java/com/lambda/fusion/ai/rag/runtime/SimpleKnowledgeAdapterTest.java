@@ -104,4 +104,19 @@ class SimpleKnowledgeAdapterTest {
         assertThatThrownBy(() -> SimpleKnowledgeAdapter.createStore(rag, null, 1536))
                 .isInstanceOf(AiBusinessException.class);
     }
+
+    @Test
+    void overrideLimitTakesPrecedenceOverKbLevel() {
+        AiProperties.Rag rag = new AiProperties.Rag(); // defaultLimit = 5
+        KnowledgeBaseEntity kb = new KnowledgeBaseEntity();
+        kb.setRetrieveLimit(3);
+
+        // 调用方显式 limit（Agentic 工具）优先于知识库级与全局默认
+        assertThat(SimpleKnowledgeAdapter.resolveLimit(kb, rag, 10)).isEqualTo(10);
+        // null 时回落知识库级
+        assertThat(SimpleKnowledgeAdapter.resolveLimit(kb, rag, null)).isEqualTo(3);
+        // 合并截断条数：limit 优先，null 回落全局默认
+        assertThat(SimpleKnowledgeAdapter.resolveFinalLimit(rag, 10)).isEqualTo(10);
+        assertThat(SimpleKnowledgeAdapter.resolveFinalLimit(rag, null)).isEqualTo(5);
+    }
 }

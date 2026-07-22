@@ -64,11 +64,16 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
 
     @Override
     public Mono<List<RetrievedChunk>> retrieve(List<String> kbIds, String query) {
-        // 单 KB 检索内部为阻塞 IO（embedding HTTP + JDBC），整体放弹性线程池串行执行
-        return Mono.fromCallable(() -> doRetrieve(kbIds, query)).subscribeOn(Schedulers.boundedElastic());
+        return retrieve(kbIds, query, null);
     }
 
-    private List<RetrievedChunk> doRetrieve(List<String> kbIds, String query) {
+    @Override
+    public Mono<List<RetrievedChunk>> retrieve(List<String> kbIds, String query, Integer limit) {
+        // 单 KB 检索内部为阻塞 IO（embedding HTTP + JDBC），整体放弹性线程池串行执行
+        return Mono.fromCallable(() -> doRetrieve(kbIds, query, limit)).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private List<RetrievedChunk> doRetrieve(List<String> kbIds, String query, Integer limit) {
         AiProperties.Rag rag = aiProperties.getRag();
         List<RetrievedChunk> merged = new ArrayList<>();
         for (String kbId : kbIds) {
@@ -78,7 +83,8 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
             }
             try {
                 RetrieveConfig config = RetrieveConfig.builder()
-                        .limit(resolveLimit(kb, rag))
+                        // 调用方显式 limit 优先（Agentic 工具），否则知识库级，最后全局默认
+                        .limit(resolveLimit(kb, rag, limit))
                         .scoreThreshold(resolveScoreThreshold(kb, rag))
                         .build();
                 List<Document> docs = knowledge(kb).retrieve(query, config).block();
@@ -97,8 +103,8 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
                 log.warn("知识库 {} 检索失败，跳过: {}", kbId, e.getMessage());
             }
         }
-        // 跨知识库合并按分数降序，截断到全局默认条数
-        return mergeAndTruncate(merged, rag.getDefaultLimit());
+        // 跨知识库合并按分数降序，截断到 limit 或全局默认条数
+        return mergeAndTruncate(merged, resolveFinalLimit(rag, limit));
     }
 
     // 包级可见便于单测
@@ -223,9 +229,21 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
         }
     }
 
-    // 知识库级 limit 覆盖全局默认（包级可见便于单测）
+    // 单 KB 检索条数：调用方显式 limit（Agentic 工具）> 知识库级 > 全局默认（包级可见便于单测）
     static int resolveLimit(KnowledgeBaseEntity kb, AiProperties.Rag rag) {
+        return resolveLimit(kb, rag, null);
+    }
+
+    static int resolveLimit(KnowledgeBaseEntity kb, AiProperties.Rag rag, Integer overrideLimit) {
+        if (overrideLimit != null) {
+            return overrideLimit;
+        }
         return kb.getRetrieveLimit() != null ? kb.getRetrieveLimit() : rag.getDefaultLimit();
+    }
+
+    // 跨知识库合并后的最终截断条数：调用方显式 limit 优先，否则全局默认（包级可见便于单测）
+    static int resolveFinalLimit(AiProperties.Rag rag, Integer overrideLimit) {
+        return overrideLimit != null ? overrideLimit : rag.getDefaultLimit();
     }
 
     // 知识库级 scoreThreshold 覆盖全局默认（包级可见便于单测）

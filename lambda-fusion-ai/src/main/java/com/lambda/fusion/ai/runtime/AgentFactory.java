@@ -1,12 +1,14 @@
 package com.lambda.fusion.ai.runtime;
 
 import com.lambda.fusion.ai.AiConstants.AppType;
+import com.lambda.fusion.ai.AiConstants.RagMode;
 import com.lambda.fusion.ai.AiConstants.StateStoreType;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
+import com.lambda.fusion.ai.rag.runtime.KnowledgeRetrievalTool;
 import com.lambda.fusion.ai.rag.runtime.KnowledgeRetriever;
 import com.lambda.fusion.ai.rag.runtime.RagMiddleware;
 import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
@@ -112,6 +114,7 @@ public class AgentFactory {
         }
         Model model = modelResolver.apply(app.getModelId());
         Toolkit toolkit = toolkitAssembler.build(app);
+        registerKnowledgeTool(toolkit, app); // AGENTIC/BOTH 模式：注册知识检索工具
         int maxIters = Objects.requireNonNullElse(
                 app.getMaxIters(), aiProperties.getRuntime().getDefaultMaxIters());
         AppType appType = AppType.of(Objects.toString(app.getAppType(), AppType.CHAT.getCode()));
@@ -127,19 +130,46 @@ public class AgentFactory {
     }
 
     /**
-     * 按 app 的 {@code knowledgeBaseIds} 绑定解析运行时中间件：检索功能启用且绑定非空时
-     * 挂载 {@link RagMiddleware}（对话时实时检索注入）；绑定变更复用 {@code ConfigChangedEvent}
-     * 失效机制重建 agent。
+     * 按 app 的 {@code knowledgeBaseIds} 绑定解析运行时中间件：检索功能启用、绑定非空且
+     * 模式为 GENERIC/BOTH 时挂载 {@link RagMiddleware}（对话时实时检索注入）；绑定变更复用
+     * {@code ConfigChangedEvent} 失效机制重建 agent。
      */
     private List<MiddlewareBase> resolveMiddlewares(AppEntity app) {
+        RagMode ragMode = resolveRagMode(app);
+        if (ragMode != RagMode.GENERIC && ragMode != RagMode.BOTH) {
+            return List.of();
+        }
         KnowledgeRetriever retriever = retrieverProvider.getIfAvailable();
-        if (retriever == null
-                || app.getKnowledgeBaseIds() == null
-                || app.getKnowledgeBaseIds().isEmpty()) {
+        if (retriever == null) {
             return List.of();
         }
         return List.of(new RagMiddleware(
                 retriever, app.getKnowledgeBaseIds(), aiProperties.getRag().getMaxInjectChars()));
+    }
+
+    // AGENTIC/BOTH 模式：注册 retrieve_knowledge 工具由模型自主检索（构建期绑定 kbIds，
+    // 不走 ToolkitAssembler 全局扫描——检索范围必须按 app 隔离）
+    private void registerKnowledgeTool(Toolkit toolkit, AppEntity app) {
+        RagMode ragMode = resolveRagMode(app);
+        if (ragMode != RagMode.AGENTIC && ragMode != RagMode.BOTH) {
+            return;
+        }
+        KnowledgeRetriever retriever = retrieverProvider.getIfAvailable();
+        if (retriever == null) {
+            return;
+        }
+        toolkit.registerTool(new KnowledgeRetrievalTool(retriever, app.getKnowledgeBaseIds()));
+        log.info("应用 {} 启用 Agentic 知识检索工具(kbs={})", app.getId(), app.getKnowledgeBaseIds());
+    }
+
+    // 知识库检索模式解析：kbIds 为空不启用任何模式；ragMode 空/未知按 GENERIC（向后兼容，
+    // 非法值在应用保存时已校验拦截）。包级可见便于单测
+    static RagMode resolveRagMode(AppEntity app) {
+        if (app.getKnowledgeBaseIds() == null || app.getKnowledgeBaseIds().isEmpty()) {
+            return null;
+        }
+        RagMode ragMode = RagMode.of(app.getRagMode());
+        return ragMode != null ? ragMode : RagMode.GENERIC;
     }
 
     private void registerWithGateway(HarnessAgent agent) {

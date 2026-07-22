@@ -433,4 +433,16 @@
         </addColumn>
     </changeSet>
 
+    <!-- ========== ai_app 增知识库检索模式 ========== -->
+    <changeSet id="lambda-ai-202607220008" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_app" columnName="rag_mode"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_app">
+            <column name="rag_mode" type="varchar(16)" remarks="知识库检索模式: GENERIC(自动注入)|AGENTIC(工具自主检索)|BOTH；空=GENERIC"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

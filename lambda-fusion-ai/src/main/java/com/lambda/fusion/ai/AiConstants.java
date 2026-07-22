@@ -124,6 +124,39 @@ public interface AiConstants {
     }
 
     /**
+     * 知识库检索模式（应用级，{@code ai_app.rag_mode}）。
+     *
+     * <p>GENERIC：中间件自动检索注入（RagMiddleware，稳定保底）；AGENTIC：注册
+     * {@code retrieve_knowledge} 工具由模型自主检索（省 token，依赖模型工具调用能力）；
+     * BOTH：两者兼得（中间件保底 + 工具可追问补查）。空值按 GENERIC 处理（向后兼容）。
+     */
+    @Getter
+    @AllArgsConstructor
+    enum RagMode {
+        GENERIC("GENERIC", "自动注入"),
+
+        AGENTIC("AGENTIC", "工具自主检索"),
+
+        BOTH("BOTH", "注入+工具");
+
+        private final String code;
+
+        private final String label;
+
+        public static RagMode of(String code) {
+            if (code == null) {
+                return null;
+            }
+            for (RagMode mode : values()) {
+                if (mode.code.equalsIgnoreCase(code)) {
+                    return mode;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
      * 知识库文档入库状态。
      *
      * <p>PENDING：已落库待入库；READY：解析切块入库完成；FAILED：入库失败（原因见 error_msg）。

@@ -4,6 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.AiConstants.AppType;
+import com.lambda.fusion.ai.AiConstants.RagMode;
 import com.lambda.fusion.ai.AiConstants.SandboxBackend;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.mapper.AppMapper;
@@ -57,6 +58,7 @@ public class AppServiceImpl implements AppService {
         llmModelService.loadById(dto.getModelId());
         String appType = validateAppType(dto.getAppType());
         String sandboxBackend = validateSandboxBackend(dto.getSandboxBackend());
+        validateRagMode(dto.getRagMode());
         ensureNameUnique(dto.getName(), null);
         AppEntity entity = getAppEntity(dto, appType, sandboxBackend);
         appMapper.insert(entity);
@@ -77,6 +79,7 @@ public class AppServiceImpl implements AppService {
         entity.setToolsDeny(dto.getToolsDeny());
         entity.setMcpServerIds(dto.getMcpServerIds());
         entity.setKnowledgeBaseIds(dto.getKnowledgeBaseIds());
+        entity.setRagMode(dto.getRagMode());
         entity.setSkillsAllow(dto.getSkillsAllow());
         entity.setSkillsDeny(dto.getSkillsDeny());
         entity.setAppType(appType);
@@ -125,6 +128,10 @@ public class AppServiceImpl implements AppService {
         }
         if (dto.getKnowledgeBaseIds() != null) {
             entity.setKnowledgeBaseIds(dto.getKnowledgeBaseIds());
+        }
+        if (dto.getRagMode() != null) {
+            validateRagMode(dto.getRagMode());
+            entity.setRagMode(dto.getRagMode());
         }
         if (dto.getSkillsAllow() != null) {
             entity.setSkillsAllow(dto.getSkillsAllow());
@@ -240,5 +247,12 @@ public class AppServiceImpl implements AppService {
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "非法沙箱后端: " + sandboxBackend);
         }
         return resolved;
+    }
+
+    // ragMode 仅允许 GENERIC/AGENTIC/BOTH；空值合法（按 GENERIC 处理）
+    private void validateRagMode(String ragMode) {
+        if (StringUtils.isNotBlank(ragMode) && RagMode.of(ragMode) == null) {
+            throw new AiBusinessException(AiErrorCode.APP_RAG_MODE_INVALID, ragMode);
+        }
     }
 }
