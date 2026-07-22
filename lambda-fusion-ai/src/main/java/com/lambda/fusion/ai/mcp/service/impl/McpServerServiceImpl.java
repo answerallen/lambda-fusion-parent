@@ -11,7 +11,7 @@ import com.lambda.fusion.ai.mcp.model.McpServerPage;
 import com.lambda.fusion.ai.mcp.model.UpdateMcpServer;
 import com.lambda.fusion.ai.mcp.model.entity.McpServerEntity;
 import com.lambda.fusion.ai.mcp.service.McpServerService;
-import com.lambda.fusion.ai.runtime.event.AiConfigChangedEvent;
+import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.tool.mcp.McpClientBuilder;
 import io.agentscope.core.tool.mcp.McpClientWrapper;
@@ -70,7 +70,7 @@ public class McpServerServiceImpl implements McpServerService {
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
         mcpServerMapper.insert(entity);
-        eventPublisher.publishEvent(AiConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
         return entity;
     }
 
@@ -112,7 +112,7 @@ public class McpServerServiceImpl implements McpServerService {
         }
         entity.setUpdatedAt(LocalDateTime.now());
         mcpServerMapper.updateById(entity);
-        eventPublisher.publishEvent(AiConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
     }
 
     @Override
@@ -120,7 +120,7 @@ public class McpServerServiceImpl implements McpServerService {
     public void delete(String id) {
         requireExists(id);
         mcpServerMapper.deleteById(id);
-        eventPublisher.publishEvent(AiConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
     }
 
     @Override

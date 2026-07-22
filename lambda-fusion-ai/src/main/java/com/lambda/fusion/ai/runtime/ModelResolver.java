@@ -33,7 +33,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-public class AiModelResolver implements Function<String, Model> {
+public class ModelResolver implements Function<String, Model> {
 
     private final LlmModelService llmModelService;
     private final LlmProviderService llmProviderService;

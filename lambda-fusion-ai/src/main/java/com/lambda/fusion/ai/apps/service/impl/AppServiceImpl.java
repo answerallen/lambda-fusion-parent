@@ -15,7 +15,7 @@ import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.llm.service.LlmModelService;
-import com.lambda.fusion.ai.runtime.event.AiConfigChangedEvent;
+import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
 import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
 import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -54,14 +54,13 @@ public class AppServiceImpl implements AppService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AppEntity create(CreateApp dto) {
-        // 校验模型存在
         llmModelService.loadById(dto.getModelId());
         String appType = validateAppType(dto.getAppType());
         String sandboxBackend = validateSandboxBackend(dto.getSandboxBackend());
         ensureNameUnique(dto.getName(), null);
         AppEntity entity = getAppEntity(dto, appType, sandboxBackend);
         appMapper.insert(entity);
-        eventPublisher.publishEvent(AiConfigChangedEvent.app(entity.getId()));
+        eventPublisher.publishEvent(ConfigChangedEvent.app(entity.getId()));
         return entity;
     }
 
@@ -136,7 +135,7 @@ public class AppServiceImpl implements AppService {
         }
         entity.setUpdatedAt(LocalDateTime.now());
         appMapper.updateById(entity);
-        eventPublisher.publishEvent(AiConfigChangedEvent.app(id));
+        eventPublisher.publishEvent(ConfigChangedEvent.app(id));
     }
 
     @Override
@@ -147,7 +146,7 @@ public class AppServiceImpl implements AppService {
             workspacePaths.deleteAppWorkspaces(id);
         }
         appMapper.deleteById(id);
-        eventPublisher.publishEvent(AiConfigChangedEvent.app(id));
+        eventPublisher.publishEvent(ConfigChangedEvent.app(id));
     }
 
     @Override

@@ -76,26 +76,6 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
-        <!-- 文档解析器 -->
-        <!-- MCP（Model Context Protocol）客户端支持 -->
-        <dependency>
-            <groupId>org.graalvm.js</groupId>
-            <artifactId>js-language</artifactId>
-            <version>23.1.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.graalvm.truffle</groupId>
-            <artifactId>truffle-api</artifactId>
-            <version>23.1.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.graalvm.js</groupId>
-            <artifactId>js-scriptengine</artifactId>
-            <version>23.1.2</version>
-        </dependency>
-        <!-- Resilience4j 容错机制 -->
-        <!-- ========== AgentScope 2.0 运行时（Phase 3：langgraph4j + langchain4j 已全清零） ========== -->
-        <!-- 版本由父 POM 的 agentscope-bom:2.0.0 管理，此处不写 version -->
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-admin-spring-boot-starter</artifactId>
@@ -104,7 +84,6 @@
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-harness</artifactId>
         </dependency>
-        <!-- 模型提供方扩展（DB 驱动 model client 按 provider 选择） -->
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-model-openai</artifactId>
@@ -117,18 +96,35 @@
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-model-dashscope</artifactId>
         </dependency>
-        <!-- 分布式会话后端：PG（复用 ai-postgres，D5 一等后端） -->
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-postgresql</artifactId>
+            <optional>true</optional>
         </dependency>
-        <!-- RAG 托管型（SimpleKnowledge，Phase 2 接入；本期引入依赖） -->
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-mysql</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-redis</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-oss</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-cos</artifactId>
+            <optional>true</optional>
+        </dependency>
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-rag-simple</artifactId>
         </dependency>
-        <!-- ========== 沙箱后端（WORKSPACE 型应用执行隔离；optional 供下游按需启用） ========== -->
-        <!-- Docker 后端在 agentscope-harness 内核中，无需额外依赖 -->
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-sandbox-kubernetes</artifactId>

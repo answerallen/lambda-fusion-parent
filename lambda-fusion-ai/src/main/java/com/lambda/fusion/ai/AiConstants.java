@@ -32,7 +32,7 @@ public interface AiConstants {
      */
     @Getter
     @AllArgsConstructor
-    public enum ProviderType {
+    enum ProviderType {
         DASHSCOPE("dashscope", "通义千问 DashScope"),
 
         OPENAI("openai", "OpenAI 兼容"),
@@ -100,7 +100,7 @@ public interface AiConstants {
      */
     @Getter
     @AllArgsConstructor
-    public enum SandboxBackend {
+    enum SandboxBackend {
         HOST("HOST", "宿主文件系统"),
 
         DOCKER("DOCKER", "Docker 沙箱"),
@@ -124,6 +124,46 @@ public interface AiConstants {
             for (SandboxBackend backend : values()) {
                 if (backend.code.equalsIgnoreCase(code)) {
                     return backend;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Agent 状态存储类型（多轮记忆）。按部署形态配置：
+     * MEMORY/FILE 单节点；MYSQL/POSTGRES/REDIS 分布式（多副本共享）；OSS/COS 对象存储归档。
+     *
+     * @author Jin
+     */
+    @Getter
+    @AllArgsConstructor
+    enum StateStoreType {
+        MEMORY("MEMORY", "进程内（重启丢失）"),
+
+        FILE("FILE", "JSON 落盘（单节点，重启不丢）"),
+
+        MYSQL("MYSQL", "MySQL（分布式）"),
+
+        POSTGRES("POSTGRES", "PostgreSQL（分布式）"),
+
+        REDIS("REDIS", "Redis（分布式）"),
+
+        OSS("OSS", "对象存储 OSS/S3"),
+
+        COS("COS", "腾讯云 COS");
+
+        private final String code;
+
+        private final String label;
+
+        public static StateStoreType of(String code) {
+            if (code == null) {
+                return null;
+            }
+            for (StateStoreType type : values()) {
+                if (type.code.equalsIgnoreCase(code)) {
+                    return type;
                 }
             }
             return null;

@@ -37,7 +37,6 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ChatSessionEntity create(CreateSession dto) {
-        // 校验应用存在且当前用户可见
         var app = appService.loadAvailable(dto.getAppId());
         String tenantId = AuthUtils.getTenantId();
         ChatSessionEntity entity = new ChatSessionEntity();

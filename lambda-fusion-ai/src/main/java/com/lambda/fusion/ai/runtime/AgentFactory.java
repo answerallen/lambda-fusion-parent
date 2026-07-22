@@ -1,25 +1,32 @@
 package com.lambda.fusion.ai.runtime;
 
 import com.lambda.fusion.ai.AiConstants.AppType;
+import com.lambda.fusion.ai.AiConstants.StateStoreType;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
-import com.lambda.fusion.ai.runtime.event.AiConfigChangedEvent;
+import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
 import com.lambda.fusion.ai.runtime.sandbox.SandboxSpecResolver;
+import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
 import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceScaffolder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.model.Model;
+import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.InMemoryAgentStateStore;
+import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import io.agentscope.harness.agent.filesystem.spec.SandboxFilesystemSpec;
+import io.agentscope.harness.agent.gateway.HarnessGateway;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -48,15 +56,17 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @SuppressFBWarnings("EI_EXPOSE_REP2")
-public class AiAgentFactory {
+public class AgentFactory {
 
     private final AppService appService;
-    private final AiModelResolver aiModelResolver;
+    private final ModelResolver modelResolver;
     private final ToolkitAssembler toolkitAssembler;
     private final AiProperties aiProperties;
     private final WorkspacePaths workspacePaths;
     private final WorkspaceScaffolder workspaceScaffolder;
     private final SandboxSpecResolver sandboxSpecResolver;
+    private final List<StateStoreProvider> stateStoreProviders;
+    private final ObjectProvider<HarnessGateway> gatewayProvider;
 
     private final Map<String, HarnessAgent> cache = new ConcurrentHashMap<>();
 
@@ -74,7 +84,7 @@ public class AiAgentFactory {
     }
 
     @EventListener
-    public void onConfigChanged(AiConfigChangedEvent event) {
+    public void onConfigChanged(ConfigChangedEvent event) {
         if (event.appId() == null) {
             log.info("AI 配置变更，失效全部 Agent 缓存");
             invalidateAll();
@@ -89,15 +99,75 @@ public class AiAgentFactory {
         if (Boolean.FALSE.equals(app.getEnabled())) {
             throw new AiBusinessException(AiErrorCode.APP_DISABLED, appId);
         }
-        Model model = aiModelResolver.apply(app.getModelId());
+        Model model = modelResolver.apply(app.getModelId());
         Toolkit toolkit = toolkitAssembler.build(app);
         int maxIters = Objects.requireNonNullElse(
                 app.getMaxIters(), aiProperties.getRuntime().getDefaultMaxIters());
         AppType appType = AppType.of(Objects.toString(app.getAppType(), AppType.CHAT.getCode()));
+        HarnessAgent agent;
         if (appType == AppType.WORKSPACE) {
-            return buildWorkspace(app, tenantId, model, toolkit, maxIters);
+            agent = buildWorkspace(app, tenantId, model, toolkit, maxIters);
+        } else {
+            agent = buildChat(app, tenantId, model, toolkit, maxIters);
         }
-        return buildChat(app, tenantId, model, toolkit, maxIters);
+        registerWithGateway(agent);
+        return agent;
+    }
+
+    /** 注册到 {@link HarnessGateway}（若启用），同键覆盖。 */
+    private void registerWithGateway(HarnessAgent agent) {
+        HarnessGateway gateway = gatewayProvider.getIfAvailable();
+        if (gateway == null) {
+            return;
+        }
+        gateway.registerAgent(agent.getAgentId(), agent);
+    }
+
+    /**
+     * 按配置解析 Agent 状态存储：MEMORY/FILE 内置；MYSQL/POSTGRES/REDIS/OSS/COS 分发到匹配的
+     * {@link StateStoreProvider}（扩展未安装或创建失败时回退 MEMORY，保证启动不阻塞）。
+     */
+    static AgentStateStore resolveStateStore(AiProperties props) {
+        return resolveStateStore(props, List.of());
+    }
+
+    static AgentStateStore resolveStateStore(AiProperties props, List<StateStoreProvider> providers) {
+        AiProperties.StateStore cfg = props.getStateStore();
+        StateStoreType type = StateStoreType.of(Objects.toString(cfg.getType(), StateStoreType.MEMORY.getCode()));
+        if (type == StateStoreType.FILE) {
+            return new JsonFileAgentStateStore(resolveStateRoot(props));
+        }
+        if (type == StateStoreType.MEMORY) {
+            return new InMemoryAgentStateStore();
+        }
+        // 分布式后端：按 type 找匹配 provider
+        try {
+            AgentStateStore store = providers.stream()
+                    .filter(p -> p.type() == type)
+                    .findFirst()
+                    .map(StateStoreProvider::create)
+                    .orElse(null);
+            if (store != null) {
+                return store;
+            }
+            log.warn("状态存储 {} 的扩展未安装或客户端缺失，回退 MEMORY", type);
+        } catch (Exception e) {
+            log.warn("状态存储 {} 创建失败，回退 MEMORY: {}", type, e.getMessage());
+        }
+        return new InMemoryAgentStateStore();
+    }
+
+    /** FILE 模式根目录：优先配置值，其次 {@code workspace.root/state}，最后 {@code ~/.agentscope/fusion/state}。 */
+    private static Path resolveStateRoot(AiProperties props) {
+        String configured = props.getStateStore().getRoot();
+        if (StringUtils.isNotBlank(configured)) {
+            return Path.of(configured);
+        }
+        String wsRoot = props.getWorkspace().getRoot();
+        if (StringUtils.isNotBlank(wsRoot)) {
+            return Path.of(wsRoot, "state");
+        }
+        return Paths.get(System.getProperty("user.home"), ".agentscope", "fusion", "state");
     }
 
     /** CHAT 型：纯 DB 配置，关闭所有 workspace 能力。 */
@@ -110,7 +180,7 @@ public class AiAgentFactory {
                 .model(model)
                 .maxIters(maxIters)
                 .toolkit(toolkit)
-                .stateStore(new InMemoryAgentStateStore())
+                .stateStore(resolveStateStore(aiProperties, stateStoreProviders))
                 .disableFilesystemTools()
                 .disableWorkspaceContext()
                 .disableAtPathExpansion()
@@ -143,7 +213,7 @@ public class AiAgentFactory {
                 .model(model)
                 .maxIters(maxIters)
                 .toolkit(toolkit)
-                .stateStore(new InMemoryAgentStateStore())
+                .stateStore(resolveStateStore(aiProperties, stateStoreProviders))
                 .workspace(hostWorkspace);
         // 沙箱后端优先；HOST 或后端扩展未安装时回退 LocalFilesystemSpec
         Optional<SandboxFilesystemSpec> sandboxSpec = sandboxSpecResolver.resolve(app, hostWorkspace);

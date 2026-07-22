@@ -12,7 +12,7 @@ import com.lambda.fusion.ai.llm.model.UpdateLlmModel;
 import com.lambda.fusion.ai.llm.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.llm.service.LlmModelService;
 import com.lambda.fusion.ai.llm.service.LlmProviderService;
-import com.lambda.fusion.ai.runtime.event.AiConfigChangedEvent;
+import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +43,6 @@ public class LlmModelServiceImpl implements LlmModelService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public LlmModelEntity create(CreateLlmModel dto) {
-        // 校验提供方存在
         llmProviderService.loadById(dto.getProviderId());
         ensureNameUnique(dto.getName(), null);
         LlmModelEntity entity = new LlmModelEntity();
@@ -58,7 +57,7 @@ public class LlmModelServiceImpl implements LlmModelService {
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
         llmModelMapper.insert(entity);
-        eventPublisher.publishEvent(AiConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
         return entity;
     }
 
@@ -91,7 +90,7 @@ public class LlmModelServiceImpl implements LlmModelService {
         }
         entity.setUpdatedAt(LocalDateTime.now());
         llmModelMapper.updateById(entity);
-        eventPublisher.publishEvent(AiConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
     }
 
     @Override
@@ -99,7 +98,7 @@ public class LlmModelServiceImpl implements LlmModelService {
     public void delete(String id) {
         requireExists(id);
         llmModelMapper.deleteById(id);
-        eventPublisher.publishEvent(AiConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
     }
 
     @Override

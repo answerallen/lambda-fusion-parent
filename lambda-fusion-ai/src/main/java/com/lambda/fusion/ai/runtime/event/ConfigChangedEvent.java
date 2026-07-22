@@ -7,13 +7,13 @@ package com.lambda.fusion.ai.runtime.event;
  *
  * @author Jin
  */
-public record AiConfigChangedEvent(String appId) {
+public record ConfigChangedEvent(String appId) {
 
-    public static AiConfigChangedEvent app(String appId) {
-        return new AiConfigChangedEvent(appId);
+    public static ConfigChangedEvent app(String appId) {
+        return new ConfigChangedEvent(appId);
     }
 
-    public static AiConfigChangedEvent all() {
-        return new AiConfigChangedEvent(null);
+    public static ConfigChangedEvent all() {
+        return new ConfigChangedEvent(null);
     }
 }

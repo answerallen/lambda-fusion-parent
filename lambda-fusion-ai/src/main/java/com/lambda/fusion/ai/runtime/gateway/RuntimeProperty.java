@@ -1,0 +1,38 @@
+package com.lambda.fusion.ai.runtime.gateway;
+
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.harness.agent.gateway.MsgContext;
+
+public final class RuntimeProperty {
+
+    public static final String MSG_CONTEXT_KEY = "msgContext";
+    public static final String KEY_TENANT_ID = "tenantId";
+    public static final String KEY_APP_ID = "appId";
+    public static final String KEY_LF_SESSION_ID = "sessionId";
+
+    private RuntimeProperty() {}
+
+    public static MsgContext msgContext(RuntimeContext ctx) {
+        if (ctx == null) {
+            return null;
+        }
+        return ctx.get(MSG_CONTEXT_KEY);
+    }
+
+    public static String tenantId(RuntimeContext ctx) {
+        return extra(ctx, KEY_TENANT_ID);
+    }
+
+    public static String appId(RuntimeContext ctx) {
+        return extra(ctx, KEY_APP_ID);
+    }
+
+    public static String lfSessionId(RuntimeContext ctx) {
+        return extra(ctx, KEY_LF_SESSION_ID);
+    }
+
+    private static String extra(RuntimeContext ctx, String key) {
+        MsgContext mc = msgContext(ctx);
+        return mc != null ? mc.extra().get(key) : null;
+    }
+}

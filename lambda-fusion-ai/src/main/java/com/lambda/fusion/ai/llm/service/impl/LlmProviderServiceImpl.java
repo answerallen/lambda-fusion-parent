@@ -12,7 +12,7 @@ import com.lambda.fusion.ai.llm.model.LlmProviderPageQuery;
 import com.lambda.fusion.ai.llm.model.UpdateLlmProvider;
 import com.lambda.fusion.ai.llm.model.entity.LlmProviderEntity;
 import com.lambda.fusion.ai.llm.service.LlmProviderService;
-import com.lambda.fusion.ai.runtime.event.AiConfigChangedEvent;
+import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
 import com.lambda.fusion.ai.security.KeyEncryptionService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
@@ -57,7 +57,7 @@ public class LlmProviderServiceImpl implements LlmProviderService {
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
         llmProviderMapper.insert(entity);
-        eventPublisher.publishEvent(AiConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
         return entity;
     }
 
@@ -87,7 +87,7 @@ public class LlmProviderServiceImpl implements LlmProviderService {
         }
         entity.setUpdatedAt(LocalDateTime.now());
         llmProviderMapper.updateById(entity);
-        eventPublisher.publishEvent(AiConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
     }
 
     @Override
@@ -95,7 +95,7 @@ public class LlmProviderServiceImpl implements LlmProviderService {
     public void delete(String id) {
         requireExists(id);
         llmProviderMapper.deleteById(id);
-        eventPublisher.publishEvent(AiConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
     }
 
     @Override
