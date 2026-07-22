@@ -70,6 +70,28 @@ public enum AiErrorCode implements ErrorCode {
 
     APP_DISABLED(30753, "智能应用已禁用"),
 
+    KB_NOT_FOUND(30801, "知识库不存在"),
+
+    KB_NAME_EXISTS(30802, "知识库名称已存在"),
+
+    KB_DISABLED(30803, "知识库已禁用"),
+
+    KB_EMBEDDING_MODEL_INVALID(30804, "知识库嵌入模型无效(需为已启用的EMBEDDING类型模型)"),
+
+    KB_RAG_NOT_ENABLED(30805, "知识库检索功能未启用(lambda.fusion.ai.rag.enabled)"),
+
+    KB_VECTOR_STORE_NOT_CONFIGURED(30806, "pgvector连接未配置(lambda.fusion.ai.rag.pgvector.jdbc-url)"),
+
+    DOCUMENT_NOT_FOUND(30811, "知识库文档不存在"),
+
+    DOCUMENT_TYPE_NOT_SUPPORTED(30812, "不支持的文档类型"),
+
+    DOCUMENT_PARSE_FAILED(30813, "文档解析入库失败"),
+
+    DOCUMENT_STORAGE_ERROR(30814, "文档原文件存储失败"),
+
+    DOCUMENT_STORAGE_NOT_SUPPORTED(30815, "不支持的文档存储类型"),
+
     CHAT_SESSION_NOT_FOUND(30201, "对话会话不存在"),
 
     CHAT_MESSAGE_NOT_FOUND(30202, "对话消息不存在");

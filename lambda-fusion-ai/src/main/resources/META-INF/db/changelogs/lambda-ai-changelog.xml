@@ -333,4 +333,104 @@
         </addColumn>
     </changeSet>
 
+    <!-- ========== 知识库 ========== -->
+    <changeSet id="lambda-ai-202607220004" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_knowledge_base"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_knowledge_base" remarks="知识库(RAG)">
+            <column name="id" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_knowledge_base_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
+            <column name="name" type="varchar(128)" remarks="知识库名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(512)" remarks="知识库描述"/>
+            <column name="embedding_model_id" type="varchar(32)" remarks="嵌入模型ID(ai_llm_model, model_type=EMBEDDING)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dimensions" type="int" remarks="向量维度(建表后不可变)"/>
+            <column name="vector_table" type="varchar(64)" remarks="向量表名(ai_kb_{id}, 每知识库一张)"/>
+            <column name="retrieve_limit" type="int" remarks="检索条数(空走全局默认)"/>
+            <column name="score_threshold" type="decimal(4,3)" remarks="分数阈值(空走全局默认)"/>
+            <column name="enabled" type="tinyint(1)" defaultValueNumeric="1" remarks="是否启用">
+                <constraints nullable="false"/>
+            </column>
+            <column name="remark" type="varchar(512)" remarks="备注"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+            <column name="updated_at" type="datetime" remarks="更新时间"/>
+        </createTable>
+        <createIndex tableName="ai_knowledge_base" indexName="uk_ai_knowledge_base_tenant_name" unique="true">
+            <column name="tenant_id"/>
+            <column name="name"/>
+        </createIndex>
+        <createIndex tableName="ai_knowledge_base" indexName="idx_ai_knowledge_base_tenant">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== 知识库文档 ========== -->
+    <changeSet id="lambda-ai-202607220005" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_knowledge_document"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_knowledge_document" remarks="知识库文档">
+            <column name="id" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_knowledge_document_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
+            <column name="kb_id" type="varchar(32)" remarks="所属知识库ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_name" type="varchar(256)" remarks="文件名">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_type" type="varchar(32)" remarks="文件类型(pdf/docx/txt/md 等)"/>
+            <column name="status" type="varchar(16)" defaultValue="PENDING" remarks="入库状态: PENDING/READY/FAILED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="chunk_count" type="int" remarks="切块数"/>
+            <column name="error_msg" type="varchar(1024)" remarks="失败原因"/>
+            <column name="remark" type="varchar(512)" remarks="备注"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+            <column name="updated_at" type="datetime" remarks="更新时间"/>
+        </createTable>
+        <createIndex tableName="ai_knowledge_document" indexName="idx_ai_knowledge_document_kb">
+            <column name="kb_id"/>
+        </createIndex>
+        <createIndex tableName="ai_knowledge_document" indexName="idx_ai_knowledge_document_tenant">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== ai_app 增知识库绑定 ========== -->
+    <changeSet id="lambda-ai-202607220006" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_app" columnName="knowledge_base_ids"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_app">
+            <column name="knowledge_base_ids" type="text" remarks="知识库ID JSON 数组(对话时自动检索注入)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- ========== ai_knowledge_document 增原文件存储 ========== -->
+    <changeSet id="lambda-ai-202607220007" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_knowledge_document" columnName="storage_type"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_knowledge_document">
+            <column name="storage_type" type="varchar(16)" remarks="原文件存储类型: LOCAL/OSS"/>
+            <column name="storage_path" type="varchar(512)" remarks="原文件存储路径(本地相对路径或 OSS objectKey)"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

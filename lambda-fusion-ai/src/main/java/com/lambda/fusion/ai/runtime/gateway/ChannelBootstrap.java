@@ -46,7 +46,7 @@ public class ChannelBootstrap {
         }
     }
 
-    // admin CRUD 后重建指定 channelId：先停旧，再按当前 DB 状态建新（禁用/删除则只停不建）
+    // 先停旧 channel，再按当前 DB 状态重建；禁用/删除则只停不建
     public void rebuild(String channelId) {
         stopAndUnregister(channelId);
         ChannelDefinition def = channelConfigService.resolveDefinition(channelId);

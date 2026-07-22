@@ -75,6 +75,10 @@ public class AppEntity {
     @Schema(description = "MCP 服务ID列表")
     private List<String> mcpServerIds;
 
+    @TableField(value = "knowledge_base_ids", typeHandler = JacksonTypeHandler.class)
+    @Schema(description = "知识库ID列表(对话时自动检索注入)")
+    private List<String> knowledgeBaseIds;
+
     @TableField(value = "skills_allow", typeHandler = JacksonTypeHandler.class)
     @Schema(description = "技能白名单(技能名;仅 WORKSPACE 型生效)")
     private List<String> skillsAllow;

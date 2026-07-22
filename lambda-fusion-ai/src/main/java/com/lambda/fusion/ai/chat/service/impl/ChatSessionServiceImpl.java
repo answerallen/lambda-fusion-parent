@@ -38,11 +38,10 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     @Transactional(rollbackFor = Exception.class)
     public ChatSessionEntity create(CreateSession dto) {
         var app = appService.loadAvailable(dto.getAppId());
-        String tenantId = AuthUtils.getTenantId();
         ChatSessionEntity entity = new ChatSessionEntity();
         entity.setId(IdUtil.getSnowflakeNextIdStr());
-        entity.setTenantId(tenantId);
         entity.setAppId(dto.getAppId());
+        entity.setTenantId(AuthUtils.getTenantId());
         entity.setUserId(AuthUtils.getUser().getUsername());
         entity.setTitle(StringUtils.defaultIfBlank(dto.getTitle(), app.getName()));
         entity.setCreatedAt(LocalDateTime.now());

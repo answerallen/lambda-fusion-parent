@@ -196,7 +196,6 @@ public class ChannelConfigServiceImpl implements ChannelConfigService {
                 parseDmScope(dto.getSessionScope()));
     }
 
-    // 空值或非法 DmScope 使用默认会话粒度。
     static DmScope parseDmScope(String value) {
         if (StringUtils.isBlank(value)) {
             return DmScope.defaultScope();
@@ -216,7 +215,6 @@ public class ChannelConfigServiceImpl implements ChannelConfigService {
                 buildConfig(entity));
     }
 
-    // 空凭证不落库；非空凭证序列化为 JSON 后加密。
     private String encryptProperties(Map<String, Object> properties) {
         if (properties == null || properties.isEmpty()) {
             return null;
@@ -228,7 +226,6 @@ public class ChannelConfigServiceImpl implements ChannelConfigService {
         }
     }
 
-    // 未配置凭证时返回空 Map；否则解密后解析 JSON。
     private Map<String, Object> decryptProperties(String encrypted) {
         if (StringUtils.isBlank(encrypted)) {
             return Map.of();
@@ -240,7 +237,7 @@ public class ChannelConfigServiceImpl implements ChannelConfigService {
         }
     }
 
-    // 尽量重建运行中的 channel；Gateway 未启用或重建失败不影响 CRUD。
+    // Gateway 未启用或重建失败不阻断 CRUD 返回
     private void rebuild(String channelId) {
         ChannelBootstrap bootstrap = bootstrapProvider.getIfAvailable();
         if (bootstrap == null) {

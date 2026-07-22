@@ -7,6 +7,8 @@ import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
+import com.lambda.fusion.ai.rag.runtime.KnowledgeRetriever;
+import com.lambda.fusion.ai.rag.runtime.RagMiddleware;
 import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
 import com.lambda.fusion.ai.runtime.sandbox.SandboxSpecResolver;
 import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
@@ -14,6 +16,7 @@ import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceScaffolder;
 import com.lambda.fusion.ai.skill.runtime.SkillRepositoryResolver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.skill.SkillFilter;
 import io.agentscope.core.skill.repository.AgentSkillRepository;
@@ -71,6 +74,7 @@ public class AgentFactory {
     private final List<StateStoreProvider> stateStoreProviders;
     private final SkillRepositoryResolver skillRepositoryResolver;
     private final ObjectProvider<HarnessGateway> gatewayProvider;
+    private final ObjectProvider<KnowledgeRetriever> retrieverProvider;
 
     private final Map<String, HarnessAgent> cache = new ConcurrentHashMap<>();
 
@@ -111,14 +115,31 @@ public class AgentFactory {
         int maxIters = Objects.requireNonNullElse(
                 app.getMaxIters(), aiProperties.getRuntime().getDefaultMaxIters());
         AppType appType = AppType.of(Objects.toString(app.getAppType(), AppType.CHAT.getCode()));
+        List<MiddlewareBase> middlewares = resolveMiddlewares(app);
         HarnessAgent agent;
         if (appType == AppType.WORKSPACE) {
-            agent = buildWorkspace(app, tenantId, model, toolkit, maxIters);
+            agent = buildWorkspace(app, tenantId, model, toolkit, maxIters, middlewares);
         } else {
-            agent = buildChat(app, tenantId, model, toolkit, maxIters);
+            agent = buildChat(app, tenantId, model, toolkit, maxIters, middlewares);
         }
         registerWithGateway(agent);
         return agent;
+    }
+
+    /**
+     * 按 app 的 {@code knowledgeBaseIds} 绑定解析运行时中间件：检索功能启用且绑定非空时
+     * 挂载 {@link RagMiddleware}（对话时实时检索注入）；绑定变更复用 {@code ConfigChangedEvent}
+     * 失效机制重建 agent。
+     */
+    private List<MiddlewareBase> resolveMiddlewares(AppEntity app) {
+        KnowledgeRetriever retriever = retrieverProvider.getIfAvailable();
+        if (retriever == null
+                || app.getKnowledgeBaseIds() == null
+                || app.getKnowledgeBaseIds().isEmpty()) {
+            return List.of();
+        }
+        return List.of(new RagMiddleware(
+                retriever, app.getKnowledgeBaseIds(), aiProperties.getRag().getMaxInjectChars()));
     }
 
     private void registerWithGateway(HarnessAgent agent) {
@@ -162,7 +183,9 @@ public class AgentFactory {
         return new InMemoryAgentStateStore();
     }
 
-    // FILE 状态目录优先使用显式配置，其次 workspace.root/state，最后 ~/.agentscope/fusion/state。
+    /**
+     * FILE 状态目录优先使用显式配置，其次 workspace.root/state，最后 ~/.agentscope/fusion/state。
+     */
     private static Path resolveStateRoot(AiProperties props) {
         String configured = props.getStateStore().getRoot();
         if (StringUtils.isNotBlank(configured)) {
@@ -193,10 +216,15 @@ public class AgentFactory {
         return SkillFilter.all();
     }
 
-    // CHAT 应用禁用 workspace、文件、动态技能和记忆钩子能力。
-    private HarnessAgent buildChat(AppEntity app, String tenantId, Model model, Toolkit toolkit, int maxIters) {
+    private HarnessAgent buildChat(
+            AppEntity app,
+            String tenantId,
+            Model model,
+            Toolkit toolkit,
+            int maxIters,
+            List<MiddlewareBase> middlewares) {
         log.info("构建 CHAT Agent: app={}, tenant={}", app.getId(), tenantId);
-        return HarnessAgent.builder()
+        HarnessAgent.Builder builder = HarnessAgent.builder()
                 .agentId("app:" + app.getId() + ":t:" + tenantId)
                 .name(app.getName())
                 .sysPrompt(StringUtils.defaultString(app.getSystemPrompt()))
@@ -215,12 +243,20 @@ public class AgentFactory {
                 .disableToolsConfig()
                 .disableSessionPersistence()
                 .disableMemoryTools()
-                .disableMemoryHooks()
-                .build();
+                .disableMemoryHooks();
+        if (!middlewares.isEmpty()) {
+            builder.middlewares(middlewares);
+        }
+        return builder.build();
     }
 
-    // WORKSPACE 型：per-app workspace + harness 完整能力 + 可选沙箱
-    private HarnessAgent buildWorkspace(AppEntity app, String tenantId, Model model, Toolkit toolkit, int maxIters) {
+    private HarnessAgent buildWorkspace(
+            AppEntity app,
+            String tenantId,
+            Model model,
+            Toolkit toolkit,
+            int maxIters,
+            List<MiddlewareBase> middlewares) {
         Path hostWorkspace = workspacePaths.resolveAppWorkspace(tenantId, app.getId());
         try {
             Files.createDirectories(hostWorkspace);
@@ -239,7 +275,6 @@ public class AgentFactory {
                 .stateStore(resolveStateStore(aiProperties, stateStoreProviders))
                 .workspace(hostWorkspace)
                 .skillFilter(resolveSkillFilter(app));
-        // 市场技能仓库（按配置选定；未启用则仅用 workspace 本地技能）
         AgentSkillRepository skillRepo = skillRepositoryResolver.resolve();
         if (skillRepo != null) {
             builder.skillRepository(skillRepo);
@@ -253,8 +288,11 @@ public class AgentFactory {
                     new LocalFilesystemSpec().isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties)));
         }
         if (!selfEvolve) {
-            // ASSISTANT：只读、无自记忆（workspace 由管理员维护）
+            // workspace 由管理员维护，关闭文件工具与自记忆
             builder.disableFilesystemTools().disableMemoryTools().disableMemoryHooks();
+        }
+        if (!middlewares.isEmpty()) {
+            builder.middlewares(middlewares);
         }
         // 自演化应用保留文件工具和记忆钩子；本轮文件变更由 WorkspaceAuditRecorder 审计。
         log.info(

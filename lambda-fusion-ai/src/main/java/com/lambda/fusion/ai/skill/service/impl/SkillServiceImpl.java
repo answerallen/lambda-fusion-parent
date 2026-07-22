@@ -99,7 +99,9 @@ public class SkillServiceImpl implements SkillService {
         return repo;
     }
 
-    /** 调用方需保证 description 非空。 */
+    /**
+     * @param description 调用方需保证非空
+     */
     static AgentSkill toAgentSkill(String name, String description, String markdown, Map<String, String> resources) {
         Map<String, String> res = resources == null ? Map.of() : resources;
         return new AgentSkill(name, description, markdown, res, SOURCE);

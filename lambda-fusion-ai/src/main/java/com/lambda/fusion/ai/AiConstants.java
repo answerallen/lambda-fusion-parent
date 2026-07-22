@@ -124,6 +124,55 @@ public interface AiConstants {
     }
 
     /**
+     * 知识库文档入库状态。
+     *
+     * <p>PENDING：已落库待入库；READY：解析切块入库完成；FAILED：入库失败（原因见 error_msg）。
+     */
+    @Getter
+    @AllArgsConstructor
+    enum DocumentStatus {
+        PENDING("PENDING", "待入库"),
+
+        READY("READY", "已入库"),
+
+        FAILED("FAILED", "入库失败");
+
+        private final String code;
+
+        private final String label;
+    }
+
+    /**
+     * 知识库向量库后端类型。
+     *
+     * <p>MEMORY：进程内存（InMemoryStore，零配置，重启丢失，单节点）；PGVECTOR：
+     * PostgreSQL pgvector（PgVectorStore，生产推荐，多副本共享）。
+     */
+    @Getter
+    @AllArgsConstructor
+    enum VectorStoreType {
+        MEMORY("MEMORY", "进程内存(重启丢失)"),
+
+        PGVECTOR("PGVECTOR", "PostgreSQL pgvector");
+
+        private final String code;
+
+        private final String label;
+
+        public static VectorStoreType of(String code) {
+            if (code == null) {
+                return null;
+            }
+            for (VectorStoreType type : values()) {
+                if (type.code.equalsIgnoreCase(code)) {
+                    return type;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
      * Agent 状态存储类型（多轮记忆）。按部署形态配置：
      * MEMORY/FILE 单节点；MYSQL/POSTGRES/REDIS 分布式（多副本共享）；OSS/COS 对象存储归档。
      */

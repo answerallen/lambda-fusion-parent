@@ -15,7 +15,6 @@ public interface ChatSessionService {
 
     void delete(String id);
 
-    // 加载当前用户拥有的会话（校验租户 + 用户归属），不存在抛出业务异常
     ChatSessionEntity loadOwned(String id);
 
     /**

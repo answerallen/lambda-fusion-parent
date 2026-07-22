@@ -6,8 +6,16 @@ import com.alibaba.nacos.api.ai.AiService;
 import com.alibaba.nacos.api.exception.NacosException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.channel.service.ChannelConfigService;
+import com.lambda.fusion.ai.rag.mapper.KnowledgeDocumentMapper;
+import com.lambda.fusion.ai.rag.runtime.SimpleKnowledgeAdapter;
+import com.lambda.fusion.ai.rag.service.DocumentIngestionService;
+import com.lambda.fusion.ai.rag.service.KnowledgeBaseService;
+import com.lambda.fusion.ai.rag.storage.LocalDocumentFileStorage;
+import com.lambda.fusion.ai.rag.storage.OssDocumentFileStorage;
+import com.lambda.fusion.ai.runtime.EmbeddingModelResolver;
 import com.lambda.fusion.ai.runtime.gateway.ChannelBootstrap;
 import com.lambda.fusion.ai.runtime.gateway.ChannelConfigApplier;
 import com.lambda.fusion.ai.runtime.gateway.ChannelLifecycle;
@@ -476,6 +484,44 @@ public class AiConfigure {
             public WeComCallbackController wecomCallbackController() {
                 return new WeComCallbackController();
             }
+        }
+    }
+
+    /**
+     * 知识库（RAG）运行时装配：仅 {@code lambda.fusion.ai.rag.enabled=true} 时注册检索适配器
+     * 与文档入库管线 Bean；未启用时 {@code AgentFactory} 通过 {@code ObjectProvider<KnowledgeRetriever>}
+     * 判空跳过中间件挂载，知识库/文档管理 CRUD（Controller/Service）不受影响。
+     */
+    @Configuration
+    @ConditionalOnProperty(prefix = "lambda.fusion.ai.rag", name = "enabled", havingValue = "true")
+    public static class RagConfiguration {
+
+        @Bean
+        public SimpleKnowledgeAdapter simpleKnowledgeAdapter(
+                KnowledgeBaseService knowledgeBaseService,
+                EmbeddingModelResolver embeddingModelResolver,
+                AiProperties aiProperties) {
+            return new SimpleKnowledgeAdapter(knowledgeBaseService, embeddingModelResolver, aiProperties);
+        }
+
+        @Bean
+        public DocumentIngestionService documentIngestionService(
+                KnowledgeDocumentMapper knowledgeDocumentMapper,
+                KnowledgeBaseService knowledgeBaseService,
+                SimpleKnowledgeAdapter simpleKnowledgeAdapter) {
+            return new DocumentIngestionService(knowledgeDocumentMapper, knowledgeBaseService, simpleKnowledgeAdapter);
+        }
+
+        // 文档原文件存储后端（LOCAL/OSS）；service 注入 List 按 type() 路由，扩展后端注册 Bean 即可
+        @Bean
+        public LocalDocumentFileStorage localDocumentFileStorage(AiProperties aiProperties) {
+            return new LocalDocumentFileStorage(aiProperties);
+        }
+
+        @Bean
+        public OssDocumentFileStorage ossDocumentFileStorage(
+                ObjectProvider<OssClientManager> ossClientManagerProvider, AiProperties aiProperties) {
+            return new OssDocumentFileStorage(ossClientManagerProvider, aiProperties);
         }
     }
 

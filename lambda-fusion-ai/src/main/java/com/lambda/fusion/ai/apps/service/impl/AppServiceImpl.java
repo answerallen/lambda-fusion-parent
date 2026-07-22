@@ -76,6 +76,7 @@ public class AppServiceImpl implements AppService {
         entity.setToolsAllow(dto.getToolsAllow());
         entity.setToolsDeny(dto.getToolsDeny());
         entity.setMcpServerIds(dto.getMcpServerIds());
+        entity.setKnowledgeBaseIds(dto.getKnowledgeBaseIds());
         entity.setSkillsAllow(dto.getSkillsAllow());
         entity.setSkillsDeny(dto.getSkillsDeny());
         entity.setAppType(appType);
@@ -121,6 +122,9 @@ public class AppServiceImpl implements AppService {
         }
         if (dto.getMcpServerIds() != null) {
             entity.setMcpServerIds(dto.getMcpServerIds());
+        }
+        if (dto.getKnowledgeBaseIds() != null) {
+            entity.setKnowledgeBaseIds(dto.getKnowledgeBaseIds());
         }
         if (dto.getSkillsAllow() != null) {
             entity.setSkillsAllow(dto.getSkillsAllow());

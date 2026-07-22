@@ -25,7 +25,9 @@ public class ChannelConfigApplier {
     private final ObjectProvider<ChannelManager> channelManagerProvider;
     private final ObjectProvider<ChannelConfigService> channelConfigServiceProvider;
 
-    // 启动时把 DB 配置推给所有已注册 channel
+    /**
+     * 启动时把 DB 配置推给所有已注册 channel。
+     */
     public void applyAll() {
         ChannelManager cm = channelManagerProvider.getIfAvailable();
         if (cm == null) {
@@ -36,7 +38,9 @@ public class ChannelConfigApplier {
         }
     }
 
-    // admin CRUD 后按 channelId 下发到对应 channel（若已注册）
+    /**
+     * admin CRUD 后按 channelId 下发到对应 channel（若已注册）。
+     */
     public void applyChannel(String channelId) {
         ChannelManager cm = channelManagerProvider.getIfAvailable();
         if (cm == null) {

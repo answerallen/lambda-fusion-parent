@@ -58,6 +58,11 @@ public class AiProperties {
      */
     private Skill skill = new Skill();
 
+    /**
+     * 知识库（RAG）配置（对话检索注入与 pgvector 向量库连接）。
+     */
+    private Rag rag = new Rag();
+
     @Data
     public static class Runtime {
 
@@ -356,6 +361,91 @@ public class AiProperties {
 
                 private String secretKey;
             }
+        }
+    }
+
+    /**
+     * 知识库（RAG）配置。
+     *
+     * <p>{@code enabled=false}（默认）时检索注入整组不装配，{@code AgentFactory} 判空跳过。
+     * 向量库默认 MEMORY（进程内，重启丢失，零配置即可体验）；生产建议 PGVECTOR——
+     * {@code PgVectorStore} 只接受 JDBC 连接串（不支持注入 DataSource），故连接信息走本配置
+     * 而非复用 {@code ai-postgres} 动态数据源。
+     */
+    @Data
+    public static class Rag {
+
+        /** 是否启用知识库检索注入；默认 false。 */
+        private boolean enabled = false;
+
+        /** 知识库未配置时的默认检索条数；默认 5。 */
+        private int defaultLimit = 5;
+
+        /** 默认分数阈值；默认 0.5。 */
+        private double defaultScoreThreshold = 0.5;
+
+        /** 单次注入的最大拼接字符数，防上下文膨胀；默认 4000。 */
+        private int maxInjectChars = 4000;
+
+        /** 向量库后端。 */
+        private Store store = new Store();
+
+        /** 文档原文件存储。 */
+        private DocumentStorage documentStorage = new DocumentStorage();
+
+        private PgVector pgvector = new PgVector();
+
+        /** 向量库后端：MEMORY（默认，进程内，重启丢失）/ PGVECTOR。 */
+        @Data
+        public static class Store {
+
+            private String type = "MEMORY";
+        }
+
+        /** 文档原文件存储配置。 */
+        @Data
+        public static class DocumentStorage {
+
+            /** 存储类型：LOCAL（默认）/ OSS。 */
+            private String type = "LOCAL";
+
+            private Local local = new Local();
+
+            private Oss oss = new Oss();
+
+            @Data
+            public static class Local {
+
+                /**
+                 * 原文件根目录；默认 {@code {workspace.root}/knowledge-files}，
+                 * workspace.root 未配时 {@code ~/.agentscope/fusion/knowledge-files}。
+                 */
+                private String root;
+            }
+
+            @Data
+            public static class Oss {
+
+                /** OssClientManager 中的客户端名；空 = 默认客户端。 */
+                private String clientName;
+
+                /** 对象 key 前缀；默认 {@code ai/knowledge/}。 */
+                private String keyPrefix = "ai/knowledge/";
+            }
+        }
+
+        /** pgvector 向量库连接配置（环境变量驱动，如 {@code ${AI_PGVECTOR_JDBC_URL}}）。 */
+        @Data
+        public static class PgVector {
+
+            private String jdbcUrl;
+
+            private String username;
+
+            private String password;
+
+            /** schema 名；默认 {@code public}。 */
+            private String schema = "public";
         }
     }
 }
