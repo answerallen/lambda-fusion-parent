@@ -39,6 +39,9 @@ public class CreateApp {
     @Schema(description = "沙箱后端(WORKSPACE 型): HOST|DOCKER|KUBERNETES|E2B|DAYTONA|AGENTRUN")
     private String sandboxBackend = "HOST";
 
+    @Schema(description = "受众: B|C|ALL")
+    private String audience = "ALL";
+
     @Schema(description = "工具白名单")
     private List<String> toolsAllow;
 

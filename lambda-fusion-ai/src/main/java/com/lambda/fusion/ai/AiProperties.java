@@ -1,5 +1,7 @@
 package com.lambda.fusion.ai;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -35,6 +37,11 @@ public class AiProperties {
      * 沙箱配置（WORKSPACE 型应用的执行隔离）。
      */
     private Sandbox sandbox = new Sandbox();
+
+    /**
+     * 受众配置（B/C 端角色映射，用于应用可见性）。
+     */
+    private Audience audience = new Audience();
 
     @Data
     public static class Runtime {
@@ -122,5 +129,22 @@ public class AiProperties {
             private String apiUrl;
             private String workspaceRoot = "/workspace";
         }
+    }
+
+    /**
+     * 受众配置：B/C 端角色名列表，用于应用可见性过滤。
+     */
+    @Data
+    public static class Audience {
+
+        /**
+         * B 端角色名列表（命中即视为 B 端用户，可见 audience=B 的应用）。
+         */
+        private List<String> bRoles = new ArrayList<>();
+
+        /**
+         * C 端角色名列表。
+         */
+        private List<String> cRoles = new ArrayList<>();
     }
 }

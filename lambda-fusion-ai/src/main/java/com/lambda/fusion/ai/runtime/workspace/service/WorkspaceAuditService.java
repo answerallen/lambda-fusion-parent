@@ -12,5 +12,5 @@ public interface WorkspaceAuditService {
 
     void record(WorkspaceAuditEntity entity);
 
-    List<WorkspaceAuditEntity> listByApp(String appId);
+    List<WorkspaceAuditEntity> listByAppAndTenant(String appId, String tenantId);
 }

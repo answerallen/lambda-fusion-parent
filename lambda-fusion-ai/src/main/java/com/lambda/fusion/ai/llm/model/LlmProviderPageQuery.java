@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.lambda.fusion.ai.llm.model.entity.LlmProviderEntity;
 import com.lambda.fusion.core.pagination.PageQuery;
-import com.lambda.fusion.core.utils.AuthUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -26,8 +25,6 @@ public class LlmProviderPageQuery extends PageQuery<LlmProviderEntity> {
     @Override
     public LambdaQueryWrapper<LlmProviderEntity> getLambdaQueryWrapper() {
         LambdaQueryWrapper<LlmProviderEntity> wrapper = new LambdaQueryWrapper<>();
-        String tenantId = AuthUtils.getTenantId();
-        wrapper.eq(StringUtils.isNotBlank(tenantId), LlmProviderEntity::getTenantId, tenantId);
         wrapper.like(StringUtils.isNotBlank(name), LlmProviderEntity::getName, name);
         wrapper.eq(StringUtils.isNotBlank(providerType), LlmProviderEntity::getProviderType, providerType);
         wrapper.eq(enabled != null, LlmProviderEntity::getEnabled, enabled);

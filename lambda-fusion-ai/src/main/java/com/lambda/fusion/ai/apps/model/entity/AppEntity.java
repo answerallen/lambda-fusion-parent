@@ -19,10 +19,6 @@ public class AppEntity {
     @Schema(description = "主键")
     private String id;
 
-    @TableField("tenant_id")
-    @Schema(description = "租户ID")
-    private String tenantId;
-
     @TableField("name")
     @Schema(description = "应用名称")
     private String name;
@@ -58,6 +54,14 @@ public class AppEntity {
     @TableField("sandbox_backend")
     @Schema(description = "沙箱后端(WORKSPACE 型): HOST|DOCKER|KUBERNETES|E2B|DAYTONA|AGENTRUN")
     private String sandboxBackend;
+
+    @TableField("owner_id")
+    @Schema(description = "所有者ID(空=平台预置能力;用户ID=独立应用,预留)")
+    private String ownerId;
+
+    @TableField("audience")
+    @Schema(description = "受众: B|C|ALL")
+    private String audience;
 
     @TableField(value = "tools_allow", typeHandler = JacksonTypeHandler.class)
     @Schema(description = "工具白名单")

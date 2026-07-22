@@ -17,10 +17,6 @@ public class LlmProviderEntity {
     @Schema(description = "主键")
     private String id;
 
-    @TableField("tenant_id")
-    @Schema(description = "租户ID")
-    private String tenantId;
-
     @TableField("name")
     @Schema(description = "提供方名称")
     private String name;

@@ -12,7 +12,6 @@ import com.lambda.fusion.ai.mcp.model.UpdateMcpServer;
 import com.lambda.fusion.ai.mcp.model.entity.McpServerEntity;
 import com.lambda.fusion.ai.mcp.service.McpServerService;
 import com.lambda.fusion.ai.runtime.event.AiConfigChangedEvent;
-import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.tool.mcp.McpClientBuilder;
 import io.agentscope.core.tool.mcp.McpClientWrapper;
@@ -48,18 +47,16 @@ public class McpServerServiceImpl implements McpServerService {
 
     @Override
     public McpServerEntity get(String id) {
-        return requireOwned(id);
+        return requireExists(id);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public McpServerEntity create(CreateMcpServer dto) {
         validateTransport(dto.getTransport());
-        String tenantId = AuthUtils.getTenantId();
-        ensureNameUnique(tenantId, dto.getName(), null);
+        ensureNameUnique(dto.getName(), null);
         McpServerEntity entity = new McpServerEntity();
         entity.setId(IdUtil.getSnowflakeNextIdStr());
-        entity.setTenantId(tenantId);
         entity.setName(dto.getName());
         entity.setTransport(dto.getTransport());
         entity.setCommand(dto.getCommand());
@@ -80,13 +77,13 @@ public class McpServerServiceImpl implements McpServerService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void update(String id, UpdateMcpServer dto) {
-        McpServerEntity entity = requireOwned(id);
+        McpServerEntity entity = requireExists(id);
         if (StringUtils.isNotBlank(dto.getTransport())) {
             validateTransport(dto.getTransport());
             entity.setTransport(dto.getTransport());
         }
         if (StringUtils.isNotBlank(dto.getName()) && !dto.getName().equals(entity.getName())) {
-            ensureNameUnique(entity.getTenantId(), dto.getName(), id);
+            ensureNameUnique(dto.getName(), id);
             entity.setName(dto.getName());
         }
         if (dto.getCommand() != null) {
@@ -121,14 +118,14 @@ public class McpServerServiceImpl implements McpServerService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String id) {
-        requireOwned(id);
+        requireExists(id);
         mcpServerMapper.deleteById(id);
         eventPublisher.publishEvent(AiConfigChangedEvent.all());
     }
 
     @Override
     public McpServerEntity loadById(String id) {
-        return requireOwned(id);
+        return requireExists(id);
     }
 
     @Override
@@ -166,7 +163,7 @@ public class McpServerServiceImpl implements McpServerService {
 
     @Override
     public int testConnection(String id) {
-        McpServerEntity entity = requireOwned(id);
+        McpServerEntity entity = requireExists(id);
         McpClientWrapper wrapper = buildWrapper(entity);
         try {
             var tools = wrapper.listTools().block();
@@ -181,19 +178,17 @@ public class McpServerServiceImpl implements McpServerService {
         }
     }
 
-    private McpServerEntity requireOwned(String id) {
-        McpServerEntity entity = mcpServerMapper.selectOne(new LambdaQueryWrapper<McpServerEntity>()
-                .eq(McpServerEntity::getId, id)
-                .eq(McpServerEntity::getTenantId, AuthUtils.getTenantId()));
+    private McpServerEntity requireExists(String id) {
+        McpServerEntity entity =
+                mcpServerMapper.selectOne(new LambdaQueryWrapper<McpServerEntity>().eq(McpServerEntity::getId, id));
         if (entity == null) {
             throw new AiBusinessException(AiErrorCode.MCP_SERVER_NOT_FOUND, id);
         }
         return entity;
     }
 
-    private void ensureNameUnique(String tenantId, String name, String excludeId) {
+    private void ensureNameUnique(String name, String excludeId) {
         boolean exists = mcpServerMapper.exists(new LambdaQueryWrapper<McpServerEntity>()
-                .eq(McpServerEntity::getTenantId, tenantId)
                 .eq(McpServerEntity::getName, name)
                 .ne(excludeId != null, McpServerEntity::getId, excludeId));
         if (exists) {

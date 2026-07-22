@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.AiConstants.AppType;
 import com.lambda.fusion.ai.AiConstants.SandboxBackend;
+import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.mapper.AppMapper;
 import com.lambda.fusion.ai.apps.model.AppPageQuery;
 import com.lambda.fusion.ai.apps.model.CreateApp;
@@ -16,15 +17,14 @@ import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.llm.service.LlmModelService;
 import com.lambda.fusion.ai.runtime.event.AiConfigChangedEvent;
 import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
-import com.lambda.fusion.ai.runtime.workspace.WorkspaceScaffolder;
 import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.jspecify.annotations.NonNull;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +39,7 @@ public class AppServiceImpl implements AppService {
     private final LlmModelService llmModelService;
     private final ApplicationEventPublisher eventPublisher;
     private final WorkspacePaths workspacePaths;
-    private final WorkspaceScaffolder workspaceScaffolder;
+    private final AiProperties aiProperties;
 
     @Override
     public Page<AppEntity> page(AppPageQuery query) {
@@ -48,35 +48,26 @@ public class AppServiceImpl implements AppService {
 
     @Override
     public AppEntity get(String id) {
-        return requireOwned(id);
+        return requireExists(id);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AppEntity create(CreateApp dto) {
-        String tenantId = AuthUtils.getTenantId();
-        // 校验模型存在且属于当前租户
+        // 校验模型存在
         llmModelService.loadById(dto.getModelId());
         String appType = validateAppType(dto.getAppType());
         String sandboxBackend = validateSandboxBackend(dto.getSandboxBackend());
-        ensureNameUnique(tenantId, dto.getName(), null);
-        AppEntity entity = getAppEntity(dto, tenantId, appType, sandboxBackend);
+        ensureNameUnique(dto.getName(), null);
+        AppEntity entity = getAppEntity(dto, appType, sandboxBackend);
         appMapper.insert(entity);
-        if (AppType.WORKSPACE.getCode().equalsIgnoreCase(appType)) {
-            try {
-                workspaceScaffolder.scaffold(workspacePaths.resolveAppWorkspace(tenantId, entity.getId()), entity);
-            } catch (IOException e) {
-                throw new AiBusinessException(AiErrorCode.CONFIGURATION_ERROR, e);
-            }
-        }
         eventPublisher.publishEvent(AiConfigChangedEvent.app(entity.getId()));
         return entity;
     }
 
-    private static @NonNull AppEntity getAppEntity(CreateApp dto, String tenantId, String appType, String sandboxBackend) {
+    private static AppEntity getAppEntity(CreateApp dto, String appType, String sandboxBackend) {
         AppEntity entity = new AppEntity();
         entity.setId(IdUtil.getSnowflakeNextIdStr());
-        entity.setTenantId(tenantId);
         entity.setName(dto.getName());
         entity.setDescription(dto.getDescription());
         entity.setSystemPrompt(dto.getSystemPrompt());
@@ -89,6 +80,7 @@ public class AppServiceImpl implements AppService {
         entity.setAppType(appType);
         entity.setSelfEvolve(dto.getSelfEvolve());
         entity.setSandboxBackend(sandboxBackend);
+        entity.setAudience(StringUtils.defaultIfBlank(dto.getAudience(), "ALL"));
         entity.setEnabled(dto.getEnabled());
         entity.setCreatedBy(AuthUtils.getUser().getUsername());
         entity.setCreatedAt(LocalDateTime.now());
@@ -99,13 +91,13 @@ public class AppServiceImpl implements AppService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void update(String id, UpdateApp dto) {
-        AppEntity entity = requireOwned(id);
+        AppEntity entity = requireExists(id);
         if (StringUtils.isNotBlank(dto.getModelId()) && !dto.getModelId().equals(entity.getModelId())) {
             llmModelService.loadById(dto.getModelId());
             entity.setModelId(dto.getModelId());
         }
         if (StringUtils.isNotBlank(dto.getName()) && !dto.getName().equals(entity.getName())) {
-            ensureNameUnique(entity.getTenantId(), dto.getName(), id);
+            ensureNameUnique(dto.getName(), id);
             entity.setName(dto.getName());
         }
         if (dto.getDescription() != null) {
@@ -129,12 +121,15 @@ public class AppServiceImpl implements AppService {
         if (dto.getMcpServerIds() != null) {
             entity.setMcpServerIds(dto.getMcpServerIds());
         }
-        // appType 创建后不可变；selfEvolve / sandboxBackend 可调
+        // appType 创建后不可变；selfEvolve / sandboxBackend / audience 可调
         if (dto.getSelfEvolve() != null) {
             entity.setSelfEvolve(dto.getSelfEvolve());
         }
         if (StringUtils.isNotBlank(dto.getSandboxBackend())) {
             entity.setSandboxBackend(validateSandboxBackend(dto.getSandboxBackend()));
+        }
+        if (dto.getAudience() != null) {
+            entity.setAudience(dto.getAudience());
         }
         if (dto.getEnabled() != null) {
             entity.setEnabled(dto.getEnabled());
@@ -147,29 +142,72 @@ public class AppServiceImpl implements AppService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String id) {
-        requireOwned(id);
+        AppEntity app = requireExists(id);
+        if (AppType.WORKSPACE.getCode().equalsIgnoreCase(app.getAppType())) {
+            workspacePaths.deleteAppWorkspaces(id);
+        }
         appMapper.deleteById(id);
         eventPublisher.publishEvent(AiConfigChangedEvent.app(id));
     }
 
     @Override
     public AppEntity loadById(String id) {
-        return requireOwned(id);
+        return requireExists(id);
     }
 
-    private AppEntity requireOwned(String id) {
-        AppEntity entity = appMapper.selectOne(new LambdaQueryWrapper<AppEntity>()
-                .eq(AppEntity::getId, id)
-                .eq(AppEntity::getTenantId, AuthUtils.getTenantId()));
+    @Override
+    public List<AppEntity> listAvailable() {
+        var user = AuthUtils.getUser();
+        String userId = user.getUsername();
+        Set<String> roles = user.getRoles();
+        List<AppEntity> candidates = appMapper.selectList(new LambdaQueryWrapper<AppEntity>()
+                .eq(AppEntity::getEnabled, Boolean.TRUE)
+                .and(w -> w.isNull(AppEntity::getOwnerId).or().eq(AppEntity::getOwnerId, userId)));
+        return candidates.stream()
+                .filter(app -> isAppVisible(app, roles, userId))
+                .toList();
+    }
+
+    @Override
+    public AppEntity loadAvailable(String appId) {
+        AppEntity app = requireExists(appId);
+        if (!Boolean.TRUE.equals(app.getEnabled())) {
+            throw new AiBusinessException(AiErrorCode.APP_DISABLED, appId);
+        }
+        var user = AuthUtils.getUser();
+        if (!isAppVisible(app, user.getRoles(), user.getUsername())) {
+            throw new AiBusinessException(AiErrorCode.APP_NOT_FOUND, appId);
+        }
+        return app;
+    }
+
+    /**
+     * 应用可见性：独立应用仅所有者可见；平台应用按 audience + 角色（ALL=所有登录用户）。
+     */
+    private boolean isAppVisible(AppEntity app, Set<String> roles, String userId) {
+        if (StringUtils.isNotBlank(app.getOwnerId())) {
+            return app.getOwnerId().equals(userId);
+        }
+        String audience = StringUtils.defaultIfBlank(app.getAudience(), "ALL");
+        if ("ALL".equalsIgnoreCase(audience)) {
+            return true;
+        }
+        List<String> requiredRoles = "B".equalsIgnoreCase(audience)
+                ? aiProperties.getAudience().getBRoles()
+                : aiProperties.getAudience().getCRoles();
+        return roles != null && requiredRoles != null && requiredRoles.stream().anyMatch(roles::contains);
+    }
+
+    private AppEntity requireExists(String id) {
+        AppEntity entity = appMapper.selectOne(new LambdaQueryWrapper<AppEntity>().eq(AppEntity::getId, id));
         if (entity == null) {
             throw new AiBusinessException(AiErrorCode.APP_NOT_FOUND, id);
         }
         return entity;
     }
 
-    private void ensureNameUnique(String tenantId, String name, String excludeId) {
+    private void ensureNameUnique(String name, String excludeId) {
         boolean exists = appMapper.exists(new LambdaQueryWrapper<AppEntity>()
-                .eq(AppEntity::getTenantId, tenantId)
                 .eq(AppEntity::getName, name)
                 .ne(excludeId != null, AppEntity::getId, excludeId));
         if (exists) {

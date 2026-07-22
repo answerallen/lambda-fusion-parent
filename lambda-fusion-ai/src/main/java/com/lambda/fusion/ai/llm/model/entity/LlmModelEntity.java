@@ -18,10 +18,6 @@ public class LlmModelEntity {
     @Schema(description = "主键")
     private String id;
 
-    @TableField("tenant_id")
-    @Schema(description = "租户ID")
-    private String tenantId;
-
     @TableField("provider_id")
     @Schema(description = "所属提供方ID")
     private String providerId;

@@ -14,7 +14,6 @@ import com.lambda.fusion.ai.llm.model.entity.LlmProviderEntity;
 import com.lambda.fusion.ai.llm.service.LlmProviderService;
 import com.lambda.fusion.ai.runtime.event.AiConfigChangedEvent;
 import com.lambda.fusion.ai.security.KeyEncryptionService;
-import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -39,18 +38,16 @@ public class LlmProviderServiceImpl implements LlmProviderService {
 
     @Override
     public LlmProviderEntity get(String id) {
-        return requireOwned(id);
+        return requireExists(id);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public LlmProviderEntity create(CreateLlmProvider dto) {
         validateProviderType(dto.getProviderType());
-        String tenantId = AuthUtils.getTenantId();
-        ensureNameUnique(tenantId, dto.getName(), null);
+        ensureNameUnique(dto.getName(), null);
         LlmProviderEntity entity = new LlmProviderEntity();
         entity.setId(IdUtil.getSnowflakeNextIdStr());
-        entity.setTenantId(tenantId);
         entity.setName(dto.getName());
         entity.setProviderType(dto.getProviderType());
         entity.setBaseUrl(dto.getBaseUrl());
@@ -67,13 +64,13 @@ public class LlmProviderServiceImpl implements LlmProviderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void update(String id, UpdateLlmProvider dto) {
-        LlmProviderEntity entity = requireOwned(id);
+        LlmProviderEntity entity = requireExists(id);
         if (StringUtils.isNotBlank(dto.getProviderType())) {
             validateProviderType(dto.getProviderType());
             entity.setProviderType(dto.getProviderType());
         }
         if (StringUtils.isNotBlank(dto.getName()) && !dto.getName().equals(entity.getName())) {
-            ensureNameUnique(entity.getTenantId(), dto.getName(), id);
+            ensureNameUnique(dto.getName(), id);
             entity.setName(dto.getName());
         }
         if (dto.getBaseUrl() != null) {
@@ -96,29 +93,27 @@ public class LlmProviderServiceImpl implements LlmProviderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(String id) {
-        requireOwned(id);
+        requireExists(id);
         llmProviderMapper.deleteById(id);
         eventPublisher.publishEvent(AiConfigChangedEvent.all());
     }
 
     @Override
     public LlmProviderEntity loadById(String id) {
-        return requireOwned(id);
+        return requireExists(id);
     }
 
-    private LlmProviderEntity requireOwned(String id) {
-        LlmProviderEntity entity = llmProviderMapper.selectOne(new LambdaQueryWrapper<LlmProviderEntity>()
-                .eq(LlmProviderEntity::getId, id)
-                .eq(LlmProviderEntity::getTenantId, AuthUtils.getTenantId()));
+    private LlmProviderEntity requireExists(String id) {
+        LlmProviderEntity entity = llmProviderMapper.selectOne(
+                new LambdaQueryWrapper<LlmProviderEntity>().eq(LlmProviderEntity::getId, id));
         if (entity == null) {
             throw new AiBusinessException(AiErrorCode.LLM_PROVIDER_NOT_FOUND, id);
         }
         return entity;
     }
 
-    private void ensureNameUnique(String tenantId, String name, String excludeId) {
+    private void ensureNameUnique(String name, String excludeId) {
         boolean exists = llmProviderMapper.exists(new LambdaQueryWrapper<LlmProviderEntity>()
-                .eq(LlmProviderEntity::getTenantId, tenantId)
                 .eq(LlmProviderEntity::getName, name)
                 .ne(excludeId != null, LlmProviderEntity::getId, excludeId));
         if (exists) {

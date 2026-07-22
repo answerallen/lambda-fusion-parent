@@ -41,11 +41,13 @@ public class AppsWorkspaceController {
 
     @Operation(summary = "列出 workspace 文件")
     @GetMapping("/files")
-    public List<WorkspaceFileEntry> list(@Parameter(description = "应用ID", required = true) @PathVariable String appId) {
+    public List<WorkspaceFileEntry> list(
+            @Parameter(description = "应用ID", required = true) @PathVariable String appId,
+            @Parameter(description = "租户ID(指定哪个运营商的 workspace)", required = true) @RequestParam String tenantId) {
         AppEntity app = appService.loadById(appId);
         assertWorkspace(app);
         try {
-            return workspaceFileService.list(resolve(app));
+            return workspaceFileService.list(resolve(app, tenantId));
         } catch (IOException e) {
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, e);
         }
@@ -55,11 +57,12 @@ public class AppsWorkspaceController {
     @GetMapping("/file")
     public String read(
             @Parameter(description = "应用ID", required = true) @PathVariable String appId,
+            @Parameter(description = "租户ID", required = true) @RequestParam String tenantId,
             @Parameter(description = "相对路径", required = true) @RequestParam String path) {
         AppEntity app = appService.loadById(appId);
         assertWorkspace(app);
         try {
-            return workspaceFileService.read(resolve(app), path);
+            return workspaceFileService.read(resolve(app, tenantId), path);
         } catch (IOException e) {
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, e);
         }
@@ -70,19 +73,20 @@ public class AppsWorkspaceController {
     @PutMapping("/file")
     public void write(
             @Parameter(description = "应用ID", required = true) @PathVariable String appId,
+            @Parameter(description = "租户ID", required = true) @RequestParam String tenantId,
             @Parameter(description = "相对路径", required = true) @RequestParam String path,
             @RequestBody String content) {
         AppEntity app = appService.loadById(appId);
         assertWorkspace(app);
         try {
-            workspaceFileService.write(resolve(app), path, content);
+            workspaceFileService.write(resolve(app, tenantId), path, content);
         } catch (IOException e) {
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, e);
         }
     }
 
-    private Path resolve(AppEntity app) {
-        return workspacePaths.resolveAppWorkspace(app.getTenantId(), app.getId());
+    private Path resolve(AppEntity app, String tenantId) {
+        return workspacePaths.resolveAppWorkspace(tenantId, app.getId());
     }
 
     private void assertWorkspace(AppEntity app) {
@@ -94,8 +98,9 @@ public class AppsWorkspaceController {
     @Operation(summary = "查询 workspace 自演化审计记录")
     @GetMapping("/audit")
     public List<WorkspaceAuditEntity> audit(
-            @Parameter(description = "应用ID", required = true) @PathVariable String appId) {
+            @Parameter(description = "应用ID", required = true) @PathVariable String appId,
+            @Parameter(description = "租户ID", required = true) @RequestParam String tenantId) {
         appService.loadById(appId);
-        return workspaceAuditService.listByApp(appId);
+        return workspaceAuditService.listByAppAndTenant(appId, tenantId);
     }
 }

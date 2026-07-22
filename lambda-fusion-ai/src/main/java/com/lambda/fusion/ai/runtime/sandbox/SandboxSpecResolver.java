@@ -35,10 +35,16 @@ public class SandboxSpecResolver {
         if (backend == null || backend == SandboxBackend.HOST) {
             return Optional.empty();
         }
-        Optional<SandboxFilesystemSpec> spec = providers.stream()
-                .filter(p -> p.backend() == backend)
-                .findFirst()
-                .map(p -> p.create(app, hostWorkspace));
+        Optional<SandboxFilesystemSpec> spec;
+        try {
+            spec = providers.stream()
+                    .filter(p -> p.backend() == backend)
+                    .findFirst()
+                    .map(p -> p.create(app, hostWorkspace));
+        } catch (Exception e) {
+            log.warn("沙箱后端 {} 创建失败，将回退到宿主文件系统: {}", backend, e.getMessage());
+            return Optional.empty();
+        }
         if (spec.isEmpty()) {
             log.warn("沙箱后端 {} 的扩展未安装，将回退到宿主文件系统", backend);
         }

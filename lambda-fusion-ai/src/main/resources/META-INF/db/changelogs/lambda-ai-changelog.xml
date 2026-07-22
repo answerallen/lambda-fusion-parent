@@ -14,9 +14,6 @@
             <column name="id" type="varchar(32)" remarks="主键">
                 <constraints primaryKey="true" primaryKeyName="pk_ai_llm_provider_id" nullable="false"/>
             </column>
-            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
-                <constraints nullable="false"/>
-            </column>
             <column name="name" type="varchar(128)" remarks="提供方名称">
                 <constraints nullable="false"/>
             </column>
@@ -32,9 +29,6 @@
             <column name="created_at" type="datetime" remarks="创建时间"/>
             <column name="updated_at" type="datetime" remarks="更新时间"/>
         </createTable>
-        <createIndex tableName="ai_llm_provider" indexName="idx_ai_llm_provider_tenant">
-            <column name="tenant_id"/>
-        </createIndex>
     </changeSet>
 
     <!-- ========== LLM 模型 ========== -->
@@ -47,9 +41,6 @@
         <createTable tableName="ai_llm_model" remarks="LLM 模型配置">
             <column name="id" type="varchar(32)" remarks="主键">
                 <constraints primaryKey="true" primaryKeyName="pk_ai_llm_model_id" nullable="false"/>
-            </column>
-            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
-                <constraints nullable="false"/>
             </column>
             <column name="provider_id" type="varchar(32)" remarks="所属提供方ID">
                 <constraints nullable="false"/>
@@ -71,9 +62,6 @@
             <column name="created_at" type="datetime" remarks="创建时间"/>
             <column name="updated_at" type="datetime" remarks="更新时间"/>
         </createTable>
-        <createIndex tableName="ai_llm_model" indexName="idx_ai_llm_model_tenant">
-            <column name="tenant_id"/>
-        </createIndex>
         <createIndex tableName="ai_llm_model" indexName="idx_ai_llm_model_provider">
             <column name="provider_id"/>
         </createIndex>
@@ -94,6 +82,19 @@
                 <constraints nullable="false"/>
             </column>
             <column name="name" type="varchar(128)" remarks="应用名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="owner_id" type="varchar(64)" remarks="所有者ID(空=平台预置能力;用户ID=独立应用,预留)"/>
+            <column name="audience" type="varchar(8)" defaultValue="ALL" remarks="受众: B|C|ALL">
+                <constraints nullable="false"/>
+            </column>
+            <column name="app_type" type="varchar(16)" defaultValue="CHAT" remarks="应用类型: CHAT|WORKSPACE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="self_evolve" type="tinyint(1)" defaultValueNumeric="0" remarks="是否自演化(WORKSPACE 型)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sandbox_backend" type="varchar(16)" defaultValue="HOST" remarks="沙箱后端(WORKSPACE 型)">
                 <constraints nullable="false"/>
             </column>
             <column name="description" type="varchar(512)" remarks="应用描述"/>
@@ -127,9 +128,6 @@
             <column name="id" type="varchar(32)" remarks="主键">
                 <constraints primaryKey="true" primaryKeyName="pk_ai_mcp_server_id" nullable="false"/>
             </column>
-            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
-                <constraints nullable="false"/>
-            </column>
             <column name="name" type="varchar(128)" remarks="服务名称">
                 <constraints nullable="false"/>
             </column>
@@ -149,9 +147,6 @@
             <column name="created_at" type="datetime" remarks="创建时间"/>
             <column name="updated_at" type="datetime" remarks="更新时间"/>
         </createTable>
-        <createIndex tableName="ai_mcp_server" indexName="idx_ai_mcp_server_tenant">
-            <column name="tenant_id"/>
-        </createIndex>
     </changeSet>
 
     <!-- ========== 对话会话 ========== -->
@@ -220,26 +215,6 @@
         <createIndex tableName="ai_chat_message" indexName="idx_ai_chat_message_tenant">
             <column name="tenant_id"/>
         </createIndex>
-    </changeSet>
-
-    <!-- ========== ai_app 扩展：应用类型 / 自演化 / 沙箱后端 ========== -->
-    <changeSet id="lambda-ai-202607210007" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <not>
-                <columnExists tableName="ai_app" columnName="app_type"/>
-            </not>
-        </preConditions>
-        <addColumn tableName="ai_app">
-            <column name="app_type" type="varchar(16)" defaultValue="CHAT" remarks="应用类型: CHAT|WORKSPACE">
-                <constraints nullable="false"/>
-            </column>
-            <column name="self_evolve" type="tinyint(1)" defaultValueNumeric="0" remarks="是否自演化(WORKSPACE 型)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="sandbox_backend" type="varchar(16)" defaultValue="HOST" remarks="沙箱后端(WORKSPACE 型)">
-                <constraints nullable="false"/>
-            </column>
-        </addColumn>
     </changeSet>
 
     <!-- ========== 自演化审计 ========== -->

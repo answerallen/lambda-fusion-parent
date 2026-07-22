@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.fusion.ai.runtime.workspace.entity.WorkspaceAuditEntity;
 import com.lambda.fusion.ai.runtime.workspace.mapper.WorkspaceAuditMapper;
 import com.lambda.fusion.ai.runtime.workspace.service.WorkspaceAuditService;
-import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -25,10 +24,10 @@ public class WorkspaceAuditServiceImpl implements WorkspaceAuditService {
     }
 
     @Override
-    public List<WorkspaceAuditEntity> listByApp(String appId) {
+    public List<WorkspaceAuditEntity> listByAppAndTenant(String appId, String tenantId) {
         return workspaceAuditMapper.selectList(new LambdaQueryWrapper<WorkspaceAuditEntity>()
                 .eq(WorkspaceAuditEntity::getAppId, appId)
-                .eq(WorkspaceAuditEntity::getTenantId, AuthUtils.getTenantId())
+                .eq(WorkspaceAuditEntity::getTenantId, tenantId)
                 .orderByDesc(WorkspaceAuditEntity::getCreatedAt));
     }
 }

@@ -1,8 +1,10 @@
 # Lambda Fusion AI 模块
 
-`lambda-fusion-ai` 是 Lambda Fusion 体系中的 AI 能力模块，基于 AgentScope 2.0 构建，面向 Spring Boot 提供多智能应用托管能力：在数据库中定义多个智能应用（App），每个应用绑定模型、系统提示词、工具与 MCP 服务，对外提供租户隔离的流式对话；WORKSPACE 型应用进一步对齐 AgentScope harness 完整能力（workspace/技能/子agent/记忆/沙箱/自演化）。
+`lambda-fusion-ai` 是 Lambda Fusion 体系中的 AI 能力模块，基于 AgentScope 2.0 构建，面向 Spring Boot 提供多智能应用托管能力：平台（ISV）预置智能体提供给运营商，每个应用绑定模型、系统提示词、工具与 MCP 服务，对外提供运营商隔离的流式对话；WORKSPACE 型应用进一步对齐 AgentScope harness 完整能力（workspace/技能/子agent/记忆/沙箱/自演化）。
 
 适用于需要在业务系统中集成多应用 AI 对话、模型管理、MCP 工具、自演化 Agent、沙箱执行能力的 Spring Boot 应用。
+
+> 能力表（app/provider/model/mcp）为平台级全局资源（无 tenant_id）；运营商隔离发生在会话层（session/message/audit 按 `tenant_id`）与运行时（agent 实例 + 工具按用户 tenant 查业务数据）。应用按 `audience`(B/C/ALL)+角色 或 `ownerId` 控制可见性。
 
 ## 1. 设计概览
 
@@ -20,11 +22,12 @@ WORKSPACE 型的 `sandboxBackend` 决定执行隔离：`HOST`（宿主，无 she
 | --- | --- |
 | 自动装配 | `AiAutoConfiguration -> AiConfigure` |
 | 模型管理 | DB 驱动：提供方 + 模型，API Key AES-GCM 加密 |
-| 智能应用 | `/v1/ai/apps` CRUD，appType/selfEvolve/sandboxBackend |
-| MCP 工具 | `/v1/ai/mcp-servers`，按应用装载 + 本地 `@Tool` |
+| 智能应用 | `/v1/ai/apps` CRUD（平台预置，全局），appType/selfEvolve/sandboxBackend/audience/ownerId |
+| MCP 工具 | `/v1/ai/mcp-servers`（全局），按应用装载 + 本地 `@Tool` |
 | 对话 | `/v1/ai/sessions` 会话 + SSE 流式聊天，多轮上下文（内存状态） |
-| Workspace | `/v1/ai/apps/{id}/workspace/*` 文件管理 + 自演化审计 |
-| 多租户 | 所有表 `tenant_id` 隔离，应用层过滤 |
+| Workspace | `/v1/ai/apps/{id}/workspace/*?tenantId=` 文件管理 + 自演化审计 |
+| 可见性 | app 按 `audience`(B/C/ALL)+角色 / `ownerId` 过滤；`GET /v1/ai/apps/available`（登录即可） |
+| 运营商隔离 | 能力表(app/provider/model/mcp)全局无 tenant_id；session/message/audit 按 `tenant_id` 隔离 |
 
 ### 架构
 
@@ -70,18 +73,18 @@ WORKSPACE 型的 `sandboxBackend` 决定执行隔离：`HOST`（宿主，无 she
 提供方类型 `dashscope`/`openai`/`ollama`；模型类型 `CHAT`/`EMBEDDING`；API Key 加密存储；`AiModelResolver` 按 modelId 解析为 AgentScope `Model`。端点：`/v1/ai/llm-providers`、`/v1/ai/llm-models`。
 
 ### 4.2 智能应用
-应用字段：`modelId` `systemPrompt` `maxIters` `temperature` `toolsAllow` `toolsDeny` `mcpServerIds` `appType` `selfEvolve` `sandboxBackend` `enabled`。端点：`/v1/ai/apps`。`appType` 创建后不可变；`selfEvolve`/`sandboxBackend` 可调。
+应用字段：`modelId` `systemPrompt` `maxIters` `temperature` `toolsAllow` `toolsDeny` `mcpServerIds` `appType` `selfEvolve` `sandboxBackend` `audience`(B/C/ALL) `ownerId`(预留独立应用) `enabled`。CRUD 端点 `/v1/ai/apps`（ROLE_DEV，平台 ISV 管理全局能力）；用户可用应用 `GET /v1/ai/apps/available`（登录，按 audience+角色/owner 过滤）。`appType` 创建后不可变；`selfEvolve`/`sandboxBackend`/`audience` 可调。
 
 ### 4.3 MCP 服务
 传输 `stdio`/`sse`/`http`/`streamable_http`；`ToolkitAssembler` 按应用装载，单个失败不影响其余；`POST /v1/ai/mcp-servers/{id}/test` 测连通性。
 
 ### 4.4 Workspace（WORKSPACE 型）
-- 创建 WORKSPACE 应用时自动脚手架：`AGENTS.md`/`skills/`/`subagents/`/`memory/`/`knowledge/`/`tools.json`。
-- 文件管理 API（ROLE_DEV）：
-  - `GET /v1/ai/apps/{id}/workspace/files` 列出
-  - `GET /v1/ai/apps/{id}/workspace/file?path=` 读取
-  - `PUT /v1/ai/apps/{id}/workspace/file?path=` 写入
-  - `GET /v1/ai/apps/{id}/workspace/audit` 自演化审计记录
+- 首次对话时按运营商自动脚手架（per-`tenantId` workspace）：`AGENTS.md`/`skills/`/`subagents/`/`memory/`/`knowledge/`/`tools.json`。
+- 文件管理 API（ROLE_DEV，需指定 `tenantId` 查看对应运营商的 workspace）：
+  - `GET /v1/ai/apps/{id}/workspace/files?tenantId=` 列出
+  - `GET /v1/ai/apps/{id}/workspace/file?tenantId=&path=` 读取
+  - `PUT /v1/ai/apps/{id}/workspace/file?tenantId=&path=` 写入
+  - `GET /v1/ai/apps/{id}/workspace/audit?tenantId=` 自演化审计记录
 
 ### 4.5 对话
 `POST /v1/ai/sessions` 创建、`GET /v1/ai/sessions/page` 列表、`GET /v1/ai/sessions/{id}/messages` 历史、`POST /v1/ai/sessions/{id}/chat`（SSE）流式对话。
@@ -96,6 +99,9 @@ lambda:
         default-max-iters: 10
       security:
         encryption-key: ${AI_ENCRYPTION_KEY}      # AES 密钥，生产必配
+      audience:
+        b-roles: [ROLE_OPERATOR]                    # B 端角色名（下游自定义）
+        c-roles: [ROLE_CONSUMER]                    # C 端角色名
       workspace:
         root: ${user.home}/.agentscope/fusion      # workspace 根
       sandbox:
@@ -110,12 +116,13 @@ lambda:
 | 项目 | 说明 |
 | --- | --- |
 | `security.encryption-key` | 未配置时启动告警，加密 API Key 时抛异常 |
+| `audience.{b,c}-roles` | B/C 端角色名列表，用于 app 可见性过滤（下游自定义角色名） |
 | `sandbox.docker.*` | Docker 沙箱镜像/资源；镜像默认 `agentscope/python-sandbox:py311-slim` |
 | `sandbox.{kubernetes,e2b,daytona,agentrun}.*` | 各云/K8s 后端凭据；对应扩展需在下游 classpath（ai 模块已 optional 引入） |
 | 数据源 | v1 元数据表使用 MySQL `master` |
 
 ### 数据库对象
-`ai_llm_provider` `ai_llm_model` `ai_app` `ai_mcp_server` `ai_chat_session` `ai_chat_message` `ai_app_workspace_audit`。迁移：`META-INF/db/changelogs/lambda-ai-changelog.xml`。
+`ai_llm_provider` `ai_llm_model` `ai_app` `ai_mcp_server`（平台全局，无 tenant_id）；`ai_chat_session` `ai_chat_message` `ai_app_workspace_audit`（按 `tenant_id` 运营商隔离）。`ai_app` 另含 `owner_id`(预留独立应用)/`audience`(B/C/ALL)。迁移：`META-INF/db/changelogs/lambda-ai-changelog.xml`。
 
 ## 6. 快速开始
 
@@ -159,7 +166,7 @@ POST /v1/ai/apps   { "appType":"WORKSPACE", "selfEvolve":true, "sandboxBackend":
 | 数据库变更 | `META-INF/db/changelogs/lambda-ai-changelog.xml` |
 
 ## 10. 路线图
-已完成：CHAT / WORKSPACE(ASSISTANT+AUTONOMOUS) / 自演化审计 / 多后端 SANDBOX(Docker+K8s+E2B+Daytona+AgentRun)。
+已完成：CHAT / WORKSPACE(ASSISTANT+AUTONOMOUS) / 自演化审计 / 多后端 SANDBOX(Docker+K8s+E2B+Daytona+AgentRun) / 能力表去 tenant_id + audience+owner_id 可见性 / review 修复（#1 审计异步、#2 workspace spec、#3 沙箱回退、#4 删除清 workspace、#6 stateStore）。
 
 待跟进：
 - 完整 Spring context-load 测试（需 DB/Redis/Docker 环境）

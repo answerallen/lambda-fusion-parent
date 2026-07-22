@@ -19,10 +19,6 @@ public class McpServerEntity {
     @Schema(description = "主键")
     private String id;
 
-    @TableField("tenant_id")
-    @Schema(description = "租户ID")
-    private String tenantId;
-
     @TableField("name")
     @Schema(description = "服务名称")
     private String name;

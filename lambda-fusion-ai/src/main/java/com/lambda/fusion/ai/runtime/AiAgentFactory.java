@@ -9,6 +9,7 @@ import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.runtime.event.AiConfigChangedEvent;
 import com.lambda.fusion.ai.runtime.sandbox.SandboxSpecResolver;
 import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
+import com.lambda.fusion.ai.runtime.workspace.WorkspaceScaffolder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.state.InMemoryAgentStateStore;
@@ -54,6 +55,7 @@ public class AiAgentFactory {
     private final ToolkitAssembler toolkitAssembler;
     private final AiProperties aiProperties;
     private final WorkspacePaths workspacePaths;
+    private final WorkspaceScaffolder workspaceScaffolder;
     private final SandboxSpecResolver sandboxSpecResolver;
 
     private final Map<String, HarnessAgent> cache = new ConcurrentHashMap<>();
@@ -126,9 +128,10 @@ public class AiAgentFactory {
 
     /** WORKSPACE 型：per-app workspace + harness 完整能力 + 可选沙箱。 */
     private HarnessAgent buildWorkspace(AppEntity app, String tenantId, Model model, Toolkit toolkit, int maxIters) {
-        Path hostWorkspace = workspacePaths.resolveAppWorkspace(app.getTenantId(), app.getId());
+        Path hostWorkspace = workspacePaths.resolveAppWorkspace(tenantId, app.getId());
         try {
             Files.createDirectories(hostWorkspace);
+            workspaceScaffolder.scaffold(hostWorkspace, app);
         } catch (IOException e) {
             throw new AiBusinessException(AiErrorCode.CONFIGURATION_ERROR, e);
         }
@@ -140,15 +143,15 @@ public class AiAgentFactory {
                 .model(model)
                 .maxIters(maxIters)
                 .toolkit(toolkit)
+                .stateStore(new InMemoryAgentStateStore())
                 .workspace(hostWorkspace);
         // 沙箱后端优先；HOST 或后端扩展未安装时回退 LocalFilesystemSpec
         Optional<SandboxFilesystemSpec> sandboxSpec = sandboxSpecResolver.resolve(app, hostWorkspace);
         if (sandboxSpec.isPresent()) {
             builder.filesystem(sandboxSpec.get());
         } else {
-            builder.filesystem(new LocalFilesystemSpec()
-                    .isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties))
-                    .project(hostWorkspace));
+            builder.filesystem(
+                    new LocalFilesystemSpec().isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties)));
         }
         if (!selfEvolve) {
             // ASSISTANT：只读、无自记忆（workspace 由管理员维护）

@@ -58,7 +58,7 @@ mvn -pl lambda-fusion-ai test -Dtest=AgentGraphTest#shouldRoute
 
 ```
 lambda-fusion-bom                 # 仅版本 BOM（packaging=pom，无代码）
-lambda-fusion-core                # 基础库：Pagination、TreeBuilder、AbstractCrudService、
+lambda-fusion-core                # 基础库：PageQuery/PageView、TreeBuilder、AbstractCrudService、
                                  #   identity/AuthUtils、@DictMapper / DictEnum。无自动配置。
 lambda-fusion-authority-api       # 轻量：RemoteAuthenticationService（Dubbo）+ Sa-Token StpInterface 适配
 lambda-fusion-authority           # RBAC/认证域：用户、角色、资源、组织、租户、客户端、区域、
@@ -90,6 +90,88 @@ fusion 模块之间的 `optional=true` 依赖（如 authority -> datasource/conf
 配置前缀：`lambda.fusion.authorize`（authority）、`lambda.fusion.permission`、`lambda.fusion.datascope`、`lambda.fusion.config`、`lambda.fusion.dict`、`lambda.fusion.datasource`、`lambda.fusion.ai`。cloud-starter 的前缀（`lambda.oss`、`lambda.security`、`lambda.liquibase`、`lambda.sse`、`lambda.cache` 等）来自基础框架。
 
 为模块新增功能时：优先通过 `@ConditionalOnClass` / `@ConditionalOnProperty` / `ObjectProvider` 扩展其 `Configure`，而不是添加无条件 Bean；并优先定义可供下游应用覆盖的扩展点接口（如 `ConfigChangeHandler`、`DataViewProvider`、`DictSourceResolver`、`TreeDataFilter`）。
+
+### 通用基础能力（lambda-fusion-core）
+
+core 是纯基础库（无自动配置、无 `@ConfigurationProperties`），所有业务模块编写代码时应优先复用其能力，不得重复造轮子：
+
+- **分页**：入参用 `PageQuery`、出参用 `PageView`，禁止自定义分页模型。
+
+  ```java
+  // lambda-fusion-datasource/.../model/QueryDataSource.java —— 查询入参继承 PageQuery
+  public class QueryDataSource extends PageQuery<DataSourceEntity> {
+      private String datasourceName;
+
+      public LambdaQueryWrapper<DataSourceEntity> getLambdaQueryWrapper() {
+          return Wrappers.lambdaQuery(DataSourceEntity.class)
+                  .like(StringUtils.isNotBlank(datasourceName), DataSourceEntity::getDatasourceName, datasourceName)
+                  .orderByDesc(DataSourceEntity::getId);
+      }
+  }
+
+  // Service 中直接复用 MP 分页，需要 VO 分页时用 AbstractCrudService#pageView 得到 PageView
+  public Page<DataSourceEntity> page(QueryDataSource queryDTO) {
+      return page(queryDTO.getPage(), queryDTO.getLambdaQueryWrapper());
+  }
+  ```
+- **CRUD**：单表 Service 继承 `AbstractCrudService<E, V, M>`，实体↔VO 转换经由 `ConverterResolver`（MapStruct）完成，不要手写转换。
+
+  ```java
+  // lambda-fusion-authority/.../organization/service/impl/OrganizationServiceImpl.java
+  @Service
+  public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEntity, Organization, OrganizationMapper>
+          implements OrganizationService {
+      // toVO(entity) / pageForVO(page, wrapper) / pageView(page) 直接可用
+  }
+  ```
+- **树结构**：构建用 `TreeBuilder` / `TreeNodeUtils`，过滤扩展实现 `TreeDataFilter`（如 `DefaultTreeDataFilter`）。
+
+  ```java
+  // lambda-fusion-authority/.../OrganizationServiceImpl.java —— 实体实现 TreeNode 后一行构建
+  public List<Organization> organizationTreeList(OrganizationQuery organizationQuery) {
+      UserDetails userDetails = AuthUtils.getUser();
+      List<Organization> organizations = queryOrganizations(userDetails, organizationQuery);
+      return TreeBuilder.build(organizations);
+  }
+  ```
+- **身份与鉴权**：当前用户信息经 `AuthUtils` / `UserDetails` 获取，不要在业务模块重复解析 Sa-Token 上下文。
+
+  ```java
+  // lambda-fusion-permission-datascope/.../DataScopeGrantServiceImpl.java
+  String tenantId = AuthUtils.getTenantId();
+  UserDetails user = AuthUtils.getUser();
+  ```
+- **字典翻译**：枚举实现 `DictEnum` 并在枚举类上标注 `@DictMapper`（扫描注册逻辑在 dictionary 模块）。
+
+  ```java
+  // lambda-fusion-core/.../FusionConstants.java
+  @Getter
+  @DictMapper(dictName = "ACTIVE_STATUS", dictUsage = 0, dictDesc = "启停状态")
+  @AllArgsConstructor
+  enum ActiveStatus implements DictEnum<Integer> {
+      ENABLED(1, "启用"),
+      DISABLED(0, "停用");
+
+      @EnumValue
+      @JsonValue
+      private final Integer code;
+      private final String label;
+  }
+  ```
+- **实体基类**：业务实体继承 `BaseEntity`。
+
+  ```java
+  // lambda-fusion-authority/.../tenant/model/TenantEntity.java
+  @EqualsAndHashCode(callSuper = true) // 继承 BaseEntity 时必须加
+  @Data
+  @TableName("la_tenant")
+  public class TenantEntity extends BaseEntity {
+      @TableId(value = "TENANT_ID")
+      private String tenantId;
+  }
+  ```
+
+详细用法见 `docs/skills/lambda-fusion-core/SKILL.md`。
 
 ### 横切关注点：租户隔离
 
