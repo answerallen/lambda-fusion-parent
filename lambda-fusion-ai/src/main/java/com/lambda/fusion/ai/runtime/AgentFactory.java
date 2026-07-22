@@ -12,6 +12,7 @@ import com.lambda.fusion.ai.runtime.sandbox.SandboxSpecResolver;
 import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
 import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceScaffolder;
+import com.lambda.fusion.ai.skill.runtime.DbSkillRepository;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.state.AgentStateStore;
@@ -66,6 +67,7 @@ public class AgentFactory {
     private final WorkspaceScaffolder workspaceScaffolder;
     private final SandboxSpecResolver sandboxSpecResolver;
     private final List<StateStoreProvider> stateStoreProviders;
+    private final DbSkillRepository dbSkillRepository;
     private final ObjectProvider<HarnessGateway> gatewayProvider;
 
     private final Map<String, HarnessAgent> cache = new ConcurrentHashMap<>();
@@ -216,7 +218,8 @@ public class AgentFactory {
                 .maxIters(maxIters)
                 .toolkit(toolkit)
                 .stateStore(resolveStateStore(aiProperties, stateStoreProviders))
-                .workspace(hostWorkspace);
+                .workspace(hostWorkspace)
+                .skillRepository(dbSkillRepository);
         // 沙箱后端优先；HOST 或后端扩展未安装时回退 LocalFilesystemSpec
         Optional<SandboxFilesystemSpec> sandboxSpec = sandboxSpecResolver.resolve(app, hostWorkspace);
         if (sandboxSpec.isPresent()) {

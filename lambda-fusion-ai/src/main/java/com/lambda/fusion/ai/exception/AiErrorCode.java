@@ -42,6 +42,10 @@ public enum AiErrorCode implements ErrorCode {
 
     CHANNEL_CONFIG_CHANNEL_ID_EXISTS(30961, "通道路由配置的 channelId 已存在"),
 
+    SKILL_NOT_FOUND(30970, "技能不存在"),
+
+    SKILL_NAME_EXISTS(30971, "技能名称已存在"),
+
     LLM_PROVIDER_NOT_FOUND(30401, "LLM提供方不存在"),
 
     LLM_PROVIDER_NAME_EXISTS(30402, "LLM提供方名称已存在"),

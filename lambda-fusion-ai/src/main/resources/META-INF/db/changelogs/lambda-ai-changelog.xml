@@ -288,4 +288,36 @@
         </createIndex>
     </changeSet>
 
+    <!-- ========== 技能市场 ========== -->
+    <changeSet id="lambda-ai-202607220002" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_skill"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_skill" remarks="平台技能市场(SKILL.md 内容 + 资源)">
+            <column name="id" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_skill_id" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(128)" remarks="技能名(运行时 key)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(512)" remarks="描述"/>
+            <column name="version" type="varchar(32)" remarks="版本(管理展示)"/>
+            <column name="markdown" type="text" remarks="SKILL.md 内容(AgentSkill.skillContent)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="resources" type="text" remarks="资源 JSON map(name->content)"/>
+            <column name="enabled" type="tinyint(1)" defaultValueNumeric="1" remarks="是否启用">
+                <constraints nullable="false"/>
+            </column>
+            <column name="remark" type="varchar(512)" remarks="备注"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+            <column name="updated_at" type="datetime" remarks="更新时间"/>
+        </createTable>
+        <createIndex tableName="ai_skill" indexName="uk_ai_skill_name" unique="true">
+            <column name="name"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

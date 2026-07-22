@@ -235,9 +235,7 @@ public class ChannelConfigServiceImpl implements ChannelConfigService {
             return Map.of();
         }
         try {
-            return objectMapper.readValue(
-                    keyEncryptionService.decrypt(encrypted), new TypeReference<>() {
-                    });
+            return objectMapper.readValue(keyEncryptionService.decrypt(encrypted), new TypeReference<>() {});
         } catch (Exception e) {
             throw new AiBusinessException(AiErrorCode.CONFIGURATION_ERROR, "渠道凭证解密失败: " + e.getMessage());
         }
@@ -266,8 +264,8 @@ public class ChannelConfigServiceImpl implements ChannelConfigService {
     }
 
     private void ensureChannelIdUnique(String channelId) {
-        boolean exists = channelConfigMapper.exists(new LambdaQueryWrapper<ChannelConfigEntity>()
-                .eq(ChannelConfigEntity::getChannelId, channelId));
+        boolean exists = channelConfigMapper.exists(
+                new LambdaQueryWrapper<ChannelConfigEntity>().eq(ChannelConfigEntity::getChannelId, channelId));
         if (exists) {
             throw new AiBusinessException(AiErrorCode.CHANNEL_CONFIG_CHANNEL_ID_EXISTS, channelId);
         }
