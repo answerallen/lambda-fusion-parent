@@ -14,16 +14,10 @@ public class AiBusinessException extends BusinessException {
         super(errorCode);
     }
 
-    /**
-     * 消息模板参数化，例如 new AiBusinessException(AiErrorCode.APP_NOT_FOUND, appId)
-     */
     public AiBusinessException(ErrorCode errorCode, Object... args) {
         super(errorCode, args);
     }
 
-    /**
-     * 包装底层异常，保留原始异常堆栈
-     */
     public AiBusinessException(ErrorCode errorCode, Throwable cause) {
         super(errorCode.getCode(), errorCode.getMessage(), null, cause);
     }

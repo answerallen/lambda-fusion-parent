@@ -31,12 +31,12 @@ public interface ChannelConfigService {
 
     ChannelConfigEntity loadById(String id);
 
-    // 按 channelId 解析启用的配置为 harness {@link ChannelConfig}；无则返回 null
+    /** 返回启用的路由配置；不存在或禁用时返回 null。 */
     ChannelConfig resolve(String channelId);
 
-    // 加载所有启用渠道的构造视图（含解密凭证），供启动时构造 channel
+    /** 加载启用渠道的构造视图，包含已解密凭证。 */
     List<ChannelDefinition> loadEnabledDefinitions();
 
-    // 按 channelId 解析单个启用渠道的构造视图；无/禁用返回 null
+    /** 返回单个启用渠道的构造视图；不存在或禁用时返回 null。 */
     ChannelDefinition resolveDefinition(String channelId);
 }

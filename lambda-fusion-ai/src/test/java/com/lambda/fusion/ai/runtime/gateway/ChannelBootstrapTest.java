@@ -3,7 +3,6 @@ package com.lambda.fusion.ai.runtime.gateway;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lambda.fusion.ai.channel.ChannelFactoryProvider;
 import com.lambda.fusion.ai.channel.model.ChannelConfigPage;
 import com.lambda.fusion.ai.channel.model.ChannelDefinition;
 import com.lambda.fusion.ai.channel.model.CreateChannelConfig;
@@ -15,6 +14,7 @@ import io.agentscope.harness.agent.gateway.ChannelManager;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.gateway.channel.Channel;
 import io.agentscope.harness.agent.gateway.channel.ChannelConfig;
+import io.agentscope.harness.agent.gateway.channel.ChannelFactory;
 import io.agentscope.harness.agent.gateway.channel.InboundMessage;
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 /**
- * 验证 {@link ChannelBootstrap}：按 type 分发到工厂构造 channel 注册进 {@link ChannelManager}，
+ * 验证 {@link ChannelBootstrap}：按 type 查找工厂构造 channel 注册进 {@link ChannelManager}，
  * 无定义/无工厂时正确跳过/清理。
  *
  * @author Jin
@@ -33,12 +33,13 @@ class ChannelBootstrapTest {
     @Test
     void bootstrapAllRegistersChannels() {
         StubChannel channel = new StubChannel("c1");
-        StubFactory factory = new StubFactory("stub", channel);
+        ChannelFactory factory = (channelId, routing, properties) -> channel;
         Map<String, ChannelDefinition> defs = new HashMap<>();
         defs.put("c1", new ChannelDefinition("c1", "stub", Map.of(), ChannelConfig.of("c1")));
         StubService service = new StubService(defs);
         ChannelManager cm = new ChannelManager();
-        ChannelBootstrap bootstrap = new ChannelBootstrap(cm, HarnessGateway.create(cm), service, List.of(factory));
+        ChannelBootstrap bootstrap =
+                new ChannelBootstrap(cm, HarnessGateway.create(cm), service, Map.of("stub", factory));
 
         bootstrap.bootstrapAll();
 
@@ -53,7 +54,7 @@ class ChannelBootstrapTest {
         cm.register(channel);
         channel.started = true;
         StubService service = new StubService(new HashMap<>()); // resolveDefinition returns null
-        ChannelBootstrap bootstrap = new ChannelBootstrap(cm, HarnessGateway.create(cm), service, List.of());
+        ChannelBootstrap bootstrap = new ChannelBootstrap(cm, HarnessGateway.create(cm), service, Map.of());
 
         bootstrap.rebuild("c1");
 
@@ -68,7 +69,7 @@ class ChannelBootstrapTest {
         defs.put("c1", def);
         StubService service = new StubService(defs);
         ChannelManager cm = new ChannelManager();
-        ChannelBootstrap bootstrap = new ChannelBootstrap(cm, HarnessGateway.create(cm), service, List.of());
+        ChannelBootstrap bootstrap = new ChannelBootstrap(cm, HarnessGateway.create(cm), service, Map.of());
 
         bootstrap.rebuild("c1");
 
@@ -108,26 +109,6 @@ class ChannelBootstrapTest {
         @Override
         public void stop() {
             stopped = true;
-        }
-    }
-
-    static final class StubFactory implements ChannelFactoryProvider {
-        private final String type;
-        private final Channel channel;
-
-        StubFactory(String type, Channel channel) {
-            this.type = type;
-            this.channel = channel;
-        }
-
-        @Override
-        public String type() {
-            return type;
-        }
-
-        @Override
-        public Channel create(String channelId, ChannelConfig routing, Map<String, Object> properties) {
-            return channel;
         }
     }
 

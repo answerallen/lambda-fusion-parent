@@ -34,7 +34,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 通道路由配置服务实现（mapper-direct，对标 {@code McpServerServiceImpl}）。
+ * 通道路由配置服务。
  *
  * <p>平台凭证（{@code properties}）以 AES 密文落库（{@code properties_encrypted}），读取时解密。
  * CRUD 后通过 {@link ChannelBootstrap#rebuild} 重建运行中的 channel（best-effort）。
@@ -172,7 +172,6 @@ public class ChannelConfigServiceImpl implements ChannelConfigService {
         return toDefinition(entity);
     }
 
-    // entity -> harness {@link ChannelConfig}（静态可单测）
     static ChannelConfig buildConfig(ChannelConfigEntity entity) {
         List<ChannelBinding> bindings = entity.getBindings() == null
                 ? List.of()
@@ -197,7 +196,7 @@ public class ChannelConfigServiceImpl implements ChannelConfigService {
                 parseDmScope(dto.getSessionScope()));
     }
 
-    // 字符串 -> {@link DmScope}，空或非法回退 {@link DmScope#defaultScope()}
+    // 空值或非法 DmScope 使用默认会话粒度。
     static DmScope parseDmScope(String value) {
         if (StringUtils.isBlank(value)) {
             return DmScope.defaultScope();
@@ -217,7 +216,7 @@ public class ChannelConfigServiceImpl implements ChannelConfigService {
                 buildConfig(entity));
     }
 
-    // 平台凭证 map -> AES 密文 JSON；空 map 返回 null
+    // 空凭证不落库；非空凭证序列化为 JSON 后加密。
     private String encryptProperties(Map<String, Object> properties) {
         if (properties == null || properties.isEmpty()) {
             return null;
@@ -229,7 +228,7 @@ public class ChannelConfigServiceImpl implements ChannelConfigService {
         }
     }
 
-    // AES 密文 JSON -> 平台凭证 map；空返回空 map
+    // 未配置凭证时返回空 Map；否则解密后解析 JSON。
     private Map<String, Object> decryptProperties(String encrypted) {
         if (StringUtils.isBlank(encrypted)) {
             return Map.of();
@@ -241,7 +240,7 @@ public class ChannelConfigServiceImpl implements ChannelConfigService {
         }
     }
 
-    // best-effort 重建运行中的 channel；bootstrap 缺省或失败均不抛
+    // 尽量重建运行中的 channel；Gateway 未启用或重建失败不影响 CRUD。
     private void rebuild(String channelId) {
         ChannelBootstrap bootstrap = bootstrapProvider.getIfAvailable();
         if (bootstrap == null) {

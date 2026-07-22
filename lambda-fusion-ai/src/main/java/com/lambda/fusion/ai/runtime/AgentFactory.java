@@ -146,7 +146,6 @@ public class AgentFactory {
         if (type == StateStoreType.MEMORY) {
             return new InMemoryAgentStateStore();
         }
-        // 分布式后端：按 type 找匹配 provider
         try {
             AgentStateStore store = providers.stream()
                     .filter(p -> p.type() == type)
@@ -163,7 +162,7 @@ public class AgentFactory {
         return new InMemoryAgentStateStore();
     }
 
-    // FILE 模式根目录：优先配置值，其次 {@code workspace.root/state}，最后 {@code ~/.agentscope/fusion/state}
+    // FILE 状态目录优先使用显式配置，其次 workspace.root/state，最后 ~/.agentscope/fusion/state。
     private static Path resolveStateRoot(AiProperties props) {
         String configured = props.getStateStore().getRoot();
         if (StringUtils.isNotBlank(configured)) {
@@ -194,7 +193,7 @@ public class AgentFactory {
         return SkillFilter.all();
     }
 
-    // CHAT 型：纯 DB 配置，关闭所有 workspace 能力
+    // CHAT 应用禁用 workspace、文件、动态技能和记忆钩子能力。
     private HarnessAgent buildChat(AppEntity app, String tenantId, Model model, Toolkit toolkit, int maxIters) {
         log.info("构建 CHAT Agent: app={}, tenant={}", app.getId(), tenantId);
         return HarnessAgent.builder()
@@ -257,7 +256,7 @@ public class AgentFactory {
             // ASSISTANT：只读、无自记忆（workspace 由管理员维护）
             builder.disableFilesystemTools().disableMemoryTools().disableMemoryHooks();
         }
-        // selfEvolve=true（AUTONOMOUS）：文件工具 + 记忆默认开启，agent 可写 workspace 自演化（审计由 WorkspaceAuditRecorder 记录）
+        // 自演化应用保留文件工具和记忆钩子；本轮文件变更由 WorkspaceAuditRecorder 审计。
         log.info(
                 "构建 WORKSPACE Agent: app={}, tenant={}, selfEvolve={}, sandbox={}",
                 app.getId(),

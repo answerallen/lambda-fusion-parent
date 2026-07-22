@@ -10,6 +10,5 @@ import java.util.Map;
  * @param type 适配器类型（dingtalk/feishu/wecom）
  * @param properties 平台凭证明文 map
  * @param routing harness 路由配置
- * @author Jin
  */
 public record ChannelDefinition(String channelId, String type, Map<String, Object> properties, ChannelConfig routing) {}

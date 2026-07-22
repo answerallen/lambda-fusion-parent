@@ -7,7 +7,6 @@ import com.alibaba.nacos.api.exception.NacosException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
-import com.lambda.fusion.ai.channel.ChannelFactoryProvider;
 import com.lambda.fusion.ai.channel.service.ChannelConfigService;
 import com.lambda.fusion.ai.runtime.gateway.ChannelBootstrap;
 import com.lambda.fusion.ai.runtime.gateway.ChannelConfigApplier;
@@ -45,7 +44,7 @@ import io.agentscope.harness.agent.filesystem.spec.SandboxFilesystemSpec;
 import io.agentscope.harness.agent.gateway.ChannelManager;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.gateway.channel.Channel;
-import io.agentscope.harness.agent.gateway.channel.ChannelConfig;
+import io.agentscope.harness.agent.gateway.channel.ChannelFactory;
 import io.agentscope.harness.agent.sandbox.impl.docker.DockerFilesystemSpec;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.nio.file.Path;
@@ -108,7 +107,7 @@ public class AiConfigure {
                 ChannelManager channelManager,
                 HarnessGateway gateway,
                 ChannelConfigService channelConfigService,
-                List<ChannelFactoryProvider> factories) {
+                Map<String, ChannelFactory> factories) {
             return new ChannelBootstrap(channelManager, gateway, channelConfigService, factories);
         }
     }
@@ -430,9 +429,9 @@ public class AiConfigure {
     }
 
     /**
-     * 渠道适配器装配：每个平台一个 {@code @ConditionalOnClass} 嵌套配置，注册 {@link ChannelFactoryProvider}
-     * bean（委托 {@code XxxChannel.fromProperties}）。webhook 型(飞书/企微)额外注册 CallbackController bean
-     * 让回调端点生效。扩展未在 classpath 时不注册，{@code ChannelBootstrap} 对该 type 跳过。
+     * 渠道适配器装配：ChannelFactory Bean 名必须等于 {@code ai_channel_config.type}。
+     * Spring 注入 {@code Map<String, ChannelFactory>} 时 key 为 Bean 名，ChannelBootstrap 直接按 type 查找。
+     * webhook 型(飞书/企微)额外注册 CallbackController bean 让回调端点生效。
      */
     @Configuration
     public static class ChannelAdapterConfig {
@@ -441,19 +440,9 @@ public class AiConfigure {
         @ConditionalOnClass(name = "io.agentscope.extensions.channel.dingtalk.DingTalkChannel")
         public static class DingTalkFactoryConfiguration {
 
-            @Bean
-            public ChannelFactoryProvider dingTalkChannelFactory() {
-                return new ChannelFactoryProvider() {
-                    @Override
-                    public String type() {
-                        return DingTalkChannel.TYPE;
-                    }
-
-                    @Override
-                    public Channel create(String channelId, ChannelConfig routing, Map<String, Object> properties) {
-                        return DingTalkChannel.fromProperties(channelId, routing, properties);
-                    }
-                };
+            @Bean(DingTalkChannel.TYPE)
+            public ChannelFactory dingTalkChannelFactory() {
+                return DingTalkChannel::fromProperties;
             }
         }
 
@@ -461,19 +450,9 @@ public class AiConfigure {
         @ConditionalOnClass(name = "io.agentscope.extensions.channel.feishu.FeishuChannel")
         public static class FeishuFactoryConfiguration {
 
-            @Bean
-            public ChannelFactoryProvider feishuChannelFactory() {
-                return new ChannelFactoryProvider() {
-                    @Override
-                    public String type() {
-                        return FeishuChannel.TYPE;
-                    }
-
-                    @Override
-                    public Channel create(String channelId, ChannelConfig routing, Map<String, Object> properties) {
-                        return FeishuChannel.fromProperties(channelId, routing, properties);
-                    }
-                };
+            @Bean(FeishuChannel.TYPE)
+            public ChannelFactory feishuChannelFactory() {
+                return FeishuChannel::fromProperties;
             }
 
             // 飞书回调端点（webhook 入站）；channel 在 start() 时自注册到 FeishuChannelRegistry
@@ -487,19 +466,9 @@ public class AiConfigure {
         @ConditionalOnClass(name = "io.agentscope.extensions.channel.wecom.WeComChannel")
         public static class WeComFactoryConfiguration {
 
-            @Bean
-            public ChannelFactoryProvider wecomChannelFactory() {
-                return new ChannelFactoryProvider() {
-                    @Override
-                    public String type() {
-                        return WeComChannel.TYPE;
-                    }
-
-                    @Override
-                    public Channel create(String channelId, ChannelConfig routing, Map<String, Object> properties) {
-                        return WeComChannel.fromProperties(channelId, routing, properties);
-                    }
-                };
+            @Bean(WeComChannel.TYPE)
+            public ChannelFactory wecomChannelFactory() {
+                return WeComChannel::fromProperties;
             }
 
             // 企微回调端点（webhook 入站）；channel 在 start() 时自注册到 WeComChannelRegistry

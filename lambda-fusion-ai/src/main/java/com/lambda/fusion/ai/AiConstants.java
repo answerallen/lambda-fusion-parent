@@ -58,8 +58,6 @@ public interface AiConstants {
      *
      * <p>CHAT：纯 DB 配置，无 workspace（v1）。WORKSPACE：带 per-app workspace，
      * 对齐 AgentScope harness 完整能力（技能/子agent/记忆/沙箱/自演化）。
-     *
-     * @author Jin
      */
     @Getter
     @AllArgsConstructor
@@ -92,8 +90,6 @@ public interface AiConstants {
      *
      * <p>HOST：宿主文件系统（无沙箱，无 shell）。DOCKER/KUBERNETES/E2B/DAYTONA/AGENTRUN：
      * 对应 AgentScope 沙箱后端，启用 shell 工具与隔离。
-     *
-     * @author Jin
      */
     @Getter
     @AllArgsConstructor
@@ -130,8 +126,6 @@ public interface AiConstants {
     /**
      * Agent 状态存储类型（多轮记忆）。按部署形态配置：
      * MEMORY/FILE 单节点；MYSQL/POSTGRES/REDIS 分布式（多副本共享）；OSS/COS 对象存储归档。
-     *
-     * @author Jin
      */
     @Getter
     @AllArgsConstructor

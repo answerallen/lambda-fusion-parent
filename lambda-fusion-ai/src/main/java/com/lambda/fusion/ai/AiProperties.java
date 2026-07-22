@@ -62,7 +62,7 @@ public class AiProperties {
     public static class Runtime {
 
         /**
-         * 单次 ReAct 循环最大迭代数（应用未配置时回退）。
+         * 应用未配置 maxIters 时使用的 ReAct 最大迭代次数。
          */
         private int defaultMaxIters = 10;
     }
@@ -163,11 +163,10 @@ public class AiProperties {
         private List<String> cRoles = new ArrayList<>();
     }
 
-    // Gateway 配置：是否启用 AgentScope harness Gateway 作为运行时入口
     @Data
     public static class Gateway {
 
-        // 是否启用 Gateway（默认 true）。关闭时回退直连 {@code HarnessAgent.streamEvents}
+        /** 是否通过 HarnessGateway 路由对话流；关闭时直连 HarnessAgent#streamEvents。 */
         private boolean enabled = true;
     }
 
@@ -186,10 +185,10 @@ public class AiProperties {
     @Data
     public static class StateStore {
 
-        // 存储类型：MEMORY / FILE / MYSQL / POSTGRES / REDIS / OSS / COS
+        /** 状态存储后端：MEMORY / FILE / MYSQL / POSTGRES / REDIS / OSS / COS。 */
         private String type = "MEMORY";
 
-        // FILE 模式根目录；默认 {@code ${workspace.root}/state}
+        /** FILE 模式状态目录；默认使用 workspace.root/state。 */
         private String root;
 
         private Mysql mysql = new Mysql();
@@ -202,7 +201,7 @@ public class AiProperties {
 
         private Cos cos = new Cos();
 
-        // MySQL 分布式状态存储；复用 fusion master 数据源
+        /** MySQL 状态存储配置，默认复用 master 数据源。 */
         @Data
         public static class Mysql {
 
@@ -219,7 +218,7 @@ public class AiProperties {
             private boolean createIfNotExist = true;
         }
 
-        // PostgreSQL 分布式状态存储；复用 ai-postgres 数据源
+        /** PostgreSQL 状态存储配置，默认复用 ai-postgres 数据源。 */
         @Data
         public static class Postgres {
 
@@ -289,7 +288,6 @@ public class AiProperties {
 
         private Repository repository = new Repository();
 
-        /** 技能仓库源配置。 */
         @Data
         public static class Repository {
 

@@ -43,7 +43,7 @@ import reactor.core.publisher.Flux;
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class ChatServiceImpl implements ChatService {
 
-    // SSE 连接超时（5 分钟），超时后 SseEmitter 抛 AsyncRequestTimeoutException -> 503
+    /** SSE 连接超时（5 分钟），超时后 SseEmitter 抛 AsyncRequestTimeoutException -> 503。 */
     private static final long SSE_TIMEOUT_MS = 300_000L;
 
     private static final String CHANNEL_ID = "fusion-chat";
@@ -86,7 +86,7 @@ public class ChatServiceImpl implements ChatService {
         return emitter;
     }
 
-    // Gateway 启用走 {@code gateway.runStream}，否则回退直连
+    // Gateway 可用时统一走 runStream；否则直接调用 agent.streamEvents。
     private Flux<AgentEvent> routeStream(ChatSessionEntity session, HarnessAgent agent, String content) {
         HarnessGateway gateway = gatewayProvider.getIfAvailable();
         if (gateway == null) {
@@ -136,9 +136,7 @@ public class ChatServiceImpl implements ChatService {
             case TOOL_CALL_END ->
                 emitter.send(SseEmitter.event().name("tool_end").data(""));
             case AGENT_END -> emitter.send(SseEmitter.event().name("done").data("[DONE]"));
-            default -> {
-                // 其他事件类型暂不向前端推送
-            }
+            default -> {}
         }
     }
 }

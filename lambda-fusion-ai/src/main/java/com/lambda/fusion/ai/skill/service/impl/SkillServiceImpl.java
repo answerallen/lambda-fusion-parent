@@ -99,13 +99,12 @@ public class SkillServiceImpl implements SkillService {
         return repo;
     }
 
-    /** DTO 字段 -> harness {@link AgentSkill}（静态可单测；description 非空由调用方保证）。 */
+    /** 调用方需保证 description 非空。 */
     static AgentSkill toAgentSkill(String name, String description, String markdown, Map<String, String> resources) {
         Map<String, String> res = resources == null ? Map.of() : resources;
         return new AgentSkill(name, description, markdown, res, SOURCE);
     }
 
-    /** harness {@link AgentSkill} -> {@link SkillView}（静态可单测）。 */
     static SkillView toView(AgentSkill skill) {
         SkillView view = new SkillView();
         view.setName(skill.getName());

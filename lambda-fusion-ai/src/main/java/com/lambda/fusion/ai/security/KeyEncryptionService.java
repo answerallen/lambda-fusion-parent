@@ -9,9 +9,8 @@ package com.lambda.fusion.ai.security;
  */
 public interface KeyEncryptionService {
 
-    // 加密，返回 base64 编码的密文（含 IV）
+    /** 加密明文，返回包含 IV 的 Base64 密文。 */
     String encrypt(String plaintext);
 
-    // 解密，返回明文
     String decrypt(String ciphertext);
 }

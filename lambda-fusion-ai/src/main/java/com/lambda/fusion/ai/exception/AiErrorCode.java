@@ -6,8 +6,6 @@ import lombok.Getter;
 
 /**
  * AI 模块错误码枚举，错误码占用 30000-39999 段
- *
- * @author Jin
  */
 @Getter
 @AllArgsConstructor

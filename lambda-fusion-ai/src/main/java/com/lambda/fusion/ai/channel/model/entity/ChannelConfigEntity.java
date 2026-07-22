@@ -13,9 +13,7 @@ import lombok.Data;
 /**
  * 通道路由配置实体：一个 {@code channelId} 对应一条记录，承载默认 agent、DM 粒度与绑定规则。
  *
- * <p>平台级能力配置（无 tenant_id），对标 {@code ai_mcp_server}。
- *
- * @author Jin
+ * <p>平台级能力配置，不随租户拆分；具体会话归属由 {@code ChannelConfig.bindings} 与 {@code dmScope} 决定。
  */
 @Data
 @TableName(value = "ai_channel_config", autoResultMap = true)
