@@ -57,7 +57,7 @@ public class LlmProviderServiceImpl implements LlmProviderService {
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
         llmProviderMapper.insert(entity);
-        eventPublisher.publishEvent(ConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all()); // 全量失效 Agent 缓存
         return entity;
     }
 
@@ -87,7 +87,7 @@ public class LlmProviderServiceImpl implements LlmProviderService {
         }
         entity.setUpdatedAt(LocalDateTime.now());
         llmProviderMapper.updateById(entity);
-        eventPublisher.publishEvent(ConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all()); // 全量失效 Agent 缓存
     }
 
     @Override
@@ -95,7 +95,7 @@ public class LlmProviderServiceImpl implements LlmProviderService {
     public void delete(String id) {
         requireExists(id);
         llmProviderMapper.deleteById(id);
-        eventPublisher.publishEvent(ConfigChangedEvent.all());
+        eventPublisher.publishEvent(ConfigChangedEvent.all()); // 全量失效 Agent 缓存
     }
 
     @Override

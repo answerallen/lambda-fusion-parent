@@ -38,7 +38,10 @@ public enum AiErrorCode implements ErrorCode {
 
     MCP_SERVER_NAME_EXISTS(30956, "MCP服务器名称已存在"),
 
-    // ========== LLM 提供方相关错误 (30400-30409) ==========
+    CHANNEL_CONFIG_NOT_FOUND(30960, "通道路由配置不存在"),
+
+    CHANNEL_CONFIG_CHANNEL_ID_EXISTS(30961, "通道路由配置的 channelId 已存在"),
+
     LLM_PROVIDER_NOT_FOUND(30401, "LLM提供方不存在"),
 
     LLM_PROVIDER_NAME_EXISTS(30402, "LLM提供方名称已存在"),
@@ -47,7 +50,6 @@ public enum AiErrorCode implements ErrorCode {
 
     LLM_PROVIDER_DISABLED(30404, "LLM提供方已禁用"),
 
-    // ========== LLM 模型相关错误 (30410-30419) ==========
     LLM_MODEL_NOT_FOUND(30411, "LLM模型不存在"),
 
     LLM_MODEL_NAME_EXISTS(30412, "LLM模型名称已存在"),
@@ -56,19 +58,16 @@ public enum AiErrorCode implements ErrorCode {
 
     LLM_MODEL_TYPE_NOT_SUPPORTED(30414, "不支持的模型类型"),
 
-    // ========== LLM 安全相关错误 (30420-30429) ==========
     LLM_ENCRYPTION_KEY_NOT_CONFIGURED(30421, "未配置API Key加密密钥(lambda.fusion.ai.security.encryption-key)"),
 
     LLM_API_KEY_DECRYPT_FAILED(30422, "API Key解密失败"),
 
-    // ========== 智能应用相关错误 (30750-30759) ==========
     APP_NOT_FOUND(30751, "智能应用不存在"),
 
     APP_NAME_EXISTS(30752, "智能应用名称已存在"),
 
     APP_DISABLED(30753, "智能应用已禁用"),
 
-    // ========== 对话相关错误 (30200-30209) ==========
     CHAT_SESSION_NOT_FOUND(30201, "对话会话不存在"),
 
     CHAT_MESSAGE_NOT_FOUND(30202, "对话消息不存在");

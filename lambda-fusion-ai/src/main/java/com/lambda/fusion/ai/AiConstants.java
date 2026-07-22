@@ -8,9 +8,6 @@ import lombok.Getter;
 
 public interface AiConstants {
 
-    /**
-     * @author Jin
-     */
     @Getter
     @AllArgsConstructor
     @DictMapper(dictName = "LLM_MODEL_TYPE", dictUsage = 0, dictDesc = "模型类型")

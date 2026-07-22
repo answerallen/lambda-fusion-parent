@@ -253,4 +253,39 @@
         </createIndex>
     </changeSet>
 
+    <!-- ========== 通道路由配置 ========== -->
+    <changeSet id="lambda-ai-202607220001" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_channel_config"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_channel_config" remarks="通道路由配置(哪个通道/会话交给哪个 agent)">
+            <column name="id" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_channel_config_id" nullable="false"/>
+            </column>
+            <column name="channel_id" type="varchar(64)" remarks="通道标识(对应 Channel.channelId())">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="varchar(32)" remarks="适配器类型: dingtalk/feishu/wecom">
+                <constraints nullable="false"/>
+            </column>
+            <column name="default_agent_id" type="varchar(64)" remarks="默认 agent(app:{appId}:t:{tenantId})"/>
+            <column name="dm_scope" type="varchar(32)" defaultValue="MAIN" remarks="DM 会话粒度: MAIN/PER_PEER/PER_CHANNEL_PEER/PER_ACCOUNT_CHANNEL_PEER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="bindings" type="text" remarks="绑定规则 JSON 数组(ChannelBinding)"/>
+            <column name="properties_encrypted" type="text" remarks="平台凭证 JSON 密文(AES-GCM)"/>
+            <column name="enabled" type="tinyint(1)" defaultValueNumeric="1" remarks="是否启用">
+                <constraints nullable="false"/>
+            </column>
+            <column name="remark" type="varchar(512)" remarks="备注"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+            <column name="updated_at" type="datetime" remarks="更新时间"/>
+        </createTable>
+        <createIndex tableName="ai_channel_config" indexName="uk_ai_channel_config_channel_id" unique="true">
+            <column name="channel_id"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

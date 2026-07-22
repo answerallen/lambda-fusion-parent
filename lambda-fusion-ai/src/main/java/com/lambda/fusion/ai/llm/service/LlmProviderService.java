@@ -6,9 +6,6 @@ import com.lambda.fusion.ai.llm.model.LlmProviderPageQuery;
 import com.lambda.fusion.ai.llm.model.UpdateLlmProvider;
 import com.lambda.fusion.ai.llm.model.entity.LlmProviderEntity;
 
-/**
- * @author Jin
- */
 public interface LlmProviderService {
 
     Page<LlmProviderEntity> page(LlmProviderPageQuery query);

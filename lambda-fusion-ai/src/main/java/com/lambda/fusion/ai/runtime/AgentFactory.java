@@ -70,6 +70,9 @@ public class AgentFactory {
 
     private final Map<String, HarnessAgent> cache = new ConcurrentHashMap<>();
 
+    /**
+     * 获取或构建 Agent。缓存键 {@code appId|tenantId}，{@link ConcurrentHashMap#computeIfAbsent} 保证首次构建线程安全。
+     */
     public HarnessAgent getOrBuild(String appId, String tenantId) {
         return cache.computeIfAbsent(cacheKey(appId, tenantId), k -> build(appId, tenantId));
     }
@@ -114,7 +117,6 @@ public class AgentFactory {
         return agent;
     }
 
-    /** 注册到 {@link HarnessGateway}（若启用），同键覆盖。 */
     private void registerWithGateway(HarnessAgent agent) {
         HarnessGateway gateway = gatewayProvider.getIfAvailable();
         if (gateway == null) {
@@ -157,7 +159,7 @@ public class AgentFactory {
         return new InMemoryAgentStateStore();
     }
 
-    /** FILE 模式根目录：优先配置值，其次 {@code workspace.root/state}，最后 {@code ~/.agentscope/fusion/state}。 */
+    // FILE 模式根目录：优先配置值，其次 {@code workspace.root/state}，最后 {@code ~/.agentscope/fusion/state}
     private static Path resolveStateRoot(AiProperties props) {
         String configured = props.getStateStore().getRoot();
         if (StringUtils.isNotBlank(configured)) {
@@ -170,7 +172,7 @@ public class AgentFactory {
         return Paths.get(System.getProperty("user.home"), ".agentscope", "fusion", "state");
     }
 
-    /** CHAT 型：纯 DB 配置，关闭所有 workspace 能力。 */
+    // CHAT 型：纯 DB 配置，关闭所有 workspace 能力
     private HarnessAgent buildChat(AppEntity app, String tenantId, Model model, Toolkit toolkit, int maxIters) {
         log.info("构建 CHAT Agent: app={}, tenant={}", app.getId(), tenantId);
         return HarnessAgent.builder()
@@ -196,7 +198,7 @@ public class AgentFactory {
                 .build();
     }
 
-    /** WORKSPACE 型：per-app workspace + harness 完整能力 + 可选沙箱。 */
+    // WORKSPACE 型：per-app workspace + harness 完整能力 + 可选沙箱
     private HarnessAgent buildWorkspace(AppEntity app, String tenantId, Model model, Toolkit toolkit, int maxIters) {
         Path hostWorkspace = workspacePaths.resolveAppWorkspace(tenantId, app.getId());
         try {
@@ -237,6 +239,7 @@ public class AgentFactory {
         return builder.build();
     }
 
+    // 格式与 {@link #invalidateApp} 的 key 前缀匹配逻辑耦合
     private String cacheKey(String appId, String tenantId) {
         return appId + "|" + StringUtils.defaultString(tenantId);
     }

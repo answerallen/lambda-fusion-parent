@@ -66,7 +66,7 @@ class GatewayRoutingTest {
         return OutboundAddress.direct(CHANNEL_ID, CHANNEL_ID + ":DIRECT:" + sessionId);
     }
 
-    /** 构建最小 CHAT 型 agent（镜像生产 {@code AiAgentFactory.buildChat} 的关闭项）。 */
+    // 构建最小 CHAT 型 agent（镜像生产 {@code AiAgentFactory.buildChat} 的关闭项）
     private static HarnessAgent buildAgent(String agentId, StubModel model) {
         return HarnessAgent.builder()
                 .agentId(agentId)

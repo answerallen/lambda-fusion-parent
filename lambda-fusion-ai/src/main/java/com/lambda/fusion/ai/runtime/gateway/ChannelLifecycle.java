@@ -20,6 +20,7 @@ public class ChannelLifecycle implements SmartLifecycle {
     private final ChannelManager channelManager;
     private final HarnessGateway gateway;
     private final List<Channel> channels;
+    private final ChannelConfigApplier channelConfigApplier;
 
     private volatile boolean running = false;
 
@@ -30,6 +31,7 @@ public class ChannelLifecycle implements SmartLifecycle {
         }
         channelManager.initAll(gateway);
         channelManager.startAll();
+        channelConfigApplier.applyAll();
         running = true;
         log.info("AI Gateway 就绪，已启动通道: {}", channelManager.channelIds());
     }
@@ -53,6 +55,7 @@ public class ChannelLifecycle implements SmartLifecycle {
 
     @Override
     public int getPhase() {
+        // 晚于绝大多数 SmartLifecycle bean（低于此值），确保数据源/服务等依赖已就绪
         return Integer.MAX_VALUE - 100;
     }
 }

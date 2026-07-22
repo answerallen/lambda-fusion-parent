@@ -79,6 +79,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 
     @Override
     public void touchLastMessageAt(String id) {
+        // 仅更新 time 字段，不做存在性/所有权校验；ID 无效时 updateById 无影响
         ChatSessionEntity entity = new ChatSessionEntity();
         entity.setId(id);
         entity.setLastMessageAt(LocalDateTime.now());

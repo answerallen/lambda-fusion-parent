@@ -41,6 +41,7 @@ public class ToolkitAssembler {
 
     @PostConstruct
     public void init() {
+        // 全局扫描一次：容器中所有带 @Tool 方法的 Bean 注册为 Agent 共享工具
         List<Object> tools = new ArrayList<>();
         for (String name : applicationContext.getBeanDefinitionNames()) {
             Class<?> type = applicationContext.getType(name);

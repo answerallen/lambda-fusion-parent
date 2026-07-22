@@ -7,9 +7,6 @@ import com.lambda.fusion.ai.apps.model.UpdateApp;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import java.util.List;
 
-/**
- * @author Jin
- */
 public interface AppService {
 
     Page<AppEntity> page(AppPageQuery query);

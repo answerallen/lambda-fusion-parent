@@ -13,7 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import reactor.core.publisher.Flux;
 
-/** 测试用桩 {@link Model}：返回固定文本，记录最大并发度以验证串行锁。 */
+// 测试用桩 {@link Model}：返回固定文本，记录最大并发度以验证串行锁
 class StubModel implements Model {
 
     static final Duration DELAY = Duration.ofMillis(80);

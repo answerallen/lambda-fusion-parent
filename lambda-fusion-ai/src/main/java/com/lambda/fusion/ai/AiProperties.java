@@ -158,11 +158,11 @@ public class AiProperties {
         private List<String> cRoles = new ArrayList<>();
     }
 
-    /** Gateway 配置：是否启用 AgentScope harness Gateway 作为运行时入口。 */
+    // Gateway 配置：是否启用 AgentScope harness Gateway 作为运行时入口
     @Data
     public static class Gateway {
 
-        /** 是否启用 Gateway（默认 true）。关闭时回退直连 {@code HarnessAgent.streamEvents}。 */
+        // 是否启用 Gateway（默认 true）。关闭时回退直连 {@code HarnessAgent.streamEvents}
         private boolean enabled = true;
     }
 
@@ -181,10 +181,10 @@ public class AiProperties {
     @Data
     public static class StateStore {
 
-        /** 存储类型：MEMORY / FILE / MYSQL / POSTGRES / REDIS / OSS / COS。 */
+        // 存储类型：MEMORY / FILE / MYSQL / POSTGRES / REDIS / OSS / COS
         private String type = "MEMORY";
 
-        /** FILE 模式根目录；默认 {@code ${workspace.root}/state}。 */
+        // FILE 模式根目录；默认 {@code ${workspace.root}/state}
         private String root;
 
         private Mysql mysql = new Mysql();
@@ -197,49 +197,49 @@ public class AiProperties {
 
         private Cos cos = new Cos();
 
-        /** MySQL 分布式状态存储；复用 fusion master 数据源。 */
+        // MySQL 分布式状态存储；复用 fusion master 数据源
         @Data
         public static class Mysql {
 
-            /** dynamic-datasource 名称；默认 {@code master}。 */
+            // dynamic-datasource 名称；默认 {@code master}
             private String datasource = "master";
 
-            /** 库名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope}。 */
+            // 库名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope}
             private String database = "agentscope";
 
-            /** 表名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope_sessions}。 */
+            // 表名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope_sessions}
             private String table = "agentscope_sessions";
 
-            /** 库/表不存在时是否自动创建；默认 true。 */
+            // 库/表不存在时是否自动创建；默认 true
             private boolean createIfNotExist = true;
         }
 
-        /** PostgreSQL 分布式状态存储；复用 ai-postgres 数据源。 */
+        // PostgreSQL 分布式状态存储；复用 ai-postgres 数据源
         @Data
         public static class Postgres {
 
-            /** dynamic-datasource 名称；默认 {@code ai-postgres}。 */
+            // dynamic-datasource 名称；默认 {@code ai-postgres}
             private String datasource = "ai-postgres";
 
-            /** schema 名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope}。 */
+            // schema 名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope}
             private String schema = "agentscope";
 
-            /** 表名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope_sessions}。 */
+            // 表名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope_sessions}
             private String table = "agentscope_sessions";
 
-            /** schema/表不存在时是否自动创建；默认 true。 */
+            // schema/表不存在时是否自动创建；默认 true
             private boolean createIfNotExist = true;
         }
 
-        /** Redis 分布式状态存储；复用 RedissonClient bean（redisson-spring-boot-starter 自动装配）。 */
+        // Redis 分布式状态存储；复用 RedissonClient bean（redisson-spring-boot-starter 自动装配）
         @Data
         public static class Redis {
 
-            /** Redis key 前缀；默认 {@code agentscope:session:}。 */
+            // Redis key 前缀；默认 {@code agentscope:session:}
             private String keyPrefix = "agentscope:session:";
         }
 
-        /** 阿里云 OSS 对象存储状态存储；需 agentscope-extensions-oss 扩展。 */
+        // 阿里云 OSS 对象存储状态存储；需 agentscope-extensions-oss 扩展
         @Data
         public static class Oss {
 
@@ -251,15 +251,15 @@ public class AiProperties {
 
             private String bucketName;
 
-            /** 对象 key 前缀；默认 {@code agentscope/state/}。 */
+            // 对象 key 前缀；默认 {@code agentscope/state/}
             private String keyPrefix = "agentscope/state/";
         }
 
-        /** 腾讯云 COS 对象存储状态存储；需 agentscope-extensions-cos 扩展。 */
+        // 腾讯云 COS 对象存储状态存储；需 agentscope-extensions-cos 扩展
         @Data
         public static class Cos {
 
-            /** 地域（如 {@code ap-guangzhou}）；COS 按地域寻址。 */
+            // 地域（如 {@code ap-guangzhou}）；COS 按地域寻址
             private String region;
 
             private String secretId;
@@ -268,7 +268,7 @@ public class AiProperties {
 
             private String bucketName;
 
-            /** 对象 key 前缀；默认 {@code agentscope/state/}。 */
+            // 对象 key 前缀；默认 {@code agentscope/state/}
             private String keyPrefix = "agentscope/state/";
         }
     }

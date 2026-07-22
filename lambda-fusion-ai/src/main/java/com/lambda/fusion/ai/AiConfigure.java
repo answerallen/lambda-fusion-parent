@@ -3,6 +3,10 @@ package com.lambda.fusion.ai;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
+import com.lambda.fusion.ai.channel.ChannelFactoryProvider;
+import com.lambda.fusion.ai.channel.service.ChannelConfigService;
+import com.lambda.fusion.ai.runtime.gateway.ChannelBootstrap;
+import com.lambda.fusion.ai.runtime.gateway.ChannelConfigApplier;
 import com.lambda.fusion.ai.runtime.gateway.ChannelLifecycle;
 import com.lambda.fusion.ai.runtime.sandbox.SandboxBackendProvider;
 import com.lambda.fusion.ai.runtime.sandbox.SandboxSpecResolver;
@@ -13,6 +17,11 @@ import com.qcloud.cos.ClientConfig;
 import com.qcloud.cos.auth.BasicCOSCredentials;
 import com.qcloud.cos.region.Region;
 import io.agentscope.core.state.AgentStateStore;
+import io.agentscope.extensions.channel.dingtalk.DingTalkChannel;
+import io.agentscope.extensions.channel.feishu.FeishuCallbackController;
+import io.agentscope.extensions.channel.feishu.FeishuChannel;
+import io.agentscope.extensions.channel.wecom.WeComCallbackController;
+import io.agentscope.extensions.channel.wecom.WeComChannel;
 import io.agentscope.extensions.cos.CosAgentStateStore;
 import io.agentscope.extensions.mysql.state.MysqlAgentStateStore;
 import io.agentscope.extensions.oss.OssAgentStateStore;
@@ -26,10 +35,12 @@ import io.agentscope.harness.agent.filesystem.spec.SandboxFilesystemSpec;
 import io.agentscope.harness.agent.gateway.ChannelManager;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.gateway.channel.Channel;
+import io.agentscope.harness.agent.gateway.channel.ChannelConfig;
 import io.agentscope.harness.agent.sandbox.impl.docker.DockerFilesystemSpec;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,8 +84,20 @@ public class AiConfigure {
 
         @Bean
         public ChannelLifecycle channelLifecycle(
-                ChannelManager channelManager, HarnessGateway gateway, List<Channel> channels) {
-            return new ChannelLifecycle(channelManager, gateway, channels);
+                ChannelManager channelManager,
+                HarnessGateway gateway,
+                List<Channel> channels,
+                ChannelConfigApplier channelConfigApplier) {
+            return new ChannelLifecycle(channelManager, gateway, channels, channelConfigApplier);
+        }
+
+        @Bean
+        public ChannelBootstrap channelBootstrap(
+                ChannelManager channelManager,
+                HarnessGateway gateway,
+                ChannelConfigService channelConfigService,
+                List<ChannelFactoryProvider> factories) {
+            return new ChannelBootstrap(channelManager, gateway, channelConfigService, factories);
         }
     }
 
@@ -390,6 +413,87 @@ public class AiConfigure {
                                 .build();
                     }
                 };
+            }
+        }
+    }
+
+    /**
+     * 渠道适配器装配：每个平台一个 {@code @ConditionalOnClass} 嵌套配置，注册 {@link ChannelFactoryProvider}
+     * bean（委托 {@code XxxChannel.fromProperties}）。webhook 型(飞书/企微)额外注册 CallbackController bean
+     * 让回调端点生效。扩展未在 classpath 时不注册，{@code ChannelBootstrap} 对该 type 跳过。
+     */
+    @Configuration
+    public static class ChannelAdapterConfig {
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.extensions.channel.dingtalk.DingTalkChannel")
+        public static class DingTalkFactoryConfiguration {
+
+            @Bean
+            public ChannelFactoryProvider dingTalkChannelFactory() {
+                return new ChannelFactoryProvider() {
+                    @Override
+                    public String type() {
+                        return DingTalkChannel.TYPE;
+                    }
+
+                    @Override
+                    public Channel create(String channelId, ChannelConfig routing, Map<String, Object> properties) {
+                        return DingTalkChannel.fromProperties(channelId, routing, properties);
+                    }
+                };
+            }
+        }
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.extensions.channel.feishu.FeishuChannel")
+        public static class FeishuFactoryConfiguration {
+
+            @Bean
+            public ChannelFactoryProvider feishuChannelFactory() {
+                return new ChannelFactoryProvider() {
+                    @Override
+                    public String type() {
+                        return FeishuChannel.TYPE;
+                    }
+
+                    @Override
+                    public Channel create(String channelId, ChannelConfig routing, Map<String, Object> properties) {
+                        return FeishuChannel.fromProperties(channelId, routing, properties);
+                    }
+                };
+            }
+
+            // 飞书回调端点（webhook 入站）；channel 在 start() 时自注册到 FeishuChannelRegistry
+            @Bean
+            public FeishuCallbackController feishuCallbackController() {
+                return new FeishuCallbackController();
+            }
+        }
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.extensions.channel.wecom.WeComChannel")
+        public static class WeComFactoryConfiguration {
+
+            @Bean
+            public ChannelFactoryProvider wecomChannelFactory() {
+                return new ChannelFactoryProvider() {
+                    @Override
+                    public String type() {
+                        return WeComChannel.TYPE;
+                    }
+
+                    @Override
+                    public Channel create(String channelId, ChannelConfig routing, Map<String, Object> properties) {
+                        return WeComChannel.fromProperties(channelId, routing, properties);
+                    }
+                };
+            }
+
+            // 企微回调端点（webhook 入站）；channel 在 start() 时自注册到 WeComChannelRegistry
+            @Bean
+            public WeComCallbackController wecomCallbackController() {
+                return new WeComCallbackController();
             }
         }
     }

@@ -6,9 +6,6 @@ import com.lambda.fusion.ai.llm.model.LlmModelPage;
 import com.lambda.fusion.ai.llm.model.UpdateLlmModel;
 import com.lambda.fusion.ai.llm.model.entity.LlmModelEntity;
 
-/**
- * @author Jin
- */
 public interface LlmModelService {
 
     Page<LlmModelEntity> page(LlmModelPage query);
