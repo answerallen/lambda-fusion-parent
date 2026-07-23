@@ -276,14 +276,16 @@ public class AiConfigure {
 
     /**
      * 分布式状态存储后端装配：每个后端一个 {@code @ConditionalOnClass} 嵌套配置，注册
-     * {@link StateStoreProvider} bean。扩展未在 classpath（或 Redis 客户端缺失）时不注册，
-     * {@code AiAgentFactory#resolveStateStore} 找不到匹配 provider 时回退 MEMORY。
+     * {@link StateStoreProvider} bean。扩展或其厂商 SDK 未在 classpath（或 Redis 客户端缺失）时
+     * 不注册，{@code AiAgentFactory#resolveStateStore} 找不到匹配 provider 时回退 MEMORY。
+     * 注意：COS/OSS 扩展类被 shade 进 agentscope.jar 恒在场，故这两个后端额外门控厂商 SDK 类。
      */
     @Configuration
     public static class StateStoreConfig {
 
         @Configuration
         @ConditionalOnClass(name = "io.agentscope.extensions.postgresql.state.PostgresAgentStateStore")
+        @ConditionalOnBean(DataSource.class)
         @RequiredArgsConstructor
         public static class PostgresStateStoreConfiguration {
 
@@ -312,6 +314,7 @@ public class AiConfigure {
 
         @Configuration
         @ConditionalOnClass(name = "io.agentscope.extensions.mysql.state.MysqlAgentStateStore")
+        @ConditionalOnBean(DataSource.class)
         @RequiredArgsConstructor
         public static class MysqlStateStoreConfiguration {
 
@@ -372,8 +375,9 @@ public class AiConfigure {
             }
         }
 
+        // OssAgentStateStore 被 shade 进 agentscope.jar 恒在场，真正决定能否构建的是阿里云 OSS SDK
         @Configuration
-        @ConditionalOnClass(name = "io.agentscope.extensions.oss.OssAgentStateStore")
+        @ConditionalOnClass(name = {"io.agentscope.extensions.oss.OssAgentStateStore", "com.aliyun.oss.OSS"})
         @RequiredArgsConstructor
         public static class OssStateStoreConfiguration {
 
@@ -403,8 +407,9 @@ public class AiConfigure {
             }
         }
 
+        // CosAgentStateStore 被 shade 进 agentscope.jar 恒在场，真正决定能否构建的是腾讯 COS SDK
         @Configuration
-        @ConditionalOnClass(name = "io.agentscope.extensions.cos.CosAgentStateStore")
+        @ConditionalOnClass(name = {"io.agentscope.extensions.cos.CosAgentStateStore", "com.qcloud.cos.COSClient"})
         @RequiredArgsConstructor
         public static class CosStateStoreConfiguration {
 
@@ -534,6 +539,7 @@ public class AiConfigure {
 
         @Configuration
         @ConditionalOnClass(name = "io.agentscope.core.skill.repository.mysql.MysqlSkillRepository")
+        @ConditionalOnBean(DataSource.class)
         @RequiredArgsConstructor
         public static class MysqlSkillRepositoryConfiguration {
 
@@ -561,6 +567,7 @@ public class AiConfigure {
 
         @Configuration
         @ConditionalOnClass(name = "io.agentscope.core.skill.repository.postgresql.PostgresSkillRepository")
+        @ConditionalOnBean(DataSource.class)
         @RequiredArgsConstructor
         public static class PostgresSkillRepositoryConfiguration {
 
