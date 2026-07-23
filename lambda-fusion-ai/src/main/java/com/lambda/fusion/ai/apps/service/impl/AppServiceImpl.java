@@ -80,6 +80,7 @@ public class AppServiceImpl implements AppService {
         entity.setMcpServerIds(dto.getMcpServerIds());
         entity.setKnowledgeBaseIds(dto.getKnowledgeBaseIds());
         entity.setRagMode(dto.getRagMode());
+        entity.setSubAgentIds(dto.getSubAgentIds());
         entity.setSkillsAllow(dto.getSkillsAllow());
         entity.setSkillsDeny(dto.getSkillsDeny());
         entity.setAppType(appType);
@@ -132,6 +133,9 @@ public class AppServiceImpl implements AppService {
         if (dto.getRagMode() != null) {
             validateRagMode(dto.getRagMode());
             entity.setRagMode(dto.getRagMode());
+        }
+        if (dto.getSubAgentIds() != null) {
+            entity.setSubAgentIds(dto.getSubAgentIds());
         }
         if (dto.getSkillsAllow() != null) {
             entity.setSkillsAllow(dto.getSkillsAllow());

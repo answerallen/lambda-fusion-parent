@@ -445,4 +445,60 @@
         </addColumn>
     </changeSet>
 
+    <!-- ========== 子代理定义 ========== -->
+    <changeSet id="lambda-ai-202607220009" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_sub_agent"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_sub_agent" remarks="子代理定义(多智能体;主 agent 按 description 自主路由)">
+            <column name="id" type="varchar(32)" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_sub_agent_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
+            <column name="name" type="varchar(64)" remarks="子代理名(运行时 key/agent_id)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(512)" remarks="能力描述(主 agent 路由唯一依据)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="prompt" type="text" remarks="子代理系统提示词(inlineAgentsBody)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="model_id" type="varchar(32)" remarks="绑定模型ID(空=继承主 agent 模型)"/>
+            <column name="steps" type="int" remarks="最大 ReAct 迭代数(空=harness 默认)"/>
+            <column name="temperature" type="decimal(3,2)" remarks="温度"/>
+            <column name="top_p" type="decimal(3,2)" remarks="Top-P"/>
+            <column name="tools_allow" type="text" remarks="工具白名单 JSON 数组(空=全继承父工具)"/>
+            <column name="skills_allow" type="text" remarks="技能白名单 JSON 数组(空=全继承)"/>
+            <column name="workspace_mode" type="varchar(16)" defaultValue="ISOLATED" remarks="工作区模式: ISOLATED|SHARED"/>
+            <column name="enabled" type="tinyint(1)" defaultValueNumeric="1" remarks="是否启用">
+                <constraints nullable="false"/>
+            </column>
+            <column name="remark" type="varchar(512)" remarks="备注"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+            <column name="updated_at" type="datetime" remarks="更新时间"/>
+        </createTable>
+        <createIndex tableName="ai_sub_agent" indexName="uk_ai_sub_agent_tenant_name" unique="true">
+            <column name="tenant_id"/>
+            <column name="name"/>
+        </createIndex>
+        <createIndex tableName="ai_sub_agent" indexName="idx_ai_sub_agent_tenant">
+            <column name="tenant_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== ai_app 增子代理绑定 ========== -->
+    <changeSet id="lambda-ai-202607220010" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_app" columnName="sub_agent_ids"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_app">
+            <column name="sub_agent_ids" type="text" remarks="子代理ID JSON 数组(WORKSPACE 型生效;主 agent 可调度)"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

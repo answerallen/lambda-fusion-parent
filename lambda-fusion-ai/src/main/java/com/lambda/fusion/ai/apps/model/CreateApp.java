@@ -57,6 +57,9 @@ public class CreateApp {
     @Schema(description = "知识库检索模式: GENERIC(自动注入)|AGENTIC(工具自主检索)|BOTH;空=GENERIC")
     private String ragMode;
 
+    @Schema(description = "子代理ID列表(WORKSPACE 型生效;主 agent 可调度)")
+    private List<String> subAgentIds;
+
     @Schema(description = "技能白名单(技能名;仅 WORKSPACE 型生效)")
     private List<String> skillsAllow;
 

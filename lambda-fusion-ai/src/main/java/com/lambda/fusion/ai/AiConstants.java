@@ -124,6 +124,36 @@ public interface AiConstants {
     }
 
     /**
+     * 子代理工作区模式。
+     *
+     * <p>ISOLATED（默认）：子代理在父 workspace 下的独立子目录执行，互不干扰；
+     * SHARED：与主 agent 共享同一 workspace。
+     */
+    @Getter
+    @AllArgsConstructor
+    enum SubAgentWorkspaceMode {
+        ISOLATED("ISOLATED", "独立工作区"),
+
+        SHARED("SHARED", "共享工作区");
+
+        private final String code;
+
+        private final String label;
+
+        public static SubAgentWorkspaceMode of(String code) {
+            if (code == null) {
+                return null;
+            }
+            for (SubAgentWorkspaceMode mode : values()) {
+                if (mode.code.equalsIgnoreCase(code)) {
+                    return mode;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
      * 知识库检索模式（应用级，{@code ai_app.rag_mode}）。
      *
      * <p>GENERIC：中间件自动检索注入（RagMiddleware，稳定保底）；AGENTIC：注册

@@ -94,6 +94,14 @@ public enum AiErrorCode implements ErrorCode {
 
     DOCUMENT_STORAGE_NOT_SUPPORTED(30815, "不支持的文档存储类型"),
 
+    SUB_AGENT_NOT_FOUND(30821, "子代理不存在"),
+
+    SUB_AGENT_NAME_EXISTS(30822, "子代理名称已存在"),
+
+    SUB_AGENT_MODEL_INVALID(30823, "子代理绑定模型无效(不存在或未启用)"),
+
+    SUB_AGENT_DISABLED(30824, "子代理已禁用"),
+
     CHAT_SESSION_NOT_FOUND(30201, "对话会话不存在"),
 
     CHAT_MESSAGE_NOT_FOUND(30202, "对话消息不存在");

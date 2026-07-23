@@ -17,6 +17,7 @@ import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
 import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceScaffolder;
 import com.lambda.fusion.ai.skill.runtime.SkillRepositoryResolver;
+import com.lambda.fusion.ai.subagent.service.SubAgentService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.model.Model;
@@ -30,6 +31,7 @@ import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import io.agentscope.harness.agent.filesystem.spec.SandboxFilesystemSpec;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
+import io.agentscope.harness.agent.subagent.SubagentDeclaration;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -77,6 +79,7 @@ public class AgentFactory {
     private final SkillRepositoryResolver skillRepositoryResolver;
     private final ObjectProvider<HarnessGateway> gatewayProvider;
     private final ObjectProvider<KnowledgeRetriever> retrieverProvider;
+    private final SubAgentService subAgentService;
 
     private final Map<String, HarnessAgent> cache = new ConcurrentHashMap<>();
 
@@ -121,12 +124,22 @@ public class AgentFactory {
         List<MiddlewareBase> middlewares = resolveMiddlewares(app);
         HarnessAgent agent;
         if (appType == AppType.WORKSPACE) {
-            agent = buildWorkspace(app, tenantId, model, toolkit, maxIters, middlewares);
+            agent = buildWorkspace(app, tenantId, model, toolkit, maxIters, middlewares, resolveSubAgents(app));
         } else {
             agent = buildChat(app, tenantId, model, toolkit, maxIters, middlewares);
         }
         registerWithGateway(agent);
         return agent;
+    }
+
+    // 解析绑定的启用中子代理为 harness 声明（声明构建期固化；子代理变更由 ConfigChangedEvent 全量失效重建）
+    private List<SubagentDeclaration> resolveSubAgents(AppEntity app) {
+        if (app.getSubAgentIds() == null || app.getSubAgentIds().isEmpty()) {
+            return List.of();
+        }
+        return subAgentService.listEnabledByIds(app.getSubAgentIds()).stream()
+                .map(SubAgentDeclarationMapper::toDeclaration)
+                .toList();
     }
 
     /**
@@ -286,7 +299,8 @@ public class AgentFactory {
             Model model,
             Toolkit toolkit,
             int maxIters,
-            List<MiddlewareBase> middlewares) {
+            List<MiddlewareBase> middlewares,
+            List<SubagentDeclaration> subAgents) {
         Path hostWorkspace = workspacePaths.resolveAppWorkspace(tenantId, app.getId());
         try {
             Files.createDirectories(hostWorkspace);
@@ -323,6 +337,13 @@ public class AgentFactory {
         }
         if (!middlewares.isEmpty()) {
             builder.middlewares(middlewares);
+        }
+        if (!subAgents.isEmpty()) {
+            // 编程式注册 DB 子代理声明；与 workspace/subagents/*.md 文件扫描合并（同名文件覆盖 DB）
+            builder.subagents(subAgents);
+            // declaration.model 存 fusion 模型ID，桥接 ModelResolver 按 ai_llm_model 解析；
+            // 不影响主模型（已由 .model(model) 显式指定）
+            builder.modelResolver(modelResolver::apply);
         }
         // 自演化应用保留文件工具和记忆钩子；本轮文件变更由 WorkspaceAuditRecorder 审计。
         log.info(
