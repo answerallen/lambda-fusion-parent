@@ -501,4 +501,16 @@
         </addColumn>
     </changeSet>
 
+    <!-- ========== ai_app 增应用头像 ========== -->
+    <changeSet id="lambda-ai-202607240001" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_app" columnName="avatar"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_app">
+            <column name="avatar" type="varchar(64)" remarks="应用头像(图标名,如 lucide:bot;空=按应用类型显示默认图标)"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

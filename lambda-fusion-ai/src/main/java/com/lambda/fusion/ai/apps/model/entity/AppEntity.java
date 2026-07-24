@@ -23,6 +23,10 @@ public class AppEntity {
     @Schema(description = "应用名称")
     private String name;
 
+    @TableField("avatar")
+    @Schema(description = "应用头像(图标名,如 lucide:bot;空=按应用类型显示默认图标)")
+    private String avatar;
+
     @TableField("description")
     @Schema(description = "应用描述")
     private String description;

@@ -12,6 +12,9 @@ public class UpdateApp {
     @Schema(description = "应用名称")
     private String name;
 
+    @Schema(description = "应用头像(图标名;空=按应用类型显示默认图标)")
+    private String avatar;
+
     @Schema(description = "应用描述")
     private String description;
 

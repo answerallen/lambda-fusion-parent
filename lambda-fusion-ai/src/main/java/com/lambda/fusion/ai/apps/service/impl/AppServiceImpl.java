@@ -70,6 +70,7 @@ public class AppServiceImpl implements AppService {
         AppEntity entity = new AppEntity();
         entity.setId(IdUtil.getSnowflakeNextIdStr());
         entity.setName(dto.getName());
+        entity.setAvatar(dto.getAvatar());
         entity.setDescription(dto.getDescription());
         entity.setSystemPrompt(dto.getSystemPrompt());
         entity.setModelId(dto.getModelId());
@@ -105,6 +106,9 @@ public class AppServiceImpl implements AppService {
         if (StringUtils.isNotBlank(dto.getName()) && !dto.getName().equals(entity.getName())) {
             ensureNameUnique(dto.getName(), id);
             entity.setName(dto.getName());
+        }
+        if (dto.getAvatar() != null) {
+            entity.setAvatar(dto.getAvatar());
         }
         if (dto.getDescription() != null) {
             entity.setDescription(dto.getDescription());
