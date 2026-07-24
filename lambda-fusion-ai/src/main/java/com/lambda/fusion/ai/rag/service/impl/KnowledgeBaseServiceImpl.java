@@ -127,7 +127,6 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
         }
     }
 
-    // 嵌入模型必须为已启用的 EMBEDDING 类型模型
     private void validateEmbeddingModel(String modelId) {
         LlmModelEntity model = llmModelService.loadById(modelId);
         if (model.getModelType() != ModelType.EMBEDDING || Boolean.FALSE.equals(model.getEnabled())) {

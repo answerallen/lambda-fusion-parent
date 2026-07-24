@@ -70,7 +70,7 @@ public class McpServerServiceImpl implements McpServerService {
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
         mcpServerMapper.insert(entity);
-        eventPublisher.publishEvent(ConfigChangedEvent.all()); // 全量失效 Agent 缓存
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
         return entity;
     }
 
@@ -112,7 +112,7 @@ public class McpServerServiceImpl implements McpServerService {
         }
         entity.setUpdatedAt(LocalDateTime.now());
         mcpServerMapper.updateById(entity);
-        eventPublisher.publishEvent(ConfigChangedEvent.all()); // 全量失效 Agent 缓存
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
     }
 
     @Override
@@ -120,7 +120,7 @@ public class McpServerServiceImpl implements McpServerService {
     public void delete(String id) {
         requireExists(id);
         mcpServerMapper.deleteById(id);
-        eventPublisher.publishEvent(ConfigChangedEvent.all()); // 全量失效 Agent 缓存
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
     }
 
     @Override

@@ -117,7 +117,7 @@ public class AgentFactory {
         }
         Model model = modelResolver.apply(app.getModelId());
         Toolkit toolkit = toolkitAssembler.build(app);
-        registerKnowledgeTool(toolkit, app); // AGENTIC/BOTH 模式：注册知识检索工具
+        registerKnowledgeTool(toolkit, app);
         int maxIters = Objects.requireNonNullElse(
                 app.getMaxIters(), aiProperties.getRuntime().getDefaultMaxIters());
         AppType appType = AppType.of(Objects.toString(app.getAppType(), AppType.CHAT.getCode()));
@@ -323,7 +323,6 @@ public class AgentFactory {
         if (skillRepo != null) {
             builder.skillRepository(skillRepo);
         }
-        // 沙箱后端优先；HOST 或后端扩展未安装时回退 LocalFilesystemSpec
         Optional<SandboxFilesystemSpec> sandboxSpec = sandboxSpecResolver.resolve(app, hostWorkspace);
         if (sandboxSpec.isPresent()) {
             builder.filesystem(sandboxSpec.get());
@@ -332,7 +331,6 @@ public class AgentFactory {
                     new LocalFilesystemSpec().isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties)));
         }
         if (!selfEvolve) {
-            // workspace 由管理员维护，关闭文件工具与自记忆
             builder.disableFilesystemTools().disableMemoryTools().disableMemoryHooks();
         }
         if (!middlewares.isEmpty()) {

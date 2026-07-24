@@ -62,7 +62,7 @@ public class AppServiceImpl implements AppService {
         ensureNameUnique(dto.getName(), null);
         AppEntity entity = getAppEntity(dto, appType, sandboxBackend);
         appMapper.insert(entity);
-        eventPublisher.publishEvent(ConfigChangedEvent.app(entity.getId())); // 按应用粒度过期 Agent 缓存
+        eventPublisher.publishEvent(ConfigChangedEvent.app(entity.getId()));
         return entity;
     }
 
@@ -158,7 +158,7 @@ public class AppServiceImpl implements AppService {
         }
         entity.setUpdatedAt(LocalDateTime.now());
         appMapper.updateById(entity);
-        eventPublisher.publishEvent(ConfigChangedEvent.app(id)); // 按应用粒度过期 Agent 缓存
+        eventPublisher.publishEvent(ConfigChangedEvent.app(id));
     }
 
     @Override
@@ -169,7 +169,7 @@ public class AppServiceImpl implements AppService {
             workspacePaths.deleteAppWorkspaces(id);
         }
         appMapper.deleteById(id);
-        eventPublisher.publishEvent(ConfigChangedEvent.app(id)); // 按应用粒度过期 Agent 缓存
+        eventPublisher.publishEvent(ConfigChangedEvent.app(id));
     }
 
     @Override

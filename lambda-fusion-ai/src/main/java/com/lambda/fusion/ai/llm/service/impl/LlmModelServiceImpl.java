@@ -90,7 +90,7 @@ public class LlmModelServiceImpl implements LlmModelService {
         }
         entity.setUpdatedAt(LocalDateTime.now());
         llmModelMapper.updateById(entity);
-        eventPublisher.publishEvent(ConfigChangedEvent.all()); // 全量失效 Agent 缓存
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
     }
 
     @Override
@@ -98,7 +98,7 @@ public class LlmModelServiceImpl implements LlmModelService {
     public void delete(String id) {
         requireExists(id);
         llmModelMapper.deleteById(id);
-        eventPublisher.publishEvent(ConfigChangedEvent.all()); // 全量失效 Agent 缓存
+        eventPublisher.publishEvent(ConfigChangedEvent.all());
     }
 
     @Override

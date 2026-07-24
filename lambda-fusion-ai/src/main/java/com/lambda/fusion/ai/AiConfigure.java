@@ -275,10 +275,7 @@ public class AiConfigure {
     }
 
     /**
-     * 分布式状态存储后端装配：每个后端一个 {@code @ConditionalOnClass} 嵌套配置，注册
-     * {@link StateStoreProvider} bean。扩展或其厂商 SDK 未在 classpath（或 Redis 客户端缺失）时
-     * 不注册，{@code AiAgentFactory#resolveStateStore} 找不到匹配 provider 时回退 MEMORY。
-     * 注意：COS/OSS 扩展类被 shade 进 agentscope.jar 恒在场，故这两个后端额外门控厂商 SDK 类。
+     * 分布式状态存储后端装配
      */
     @Configuration
     public static class StateStoreConfig {

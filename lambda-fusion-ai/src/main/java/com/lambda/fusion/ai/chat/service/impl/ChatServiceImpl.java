@@ -88,9 +88,6 @@ public class ChatServiceImpl implements ChatService {
         return emitter;
     }
 
-    /**
-     * Gateway 可用时统一走 runStream；否则直接调用 agent.streamEvents。
-     */
     private Flux<AgentEvent> routeStream(ChatSessionEntity session, HarnessAgent agent, String content) {
         HarnessGateway gateway = gatewayProvider.getIfAvailable();
         if (gateway == null) {
