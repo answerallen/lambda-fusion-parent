@@ -13,6 +13,7 @@ import com.lambda.fusion.ai.rag.mapper.KnowledgeDocumentMapper;
 import com.lambda.fusion.ai.rag.runtime.SimpleKnowledgeAdapter;
 import com.lambda.fusion.ai.rag.service.DocumentIngestionService;
 import com.lambda.fusion.ai.rag.service.KnowledgeBaseService;
+import com.lambda.fusion.ai.rag.storage.DocumentFileStorageResolver;
 import com.lambda.fusion.ai.rag.storage.LocalDocumentFileStorage;
 import com.lambda.fusion.ai.rag.storage.OssDocumentFileStorage;
 import com.lambda.fusion.ai.runtime.EmbeddingModelResolver;
@@ -510,8 +511,10 @@ public class AiConfigure {
         public DocumentIngestionService documentIngestionService(
                 KnowledgeDocumentMapper knowledgeDocumentMapper,
                 KnowledgeBaseService knowledgeBaseService,
-                SimpleKnowledgeAdapter simpleKnowledgeAdapter) {
-            return new DocumentIngestionService(knowledgeDocumentMapper, knowledgeBaseService, simpleKnowledgeAdapter);
+                SimpleKnowledgeAdapter simpleKnowledgeAdapter,
+                DocumentFileStorageResolver storageResolver) {
+            return new DocumentIngestionService(
+                    knowledgeDocumentMapper, knowledgeBaseService, simpleKnowledgeAdapter, storageResolver);
         }
 
         // 文档原文件存储后端（LOCAL/OSS）；service 注入 List 按 type() 路由，扩展后端注册 Bean 即可

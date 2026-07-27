@@ -39,4 +39,12 @@ public interface KnowledgeDocumentService {
      * 级联删除知识库下全部文档（含向量数据与原文件）。供知识库删除调用。
      */
     void deleteByKbId(String kbId);
+
+    /**
+     * 重新解析切块入库：复用已持久化的原文件，先删旧向量数据再异步重新入库。
+     * 用于失败文档重试或 READY 文档换策略重跑；原文件缺失抛业务异常。
+     *
+     * @return 重置为 PENDING 的文档行
+     */
+    KnowledgeDocumentEntity reingest(String kbId, String documentId);
 }

@@ -2,10 +2,11 @@ package com.lambda.fusion.ai.rag.service;
 
 import com.lambda.fusion.ai.AiConstants.DocumentStatus;
 import com.lambda.fusion.ai.rag.mapper.KnowledgeDocumentMapper;
-import com.lambda.fusion.ai.rag.model.entity.KnowledgeBaseEntity;
 import com.lambda.fusion.ai.rag.model.entity.KnowledgeDocumentEntity;
 import com.lambda.fusion.ai.rag.runtime.IngestChunk;
 import com.lambda.fusion.ai.rag.runtime.SimpleKnowledgeAdapter;
+import com.lambda.fusion.ai.rag.storage.DocumentFileStorage;
+import com.lambda.fusion.ai.rag.storage.DocumentFileStorageResolver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.rag.reader.PDFReader;
 import io.agentscope.core.rag.reader.Reader;
@@ -14,6 +15,9 @@ import io.agentscope.core.rag.reader.TextReader;
 import io.agentscope.core.rag.reader.TikaReader;
 import io.agentscope.core.rag.reader.WordReader;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.MalformedInputException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -25,10 +29,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.annotation.Async;
 
 /**
- * 文档入库管线：临时文件 → Reader 解析切块 → 向量库写入 → 更新文档行状态。
+ * 文档入库管线：从已持久化的原文件读取 → Reader 解析切块 → 向量库写入 → 更新文档行状态。
  *
- * <p>{@code ReaderInput} 不支持 InputStream，上传内容在上传端点已落临时文件；
- * 本类异步执行（{@code AiConfigure} 已 {@code @EnableAsync}），结束后 finally 删除临时文件。
+ * <p>原文件在 upload 端点已通过 {@link DocumentFileStorage} 持久化（LOCAL/OSS），本类按
+ * document 行记录的 {@code storageType} 路由取回，下载到本方法创建的临时文件后解析，finally
+ * 删除--临时文件生命周期完全闭合在 {@link #ingest(String)} 内，不跨同步/异步边界传递。
+ *
+ * <p>本类异步执行（{@code AiConfigure} 已 {@code @EnableAsync}）；调用方在主事务
+ * {@code afterCommit} 阶段触发，保证 document 行已提交可见，避免异步线程 selectById 读不到。
  *
  * <p>Reader 产出的 {@code Document}（deprecated 模型类）在此仅取文本与 chunkId 转为自有
  * {@link IngestChunk}，向量文档的组装由 {@link SimpleKnowledgeAdapter} 防腐层完成。
@@ -43,24 +51,36 @@ public class DocumentIngestionService {
     private final KnowledgeDocumentMapper knowledgeDocumentMapper;
     private final KnowledgeBaseService knowledgeBaseService;
     private final SimpleKnowledgeAdapter simpleKnowledgeAdapter;
+    private final DocumentFileStorageResolver storageResolver;
 
     /**
      * 异步执行入库；任何失败只落文档行状态（FAILED + error_msg），不向调用方抛出。
      *
+     * <p>从已持久化的原文件取回内容（而非依赖 upload 临时文件路径），临时文件由本方法创建并清理。
+     *
      * @param documentId 文档行ID
-     * @param tempFile 上传内容的临时文件（处理完删除）
      */
     @Async
-    public void ingest(String documentId, Path tempFile) {
+    public void ingest(String documentId) {
+        Path tempFile = null;
         try {
             KnowledgeDocumentEntity document = knowledgeDocumentMapper.selectById(documentId);
             if (document == null) {
                 return;
             }
-            KnowledgeBaseEntity kb = knowledgeBaseService.loadById(document.getKbId());
+            // 按 document 行记录的 storageType 路由（配置变更后老文档仍能命中其原始存储后端）
+            DocumentFileStorage storage = storageResolver.resolve(document.getStorageType());
+            tempFile = Files.createTempFile("kb-ingest-", "." + StringUtils.defaultString(document.getFileType()));
+            try (OutputStream out = Files.newOutputStream(tempFile)) {
+                storage.download(document.getStoragePath(), out);
+            }
+
             Reader reader = resolveReader(document.getFileType());
-            // var 接收 Reader 产出，避免在防腐层之外 import deprecated 的 Document 类型
-            var documents = reader.read(ReaderInput.fromFile(tempFile)).block();
+            // ReaderInput 构造按 reader 期望区分：PDFReader/WordReader/TikaReader 取 asString() 作路径，
+            // TextReader 取 asString() 作内容；fromFile 内部 Files.readString(UTF-8) 对二进制与非 UTF-8
+            // 文本都抛 MalformedInputException，故二进制走 fromPath、文本自行读（UTF-8 优先 GBK 兜底）
+            ReaderInput input = buildReaderInput(document.getFileType(), tempFile);
+            var documents = reader.read(input).block();
             List<IngestChunk> chunks = new ArrayList<>();
             if (documents != null) {
                 int index = 0;
@@ -81,13 +101,15 @@ public class DocumentIngestionService {
             knowledgeDocumentMapper.updateById(document);
             log.info("知识库文档入库完成: doc={}, chunks={}", documentId, chunks.size());
         } catch (Exception e) {
-            log.warn("知识库文档入库失败: doc={}, error={}", documentId, e.getMessage());
+            log.error("知识库文档入库失败: doc={}", documentId, e);
             markFailed(documentId, e);
         } finally {
-            try {
-                Files.deleteIfExists(tempFile);
-            } catch (IOException e) {
-                log.warn("删除知识库上传临时文件失败: {}, {}", tempFile, e.getMessage());
+            if (tempFile != null) {
+                try {
+                    Files.deleteIfExists(tempFile);
+                } catch (IOException e) {
+                    log.warn("删除知识库入库临时文件失败: {}, {}", tempFile, e.getMessage());
+                }
             }
         }
     }
@@ -104,6 +126,24 @@ public class DocumentIngestionService {
             knowledgeDocumentMapper.updateById(document);
         } catch (Exception updateError) {
             log.warn("更新文档失败状态出错: doc={}, {}", documentId, updateError.getMessage());
+        }
+    }
+
+    // ReaderInput 构造按 reader 类型区分：二进制走 fromPath（reader 用 PDFBox/POI 自行解析），
+    // 文本走 fromString（TextReader 期望内容）；文本容错非 UTF-8 编码
+    private static ReaderInput buildReaderInput(String fileType, Path file) throws IOException {
+        if ("txt".equalsIgnoreCase(fileType) || "md".equalsIgnoreCase(fileType)) {
+            return ReaderInput.fromString(readTextWithEncodingFallback(file));
+        }
+        return ReaderInput.fromPath(file);
+    }
+
+    // 优先 UTF-8 读取；非 UTF-8（中文 Windows 常见 GBK）回退 GBK，避免 MalformedInputException
+    private static String readTextWithEncodingFallback(Path file) throws IOException {
+        try {
+            return Files.readString(file);
+        } catch (MalformedInputException e) {
+            return new String(Files.readAllBytes(file), Charset.forName("GBK"));
         }
     }
 

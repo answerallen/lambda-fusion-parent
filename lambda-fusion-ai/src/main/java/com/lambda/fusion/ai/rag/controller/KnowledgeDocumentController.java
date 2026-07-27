@@ -63,6 +63,15 @@ public class KnowledgeDocumentController {
         knowledgeDocumentService.delete(kbId, documentId);
     }
 
+    @OperationLog
+    @Operation(summary = "重新解析切块入库(复用原文件, 先删旧向量)")
+    @PostMapping("/{documentId}/reingest")
+    public KnowledgeDocumentEntity reingest(
+            @Parameter(description = "知识库ID", required = true) @PathVariable String kbId,
+            @Parameter(description = "文档ID", required = true) @PathVariable String documentId) {
+        return knowledgeDocumentService.reingest(kbId, documentId);
+    }
+
     @Operation(summary = "下载文档原文件")
     @GetMapping("/{documentId}/download")
     public void download(
