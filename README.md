@@ -19,15 +19,15 @@
 
 ## 📋 项目简介
 
-Lambda Fusion 是以 [**lambda-cloud-parent**](https://gitee.com/westboy/lamuda-cloud-parent) 为基座的企业级业务开发框架，提供开箱即用的权限管理、配置管理、数据字典、AI 智能平台等核心业务功能，助力快速构建微服务应用。
+Lambda Fusion 是以 [**lambda-cloud-parent**](https://gitee.com/westboy/lamuda-cloud-parent) 为基座的企业级业务开发框架，产出供下游应用依赖的 `lambda-fusion-*` starter 模块，提供开箱即用的权限管理、配置管理、数据字典、AI 智能平台等核心业务能力，助力快速构建微服务应用。
 
 ### ✨ 核心特性
 
-- 🔐 **完善的权限体系** - RBAC 模型 + 多租户支持
-- ⚙️ **动态配置管理** - 支持热更新和多配置源
-- 📚 **灵活的数据字典** - 静态/动态字典，支持多种数据源
-- 🤖 **AI 智能平台** - RAG知识库、Agent工作流、AI机器人
-- 🎯 **开箱即用** - 预置常用业务模块，快速启动项目
+- 🔐 **完善的权限体系** - RBAC 模型 + 轻量级多租户支持(字段级隔离)
+- ⚙️ **动态配置管理** - 数据库配置源 + 热更新 + Nacos 发布
+- 📚 **灵活的数据字典** - 静态/动态字典，枚举扫描注册
+- 🤖 **AI 智能平台** - 基于 AgentScope 2.0：智能应用、LLM 管理、知识库 RAG、子代理、MCP、技能市场、通道网关
+- 🎯 **开箱即用** - 预置常用业务模块，`lambda-fusion-startup` 一键组装运行
 
 
 ## 🏗️ 项目架构
@@ -36,17 +36,19 @@ Lambda Fusion 是以 [**lambda-cloud-parent**](https://gitee.com/westboy/lamuda-
 
 ```
 lambda-fusion-parent/
-├── 📦 lambda-fusion-bom/          # BOM 依赖管理
-├── 🤖 lambda-fusion-ai/           # AI模块
-├── 🎯 lambda-fusion-core/         # 核心模块
-├── 🔐 lambda-fusion-authority/    # 权限管理（用户、角色、组织、资源）
-├── ⚙️ lambda-fusion-config/       # 配置管理（动态配置、热更新）
-├── 📚 lambda-fusion-dictionary/   # 数据字典（静态/动态字典）
-├── 📤 lambda-fusion-oss/       # 文件上传（OSS、本地存储）
-├── 🗄️ lambda-fusion-datasource/   # 数据源管理（多数据源支持）
-└── 🛡️ lambda-fusion-permission/   # 权限控制模块
-    ├── lambda-fusion-permission-api/  # API接口权限
-    └── ️lambda-fusion-permission-datascope/   # 数据权限
+├── 📦 lambda-fusion-bom/                  # BOM 依赖管理
+├── 🎯 lambda-fusion-core/                 # 核心模块（分页/CRUD/树/字典/身份）
+├── 🔐 lambda-fusion-authority-api/        # 权限 API（Dubbo 远程认证 + Sa-Token 适配）
+├── 🔐 lambda-fusion-authority/            # 权限管理（用户、角色、组织、资源、租户、客户端）
+├── 🛡️ lambda-fusion-permission/           # 权限控制（聚合模块）
+│   ├── lambda-fusion-permission-api/          # API 权限元数据（client/server）
+│   └── lambda-fusion-permission-datascope/    # 数据权限授权树
+├── ⚙️ lambda-fusion-config/               # 配置管理（dbconfig + 热更新 + Nacos 发布）
+├── 📚 lambda-fusion-dictionary/           # 数据字典（静态/动态字典、枚举扫描）
+├── 🗄️ lambda-fusion-datasource/           # 动态数据源管理（server/client、Dubbo 分发）
+├── 📤 lambda-fusion-oss/                  # 附件管理（七牛/S3，按租户隔离）
+├── 🤖 lambda-fusion-ai/                   # AI 模块（基于 AgentScope 2.0）
+└── 🚀 lambda-fusion-startup/              # 可运行演示应用（端口 20005）
 ```
 
 
@@ -58,11 +60,11 @@ lambda-fusion-parent/
 | 🏢 **组织架构** | 多层级组织结构、部门管理、岗位管理 |
 | 📋 **资源管理** | 菜单权限、按钮权限、API 资源控制 |
 | 🔑 **客户端管理** | 客户端管理、授权、访问控制 |
-| 🏠 **多租户支持** | 租户配置、数据隔离、租户级权限 |
+| 🏠 **多租户支持** | 单一共享库 + tenant_id 字段级隔离，会话/业务按租户过滤 |
 | 🔒 **认证服务** | 用户认证、SSO 支持、动态菜单生成 |
-| 🤖 **RAG 知识库** | 向量检索、混合检索、文档理解、多租户隔离 |
-| 🤖 **Agent 工作流** | 可视化编排、节点扩展、条件路由、动态执行 |
-| 🤖 **AI 机器人** | 机器人管理、人设配置、知识库绑定 |
+| 🤖 **智能应用** | CHAT/WORKSPACE 两型、自演化、多沙箱后端、SSE 流式对话 |
+| 🤖 **知识库 RAG** | 文档切块入库、pgvector 向量库、三种检索注入模式（GENERIC/AGENTIC/BOTH） |
+| 🤖 **子代理 / 技能 / MCP / 通道** | DB 驱动子代理、技能市场、MCP 工具接入、钉钉/飞书/企微通道适配 |
 
 
 ## 🛠️ 技术栈
@@ -71,12 +73,14 @@ lambda-fusion-parent/
 |------|--------|------|
 | ☕ **Java** | 21+    | 最新 LTS 版本，性能优异 |
 | 🍃 **Spring Boot** | 4.0.2  | 微服务开发框架 |
-| ☁️ **Spring Cloud** | Latest | 微服务生态组件 |
+| ☁️ **Spring Cloud** | 2025.1.x | 微服务生态组件 |
 | 🔐 **Sa-Token** | Latest | 轻量级权限认证框架 |
 | 💾 **MyBatis Plus** | Latest | 增强版 ORM 框架 |
 | 🔄 **MapStruct** | Latest |高性能对象映射 |
+| 🤖 **AgentScope** | 2.0 | AI 多智能体运行时（harness/模型/沙箱/通道/技能/RAG） |
 | 🌶️ **Lombok** |Latest | 简化 Java 代码 |
 | ☁️ **Nacos** |Latest | 配置中心 / 注册中心 |
+| ☁️ **Dubbo** |Latest | 远程认证 / 数据源 / 权限元数据同步 |
 | ☕ **Caffeine** |Latest | 高性能本地缓存 |
 | 🔧 **Hutool** |Latest | Java 工具类库 |
 
@@ -136,7 +140,15 @@ lambda-fusion-parent/
     <groupId>com.lambda.cloud</groupId>
     <artifactId>lambda-fusion-dictionary</artifactId>
 </dependency>
+
+<!-- AI 智能平台（基于 AgentScope 2.0） -->
+<dependency>
+    <groupId>com.lambda.cloud</groupId>
+    <artifactId>lambda-fusion-ai</artifactId>
+</dependency>
 ```
+
+> 基座 `lambda-cloud-parent` 与 BOM 均为 `2026.1.1-SNAPSHOT`，需先在 `lamuda-cloud-parent` 下执行 `mvn clean install` 安装到本地仓库后再构建本仓库。运行演示见 `lambda-fusion-startup`（端口 20005，配置由环境变量驱动）。
 
 ---
 

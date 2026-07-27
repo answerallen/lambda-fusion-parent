@@ -1,92 +1,127 @@
-# Lambda Fusion AI 模块
+# Lambda Fusion AI
 
-`lambda-fusion-ai` 是 Lambda Fusion 体系中的 AI 能力模块，基于 AgentScope 2.0 构建，面向 Spring Boot 提供多智能应用托管能力：平台（ISV）预置智能体提供给运营商，每个应用绑定模型、系统提示词、工具与 MCP 服务，对外提供运营商隔离的流式对话；WORKSPACE 型应用进一步对齐 AgentScope harness 完整能力（workspace/技能/子agent/记忆/沙箱/自演化）。
+`lambda-fusion-ai` 是 Lambda Fusion 体系的 AI 能力模块，基于 **AgentScope 2.0** 构建，为 Spring Boot 应用提供多智能体应用托管能力：平台（ISV）预置智能体应用，每个应用绑定模型、系统提示词、工具、MCP 服务、知识库与子代理，对外提供运营商隔离的流式对话；WORKSPACE 型应用进一步对齐 AgentScope harness 完整能力（workspace / 技能 / 子代理 / 记忆 / 沙箱 / 自演化）。
 
-适用于需要在业务系统中集成多应用 AI 对话、模型管理、MCP 工具、自演化 Agent、沙箱执行能力的 Spring Boot 应用。
+> 深度文档见 `docs/skills/lambda-fusion-ai/SKILL.md`（自动配置入口、配置项、关键机制、常见改造入口）。本 README 是概览。
 
-> 能力表（app/provider/model/mcp）为平台级全局资源（无 tenant_id）；运营商隔离发生在会话层（session/message/audit 按 `tenant_id`）与运行时（agent 实例 + 工具按用户 tenant 查业务数据）。应用按 `audience`(B/C/ALL)+角色 或 `ownerId` 控制可见性。
+## 能力总览
 
-## 1. 设计概览
+| 能力 | 包 | 端点 | 说明 |
+| --- | --- | --- | --- |
+| LLM 提供方/模型 | `llm` | `/v1/ai/llm-providers` `/v1/ai/llm-models` | DB 驱动，API Key AES-GCM 加密；dashscope/openai/ollama |
+| 智能应用 | `apps` | `/v1/ai/apps` `/v1/ai/apps/available` | CHAT / WORKSPACE 两型，平台全局 |
+| 对话会话 | `chat` | `/v1/ai/sessions` | SSE 流式聊天 + 主动出站 |
+| MCP 服务 | `mcp` | `/v1/ai/mcp-servers` | stdio/sse/http/streamable_http |
+| 知识库 RAG | `rag` | `/v1/ai/knowledge-bases` | 文档切块入库 + 对话检索注入（GENERIC/AGENTIC/BOTH） |
+| 子代理 | `subagent` | `/v1/ai/sub-agents` | DB 驱动子代理定义，主 agent 按 description 自主路由 |
+| 技能市场 | `skill` | `/v1/ai/skills` | MYSQL/POSTGRES/GIT/NACOS 仓库源 |
+| 通道配置 | `channel` | `/v1/ai/channel-configs` | 外部通道→agent 路由绑定（DB 管理） |
+| Gateway/通道适配器 | `runtime.gateway` | `POST /v1/ai/outbound/send` | HarnessGateway + 钉钉/飞书/企微适配器（条件装配） |
+| 沙箱 | `runtime.sandbox` | — | HOST/Docker/K8s/E2B/Daytona/AgentRun |
+| 状态存储 | `runtime.state` | — | MEMORY/FILE/MYSQL/POSTGRES/REDIS/OSS/COS |
+| Workspace | `runtime.workspace` | `/v1/ai/apps/{id}/workspace/*` | 脚手架/文件管理/自演化审计 |
+| API Key 加密 | `security` | — | AES-GCM |
 
-应用分两型，由 `appType` 决定能力栈：
+> 能力表（app/provider/model/mcp/sub_agent/channel_config/knowledge_base）为平台级全局资源（无 `tenant_id`）；运营商隔离发生在会话层（session/message/audit 按 `tenant_id`）与运行时（agent 实例 + 工具按用户 tenant 查业务数据）。应用按 `audience`(B/C/ALL)+角色 或 `ownerId` 控制可见性。
 
-| appType | 说明 | workspace | 文件工具 | 技能/子agent | 记忆 | 自演化 | 沙箱(shell) |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `CHAT` | 纯 DB 配置（v1） | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| `WORKSPACE` + `selfEvolve=false` | ASSISTANT 助手 | ✓ 平台管理 | ✗ | ✓ | ✗ | ✗ | 按 sandboxBackend |
-| `WORKSPACE` + `selfEvolve=true` | AUTONOMOUS 自主 | ✓ agent 可写 | ✓ | ✓ | ✓ | ✓ | 按 sandboxBackend |
+## 应用分型
 
-WORKSPACE 型的 `sandboxBackend` 决定执行隔离：`HOST`（宿主，无 shell）/ `DOCKER` / `KUBERNETES` / `E2B` / `DAYTONA` / `AGENTRUN`（后 5 个为沙箱，启用 shell 工具；条件装配，扩展未安装时回退 HOST）。
+应用分两型，由 `appType` 决定能力栈（创建后不可变）：
 
-| 能力域 | 实现 |
-| --- | --- |
-| 自动装配 | `AiAutoConfiguration -> AiConfigure` |
-| 模型管理 | DB 驱动：提供方 + 模型，API Key AES-GCM 加密 |
-| 智能应用 | `/v1/ai/apps` CRUD（平台预置，全局），appType/selfEvolve/sandboxBackend/audience/ownerId |
-| MCP 工具 | `/v1/ai/mcp-servers`（全局），按应用装载 + 本地 `@Tool` |
-| 对话 | `/v1/ai/sessions` 会话 + SSE 流式聊天，经 `HarnessGateway` 执行（per-session 串行），多轮上下文（内存状态） |
-| Gateway/通道 | `HarnessGateway` + `ChannelManager`；外部 `Channel` Bean 自动装配为入站通道；`POST /v1/ai/outbound/send` 主动出站 |
-| Workspace | `/v1/ai/apps/{id}/workspace/*?tenantId=` 文件管理 + 自演化审计 |
-| 可见性 | app 按 `audience`(B/C/ALL)+角色 / `ownerId` 过滤；`GET /v1/ai/apps/available`（登录即可） |
-| 运营商隔离 | 能力表(app/provider/model/mcp)全局无 tenant_id；session/message/audit 按 `tenant_id` 隔离 |
+| appType | workspace | 文件工具 | 技能/子代理 | 自演化 | 沙箱(shell) |
+| --- | --- | --- | --- | --- | --- |
+| `CHAT` | ✗ | ✗ | ✗ | ✗ | ✗ |
+| `WORKSPACE` + `selfEvolve=false`（ASSISTANT） | ✓ 平台管理 | ✗ | ✓ | ✗ | 按 sandboxBackend |
+| `WORKSPACE` + `selfEvolve=true`（AUTONOMOUS） | ✓ agent 可写 | ✓ | ✓ | ✓ | 按 sandboxBackend |
 
-### 架构
+`sandboxBackend`（WORKSPACE 型）决定执行隔离：`HOST`（宿主，无 shell）/ `DOCKER` / `KUBERNETES` / `E2B` / `DAYTONA` / `AGENTRUN`（后 5 个启用 shell；扩展未安装时回退 HOST）。多轮上下文由 Agent 状态存储维持（所有 appType 共用，按 `state-store.type` 配置）。
+
+## 架构
 
 ```
 请求 ──▶ ChatController(SSE) ──▶ ChatService
-          ├─ ChatSessionService  会话/消息持久化（MySQL）
-          ├─ AiAgentFactory      按 (app,tenant) 构建+缓存 HarnessAgent，并注册到 Gateway
-          │    ├─ AiModelResolver     DB -> Model
-          │    ├─ ToolkitAssembler    本地 @Tool + MCP
-          │    └─ SandboxSpecResolver 沙箱后端 spec（DOCKER/K8s/E2B/Daytona/AgentRun）
+          ├─ ChatSessionService     会话/消息持久化（MySQL）
+          ├─ AgentFactory           按 (app,tenant) 构建+缓存 HarnessAgent，注册到 Gateway
+          │    ├─ ModelResolver              DB modelId -> AgentScope Model
+          │    ├─ EmbeddingModelResolver      EMBEDDING 模型解析（RAG 用）
+          │    ├─ ToolkitAssembler            本地 @Tool + MCP
+          │    ├─ SubAgentDeclarationMapper   子代理 DB 声明 -> SubagentDeclaration
+          │    ├─ SandboxSpecResolver         沙箱后端 spec
+          │    └─ RagMiddleware / KnowledgeRetrievalTool  检索注入（条件挂载）
           └─ HarnessGateway.runStream -> Flux<AgentEvent> -> SSE
-              ├─ SessionTurnGate   per-session 轮次串行（同会话并发消息排队）
-              ├─ ChannelManager    外部通道注册表（下游 Channel Bean 自动装配）
-              └─ OutboundAddress   记录会话最近入站通道，供主动出站回推
-外部通道（钉钉/微信等，下游实现 Channel Bean）──▶ ChannelManager ──▶ HarnessGateway ──▶ LF agent
+              ├─ SessionTurnGate     per-session 轮次串行
+              ├─ ChannelManager      外部通道注册表
+              └─ OutboundAddress     会话最近入站通道，供主动出站回推
+
+外部通道（钉钉/飞书/企微/自定义 Channel Bean）──▶ ChannelManager ──▶ HarnessGateway ──▶ LF agent
 ```
 
-## 2. 代码结构
+## 代码结构
 
 主包：`src/main/java/com/lambda/fusion/ai`
 
 | 包 | 作用 |
 | --- | --- |
-| `llm` | LLM 提供方与模型管理 |
-| `apps` | 智能应用管理 + workspace 文件管理 API |
+| `llm` | LLM 提供方与模型管理（DB 驱动，API Key 加密） |
+| `apps` | 智能应用 CRUD + workspace 文件管理 API |
+| `chat` | 对话会话、SSE 流式聊天、主动出站 |
 | `mcp` | MCP 服务管理 |
-| `chat` | 对话会话与流式聊天 |
-| `runtime` | AgentScope 集成：AiAgentFactory / AiModelResolver / ToolkitAssembler |
+| `rag` | 知识库管理 + 文档切块入库 + 检索注入（中间件/工具）+ 原文件存储 |
+| `subagent` | 子代理定义管理（DB 驱动） |
+| `skill` | 技能市场管理（仓库源 MYSQL/POSTGRES/GIT/NACOS） |
+| `channel` | 通道路由配置管理（DB 驱动，channelId→agent 绑定） |
+| `runtime` | AgentScope 集成：`AgentFactory` / `ModelResolver` / `EmbeddingModelResolver` / `ToolkitAssembler` / `SubAgentDeclarationMapper` |
+| `runtime.gateway` | Gateway/通道：`ChannelLifecycle` / `ChannelBootstrap` / `ChannelConfigApplier` / `RuntimeProperty` |
+| `runtime.sandbox` | 沙箱后端解析：`SandboxSpecResolver` / `SandboxBackendProvider` |
+| `runtime.state` | Agent 状态存储：`StateStoreProvider` / `StateStoreDataSources` |
 | `runtime.workspace` | Workspace 路径/脚手架/文件服务/自演化审计 |
-| `runtime.sandbox` | 沙箱后端解析器（SandboxSpecResolver / SandboxBackendProvider） |
-| `runtime.gateway` | Gateway 集成：ChannelLifecycle / FusionRuntime（上下文透传 helper） |
+| `runtime.event` | `ConfigChangedEvent`（配置变更失效缓存） |
 | `security` | API Key 加解密（AES-GCM） |
 
-各沙箱后端的条件装配以嵌套静态配置类的形式收敛在 `AiConfigure.SandboxConfig` 中（每个后端一个 `@ConditionalOnClass` 嵌套类，扩展 jar 缺席时对应类不加载）。
+各扩展后端（沙箱/状态存储/技能仓库/通道适配器）的条件装配以 `AiConfigure` 的嵌套静态配置类收敛：每个后端一个 `@ConditionalOnClass` 嵌套类，扩展 jar 缺席时对应类不加载、优雅降级。
 
-## 3. 核心链路
+## 核心链路
 
-- **Agent 构建**：`AiAgentFactory.getOrBuild(appId, tenantId)` 按 `appType` 分支；CHAT 关闭 workspace 能力，WORKSPACE 开启（AGENTS.md/技能/子agent/记忆）+ 按 `sandboxBackend` 选文件系统 spec；`selfEvolve` 决定只读/可写。配置变更经 `AiConfigChangedEvent` 失效缓存。
-- **沙箱**：`SandboxSpecResolver` 按 `sandboxBackend` 找 `SandboxBackendProvider`（各后端在 `AiConfigure.SandboxConfig` 中按 `@ConditionalOnClass` 条件装配）构建 spec；后端不可用回退 HOST。
-- **流式对话**：`ChatService` 构建 `MsgContext`（room=LF sessionId，extra 透传 tenantId/appId/lfSessionId + agentId）+ `OutboundAddress`，经 `HarnessGateway.runStream` -> `Flux<AgentEvent>` -> SSE 帧（`delta`/`tool_start`/`tool_end`/`done`）。Gateway 的 `SessionTurnGate` 保证同会话并发消息串行。
-- **会话标识双重性**：`RuntimeContext.sessionId` 为 Gateway 的 `gw-<hash>`（agent 内存状态槽位，按 `canonicalKey` 稳定映射）；LF `sessionId` 为业务/持久化键，经 `MsgContext.extra` 透传，由 `FusionRuntime` 读取。Gateway 未启用时回退直连 `agent.streamEvents`。
-- **外部通道**：下游实现 `io.agentscope.harness.agent.gateway.channel.Channel` Bean，`ChannelLifecycle` 自动注册到 `ChannelManager` 并经共享 `HarnessGateway` 路由到 LF agent（靠 `preferredAgentId` 或 `ChannelConfig.defaultAgentId` 指定 `app:{appId}:t:{tenantId}`）。
-- **自演化审计**：selfEvolve 应用每轮对话后，`WorkspaceAuditRecorder` 扫描 workspace 中本轮变更文件，复制快照并写入审计表。
+- **Agent 构建**：`AgentFactory.getOrBuild(appId, tenantId)` 按 `appType` 分支；CHAT 关闭 workspace/子代理能力，WORKSPACE 开启（AGENTS.md/技能/子代理/记忆）+ 按 `sandboxBackend` 选文件系统 spec；`selfEvolve` 决定只读/可写。RAG 按 `ai_app.rag_mode`（GENERIC/AGENTIC/BOTH）挂中间件或注册工具。配置变更经 `ConfigChangedEvent` 失效缓存。
+- **沙箱**：`SandboxSpecResolver` 按 `sandboxBackend` 找 `SandboxBackendProvider`（`AiConfigure.SandboxConfig` 各后端 `@ConditionalOnClass` 装配）构建 spec；后端不可用回退 HOST。
+- **状态存储**：`StateStoreProvider` 按 `state-store.type` 解析后端（`AiConfigure.StateStoreConfig` 各后端 `@ConditionalOnClass` 装配）；分布式后端依赖对应 AgentScope 扩展，缺失时告警回退 MEMORY。
+- **流式对话**：`ChatService` 构建 `MsgContext`（room=LF sessionId，extra 透传 tenantId/appId/lfSessionId + agentId）+ `OutboundAddress`，经 `HarnessGateway.runStream` → `Flux<AgentEvent>` → SSE 帧（`delta`/`tool_start`/`tool_end`/`done`）。`SessionTurnGate` 保证同会话并发消息串行。Gateway 未启用时回退直连 `agent.streamEvents`。
+- **会话标识双重性**：`RuntimeContext.sessionId` 为 Gateway 的 `gw-<hash>`（agent 内存状态槽位）；LF `sessionId` 为业务/持久化键，经 `MsgContext.extra` 透传，由 `RuntimeProperty` 读取。
+- **外部通道**：内置钉钉/飞书/企微适配器（`AiConfigure.ChannelAdapterConfig`，各 `@ConditionalOnClass`）+ 下游自定义 `Channel` Bean，`ChannelLifecycle` 自动注册到 `ChannelManager` 并经共享 `HarnessGateway` 路由到 LF agent（靠 `preferredAgentId` 或 `ChannelConfig.defaultAgentId` 指定 `app:{appId}:t:{tenantId}`）。通道→agent 的绑定由 `channel` 包的 `ai_channel_config` 表管理。
+- **主动出站**：`POST /v1/ai/outbound/send`（`{sessionId, messages}` 回推会话最近入站通道，或 `{channelId, to, messages}` 显式投递）。内部 SSE 通道为请求/响应模型，不支持 proactive push 到 Web 端。
+- **自演化审计**：selfEvolve 应用每轮对话后，`WorkspaceAuditRecorder` 扫描 workspace 中本轮变更文件，复制快照写入 `ai_app_workspace_audit`。
 
-多轮上下文由 Agent 状态存储维持（按 `sessionId` 隔离）。默认 `state-store.type=MEMORY`（进程内，重启丢失）；切 `FILE` 则 JSON 落盘，跨重启续聊。消息历史始终在 MySQL，可查看。
+## 能力详解
 
-## 4. 能力详解
+### LLM 提供方与模型
+提供方类型 `dashscope`/`openai`/`ollama`；模型类型 `CHAT`/`EMBEDDING`；API Key AES-GCM 加密存储；`ModelResolver` 按 modelId 解析 CHAT 模型，`EmbeddingModelResolver` 解析 EMBEDDING 模型（RAG 用）。端点 `/v1/ai/llm-providers`、`/v1/ai/llm-models`。
 
-### 4.1 LLM 提供方与模型
-提供方类型 `dashscope`/`openai`/`ollama`；模型类型 `CHAT`/`EMBEDDING`；API Key 加密存储；`AiModelResolver` 按 modelId 解析为 AgentScope `Model`。端点：`/v1/ai/llm-providers`、`/v1/ai/llm-models`。
+### 智能应用
+应用字段：`modelId` `systemPrompt` `maxIters` `temperature` `toolsAllow` `toolsDeny` `mcpServerIds` `knowledgeBaseIds` `ragMode` `subAgentIds` `skillsAllow` `skillsDeny` `appType` `selfEvolve` `sandboxBackend` `audience`(B/C/ALL) `ownerId` `enabled`。CRUD 端点 `/v1/ai/apps`（ROLE_DEV，平台 ISV 管理全局能力）；用户可用应用 `GET /v1/ai/apps/available`（登录，按 audience+角色/owner 过滤）。`appType` 创建后不可变；其余字段可调。
 
-### 4.2 智能应用
-应用字段：`modelId` `systemPrompt` `maxIters` `temperature` `toolsAllow` `toolsDeny` `mcpServerIds` `appType` `selfEvolve` `sandboxBackend` `audience`(B/C/ALL) `ownerId`(预留独立应用) `enabled`。CRUD 端点 `/v1/ai/apps`（ROLE_DEV，平台 ISV 管理全局能力）；用户可用应用 `GET /v1/ai/apps/available`（登录，按 audience+角色/owner 过滤）。`appType` 创建后不可变；`selfEvolve`/`sandboxBackend`/`audience` 可调。
-
-### 4.3 MCP 服务
+### MCP 服务
 传输 `stdio`/`sse`/`http`/`streamable_http`；`ToolkitAssembler` 按应用装载，单个失败不影响其余；`POST /v1/ai/mcp-servers/{id}/test` 测连通性。
 
-### 4.4 Workspace（WORKSPACE 型）
+### 知识库（RAG）
+- 知识库管理（嵌入模型绑定、检索条数/阈值）+ 文档上传切块入库（向量库 MEMORY 默认 / PGVECTOR 可选）+ 原文件存储（LOCAL 默认 / OSS 可选）。
+- 检索模式 `ai_app.rag_mode`：`GENERIC`（默认，中间件自动检索注入）/ `AGENTIC`（注册 `retrieve_knowledge` 工具，模型自主调用）/ `BOTH`（两者兼有）。
+- 默认关闭，由 `lambda.fusion.ai.rag.enabled` 开启；关闭时管理 CRUD 仍可用，检索注入不装配。
+- 端点：`/v1/ai/knowledge-bases`、`/v1/ai/knowledge-bases/{kbId}/documents`（上传/下载/删除）。
+- 详见 `docs/skills/lambda-fusion-ai/SKILL.md`「知识库（RAG）」。
+
+### 子代理
+DB 驱动子代理定义（`ai_sub_agent`：`name`/`description`/`prompt`/`modelId`/`steps`/`toolsAllow`/`skillsAllow`/`workspaceMode`）。按应用绑定（`ai_app.sub_agent_ids`，仅 WORKSPACE 型），`AgentFactory` 构建期注册为 `SubagentDeclaration`，主 agent 经 harness 子代理体系（`agent_spawn`/`agent_send`）调度，**路由由 LLM 按 description 自主决策**。同名 `workspace/subagents/*.md` 文件覆盖 DB 声明。端点 `/v1/ai/sub-agents`。详见 SKILL.md「子代理」。
+
+### 技能市场
+技能仓库源按部署形态选择：`MYSQL`（默认）/ `POSTGRES`（可读写，admin CRUD）/ `GIT` / `NACOS`（只读 catalog）。`type=NONE` 或扩展未引入时技能市场禁用（WORKSPACE app 仅用 workspace 本地技能）。端点 `/v1/ai/skills`。
+
+### 通道配置
+`ai_channel_config` 表管理外部通道→agent 的路由绑定（按 channelId）。内置钉钉/飞书/企微通道适配器（`AiConfigure.ChannelAdapterConfig`，各 `@ConditionalOnClass`，扩展未引入时不装配）。端点 `/v1/ai/channel-configs`。
+
+### 对话
+`POST /v1/ai/sessions` 创建、`GET /v1/ai/sessions/page` 列表、`GET /v1/ai/sessions/{id}/messages` 历史、`POST /v1/ai/sessions/{id}/chat`（SSE）流式对话。同会话并发消息由 `SessionTurnGate` 串行排队。
+
+### Workspace（WORKSPACE 型）
 - 首次对话时按运营商自动脚手架（per-`tenantId` workspace）：`AGENTS.md`/`skills/`/`subagents/`/`memory/`/`knowledge/`/`tools.json`。
 - 文件管理 API（ROLE_DEV，需指定 `tenantId` 查看对应运营商的 workspace）：
   - `GET /v1/ai/apps/{id}/workspace/files?tenantId=` 列出
@@ -94,15 +129,9 @@ WORKSPACE 型的 `sandboxBackend` 决定执行隔离：`HOST`（宿主，无 she
   - `PUT /v1/ai/apps/{id}/workspace/file?tenantId=&path=` 写入
   - `GET /v1/ai/apps/{id}/workspace/audit?tenantId=` 自演化审计记录
 
-### 4.5 对话
-`POST /v1/ai/sessions` 创建、`GET /v1/ai/sessions/page` 列表、`GET /v1/ai/sessions/{id}/messages` 历史、`POST /v1/ai/sessions/{id}/chat`（SSE）流式对话。流式对话经 `HarnessGateway.runStream` 执行，同会话并发消息由 `SessionTurnGate` 串行排队。
+## 配置
 
-### 4.6 Gateway 与外部通道
-- **Gateway**：`HarnessGateway`（单例）作为运行时入口，agent 按 `app:{appId}:t:{tenantId}` 注册；内部 SSE 直接调 `gateway.runStream`，外部通道经 `ChannelManager` 路由到同一 Gateway。`SessionTurnGate` 提供 per-session 公平锁。
-- **外部通道扩展点**：下游实现 `io.agentscope.harness.agent.gateway.channel.Channel`（`channelId`/`config`/`dispatch`/`deliver`/`start`/`stop`），声明为 Spring Bean，`ChannelLifecycle` 自动注册并拉起。入站消息靠 `preferredAgentId` 或 `ChannelConfig.defaultAgentId` 路由到指定 LF agent。
-- **主动出站**：`POST /v1/ai/outbound/send`（ROLE_DEV），`{sessionId, messages}` 回推到会话最近入站通道，或 `{channelId, to, messages}` 显式通道投递。内部 SSE 通道为请求/响应模型，不支持 proactive push 到 Web 端。
-
-## 5. 配置
+配置前缀 `lambda.fusion.ai`：
 
 ```yaml
 lambda:
@@ -118,8 +147,13 @@ lambda:
       gateway:
         enabled: true                               # 关闭则回退直连 agent.streamEvents（无串行锁/通道）
       state-store:
-        type: MEMORY                                # MEMORY（默认，进程内，重启丢失）/ FILE（JSON 落盘，重启不丢）
+        type: MEMORY                                # MEMORY/FILE/MYSQL/POSTGRES/REDIS/OSS/COS
         root:                                       # FILE 模式根目录；默认 ${workspace.root}/state
+        mysql:    { datasource, database, table, create-if-not-exist }
+        postgres: { datasource, schema, table, create-if-not-exist }
+        redis:    { key-prefix }
+        oss:      { endpoint, access-key-id, access-key-secret, bucket-name, key-prefix }
+        cos:      { region, secret-id, secret-key, bucket-name, key-prefix }
       workspace:
         root: ${user.home}/.agentscope/fusion      # workspace 根
       sandbox:
@@ -129,25 +163,58 @@ lambda:
         e2b:       { api-key, template-id, domain, workspace-root }
         daytona:   { api-key, api-url, workspace-root }
         agentrun:  { api-key, api-url, workspace-root }
+      skill:
+        repository:
+          type: MYSQL                               # MYSQL/POSTGRES/GIT/NACOS/NONE
+          mysql:    { datasource, create-if-not-exist, writeable }
+          postgres: { datasource, create-if-not-exist, writeable }
+          git:      { remote-url, branch, local-path, source }
+          nacos:    { server-addr, namespace-id, access-key, secret-key }
+      rag:
+        enabled: false                              # 默认关闭；开启后装配检索注入
+        default-limit: 5
+        default-score-threshold: 0.5
+        max-inject-chars: 4000
+        store:
+          type: MEMORY                              # MEMORY（默认）/ PGVECTOR
+        document-storage:
+          type: LOCAL                               # LOCAL（默认）/ OSS
+          local: { root }                           # 默认 ${workspace.root}/knowledge-files
+          oss:   { client-name, key-prefix }        # 默认前缀 ai/knowledge/
+        pgvector: { jdbc-url, username, password, schema }   # 仅 PGVECTOR 需要
 ```
 
 | 项目 | 说明 |
 | --- | --- |
 | `security.encryption-key` | 未配置时启动告警，加密 API Key 时抛异常 |
 | `audience.{b,c}-roles` | B/C 端角色名列表，用于 app 可见性过滤（下游自定义角色名） |
-| `gateway.enabled` | 是否启用 `HarnessGateway`（默认 true）。关闭后回退直连，无轮次串行锁与外部通道能力 |
-| `state-store.type` | Agent 状态存储（多轮记忆）：`MEMORY`（默认，进程内，重启丢失）/ `FILE`（JSON 落盘，跨重启）。按部署形态选 |
-| `state-store.root` | FILE 模式根目录；默认 `${workspace.root}/state` |
-| `sandbox.docker.*` | Docker 沙箱镜像/资源；镜像默认 `agentscope/python-sandbox:py311-slim` |
-| `sandbox.{kubernetes,e2b,daytona,agentrun}.*` | 各云/K8s 后端凭据；对应扩展需在下游 classpath（ai 模块已 optional 引入） |
-| 数据源 | v1 元数据表使用 MySQL `master` |
+| `gateway.enabled` | 是否启用 HarnessGateway（默认 true）；关闭后无轮次串行锁与外部通道能力 |
+| `state-store.type` | Agent 多轮记忆后端；分布式后端（MYSQL/POSTGRES/REDIS/OSS/COS）依赖对应 AgentScope 扩展，缺失回退 MEMORY |
+| `sandbox.*` | 各沙箱后端凭据；对应扩展需在 classpath（ai 模块已 optional 引入） |
+| `skill.repository.type` | 技能仓库源；`NONE` 或扩展缺失时技能市场禁用 |
+| `rag.enabled` | 知识库检索注入总开关（默认 false）；关闭时管理 CRUD 仍可用 |
+| `rag.store.type` | 向量库后端；PGVECTOR 需配 `pgvector.*` 连接（只接受 JDBC 连接串，不走动态数据源） |
+| `rag.document-storage.type` | 文档原文件存储；LOCAL / OSS |
+| 数据源 | 元数据表使用 MySQL `master`；pgvector 连接走 `rag.pgvector.*` |
 
-### 数据库对象
-`ai_llm_provider` `ai_llm_model` `ai_app` `ai_mcp_server`（平台全局，无 tenant_id）；`ai_chat_session` `ai_chat_message` `ai_app_workspace_audit`（按 `tenant_id` 运营商隔离）。`ai_app` 另含 `owner_id`(预留独立应用)/`audience`(B/C/ALL)。迁移：`META-INF/db/changelogs/lambda-ai-changelog.xml`。
+## 数据库对象
 
-## 6. 快速开始
+| 表 | 隔离 | 说明 |
+| --- | --- | --- |
+| `ai_llm_provider` `ai_llm_model` | 全局 | LLM 提供方/模型 |
+| `ai_app` | 全局 | 智能应用（含 `audience`/`owner_id`/`knowledge_base_ids`/`rag_mode`/`sub_agent_ids`） |
+| `ai_mcp_server` | 全局 | MCP 服务 |
+| `ai_sub_agent` | 全局 | 子代理定义 |
+| `ai_channel_config` | 全局 | 通道→agent 路由绑定 |
+| `ai_knowledge_base` `ai_knowledge_document` | 全局 | 知识库/文档行 |
+| `ai_chat_session` `ai_chat_message` | `tenant_id` | 会话/消息 |
+| `ai_app_workspace_audit` | `tenant_id` | 自演化审计 |
 
-注册提供方 -> 注册模型 -> 创建应用 -> 创建会话 -> 流式对话。
+迁移：`META-INF/db/changelogs/lambda-ai-changelog.xml`。
+
+## 快速开始
+
+注册提供方 → 注册模型 → 创建应用 → 创建会话 → 流式对话。
 
 创建 WORKSPACE 自演化应用：
 ```http
@@ -163,43 +230,67 @@ POST /v1/ai/apps
 }
 ```
 
+带知识库的应用（需先 `rag.enabled=true` + 创建知识库 + 上传文档）：
+```http
+POST /v1/ai/apps
+{
+  "appType": "WORKSPACE",
+  "modelId": "model-id",
+  "knowledgeBaseIds": ["kb-id"],
+  "ragMode": "GENERIC",
+  "enabled": true
+}
+```
+
 沙箱执行（需下游引入对应扩展依赖 + 配置凭据 + Docker/集群可用）：
 ```http
 POST /v1/ai/apps   { "appType":"WORKSPACE", "selfEvolve":true, "sandboxBackend":"DOCKER", ... }
 ```
 
-## 7. 错误码
-`30000-30999` 段。枚举见 `com.lambda.fusion.ai.exception.AiErrorCode`。
+## 错误码
 
-## 8. 扩展点
-- 自定义本地工具：Spring Bean + AgentScope `@Tool` 方法，`ToolkitAssembler` 自动扫描。
-- 自定义沙箱后端：实现 `SandboxBackendProvider`，在 `AiConfigure.SandboxConfig` 中仿照现有后端加一个带 `@ConditionalOnClass` 的嵌套配置类。
-- 自定义外部通道：实现 `io.agentscope.harness.agent.gateway.channel.Channel`，声明为 Spring Bean，`ChannelLifecycle` 自动注册到 `ChannelManager` 并经 `HarnessGateway` 路由。入站消息在 `InboundMessage.preferredAgentId`（或 `ChannelConfig.defaultAgentId`）填 `app:{appId}:t:{tenantId}` 指定目标 agent。
+`30000-39999` 段。枚举见 `com.lambda.fusion.ai.exception.AiErrorCode`。
 
-## 9. 源码定位
+## 扩展点
+
+- **自定义本地工具**：Spring Bean + AgentScope `@Tool` 方法，`ToolkitAssembler` 自动扫描。
+- **自定义沙箱后端**：实现 `SandboxBackendProvider`，在 `AiConfigure.SandboxConfig` 中仿照现有后端加一个带 `@ConditionalOnClass` 的嵌套配置类。
+- **自定义状态存储后端**：在 `AiConfigure.StateStoreConfig` 中加嵌套配置类（对齐 MYSQL/POSTGRES 等现有实现）。
+- **自定义外部通道**：实现 `io.agentscope.harness.agent.gateway.channel.Channel`，声明为 Spring Bean，`ChannelLifecycle` 自动注册到 `ChannelManager` 并经 `HarnessGateway` 路由。入站消息在 `preferredAgentId`（或 `ChannelConfig.defaultAgentId`）填 `app:{appId}:t:{tenantId}` 指定目标 agent。
+- **换向量库后端**：改 `SimpleKnowledgeAdapter#createStore`（见 SKILL.md）。
+- **扩展文档原文件存储**：实现 `DocumentFileStorage` 注册为 Bean（按 `type()` 路由）。
+
+## 源码定位
 
 | 模块 | 路径 |
 | --- | --- |
-| Agent 工厂 | `runtime/AiAgentFactory.java` |
-| 模型解析 | `runtime/AiModelResolver.java` |
+| 自动配置入口 | `autoconfig/AiAutoConfiguration.java` |
+| 模块装配 | `AiConfigure.java`（含 Gateway/Sandbox/StateStore/ChannelAdapter/Rag/SkillRepository 嵌套配置） |
+| 配置属性 | `AiProperties.java` |
+| Agent 工厂 | `runtime/AgentFactory.java` |
+| 模型解析 | `runtime/ModelResolver.java` / `runtime/EmbeddingModelResolver.java` |
+| 子代理声明映射 | `runtime/SubAgentDeclarationMapper.java` |
 | 沙箱装配 | `AiConfigure.SandboxConfig`（嵌套配置类） |
-| Gateway/通道装配 | `AiConfigure.GatewayConfiguration`（嵌套配置类） |
+| 状态存储装配 | `AiConfigure.StateStoreConfig`（嵌套配置类） |
+| Gateway/通道装配 | `AiConfigure.GatewayConfiguration` / `AiConfigure.ChannelAdapterConfig` |
 | 通道生命周期 | `runtime/gateway/ChannelLifecycle.java` |
-| 上下文透传 | `runtime/gateway/FusionRuntime.java` |
+| 通道路由配置 | `channel/` 包 |
+| 上下文透传 | `runtime/gateway/RuntimeProperty.java` |
 | Workspace | `runtime/workspace/` |
+| RAG | `rag/` 包 |
+| 子代理 | `subagent/` 包 |
+| 技能市场 | `skill/` 包 |
 | 流式对话 | `chat/service/impl/ChatServiceImpl.java` |
 | 主动出站 | `chat/controller/OutboundController.java` |
 | 数据库变更 | `META-INF/db/changelogs/lambda-ai-changelog.xml` |
 
-## 10. 路线图
-已完成：CHAT / WORKSPACE(ASSISTANT+AUTONOMOUS) / 自演化审计 / 多后端 SANDBOX(Docker+K8s+E2B+Daytona+AgentRun) / 能力表去 tenant_id + audience+owner_id 可见性 / review 修复（#1 审计异步、#2 workspace spec、#3 沙箱回退、#4 删除清 workspace、#6 stateStore） / **HarnessGateway 接入（per-session 串行 + 外部通道 SPI + 主动出站）** / **Agent 状态存储可配（MEMORY 默认 / FILE 落盘）**。
+## 路线图
+
+已完成：CHAT / WORKSPACE(ASSISTANT+AUTONOMOUS) / 自演化审计 / 多后端沙箱(Docker+K8s+E2B+Daytona+AgentRun) / audience+owner_id 可见性 / **知识库 RAG（MEMORY+PGVECTOR，三检索模式，原文件 LOCAL+OSS）** / **子代理（DB 驱动 + REST）** / **技能市场（MYSQL/POSTGRES/GIT/NACOS）** / **通道配置管理 + 钉钉/飞书/企微适配器** / **Agent 状态存储多后端（MEMORY/FILE/MYSQL/POSTGRES/REDIS/OSS/COS）** / HarnessGateway（per-session 串行 + 外部通道 SPI + 主动出站）。
 
 待跟进：
-- 完整 Spring context-load 测试（需 DB/Redis/Docker 环境）
-- `WakeupDispatcher` + `MessageBus`（异步子 agent 完成 announce、团队消息、定时触发）
+- `WakeupDispatcher` + `MessageBus`（异步子代理完成 announce、团队消息、定时触发）
 - `DistributedStore` / `StoreBackedSubagentRegistry`（跨节点子 agent 恢复，多副本；多副本时 state-store 需换分布式实现）
-- `ChannelConfig` 绑定规则管理 UI / DB 表（按 peer/guild/role 路由到 agent）
-- 真实平台通道适配器（钉钉/微信/Slack，下游实现）
-- RAG 知识库（pgvector，ai-postgres）
+- 真实平台通道适配器打磨（钉钉/飞书/企微下游落地）
 - 应用分享与权限（run/edit/fork）
 - 成本/Token 统计

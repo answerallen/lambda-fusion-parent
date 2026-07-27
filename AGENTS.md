@@ -197,7 +197,7 @@ core 是纯基础库（无自动配置、无 `@ConfigurationProperties`），所
 
 ### AI 模块要点
 
-`lambda-fusion-ai` 是最自包含的域：RAG（基于 `ai-postgres` 数据源的 pgvector，文档解析用 PDFBox/POI）、基于 **langgraph4j**（+ langchain4j）的 Agent 工作流、LLM 提供方（Ollama、OpenAI）、MCP 客户端、提示词管理、用 GraalVM JS 做条件求值、用 Resilience4j 做容错。它依赖 `lambda-fusion-core` + `lambda-fusion-datasource`。这是唯一带有完整测试套件的模块——改动 agent/graph/evaluator/node 逻辑时，执行 `mvn -pl lambda-fusion-ai test`。
+`lambda-fusion-ai` 是最自包含的域：RAG 知识库（向量库默认内存实现、pgvector 可选，连接走 `lambda.fusion.ai.rag.pgvector.*` 配置而非动态数据源；文档原文件 LOCAL/OSS 存储；检索支持 GENERIC 自动注入/AGENTIC 工具自主检索/BOTH 三种模式（`ai_app.rag_mode`）；整体默认关闭、由 `lambda.fusion.ai.rag.enabled` 开关，文档解析用 PDFBox/POI）、子代理多智能体（`ai_sub_agent` DB 定义 + `ai_app.sub_agent_ids` 绑定，WORKSPACE 型构建时注册为 SubagentDeclaration，主 agent 按 description 自主路由；同名 `workspace/subagents/*.md` 文件覆盖 DB 声明）、基于 **langgraph4j**（+ langchain4j）的 Agent 工作流、LLM 提供方（Ollama、OpenAI）、MCP 客户端、提示词管理、用 GraalVM JS 做条件求值、用 Resilience4j 做容错。它依赖 `lambda-fusion-core` + `lambda-fusion-datasource`。这是唯一带有完整测试套件的模块——改动 agent/graph/evaluator/node 逻辑时，执行 `mvn -pl lambda-fusion-ai test`。
 
 ## 提交规范（Conventional Commits）
 
