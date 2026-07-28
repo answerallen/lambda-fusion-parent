@@ -27,6 +27,9 @@ public class UpdateLlmModel {
     @Schema(description = "默认最大 token 数")
     private Integer defaultMaxTokens;
 
+    @Schema(description = "是否支持视觉(图片输入)")
+    private Boolean supportsVision;
+
     @Schema(description = "是否启用")
     private Boolean enabled;
 }

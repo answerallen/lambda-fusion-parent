@@ -42,6 +42,10 @@ public class LlmModelEntity {
     @Schema(description = "默认最大 token 数")
     private Integer defaultMaxTokens;
 
+    @TableField("supports_vision")
+    @Schema(description = "是否支持视觉(图片输入),仅 CHAT 型有意义")
+    private Boolean supportsVision;
+
     @TableField("enabled")
     @Schema(description = "是否启用")
     private Boolean enabled;
