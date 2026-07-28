@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.runtime;
 
+import cn.hutool.crypto.digest.MD5;
 import com.lambda.fusion.ai.AiConstants.AppType;
 import com.lambda.fusion.ai.AiConstants.RagMode;
 import com.lambda.fusion.ai.AiConstants.StateStoreType;
@@ -87,7 +88,12 @@ public class AgentFactory {
      * 获取或构建 Agent。缓存键 {@code appId|tenantId}，{@link ConcurrentHashMap#computeIfAbsent} 保证首次构建线程安全。
      */
     public HarnessAgent getOrBuild(String appId, String tenantId) {
-        return cache.computeIfAbsent(cacheKey(appId, tenantId), k -> build(appId, tenantId));
+        String cacheKey = cacheKey(appId, tenantId);
+        return cache.computeIfAbsent(cacheKey, k -> build(appId, tenantId));
+    }
+
+    public String buildStableAgentId(String appId, String tenantId) {
+        return MD5.create().digestHex("app:" + appId + ":t:" + StringUtils.defaultString(tenantId));
     }
 
     public void invalidateApp(String appId) {
@@ -123,12 +129,14 @@ public class AgentFactory {
         AppType appType = AppType.of(Objects.toString(app.getAppType(), AppType.CHAT.getCode()));
         List<MiddlewareBase> middlewares = resolveMiddlewares(app);
         HarnessAgent agent;
+        String stableAgentId = buildStableAgentId(app.getId(), tenantId);
         if (appType == AppType.WORKSPACE) {
-            agent = buildWorkspace(app, tenantId, model, toolkit, maxIters, middlewares, resolveSubAgents(app));
+            agent = buildWorkspace(
+                    stableAgentId, app, tenantId, model, toolkit, maxIters, middlewares, resolveSubAgents(app));
         } else {
-            agent = buildChat(app, tenantId, model, toolkit, maxIters, middlewares);
+            agent = buildChat(stableAgentId, app, tenantId, model, toolkit, maxIters, middlewares);
         }
-        registerWithGateway(agent);
+        registerWithGateway(stableAgentId, agent);
         return agent;
     }
 
@@ -185,12 +193,12 @@ public class AgentFactory {
         return ragMode != null ? ragMode : RagMode.GENERIC;
     }
 
-    private void registerWithGateway(HarnessAgent agent) {
+    private void registerWithGateway(String stableAgentId, HarnessAgent agent) {
         HarnessGateway gateway = gatewayProvider.getIfAvailable();
         if (gateway == null) {
             return;
         }
-        gateway.registerAgent(agent.getAgentId(), agent);
+        gateway.registerAgent(stableAgentId, agent);
     }
 
     /**
@@ -260,6 +268,7 @@ public class AgentFactory {
     }
 
     private HarnessAgent buildChat(
+            String stableAgentId,
             AppEntity app,
             String tenantId,
             Model model,
@@ -268,7 +277,7 @@ public class AgentFactory {
             List<MiddlewareBase> middlewares) {
         log.info("构建 CHAT Agent: app={}, tenant={}", app.getId(), tenantId);
         HarnessAgent.Builder builder = HarnessAgent.builder()
-                .agentId("app:" + app.getId() + ":t:" + tenantId)
+                .agentId(stableAgentId)
                 .name(app.getName())
                 .sysPrompt(StringUtils.defaultString(app.getSystemPrompt()))
                 .model(model)
@@ -294,6 +303,7 @@ public class AgentFactory {
     }
 
     private HarnessAgent buildWorkspace(
+            String stableAgentId,
             AppEntity app,
             String tenantId,
             Model model,
@@ -310,7 +320,7 @@ public class AgentFactory {
         }
         boolean selfEvolve = Boolean.TRUE.equals(app.getSelfEvolve());
         HarnessAgent.Builder builder = HarnessAgent.builder()
-                .agentId("app:" + app.getId() + ":t:" + tenantId)
+                .agentId(stableAgentId)
                 .name(app.getName())
                 .sysPrompt(StringUtils.defaultString(app.getSystemPrompt()))
                 .model(model)
@@ -341,7 +351,7 @@ public class AgentFactory {
             builder.subagents(subAgents);
             // declaration.model 存 fusion 模型ID，桥接 ModelResolver 按 ai_llm_model 解析；
             // 不影响主模型（已由 .model(model) 显式指定）
-            builder.modelResolver(modelResolver::apply);
+            builder.modelResolver(modelResolver);
         }
         // 自演化应用保留文件工具和记忆钩子；本轮文件变更由 WorkspaceAuditRecorder 审计。
         log.info(

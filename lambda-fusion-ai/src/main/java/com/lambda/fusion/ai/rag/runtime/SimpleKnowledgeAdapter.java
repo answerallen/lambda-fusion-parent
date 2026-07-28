@@ -211,7 +211,7 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
             // 进程内存实现：无需 jdbcUrl/vectorTable，数据重启丢失
             return InMemoryStore.builder().dimensions(dimensions).build();
         }
-        AiProperties.Rag.PgVector pgvector = rag.getPgvector();
+        AiProperties.Rag.PgVector pgvector = rag.getPgVector();
         if (StringUtils.isBlank(pgvector.getJdbcUrl())) {
             throw new AiBusinessException(AiErrorCode.KB_VECTOR_STORE_NOT_CONFIGURED);
         }

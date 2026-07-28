@@ -34,7 +34,7 @@ class FusionRuntimeTest {
         assertThat(RuntimeProperty.msgContext(ctx)).isSameAs(msgCtx);
         assertThat(RuntimeProperty.appId(ctx)).isEqualTo("A1");
         assertThat(RuntimeProperty.tenantId(ctx)).isEqualTo("T1");
-        assertThat(RuntimeProperty.lfSessionId(ctx)).isEqualTo("sess-1");
+        assertThat(RuntimeProperty._sessionId(ctx)).isEqualTo("sess-1");
     }
 
     @Test
@@ -45,7 +45,7 @@ class FusionRuntimeTest {
         assertThat(RuntimeProperty.msgContext(ctx)).isNull();
         assertThat(RuntimeProperty.tenantId(ctx)).isNull();
         assertThat(RuntimeProperty.appId(ctx)).isNull();
-        assertThat(RuntimeProperty.lfSessionId(ctx)).isNull();
+        assertThat(RuntimeProperty._sessionId(ctx)).isNull();
     }
 
     @Test
@@ -56,6 +56,6 @@ class FusionRuntimeTest {
                 .build();
         // tenantId 未透传（无租户会话）-> null，不应抛 NPE
         assertThat(RuntimeProperty.tenantId(ctx)).isNull();
-        assertThat(RuntimeProperty.lfSessionId(ctx)).isNull();
+        assertThat(RuntimeProperty._sessionId(ctx)).isNull();
     }
 }

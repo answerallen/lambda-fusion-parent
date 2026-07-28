@@ -6,9 +6,10 @@ import io.agentscope.harness.agent.gateway.MsgContext;
 public final class RuntimeProperty {
 
     public static final String MSG_CONTEXT_KEY = "msgContext";
+    public static final String KEY_AGENT_ID = "agentId";
     public static final String KEY_TENANT_ID = "tenantId";
     public static final String KEY_APP_ID = "appId";
-    public static final String KEY_LF_SESSION_ID = "sessionId";
+    public static final String KEY_LF_SESSION_ID = "_sessionId";
 
     private RuntimeProperty() {}
 
@@ -27,7 +28,7 @@ public final class RuntimeProperty {
         return extra(ctx, KEY_APP_ID);
     }
 
-    public static String lfSessionId(RuntimeContext ctx) {
+    public static String _sessionId(RuntimeContext ctx) {
         return extra(ctx, KEY_LF_SESSION_ID);
     }
 

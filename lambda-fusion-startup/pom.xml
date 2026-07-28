@@ -62,5 +62,9 @@
             <artifactId>lambda-cloud-starter-oss</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-mysql</artifactId>
+        </dependency>
     </dependencies>
 </project>

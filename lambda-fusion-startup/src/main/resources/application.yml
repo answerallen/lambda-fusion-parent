@@ -62,6 +62,10 @@ lambda:
         username: ${MAIN_DB_USERNAME}
         password: ${MAIN_DB_PASSWORD}
     ai:
+      state-store:
+        type: MYSQL
+        mysql:
+          database: lambda_cloud
       security:
         encryption-key: ${AI_ENCRYPTION_KEY:dev-only-please-change-in-production-32chars}
       #### 知识库(RAG)：默认关闭；pgvector 连接默认复用 ai-postgres 环境变量 ####
@@ -69,7 +73,7 @@ lambda:
         enabled: ${AI_RAG_ENABLED:true}
         #### 向量库后端：MEMORY(默认,进程内,重启丢失)/PGVECTOR(生产推荐) ####
         store:
-          type: ${AI_RAG_STORE_TYPE:MEMORY}
+          type: ${AI_RAG_STORE_TYPE:PGVECTOR}
         #### 文档原文件存储：LOCAL(默认,本地目录)/OSS ####
         document-storage:
           type: ${AI_KB_STORAGE_TYPE:OSS}
@@ -78,7 +82,7 @@ lambda:
           oss:
             client-name: ${AI_KB_OSS_CLIENT:default}
             key-prefix: ${AI_KB_OSS_PREFIX:ai/knowledge/}
-        pgvector:
+        pg-vector:
           jdbc-url: ${AI_PGVECTOR_JDBC_URL:${AI_DB_URL}}
           username: ${AI_PGVECTOR_USERNAME:${AI_DB_USERNAME}}
           password: ${AI_PGVECTOR_PASSWORD:${AI_DB_PASSWORD}}

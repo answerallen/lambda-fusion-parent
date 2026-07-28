@@ -393,7 +393,7 @@ public class AiProperties {
         /** 文档原文件存储。 */
         private DocumentStorage documentStorage = new DocumentStorage();
 
-        private PgVector pgvector = new PgVector();
+        private PgVector pgVector = new PgVector();
 
         /** 向量库后端：MEMORY（默认，进程内，重启丢失）/ PGVECTOR。 */
         @Data

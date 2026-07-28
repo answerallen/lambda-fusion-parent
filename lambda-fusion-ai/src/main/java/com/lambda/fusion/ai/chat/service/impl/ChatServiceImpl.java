@@ -7,7 +7,9 @@ import com.lambda.fusion.ai.chat.service.ChatSessionService;
 import com.lambda.fusion.ai.runtime.AgentFactory;
 import com.lambda.fusion.ai.runtime.gateway.RuntimeProperty;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
+import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventType;
 import io.agentscope.core.event.TextBlockDeltaEvent;
@@ -60,7 +62,7 @@ public class ChatServiceImpl implements ChatService {
     public SseEmitter streamChat(String sessionId, String content) {
         ChatSessionEntity session = chatSessionService.loadOwned(sessionId);
         chatMessageService.saveUserMessage(session, content);
-        HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), session.getTenantId());
+        HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), AuthUtils.getTenantId());
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         StringBuilder assistantText = new StringBuilder();
         long turnStartMillis = System.currentTimeMillis();
@@ -91,20 +93,23 @@ public class ChatServiceImpl implements ChatService {
     private Flux<AgentEvent> routeStream(ChatSessionEntity session, HarnessAgent agent, String content) {
         HarnessGateway gateway = gatewayProvider.getIfAvailable();
         if (gateway == null) {
-            io.agentscope.core.agent.RuntimeContext ctx = io.agentscope.core.agent.RuntimeContext.builder()
+            RuntimeContext ctx = RuntimeContext.builder()
                     .userId(session.getUserId())
                     .sessionId(session.getId())
-                    .put(RuntimeProperty.KEY_TENANT_ID, session.getTenantId())
+                    .put(RuntimeProperty.KEY_TENANT_ID, AuthUtils.getTenantId())
                     .build();
             return agent.streamEvents(content, ctx);
         }
+
+        String stableAgentId = agentFactory.buildStableAgentId(session.getAppId(), session.getTenantId());
+
         MsgContext msgCtx = new MsgContext(
                 CHANNEL_ID,
-                session.getTenantId(),
+                AuthUtils.getTenantId(),
                 session.getId(),
                 null,
                 null,
-                buildExtra(session, agent.getAgentId()),
+                buildExtra(session, stableAgentId),
                 session.getUserId());
         OutboundAddress outbound = OutboundAddress.direct(CHANNEL_ID, CHANNEL_ID + ":DIRECT:" + session.getId());
         Msg userMsg = Msg.builder().role(MsgRole.USER).textContent(content).build();
@@ -117,12 +122,10 @@ public class ChatServiceImpl implements ChatService {
      */
     private static Map<String, String> buildExtra(ChatSessionEntity session, String agentId) {
         Map<String, String> extra = new HashMap<>();
-        extra.put("agentId", agentId);
+        extra.put(RuntimeProperty.KEY_AGENT_ID, agentId);
         extra.put(RuntimeProperty.KEY_APP_ID, session.getAppId());
         extra.put(RuntimeProperty.KEY_LF_SESSION_ID, session.getId());
-        if (session.getTenantId() != null) {
-            extra.put(RuntimeProperty.KEY_TENANT_ID, session.getTenantId());
-        }
+        extra.put(RuntimeProperty.KEY_TENANT_ID, AuthUtils.getTenantId());
         return extra;
     }
 
