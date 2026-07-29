@@ -107,11 +107,12 @@ public class AgentFactory {
 
     @EventListener
     public void onConfigChanged(ConfigChangedEvent event) {
+        String source = event.remote() ? "远端" : "本地";
         if (event.appId() == null) {
-            log.info("AI 配置变更，失效全部 Agent 缓存");
+            log.info("AI 配置变更({})，失效全部 Agent 缓存", source);
             invalidateAll();
         } else {
-            log.info("应用 {} 配置变更，失效对应 Agent 缓存", event.appId());
+            log.info("应用 {} 配置变更({})，失效对应 Agent 缓存", event.appId(), source);
             invalidateApp(event.appId());
         }
     }

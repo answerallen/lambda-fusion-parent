@@ -63,6 +63,8 @@ public class AiProperties {
      */
     private Rag rag = new Rag();
 
+    private Cluster cluster = new Cluster();
+
     @Data
     public static class Runtime {
 
@@ -447,5 +449,15 @@ public class AiProperties {
             /** schema 名；默认 {@code public}。 */
             private String schema = "public";
         }
+    }
+
+    @Data
+    public static class Cluster {
+
+        /**
+         * 是否启用跨实例 Agent 缓存失效广播（Dubbo broadcast）。多实例部署开；单实例可关。
+         * 默认开，Dubbo 不在 classpath 时由条件装配自动退化为本地事件。
+         */
+        private boolean invalidationBroadcast = true;
     }
 }

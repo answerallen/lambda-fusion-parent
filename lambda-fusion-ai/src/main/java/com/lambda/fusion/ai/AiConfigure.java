@@ -17,6 +17,9 @@ import com.lambda.fusion.ai.rag.storage.DocumentFileStorageResolver;
 import com.lambda.fusion.ai.rag.storage.LocalDocumentFileStorage;
 import com.lambda.fusion.ai.rag.storage.OssDocumentFileStorage;
 import com.lambda.fusion.ai.runtime.EmbeddingModelResolver;
+import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
+import com.lambda.fusion.ai.runtime.event.DubboConfigInvalidationBroadcaster;
+import com.lambda.fusion.ai.runtime.event.RemoteAgentCacheInvalidationService;
 import com.lambda.fusion.ai.runtime.gateway.ChannelBootstrap;
 import com.lambda.fusion.ai.runtime.gateway.ChannelConfigApplier;
 import com.lambda.fusion.ai.runtime.gateway.ChannelLifecycle;
@@ -64,6 +67,8 @@ import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.dubbo.config.ReferenceConfig;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.mybatis.spring.annotation.MapperScan;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.ObjectProvider;
@@ -71,6 +76,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -660,6 +666,37 @@ public class AiConfigure {
                     }
                 };
             }
+        }
+    }
+
+    /**
+     * Dubbo 跨实例 Agent 缓存失效广播：每个实例暴露 {@link RemoteAgentCacheInvalidationService}，
+     * 本地配置变更由 {@code DubboConfigInvalidationBroadcaster} 广播；远端收到后回放 {@code remote} 事件
+     * 失效本地缓存。Dubbo 不在 classpath 或开关关闭时不装配，退化为单实例本地事件。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ServiceBean")
+    @ConditionalOnProperty(prefix = "lambda.fusion.ai.cluster", name = "invalidation-broadcast", matchIfMissing = true)
+    public static class DubboInvalidationConfiguration {
+
+        @Bean
+        @DubboService(interfaceClass = RemoteAgentCacheInvalidationService.class)
+        public RemoteAgentCacheInvalidationService remoteAgentCacheInvalidationService(
+                ApplicationEventPublisher publisher) {
+            // 远端广播收到 -> 回放为 remote 事件，让 AgentFactory 等所有本地监听者失效；
+            // remote 标记避免 DubboConfigInvalidationBroadcaster 二次外播形成回环
+            return appId -> publisher.publishEvent(ConfigChangedEvent.remote(appId));
+        }
+
+        @Bean
+        public DubboConfigInvalidationBroadcaster dubboConfigInvalidationBroadcaster() {
+            // broadcast 集群：一次调用扩散到所有注册 provider（含自身，幂等无害）；
+            // check=false 避免其他实例未就绪时阻塞本地启动
+            ReferenceConfig<RemoteAgentCacheInvalidationService> reference = new ReferenceConfig<>();
+            reference.setInterface(RemoteAgentCacheInvalidationService.class);
+            reference.setCluster("broadcast");
+            reference.setCheck(false);
+            return new DubboConfigInvalidationBroadcaster(reference.get());
         }
     }
 }
