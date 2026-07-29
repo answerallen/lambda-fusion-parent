@@ -43,7 +43,7 @@ public class LlmModelEntity {
     private Integer defaultMaxTokens;
 
     @TableField("supports_vision")
-    @Schema(description = "是否支持视觉(图片输入),仅 CHAT 型有意义")
+    @Schema(description = "是否支持视觉(图片): CHAT=可接受图片输入, EMBEDDING=可向量化图片")
     private Boolean supportsVision;
 
     @TableField("enabled")

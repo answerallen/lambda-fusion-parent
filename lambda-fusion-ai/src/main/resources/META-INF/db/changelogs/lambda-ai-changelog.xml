@@ -520,7 +520,7 @@
             </not>
         </preConditions>
         <addColumn tableName="ai_llm_model">
-            <column name="supports_vision" type="tinyint(1)" defaultValueNumeric="0" remarks="是否支持视觉(图片输入),仅 CHAT 型有意义">
+            <column name="supports_vision" type="tinyint(1)" defaultValueNumeric="0" remarks="是否支持视觉(图片): CHAT=可接受图片输入, EMBEDDING=可向量化图片">
                 <constraints nullable="false"/>
             </column>
         </addColumn>
