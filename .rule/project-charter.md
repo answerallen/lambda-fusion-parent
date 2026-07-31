@@ -1,0 +1,97 @@
+# Lambda Fusion 项目宪章（Project Charter）
+
+> 本宪章用于定义 Lambda Fusion 项目的工程治理目标、范围边界、权责关系与强制性原则。
+> 本宪章对所有参与者（人类开发者与自动化编码助手）均具有约束力。
+
+## 1. 目的（Purpose）
+
+1) 统一 starter 框架工程规则入口，降低下游应用集成与自动化改动的不确定性。
+2) 明确“允许做什么 / 禁止做什么 / 如何做”的执行标准。
+3) 保障架构一致性：依赖治理、模块边界、自动配置约定、多租户、数据权限等不被破坏。
+4) 明确本仓库产出的是供下游依赖的 `lambda-fusion-*` jar，而非可运行应用（仅 `lambda-fusion-startup` 为演示用可运行模块），规则需区分“框架能力提供方”与“下游应用集成方”视角。
+
+## 2. 适用范围（Scope）
+
+本宪章适用于本仓库内所有 `lambda-fusion-*` 模块（bom / core / authority / authority-api / permission（含 permission-api、permission-datascope）/ config / dictionary / datasource / oss / ai / startup）中的：
+
+- 代码生成、功能开发、缺陷修复
+- 重构与架构调整
+- 依赖与配置变更
+- 数据库变更（Liquibase changelog）
+- 自动配置与条件装配的扩展
+
+下游应用集成 `lambda-fusion-*` starter 时，应遵循本宪章与工程契约中面向“集成方”的条款（如配置前缀、扩展点接口、条件装配开关）。
+
+## 3. 定义（Definitions）
+
+### 3.1 规则等级
+
+- 现状（AS-IS）：当前仓库已经落地的真实状态。若未明确要求迁移，修改应优先与现状保持一致。
+- 推荐（SHOULD）：目标态或新增代码的推荐写法。与现状冲突时，默认仅对新增代码生效，不要求一次性迁移存量。
+- 禁止（MUST NOT）：硬性红线。任何情况下不得违反；与示例或现状冲突时，以禁止为最高优先级。
+
+### 3.2 迁移态（Partial Migration）
+
+当同一主题同时存在“现状”与“推荐”时，表示项目处于部分迁移阶段：
+
+- 未明确要求迁移：不得为追求推荐写法而大面积改造既有代码。
+- 明确要求迁移：可以按迁移目标进行模块级或功能级改造，并需保证编译、测试、运行通过。
+
+## 4. 工程治理原则（Engineering Principles）
+
+### 4.1 单一事实来源（Single Source of Truth）
+
+- 依赖版本由 parent POM（`lambda-cloud-parent`）与 BOM（`lambda-cloud-starter-dependencies`、本仓库 `lambda-fusion-bom`）统一管理。
+- 多租户、数据权限、审计字段填充、字典翻译等横切能力由 `lambda-fusion-core` 与各业务 starter 统一提供。
+- 配置属性统一通过 `@ConfigurationProperties(prefix = "lambda.fusion.<domain>")` 声明，前缀见工程契约 §12。
+
+### 4.2 复用优先（Reuse First）
+
+在引入新实现前，必须先确认 `lambda-fusion-core` 与基础框架是否已提供能力；不得重复实现同类分页模型、CRUD 抽象、树构建、身份工具、字典映射、转换器。详细能力清单见工程契约 §2。
+
+### 4.3 边界清晰（Clear Boundaries）
+
+- 各业务模块职责边界与跨模块依赖规则必须被遵守：模块间 `optional=true` 依赖是刻意的，缺失时必须优雅降级。
+- 改可选依赖为强依赖前，必须先核对条件装配逻辑（见工程契约 §4）。
+- 远程能力（认证、数据源同步、权限元数据同步）通过 Dubbo `*-api` 暴露与引用，且均以 `@ConditionalOnClass` 判断 Dubbo 是否在 classpath。
+
+### 4.4 安全与合规（Security & Compliance）
+
+- 不得在业务模块中硬编码依赖版本。
+- 不得引入绕过鉴权、绕过权限同步、绕过多租户隔离的实现。
+- 不得新增会导致“数据权限/租户隔离失效”的查询路径。
+- 敏感配置（数据库、Redis、Nacos、对象存储密钥等）必须经环境变量注入，不得提交真实值。
+
+## 5. 权责（Roles & Responsibilities）
+
+### 5.1 规则维护者
+
+- 负责维护工程契约内容与更新。
+- 负责对“禁止事项”进行增补与纠偏。
+- 负责同步 `.github/copilot-instructions.md`、`.cursorrules` 等摘要文件与 `.rule/` 主规则的一致性。
+
+### 5.2 代码提交者（含自动化编码助手）
+
+- 变更必须满足工程契约。
+- 若规则冲突或规则缺失，必须在执行前发起澄清或变更请求，不得按历史习惯自行补充实现。
+- 执行 Git 提交前必须遵守工程契约 §18（Git 代码提交规范）。
+
+## 6. 交付物结构（Deliverables）
+
+本仓库规则文档采用分层结构（以 `.rule` 目录为准）：
+
+- `project-charter.md`：项目宪章（目标、范围、原则、权责、规则等级）
+- `engineering-contract.md`：工程契约（可执行条款：架构、依赖、代码规范、运行时约束等）
+- `contract-index.md`：工程契约索引（条款索引 / 关键词索引）
+- `package-structure.md`：标准包分层结构（以 `lambda-fusion-authority` 为参考标准，工程契约 §10 配套）
+
+模块深度文档位于 `docs/skills/<module>/SKILL.md`，是各模块自动配置入口、配置项、关键机制与改造入口的权威说明；规则文件负责“怎么做”，SKILL.md 负责“某模块长什么样、改哪里”。
+
+## 7. 争议与例外处理（Disputes & Exceptions）
+
+当开发任务与工程契约发生冲突时：
+
+1) 禁止事项优先。
+2) 若必须突破现状约束，需明确迁移目标与影响范围。
+3) 若必须引入例外，需以“新增条款”形式写入工程契约，并说明：适用范围、风险与回滚策略。
+4) 已登记的过渡例外见 `contract-index.md` B 段“例外/过渡条款”。
