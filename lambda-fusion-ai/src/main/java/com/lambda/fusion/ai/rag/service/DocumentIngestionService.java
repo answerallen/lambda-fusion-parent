@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.rag.service;
 
 import com.lambda.fusion.ai.AiConstants.DocumentStatus;
+import com.lambda.fusion.ai.common.DocumentTextExtractor;
 import com.lambda.fusion.ai.rag.mapper.KnowledgeDocumentMapper;
 import com.lambda.fusion.ai.rag.model.entity.KnowledgeDocumentEntity;
 import com.lambda.fusion.ai.rag.runtime.IngestChunk;
@@ -8,16 +9,10 @@ import com.lambda.fusion.ai.rag.runtime.SimpleKnowledgeAdapter;
 import com.lambda.fusion.ai.rag.storage.DocumentFileStorage;
 import com.lambda.fusion.ai.rag.storage.DocumentFileStorageResolver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.agentscope.core.rag.reader.PDFReader;
 import io.agentscope.core.rag.reader.Reader;
 import io.agentscope.core.rag.reader.ReaderInput;
-import io.agentscope.core.rag.reader.TextReader;
-import io.agentscope.core.rag.reader.TikaReader;
-import io.agentscope.core.rag.reader.WordReader;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.MalformedInputException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -75,11 +70,9 @@ public class DocumentIngestionService {
                 storage.download(document.getStoragePath(), out);
             }
 
-            Reader reader = resolveReader(document.getFileType());
-            // ReaderInput 构造按 reader 期望区分：PDFReader/WordReader/TikaReader 取 asString() 作路径，
-            // TextReader 取 asString() 作内容；fromFile 内部 Files.readString(UTF-8) 对二进制与非 UTF-8
-            // 文本都抛 MalformedInputException，故二进制走 fromPath、文本自行读（UTF-8 优先 GBK 兜底）
-            ReaderInput input = buildReaderInput(document.getFileType(), tempFile);
+            Reader reader = DocumentTextExtractor.resolveReader(document.getFileType());
+            // ReaderInput 构造按 reader 期望区分：二进制走 fromPath、文本自行读（UTF-8 优先 GBK 兜底）
+            ReaderInput input = DocumentTextExtractor.buildReaderInput(document.getFileType(), tempFile);
             var documents = reader.read(input).block();
             List<IngestChunk> chunks = new ArrayList<>();
             if (documents != null) {
@@ -127,33 +120,5 @@ public class DocumentIngestionService {
         } catch (Exception updateError) {
             log.warn("更新文档失败状态出错: doc={}, {}", documentId, updateError.getMessage());
         }
-    }
-
-    // ReaderInput 构造按 reader 类型区分：二进制走 fromPath（reader 用 PDFBox/POI 自行解析），
-    // 文本走 fromString（TextReader 期望内容）；文本容错非 UTF-8 编码
-    private static ReaderInput buildReaderInput(String fileType, Path file) throws IOException {
-        if ("txt".equalsIgnoreCase(fileType) || "md".equalsIgnoreCase(fileType)) {
-            return ReaderInput.fromString(readTextWithEncodingFallback(file));
-        }
-        return ReaderInput.fromPath(file);
-    }
-
-    // 优先 UTF-8 读取；非 UTF-8（中文 Windows 常见 GBK）回退 GBK，避免 MalformedInputException
-    private static String readTextWithEncodingFallback(Path file) throws IOException {
-        try {
-            return Files.readString(file);
-        } catch (MalformedInputException e) {
-            return new String(Files.readAllBytes(file), Charset.forName("GBK"));
-        }
-    }
-
-    // 按扩展名选 Reader；TikaReader 兜底（上传端点已白名单校验，正常不会走到）
-    private static Reader resolveReader(String fileType) {
-        return switch (StringUtils.defaultString(fileType)) {
-            case "pdf" -> new PDFReader();
-            case "doc", "docx" -> new WordReader();
-            case "txt", "md" -> new TextReader();
-            default -> new TikaReader();
-        };
     }
 }

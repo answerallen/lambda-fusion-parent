@@ -2,10 +2,10 @@ package com.lambda.fusion.ai.chat.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
+import com.lambda.fusion.ai.chat.model.ChatMessageView;
 import com.lambda.fusion.ai.chat.model.ChatSessionPage;
 import com.lambda.fusion.ai.chat.model.CreateSession;
 import com.lambda.fusion.ai.chat.model.SendMessage;
-import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatService;
@@ -64,7 +64,7 @@ public class ChatController {
 
     @Operation(summary = "查询会话消息历史")
     @GetMapping("/{id}/messages")
-    public List<ChatMessageEntity> messages(@Parameter(description = "会话ID", required = true) @PathVariable String id) {
+    public List<ChatMessageView> messages(@Parameter(description = "会话ID", required = true) @PathVariable String id) {
         return chatMessageService.listBySession(id);
     }
 
@@ -73,6 +73,6 @@ public class ChatController {
     public SseEmitter chat(
             @Parameter(description = "会话ID", required = true) @PathVariable String id,
             @RequestBody @Valid SendMessage dto) {
-        return chatService.streamChat(id, dto.getContent());
+        return chatService.streamChat(id, dto);
     }
 }

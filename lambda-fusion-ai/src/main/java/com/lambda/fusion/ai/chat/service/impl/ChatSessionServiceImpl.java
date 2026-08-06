@@ -8,6 +8,7 @@ import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.chat.model.ChatSessionPage;
 import com.lambda.fusion.ai.chat.model.CreateSession;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatSessionService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
@@ -28,6 +29,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     private final ChatSessionMapper chatSessionMapper;
     private final AppService appService;
     private final ChatMessageService chatMessageService;
+    private final ChatAttachmentService chatAttachmentService;
 
     @Override
     public Page<ChatSessionEntity> page(ChatSessionPage query) {
@@ -60,6 +62,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     @Transactional(rollbackFor = Exception.class)
     public void delete(String id) {
         loadOwned(id);
+        chatAttachmentService.deleteBySession(id);
         chatMessageService.deleteBySession(id);
         chatSessionMapper.deleteById(id);
     }

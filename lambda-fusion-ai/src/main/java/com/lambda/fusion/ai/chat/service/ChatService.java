@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.chat.service;
 
+import com.lambda.fusion.ai.chat.model.SendMessage;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
@@ -9,5 +10,5 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  */
 public interface ChatService {
 
-    SseEmitter streamChat(String sessionId, String content);
+    SseEmitter streamChat(String sessionId, SendMessage message);
 }

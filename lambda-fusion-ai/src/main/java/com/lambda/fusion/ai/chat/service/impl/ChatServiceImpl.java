@@ -1,6 +1,13 @@
 package com.lambda.fusion.ai.chat.service.impl;
 
+import com.lambda.fusion.ai.apps.model.entity.AppEntity;
+import com.lambda.fusion.ai.apps.service.AppService;
+import com.lambda.fusion.ai.chat.attachment.ChatAttachmentMessageBuilder;
+import com.lambda.fusion.ai.chat.model.SendMessage;
+import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
+import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatService;
 import com.lambda.fusion.ai.chat.service.ChatSessionService;
@@ -14,7 +21,6 @@ import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventType;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.message.Msg;
-import io.agentscope.core.message.MsgRole;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.gateway.MsgContext;
@@ -24,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -54,19 +61,28 @@ public class ChatServiceImpl implements ChatService {
 
     private final ChatSessionService chatSessionService;
     private final ChatMessageService chatMessageService;
+    private final ChatAttachmentService chatAttachmentService;
+    private final ChatAttachmentMessageBuilder attachmentMessageBuilder;
+    private final AppService appService;
     private final AgentFactory agentFactory;
     private final WorkspaceAuditRecorder workspaceAuditRecorder;
     private final ObjectProvider<HarnessGateway> gatewayProvider;
 
     @Override
-    public SseEmitter streamChat(String sessionId, String content) {
+    public SseEmitter streamChat(String sessionId, SendMessage message) {
         ChatSessionEntity session = chatSessionService.loadOwned(sessionId);
-        chatMessageService.saveUserMessage(session, content);
+        AppEntity app = appService.loadById(session.getAppId());
+        ChatMessageEntity userMessage =
+                chatMessageService.saveUserMessage(session, StringUtils.defaultString(message.getContent()));
+        List<ChatAttachmentEntity> attachments = message.getAttachmentIds() == null
+                ? List.of()
+                : chatAttachmentService.bindToMessage(session, message.getAttachmentIds(), userMessage.getId());
+        Msg userMsg = attachmentMessageBuilder.buildUserMsg(session, app, message.getContent(), attachments);
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), AuthUtils.getTenantId());
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         StringBuilder assistantText = new StringBuilder();
         long turnStartMillis = System.currentTimeMillis();
-        routeStream(session, agent, content)
+        routeStream(session, agent, userMsg)
                 .subscribe(
                         event -> {
                             try {
@@ -90,7 +106,7 @@ public class ChatServiceImpl implements ChatService {
         return emitter;
     }
 
-    private Flux<AgentEvent> routeStream(ChatSessionEntity session, HarnessAgent agent, String content) {
+    private Flux<AgentEvent> routeStream(ChatSessionEntity session, HarnessAgent agent, Msg userMsg) {
         HarnessGateway gateway = gatewayProvider.getIfAvailable();
         if (gateway == null) {
             RuntimeContext ctx = RuntimeContext.builder()
@@ -98,7 +114,7 @@ public class ChatServiceImpl implements ChatService {
                     .sessionId(session.getId())
                     .put(RuntimeProperty.KEY_TENANT_ID, AuthUtils.getTenantId())
                     .build();
-            return agent.streamEvents(content, ctx);
+            return agent.streamEvents(userMsg, ctx);
         }
 
         String stableAgentId = agentFactory.buildStableAgentId(session.getAppId(), session.getTenantId());
@@ -112,7 +128,6 @@ public class ChatServiceImpl implements ChatService {
                 buildExtra(session, stableAgentId),
                 session.getUserId());
         OutboundAddress outbound = OutboundAddress.direct(CHANNEL_ID, CHANNEL_ID + ":DIRECT:" + session.getId());
-        Msg userMsg = Msg.builder().role(MsgRole.USER).textContent(content).build();
         return gateway.runStream(msgCtx, List.of(userMsg), outbound);
     }
 

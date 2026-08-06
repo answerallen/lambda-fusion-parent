@@ -114,4 +114,8 @@ public class AppEntity {
     @TableField("updated_at")
     @Schema(description = "更新时间")
     private LocalDateTime updatedAt;
+
+    @TableField(exist = false)
+    @Schema(description = "绑定模型是否支持视觉(图片输入); 非表字段, 由服务层回填")
+    private Boolean supportsVision;
 }

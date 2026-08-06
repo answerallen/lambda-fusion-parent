@@ -526,4 +526,50 @@
         </addColumn>
     </changeSet>
 
+    <!-- ========== 对话附件 ========== -->
+    <changeSet id="lambda-ai-2026080600010" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_chat_attachment"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_chat_attachment" remarks="对话附件">
+            <column name="id" type="varchar(32)" remarks="主键(雪花ID)">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_chat_attachment_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="session_id" type="varchar(32)" remarks="归属会话ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message_id" type="bigint" remarks="归属消息ID(发送后回填; NULL=已上传未发送)"/>
+            <column name="file_name" type="varchar(255)" remarks="原始文件名">
+                <constraints nullable="false"/>
+            </column>
+            <column name="file_type" type="varchar(16)" remarks="扩展名(小写)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mime_type" type="varchar(128)" remarks="MIME 类型"/>
+            <column name="size_bytes" type="bigint" remarks="文件大小(字节)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="category" type="varchar(16)" remarks="类别: IMAGE/DOCUMENT">
+                <constraints nullable="false"/>
+            </column>
+            <!-- 存储字段可空：先插行（message_id/storage 均为 NULL），存储成功后 updateById 回填，
+                 对齐 ai_knowledge_document 的可空语义 -->
+            <column name="storage_type" type="varchar(16)" remarks="存储类型: LOCAL/OSS"/>
+            <column name="storage_path" type="varchar(512)" remarks="存储路径(本地相对路径或 OSS objectKey)"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+        </createTable>
+        <createIndex tableName="ai_chat_attachment" indexName="idx_ai_chat_attachment_session">
+            <column name="tenant_id"/>
+            <column name="session_id"/>
+        </createIndex>
+        <createIndex tableName="ai_chat_attachment" indexName="idx_ai_chat_attachment_message">
+            <column name="message_id"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>
