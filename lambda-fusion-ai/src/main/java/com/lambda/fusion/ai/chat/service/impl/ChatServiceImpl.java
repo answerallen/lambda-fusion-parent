@@ -20,6 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.event.AgentEventType;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.util.JsonUtils;
@@ -31,12 +32,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
 /**
@@ -89,7 +92,11 @@ public class ChatServiceImpl implements ChatService {
         // enableReasoning=true：默认输出推理过程，前端用 reasoning 折叠区渲染
         AguiEventMapper mapper = new AguiEventMapper(session.getId(), runId, true);
         long turnStartMillis = System.currentTimeMillis();
-        routeStream(session, agent, userMsg)
+        // AGENT_END 主动结束 SSE：gateway/agent 的 Flux 在 AGENT_END 后可能不立即 complete，
+        // 若仅依赖 Flux#onComplete 关闭连接，前端会一直等（status 不变 complete）。
+        // 故在 AGENT_END 时主动持久化 + complete，Flux#onComplete 仅作兜底（防重复）。
+        AtomicBoolean completed = new AtomicBoolean(false);
+        Disposable disposable = routeStream(session, agent, userMsg)
                 .subscribe(
                         event -> {
                             try {
@@ -100,24 +107,26 @@ public class ChatServiceImpl implements ChatService {
                                 for (AguiEvent agui : mapper.map(event)) {
                                     emitter.send(SseEmitter.event().data(mapper.encodeToJson(agui)));
                                 }
+                                if (event.getType() == AgentEventType.AGENT_END
+                                        && completed.compareAndSet(false, true)) {
+                                    persistAndComplete(
+                                            sessionId, session, mapper, assistantText, emitter, turnStartMillis);
+                                }
                             } catch (Exception e) {
                                 emitter.completeWithError(e);
                             }
                         },
                         emitter::completeWithError,
                         () -> {
-                            try {
-                                String toolCallJson = serializeToolCalls(mapper.getToolCalls());
-                                chatMessageService.saveAssistantMessage(
-                                        session, assistantText.toString(), toolCallJson);
-                                chatSessionService.touchLastMessageAt(session.getId());
-                                workspaceAuditRecorder.recordChanges(session, turnStartMillis);
-                            } catch (Exception e) {
-                                log.error("持久化助手回复失败: sessionId={}", sessionId, e);
-                            } finally {
+                            if (completed.compareAndSet(false, true)) {
+                                persistAndComplete(sessionId, session, mapper, assistantText, emitter, turnStartMillis);
+                            } else {
                                 emitter.complete();
                             }
                         });
+        // emitter 结束（完成/超时）时取消 Flux 订阅，避免 gateway Flux 挂起泄漏
+        emitter.onCompletion(disposable::dispose);
+        emitter.onTimeout(disposable::dispose);
         return emitter;
     }
 
@@ -157,6 +166,26 @@ public class ChatServiceImpl implements ChatService {
         extra.put(RuntimeProperty.KEY_LF_SESSION_ID, session.getId());
         extra.put(RuntimeProperty.KEY_TENANT_ID, AuthUtils.getTenantId());
         return extra;
+    }
+
+    /** 持久化助手回复（文本 + 工具调用）并关闭 SSE 连接。 */
+    private void persistAndComplete(
+            String sessionId,
+            ChatSessionEntity session,
+            AguiEventMapper mapper,
+            StringBuilder assistantText,
+            SseEmitter emitter,
+            long turnStartMillis) {
+        try {
+            String toolCallJson = serializeToolCalls(mapper.getToolCalls());
+            chatMessageService.saveAssistantMessage(session, assistantText.toString(), toolCallJson);
+            chatSessionService.touchLastMessageAt(session.getId());
+            workspaceAuditRecorder.recordChanges(session, turnStartMillis);
+        } catch (Exception e) {
+            log.error("持久化助手回复失败: sessionId={}", sessionId, e);
+        } finally {
+            emitter.complete();
+        }
     }
 
     /** 序列化工具调用快照为 JSON（空列表返回 null，不写 tool_call 字段）。 */
