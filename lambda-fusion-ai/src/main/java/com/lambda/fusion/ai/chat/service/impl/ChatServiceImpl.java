@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.chat.service.impl;
 
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppService;
+import com.lambda.fusion.ai.chat.adapter.AguiEventMapper;
 import com.lambda.fusion.ai.chat.attachment.ChatAttachmentMessageBuilder;
 import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
@@ -17,8 +18,8 @@ import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
-import io.agentscope.core.event.AgentEventType;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.harness.agent.HarnessAgent;
@@ -28,6 +29,7 @@ import io.agentscope.harness.agent.gateway.channel.OutboundAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -40,7 +42,8 @@ import reactor.core.publisher.Flux;
  * 对话流式服务实现。
  *
  * <p>流程：加载会话 -> 持久化用户消息 -> 构建/复用 Agent -> 经 {@link HarnessGateway#runStream} 订阅事件流 ->
- * 映射为 SSE 帧输出 -> 完成时持久化助手回复。Gateway 未启用时回退直连 {@code agent.streamEvents}。
+ * 通过 {@link AguiEventMapper} 映射为 AG-UI 协议事件输出 -> 完成时持久化助手回复。Gateway 未启用时回退
+ * 直连 {@code agent.streamEvents}。
  *
  * <p>多轮上下文由 Agent 内存状态（按 sessionId 隔离）维持；每次仅传入新用户消息。
  *
@@ -81,12 +84,21 @@ public class ChatServiceImpl implements ChatService {
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), AuthUtils.getTenantId());
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         StringBuilder assistantText = new StringBuilder();
+        String runId = UUID.randomUUID().toString();
+        // enableReasoning=true：默认输出推理过程，前端用 reasoning 折叠区渲染
+        AguiEventMapper mapper = new AguiEventMapper(session.getId(), runId, true);
         long turnStartMillis = System.currentTimeMillis();
         routeStream(session, agent, userMsg)
                 .subscribe(
                         event -> {
                             try {
-                                sendEvent(event, emitter, assistantText);
+                                // 累积文本增量用于持久化助手回复（工具调用/推理不落库，历史回放简化）
+                                if (event instanceof TextBlockDeltaEvent delta) {
+                                    assistantText.append(delta.getDelta());
+                                }
+                                for (AguiEvent agui : mapper.map(event)) {
+                                    emitter.send(SseEmitter.event().data(mapper.encodeToJson(agui)));
+                                }
                             } catch (Exception e) {
                                 emitter.completeWithError(e);
                             }
@@ -142,23 +154,5 @@ public class ChatServiceImpl implements ChatService {
         extra.put(RuntimeProperty.KEY_LF_SESSION_ID, session.getId());
         extra.put(RuntimeProperty.KEY_TENANT_ID, AuthUtils.getTenantId());
         return extra;
-    }
-
-    private void sendEvent(AgentEvent event, SseEmitter emitter, StringBuilder acc) throws Exception {
-        AgentEventType type = event.getType();
-        switch (type) {
-            case TEXT_BLOCK_DELTA -> {
-                if (event instanceof TextBlockDeltaEvent delta) {
-                    acc.append(delta.getDelta());
-                    emitter.send(SseEmitter.event().name("delta").data(delta.getDelta()));
-                }
-            }
-            case TOOL_CALL_START ->
-                emitter.send(SseEmitter.event().name("tool_start").data(""));
-            case TOOL_CALL_END ->
-                emitter.send(SseEmitter.event().name("tool_end").data(""));
-            case AGENT_END -> emitter.send(SseEmitter.event().name("done").data("[DONE]"));
-            default -> {}
-        }
     }
 }
