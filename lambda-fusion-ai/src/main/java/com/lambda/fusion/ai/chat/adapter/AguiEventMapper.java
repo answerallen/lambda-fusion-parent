@@ -31,6 +31,9 @@ import org.apache.commons.lang3.StringUtils;
  * (TOOL_CALL_START/ARGS/END)、工具结果(TOOL_CALL_RESULT)。HITL
  * (REQUIRE_USER_CONFIRM)、Activity(CUSTOM) 暂未映射，留待后续。
  *
+ * <p>工具调用累积：流结束后通过 {@link #getToolCalls()} 获取工具调用快照，
+ * 供持久化为历史回放数据，结构与前端 {@code ToolCallRenderer} 的 toolCall prop 对齐。
+ *
  * @author Jin
  */
 public class AguiEventMapper {
@@ -49,8 +52,11 @@ public class AguiEventMapper {
     /** 已发 ToolCallStart 的 toolCallId（避免重复）。 */
     private final Set<String> startedToolCalls = new HashSet<>();
 
-    /** 工具结果文本累积（toolCallId -> delta 拼接），TOOL_RESULT_END 时作为 content 发出。 */
-    private final Map<String, StringBuilder> toolResultText = new HashMap<>();
+    /** 工具调用累积器（toolCallId -> args/result），流结束后供持久化。 */
+    private final Map<String, ToolCallAccumulator> toolCallAccumulators = new HashMap<>();
+
+    /** 已完成的工具调用快照（供历史回放持久化）。 */
+    private final List<ToolCallRecord> completedToolCalls = new ArrayList<>();
 
     public AguiEventMapper(String threadId, String runId, boolean enableReasoning) {
         this.threadId = threadId;
@@ -98,6 +104,19 @@ public class AguiEventMapper {
         return encoder.encodeToJson(event);
     }
 
+    /**
+     * 已完成工具调用快照（流结束后调用），供持久化为历史回放数据。
+     *
+     * <p>结构与前端 {@code ToolCallRenderer} 的 toolCall prop 对齐
+     * （toolCallId / toolCallName / args / result），前端 mapHistory 据此构造
+     * toolcall 内容块回放。
+     *
+     * @return 不可变工具调用快照列表
+     */
+    public List<ToolCallRecord> getToolCalls() {
+        return List.copyOf(completedToolCalls);
+    }
+
     private void mapTextDelta(AgentEvent event, List<AguiEvent> out) {
         if (!(event instanceof TextBlockDeltaEvent delta)) {
             return;
@@ -136,6 +155,8 @@ public class AguiEventMapper {
         if (startedToolCalls.add(tc.getToolCallId())) {
             out.add(new AguiEvent.ToolCallStart(threadId, runId, tc.getToolCallId(), tc.getToolCallName()));
         }
+        toolCallAccumulators.computeIfAbsent(
+                tc.getToolCallId(), k -> new ToolCallAccumulator(tc.getToolCallId(), tc.getToolCallName()));
     }
 
     private void mapToolCallDelta(AgentEvent event, List<AguiEvent> out) {
@@ -143,6 +164,10 @@ public class AguiEventMapper {
             return;
         }
         out.add(new AguiEvent.ToolCallArgs(threadId, runId, tc.getToolCallId(), tc.getDelta()));
+        ToolCallAccumulator acc = toolCallAccumulators.get(tc.getToolCallId());
+        if (acc != null) {
+            acc.args.append(tc.getDelta());
+        }
     }
 
     private void mapToolCallEnd(AgentEvent event, List<AguiEvent> out) {
@@ -161,16 +186,18 @@ public class AguiEventMapper {
         if (startedToolCalls.add(tr.getToolCallId())) {
             out.add(new AguiEvent.ToolCallStart(threadId, runId, tr.getToolCallId(), tr.getToolCallName()));
         }
-        toolResultText.putIfAbsent(tr.getToolCallId(), new StringBuilder());
+        toolCallAccumulators.computeIfAbsent(
+                tr.getToolCallId(), k -> new ToolCallAccumulator(tr.getToolCallId(), tr.getToolCallName()));
     }
 
     private void mapToolResultTextDelta(AgentEvent event) {
         if (!(event instanceof ToolResultTextDeltaEvent tr)) {
             return;
         }
-        toolResultText
-                .computeIfAbsent(tr.getToolCallId(), k -> new StringBuilder())
-                .append(tr.getDelta());
+        ToolCallAccumulator acc = toolCallAccumulators.get(tr.getToolCallId());
+        if (acc != null) {
+            acc.result.append(tr.getDelta());
+        }
     }
 
     private void mapToolResultEnd(AgentEvent event, List<AguiEvent> out) {
@@ -178,8 +205,14 @@ public class AguiEventMapper {
             return;
         }
         out.add(new AguiEvent.ToolCallEnd(threadId, runId, tr.getToolCallId()));
-        String content = drainToolResult(tr.getToolCallId());
+        ToolCallAccumulator acc = toolCallAccumulators.get(tr.getToolCallId());
+        String content = acc != null ? acc.result.toString() : "";
         out.add(new AguiEvent.ToolCallResult(threadId, runId, tr.getToolCallId(), content, "tool", tr.getReplyId()));
+        completedToolCalls.add(new ToolCallRecord(
+                tr.getToolCallId(),
+                acc != null ? acc.toolCallName : tr.getToolCallName(),
+                acc != null ? acc.args.toString() : "",
+                content));
     }
 
     private void mapAgentEnd(List<AguiEvent> out) {
@@ -199,12 +232,29 @@ public class AguiEventMapper {
         }
     }
 
-    private String drainToolResult(String toolCallId) {
-        StringBuilder sb = toolResultText.remove(toolCallId);
-        return sb != null ? sb.toString() : "";
-    }
-
     private String resolveId(String replyId) {
         return StringUtils.isNotBlank(replyId) ? replyId : runId;
     }
+
+    /** 工具调用累积状态（args/result 增量拼接）。 */
+    private static final class ToolCallAccumulator {
+        final String toolCallId;
+        final String toolCallName;
+        final StringBuilder args = new StringBuilder();
+        final StringBuilder result = new StringBuilder();
+
+        ToolCallAccumulator(String toolCallId, String toolCallName) {
+            this.toolCallId = toolCallId;
+            this.toolCallName = toolCallName;
+        }
+    }
+
+    /**
+     * 工具调用快照（供持久化与历史回放）。
+     *
+     * <p>字段与前端 {@code ToolCall} 结构对齐：toolCallId / toolCallName / args / result。
+     * Jackson 序列化为 {@code {"toolCallId":...,"toolCallName":...,"args":...,"result":...}}，
+     * 前端直接作为 toolcall 内容块的 data 传给 ToolCallRenderer。
+     */
+    public record ToolCallRecord(String toolCallId, String toolCallName, String args, String result) {}
 }

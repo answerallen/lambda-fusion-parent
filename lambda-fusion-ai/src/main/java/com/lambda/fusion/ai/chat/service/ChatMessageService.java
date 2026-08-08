@@ -13,6 +13,14 @@ public interface ChatMessageService {
     /** 保存助手消息并返回（含自增主键）。 */
     ChatMessageEntity saveAssistantMessage(ChatSessionEntity session, String content);
 
+    /**
+     * 保存助手消息（含工具调用 JSON，供历史回放）。
+     *
+     * @param toolCall 工具调用快照 JSON（AguiEventMapper.ToolCallRecord 列表序列化），
+     *     空或 null 表示无工具调用
+     */
+    ChatMessageEntity saveAssistantMessage(ChatSessionEntity session, String content, String toolCall);
+
     /** 查询会话历史消息（含各消息附件），按 id 升序。 */
     List<ChatMessageView> listBySession(String sessionId);
 

@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,13 +30,19 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ChatMessageEntity saveUserMessage(ChatSessionEntity session, String content) {
-        return save(session, "user", content);
+        return save(session, "user", content, null);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ChatMessageEntity saveAssistantMessage(ChatSessionEntity session, String content) {
-        return save(session, "assistant", content);
+        return save(session, "assistant", content, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ChatMessageEntity saveAssistantMessage(ChatSessionEntity session, String content, String toolCall) {
+        return save(session, "assistant", content, toolCall);
     }
 
     @Override
@@ -64,12 +71,15 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 new LambdaQueryWrapper<ChatMessageEntity>().eq(ChatMessageEntity::getSessionId, sessionId));
     }
 
-    private ChatMessageEntity save(ChatSessionEntity session, String role, String content) {
+    private ChatMessageEntity save(ChatSessionEntity session, String role, String content, String toolCall) {
         ChatMessageEntity entity = new ChatMessageEntity();
         entity.setTenantId(session.getTenantId());
         entity.setSessionId(session.getId());
         entity.setRole(role);
         entity.setContent(content);
+        if (StringUtils.isNotBlank(toolCall)) {
+            entity.setToolCall(toolCall);
+        }
         entity.setCreatedAt(LocalDateTime.now());
         chatMessageMapper.insert(entity);
         return entity;

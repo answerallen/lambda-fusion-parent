@@ -22,6 +22,7 @@ import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.message.Msg;
+import io.agentscope.core.util.JsonUtils;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.gateway.MsgContext;
@@ -92,7 +93,7 @@ public class ChatServiceImpl implements ChatService {
                 .subscribe(
                         event -> {
                             try {
-                                // 累积文本增量用于持久化助手回复（工具调用/推理不落库，历史回放简化）
+                                // 累积文本增量用于持久化助手回复（工具调用由 mapper 累积，流结束后单独落库 tool_call）
                                 if (event instanceof TextBlockDeltaEvent delta) {
                                     assistantText.append(delta.getDelta());
                                 }
@@ -106,7 +107,9 @@ public class ChatServiceImpl implements ChatService {
                         emitter::completeWithError,
                         () -> {
                             try {
-                                chatMessageService.saveAssistantMessage(session, assistantText.toString());
+                                String toolCallJson = serializeToolCalls(mapper.getToolCalls());
+                                chatMessageService.saveAssistantMessage(
+                                        session, assistantText.toString(), toolCallJson);
                                 chatSessionService.touchLastMessageAt(session.getId());
                                 workspaceAuditRecorder.recordChanges(session, turnStartMillis);
                             } catch (Exception e) {
@@ -154,5 +157,13 @@ public class ChatServiceImpl implements ChatService {
         extra.put(RuntimeProperty.KEY_LF_SESSION_ID, session.getId());
         extra.put(RuntimeProperty.KEY_TENANT_ID, AuthUtils.getTenantId());
         return extra;
+    }
+
+    /** 序列化工具调用快照为 JSON（空列表返回 null，不写 tool_call 字段）。 */
+    private static String serializeToolCalls(List<AguiEventMapper.ToolCallRecord> toolCalls) {
+        if (toolCalls == null || toolCalls.isEmpty()) {
+            return null;
+        }
+        return JsonUtils.getJsonCodec().toJson(toolCalls);
     }
 }

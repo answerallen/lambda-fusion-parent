@@ -120,6 +120,25 @@ class AguiEventMapperTest {
         assertThat(events.get(1)).isInstanceOf(AguiEvent.ToolCallStart.class);
     }
 
+    @Test
+    void getToolCallsReturnsCompletedSnapshot() {
+        AguiEventMapper mapper = newMapper(true);
+        mapper.map(new ToolCallStartEvent("reply-1", "tc-1", "search"));
+        mapper.map(new ToolCallDeltaEvent("reply-1", "tc-1", "search", "{\"q\":\"x\"}"));
+        mapper.map(new ToolCallEndEvent("reply-1", "tc-1", "search"));
+        mapper.map(new ToolResultStartEvent("reply-1", "tc-1", "search"));
+        mapper.map(new ToolResultTextDeltaEvent("reply-1", "tc-1", "search", "result-text"));
+        mapper.map(new ToolResultEndEvent("reply-1", "tc-1", "search", ToolResultState.SUCCESS));
+
+        List<AguiEventMapper.ToolCallRecord> calls = mapper.getToolCalls();
+        assertThat(calls).hasSize(1);
+        AguiEventMapper.ToolCallRecord call = calls.get(0);
+        assertThat(call.toolCallId()).isEqualTo("tc-1");
+        assertThat(call.toolCallName()).isEqualTo("search");
+        assertThat(call.args()).isEqualTo("{\"q\":\"x\"}");
+        assertThat(call.result()).isEqualTo("result-text");
+    }
+
     private static AguiEventMapper newMapper(boolean enableReasoning) {
         return new AguiEventMapper(THREAD_ID, RUN_ID, enableReasoning);
     }
