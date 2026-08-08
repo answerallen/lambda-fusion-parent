@@ -10,20 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 日期查询示例工具：演示 agentscope {@code @Tool} 工具定义 + ASK 权限（HITL）触发。
+ * 日期查询示例工具：演示 {@code @Tool} + {@link RequireConfirm}（HITL）。
  *
- * <p>本工具是 HITL（人工确认）演示示例：通过 {@link RequireConfirm} 注解声明需要确认，
- * {@code ToolkitAssembler} 启动时扫描收集，{@code AgentFactory} 据此构建
- * {@code PermissionContextState.askRules}。模型调用本工具时 agentscope 的 {@code PermissionEngine}
- * 命中 ask 规则，发出 {@code RequireUserConfirmEvent}，agent 暂停等待用户确认后继续执行--
- * 用于验证 AG-UI HITL 链路（前端确认 UI -> 回传端点 -> 第二次 streamEvents 携带
- * {@code Msg.METADATA_CONFIRM_RESULTS} 恢复）。
- *
- * <p><b>注意</b>：日期查询本身是只读操作，此处配 ASK 仅为演示 HITL 机制。真实场景应对有副作用
- * 或敏感操作的工具（发消息、删除数据、执行命令等）配置 ASK；只读工具一般不需要确认。
- *
- * <p>作为 {@code @Component} 全局 Bean，由 {@code ToolkitAssembler} 扫描注册到所有应用的
- * {@code Toolkit}（与按 app 绑定的 {@code KnowledgeRetrievalTool} 不同）。
+ * <p>日期查询本身只读，此处配 ASK 仅为演示 HITL 机制；真实场景应对有副作用的工具配置。
  *
  * @author Jin
  */
@@ -31,7 +20,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ExampleDateQueryTool {
 
-    /** 工具名，{@code PermissionContextState.askRules} 以此为 toolName 锚点。 */
+    /** 工具名。 */
     public static final String TOOL_NAME = "query_date";
 
     @Tool(
