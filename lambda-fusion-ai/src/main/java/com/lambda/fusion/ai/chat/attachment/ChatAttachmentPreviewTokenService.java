@@ -18,9 +18,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 /**
- * 对话附件预览直链签名服务：为图片附件签发/校验 HMAC-SHA256 签名 token。
+ * 对话附件预览直链签名服务：为附件签发/校验 HMAC-SHA256 签名 token。
  *
- * <p>preview 端点放行 Bearer 登录（供 {@code <img src>} 直连），鉴权完全依赖签名 token：
+ * <p>preview 端点放行 Bearer 登录（供 {@code <img src>} / {@code <a>} 直连），鉴权完全依赖签名 token：
  * <ul>
  *   <li>token 由后端在用户通过 Bearer 鉴权后签发（upload / list messages 时），绑定 attachmentId + 过期时间；</li>
  *   <li>持有 token 即可访问对应附件，与 OSS presigned URL 同一安全模型；token 有时效且不可伪造（HMAC）；</li>
@@ -38,7 +38,6 @@ import org.springframework.stereotype.Component;
 public class ChatAttachmentPreviewTokenService {
 
     private static final String HMAC_ALGORITHM = "HmacSHA256";
-    private static final String CATEGORY_IMAGE = "IMAGE";
     private static final String PREVIEW_PATH_TEMPLATE = "/v1/ai/chat/attachments/%s/preview?expires=%d&sig=%s";
 
     private final AiProperties aiProperties;
@@ -56,13 +55,14 @@ public class ChatAttachmentPreviewTokenService {
     }
 
     /**
-     * 生成图片附件预览直链（相对路径）。非图片或密钥未配置返回 {@code null}。
+     * 生成附件预览直链（相对路径）。密钥未配置返回 {@code null}。图片走 inline 预览、文档走 attachment 下载
+     * （由 preview 端点按 category 区分），统一用签名 token 鉴权。
      *
      * @param entity 附件实体
      * @return 形如 {@code /v1/ai/chat/attachments/{id}/preview?expires=...&sig=...} 的相对路径，或 {@code null}
      */
     public String generatePreviewUrl(ChatAttachmentEntity entity) {
-        if (entity == null || !CATEGORY_IMAGE.equals(entity.getCategory()) || keySpec == null) {
+        if (entity == null || keySpec == null) {
             return null;
         }
         long expires = Instant.now().getEpochSecond()

@@ -61,9 +61,11 @@ class ChatAttachmentPreviewTokenServiceTest {
     }
 
     @Test
-    void generatePreviewUrlForNonImageReturnsNull() {
+    void generatePreviewUrlForDocumentAlsoReturnsUrl() {
         ChatAttachmentPreviewTokenService svc = newService(SECRET, 3600);
-        assertThat(svc.generatePreviewUrl(documentAttachment("att-002"))).isNull();
+        // 文档附件也签发 previewUrl（preview 端点对文档返回 attachment 下载）
+        assertThat(svc.generatePreviewUrl(documentAttachment("att-002")))
+                .startsWith("/v1/ai/chat/attachments/att-002/preview?expires=");
     }
 
     @Test

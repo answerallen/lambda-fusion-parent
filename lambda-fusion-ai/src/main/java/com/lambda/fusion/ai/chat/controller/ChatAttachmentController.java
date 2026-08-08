@@ -83,8 +83,16 @@ public class ChatAttachmentController {
             throws IOException {
         chatAttachmentPreviewTokenService.validate(id, expires, sig);
         ChatAttachmentEntity attachment = chatAttachmentService.loadByIdForPreview(id);
-        response.setContentType(StringUtils.defaultIfBlank(attachment.getMimeType(), MediaType.IMAGE_PNG_VALUE));
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
+        String fileName = StringUtils.defaultIfBlank(attachment.getFileName(), id);
+        String encoded = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
+        // 图片 inline 供 <img> 预览，文档 attachment 触发下载（与 download 端点同语义）
+        if (CATEGORY_IMAGE.equals(attachment.getCategory()) && StringUtils.isNotBlank(attachment.getMimeType())) {
+            response.setContentType(attachment.getMimeType());
+            response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encoded);
+        } else {
+            response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+            response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encoded);
+        }
         chatAttachmentService.writeTo(attachment, response.getOutputStream());
         response.flushBuffer();
     }
