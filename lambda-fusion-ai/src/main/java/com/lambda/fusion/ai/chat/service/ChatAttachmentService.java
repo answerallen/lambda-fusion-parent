@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.chat.service;
 
+import com.lambda.fusion.ai.chat.model.ChatAttachmentView;
 import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import java.io.OutputStream;
@@ -37,8 +38,22 @@ public interface ChatAttachmentService {
     /** 按消息 ID 批量查询附件（历史消息渲染用）。 */
     List<ChatAttachmentEntity> listByMessageIds(Collection<Long> messageIds);
 
+    /**
+     * 转换为视图：图片附件填签名预览直链，收口 storageType/storagePath/tenantId 等内部字段。
+     */
+    ChatAttachmentView toView(ChatAttachmentEntity entity);
+
     /** 下载原文件到输出流（按行记录的 storageType 路由）。 */
     void download(String attachmentId, OutputStream out);
+
+    /**
+     * 仅供 preview 端点：按 id 查询（无 tenant/user 归属校验，调用方须自行鉴权）。
+     * preview 端点放行 Bearer，无登录上下文，故不依赖 {@link #loadOwned}；鉴权由签名 token 保证。
+     */
+    ChatAttachmentEntity loadByIdForPreview(String attachmentId);
+
+    /** 按实体的 storageType 路由存储下载到输出流（不查库、不校验归属，供 download 与 preview 复用）。 */
+    void writeTo(ChatAttachmentEntity entity, OutputStream out);
 
     /** 删除未发送附件（message_id IS NULL）；已发送附件随会话级联删除，不提供单删。 */
     void delete(String attachmentId);

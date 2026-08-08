@@ -3,8 +3,10 @@ package com.lambda.fusion.ai.chat.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.chat.attachment.ChatAttachmentPreviewTokenService;
 import com.lambda.fusion.ai.chat.mapper.ChatAttachmentMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
+import com.lambda.fusion.ai.chat.model.ChatAttachmentView;
 import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
@@ -55,6 +57,7 @@ public class ChatAttachmentServiceImpl implements ChatAttachmentService {
     private final ChatSessionMapper chatSessionMapper;
     private final DocumentFileStorageResolver storageResolver;
     private final AiProperties aiProperties;
+    private final ChatAttachmentPreviewTokenService previewTokenService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -158,8 +161,26 @@ public class ChatAttachmentServiceImpl implements ChatAttachmentService {
 
     @Override
     public void download(String attachmentId, OutputStream out) {
-        ChatAttachmentEntity entity = loadOwned(attachmentId);
+        writeTo(loadOwned(attachmentId), out);
+    }
+
+    @Override
+    public ChatAttachmentEntity loadByIdForPreview(String attachmentId) {
+        ChatAttachmentEntity entity = chatAttachmentMapper.selectById(attachmentId);
+        if (entity == null) {
+            throw new AiBusinessException(AiErrorCode.ATTACHMENT_NOT_FOUND, attachmentId);
+        }
+        return entity;
+    }
+
+    @Override
+    public void writeTo(ChatAttachmentEntity entity, OutputStream out) {
         storageResolver.resolve(entity.getStorageType()).download(entity.getStoragePath(), out);
+    }
+
+    @Override
+    public ChatAttachmentView toView(ChatAttachmentEntity entity) {
+        return ChatAttachmentView.of(entity, previewTokenService.generatePreviewUrl(entity));
     }
 
     @Override

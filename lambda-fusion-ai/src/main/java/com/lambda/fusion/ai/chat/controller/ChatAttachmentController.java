@@ -1,6 +1,8 @@
 package com.lambda.fusion.ai.chat.controller;
 
 import com.lambda.cloud.logger.annotation.OperationLog;
+import com.lambda.fusion.ai.chat.attachment.ChatAttachmentPreviewTokenService;
+import com.lambda.fusion.ai.chat.model.ChatAttachmentView;
 import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,14 +34,15 @@ public class ChatAttachmentController {
     private static final String CATEGORY_IMAGE = "IMAGE";
 
     private final ChatAttachmentService chatAttachmentService;
+    private final ChatAttachmentPreviewTokenService chatAttachmentPreviewTokenService;
 
     @OperationLog
     @Operation(summary = "上传对话附件(图片/文档)")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ChatAttachmentEntity upload(
+    public ChatAttachmentView upload(
             @Parameter(description = "会话ID", required = true) @RequestParam("sessionId") String sessionId,
             @RequestParam("file") MultipartFile file) {
-        return chatAttachmentService.upload(sessionId, file);
+        return chatAttachmentService.toView(chatAttachmentService.upload(sessionId, file));
     }
 
     @OperationLog
@@ -67,6 +70,22 @@ public class ChatAttachmentController {
             response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encoded);
         }
         chatAttachmentService.download(id, response.getOutputStream());
+        response.flushBuffer();
+    }
+
+    @Operation(summary = "预览图片附件(签名直链，无需登录)")
+    @GetMapping("/{id}/preview")
+    public void preview(
+            @Parameter(description = "附件ID", required = true) @PathVariable String id,
+            @RequestParam long expires,
+            @RequestParam String sig,
+            HttpServletResponse response)
+            throws IOException {
+        chatAttachmentPreviewTokenService.validate(id, expires, sig);
+        ChatAttachmentEntity attachment = chatAttachmentService.loadByIdForPreview(id);
+        response.setContentType(StringUtils.defaultIfBlank(attachment.getMimeType(), MediaType.IMAGE_PNG_VALUE));
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
+        chatAttachmentService.writeTo(attachment, response.getOutputStream());
         response.flushBuffer();
     }
 }

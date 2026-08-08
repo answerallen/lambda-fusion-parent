@@ -100,6 +100,26 @@ public class AiProperties {
 
             /** 文档扩展名白名单（小写）。 */
             private List<String> docTypes = List.of("pdf", "doc", "docx", "txt", "md");
+
+            /** 图片预览直链配置。 */
+            private Preview preview = new Preview();
+
+            /**
+             * 图片预览直链配置：为图片附件签发带 HMAC 签名的预览 URL，使 {@code <img src>} 无需 Bearer
+             * 即可访问（preview 端点放行登录，靠签名 token 鉴权；token 绑定 attachmentId 且有时效）。
+             */
+            @Data
+            public static class Preview {
+
+                /**
+                 * HMAC-SHA256 签名密钥；生产必须经环境变量注入
+                 * （{@code AI_ATTACHMENT_PREVIEW_SECRET}）。未配置时图片预览直链不可用，降级为文件名展示。
+                 */
+                private String secret;
+
+                /** token 有效期（秒）；默认 3600。 */
+                private long ttlSeconds = 3600;
+            }
         }
     }
 

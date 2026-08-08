@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.chat.model;
 
-import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
@@ -44,9 +43,9 @@ public class ChatMessageView {
     private LocalDateTime createdAt;
 
     @Schema(description = "该消息的附件列表")
-    private List<ChatAttachmentEntity> attachments;
+    private List<ChatAttachmentView> attachments;
 
-    public static ChatMessageView of(ChatMessageEntity entity, List<ChatAttachmentEntity> attachments) {
+    public static ChatMessageView of(ChatMessageEntity entity, List<ChatAttachmentView> attachments) {
         ChatMessageView view = new ChatMessageView();
         view.setId(entity.getId());
         view.setTenantId(entity.getTenantId());

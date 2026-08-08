@@ -68,6 +68,11 @@ lambda:
           database: lambda_cloud
       security:
         encryption-key: ${AI_ENCRYPTION_KEY:dev-only-please-change-in-production-32chars}
+      #### 对话附件：图片预览直链签名密钥（生产请配 AI_ATTACHMENT_PREVIEW_SECRET） ####
+      chat:
+        attachment:
+          preview:
+            secret: ${AI_ATTACHMENT_PREVIEW_SECRET:dev-only-please-change-attachment-preview-secret}
       #### 知识库(RAG)：默认关闭；pgvector 连接默认复用 ai-postgres 环境变量 ####
       rag:
         enabled: ${AI_RAG_ENABLED:true}
@@ -119,7 +124,7 @@ lambda:
         - appid: 123
           secret: 123456
     sa-token:
-      ignored: /open/**,/ws/**
+      ignored: /open/**,/ws/**,/v1/ai/chat/attachments/*/preview
       check-same-token: false
       max-login-count: 5
       is-concurrent: true

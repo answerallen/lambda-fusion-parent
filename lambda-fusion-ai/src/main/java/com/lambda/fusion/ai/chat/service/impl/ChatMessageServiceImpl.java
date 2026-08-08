@@ -49,7 +49,11 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 chatAttachmentService.listByMessageIds(messageIds).stream()
                         .collect(Collectors.groupingBy(ChatAttachmentEntity::getMessageId));
         return messages.stream()
-                .map(m -> ChatMessageView.of(m, attachmentsByMessage.getOrDefault(m.getId(), List.of())))
+                .map(m -> ChatMessageView.of(
+                        m,
+                        attachmentsByMessage.getOrDefault(m.getId(), List.of()).stream()
+                                .map(chatAttachmentService::toView)
+                                .toList()))
                 .toList();
     }
 

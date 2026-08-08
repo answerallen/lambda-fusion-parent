@@ -114,7 +114,9 @@ public enum AiErrorCode implements ErrorCode {
 
     ATTACHMENT_VISION_NOT_SUPPORTED(30214, "当前模型不支持图片输入"),
 
-    ATTACHMENT_STORAGE_ERROR(30215, "附件存储失败");
+    ATTACHMENT_STORAGE_ERROR(30215, "附件存储失败"),
+
+    ATTACHMENT_PREVIEW_TOKEN_INVALID(30216, "附件预览链接无效或已过期");
 
     private final Integer code;
 
