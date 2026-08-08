@@ -220,6 +220,23 @@ public class AguiEventMapper {
         out.add(new AguiEvent.RunFinished(threadId, runId, null, new AguiEvent.RunFinishedSuccessOutcome()));
     }
 
+    /**
+     * 映射流异常为 RunError 事件（先关闭活跃消息，再发出错误）。
+     *
+     * <p>message 取异常 message，为空时退回异常类名；code 暂留 null。
+     *
+     * @param error 异常
+     * @return 含 RunError 的事件列表
+     */
+    public List<AguiEvent> mapError(Throwable error) {
+        List<AguiEvent> out = new ArrayList<>();
+        closeActiveMessage(out);
+        String message = error.getMessage();
+        out.add(new AguiEvent.RunError(
+                threadId, runId, message != null ? message : error.getClass().getSimpleName(), null));
+        return out;
+    }
+
     /** 关闭活跃的文本/推理消息（工具调用开始或 run 结束前调用）。 */
     private void closeActiveMessage(List<AguiEvent> out) {
         if (textMessageId != null) {

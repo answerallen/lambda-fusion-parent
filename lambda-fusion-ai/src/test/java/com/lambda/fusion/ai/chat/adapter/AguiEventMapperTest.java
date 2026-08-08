@@ -139,6 +139,21 @@ class AguiEventMapperTest {
         assertThat(call.result()).isEqualTo("result-text");
     }
 
+    @Test
+    void mapErrorEmitsRunError() {
+        AguiEventMapper mapper = newMapper(true);
+        List<AguiEvent> events = mapper.mapError(new RuntimeException("boom"));
+
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0)).isInstanceOf(AguiEvent.RunError.class);
+        AguiEvent.RunError runError = (AguiEvent.RunError) events.get(0);
+        assertThat(runError.message()).isEqualTo("boom");
+        assertThat(runError.code()).isNull();
+        String json = mapper.encodeToJson(runError);
+        assertThat(json).contains("\"type\":\"RUN_ERROR\"");
+        assertThat(json).contains("\"message\":\"boom\"");
+    }
+
     private static AguiEventMapper newMapper(boolean enableReasoning) {
         return new AguiEventMapper(THREAD_ID, RUN_ID, enableReasoning);
     }

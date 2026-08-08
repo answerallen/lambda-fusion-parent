@@ -116,7 +116,21 @@ public class ChatServiceImpl implements ChatService {
                                 emitter.completeWithError(e);
                             }
                         },
-                        emitter::completeWithError,
+                        error -> {
+                            // 发 RunError 后正常关闭连接（非 completeWithError）：前端 onRunError
+                            // 拿到错误事件显示提示，onComplete 让对话状态结束可重试
+                            if (completed.compareAndSet(false, true)) {
+                                try {
+                                    for (AguiEvent agui : mapper.mapError(error)) {
+                                        emitter.send(SseEmitter.event().data(mapper.encodeToJson(agui)));
+                                    }
+                                } catch (Exception sendError) {
+                                    log.warn("发送 RunError 失败: sessionId={}", sessionId, sendError);
+                                }
+                                log.error("对话流异常: sessionId={}", sessionId, error);
+                                emitter.complete();
+                            }
+                        },
                         () -> {
                             if (completed.compareAndSet(false, true)) {
                                 persistAndComplete(sessionId, session, mapper, assistantText, emitter, turnStartMillis);
