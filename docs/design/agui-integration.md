@@ -125,7 +125,12 @@ curl -N -X POST "http://localhost:20005/v1/ai/sessions/{sessionId}/chat" \
 
 - **HITL**：`REQUIRE_USER_CONFIRM` 事件映射 + 回传端点。agentscope 的 HITL 机制是 agent 暂停（`ToolCallState.ASKING`），第二次 `streamEvents` 携带 `Msg.METADATA_CONFIRM_RESULTS`（`List<ConfirmResult>`）恢复。
 - **Activity**：`CUSTOM` 事件 -> `ACTIVITY_*`。agentscope 不自动产出 Activity 事件，需自建数据源（如 RAG 检索过程、子智能体调度）。
-- **RUN_ERROR**：流异常时补发 `RunError` 事件（当前直接 `completeWithError`，前端拿不到协议级错误）。
+
+### 错误处理（已实现）
+
+流异常（`Flux#onError`）时，`AguiEventMapper.mapError` 发 `RunError` 事件（含异常 message），`ChatServiceImpl` 再正常 `emitter.complete()` 关闭连接（**非** `completeWithError`）。前端 `onRunError` 回调显示错误提示，`onComplete` 让对话状态结束可重试，避免静默断流。
+
+> `AGENT_END` 时主动 `emitter.complete()`（不依赖 `Flux#onComplete`）：gateway/agent 的 Flux 在 AGENT_END 后可能不立即 complete，仅依赖 onComplete 会导致前端 status 不变 complete。`AtomicBoolean` 防重复，`emitter.onCompletion/onTimeout` 时 `dispose()` Flux 订阅防泄漏。
 
 ## 8. 提交记录
 
@@ -136,3 +141,6 @@ curl -N -X POST "http://localhost:20005/v1/ai/sessions/{sessionId}/chat" \
 | `a8b8c976c` | @vben/system-ui | 2b 对话渲染工具调用与推理过程 |
 | `7a2f2261` | lambda-fusion-ai | 3 持久化工具调用快照供历史回放 |
 | `2ca86e057` | @vben/system-ui | 3 历史回放渲染工具调用 |
+| `d65793ab` | lambda-fusion-ai | fix AGENT_END 主动结束 SSE 连接 |
+| `b5b613be` | lambda-fusion-ai | 流异常发 RunError 事件 |
+| `cb17d776a` | @vben/system-ui | RunError 显示错误提示 |
