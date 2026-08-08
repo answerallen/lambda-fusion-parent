@@ -4,6 +4,7 @@ import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.adapter.AguiEventMapper;
 import com.lambda.fusion.ai.chat.attachment.ChatAttachmentMessageBuilder;
+import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
@@ -12,6 +13,8 @@ import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatService;
 import com.lambda.fusion.ai.chat.service.ChatSessionService;
+import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.runtime.AgentFactory;
 import com.lambda.fusion.ai.runtime.gateway.RuntimeProperty;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
@@ -21,17 +24,23 @@ import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventType;
+import io.agentscope.core.event.ConfirmResult;
+import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.message.Msg;
+import io.agentscope.core.message.ToolUseBlock;
+import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.util.JsonUtils;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.gateway.MsgContext;
 import io.agentscope.harness.agent.gateway.channel.OutboundAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +59,11 @@ import reactor.core.publisher.Flux;
  * 直连 {@code agent.streamEvents}。
  *
  * <p>多轮上下文由 Agent 内存状态（按 sessionId 隔离）维持；每次仅传入新用户消息。
+ *
+ * <p>HITL：工具标 {@code @RequireConfirm} 时，agent 调用前发 {@code RequireUserConfirmEvent} 暂停。
+ * 本服务映射为 AG-UI {@code RunFinished(interrupt)} 并缓存待确认 ToolUseBlock；用户经
+ * {@code POST /sessions/{id}/confirm} 回传决策，{@link #streamConfirm} 携带
+ * {@code Msg.METADATA_CONFIRM_RESULTS} 恢复执行（同会话命中 ASKING 状态）。
  *
  * @author Jin
  */
@@ -75,6 +89,15 @@ public class ChatServiceImpl implements ChatService {
     private final WorkspaceAuditRecorder workspaceAuditRecorder;
     private final ObjectProvider<HarnessGateway> gatewayProvider;
 
+    /**
+     * HITL 待确认工具调用缓存（sessionId -> ASK 时的 ToolUseBlock 列表）。
+     *
+     * <p>ASK 触发时缓存，回传端点 {@link #streamConfirm} 取出构造 ConfirmResult 恢复。
+     * 单会话同一时刻最多一个待确认回合；回传时 remove 清空。未恢复即开新回合会覆盖
+     * （旧 ASKING 状态仍留在 agent stateCache，需开新会话或清状态解除，属已知限制）。
+     */
+    private final Map<String, List<ToolUseBlock>> pendingConfirmations = new ConcurrentHashMap<>();
+
     @Override
     public SseEmitter streamChat(String sessionId, SendMessage message) {
         ChatSessionEntity session = chatSessionService.loadOwned(sessionId);
@@ -86,17 +109,56 @@ public class ChatServiceImpl implements ChatService {
                 : chatAttachmentService.bindToMessage(session, message.getAttachmentIds(), userMessage.getId());
         Msg userMsg = attachmentMessageBuilder.buildUserMsg(session, app, message.getContent(), attachments);
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), AuthUtils.getTenantId());
+        return runStream(sessionId, session, agent, userMsg);
+    }
+
+    @Override
+    public SseEmitter streamConfirm(String sessionId, ConfirmToolCall dto) {
+        ChatSessionEntity session = chatSessionService.loadOwned(sessionId);
+        HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), AuthUtils.getTenantId());
+        // applyConfirmResults 需完整 ToolUseBlock：confirmed=true 用其 withState(ALLOWED) 替换
+        // ASKING 块，confirmed=false 用其 name 构造 DENIED 结果。故 ASK 时缓存原始块，此处按
+        // toolCallId 取出（前端从 RunFinished interrupt 拿 toolCallId 回传）
+        List<ToolUseBlock> pending = pendingConfirmations.remove(sessionId);
+        if (pending == null || pending.isEmpty()) {
+            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "该会话无待确认工具调用");
+        }
+        List<ConfirmResult> results = new ArrayList<>();
+        for (ConfirmToolCall.Decision decision : dto.getDecisions()) {
+            String toolCallId = decision.getToolCallId();
+            ToolUseBlock target = pending.stream()
+                    .filter(t -> t.getId().equals(toolCallId))
+                    .findFirst()
+                    .orElseThrow(
+                            () -> new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "待确认工具调用不存在: " + toolCallId));
+            results.add(new ConfirmResult(decision.isConfirmed(), target));
+        }
+        Msg confirmMsg = UserMessage.builder()
+                .metadata(Map.<String, Object>of(Msg.METADATA_CONFIRM_RESULTS, results))
+                .build();
+        return runStream(sessionId, session, agent, confirmMsg);
+    }
+
+    /**
+     * SSE 事件流编排：订阅 Agent 事件 -> 映射 AG-UI 输出 -> 区分正常结束/HITL 暂停/异常。
+     *
+     * <p>三种结束路径（{@code completed} 标志保证仅走一条，Flux#onComplete 兜底时若已处理则仅关连接）：
+     * <ul>
+     *   <li>{@code AGENT_END}：正常结束，持久化助手回复 + 关连接。</li>
+     *   <li>{@code REQUIRE_USER_CONFIRM}：HITL 暂停，缓存待确认 ToolUseBlock，发 RunFinished(interrupt)
+     *       后关连接（不持久化），agent 状态保留 ASKING 等回传端点恢复。</li>
+     *   <li>异常：发 RunError 后关连接。</li>
+     * </ul>
+     */
+    private SseEmitter runStream(String sessionId, ChatSessionEntity session, HarnessAgent agent, Msg msg) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         StringBuilder assistantText = new StringBuilder();
         String runId = UUID.randomUUID().toString();
         // enableReasoning=true：默认输出推理过程，前端用 reasoning 折叠区渲染
         AguiEventMapper mapper = new AguiEventMapper(session.getId(), runId, true);
         long turnStartMillis = System.currentTimeMillis();
-        // AGENT_END 主动结束 SSE：gateway/agent 的 Flux 在 AGENT_END 后可能不立即 complete，
-        // 若仅依赖 Flux#onComplete 关闭连接，前端会一直等（status 不变 complete）。
-        // 故在 AGENT_END 时主动持久化 + complete，Flux#onComplete 仅作兜底（防重复）。
         AtomicBoolean completed = new AtomicBoolean(false);
-        Disposable disposable = routeStream(session, agent, userMsg)
+        Disposable disposable = routeStream(session, agent, msg)
                 .subscribe(
                         event -> {
                             try {
@@ -107,7 +169,13 @@ public class ChatServiceImpl implements ChatService {
                                 for (AguiEvent agui : mapper.map(event)) {
                                     emitter.send(SseEmitter.event().data(mapper.encodeToJson(agui)));
                                 }
-                                if (event.getType() == AgentEventType.AGENT_END
+                                if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM
+                                        && completed.compareAndSet(false, true)) {
+                                    // HITL 暂停：缓存待确认 ToolUseBlock 供回传端点恢复，不持久化
+                                    if (event instanceof RequireUserConfirmEvent ruc) {
+                                        pendingConfirmations.put(sessionId, ruc.getToolCalls());
+                                    }
+                                } else if (event.getType() == AgentEventType.AGENT_END
                                         && completed.compareAndSet(false, true)) {
                                     persistAndComplete(
                                             sessionId, session, mapper, assistantText, emitter, turnStartMillis);

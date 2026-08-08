@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.ai.chat.model.ChatMessageView;
 import com.lambda.fusion.ai.chat.model.ChatSessionPage;
+import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.CreateSession;
 import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
@@ -74,5 +75,13 @@ public class ChatController {
             @Parameter(description = "会话ID", required = true) @PathVariable String id,
             @RequestBody @Valid SendMessage dto) {
         return chatService.streamChat(id, dto);
+    }
+
+    @Operation(summary = "确认工具调用(HITL, SSE)")
+    @PostMapping(value = "/{id}/confirm", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter confirm(
+            @Parameter(description = "会话ID", required = true) @PathVariable String id,
+            @RequestBody @Valid ConfirmToolCall dto) {
+        return chatService.streamConfirm(id, dto);
     }
 }

@@ -22,6 +22,10 @@ import com.lambda.fusion.ai.subagent.service.SubAgentService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.model.Model;
+import io.agentscope.core.permission.PermissionBehavior;
+import io.agentscope.core.permission.PermissionContextState;
+import io.agentscope.core.permission.PermissionMode;
+import io.agentscope.core.permission.PermissionRule;
 import io.agentscope.core.skill.SkillFilter;
 import io.agentscope.core.skill.repository.AgentSkillRepository;
 import io.agentscope.core.state.AgentStateStore;
@@ -41,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -203,6 +208,23 @@ public class AgentFactory {
     }
 
     /**
+     * 构建 HITL 权限上下文：BYPASS 模式 + {@code @RequireConfirm} 工具的 ASK 规则。ask 优先于
+     * BYPASS，故仅名单内工具触发确认，其余放行（DEFAULT 模式会全拦）。无名单返回 null（向后兼容）。
+     */
+    private PermissionContextState buildPermissionContext() {
+        Set<String> askToolNames = toolkitAssembler.getAskToolNames();
+        if (askToolNames.isEmpty()) {
+            return null;
+        }
+        PermissionContextState.Builder builder =
+                PermissionContextState.builder().mode(PermissionMode.BYPASS);
+        for (String toolName : askToolNames) {
+            builder.addAskRule(toolName, new PermissionRule(toolName, null, PermissionBehavior.ASK, "userSettings"));
+        }
+        return builder.build();
+    }
+
+    /**
      * 按配置解析 Agent 状态存储：MEMORY/FILE 内置；MYSQL/POSTGRES/REDIS/OSS/COS 分发到匹配的
      * {@link StateStoreProvider}（扩展未安装或创建失败时回退 MEMORY，保证启动不阻塞）。
      */
@@ -284,6 +306,7 @@ public class AgentFactory {
                 .model(model)
                 .maxIters(maxIters)
                 .toolkit(toolkit)
+                .permissionContext(buildPermissionContext())
                 .stateStore(resolveStateStore(aiProperties, stateStoreProviders))
                 .disableFilesystemTools()
                 .disableWorkspaceContext()
@@ -327,6 +350,7 @@ public class AgentFactory {
                 .model(model)
                 .maxIters(maxIters)
                 .toolkit(toolkit)
+                .permissionContext(buildPermissionContext())
                 .stateStore(resolveStateStore(aiProperties, stateStoreProviders))
                 .workspace(hostWorkspace)
                 .skillFilter(resolveSkillFilter(app));

@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.chat.adapter;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.agentscope.core.agui.event.AguiEvent;
+import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.event.ThinkingBlockDeltaEvent;
 import io.agentscope.core.event.ToolCallDeltaEvent;
@@ -12,6 +13,7 @@ import io.agentscope.core.event.ToolResultEndEvent;
 import io.agentscope.core.event.ToolResultStartEvent;
 import io.agentscope.core.event.ToolResultTextDeltaEvent;
 import io.agentscope.core.message.ToolResultState;
+import io.agentscope.core.message.ToolUseBlock;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -137,6 +139,27 @@ class AguiEventMapperTest {
         assertThat(call.toolCallName()).isEqualTo("search");
         assertThat(call.args()).isEqualTo("{\"q\":\"x\"}");
         assertThat(call.result()).isEqualTo("result-text");
+    }
+
+    @Test
+    void requireUserConfirmEmitsRunFinishedInterrupt() {
+        AguiEventMapper mapper = newMapper(true);
+        ToolUseBlock toolUse =
+                ToolUseBlock.builder().id("call-1").name("query_date").build();
+        List<AguiEvent> events = mapper.map(new RequireUserConfirmEvent("reply-1", List.of(toolUse)));
+
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0)).isInstanceOf(AguiEvent.RunFinished.class);
+        AguiEvent.RunFinished finished = (AguiEvent.RunFinished) events.get(0);
+        assertThat(finished.outcome()).isInstanceOf(AguiEvent.RunFinishedInterruptOutcome.class);
+        AguiEvent.RunFinishedInterruptOutcome outcome = (AguiEvent.RunFinishedInterruptOutcome) finished.outcome();
+        assertThat(outcome.interrupts()).hasSize(1);
+        AguiEvent.Interrupt interrupt = outcome.interrupts().get(0);
+        assertThat(interrupt.toolCallId()).isEqualTo("call-1");
+        assertThat(interrupt.reason()).isEqualTo("human_confirmation_required");
+        String json = mapper.encodeToJson(finished);
+        assertThat(json).contains("\"type\":\"RUN_FINISHED\"");
+        assertThat(json).contains("\"interrupts\"");
     }
 
     @Test

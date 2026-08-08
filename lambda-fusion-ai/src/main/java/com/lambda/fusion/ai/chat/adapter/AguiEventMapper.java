@@ -4,6 +4,7 @@ import io.agentscope.core.agui.encoder.AguiEventEncoder;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventType;
+import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.event.ThinkingBlockDeltaEvent;
 import io.agentscope.core.event.ToolCallDeltaEvent;
@@ -12,6 +13,7 @@ import io.agentscope.core.event.ToolCallStartEvent;
 import io.agentscope.core.event.ToolResultEndEvent;
 import io.agentscope.core.event.ToolResultStartEvent;
 import io.agentscope.core.event.ToolResultTextDeltaEvent;
+import io.agentscope.core.message.ToolUseBlock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -84,9 +86,10 @@ public class AguiEventMapper {
             case TOOL_RESULT_START -> mapToolResultStart(event, result);
             case TOOL_RESULT_TEXT_DELTA -> mapToolResultTextDelta(event);
             case TOOL_RESULT_END -> mapToolResultEnd(event, result);
+            case REQUIRE_USER_CONFIRM -> mapRequireUserConfirm(event, result);
             case AGENT_END -> mapAgentEnd(result);
             default -> {
-                /* 未映射事件忽略；HITL/Activity 后续补 */
+                /* 未映射事件忽略；Activity 后续补 */
             }
         }
         return result;
@@ -218,6 +221,37 @@ public class AguiEventMapper {
     private void mapAgentEnd(List<AguiEvent> out) {
         closeActiveMessage(out);
         out.add(new AguiEvent.RunFinished(threadId, runId, null, new AguiEvent.RunFinishedSuccessOutcome()));
+    }
+
+    /**
+     * 映射 HITL 确认请求为 RunFinished(interrupt)：agent 暂停，前端展示确认 UI。
+     *
+     * <p>每个待确认 ToolUseBlock 产出一个 {@link AguiEvent.Interrupt}（toolCallId 锚定），
+     * 前端用户确认后调回传端点 {@code POST /sessions/{id}/confirm} 恢复。这是 AG-UI 协议
+     * 的标准 interrupt 机制（RunFinished + RunFinishedInterruptOutcome），对应 agentscope
+     * 的 {@link RequireUserConfirmEvent}。
+     *
+     * @param event agentscope 确认请求事件
+     * @param out 输出列表
+     */
+    private void mapRequireUserConfirm(AgentEvent event, List<AguiEvent> out) {
+        if (!(event instanceof RequireUserConfirmEvent ruc)) {
+            return;
+        }
+        closeActiveMessage(out);
+        List<AguiEvent.Interrupt> interrupts = new ArrayList<>();
+        for (ToolUseBlock toolUse : ruc.getToolCalls()) {
+            interrupts.add(new AguiEvent.Interrupt(
+                    toolUse.getId(),
+                    "human_confirmation_required",
+                    "工具 '" + toolUse.getName() + "' 需要您确认后执行",
+                    toolUse.getId(),
+                    null,
+                    null,
+                    Map.of("toolName", toolUse.getName())));
+        }
+        out.add(new AguiEvent.RunFinished(
+                threadId, runId, null, new AguiEvent.RunFinishedInterruptOutcome(interrupts)));
     }
 
     /**
