@@ -572,4 +572,16 @@
         </createIndex>
     </changeSet>
 
+    <!-- ========== HITL 待确认工具调用持久化 ========== -->
+    <changeSet id="lambda-ai-202608090001" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_chat_session" columnName="pending_confirm"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_chat_session">
+            <column name="pending_confirm" type="text" remarks="HITL 待确认工具调用 JSON(ASK 时写、回合结束清空;空=无待确认)"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

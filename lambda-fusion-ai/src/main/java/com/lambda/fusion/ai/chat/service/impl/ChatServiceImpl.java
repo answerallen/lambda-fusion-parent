@@ -28,6 +28,7 @@ import io.agentscope.core.event.AgentEventType;
 import io.agentscope.core.event.ConfirmResult;
 import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
+import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolCallState;
@@ -42,8 +43,10 @@ import io.agentscope.harness.agent.gateway.MsgContext;
 import io.agentscope.harness.agent.gateway.channel.OutboundAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -109,16 +112,34 @@ public class ChatServiceImpl implements ChatService {
         AppEntity app = appService.loadById(session.getAppId());
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), AuthUtils.getTenantId());
 
-        // HITL 残留检测：若 agent 仍处于 ASKING 状态（用户未完成上轮确认即发新消息，
-        // 或刷新页面重连导致前端 pendingInterrupts 丢失），重新发 RunFinished(interrupt)
-        // 让前端展示确认卡片，不调 agent.streamEvents -- 否则 agentscope 检测到 ASKING
-        // 却无 ConfirmResult 会抛 IllegalStateException，会话锁死无法恢复。
-        List<ToolUseBlock> asking = findAskingToolUseBlocks(agent, session);
-        if (!asking.isEmpty()) {
+        // HITL 残留检测：上轮 ASK 未确认时重发 interrupt，不调 agent.streamEvents --
+        // 否则 ASKING 无 ConfirmResult 会抛 IllegalStateException 锁死会话。
+        // 真相源是 pending_confirm（按 session.getId()，重启不丢）；agent state slot 用 gateway
+        // 生成的 sessionId，与 session.getId() 不同，findAskingToolUseBlocks 仅作直连模式回退。
+        List<ToolUseBlock> asking = deserializePendingConfirm(session.getPendingConfirm());
+        String source = !asking.isEmpty() ? "db" : null;
+        if (asking.isEmpty()) {
+            asking = pendingConfirmations.get(sessionId);
+            if (asking != null && !asking.isEmpty()) {
+                source = "pendingCache";
+            }
+        }
+        if (asking == null || asking.isEmpty()) {
+            asking = findAskingToolUseBlocks(agent, session);
+            if (!asking.isEmpty()) {
+                source = "agentState";
+            }
+        }
+        if (asking != null && !asking.isEmpty()) {
             pendingConfirmations.put(sessionId, asking);
+            // DB 无记录时回写
+            if (session.getPendingConfirm() == null) {
+                chatSessionService.updatePendingConfirm(sessionId, serializePendingConfirm(asking));
+            }
             log.info(
-                    "检测到 HITL ASKING 残留，重发确认请求: sessionId={}, tools={}",
+                    "检测到 HITL 待确认，重发确认请求: sessionId={}, source={}, tools={}",
                     sessionId,
+                    source,
                     asking.stream().map(ToolUseBlock::getName).toList());
             return emitInterrupt(sessionId, asking);
         }
@@ -136,20 +157,23 @@ public class ChatServiceImpl implements ChatService {
     public SseEmitter streamConfirm(String sessionId, ConfirmToolCall dto) {
         ChatSessionEntity session = chatSessionService.loadOwned(sessionId);
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), AuthUtils.getTenantId());
-        // applyConfirmResults 需完整 ToolUseBlock：confirmed=true 用其 withState(ALLOWED) 替换
-        // ASKING 块，confirmed=false 用其 name 构造 DENIED 结果。故 ASK 时缓存原始块，此处按
-        // toolCallId 取出（前端从 RunFinished interrupt 拿 toolCallId 回传）
-        List<ToolUseBlock> pending = pendingConfirmations.remove(sessionId);
-        String pendingSource = pending != null && !pending.isEmpty() ? "memory" : null;
-        if (pending == null || pending.isEmpty()) {
-            // pendingConfirmations 是内存 Map，服务重启会丢；从 agent 持久化状态回退取
-            // ASKING 块（仅 FILE/DB/REDIS 等 stateStore 跨重启保留时有效）。
+        // applyConfirmResults 需完整 ToolUseBlock（withState(ALLOWED) 替换 / name 构造 DENIED），
+        // 依次从 pending_confirm、内存、agent 状态取。
+        List<ToolUseBlock> pending = deserializePendingConfirm(session.getPendingConfirm());
+        String pendingSource = !pending.isEmpty() ? "db" : null;
+        // 无论 DB 是否命中，都清内存缓存（避免残留）
+        List<ToolUseBlock> memoryPending = pendingConfirmations.remove(sessionId);
+        if (pending.isEmpty() && memoryPending != null && !memoryPending.isEmpty()) {
+            pending = memoryPending;
+            pendingSource = "memory";
+        }
+        if (pending.isEmpty()) {
             pending = findAskingToolUseBlocks(agent, session);
             pendingSource = "stateStore";
-            if (pending.isEmpty()) {
-                log.warn("confirm 流无待确认工具调用: sessionId={}", sessionId);
-                throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "该会话无待确认工具调用");
-            }
+        }
+        if (pending == null || pending.isEmpty()) {
+            log.warn("confirm 流无待确认工具调用: sessionId={}", sessionId);
+            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "该会话无待确认工具调用");
         }
         log.info(
                 "confirm 流开始: sessionId={}, pendingSource={}, decisions={}",
@@ -173,60 +197,87 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 从 agent 最新状态的最后一条 assistant 消息中提取 ASKING 状态的 ToolUseBlock。
-     *
-     * <p>对应 agentscope {@code ReActAgent.CallExecution.askingToolCalls()}。状态读取经
-     * {@link #loadLatestAskingState} 直接查 stateStore，与 doCall 的 {@code activateSlotForContext}
-     * 对齐（后者每次 call 都从 stateStore 重新加载并覆盖 stateCache）。
-     *
-     * <p>必须读 stateStore 而非 {@code getAgentState}（stateCache 缓存）的场景：confirm 流在
-     * {@code applyConfirmResults} 之后、{@code saveStateToSession} 之前出错时，stateCache 已被
-     * 改为 ALLOWED 但 stateStore 仍是 ASKING；读 stateCache 会漏检，streamChat 放行 ->
-     * agent.streamEvents 抛 IllegalStateException 锁死会话。
-     *
-     * @param agent 会话所属 agent
-     * @param session 会话（取 userId/sessionId 定位状态 slot）
-     * @return ASKING 状态的 ToolUseBlock 列表，无则空；检测异常返回空（容错放行）
+     * 提取 ASKING 状态的 ToolUseBlock（最后一条 assistant 消息，与 {@code askingToolCalls()} 同逻辑）。
+     * 读 stateCache 与 stateStore 取并集，作直连模式/极端情况回退；gateway 模式下 agent state slot
+     * 非 session.getId()，通常由 pending_confirm 覆盖。
      */
     private List<ToolUseBlock> findAskingToolUseBlocks(HarnessAgent agent, ChatSessionEntity session) {
+        ReActAgent delegate = agent.getDelegate();
+        List<ToolUseBlock> result = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
         try {
-            AgentState state = loadLatestAskingState(agent.getDelegate(), session);
-            if (state == null || state.getContext() == null) {
-                return List.of();
-            }
-            List<Msg> context = state.getContext();
-            for (int i = context.size() - 1; i >= 0; i--) {
-                Msg msg = context.get(i);
-                if (msg.getRole() != MsgRole.ASSISTANT) {
-                    continue;
+            for (AgentState state :
+                    new AgentState[] {loadStateFromStateCache(delegate, session), loadStateFromStore(delegate, session)
+                    }) {
+                for (ToolUseBlock block : extractAskingBlocks(state)) {
+                    if (seen.add(block.getId())) {
+                        result.add(block);
+                    }
                 }
-                return msg.getContent().stream()
-                        .filter(b -> b instanceof ToolUseBlock t && t.getState() == ToolCallState.ASKING)
-                        .map(ToolUseBlock.class::cast)
-                        .toList();
             }
-            return List.of();
         } catch (Exception e) {
-            log.warn("检测 HITL ASKING 残留失败，容错放行: sessionId={}", session.getId(), e);
+            log.warn("检测 HITL ASKING 残留异常，返回已收集部分: sessionId={}", session.getId(), e);
+        }
+        return result;
+    }
+
+    /** 从一条 AgentState 的最后一条 assistant 消息提取 ASKING 工具调用块（与 askingToolCalls 同逻辑）。 */
+    private static List<ToolUseBlock> extractAskingBlocks(AgentState state) {
+        if (state == null || state.getContext() == null) {
             return List.of();
+        }
+        List<Msg> context = state.getContext();
+        for (int i = context.size() - 1; i >= 0; i--) {
+            Msg msg = context.get(i);
+            if (msg.getRole() != MsgRole.ASSISTANT) {
+                continue;
+            }
+            return msg.getContent().stream()
+                    .filter(b -> b instanceof ToolUseBlock t && t.getState() == ToolCallState.ASKING)
+                    .map(ToolUseBlock.class::cast)
+                    .toList();
+        }
+        return List.of();
+    }
+
+    /** 读 stateCache（getAgentState，命中 slot 不触发 store 读）。 */
+    private static AgentState loadStateFromStateCache(ReActAgent delegate, ChatSessionEntity session) {
+        try {
+            return delegate.getAgentState(session.getUserId(), session.getId());
+        } catch (Exception e) {
+            log.warn("读 stateCache 失败，容错跳过: sessionId={}", session.getId(), e);
+            return null;
         }
     }
 
-    /**
-     * 加载 {@code (userId, sessionId)} slot 的最新 AgentState，与 agentscope {@code activateSlotForContext}
-     * 对齐：优先从 stateStore 读取，而非 {@code getAgentState} 返回的 stateCache 缓存。
-     *
-     * @param delegate ReActAgent
-     * @param session 会话（取 userId/sessionId）
-     * @return 最新状态；stateStore 无记录返回 null，无 stateStore（纯内存）回退 stateCache
-     */
-    private static AgentState loadLatestAskingState(ReActAgent delegate, ChatSessionEntity session) {
-        AgentStateStore store = delegate.getStateStore();
-        if (store == null) {
-            return delegate.getAgentState(session.getUserId(), session.getId());
+    /** 读 stateStore，与 activateSlotForContext 的 store.get 同 key。 */
+    private static AgentState loadStateFromStore(ReActAgent delegate, ChatSessionEntity session) {
+        try {
+            AgentStateStore store = delegate.getStateStore();
+            if (store == null) {
+                return null;
+            }
+            return store.get(session.getUserId(), session.getId(), "agent_state", AgentState.class)
+                    .orElse(null);
+        } catch (Exception e) {
+            log.warn("读 stateStore 失败，容错跳过: sessionId={}", session.getId(), e);
+            return null;
         }
-        return store.get(session.getUserId(), session.getId(), "agent_state", AgentState.class)
-                .orElse(null);
+    }
+
+    /** 是否 agent HITL 暂停抛出的 IllegalStateException（遍历 cause 链匹配消息关键词）。 */
+    private static boolean isHitlPauseError(Throwable error) {
+        Throwable cur = error;
+        while (cur != null) {
+            String message = cur.getMessage();
+            if (message != null
+                    && (message.contains("human-in-the-loop confirmation")
+                            || message.contains("are in ASKING state"))) {
+                return true;
+            }
+            cur = cur.getCause();
+        }
+        return false;
     }
 
     /**
@@ -289,10 +340,13 @@ public class ChatServiceImpl implements ChatService {
                                 }
                                 if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM
                                         && completed.compareAndSet(false, true)) {
-                                    // HITL 暂停：缓存待确认 ToolUseBlock 供回传端点恢复，不持久化
+                                    // HITL 暂停：缓存并持久化待确认块到 pending_confirm（按 session.getId()，重启不丢）。
                                     log.info("runStream[{}] HITL 暂停(ASK): sessionId={}", flow, sessionId);
                                     if (event instanceof RequireUserConfirmEvent ruc) {
-                                        pendingConfirmations.put(sessionId, ruc.getToolCalls());
+                                        List<ToolUseBlock> blocks = ruc.getToolCalls();
+                                        pendingConfirmations.put(sessionId, blocks);
+                                        chatSessionService.updatePendingConfirm(
+                                                sessionId, serializePendingConfirm(blocks));
                                     }
                                 } else if (event.getType() == AgentEventType.AGENT_END
                                         && completed.compareAndSet(false, true)) {
@@ -307,17 +361,52 @@ public class ChatServiceImpl implements ChatService {
                         error -> {
                             // 发 RunError 后正常关闭连接（非 completeWithError）：前端 onRunError
                             // 拿到错误事件显示提示，onComplete 让对话状态结束可重试
-                            if (completed.compareAndSet(false, true)) {
-                                try {
-                                    for (AguiEvent agui : mapper.mapError(error)) {
-                                        emitter.send(SseEmitter.event().data(mapper.encodeToJson(agui)));
-                                    }
-                                } catch (Exception sendError) {
-                                    log.warn("发送 RunError 失败: sessionId={}", sessionId, sendError);
-                                }
-                                log.error("runStream[{}] 对话流异常: sessionId={}", flow, sessionId, error);
-                                emitter.complete();
+                            if (!completed.compareAndSet(false, true)) {
+                                return;
                             }
+                            // HITL 兜底：残留检测漏检时 agent 抛 "paused for human-in-the-loop"，
+                            // 取完整块重发 interrupt 避免锁死（applyConfirmResults 需完整块做 withState 替换）。
+                            if (isHitlPauseError(error)) {
+                                List<ToolUseBlock> asking = deserializePendingConfirm(session.getPendingConfirm());
+                                if (asking == null || asking.isEmpty()) {
+                                    asking = pendingConfirmations.get(sessionId);
+                                }
+                                if (asking == null || asking.isEmpty()) {
+                                    asking = findAskingToolUseBlocks(agent, session);
+                                }
+                                if (asking != null && !asking.isEmpty()) {
+                                    log.warn(
+                                            "runStream[{}] HITL 异常兜底转 interrupt: sessionId={}, tools={}",
+                                            flow,
+                                            sessionId,
+                                            asking.stream()
+                                                    .map(ToolUseBlock::getName)
+                                                    .toList());
+                                    pendingConfirmations.put(sessionId, asking);
+                                    if (session.getPendingConfirm() == null) {
+                                        chatSessionService.updatePendingConfirm(
+                                                sessionId, serializePendingConfirm(asking));
+                                    }
+                                    try {
+                                        for (AguiEvent agui : mapper.buildInterruptEvents(asking)) {
+                                            emitter.send(SseEmitter.event().data(mapper.encodeToJson(agui)));
+                                        }
+                                    } catch (Exception sendError) {
+                                        log.warn("发送 HITL interrupt 失败: sessionId={}", sessionId, sendError);
+                                    }
+                                    emitter.complete();
+                                    return;
+                                }
+                            }
+                            try {
+                                for (AguiEvent agui : mapper.mapError(error)) {
+                                    emitter.send(SseEmitter.event().data(mapper.encodeToJson(agui)));
+                                }
+                            } catch (Exception sendError) {
+                                log.warn("发送 RunError 失败: sessionId={}", sessionId, sendError);
+                            }
+                            log.error("runStream[{}] 对话流异常: sessionId={}", flow, sessionId, error);
+                            emitter.complete();
                         },
                         () -> {
                             log.info(
@@ -387,6 +476,8 @@ public class ChatServiceImpl implements ChatService {
             String toolCallJson = serializeToolCalls(mapper.getToolCalls());
             chatMessageService.saveAssistantMessage(session, assistantText.toString(), toolCallJson);
             chatSessionService.touchLastMessageAt(session.getId());
+            // 回合结束，清空 HITL 待确认
+            chatSessionService.updatePendingConfirm(session.getId(), null);
             workspaceAuditRecorder.recordChanges(session, turnStartMillis);
         } catch (Exception e) {
             log.error("持久化助手回复失败: sessionId={}", sessionId, e);
@@ -401,5 +492,35 @@ public class ChatServiceImpl implements ChatService {
             return null;
         }
         return JsonUtils.getJsonCodec().toJson(toolCalls);
+    }
+
+    /** 序列化 HITL 待确认 ToolUseBlock 列表为 JSON（空返回 null，不写列）。 */
+    /** 包装为 List<ContentBlock> 触发 @JsonTypeInfo 写 type 字段，保证 ToolUseBlock 往返。 */
+    private record PendingConfirmHolder(List<ContentBlock> blocks) {}
+
+    private static String serializePendingConfirm(List<ToolUseBlock> blocks) {
+        if (blocks == null || blocks.isEmpty()) {
+            return null;
+        }
+        return JsonUtils.getJsonCodec().toJson(new PendingConfirmHolder(new ArrayList<>(blocks)));
+    }
+
+    private static List<ToolUseBlock> deserializePendingConfirm(String json) {
+        if (StringUtils.isBlank(json)) {
+            return List.of();
+        }
+        try {
+            PendingConfirmHolder holder = JsonUtils.getJsonCodec().fromJson(json, PendingConfirmHolder.class);
+            if (holder == null || holder.blocks() == null) {
+                return List.of();
+            }
+            return holder.blocks().stream()
+                    .filter(b -> b instanceof ToolUseBlock)
+                    .map(b -> (ToolUseBlock) b)
+                    .toList();
+        } catch (Exception e) {
+            log.warn("反序列化 pendingConfirm 失败: sessionId json={}", json, e);
+            return List.of();
+        }
     }
 }

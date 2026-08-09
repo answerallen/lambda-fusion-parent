@@ -43,4 +43,8 @@ public class ChatSessionEntity {
     @TableField("last_message_at")
     @Schema(description = "最后消息时间")
     private LocalDateTime lastMessageAt;
+
+    @TableField("pending_confirm")
+    @Schema(description = "HITL 待确认工具调用 JSON(ASK 时写、回合结束清空;空=无待确认)")
+    private String pendingConfirm;
 }
