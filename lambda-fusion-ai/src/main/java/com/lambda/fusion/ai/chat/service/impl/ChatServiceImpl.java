@@ -23,17 +23,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.agui.event.AguiEvent;
-import io.agentscope.core.event.AgentEvent;
-import io.agentscope.core.event.AgentEventType;
-import io.agentscope.core.event.ConfirmResult;
-import io.agentscope.core.event.RequireUserConfirmEvent;
-import io.agentscope.core.event.TextBlockDeltaEvent;
-import io.agentscope.core.message.ContentBlock;
-import io.agentscope.core.message.Msg;
-import io.agentscope.core.message.MsgRole;
-import io.agentscope.core.message.ToolCallState;
-import io.agentscope.core.message.ToolUseBlock;
-import io.agentscope.core.message.UserMessage;
+import io.agentscope.core.event.*;
+import io.agentscope.core.message.*;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.util.JsonUtils;
@@ -41,15 +32,6 @@ import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.gateway.MsgContext;
 import io.agentscope.harness.agent.gateway.channel.OutboundAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -59,19 +41,14 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 /**
- * 对话流式服务实现。
- *
- * <p>流程：加载会话 -> 持久化用户消息 -> 构建/复用 Agent -> 经 {@link HarnessGateway#runStream} 订阅事件流 ->
- * 通过 {@link AguiEventMapper} 映射为 AG-UI 协议事件输出 -> 完成时持久化助手回复。Gateway 未启用时回退
- * 直连 {@code agent.streamEvents}。
- *
- * <p>多轮上下文由 Agent 内存状态（按 sessionId 隔离）维持；每次仅传入新用户消息。
- *
- * <p>HITL：工具标 {@code @RequireConfirm} 时，agent 调用前发 {@code RequireUserConfirmEvent} 暂停。
- * 本服务映射为 AG-UI {@code RunFinished(interrupt)} 并缓存待确认 ToolUseBlock；用户经
- * {@code POST /sessions/{id}/confirm} 回传决策，{@link #streamConfirm} 携带
- * {@code Msg.METADATA_CONFIRM_RESULTS} 恢复执行（同会话命中 ASKING 状态）。
+ * 对话流式服务实现。Gateway 启用时经 {@link HarnessGateway#runStream} 订阅，未启用时回退直连
+ * {@code agent.streamEvents}；事件经 {@link AguiEventMapper} 映射为 AG-UI 协议输出。HITL 待确认
+ * 工具调用持久化于 {@code pending_confirm}，由 {@link #streamConfirm} 回传恢复。
  *
  * @author Jin
  */
@@ -97,13 +74,7 @@ public class ChatServiceImpl implements ChatService {
     private final WorkspaceAuditRecorder workspaceAuditRecorder;
     private final ObjectProvider<HarnessGateway> gatewayProvider;
 
-    /**
-     * HITL 待确认工具调用缓存（sessionId -> ASK 时的 ToolUseBlock 列表）。
-     *
-     * <p>ASK 触发时缓存，回传端点 {@link #streamConfirm} 取出构造 ConfirmResult 恢复。
-     * 单会话同一时刻最多一个待确认回合；回传时 remove 清空。未恢复即开新回合会覆盖
-     * （旧 ASKING 状态仍留在 agent stateCache，需开新会话或清状态解除，属已知限制）。
-     */
+    /** HITL 待确认工具调用内存缓存（sessionId -> ToolUseBlock 列表），confirm 回传时清空。 */
     private final Map<String, List<ToolUseBlock>> pendingConfirmations = new ConcurrentHashMap<>();
 
     @Override
@@ -112,10 +83,7 @@ public class ChatServiceImpl implements ChatService {
         AppEntity app = appService.loadById(session.getAppId());
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), AuthUtils.getTenantId());
 
-        // HITL 残留检测：上轮 ASK 未确认时重发 interrupt，不调 agent.streamEvents --
-        // 否则 ASKING 无 ConfirmResult 会抛 IllegalStateException 锁死会话。
-        // 真相源是 pending_confirm（按 session.getId()，重启不丢）；agent state slot 用 gateway
-        // 生成的 sessionId，与 session.getId() 不同，findAskingToolUseBlocks 仅作直连模式回退。
+        // HITL 残留：上轮 ASK 未确认则重发 interrupt，否则 ASKING 无 ConfirmResult 会抛异常锁死会话。
         List<ToolUseBlock> asking = deserializePendingConfirm(session.getPendingConfirm());
         String source = !asking.isEmpty() ? "db" : null;
         if (asking.isEmpty()) {
@@ -130,7 +98,7 @@ public class ChatServiceImpl implements ChatService {
                 source = "agentState";
             }
         }
-        if (asking != null && !asking.isEmpty()) {
+        if (!asking.isEmpty()) {
             pendingConfirmations.put(sessionId, asking);
             // DB 无记录时回写
             if (session.getPendingConfirm() == null) {
@@ -171,7 +139,7 @@ public class ChatServiceImpl implements ChatService {
             pending = findAskingToolUseBlocks(agent, session);
             pendingSource = "stateStore";
         }
-        if (pending == null || pending.isEmpty()) {
+        if (pending.isEmpty()) {
             log.warn("confirm 流无待确认工具调用: sessionId={}", sessionId);
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "该会话无待确认工具调用");
         }
@@ -197,9 +165,8 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 提取 ASKING 状态的 ToolUseBlock（最后一条 assistant 消息，与 {@code askingToolCalls()} 同逻辑）。
-     * 读 stateCache 与 stateStore 取并集，作直连模式/极端情况回退；gateway 模式下 agent state slot
-     * 非 session.getId()，通常由 pending_confirm 覆盖。
+     * 提取 ASKING 状态的 ToolUseBlock（与 {@code askingToolCalls()} 同逻辑）。
+     * 读 stateCache 与 stateStore 取并集，作直连模式/极端情况回退。
      */
     private List<ToolUseBlock> findAskingToolUseBlocks(HarnessAgent agent, ChatSessionEntity session) {
         ReActAgent delegate = agent.getDelegate();
@@ -281,13 +248,8 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 构造并发送 HITL interrupt 事件序列（RunStarted + RunFinished(interrupt)），不调用
-     * agent.streamEvents。用于 ASKING 残留时重发确认卡片，让前端 onComplete 检测到
-     * interrupt 并填充 pendingInterrupts。
-     *
-     * @param sessionId 会话ID
-     * @param blocks ASKING 状态的 ToolUseBlock 列表
-     * @return 已发完事件并关闭的 SseEmitter
+     * 发送 HITL interrupt 事件序列（RunStarted + RunFinished(interrupt)），不调 agent.streamEvents。
+     * 用于 ASKING 残留时重发确认卡片。
      */
     private SseEmitter emitInterrupt(String sessionId, List<ToolUseBlock> blocks) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
@@ -306,14 +268,7 @@ public class ChatServiceImpl implements ChatService {
 
     /**
      * SSE 事件流编排：订阅 Agent 事件 -> 映射 AG-UI 输出 -> 区分正常结束/HITL 暂停/异常。
-     *
-     * <p>三种结束路径（{@code completed} 标志保证仅走一条，Flux#onComplete 兜底时若已处理则仅关连接）：
-     * <ul>
-     *   <li>{@code AGENT_END}：正常结束，持久化助手回复 + 关连接。</li>
-     *   <li>{@code REQUIRE_USER_CONFIRM}：HITL 暂停，缓存待确认 ToolUseBlock，发 RunFinished(interrupt)
-     *       后关连接（不持久化），agent 状态保留 ASKING 等回传端点恢复。</li>
-     *   <li>异常：发 RunError 后关连接。</li>
-     * </ul>
+     * {@code completed} 标志保证三种结束路径（AGENT_END / REQUIRE_USER_CONFIRM / 异常）仅走一条。
      */
     private SseEmitter runStream(String sessionId, ChatSessionEntity session, HarnessAgent agent, Msg msg) {
         boolean isConfirm = msg.getMetadata() != null && msg.getMetadata().containsKey(Msg.METADATA_CONFIRM_RESULTS);
@@ -374,7 +329,7 @@ public class ChatServiceImpl implements ChatService {
                                 if (asking == null || asking.isEmpty()) {
                                     asking = findAskingToolUseBlocks(agent, session);
                                 }
-                                if (asking != null && !asking.isEmpty()) {
+                                if (!asking.isEmpty()) {
                                     log.warn(
                                             "runStream[{}] HITL 异常兜底转 interrupt: sessionId={}, tools={}",
                                             flow,
@@ -451,10 +406,7 @@ public class ChatServiceImpl implements ChatService {
         return gateway.runStream(msgCtx, List.of(userMsg), outbound);
     }
 
-    /**
-     *
-     * {@link MsgContext} 构造时 {@code Map.copyOf} 拒绝 null，故 tenantId 为空时省略
-     */
+    /** {@link MsgContext} 构造时 {@code Map.copyOf} 拒绝 null，故 tenantId 为空时省略 */
     private static Map<String, String> buildExtra(ChatSessionEntity session, String agentId) {
         Map<String, String> extra = new HashMap<>();
         extra.put(RuntimeProperty.KEY_AGENT_ID, agentId);
@@ -494,8 +446,10 @@ public class ChatServiceImpl implements ChatService {
         return JsonUtils.getJsonCodec().toJson(toolCalls);
     }
 
-    /** 序列化 HITL 待确认 ToolUseBlock 列表为 JSON（空返回 null，不写列）。 */
-    /** 包装为 List<ContentBlock> 触发 @JsonTypeInfo 写 type 字段，保证 ToolUseBlock 往返。 */
+    /**
+     * 序列化 HITL 待确认 ToolUseBlock 列表为 JSON（空返回 null）。包装为 {@code List<ContentBlock>}
+     * 触发 {@code @JsonTypeInfo} 写 type 字段，保证 ToolUseBlock 往返。
+     */
     private record PendingConfirmHolder(List<ContentBlock> blocks) {}
 
     private static String serializePendingConfirm(List<ToolUseBlock> blocks) {

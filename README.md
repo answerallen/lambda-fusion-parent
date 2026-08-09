@@ -148,7 +148,7 @@ lambda-fusion-parent/
 </dependency>
 ```
 
-> 基座 `lambda-cloud-parent` 与 BOM 均为 `2026.1.1-SNAPSHOT`，需先在 `lamuda-cloud-parent` 下执行 `mvn clean install` 安装到本地仓库后再构建本仓库。运行演示见 `lambda-fusion-startup`（端口 20005，配置由环境变量驱动）。
+> 基座 `lambda-cloud-parent` 需先在该仓库执行 `mvn clean install` 安装到本地仓库，再构建本仓库。
 
 ### 构建与测试
 
@@ -171,42 +171,6 @@ mvn -pl lambda-fusion-ai test
 mvn -pl lambda-fusion-ai test -Dtest=AgentGraphTest
 mvn -pl lambda-fusion-ai test -Dtest=AgentGraphTest#shouldRoute
 ```
-
-> 测试运行在 classpath 上而非 module path（父 POM 设置了 `surefire.useModulePath=false`），遇到 JPMS 相关测试失败时请留意。
-
-### 代码风格与静态检查
-
-父 POM 在 **`compile`** 阶段强制执行两道关卡，因此 `mvn compile` 就会在违规时失败：
-
-- **Spotless - Palantir Java Format**（`PALANTIR` 风格，v2.67.0，不格式化 Javadoc）。自动修复：`mvn spotless:apply`；仅检查：`mvn spotless:check`。
-- **SpotBugs** - compile 阶段 `check`，使用各模块 `spotbugs-exclude.xml`。根目录 `spotbugs.skip=false`；`lambda-fusion-ai` 设 `spotbugs.skip=true`，可按模块用 `-Dspotbugs.skip=true` 覆盖。
-
-注解处理器由父 POM 装配：Lombok、MapStruct（+ `lombok-mapstruct-binding`）、`spring-boot-configuration-processor`，以及自定义 `lambda-cloud-processor`。`lombok.config`（`addLombokGeneratedAnnotation=true`）由 antrun 步骤在每次构建时重新生成，不要手动编辑。
-
-### 运行启动演示模块
-
-`lambda-fusion-startup` 把所有 fusion 模块组装成一个可运行的 Spring Boot 应用（`com.fusion.startup.FusionApplication`，端口 20005）。`application.yml` 中的运行时配置完全由环境变量驱动（如 `${MAIN_DB_URL}`、`${REDIS_HOST}`、`${QINIU_*}`、`${AI_*}`、`${ALIYUN_SMS_*}` 等），这些变量来自仓库根目录下本地、已 gitignore 的 `.evn` 文件（注意拼写，文件名就是 `.evn`）。**不要提交真实值**。
-
-```bash
-# 在 IDE 中运行 FusionApplication，或执行：
-mvn -pl lambda-fusion-startup spring-boot:run
-```
-
-> 产出的 jar **未**经过 repackage、不可直接执行，因此除非自行添加 `spring-boot-maven-plugin` 的 repackage goal，否则 `java -jar` 无法运行。
-
-## 📦 模块深度文档
-
-每个模块在 `docs/skills/<module>/SKILL.md` 中有一份权威说明--包含自动配置入口、配置项、主要入口类、关键机制、条件装配说明，以及「常见改造入口」。修改模块前请先阅读对应的 SKILL.md；它会告诉你某类改动应具体触及哪些类。
-
-覆盖模块：`lambda-fusion-ai` / `lambda-fusion-authority` / `lambda-fusion-authority-api` / `lambda-fusion-bom` / `lambda-fusion-config` / `lambda-fusion-core` / `lambda-fusion-datasource` / `lambda-fusion-dictionary` / `lambda-fusion-oss` / `lambda-fusion-permission` / `lambda-fusion-startup`。
-
-## 🔧 OpenSpec 工作流（可选）
-
-这是一套**可选的**规范驱动开发流程。`openspec` CLI 未随仓库分发，需开发者自行安装：`npm install -g @fission-ai/openspec`。相关 skills 与斜杠命令已暂存于 `.claude/skills/openspec-*`、`.claude/commands/opsx/` 与 `.trae/skills/openspec-*`（IDE 适配）。
-
-**未安装该 CLI 时，`/opsx:*` 斜杠命令和 `openspec` 命令行调用不可用**；此时按常规方式直接修改代码即可。
-
-若已安装 CLI，可由 `/opsx:*` 斜杠命令驱动：`/opsx:propose <name>` 创建变更脚手架、`/opsx:apply` 实现任务、`/opsx:archive` 归档、`/opsx:explore` / `/opsx:sync` 浏览与同步规范。进行中的变更位于 `openspec/changes/`；已归档规范位于 `openspec/specs/`。是否采用此流程由开发者自行决定。
 
 ---
 
