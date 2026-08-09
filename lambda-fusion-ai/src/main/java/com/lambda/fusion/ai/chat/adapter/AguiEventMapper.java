@@ -239,8 +239,31 @@ public class AguiEventMapper {
             return;
         }
         closeActiveMessage(out);
+        out.add(new AguiEvent.RunFinished(threadId, runId, null, buildInterruptOutcome(ruc.getToolCalls())));
+    }
+
+    /**
+     * 构造 HITL interrupt 事件序列（RunStarted + RunFinished(interrupt)），供残留 ASKING
+     * 状态重发确认卡片使用（不经过 agent 事件流）。
+     *
+     * <p>与 {@link #mapRequireUserConfirm} 共用 {@link #buildInterruptOutcome}，但不
+     * closeActiveMessage（重发场景无活跃消息）。调用方依次发送即可：RunStarted 让前端
+     * onRunStart reset AGUIAdapter，RunFinished(interrupt) 触发 onComplete 检测填充
+     * pendingInterrupts。
+     *
+     * @param blocks ASKING 状态的 ToolUseBlock 列表（来自 AgentState 或 RequireUserConfirmEvent）
+     * @return RunStarted + RunFinished(interrupt) 事件列表
+     */
+    public List<AguiEvent> buildInterruptEvents(List<ToolUseBlock> blocks) {
+        List<AguiEvent> out = new ArrayList<>();
+        out.add(new AguiEvent.RunStarted(threadId, runId, null, null));
+        out.add(new AguiEvent.RunFinished(threadId, runId, null, buildInterruptOutcome(blocks)));
+        return out;
+    }
+
+    private AguiEvent.RunFinishedInterruptOutcome buildInterruptOutcome(List<ToolUseBlock> blocks) {
         List<AguiEvent.Interrupt> interrupts = new ArrayList<>();
-        for (ToolUseBlock toolUse : ruc.getToolCalls()) {
+        for (ToolUseBlock toolUse : blocks) {
             interrupts.add(new AguiEvent.Interrupt(
                     toolUse.getId(),
                     "human_confirmation_required",
@@ -250,8 +273,7 @@ public class AguiEventMapper {
                     null,
                     Map.of("toolName", toolUse.getName())));
         }
-        out.add(new AguiEvent.RunFinished(
-                threadId, runId, null, new AguiEvent.RunFinishedInterruptOutcome(interrupts)));
+        return new AguiEvent.RunFinishedInterruptOutcome(interrupts);
     }
 
     /**

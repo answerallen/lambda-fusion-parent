@@ -20,6 +20,7 @@ import com.lambda.fusion.ai.runtime.gateway.RuntimeProperty;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
@@ -28,8 +29,12 @@ import io.agentscope.core.event.ConfirmResult;
 import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.message.Msg;
+import io.agentscope.core.message.MsgRole;
+import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.message.UserMessage;
+import io.agentscope.core.state.AgentState;
+import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.util.JsonUtils;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
@@ -102,13 +107,28 @@ public class ChatServiceImpl implements ChatService {
     public SseEmitter streamChat(String sessionId, SendMessage message) {
         ChatSessionEntity session = chatSessionService.loadOwned(sessionId);
         AppEntity app = appService.loadById(session.getAppId());
+        HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), AuthUtils.getTenantId());
+
+        // HITL 残留检测：若 agent 仍处于 ASKING 状态（用户未完成上轮确认即发新消息，
+        // 或刷新页面重连导致前端 pendingInterrupts 丢失），重新发 RunFinished(interrupt)
+        // 让前端展示确认卡片，不调 agent.streamEvents -- 否则 agentscope 检测到 ASKING
+        // 却无 ConfirmResult 会抛 IllegalStateException，会话锁死无法恢复。
+        List<ToolUseBlock> asking = findAskingToolUseBlocks(agent, session);
+        if (!asking.isEmpty()) {
+            pendingConfirmations.put(sessionId, asking);
+            log.info(
+                    "检测到 HITL ASKING 残留，重发确认请求: sessionId={}, tools={}",
+                    sessionId,
+                    asking.stream().map(ToolUseBlock::getName).toList());
+            return emitInterrupt(sessionId, asking);
+        }
+
         ChatMessageEntity userMessage =
                 chatMessageService.saveUserMessage(session, StringUtils.defaultString(message.getContent()));
         List<ChatAttachmentEntity> attachments = message.getAttachmentIds() == null
                 ? List.of()
                 : chatAttachmentService.bindToMessage(session, message.getAttachmentIds(), userMessage.getId());
         Msg userMsg = attachmentMessageBuilder.buildUserMsg(session, app, message.getContent(), attachments);
-        HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), AuthUtils.getTenantId());
         return runStream(sessionId, session, agent, userMsg);
     }
 
@@ -120,9 +140,22 @@ public class ChatServiceImpl implements ChatService {
         // ASKING 块，confirmed=false 用其 name 构造 DENIED 结果。故 ASK 时缓存原始块，此处按
         // toolCallId 取出（前端从 RunFinished interrupt 拿 toolCallId 回传）
         List<ToolUseBlock> pending = pendingConfirmations.remove(sessionId);
+        String pendingSource = pending != null && !pending.isEmpty() ? "memory" : null;
         if (pending == null || pending.isEmpty()) {
-            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "该会话无待确认工具调用");
+            // pendingConfirmations 是内存 Map，服务重启会丢；从 agent 持久化状态回退取
+            // ASKING 块（仅 FILE/DB/REDIS 等 stateStore 跨重启保留时有效）。
+            pending = findAskingToolUseBlocks(agent, session);
+            pendingSource = "stateStore";
+            if (pending.isEmpty()) {
+                log.warn("confirm 流无待确认工具调用: sessionId={}", sessionId);
+                throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "该会话无待确认工具调用");
+            }
         }
+        log.info(
+                "confirm 流开始: sessionId={}, pendingSource={}, decisions={}",
+                sessionId,
+                pendingSource,
+                dto.getDecisions());
         List<ConfirmResult> results = new ArrayList<>();
         for (ConfirmToolCall.Decision decision : dto.getDecisions()) {
             String toolCallId = decision.getToolCallId();
@@ -140,6 +173,87 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
+     * 从 agent 最新状态的最后一条 assistant 消息中提取 ASKING 状态的 ToolUseBlock。
+     *
+     * <p>对应 agentscope {@code ReActAgent.CallExecution.askingToolCalls()}。状态读取经
+     * {@link #loadLatestAskingState} 直接查 stateStore，与 doCall 的 {@code activateSlotForContext}
+     * 对齐（后者每次 call 都从 stateStore 重新加载并覆盖 stateCache）。
+     *
+     * <p>必须读 stateStore 而非 {@code getAgentState}（stateCache 缓存）的场景：confirm 流在
+     * {@code applyConfirmResults} 之后、{@code saveStateToSession} 之前出错时，stateCache 已被
+     * 改为 ALLOWED 但 stateStore 仍是 ASKING；读 stateCache 会漏检，streamChat 放行 ->
+     * agent.streamEvents 抛 IllegalStateException 锁死会话。
+     *
+     * @param agent 会话所属 agent
+     * @param session 会话（取 userId/sessionId 定位状态 slot）
+     * @return ASKING 状态的 ToolUseBlock 列表，无则空；检测异常返回空（容错放行）
+     */
+    private List<ToolUseBlock> findAskingToolUseBlocks(HarnessAgent agent, ChatSessionEntity session) {
+        try {
+            AgentState state = loadLatestAskingState(agent.getDelegate(), session);
+            if (state == null || state.getContext() == null) {
+                return List.of();
+            }
+            List<Msg> context = state.getContext();
+            for (int i = context.size() - 1; i >= 0; i--) {
+                Msg msg = context.get(i);
+                if (msg.getRole() != MsgRole.ASSISTANT) {
+                    continue;
+                }
+                return msg.getContent().stream()
+                        .filter(b -> b instanceof ToolUseBlock t && t.getState() == ToolCallState.ASKING)
+                        .map(ToolUseBlock.class::cast)
+                        .toList();
+            }
+            return List.of();
+        } catch (Exception e) {
+            log.warn("检测 HITL ASKING 残留失败，容错放行: sessionId={}", session.getId(), e);
+            return List.of();
+        }
+    }
+
+    /**
+     * 加载 {@code (userId, sessionId)} slot 的最新 AgentState，与 agentscope {@code activateSlotForContext}
+     * 对齐：优先从 stateStore 读取，而非 {@code getAgentState} 返回的 stateCache 缓存。
+     *
+     * @param delegate ReActAgent
+     * @param session 会话（取 userId/sessionId）
+     * @return 最新状态；stateStore 无记录返回 null，无 stateStore（纯内存）回退 stateCache
+     */
+    private static AgentState loadLatestAskingState(ReActAgent delegate, ChatSessionEntity session) {
+        AgentStateStore store = delegate.getStateStore();
+        if (store == null) {
+            return delegate.getAgentState(session.getUserId(), session.getId());
+        }
+        return store.get(session.getUserId(), session.getId(), "agent_state", AgentState.class)
+                .orElse(null);
+    }
+
+    /**
+     * 构造并发送 HITL interrupt 事件序列（RunStarted + RunFinished(interrupt)），不调用
+     * agent.streamEvents。用于 ASKING 残留时重发确认卡片，让前端 onComplete 检测到
+     * interrupt 并填充 pendingInterrupts。
+     *
+     * @param sessionId 会话ID
+     * @param blocks ASKING 状态的 ToolUseBlock 列表
+     * @return 已发完事件并关闭的 SseEmitter
+     */
+    private SseEmitter emitInterrupt(String sessionId, List<ToolUseBlock> blocks) {
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+        String runId = UUID.randomUUID().toString();
+        AguiEventMapper mapper = new AguiEventMapper(sessionId, runId, true);
+        try {
+            for (AguiEvent agui : mapper.buildInterruptEvents(blocks)) {
+                emitter.send(SseEmitter.event().data(mapper.encodeToJson(agui)));
+            }
+            emitter.complete();
+        } catch (Exception e) {
+            emitter.completeWithError(e);
+        }
+        return emitter;
+    }
+
+    /**
      * SSE 事件流编排：订阅 Agent 事件 -> 映射 AG-UI 输出 -> 区分正常结束/HITL 暂停/异常。
      *
      * <p>三种结束路径（{@code completed} 标志保证仅走一条，Flux#onComplete 兜底时若已处理则仅关连接）：
@@ -151,6 +265,8 @@ public class ChatServiceImpl implements ChatService {
      * </ul>
      */
     private SseEmitter runStream(String sessionId, ChatSessionEntity session, HarnessAgent agent, Msg msg) {
+        boolean isConfirm = msg.getMetadata() != null && msg.getMetadata().containsKey(Msg.METADATA_CONFIRM_RESULTS);
+        String flow = isConfirm ? "confirm" : "chat";
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         StringBuilder assistantText = new StringBuilder();
         String runId = UUID.randomUUID().toString();
@@ -158,10 +274,12 @@ public class ChatServiceImpl implements ChatService {
         AguiEventMapper mapper = new AguiEventMapper(session.getId(), runId, true);
         long turnStartMillis = System.currentTimeMillis();
         AtomicBoolean completed = new AtomicBoolean(false);
+        log.info("runStream[{}] 开始: sessionId={}", flow, sessionId);
         Disposable disposable = routeStream(session, agent, msg)
                 .subscribe(
                         event -> {
                             try {
+                                log.info("runStream[{}] 事件: type={}", flow, event.getType());
                                 // 累积文本增量用于持久化助手回复（工具调用由 mapper 累积，流结束后单独落库 tool_call）
                                 if (event instanceof TextBlockDeltaEvent delta) {
                                     assistantText.append(delta.getDelta());
@@ -172,11 +290,13 @@ public class ChatServiceImpl implements ChatService {
                                 if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM
                                         && completed.compareAndSet(false, true)) {
                                     // HITL 暂停：缓存待确认 ToolUseBlock 供回传端点恢复，不持久化
+                                    log.info("runStream[{}] HITL 暂停(ASK): sessionId={}", flow, sessionId);
                                     if (event instanceof RequireUserConfirmEvent ruc) {
                                         pendingConfirmations.put(sessionId, ruc.getToolCalls());
                                     }
                                 } else if (event.getType() == AgentEventType.AGENT_END
                                         && completed.compareAndSet(false, true)) {
+                                    log.info("runStream[{}] AGENT_END: sessionId={}", flow, sessionId);
                                     persistAndComplete(
                                             sessionId, session, mapper, assistantText, emitter, turnStartMillis);
                                 }
@@ -195,11 +315,16 @@ public class ChatServiceImpl implements ChatService {
                                 } catch (Exception sendError) {
                                     log.warn("发送 RunError 失败: sessionId={}", sessionId, sendError);
                                 }
-                                log.error("对话流异常: sessionId={}", sessionId, error);
+                                log.error("runStream[{}] 对话流异常: sessionId={}", flow, sessionId, error);
                                 emitter.complete();
                             }
                         },
                         () -> {
+                            log.info(
+                                    "runStream[{}] Flux onComplete: sessionId={}, completed={}",
+                                    flow,
+                                    sessionId,
+                                    completed.get());
                             if (completed.compareAndSet(false, true)) {
                                 persistAndComplete(sessionId, session, mapper, assistantText, emitter, turnStartMillis);
                             } else {
