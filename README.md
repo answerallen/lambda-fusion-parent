@@ -86,9 +86,29 @@ lambda-fusion-parent/
 
 ## 🎨 预览与体验
 
-* **演示地址**：[http://lambda.devcms.cn:20005/index.html](http://lambda.devcms.cn:20005/index.html)
+> 以下为 Lambda Fusion 系统主要功能界面预览，点击图片可查看高清原图。
 
-* **账号密码**：`westboy` / `8a30d075d80fad0e799a6ac3a654a214`
+<div align="center">
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/img_0.png" alt="预览图 1" width="420"/></td>
+    <td align="center"><img src="docs/images/img_1.png" alt="预览图 2" width="420"/></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/img_2.png" alt="预览图 3" width="420"/></td>
+    <td align="center"><img src="docs/images/img_3.png" alt="预览图 4" width="420"/></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/img_4.png" alt="预览图 5" width="420"/></td>
+    <td align="center"><img src="docs/images/img_5.png" alt="预览图 6" width="420"/></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/img_6.png" alt="预览图 7" width="420"/></td>
+    <td align="center"><img src="docs/images/img_7.png" alt="预览图 8" width="420"/></td>
+  </tr>
+</table>
+</div>
+
 
 ## 🚀 快速开始
 
