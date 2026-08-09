@@ -148,7 +148,7 @@ lambda-fusion-parent/
 </dependency>
 ```
 
-> 基座 `lambda-cloud-parent`、`lambda-cloud-project-parent` 需先安装到本地仓库或私服（在对应项目分别 `mvn clean install`），再构建本仓库。
+> 基座 `lambda-cloud-parent`、`lambda-cloud-project-parent` 需先安装到本地仓库或私服，再构建本仓库。
 
 ### 构建与测试
 
