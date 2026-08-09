@@ -86,25 +86,23 @@ lambda-fusion-parent/
 
 ## 🎨 预览与体验
 
-> 以下为 Lambda Fusion 系统主要功能界面预览，点击图片可查看高清原图。
-
 <div align="center">
 <table>
   <tr>
-    <td align="center"><img src="docs/images/img_0.png" alt="预览图 1" width="420"/></td>
-    <td align="center"><img src="docs/images/img_1.png" alt="预览图 2" width="420"/></td>
+    <td align="center"><img src="docs/images/img_0.png" alt="资源管理" width="420"/></td>
+    <td align="center"><img src="docs/images/img_1.png" alt="用户管理" width="420"/></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/img_2.png" alt="预览图 3" width="420"/></td>
-    <td align="center"><img src="docs/images/img_3.png" alt="预览图 4" width="420"/></td>
+    <td align="center"><img src="docs/images/img_2.png" alt="系统配置" width="420"/></td>
+    <td align="center"><img src="docs/images/img_3.png" alt="字典管理" width="420"/></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/img_4.png" alt="预览图 5" width="420"/></td>
-    <td align="center"><img src="docs/images/img_5.png" alt="预览图 6" width="420"/></td>
+    <td align="center"><img src="docs/images/img_4.png" alt="AI知识库" width="420"/></td>
+    <td align="center"><img src="docs/images/img_5.png" alt="AI应用管理" width="420"/></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/img_6.png" alt="预览图 7" width="420"/></td>
-    <td align="center"><img src="docs/images/img_7.png" alt="预览图 8" width="420"/></td>
+    <td align="center"><img src="docs/images/img_6.png" alt="AI对话体验" width="420"/></td>
+    <td align="center"><img src="docs/images/img_7.png" alt="AI模型管理" width="420"/></td>
   </tr>
 </table>
 </div>
