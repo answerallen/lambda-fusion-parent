@@ -19,15 +19,15 @@
 
 ## 📋 项目简介
 
-Lambda Fusion 是以 [**lambda-cloud-parent**](https://gitee.com/westboy/lamuda-cloud-parent) 为基座的企业级业务开发框架，产出供下游应用依赖的 `lambda-fusion-*` starter 模块，提供开箱即用的权限管理、配置管理、数据字典、AI 智能平台等核心业务能力，助力快速构建微服务应用。
+Lambda Fusion 是一套面向企业的全栈微服务业务开发框架，基于 Spring Boot 4 / Spring Cloud 2025.1 / JDK 21 构建。在 [lambda-cloud-parent](https://gitee.com/westboy/lambda-cloud-parent) 基座之上，将权限、配置、数据字典、AI 智能平台等核心能力沉淀为开箱即用的 `lambda-fusion-*` starter，下游应用按需引入、聚焦业务，无需重复搭建基础设施。
 
 ### ✨ 核心特性
 
-- 🔐 **完善的权限体系** - RBAC 模型 + 轻量级多租户支持(字段级隔离)
-- ⚙️ **动态配置管理** - 数据库配置源 + 热更新 + Nacos 发布
-- 📚 **灵活的数据字典** - 静态/动态字典，枚举扫描注册
-- 🤖 **AI 智能平台** - 基于 AgentScope 2.0：智能应用、LLM 管理、知识库 RAG、子代理、MCP、技能市场、通道网关
-- 🎯 **开箱即用** - 预置常用业务模块，`lambda-fusion-startup` 一键组装运行
+- 🔐 **权限体系** - RBAC + 字段级多租户隔离
+- ⚙️ **动态配置** - 数据库配置源 + 热更新 + Nacos 发布
+- 📚 **数据字典** - 静态 / 动态字典，枚举扫描注册
+- 🤖 **AI 智能平台** - 智能应用、LLM 管理、知识库 RAG、子代理、MCP、技能市场、通道网关
+- 🎯 **开箱即用** - 能力以 `lambda-fusion-*` starter 按需引入即生效
 
 
 ## 🏗️ 项目架构
