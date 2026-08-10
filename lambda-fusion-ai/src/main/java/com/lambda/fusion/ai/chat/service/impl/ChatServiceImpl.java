@@ -32,6 +32,9 @@ import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.gateway.MsgContext;
 import io.agentscope.harness.agent.gateway.channel.OutboundAddress;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -40,10 +43,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
-
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 对话流式服务实现。Gateway 启用时经 {@link HarnessGateway#runStream} 订阅，未启用时回退直连
