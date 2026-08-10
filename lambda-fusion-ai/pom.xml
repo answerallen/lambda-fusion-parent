@@ -81,6 +81,7 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
+        <!-- ========== agentscope ========== -->
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-admin-spring-boot-starter</artifactId>

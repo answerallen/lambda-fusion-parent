@@ -63,7 +63,65 @@ public class AiProperties {
      */
     private Rag rag = new Rag();
 
+    /**
+     * 对话配置（附件上传等）。
+     */
+    private Chat chat = new Chat();
+
     private Cluster cluster = new Cluster();
+
+    /**
+     * 对话配置。
+     */
+    @Data
+    public static class Chat {
+
+        /** 对话附件配置。 */
+        private Attachment attachment = new Attachment();
+
+        /**
+         * 对话附件配置。原文件存储复用 {@code rag.document-storage}（LOCAL/OSS），此处仅承载
+         * 附件自身的校验与注入约束。
+         */
+        @Data
+        public static class Attachment {
+
+            /** 单文件大小上限(MB)；默认 10。需与 spring.servlet.multipart.max-file-size 对齐。 */
+            private long maxFileSizeMb = 10;
+
+            /** 单条消息附件数上限；默认 5。 */
+            private int maxCount = 5;
+
+            /** 文档附件抽取文本拼接进 prompt 的最大字符数，防上下文膨胀；默认 8000。 */
+            private int maxExtractChars = 8000;
+
+            /** 图片扩展名白名单（小写）。 */
+            private List<String> imageTypes = List.of("jpg", "jpeg", "png", "gif", "webp");
+
+            /** 文档扩展名白名单（小写）。 */
+            private List<String> docTypes = List.of("pdf", "doc", "docx", "txt", "md");
+
+            /** 图片预览直链配置。 */
+            private Preview preview = new Preview();
+
+            /**
+             * 图片预览直链配置：为图片附件签发带 HMAC 签名的预览 URL，使 {@code <img src>} 无需 Bearer
+             * 即可访问（preview 端点放行登录，靠签名 token 鉴权；token 绑定 attachmentId 且有时效）。
+             */
+            @Data
+            public static class Preview {
+
+                /**
+                 * HMAC-SHA256 签名密钥；生产必须经环境变量注入
+                 * （{@code AI_ATTACHMENT_PREVIEW_SECRET}）。未配置时图片预览直链不可用，降级为文件名展示。
+                 */
+                private String secret;
+
+                /** token 有效期（秒）；默认 3600。 */
+                private long ttlSeconds = 3600;
+            }
+        }
+    }
 
     @Data
     public static class Runtime {
@@ -392,7 +450,7 @@ public class AiProperties {
         /** 向量库后端。 */
         private Store store = new Store();
 
-        /** 文档原文件存储。 */
+        /** 文档原文件存储。知识库文档与对话附件共用本组配置。 */
         private DocumentStorage documentStorage = new DocumentStorage();
 
         private PgVector pgVector = new PgVector();

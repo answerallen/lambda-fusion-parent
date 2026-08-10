@@ -191,7 +191,20 @@ public class AppServiceImpl implements AppService {
                 .and(w -> w.isNull(AppEntity::getOwnerId).or().eq(AppEntity::getOwnerId, userId)));
         return candidates.stream()
                 .filter(app -> isAppVisible(app, roles, userId))
+                .map(this::fillSupportsVision)
                 .toList();
+    }
+
+    // 回填绑定模型的视觉能力，供前端控制图片附件入口；模型被删等异常置 null，不阻断列表
+    private AppEntity fillSupportsVision(AppEntity app) {
+        try {
+            app.setSupportsVision(Boolean.TRUE.equals(
+                    llmModelService.loadById(app.getModelId()).getSupportsVision()));
+        } catch (RuntimeException e) {
+            log.warn("回填应用视觉能力失败: appId={}, modelId={}", app.getId(), app.getModelId());
+            app.setSupportsVision(null);
+        }
+        return app;
     }
 
     @Override

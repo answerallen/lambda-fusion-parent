@@ -19,15 +19,14 @@
 
 ## 📋 项目简介
 
-Lambda Fusion 是以 [**lambda-cloud-parent**](https://gitee.com/westboy/lamuda-cloud-parent) 为基座的企业级业务开发框架，产出供下游应用依赖的 `lambda-fusion-*` starter 模块，提供开箱即用的权限管理、配置管理、数据字典、AI 智能平台等核心业务能力，助力快速构建微服务应用。
+Lambda Fusion 是一套面向企业的全栈微服务业务开发框架，基于 Spring Boot 4 / Spring Cloud 2025.1 / JDK 21 构建。在 [lambda-cloud-parent](https://gitee.com/westboy/lambda-cloud-parent) 基座之上，将权限、配置、数据字典、AI 智能平台等核心能力沉淀为开箱即用的 `lambda-fusion-*` starter，下游应用按需引入、聚焦业务，无需重复搭建基础设施。
 
 ### ✨ 核心特性
 
-- 🔐 **完善的权限体系** - RBAC 模型 + 轻量级多租户支持(字段级隔离)
-- ⚙️ **动态配置管理** - 数据库配置源 + 热更新 + Nacos 发布
-- 📚 **灵活的数据字典** - 静态/动态字典，枚举扫描注册
-- 🤖 **AI 智能平台** - 基于 AgentScope 2.0：智能应用、LLM 管理、知识库 RAG、子代理、MCP、技能市场、通道网关
-- 🎯 **开箱即用** - 预置常用业务模块，`lambda-fusion-startup` 一键组装运行
+- 🔐 **权限体系** - RBAC + 轻量级多租户支持(字段级隔离)
+- ⚙️ **动态配置** - 数据库配置源 + 热更新 + Nacos 发布
+- 📚 **数据字典** - 静态 / 动态字典，枚举扫描注册
+- 🤖 **AI 智能平台** - 智能应用、LLM 管理、知识库 RAG、子代理、MCP、技能市场、通道网关
 
 
 ## 🏗️ 项目架构
@@ -46,25 +45,25 @@ lambda-fusion-parent/
 ├── ⚙️ lambda-fusion-config/               # 配置管理（dbconfig + 热更新 + Nacos 发布）
 ├── 📚 lambda-fusion-dictionary/           # 数据字典（静态/动态字典、枚举扫描）
 ├── 🗄️ lambda-fusion-datasource/           # 动态数据源管理（server/client、Dubbo 分发）
-├── 📤 lambda-fusion-oss/                  # 附件管理（七牛/S3，按租户隔离）
+├── 📤 lambda-fusion-oss/                  # 附件管理（七牛/S3）
 ├── 🤖 lambda-fusion-ai/                   # AI 模块（基于 AgentScope 2.0）
 └── 🚀 lambda-fusion-startup/              # 可运行演示应用（端口 20005）
 ```
 
 
 ## 🎯 核心功能
-| 项目 | 说明 | 
-|------|---------|
-| 👤 **用户管理** | 用户信息维护、在线状态监控、密码策略管理 |
-| 🎭 **角色管理** | 角色权限分配、角色组管理、角色继承 |
-| 🏢 **组织架构** | 多层级组织结构、部门管理、岗位管理 |
-| 📋 **资源管理** | 菜单权限、按钮权限、API 资源控制 |
-| 🔑 **客户端管理** | 客户端管理、授权、访问控制 |
-| 🏠 **多租户支持** | 单一共享库 + tenant_id 字段级隔离，会话/业务按租户过滤 |
-| 🔒 **认证服务** | 用户认证、SSO 支持、动态菜单生成 |
-| 🤖 **智能应用** | CHAT/WORKSPACE 两型、自演化、多沙箱后端、SSE 流式对话 |
+| 项目 | 说明                                                 | 
+|------|----------------------------------------------------|
+| 👤 **用户管理** | 用户信息维护、在线状态监控、密码策略管理                               |
+| 🎭 **角色管理** | 角色权限分配、角色组管理、角色继承                                  |
+| 🏢 **组织架构** | 多层级组织结构、部门管理、岗位管理                                  |
+| 📋 **资源管理** | 菜单权限、按钮权限、API 资源控制                                 |
+| 🔑 **客户端管理** | 客户端管理、授权、访问控制                                      |
+| 🏠 **多租户支持** | 轻量 tenant_id 字段级隔离，可完全复用RBAC能力               |
+| 🔒 **认证服务** | 用户认证、SSO 支持、动态菜单生成                                 |
+| 🤖 **智能应用** | CHAT/AGENTIC 两型、自演化、多沙箱后端、SSE 流式对话                 |
 | 🤖 **知识库 RAG** | 文档切块入库、pgvector 向量库、三种检索注入模式（GENERIC/AGENTIC/BOTH） |
-| 🤖 **子代理 / 技能 / MCP / 通道** | DB 驱动子代理、技能市场、MCP 工具接入、钉钉/飞书/企微通道适配 |
+| 🤖 **子代理 / 技能 / MCP / 通道** | DB 驱动子代理、技能市场、MCP 工具接入、钉钉/飞书/企微通道适配                |
 
 
 ## 🛠️ 技术栈
@@ -87,9 +86,27 @@ lambda-fusion-parent/
 
 ## 🎨 预览与体验
 
-* **演示地址**：[http://lambda.devcms.cn:20005/index.html](http://lambda.devcms.cn:20005/index.html)
+<div align="center">
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/img_0.png" alt="资源管理" width="420"/></td>
+    <td align="center"><img src="docs/images/img_1.png" alt="用户管理" width="420"/></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/img_2.png" alt="系统配置" width="420"/></td>
+    <td align="center"><img src="docs/images/img_3.png" alt="字典管理" width="420"/></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/img_4.png" alt="AI知识库" width="420"/></td>
+    <td align="center"><img src="docs/images/img_5.png" alt="AI应用管理" width="420"/></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/img_6.png" alt="AI对话体验" width="420"/></td>
+    <td align="center"><img src="docs/images/img_7.png" alt="AI模型管理" width="420"/></td>
+  </tr>
+</table>
+</div>
 
-* **账号密码**：`westboy` / `8a30d075d80fad0e799a6ac3a654a214`
 
 ## 🚀 快速开始
 
@@ -148,7 +165,7 @@ lambda-fusion-parent/
 </dependency>
 ```
 
-> 基座 `lambda-cloud-parent` 与 BOM 均为 `2026.1.1-SNAPSHOT`，需先在 `lamuda-cloud-parent` 下执行 `mvn clean install` 安装到本地仓库后再构建本仓库。运行演示见 `lambda-fusion-startup`（端口 20005，配置由环境变量驱动）。
+> 基座 `lambda-cloud-parent`、`lambda-cloud-project-parent` 需先安装到本地仓库或私服，再构建本仓库。
 
 ### 构建与测试
 
@@ -171,42 +188,6 @@ mvn -pl lambda-fusion-ai test
 mvn -pl lambda-fusion-ai test -Dtest=AgentGraphTest
 mvn -pl lambda-fusion-ai test -Dtest=AgentGraphTest#shouldRoute
 ```
-
-> 测试运行在 classpath 上而非 module path（父 POM 设置了 `surefire.useModulePath=false`），遇到 JPMS 相关测试失败时请留意。
-
-### 代码风格与静态检查
-
-父 POM 在 **`compile`** 阶段强制执行两道关卡，因此 `mvn compile` 就会在违规时失败：
-
-- **Spotless - Palantir Java Format**（`PALANTIR` 风格，v2.67.0，不格式化 Javadoc）。自动修复：`mvn spotless:apply`；仅检查：`mvn spotless:check`。
-- **SpotBugs** - compile 阶段 `check`，使用各模块 `spotbugs-exclude.xml`。根目录 `spotbugs.skip=false`；`lambda-fusion-ai` 设 `spotbugs.skip=true`，可按模块用 `-Dspotbugs.skip=true` 覆盖。
-
-注解处理器由父 POM 装配：Lombok、MapStruct（+ `lombok-mapstruct-binding`）、`spring-boot-configuration-processor`，以及自定义 `lambda-cloud-processor`。`lombok.config`（`addLombokGeneratedAnnotation=true`）由 antrun 步骤在每次构建时重新生成，不要手动编辑。
-
-### 运行启动演示模块
-
-`lambda-fusion-startup` 把所有 fusion 模块组装成一个可运行的 Spring Boot 应用（`com.fusion.startup.FusionApplication`，端口 20005）。`application.yml` 中的运行时配置完全由环境变量驱动（如 `${MAIN_DB_URL}`、`${REDIS_HOST}`、`${QINIU_*}`、`${AI_*}`、`${ALIYUN_SMS_*}` 等），这些变量来自仓库根目录下本地、已 gitignore 的 `.evn` 文件（注意拼写，文件名就是 `.evn`）。**不要提交真实值**。
-
-```bash
-# 在 IDE 中运行 FusionApplication，或执行：
-mvn -pl lambda-fusion-startup spring-boot:run
-```
-
-> 产出的 jar **未**经过 repackage、不可直接执行，因此除非自行添加 `spring-boot-maven-plugin` 的 repackage goal，否则 `java -jar` 无法运行。
-
-## 📦 模块深度文档
-
-每个模块在 `docs/skills/<module>/SKILL.md` 中有一份权威说明--包含自动配置入口、配置项、主要入口类、关键机制、条件装配说明，以及「常见改造入口」。修改模块前请先阅读对应的 SKILL.md；它会告诉你某类改动应具体触及哪些类。
-
-覆盖模块：`lambda-fusion-ai` / `lambda-fusion-authority` / `lambda-fusion-authority-api` / `lambda-fusion-bom` / `lambda-fusion-config` / `lambda-fusion-core` / `lambda-fusion-datasource` / `lambda-fusion-dictionary` / `lambda-fusion-oss` / `lambda-fusion-permission` / `lambda-fusion-startup`。
-
-## 🔧 OpenSpec 工作流（可选）
-
-这是一套**可选的**规范驱动开发流程。`openspec` CLI 未随仓库分发，需开发者自行安装：`npm install -g @fission-ai/openspec`。相关 skills 与斜杠命令已暂存于 `.claude/skills/openspec-*`、`.claude/commands/opsx/` 与 `.trae/skills/openspec-*`（IDE 适配）。
-
-**未安装该 CLI 时，`/opsx:*` 斜杠命令和 `openspec` 命令行调用不可用**；此时按常规方式直接修改代码即可。
-
-若已安装 CLI，可由 `/opsx:*` 斜杠命令驱动：`/opsx:propose <name>` 创建变更脚手架、`/opsx:apply` 实现任务、`/opsx:archive` 归档、`/opsx:explore` / `/opsx:sync` 浏览与同步规范。进行中的变更位于 `openspec/changes/`；已归档规范位于 `openspec/specs/`。是否采用此流程由开发者自行决定。
 
 ---
 

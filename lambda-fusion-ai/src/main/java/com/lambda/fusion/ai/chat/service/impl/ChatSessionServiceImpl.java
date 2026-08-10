@@ -2,12 +2,14 @@ package com.lambda.fusion.ai.chat.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.chat.model.ChatSessionPage;
 import com.lambda.fusion.ai.chat.model.CreateSession;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatSessionService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
@@ -28,6 +30,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     private final ChatSessionMapper chatSessionMapper;
     private final AppService appService;
     private final ChatMessageService chatMessageService;
+    private final ChatAttachmentService chatAttachmentService;
 
     @Override
     public Page<ChatSessionEntity> page(ChatSessionPage query) {
@@ -60,6 +63,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     @Transactional(rollbackFor = Exception.class)
     public void delete(String id) {
         loadOwned(id);
+        chatAttachmentService.deleteBySession(id);
         chatMessageService.deleteBySession(id);
         chatSessionMapper.deleteById(id);
     }
@@ -84,5 +88,16 @@ public class ChatSessionServiceImpl implements ChatSessionService {
         entity.setLastMessageAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
         chatSessionMapper.updateById(entity);
+    }
+
+    @Override
+    public void updatePendingConfirm(String id, String pendingConfirmJson) {
+        // LambdaUpdateWrapper 显式 set 含 null，绕过 MyBatis-Plus 默认不更新 null 字段，使清空生效。
+        chatSessionMapper.update(
+                null,
+                new LambdaUpdateWrapper<ChatSessionEntity>()
+                        .eq(ChatSessionEntity::getId, id)
+                        .set(ChatSessionEntity::getPendingConfirm, pendingConfirmJson)
+                        .set(ChatSessionEntity::getUpdatedAt, LocalDateTime.now()));
     }
 }

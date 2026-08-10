@@ -104,7 +104,19 @@ public enum AiErrorCode implements ErrorCode {
 
     CHAT_SESSION_NOT_FOUND(30201, "对话会话不存在"),
 
-    CHAT_MESSAGE_NOT_FOUND(30202, "对话消息不存在");
+    CHAT_MESSAGE_NOT_FOUND(30202, "对话消息不存在"),
+
+    ATTACHMENT_NOT_FOUND(30211, "对话附件不存在或已被使用"),
+
+    ATTACHMENT_TYPE_NOT_SUPPORTED(30212, "不支持的附件类型"),
+
+    ATTACHMENT_SIZE_EXCEEDED(30213, "附件大小超限"),
+
+    ATTACHMENT_VISION_NOT_SUPPORTED(30214, "当前模型不支持图片输入"),
+
+    ATTACHMENT_STORAGE_ERROR(30215, "附件存储失败"),
+
+    ATTACHMENT_PREVIEW_TOKEN_INVALID(30216, "附件预览链接无效或已过期");
 
     private final Integer code;
 

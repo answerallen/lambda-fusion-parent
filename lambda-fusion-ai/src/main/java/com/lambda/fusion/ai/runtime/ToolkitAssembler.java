@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.runtime;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.mcp.model.entity.McpServerEntity;
 import com.lambda.fusion.ai.mcp.service.McpServerService;
+import com.lambda.fusion.ai.runtime.annotaion.RequireConfirm;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.Toolkit;
@@ -11,7 +12,10 @@ import jakarta.annotation.PostConstruct;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
@@ -39,18 +43,40 @@ public class ToolkitAssembler {
 
     private List<Object> localToolBeans = Collections.emptyList();
 
+    /** 需要 HITL 确认的本地工具名（{@code @RequireConfirm} 声明，启动时扫描）。 */
+    @Getter
+    private Set<String> askToolNames = Collections.emptySet();
+
     @PostConstruct
     public void init() {
-        // 全局扫描一次：容器中所有带 @Tool 方法的 Bean 注册为 Agent 共享工具
+        // 扫描 @Tool Bean 注册为共享工具，并收集 @RequireConfirm 工具名供 HITL askRules
         List<Object> tools = new ArrayList<>();
+        Set<String> asks = new LinkedHashSet<>();
         for (String name : applicationContext.getBeanDefinitionNames()) {
             Class<?> type = applicationContext.getType(name);
             if (type != null && hasToolMethod(type)) {
-                tools.add(applicationContext.getBean(name));
+                Object bean = applicationContext.getBean(name);
+                tools.add(bean);
+                collectAskToolNames(type, asks);
             }
         }
         this.localToolBeans = Collections.unmodifiableList(tools);
-        log.info("扫描到 {} 个本地 @Tool Bean", tools.size());
+        this.askToolNames = Collections.unmodifiableSet(asks);
+        log.info("扫描到 {} 个本地 @Tool Bean，其中 {} 个需 HITL 确认", tools.size(), asks.size());
+    }
+
+    // 收集 @RequireConfirm 声明的工具名：类级注解作用于该类所有 @Tool 方法，方法级注解单独生效
+    private void collectAskToolNames(Class<?> type, Set<String> asks) {
+        boolean classLevel = type.isAnnotationPresent(RequireConfirm.class);
+        for (Method method : type.getMethods()) {
+            Tool toolAnno = method.getAnnotation(Tool.class);
+            if (toolAnno == null) {
+                continue;
+            }
+            if (classLevel || method.isAnnotationPresent(RequireConfirm.class)) {
+                asks.add(toolAnno.name().isEmpty() ? method.getName() : toolAnno.name());
+            }
+        }
     }
 
     public Toolkit build(AppEntity app) {
