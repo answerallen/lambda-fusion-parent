@@ -110,8 +110,8 @@
         <if test="dictInfo.parentId != null and dictInfo.parentId != ''">
             or di.parent_keys like #{dictInfo.parentId}
         </if>
-        <if test="dictInfo.rank != null and dictInfo.rank != ''">
-            <![CDATA[ and di.rank2 <= #{dictInfo.rank} ]]>
+        <if test="dictInfo.level != null">
+            <![CDATA[ and di.level <= #{dictInfo.level} ]]>
         </if>
     </select>
     <select id="treeList" resultType="com.lambda.fusion.dict.model.DictInfo">

@@ -8,7 +8,7 @@
         <result property="dictType" column="DICT_TYPE"/>
         <result property="dictName" column="DICT_NAME"/>
         <result property="parentId" column="PARENT_ID"/>
-        <result property="level" column="RANK2"/>
+        <result property="level" column="LEVEL"/>
         <result property="parentKeys" column="PARENT_KEYS"/>
         <result property="dataType" column="DATA_TYPE"/>
         <result property="dataTypeValue" column="DATA_TYPE_VALUE"/>
@@ -73,7 +73,7 @@
                     or t.parent_keys like #{parameters.parentKeys}
                 </if>
             </where>
-            order by rank2, nlssort(t.dict_name ,'NLS_SORT = SCHINESE_PINYIN_M')
+            order by t.level, nlssort(t.dict_name ,'NLS_SORT = SCHINESE_PINYIN_M')
     </select>
 
     <!--suppress MybatisXMapperXmlInspection -->
@@ -96,7 +96,7 @@
                     or t.parent_keys like #{parameters.parentKeys}
                 </if>
             </where>
-            order by rank2, nlssort(t.dict_name ,'NLS_SORT = SCHINESE_PINYIN_M')
+            order by t.level, nlssort(t.dict_name ,'NLS_SORT = SCHINESE_PINYIN_M')
     </select>
 
 
@@ -108,7 +108,7 @@
     </resultMap>
 
     <select id="getCascadeDictType" resultMap="cascadeDictType">
-        select id, dict_type, dict_usage, dict_name, parent_id, rank2, parent_keys, data_type, data_type_value
+        select id, dict_type, dict_usage, dict_name, parent_id, level, parent_keys, data_type, data_type_value
         from la_dict_type
         <where>
             <if test="id!='' and id!=null">
@@ -118,7 +118,7 @@
     </select>
 
     <select id="getChildrenDictType" resultMap="cascadeDictType">
-        select id, dict_type, dict_usage, dict_name, parent_id, rank2, parent_keys, data_type, data_type_value
+        select id, dict_type, dict_usage, dict_name, parent_id, level, parent_keys, data_type, data_type_value
         from la_dict_type
         where parent_id = #{id}
     </select>
