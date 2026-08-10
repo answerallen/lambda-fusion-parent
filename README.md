@@ -45,7 +45,7 @@ lambda-fusion-parent/
 ├── ⚙️ lambda-fusion-config/               # 配置管理（dbconfig + 热更新 + Nacos 发布）
 ├── 📚 lambda-fusion-dictionary/           # 数据字典（静态/动态字典、枚举扫描）
 ├── 🗄️ lambda-fusion-datasource/           # 动态数据源管理（server/client、Dubbo 分发）
-├── 📤 lambda-fusion-oss/                  # 附件管理（七牛/S3，按租户隔离）
+├── 📤 lambda-fusion-oss/                  # 附件管理（七牛/S3）
 ├── 🤖 lambda-fusion-ai/                   # AI 模块（基于 AgentScope 2.0）
 └── 🚀 lambda-fusion-startup/              # 可运行演示应用（端口 20005）
 ```
@@ -59,7 +59,7 @@ lambda-fusion-parent/
 | 🏢 **组织架构** | 多层级组织结构、部门管理、岗位管理                                  |
 | 📋 **资源管理** | 菜单权限、按钮权限、API 资源控制                                 |
 | 🔑 **客户端管理** | 客户端管理、授权、访问控制                                      |
-| 🏠 **多租户支持** | 单一共享库 + tenant_id 字段级隔离，会话/业务按租户过滤                 |
+| 🏠 **多租户支持** | 轻量 tenant_id 字段级隔离，可完全复用RBAC能力               |
 | 🔒 **认证服务** | 用户认证、SSO 支持、动态菜单生成                                 |
 | 🤖 **智能应用** | CHAT/AGENTIC 两型、自演化、多沙箱后端、SSE 流式对话                 |
 | 🤖 **知识库 RAG** | 文档切块入库、pgvector 向量库、三种检索注入模式（GENERIC/AGENTIC/BOTH） |
