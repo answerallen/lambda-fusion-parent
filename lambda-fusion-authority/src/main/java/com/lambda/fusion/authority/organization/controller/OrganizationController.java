@@ -4,7 +4,6 @@ import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.model.CreateOrganization;
 import com.lambda.fusion.authority.organization.model.Organization;
@@ -15,6 +14,7 @@ import com.lambda.fusion.authority.organization.model.UserOrganization;
 import com.lambda.fusion.authority.organization.model.UserOrganizationChange;
 import com.lambda.fusion.authority.organization.service.OrganizationService;
 import com.lambda.fusion.authority.resource.model.MoveResource;
+import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -66,7 +66,7 @@ public class OrganizationController {
         if (StringUtils.isNotBlank(alias)) {
             organizationQuery.setAlias(fuzzyQuery(alias));
         }
-        organizationQuery.setTenantId(currentTenantId());
+        organizationQuery.setTenantId(AuthUtils.getTenantId());
         return organizationService.organizationTreeList(organizationQuery);
     }
 
@@ -216,15 +216,8 @@ public class OrganizationController {
      */
     private OrganizationQuery buildOrganizationQuery() {
         OrganizationQuery parameters = new OrganizationQuery();
-        String tenantId = currentTenantId();
-        parameters.setTenantId(tenantId);
+        String tenantId = OperatorUtils.getOperator().getTenantId();
+        parameters.setOwner(StringUtils.isNotBlank(tenantId) ? tenantId : null);
         return parameters;
-    }
-
-    private String currentTenantId() {
-        String tenantId = TenantContextHolder.getCurrentTenantId();
-        return StringUtils.isNotBlank(tenantId)
-                ? tenantId
-                : OperatorUtils.getOperator().getTenantId();
     }
 }

@@ -9,7 +9,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
@@ -453,10 +452,7 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
      * @param orgId    机构ID
      */
     protected void hasOperation(LoginUser operator, String orgId) {
-        String tenantId = TenantContextHolder.getCurrentTenantId();
-        if (StringUtils.isBlank(tenantId)) {
-            tenantId = operator.getTenantId();
-        }
+        String tenantId = operator.getTenantId();
         if (StringUtils.isNotBlank(tenantId) && tenantId.equals(orgId)) {
             throw AuthorityBusinessException.authNoPermission();
         }
@@ -513,15 +509,11 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
     @Override
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public Organization addOrganization(CreateOrganization createOrganization) {
-        LoginUser operator = OperatorUtils.getOperator();
         OrganizationEntity entity = createOrganization.toEntity();
         if (entity.getName() == null) {
             throw AuthorityBusinessException.invalidParameter("组织机构名称不能为空");
         }
-        String tenantId = TenantContextHolder.getCurrentTenantId();
-        if (StringUtils.isBlank(tenantId)) {
-            tenantId = operator.getTenantId();
-        }
+        String tenantId = AuthUtils.getTenantId();
         OrganizationEntity checked = queryByNameAndTenantId(createOrganization.getName(), tenantId);
         if (checked != null) {
             throw AuthorityBusinessException.organizationNameExists(createOrganization.getName());
