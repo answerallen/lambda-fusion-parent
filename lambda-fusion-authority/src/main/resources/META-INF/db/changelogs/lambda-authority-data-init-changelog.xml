@@ -906,7 +906,7 @@
 
 
     <!-- ==================== 服务管理菜单初始化 ==================== -->
-    <changeSet id="lambda-authority-202608120010" author="jin">
+    <changeSet id="lambda-authority-2026081200100" author="jin">
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="la_resources"/>
             <sqlCheck expectedResult="0">
