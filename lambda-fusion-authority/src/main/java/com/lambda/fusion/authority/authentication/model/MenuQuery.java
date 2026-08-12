@@ -35,6 +35,12 @@ public class MenuQuery {
     private Integer mode = 0;
 
     /**
+     * 所属应用ID
+     */
+    @Schema(description = "所属应用ID")
+    private String application;
+
+    /**
      * 模型类型
      */
     @Schema(description = "模型类型")

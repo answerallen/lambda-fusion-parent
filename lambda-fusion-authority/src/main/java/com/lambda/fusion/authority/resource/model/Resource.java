@@ -61,6 +61,9 @@ public class Resource {
     @JsonProperty("mode")
     private Integer resMode;
 
+    @Schema(description = "所属应用ID")
+    private String application;
+
     @Schema(description = "备注信息")
     private String remark;
 

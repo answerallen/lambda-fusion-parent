@@ -552,6 +552,62 @@
         <dropColumn tableName="la_tenant" columnName="ISOLATION_MODE"/>
     </changeSet>
 
+    <changeSet id="lambda-authority-202608120001" author="jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_applications"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_applications" remarks="应用信息表">
+            <column name="ID" type="varchar(32)" remarks="应用ID">
+                <constraints primaryKey="true" primaryKeyName="pk_la_applications_id" nullable="false"/>
+            </column>
+            <column name="NAME" type="varchar(64)" remarks="应用名称">
+                <constraints nullable="false"/>
+            </column>
+            <column name="SPRING_APPLICATION_NAME" type="varchar(128)" remarks="Spring应用名(spring.application.name)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="DESCRIPTION" type="varchar(500)" remarks="应用描述"/>
+            <column name="ENABLED" type="int" defaultValueNumeric="1" remarks="是否启用，未启用:0,已启用:1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="CREATED_BY" type="varchar(64)"/>
+            <column name="CREATED_AT" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="创建日期">
+                <constraints nullable="false"/>
+            </column>
+            <column name="UPDATED_BY" type="varchar(64)"/>
+            <column name="UPDATED_AT" type="datetime" defaultValueComputed="CURRENT_TIMESTAMP" remarks="更新时间">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="la_applications" indexName="uk_la_applications_spring_name" unique="true">
+            <column name="SPRING_APPLICATION_NAME"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202608120002" author="jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="la_resources" columnName="APPLICATION"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="la_resources">
+            <column name="APPLICATION" type="varchar(32)" remarks="所属应用ID"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="lambda-authority-202608120003" author="jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="la_applications" columnName="SECRET"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="la_applications">
+            <column name="SECRET" type="varchar(255)" remarks="服务密钥"/>
+        </addColumn>
+    </changeSet>
+
     <include file="lambda-authority-data-init-changelog.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

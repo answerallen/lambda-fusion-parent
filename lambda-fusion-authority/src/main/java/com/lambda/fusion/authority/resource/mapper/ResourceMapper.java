@@ -11,6 +11,7 @@ import com.lambda.fusion.authority.resource.model.entity.ResourceEntity;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -129,6 +130,10 @@ public interface ResourceMapper extends BaseMapper<ResourceEntity> {
     default List<Resource> queryAvailableResources(MenuQuery parameter) {
         List<ResourceEntity> resourceEntities = selectList(new LambdaQueryWrapper<ResourceEntity>()
                 .eq(ResourceEntity::getResMode, parameter.getMode())
+                .eq(
+                        StringUtils.isNotBlank(parameter.getApplication()),
+                        ResourceEntity::getApplication,
+                        parameter.getApplication())
                 .ge(ResourceEntity::getResType, 0)
                 .orderByAsc(ResourceEntity::getResLevel, ResourceEntity::getOrderNo));
         return ConvertUtils.convertList(resourceEntities);

@@ -203,6 +203,27 @@ public enum AuthorityErrorCode implements ErrorCode {
      */
     API_TOKEN_SECRET_ERROR(13604, "API令牌密钥错误"),
 
+    // ========== 应用相关错误 (13400-13499) ==========
+    /**
+     * 应用不存在
+     */
+    APPLICATION_NOT_FOUND(13401, "应用不存在"),
+
+    /**
+     * 应用名称已存在
+     */
+    APPLICATION_NAME_EXISTS(13402, "应用名称已存在"),
+
+    /**
+     * Spring应用名已存在
+     */
+    APPLICATION_SPRING_NAME_EXISTS(13403, "Spring应用名已存在"),
+
+    /**
+     * 应用下存在资源，不允许删除
+     */
+    APPLICATION_HAS_RESOURCES(13404, "应用下存在资源，不允许删除"),
+
     // ========== 客户端相关错误 (13700-13799) ==========
     /**
      * 客户端不存在

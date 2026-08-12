@@ -1,5 +1,6 @@
 package com.lambda.fusion.authority.resource.model.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.lambda.cloud.core.annotation.AutoConverter;
@@ -39,6 +40,9 @@ public class ResourceEntity {
     private String parentKeys;
 
     private Integer resMode;
+
+    @TableField("APPLICATION")
+    private String application;
 
     private String remark;
 

@@ -261,6 +261,48 @@ public class AuthorityBusinessException extends BusinessException {
         return new AuthorityBusinessException(AuthorityErrorCode.RESOURCE_NOT_FOUND, resourceId);
     }
 
+    // ========== 应用相关便捷方法 ==========
+
+    /**
+     * 便捷方法：应用不存在异常
+     *
+     * @param applicationId 应用ID
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException applicationNotFound(String applicationId) {
+        return new AuthorityBusinessException(AuthorityErrorCode.APPLICATION_NOT_FOUND, applicationId);
+    }
+
+    /**
+     * 便捷方法：应用名称已存在异常
+     *
+     * @param name 应用名称
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException applicationNameExists(String name) {
+        return new AuthorityBusinessException(AuthorityErrorCode.APPLICATION_NAME_EXISTS, name);
+    }
+
+    /**
+     * 便捷方法：Spring应用名已存在异常
+     *
+     * @param springApplicationName Spring应用名
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException applicationSpringNameExists(String springApplicationName) {
+        return new AuthorityBusinessException(AuthorityErrorCode.APPLICATION_SPRING_NAME_EXISTS, springApplicationName);
+    }
+
+    /**
+     * 便捷方法：应用下存在资源不允许删除异常
+     *
+     * @param applicationId 应用ID
+     * @return AuthorityBusinessException
+     */
+    public static AuthorityBusinessException applicationHasResources(String applicationId) {
+        return new AuthorityBusinessException(AuthorityErrorCode.APPLICATION_HAS_RESOURCES, applicationId);
+    }
+
     // ========== 令牌相关便捷方法 ==========
 
     /**

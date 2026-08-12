@@ -905,4 +905,57 @@
     </changeSet>
 
 
+    <!-- ==================== 服务管理菜单初始化 ==================== -->
+    <changeSet id="lambda-authority-202608120010" author="jin">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="la_resources"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(1)
+                FROM la_resources
+                WHERE RES_PATH = '/system/application/'
+            </sqlCheck>
+        </preConditions>
+        <sql><![CDATA[
+            insert into la_resources (ID, PARENT_ID, RES_NAME, RES_PATH, RES_LEVEL, RES_TYPE, RES_URL, RES_MODE, METHOD,
+                                      ICON, HIDDEN, PARENT_KEYS, IS_DEV, REMARK, URL, KEY_NAME, KEEP_ALIVE, EXPAND,
+                                      BUSINESS_EXPAND, ORDER_NO)
+            values ('aP9kMx2Q', 'jw1MUnwu', '服务管理', '/system/application/', 1, 1, null, 0, null,
+                    'carbon:application', 0, 'jw1MUnwu', 0, null, null, null, 0, null, null, 13),
+                   ('bQ3nRt7W', 'aP9kMx2Q', '新增服务', 'application_add', 2147483647, 3, null, 0, '', null, 0,
+                    'jw1MUnwu-aP9kMx2Q', 0, null, null, null, 0, null, null, 1),
+                   ('cR5pVx9Y', 'aP9kMx2Q', '更新服务', 'application_edit', 2147483647, 3, null, 0, '', null, 0,
+                    'jw1MUnwu-aP9kMx2Q', 0, null, null, null, 0, null, null, 2),
+                   ('dS7qZb1C', 'aP9kMx2Q', '删除服务', 'application_delete', 2147483647, 3, null, 0, '', null, 0,
+                    'jw1MUnwu-aP9kMx2Q', 0, null, null, null, 0, null, null, 3);
+            ]]></sql>
+    </changeSet>
+
+    <!-- ==================== 服务管理菜单角色授权 ==================== -->
+    <changeSet id="lambda-authority-202608120011" author="jin">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="la_role_resources"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(1)
+                FROM la_role_resources
+                WHERE RESOURCE_ID = 'aP9kMx2Q'
+            </sqlCheck>
+        </preConditions>
+        <sql><![CDATA[
+            insert into la_role_resources (AUTHORITY, RESOURCE_ID, TENANT_ID)
+            values ('ROLE_ADMIN', 'aP9kMx2Q', null),
+                   ('ROLE_ADMIN', 'bQ3nRt7W', null),
+                   ('ROLE_ADMIN', 'cR5pVx9Y', null),
+                   ('ROLE_ADMIN', 'dS7qZb1C', null),
+                   ('ROLE_SYSTEM', 'aP9kMx2Q', null),
+                   ('ROLE_SYSTEM', 'bQ3nRt7W', null),
+                   ('ROLE_SYSTEM', 'cR5pVx9Y', null),
+                   ('ROLE_SYSTEM', 'dS7qZb1C', null),
+                   ('ROLE_DEV', 'aP9kMx2Q', null),
+                   ('ROLE_DEV', 'bQ3nRt7W', null),
+                   ('ROLE_DEV', 'cR5pVx9Y', null),
+                   ('ROLE_DEV', 'dS7qZb1C', null);
+            ]]></sql>
+    </changeSet>
+
+
 </databaseChangeLog>

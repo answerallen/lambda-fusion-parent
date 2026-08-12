@@ -62,6 +62,9 @@ public class CreateResource extends BaseDTO<Resource> {
     @Schema(description = "资源模式.0: 后台资源, 1: app资源")
     private Integer resMode = 0;
 
+    @Schema(description = "所属应用ID")
+    private String application;
+
     @Schema(description = "备注信息")
     private String remark;
 
