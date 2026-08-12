@@ -1,6 +1,7 @@
 package com.lambda.fusion.datascope.service.impl;
 
 import com.lambda.fusion.core.identity.UserDetails;
+import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.fusion.datascope.DataScopeConstants;
 import com.lambda.fusion.datascope.mapper.DataScopeMapper;
 import com.lambda.fusion.datascope.model.DataScopeEntity;
@@ -50,7 +51,7 @@ public class DataScopeSmartServiceImpl implements DataScopeSmartService {
             entity.setDomainType(type);
             entity.setChecked(1);
             entity.setRankLevel(0);
-            entity.setTenantId(operator != null ? operator.getTenantId() : null);
+            entity.setTenantId(AuthUtils.getTenantId());
             entities.add(entity);
         }
         if (CollectionUtils.isNotEmpty(entities)) {
@@ -177,7 +178,7 @@ public class DataScopeSmartServiceImpl implements DataScopeSmartService {
             entity.setTargetType(segments[0]);
             entity.setChecked(1);
             entity.setRankLevel(0);
-            entity.setTenantId(operator != null ? operator.getTenantId() : null);
+            entity.setTenantId(AuthUtils.getTenantId());
             entities.add(entity);
         }
         if (CollectionUtils.isNotEmpty(entities)) {

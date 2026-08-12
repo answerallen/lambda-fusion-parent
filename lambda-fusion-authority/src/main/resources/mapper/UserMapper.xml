@@ -213,7 +213,7 @@
     <insert id="insertUser" parameterType="com.lambda.fusion.authority.user.model.User">
         insert into la_users (username, password, nickname, mobile, email, created_at, enabled, tenant_id, created_by, expired_time)
         values(#{username}, #{password}, #{nickname}, #{mobile,jdbcType=VARCHAR}, #{email, jdbcType=VARCHAR},
-        #{createdAt, jdbcType=TIMESTAMP}, 1, #{tenant_Id, jdbcType=VARCHAR}, #{createdBy, jdbcType=VARCHAR}, #{expiredTime, jdbcType=TIMESTAMP})
+        #{createdAt, jdbcType=TIMESTAMP}, 1, #{tenantId, jdbcType=VARCHAR}, #{createdBy, jdbcType=VARCHAR}, #{expiredTime, jdbcType=TIMESTAMP})
     </insert>
     <!-- 更新用户 -->
     <update id="updateUser" parameterType="com.lambda.fusion.authority.user.model.User">
@@ -334,7 +334,7 @@
         left join la_user_organization t2 on t1.username = t2.username
         <where>
             <if test="tenantId != null and tenantId !='' ">
-                t1.tenant_id = #{tenant_id}
+                t1.tenant_id = #{tenantId}
             </if>
             <if test="orgIds != null and orgIds.size > 0">
                 and t2.organization_id in

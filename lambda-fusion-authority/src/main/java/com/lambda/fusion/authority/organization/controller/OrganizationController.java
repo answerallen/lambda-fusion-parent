@@ -3,8 +3,8 @@ package com.lambda.fusion.authority.organization.controller;
 import static com.lambda.fusion.core.utils.SqlParamUtils.fuzzyQuery;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.model.CreateOrganization;
 import com.lambda.fusion.authority.organization.model.Organization;
@@ -56,7 +56,6 @@ public class OrganizationController {
             @RequestParam(required = false) @Parameter(description = "组织编码") String name,
             @RequestParam(required = false) @Parameter(description = "组织别名") String alias,
             @RequestParam(required = false) Boolean enabled) {
-        LoginUser operator = OperatorUtils.getOperator();
         OrganizationQuery organizationQuery = buildOrganizationQuery();
         if (BooleanUtils.isTrue(enabled)) {
             organizationQuery.setEnabled(true);
@@ -67,7 +66,7 @@ public class OrganizationController {
         if (StringUtils.isNotBlank(alias)) {
             organizationQuery.setAlias(fuzzyQuery(alias));
         }
-        organizationQuery.setTenantId(operator.getTenantId());
+        organizationQuery.setTenantId(currentTenantId());
         return organizationService.organizationTreeList(organizationQuery);
     }
 
@@ -217,8 +216,15 @@ public class OrganizationController {
      */
     private OrganizationQuery buildOrganizationQuery() {
         OrganizationQuery parameters = new OrganizationQuery();
-        String tenantId = OperatorUtils.getOperator().getTenantId();
-        parameters.setOwner(StringUtils.isNotBlank(tenantId) ? tenantId : null);
+        String tenantId = currentTenantId();
+        parameters.setTenantId(tenantId);
         return parameters;
+    }
+
+    private String currentTenantId() {
+        String tenantId = TenantContextHolder.getCurrentTenantId();
+        return StringUtils.isNotBlank(tenantId)
+                ? tenantId
+                : OperatorUtils.getOperator().getTenantId();
     }
 }

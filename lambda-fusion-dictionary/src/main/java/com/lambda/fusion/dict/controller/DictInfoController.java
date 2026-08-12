@@ -53,8 +53,9 @@ public class DictInfoController {
     @Operation(summary = "添加字典详细信息", description = "添加字典详细信息")
     public DictInfo saveDictInfo(@Valid @RequestBody DictInfo dictInfo) {
         UserDetails userDetails = AuthUtils.getUser();
-        if (StringUtils.isNotBlank(userDetails.getTenantId())) {
-            dictInfo.setTenantId(userDetails.getTenantId());
+        String tenantId = AuthUtils.getTenantId();
+        if (StringUtils.isNotBlank(tenantId)) {
+            dictInfo.setTenantId(tenantId);
         }
         return dictInfoService.saveDictInfo(userDetails, dictInfo);
     }

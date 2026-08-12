@@ -13,8 +13,6 @@ import com.baomidou.mybatisplus.spring.service.IService;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.cloud.core.utils.OperatorUtils;
-import com.lambda.fusion.core.identity.UserDetails;
 import com.lambda.fusion.core.service.AbstractCrudService;
 import com.lambda.fusion.core.tree.builder.TreeBuilder;
 import com.lambda.fusion.core.utils.AuthUtils;
@@ -66,7 +64,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
 
     @Override
     public List<DictInfo> selectDictInfo(QueryDictInfo queryDTO) {
-        String tenantId = AuthUtils.getUser().getTenantId();
+        String tenantId = AuthUtils.getTenantId();
         List<DictInfo> dictInfos = dictInfoMapper.selectDictInfo(new LambdaQueryWrapper<DictInfo>()
                 .eq(DictInfo::getDictType, queryDTO.getDictType())
                 .eq(StrUtil.isNotEmpty(tenantId), DictInfo::getTenantId, tenantId)
@@ -157,7 +155,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
 
     @Override
     public Map<String, Object> getStaticDictInfoGroup(String dictType) {
-        String tenantId = OperatorUtils.getOperator().getTenantId();
+        String tenantId = AuthUtils.getTenantId();
         List<DictInfoGroup> lists = dictInfoMapper.getAllDictInfoGroup(
                 StringUtils.isNotBlank(dictType) ? SqlParamUtils.fuzzyQuery(dictType) : dictType, tenantId);
         Map<String, Object> map = Maps.newHashMapWithExpectedSize(lists.size());
@@ -186,7 +184,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
             final DictType vo = BeanUtil.copyProperties(dictTypeTreeItem, DictType.class);
             result.put(vo.getDictType(), vo);
         }
-        String tenantId = OperatorUtils.getOperator().getTenantId();
+        String tenantId = AuthUtils.getTenantId();
         List<DictInfoGroup> lists = dictInfoMapper.getAllDictInfoGroup(
                 StringUtils.isNotBlank(dictType) ? SqlParamUtils.fuzzyQuery(dictType) : dictType, tenantId);
         for (DictInfoGroup info : lists) {
@@ -220,8 +218,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         } else {
             ids.add(dictTypeTreeEntity.getId());
         }
-        UserDetails userDetails = AuthUtils.getUser();
-        List<DictInfo> outcomes = dictInfoMapper.treeList(ids, userDetails.getTenantId());
+        List<DictInfo> outcomes = dictInfoMapper.treeList(ids, AuthUtils.getTenantId());
         return TreeBuilder.build(outcomes);
     }
 
@@ -229,7 +226,6 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
     public List<DictInfo> getSubTreeData(String dictType) {
         List<DictInfo> outcomes = new ArrayList<>();
         if (StringUtils.isNotBlank(dictType)) {
-            UserDetails userDetails = AuthUtils.getUser();
             LambdaQueryWrapper<DictTypeTree> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(DictTypeTree::getDictType, dictType);
             DictTypeTree dictTypeTreeEntity = dictTypeMapper.selectOne(wrapper);
@@ -239,7 +235,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
             List<DictTypeTree> dictTypeTrees = dictTypeMapper.selectList(conditions);
             if (CollectionUtils.isNotEmpty(dictTypeTrees)) {
                 List<String> ids = dictTypeTrees.stream().map(DictTypeTree::id).collect(Collectors.toList());
-                List<DictInfo> list = dictInfoMapper.treeList(ids, userDetails.getTenantId());
+                List<DictInfo> list = dictInfoMapper.treeList(ids, AuthUtils.getTenantId());
                 list.forEach(info -> info.setParameters(
                         StringUtils.isNotBlank(info.getExtra()) ? convertMap(info.getExtra()) : null));
                 outcomes = TreeBuilder.build(list);
@@ -278,8 +274,7 @@ public class DictInfoServiceImpl extends AbstractCrudService<DictInfo, InputDict
         }
         wrapper.setLevel(dictionaryEntry.getLevel());
         wrapper.setDictType(dictionaryEntry.getDictType());
-        UserDetails userDetails = AuthUtils.getUser();
-        wrapper.setTenantId(userDetails.getTenantId());
+        wrapper.setTenantId(AuthUtils.getTenantId());
 
         List<DictInfo> target = dictInfoMapper.getDictInfoList(wrapper);
         target.forEach(info -> {

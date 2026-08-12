@@ -32,7 +32,7 @@ public class UserQueryAssembler {
     public UserQueryContext buildUserQueryContext(UserQuery userQuery) {
         UserQueryContext userQueryContext = new UserQueryContext();
         UserDetails userDetails = AuthUtils.getUser();
-        String tenantId = userDetails.getTenantId();
+        String tenantId = AuthUtils.getTenantId();
 
         // 处理 username (支持逗号分隔)
         if (StringUtils.isNotBlank(userQuery.getUsername())) {
@@ -53,7 +53,7 @@ public class UserQueryAssembler {
         if (StringUtils.isNotBlank(userQuery.getMobile())) {
             userQueryContext.setMobile(fuzzyQuery(userQuery.getMobile()));
         }
-        if (StringUtils.isNotBlank(userDetails.getTenantId())) {
+        if (StringUtils.isNotBlank(tenantId)) {
             userQueryContext.setTenantId(tenantId);
         }
         if (StringUtils.isNotBlank(userQuery.getAuthority())) {

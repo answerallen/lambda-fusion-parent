@@ -75,9 +75,14 @@
                     #{item}
                 </foreach>
             </if>
-            <if test="parameters.tenantId == null || parameters.tenantId == ''">
-                and o.tenant_id is null
-            </if>
+            <choose>
+                <when test="parameters.tenantId != null and parameters.tenantId != ''">
+                    and o.tenant_id = #{parameters.tenantId}
+                </when>
+                <otherwise>
+                    and o.tenant_id is null
+                </otherwise>
+            </choose>
         </where>
         order by o.org_rank, o.order_no, o.parent_id, o.org_name
     </select>
@@ -122,6 +127,14 @@
                     #{item}
                 </foreach>
             </if>
+            <choose>
+                <when test="parameters.tenantId != null and parameters.tenantId != ''">
+                    and o.tenant_id = #{parameters.tenantId}
+                </when>
+                <otherwise>
+                    and o.tenant_id is null
+                </otherwise>
+            </choose>
         </where>
         order by o.org_rank, o.order_no, o.parent_id, o.org_name
     </select>
@@ -143,6 +156,14 @@
         <if test="parameters.parentKeys != null and parameters.parentKeys != ''">
             and o.parent_keys like #{parameters.parentKeys}
         </if>
+        <choose>
+            <when test="parameters.tenantId != null and parameters.tenantId != ''">
+                and o.tenant_id = #{parameters.tenantId}
+            </when>
+            <otherwise>
+                and o.tenant_id is null
+            </otherwise>
+        </choose>
         order by o.org_rank, o.order_no, o.parent_id, o.org_name
     </select>
 

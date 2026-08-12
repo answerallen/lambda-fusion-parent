@@ -32,6 +32,7 @@ import com.lambda.fusion.authority.utils.PasswordGenerator;
 import com.lambda.fusion.authority.utils.UserInfoConverter;
 import com.lambda.fusion.core.FusionConstants;
 import com.lambda.fusion.core.identity.UserDetails;
+import com.lambda.fusion.core.utils.AuthUtils;
 import com.lambda.security.web.form.FormLockingStrategy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotBlank;
@@ -198,7 +199,7 @@ public class UserServiceImpl implements UserService {
                 .map(permission -> {
                     UserRoleEntity userRoleEntity = new UserRoleEntity();
                     userRoleEntity.setUsername(username);
-                    userRoleEntity.setTenantId(operator.getTenantId());
+                    userRoleEntity.setTenantId(AuthUtils.getTenantId());
                     userRoleEntity.setAuthority(permission);
                     return userRoleEntity;
                 })
@@ -284,7 +285,7 @@ public class UserServiceImpl implements UserService {
     private static String getTenantId(CreateUser createUser, UserDetails userDetails) {
         return (userDetails.isAnyManager() && StrUtil.isNotEmpty(createUser.getTenantId()))
                 ? createUser.getTenantId()
-                : userDetails.getTenantId();
+                : AuthUtils.getTenantId();
     }
 
     private void assignRolesToUser(String tenantId, String username, List<SimpleRole> roles) {
@@ -331,7 +332,7 @@ public class UserServiceImpl implements UserService {
             this.userFieldsMapper.insert(fields);
         }
 
-        String tenantId = userDetails.getTenantId();
+        String tenantId = AuthUtils.getTenantId();
 
         if (!AuthorityHelper.isTenant(updateUser.getAuthorities())) {
             SimpleOrganization simpleOrganization = updateUser.getOrganization();
@@ -450,7 +451,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserProfile> getUserProfiles(UserDetails operator, List<String> orgIds) {
-        return userMapper.selectUserProfiles(operator.getTenantId(), orgIds);
+        return userMapper.selectUserProfiles(AuthUtils.getTenantId(), orgIds);
     }
 
     @Override

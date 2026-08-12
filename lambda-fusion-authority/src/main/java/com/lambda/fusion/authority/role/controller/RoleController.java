@@ -54,7 +54,7 @@ public class RoleController {
             parameters = {@Parameter(name = "tenant_id", description = "租户id")})
     public List<GroupRole> grouped() {
         UserDetails userDetails = AuthUtils.getUser();
-        return roleService.groupedRoles(userDetails, userDetails.getTenantId());
+        return roleService.groupedRoles(userDetails, AuthUtils.getTenantId());
     }
 
     @SaCheckPermission(value = "authority:role:page")
@@ -83,7 +83,7 @@ public class RoleController {
             excludes.add(FusionConstants.ROLE_ADMIN);
         }
         parameters.put(AuthorityConstants.EXCLUDES, excludes);
-        String tenantId = userDetails.getTenantId();
+        String tenantId = AuthUtils.getTenantId();
         if (StringUtils.isNotBlank(tenantId)) {
             parameters.put(AuthorityConstants.TENANT_ID, tenantId);
         }

@@ -3,7 +3,7 @@ package com.lambda.fusion.authority.client.model;
 import cn.hutool.core.util.IdUtil;
 import com.lambda.cloud.core.annotation.AutoConverter;
 import com.lambda.cloud.core.shared.BaseDTO;
-import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.fusion.core.utils.AuthUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -48,7 +48,7 @@ public class UpsertClient extends BaseDTO<ClientEntity> {
 
     public ClientEntity toEntity() {
         ClientEntity entity = super.toEntity();
-        String tenantId = OperatorUtils.getOperator().getTenantId();
+        String tenantId = AuthUtils.getTenantId();
         if (StringUtils.isNotBlank(tenantId)) {
             entity.setTenantId(tenantId);
         }

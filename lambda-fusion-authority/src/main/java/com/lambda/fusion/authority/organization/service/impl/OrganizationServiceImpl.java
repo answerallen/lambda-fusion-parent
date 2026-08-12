@@ -9,6 +9,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.lambda.cloud.core.principal.LoginUser;
 import com.lambda.cloud.core.utils.OperatorUtils;
+import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.authority.AuthorityProperties;
 import com.lambda.fusion.authority.exception.AuthorityBusinessException;
 import com.lambda.fusion.authority.organization.mapper.OrganizationMapper;
@@ -141,7 +142,7 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
      */
     private void applyPermissionConstraints(List<Organization> organizations, UserDetails userDetails) {
         String operatorOrgId = userDetails.getOrgId();
-        String operatorTenantId = userDetails.getTenantId();
+        String operatorTenantId = AuthUtils.getTenantId();
         for (Organization organization : organizations) {
             // 设置操作权限
             if (!userDetails.isAdmin() && organization.getId().equals(operatorOrgId)) {
@@ -286,7 +287,7 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
         List<OrganizationEntity> organizations =
                 organizationMapper.selectList(new LambdaQueryWrapper<OrganizationEntity>()
                         .eq(OrganizationEntity::getName, resource.getName())
-                        .eq(OrganizationEntity::getOwner, operator.getTenantId()));
+                        .eq(OrganizationEntity::getOwner, AuthUtils.getTenantId()));
         if (CollectionUtils.isNotEmpty(organizations)) {
             throw AuthorityBusinessException.organizationNameExists(resource.getName());
         }
@@ -452,7 +453,10 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
      * @param orgId    机构ID
      */
     protected void hasOperation(LoginUser operator, String orgId) {
-        String tenantId = operator.getTenantId();
+        String tenantId = TenantContextHolder.getCurrentTenantId();
+        if (StringUtils.isBlank(tenantId)) {
+            tenantId = operator.getTenantId();
+        }
         if (StringUtils.isNotBlank(tenantId) && tenantId.equals(orgId)) {
             throw AuthorityBusinessException.authNoPermission();
         }
@@ -514,7 +518,10 @@ public class OrganizationServiceImpl extends AbstractCrudService<OrganizationEnt
         if (entity.getName() == null) {
             throw AuthorityBusinessException.invalidParameter("组织机构名称不能为空");
         }
-        String tenantId = operator.getTenantId();
+        String tenantId = TenantContextHolder.getCurrentTenantId();
+        if (StringUtils.isBlank(tenantId)) {
+            tenantId = operator.getTenantId();
+        }
         OrganizationEntity checked = queryByNameAndTenantId(createOrganization.getName(), tenantId);
         if (checked != null) {
             throw AuthorityBusinessException.organizationNameExists(createOrganization.getName());
