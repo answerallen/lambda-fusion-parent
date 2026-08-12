@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
 import com.lambda.cloud.sse.listener.SseEventListener;
 import com.lambda.fusion.authority.api.RemoteAuthenticationService;
+import com.lambda.fusion.authority.application.service.ApplicationService;
+import com.lambda.fusion.authority.application.service.impl.DbPermissionTokenVerifier;
 import com.lambda.fusion.authority.authentication.adapter.RemoteAuthenticationServiceAdapter;
 import com.lambda.fusion.authority.authentication.provider.alipay.AlipayMaLoginAdapter;
 import com.lambda.fusion.authority.authentication.provider.alipay.AlipayMaLoginHandler;
@@ -21,6 +23,7 @@ import com.lambda.fusion.authority.user.service.UserOnlineLogService;
 import com.lambda.fusion.core.tree.filter.DefaultTreeDataFilter;
 import com.lambda.fusion.core.tree.filter.TreeDataFilter;
 import com.lambda.fusion.core.utils.AuthUtils;
+import com.lambda.fusion.permission.service.PermissionTokenVerifier;
 import com.lambda.security.service.ThirdPartyLoginService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
@@ -40,6 +43,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -199,6 +203,19 @@ public class AuthorityConfigure implements WebMvcConfigurer {
     @ConditionalOnMissingBean
     public TreeDataFilter defaultTreeDataFilter() {
         return new DefaultTreeDataFilter();
+    }
+
+    /**
+     * 权限同步令牌校验器：按服务注册表(la_applications)密钥校验上报方身份。
+     *
+     * <p>仅在 permission server 模式下注册，并以 @Primary 覆盖 permission 模块的默认静态令牌实现。
+     */
+    @Bean
+    @Primary
+    @ConditionalOnClass(PermissionTokenVerifier.class)
+    @ConditionalOnProperty(name = "lambda.fusion.permission.mode", havingValue = "server")
+    public PermissionTokenVerifier dbPermissionTokenVerifier(ApplicationService applicationService) {
+        return new DbPermissionTokenVerifier(applicationService);
     }
 
     @Override
