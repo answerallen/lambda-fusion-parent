@@ -7,6 +7,8 @@ import com.lambda.fusion.permission.loader.LocalPermissionLoader;
 import com.lambda.fusion.permission.server.PermissionSyncApiImpl;
 import com.lambda.fusion.permission.service.ApiPermissionMatcher;
 import com.lambda.fusion.permission.service.ApiPermissionRegistry;
+import com.lambda.fusion.permission.service.PermissionTokenVerifier;
+import com.lambda.fusion.permission.service.StaticPermissionTokenVerifier;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -64,9 +66,17 @@ public class PermissionConfigure {
     public PermissionSyncApi permissionSyncApiImpl(
             ApiPermissionRegistry apiPermissionRegistry,
             LocalPermissionLoader localPermissionLoader,
-            PermissionProperties properties,
+            PermissionTokenVerifier permissionTokenVerifier,
             @Value("${spring.application.name:unknown-app}") String applicationName) {
-        return new PermissionSyncApiImpl(apiPermissionRegistry, properties, localPermissionLoader, applicationName);
+        return new PermissionSyncApiImpl(
+                apiPermissionRegistry, permissionTokenVerifier, localPermissionLoader, applicationName);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(PermissionTokenVerifier.class)
+    @ConditionalOnProperty(name = PermissionConstants.MODE_PROPERTY, havingValue = PermissionConstants.MODE_SERVER)
+    public PermissionTokenVerifier staticPermissionTokenVerifier(PermissionProperties properties) {
+        return new StaticPermissionTokenVerifier(properties);
     }
 
     @Slf4j
