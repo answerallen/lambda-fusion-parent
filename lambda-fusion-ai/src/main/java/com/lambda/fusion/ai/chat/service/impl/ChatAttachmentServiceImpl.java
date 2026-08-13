@@ -16,6 +16,13 @@ import com.lambda.fusion.ai.rag.storage.DocumentFileStorage;
 import com.lambda.fusion.ai.rag.storage.DocumentFileStorageResolver;
 import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -24,12 +31,6 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 对话附件服务实现。
@@ -53,7 +54,6 @@ public class ChatAttachmentServiceImpl implements ChatAttachmentService {
     private static final String CATEGORY_DOCUMENT = "DOCUMENT";
 
     private final ChatAttachmentMapper chatAttachmentMapper;
-    // 直接依赖 Mapper 而非 ChatSessionService：避免 session -> message -> attachment -> session 循环依赖
     private final ChatSessionMapper chatSessionMapper;
     private final DocumentFileStorageResolver storageResolver;
     private final AiProperties aiProperties;
@@ -62,14 +62,13 @@ public class ChatAttachmentServiceImpl implements ChatAttachmentService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ChatAttachmentEntity upload(String sessionId, MultipartFile file) {
-        ChatSessionEntity session = loadOwnedSession(sessionId);
+        ChatSessionEntity session = chatSessionMapper.selectChatSessionByIdAndUserId(sessionId,AuthUtils.getUsername());
         AiProperties.Chat.Attachment cfg = aiProperties.getChat().getAttachment();
         String extension = resolveExtension(file, cfg);
         validateSize(file, cfg);
 
         ChatAttachmentEntity entity = new ChatAttachmentEntity();
         entity.setId(IdUtil.getSnowflakeNextIdStr());
-        entity.setTenantId(AuthUtils.getTenantId());
         entity.setSessionId(session.getId());
         entity.setFileName(StringUtils.defaultIfBlank(file.getOriginalFilename(), entity.getId()));
         entity.setFileType(extension);
@@ -107,26 +106,11 @@ public class ChatAttachmentServiceImpl implements ChatAttachmentService {
     @Override
     public ChatAttachmentEntity loadOwned(String attachmentId) {
         ChatAttachmentEntity entity = chatAttachmentMapper.selectOne(new LambdaQueryWrapper<ChatAttachmentEntity>()
-                .eq(ChatAttachmentEntity::getId, attachmentId)
-                .eq(ChatAttachmentEntity::getTenantId, AuthUtils.getTenantId()));
+                .eq(ChatAttachmentEntity::getId, attachmentId));
         if (entity == null) {
             throw new AiBusinessException(AiErrorCode.ATTACHMENT_NOT_FOUND, attachmentId);
         }
-        // 经 session 间接校验用户归属，防止同租户用户互访附件
-        loadOwnedSession(entity.getSessionId());
         return entity;
-    }
-
-    // 按 tenant + user 校验会话归属（与 ChatSessionServiceImpl.loadOwned 同一语义，直查 Mapper 避免循环依赖）
-    private ChatSessionEntity loadOwnedSession(String sessionId) {
-        ChatSessionEntity session = chatSessionMapper.selectOne(new LambdaQueryWrapper<ChatSessionEntity>()
-                .eq(ChatSessionEntity::getId, sessionId)
-                .eq(ChatSessionEntity::getTenantId, AuthUtils.getTenantId())
-                .eq(ChatSessionEntity::getUserId, AuthUtils.getUser().getUsername()));
-        if (session == null) {
-            throw new AiBusinessException(AiErrorCode.CHAT_SESSION_NOT_FOUND, sessionId);
-        }
-        return session;
     }
 
     @Override
@@ -155,8 +139,7 @@ public class ChatAttachmentServiceImpl implements ChatAttachmentService {
             return List.of();
         }
         return chatAttachmentMapper.selectList(new LambdaQueryWrapper<ChatAttachmentEntity>()
-                .in(ChatAttachmentEntity::getMessageId, messageIds)
-                .eq(ChatAttachmentEntity::getTenantId, AuthUtils.getTenantId()));
+                .in(ChatAttachmentEntity::getMessageId, messageIds));
     }
 
     @Override

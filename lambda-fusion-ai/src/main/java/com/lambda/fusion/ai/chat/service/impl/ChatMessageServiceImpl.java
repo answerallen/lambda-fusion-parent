@@ -49,7 +49,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     public List<ChatMessageView> listBySession(String sessionId) {
         List<ChatMessageEntity> messages = chatMessageMapper.selectList(new LambdaQueryWrapper<ChatMessageEntity>()
                 .eq(ChatMessageEntity::getSessionId, sessionId)
-                .eq(ChatMessageEntity::getTenantId, AuthUtils.getTenantId())
                 .orderByAsc(ChatMessageEntity::getId));
         List<Long> messageIds = messages.stream().map(ChatMessageEntity::getId).toList();
         Map<Long, List<ChatAttachmentEntity>> attachmentsByMessage =

@@ -19,6 +19,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +45,6 @@ public class ChatSessionServiceImpl implements ChatSessionService {
         ChatSessionEntity entity = new ChatSessionEntity();
         entity.setId(IdUtil.getSnowflakeNextIdStr());
         entity.setAppId(dto.getAppId());
-        entity.setTenantId(AuthUtils.getTenantId());
         entity.setUserId(AuthUtils.getUser().getUsername());
         entity.setTitle(StringUtils.defaultIfBlank(dto.getTitle(), app.getName()));
         entity.setCreatedAt(LocalDateTime.now());
@@ -70,10 +70,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
 
     @Override
     public ChatSessionEntity loadOwned(String id) {
-        ChatSessionEntity entity = chatSessionMapper.selectOne(new LambdaQueryWrapper<ChatSessionEntity>()
-                .eq(ChatSessionEntity::getId, id)
-                .eq(ChatSessionEntity::getTenantId, AuthUtils.getTenantId())
-                .eq(ChatSessionEntity::getUserId, AuthUtils.getUser().getUsername()));
+        ChatSessionEntity entity = chatSessionMapper.selectChatSessionByIdAndUserId(id, AuthUtils.getUser().getUsername());
         if (entity == null) {
             throw new AiBusinessException(AiErrorCode.CHAT_SESSION_NOT_FOUND, id);
         }

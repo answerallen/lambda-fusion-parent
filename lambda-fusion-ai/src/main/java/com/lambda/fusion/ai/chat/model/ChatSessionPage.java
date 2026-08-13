@@ -20,9 +20,7 @@ public class ChatSessionPage extends PageQuery<ChatSessionEntity> {
     @Override
     public LambdaQueryWrapper<ChatSessionEntity> getLambdaQueryWrapper() {
         LambdaQueryWrapper<ChatSessionEntity> wrapper = new LambdaQueryWrapper<>();
-        String tenantId = AuthUtils.getTenantId();
         String userId = AuthUtils.getUser().getUsername();
-        wrapper.eq(StringUtils.isNotBlank(tenantId), ChatSessionEntity::getTenantId, tenantId);
         wrapper.eq(StringUtils.isNotBlank(userId), ChatSessionEntity::getUserId, userId);
         wrapper.eq(StringUtils.isNotBlank(appId), ChatSessionEntity::getAppId, appId);
         wrapper.orderByDesc(ChatSessionEntity::getLastMessageAt);

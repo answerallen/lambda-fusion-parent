@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.chat.service.impl;
 
+import cn.hutool.core.util.StrUtil;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.adapter.AguiEventMapper;
@@ -289,8 +290,8 @@ public class ChatServiceImpl implements ChatService {
                                 if (event instanceof TextBlockDeltaEvent delta) {
                                     assistantText.append(delta.getDelta());
                                 }
-                                for (AguiEvent agui : mapper.map(event)) {
-                                    emitter.send(SseEmitter.event().data(mapper.encodeToJson(agui)));
+                                for (AguiEvent aguiEvent : mapper.map(event)) {
+                                    emitter.send(SseEmitter.event().data(mapper.encodeToJson(aguiEvent)));
                                 }
                                 if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM
                                         && completed.compareAndSet(false, true)) {
@@ -382,11 +383,12 @@ public class ChatServiceImpl implements ChatService {
 
     private Flux<AgentEvent> routeStream(ChatSessionEntity session, HarnessAgent agent, Msg userMsg) {
         HarnessGateway gateway = gatewayProvider.getIfAvailable();
+
         if (gateway == null) {
             RuntimeContext ctx = RuntimeContext.builder()
                     .userId(session.getUserId())
                     .sessionId(session.getId())
-                    .put(RuntimeProperty.KEY_TENANT_ID, AuthUtils.getTenantId())
+                    .put(RuntimeProperty.KEY_TENANT_ID, AuthUtils.getTenantIdNullToDefault())
                     .build();
             return agent.streamEvents(userMsg, ctx);
         }
@@ -395,7 +397,7 @@ public class ChatServiceImpl implements ChatService {
 
         MsgContext msgCtx = new MsgContext(
                 CHANNEL_ID,
-                AuthUtils.getTenantId(),
+                AuthUtils.getTenantIdNullToDefault(),
                 session.getId(),
                 null,
                 null,
@@ -411,7 +413,7 @@ public class ChatServiceImpl implements ChatService {
         extra.put(RuntimeProperty.KEY_AGENT_ID, agentId);
         extra.put(RuntimeProperty.KEY_APP_ID, session.getAppId());
         extra.put(RuntimeProperty.KEY_LF_SESSION_ID, session.getId());
-        extra.put(RuntimeProperty.KEY_TENANT_ID, AuthUtils.getTenantId());
+        extra.put(RuntimeProperty.KEY_TENANT_ID, AuthUtils.getTenantIdNullToDefault());
         return extra;
     }
 

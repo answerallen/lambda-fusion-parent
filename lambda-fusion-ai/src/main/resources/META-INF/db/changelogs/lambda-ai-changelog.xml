@@ -184,7 +184,7 @@
     </changeSet>
 
     <!-- ========== 对话消息 ========== -->
-    <changeSet id="lambda-ai-202607210006" author="Jin">
+    <changeSet id="lambda-ai-2026072100061" author="Jin">
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="ai_chat_message"/>
@@ -194,9 +194,7 @@
             <column name="id" type="bigint" autoIncrement="true" remarks="主键">
                 <constraints primaryKey="true" primaryKeyName="pk_ai_chat_message_id" nullable="false"/>
             </column>
-            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
-                <constraints nullable="false"/>
-            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
             <column name="session_id" type="varchar(32)" remarks="会话ID">
                 <constraints nullable="false"/>
             </column>
@@ -218,7 +216,7 @@
     </changeSet>
 
     <!-- ========== 自演化审计 ========== -->
-    <changeSet id="lambda-ai-202607210008" author="Jin">
+    <changeSet id="lambda-ai-2026072100081" author="Jin">
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="ai_app_workspace_audit"/>
@@ -228,9 +226,7 @@
             <column name="id" type="bigint" autoIncrement="true" remarks="主键">
                 <constraints primaryKey="true" primaryKeyName="pk_ai_app_workspace_audit_id" nullable="false"/>
             </column>
-            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
-                <constraints nullable="false"/>
-            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
             <column name="app_id" type="varchar(32)" remarks="应用ID">
                 <constraints nullable="false"/>
             </column>
@@ -334,7 +330,7 @@
     </changeSet>
 
     <!-- ========== 知识库 ========== -->
-    <changeSet id="lambda-ai-202607220004" author="Jin">
+    <changeSet id="lambda-ai-2026072200041" author="Jin">
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="ai_knowledge_base"/>
@@ -373,7 +369,7 @@
     </changeSet>
 
     <!-- ========== 知识库文档 ========== -->
-    <changeSet id="lambda-ai-202607220005" author="Jin">
+    <changeSet id="lambda-ai-2026072200051" author="Jin">
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="ai_knowledge_document"/>
@@ -446,7 +442,7 @@
     </changeSet>
 
     <!-- ========== 子代理定义 ========== -->
-    <changeSet id="lambda-ai-202607220009" author="Jin">
+    <changeSet id="lambda-ai-2026072200091" author="Jin">
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="ai_sub_agent"/>
@@ -527,7 +523,7 @@
     </changeSet>
 
     <!-- ========== 对话附件 ========== -->
-    <changeSet id="lambda-ai-2026080600010" author="Jin">
+    <changeSet id="lambda-ai-20260806000101" author="Jin">
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="ai_chat_attachment"/>
@@ -537,9 +533,7 @@
             <column name="id" type="varchar(32)" remarks="主键(雪花ID)">
                 <constraints primaryKey="true" primaryKeyName="pk_ai_chat_attachment_id" nullable="false"/>
             </column>
-            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
-                <constraints nullable="false"/>
-            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID"/>
             <column name="session_id" type="varchar(32)" remarks="归属会话ID">
                 <constraints nullable="false"/>
             </column>
