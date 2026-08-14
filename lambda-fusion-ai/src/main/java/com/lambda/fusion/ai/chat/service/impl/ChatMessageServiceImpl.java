@@ -2,17 +2,21 @@ package com.lambda.fusion.ai.chat.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.fusion.ai.chat.mapper.ChatMessageMapper;
+import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.chat.model.ChatMessageView;
 import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
+import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -25,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChatMessageServiceImpl implements ChatMessageService {
 
     private final ChatMessageMapper chatMessageMapper;
+    private final ChatSessionMapper chatSessionMapper;
     private final ChatAttachmentService chatAttachmentService;
 
     @Override
@@ -47,6 +52,11 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     @Override
     public List<ChatMessageView> listBySession(String sessionId) {
+        ChatSessionEntity session =
+                chatSessionMapper.selectOwned(sessionId, AuthUtils.getUser().getUsername());
+        if (session == null) {
+            throw new AiBusinessException(AiErrorCode.CHAT_SESSION_NOT_FOUND, sessionId);
+        }
         List<ChatMessageEntity> messages = chatMessageMapper.selectList(new LambdaQueryWrapper<ChatMessageEntity>()
                 .eq(ChatMessageEntity::getSessionId, sessionId)
                 .orderByAsc(ChatMessageEntity::getId));
@@ -64,6 +74,13 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     }
 
     @Override
+    public Optional<ChatMessageEntity> findByIdAndSession(Long messageId, String sessionId) {
+        return Optional.ofNullable(chatMessageMapper.selectOne(new LambdaQueryWrapper<ChatMessageEntity>()
+                .eq(ChatMessageEntity::getId, messageId)
+                .eq(ChatMessageEntity::getSessionId, sessionId)));
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteBySession(String sessionId) {
         chatMessageMapper.delete(
@@ -72,7 +89,6 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
     private ChatMessageEntity save(ChatSessionEntity session, String role, String content, String toolCall) {
         ChatMessageEntity entity = new ChatMessageEntity();
-        entity.setTenantId(session.getTenantId());
         entity.setSessionId(session.getId());
         entity.setRole(role);
         entity.setContent(content);

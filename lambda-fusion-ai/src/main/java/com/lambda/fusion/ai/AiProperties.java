@@ -1,10 +1,14 @@
 package com.lambda.fusion.ai;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * AI 模块配置。
@@ -18,6 +22,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @Data
 @Slf4j
+@Validated
 @ConfigurationProperties(prefix = "lambda.fusion.ai")
 public class AiProperties {
 
@@ -66,6 +71,7 @@ public class AiProperties {
     /**
      * 对话配置（附件上传等）。
      */
+    @Valid
     private Chat chat = new Chat();
 
     private Cluster cluster = new Cluster();
@@ -78,6 +84,51 @@ public class AiProperties {
 
         /** 对话附件配置。 */
         private Attachment attachment = new Attachment();
+
+        /** 可恢复后台对话 Run。 */
+        @Valid
+        private Run run = new Run();
+
+        @Data
+        public static class Run {
+
+            @Min(1)
+            private long connectionTimeoutSeconds = 300;
+
+            @Min(1)
+            private long maxRunDurationSeconds = 1800;
+
+            @Min(1)
+            private long awaitConfirmTimeoutSeconds = 86400;
+
+            @Min(1)
+            @Max(300)
+            private long stopGraceSeconds = 10;
+
+            @Min(1)
+            private long terminalTtlSeconds = 600;
+
+            @Min(64)
+            private int maxEvents = 4096;
+
+            @Min(65536)
+            private long maxBytes = 8_388_608;
+
+            @Min(1)
+            private int maxActiveRuns = 200;
+
+            @Min(1)
+            private int maxActiveRunsPerUser = 4;
+
+            @Min(1)
+            private int subscriberQueueSize = 256;
+
+            @Min(1)
+            private int snapshotEveryEvents = 100;
+
+            @Min(1)
+            private long snapshotIntervalSeconds = 2;
+        }
 
         /**
          * 对话附件配置。原文件存储复用 {@code rag.document-storage}（LOCAL/OSS），此处仅承载

@@ -4,6 +4,7 @@ import com.lambda.fusion.ai.chat.model.ChatMessageView;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import java.util.List;
+import java.util.Optional;
 
 public interface ChatMessageService {
 
@@ -23,6 +24,8 @@ public interface ChatMessageService {
 
     /** 查询会话历史消息（含各消息附件），按 id 升序。 */
     List<ChatMessageView> listBySession(String sessionId);
+
+    Optional<ChatMessageEntity> findByIdAndSession(Long messageId, String sessionId);
 
     /**
      * 删除该会话的全部消息。不做租户隔离校验，应由上层调用方先验证会话所有权。

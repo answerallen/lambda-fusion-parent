@@ -102,8 +102,9 @@ class AguiEventMapperTest {
     void reasoningEmitsOnlyWhenEnabled() {
         AguiEventMapper enabled = newMapper(true);
         List<AguiEvent> withReasoning = enabled.map(new ThinkingBlockDeltaEvent("r-1", "b-1", "思考"));
-        assertThat(withReasoning).hasSize(2);
-        assertThat(withReasoning.get(0)).isInstanceOf(AguiEvent.ReasoningMessageStart.class);
+        assertThat(withReasoning).hasSize(3);
+        assertThat(withReasoning.get(0)).isInstanceOf(AguiEvent.ReasoningStart.class);
+        assertThat(withReasoning.get(1)).isInstanceOf(AguiEvent.ReasoningMessageStart.class);
 
         AguiEventMapper disabled = newMapper(false);
         assertThat(disabled.map(new ThinkingBlockDeltaEvent("r-1", "b-1", "思考")))

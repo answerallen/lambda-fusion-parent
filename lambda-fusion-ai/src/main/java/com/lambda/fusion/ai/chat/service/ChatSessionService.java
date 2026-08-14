@@ -17,13 +17,5 @@ public interface ChatSessionService {
 
     ChatSessionEntity loadOwned(String id);
 
-    /**
-     * 更新会话最后活动时间戳。不做存在性/所有权校验，ID 无效时静默无操作。
-     */
-    void touchLastMessageAt(String id);
-
-    /**
-     * 更新 HITL 待确认工具调用 JSON。传 null 清空。不做存在性/所有权校验。
-     */
-    void updatePendingConfirm(String id, String pendingConfirmJson);
+    ChatSessionEntity loadOwnedForUpdate(String id);
 }

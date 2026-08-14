@@ -60,7 +60,6 @@ public class WorkspaceAuditRecorder {
             for (String relPath : changed) {
                 String snapshotRel = copySnapshot(workspace, relPath, auditDir);
                 WorkspaceAuditEntity entry = new WorkspaceAuditEntity();
-                entry.setTenantId(session.getTenantId());
                 entry.setAppId(app.getId());
                 entry.setSessionId(session.getId());
                 entry.setFilePath(relPath);

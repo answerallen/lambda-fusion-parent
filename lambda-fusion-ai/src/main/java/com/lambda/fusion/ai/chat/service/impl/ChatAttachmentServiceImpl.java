@@ -16,13 +16,6 @@ import com.lambda.fusion.ai.rag.storage.DocumentFileStorage;
 import com.lambda.fusion.ai.rag.storage.DocumentFileStorageResolver;
 import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -31,13 +24,19 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 对话附件服务实现。
  *
  * <p>上传先落临时文件再经 {@link DocumentFileStorage} 持久化（与知识库文档同一套存储后端，
  * 复用 {@code rag.document-storage} 配置）；附件相对路径用独立前缀
- * {@code chat/{tenantId}/{sessionId}/{attachmentId}.{ext}} 与知识库文件隔离。
+ * {@code chat/{sessionId}/{attachmentId}.{ext}} 与知识库文件隔离。
  *
  * <p>孤儿附件（上传后未发送，message_id IS NULL）由 {@link #delete} 主动撤销或
  * {@link #deleteBySession} 会话级联清理，未引入定时清理任务。
@@ -62,7 +61,11 @@ public class ChatAttachmentServiceImpl implements ChatAttachmentService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ChatAttachmentEntity upload(String sessionId, MultipartFile file) {
-        ChatSessionEntity session = chatSessionMapper.selectChatSessionByIdAndUserId(sessionId,AuthUtils.getUsername());
+        ChatSessionEntity session =
+                chatSessionMapper.selectOwned(sessionId, AuthUtils.getUser().getUsername());
+        if (session == null) {
+            throw new AiBusinessException(AiErrorCode.CHAT_SESSION_NOT_FOUND, sessionId);
+        }
         AiProperties.Chat.Attachment cfg = aiProperties.getChat().getAttachment();
         String extension = resolveExtension(file, cfg);
         validateSize(file, cfg);
@@ -105,9 +108,13 @@ public class ChatAttachmentServiceImpl implements ChatAttachmentService {
 
     @Override
     public ChatAttachmentEntity loadOwned(String attachmentId) {
-        ChatAttachmentEntity entity = chatAttachmentMapper.selectOne(new LambdaQueryWrapper<ChatAttachmentEntity>()
-                .eq(ChatAttachmentEntity::getId, attachmentId));
+        ChatAttachmentEntity entity = chatAttachmentMapper.selectById(attachmentId);
         if (entity == null) {
+            throw new AiBusinessException(AiErrorCode.ATTACHMENT_NOT_FOUND, attachmentId);
+        }
+        ChatSessionEntity session = chatSessionMapper.selectOwned(
+                entity.getSessionId(), AuthUtils.getUser().getUsername());
+        if (session == null) {
             throw new AiBusinessException(AiErrorCode.ATTACHMENT_NOT_FOUND, attachmentId);
         }
         return entity;
@@ -119,11 +126,12 @@ public class ChatAttachmentServiceImpl implements ChatAttachmentService {
             ChatSessionEntity session, List<String> attachmentIds, Long messageId) {
         List<ChatAttachmentEntity> attachments = new java.util.ArrayList<>();
         for (String attachmentId : attachmentIds) {
-            ChatAttachmentEntity entity = loadOwned(attachmentId);
-            boolean sessionMatched = session.getId().equals(entity.getSessionId());
-            boolean bindable =
-                    entity.getMessageId() == null || entity.getMessageId().equals(messageId);
-            if (!sessionMatched || !bindable) {
+            LambdaQueryWrapper<ChatAttachmentEntity> query = new LambdaQueryWrapper<ChatAttachmentEntity>()
+                    .eq(ChatAttachmentEntity::getId, attachmentId)
+                    .eq(ChatAttachmentEntity::getSessionId, session.getId());
+            ChatAttachmentEntity entity = chatAttachmentMapper.selectOne(query);
+            if (entity == null
+                    || (entity.getMessageId() != null && !entity.getMessageId().equals(messageId))) {
                 throw new AiBusinessException(AiErrorCode.ATTACHMENT_NOT_FOUND, attachmentId);
             }
             entity.setMessageId(messageId);
@@ -139,7 +147,9 @@ public class ChatAttachmentServiceImpl implements ChatAttachmentService {
             return List.of();
         }
         return chatAttachmentMapper.selectList(new LambdaQueryWrapper<ChatAttachmentEntity>()
-                .in(ChatAttachmentEntity::getMessageId, messageIds));
+                .in(ChatAttachmentEntity::getMessageId, messageIds)
+                .orderByAsc(ChatAttachmentEntity::getMessageId)
+                .orderByAsc(ChatAttachmentEntity::getId));
     }
 
     @Override
@@ -181,13 +191,13 @@ public class ChatAttachmentServiceImpl implements ChatAttachmentService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteBySession(String sessionId) {
-        List<ChatAttachmentEntity> attachments = chatAttachmentMapper.selectList(
-                new LambdaQueryWrapper<ChatAttachmentEntity>().eq(ChatAttachmentEntity::getSessionId, sessionId));
+        LambdaQueryWrapper<ChatAttachmentEntity> query =
+                new LambdaQueryWrapper<ChatAttachmentEntity>().eq(ChatAttachmentEntity::getSessionId, sessionId);
+        List<ChatAttachmentEntity> attachments = chatAttachmentMapper.selectList(query);
         for (ChatAttachmentEntity attachment : attachments) {
             deleteStoredFile(attachment);
         }
-        chatAttachmentMapper.delete(
-                new LambdaQueryWrapper<ChatAttachmentEntity>().eq(ChatAttachmentEntity::getSessionId, sessionId));
+        chatAttachmentMapper.delete(query);
     }
 
     // 按行记录的 storageType 路由删除（配置变更后旧附件仍可删）；失败仅告警不阻断

@@ -30,8 +30,8 @@ import org.apache.commons.lang3.StringUtils;
  * messageId / toolCallId 状态以正确配对 START/CONTENT/END。
  *
  * <p>覆盖：文本(TEXT_MESSAGE_*)、推理(REASONING_MESSAGE_*，开关)、工具调用
- * (TOOL_CALL_START/ARGS/END)、工具结果(TOOL_CALL_RESULT)。HITL
- * (REQUIRE_USER_CONFIRM)、Activity(CUSTOM) 暂未映射，留待后续。
+ * (TOOL_CALL_START/ARGS/END)、工具结果(TOOL_CALL_RESULT) 和 HITL
+ * (REQUIRE_USER_CONFIRM)。Activity(CUSTOM) 当前不映射。
  *
  * <p>工具调用累积：流结束后通过 {@link #getToolCalls()} 获取工具调用快照，
  * 供持久化为历史回放数据，结构与前端 {@code ToolCallRenderer} 的 toolCall prop 对齐。
@@ -50,6 +50,12 @@ public class AguiEventMapper {
 
     /** 当前推理消息 id。 */
     private String reasoningMessageId;
+
+    /** 当前推理分组是否已经开始。 */
+    private boolean reasoningStarted;
+
+    /** 当前推理分组 id。 */
+    private String reasoningGroupId;
 
     /** 已发 ToolCallStart 的 toolCallId（避免重复）。 */
     private final Set<String> startedToolCalls = new HashSet<>();
@@ -126,9 +132,8 @@ public class AguiEventMapper {
         }
         String msgId = resolveId(delta.getReplyId());
         if (!msgId.equals(textMessageId)) {
-            if (textMessageId != null) {
-                out.add(new AguiEvent.TextMessageEnd(threadId, runId, textMessageId));
-            }
+            closeReasoningMessage(out);
+            closeTextMessage(out);
             textMessageId = msgId;
             out.add(new AguiEvent.TextMessageStart(threadId, runId, msgId, "assistant"));
         }
@@ -141,8 +146,14 @@ public class AguiEventMapper {
         }
         String msgId = resolveId(delta.getReplyId());
         if (!msgId.equals(reasoningMessageId)) {
+            closeTextMessage(out);
             if (reasoningMessageId != null) {
                 out.add(new AguiEvent.ReasoningMessageEnd(threadId, runId, reasoningMessageId));
+            }
+            if (!reasoningStarted) {
+                out.add(new AguiEvent.ReasoningStart(threadId, runId, msgId, null));
+                reasoningStarted = true;
+                reasoningGroupId = msgId;
             }
             reasoningMessageId = msgId;
             out.add(new AguiEvent.ReasoningMessageStart(threadId, runId, msgId, "reasoning"));
@@ -227,7 +238,7 @@ public class AguiEventMapper {
      * 映射 HITL 确认请求为 RunFinished(interrupt)：agent 暂停，前端展示确认 UI。
      *
      * <p>每个待确认 ToolUseBlock 产出一个 {@link AguiEvent.Interrupt}（toolCallId 锚定），
-     * 前端用户确认后调回传端点 {@code POST /sessions/{id}/confirm} 恢复。这是 AG-UI 协议
+     * 前端用户确认后调回传端点 {@code POST /sessions/{id}/runs/{runId}/confirm} 恢复。这是 AG-UI 协议
      * 的标准 interrupt 机制（RunFinished + RunFinishedInterruptOutcome），对应 agentscope
      * 的 {@link RequireUserConfirmEvent}。
      *
@@ -240,25 +251,6 @@ public class AguiEventMapper {
         }
         closeActiveMessage(out);
         out.add(new AguiEvent.RunFinished(threadId, runId, null, buildInterruptOutcome(ruc.getToolCalls())));
-    }
-
-    /**
-     * 构造 HITL interrupt 事件序列（RunStarted + RunFinished(interrupt)），供残留 ASKING
-     * 状态重发确认卡片使用（不经过 agent 事件流）。
-     *
-     * <p>与 {@link #mapRequireUserConfirm} 共用 {@link #buildInterruptOutcome}，但不
-     * closeActiveMessage（重发场景无活跃消息）。调用方依次发送即可：RunStarted 让前端
-     * onRunStart reset AGUIAdapter，RunFinished(interrupt) 触发 onComplete 检测填充
-     * pendingInterrupts。
-     *
-     * @param blocks ASKING 状态的 ToolUseBlock 列表（来自 AgentState 或 RequireUserConfirmEvent）
-     * @return RunStarted + RunFinished(interrupt) 事件列表
-     */
-    public List<AguiEvent> buildInterruptEvents(List<ToolUseBlock> blocks) {
-        List<AguiEvent> out = new ArrayList<>();
-        out.add(new AguiEvent.RunStarted(threadId, runId, null, null));
-        out.add(new AguiEvent.RunFinished(threadId, runId, null, buildInterruptOutcome(blocks)));
-        return out;
     }
 
     private AguiEvent.RunFinishedInterruptOutcome buildInterruptOutcome(List<ToolUseBlock> blocks) {
@@ -293,15 +285,35 @@ public class AguiEventMapper {
         return out;
     }
 
+    /** 关闭仍活跃的内容块并构造成功阶段终态；调用方可在持久化提交前后拆开发送。 */
+    public List<AguiEvent> mapCompletion() {
+        List<AguiEvent> out = new ArrayList<>();
+        mapAgentEnd(out);
+        return out;
+    }
+
     /** 关闭活跃的文本/推理消息（工具调用开始或 run 结束前调用）。 */
     private void closeActiveMessage(List<AguiEvent> out) {
+        closeTextMessage(out);
+        closeReasoningMessage(out);
+    }
+
+    private void closeTextMessage(List<AguiEvent> out) {
         if (textMessageId != null) {
             out.add(new AguiEvent.TextMessageEnd(threadId, runId, textMessageId));
             textMessageId = null;
         }
+    }
+
+    private void closeReasoningMessage(List<AguiEvent> out) {
         if (reasoningMessageId != null) {
             out.add(new AguiEvent.ReasoningMessageEnd(threadId, runId, reasoningMessageId));
             reasoningMessageId = null;
+        }
+        if (reasoningStarted) {
+            out.add(new AguiEvent.ReasoningEnd(threadId, runId, reasoningGroupId));
+            reasoningStarted = false;
+            reasoningGroupId = null;
         }
     }
 

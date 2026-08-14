@@ -98,7 +98,7 @@ public class AgentFactory {
     }
 
     public String buildStableAgentId(String appId, String tenantId) {
-        return MD5.create().digestHex("app:" + appId + ":t:" + StringUtils.defaultString(tenantId));
+        return MD5.create().digestHex("app:" + appId + ":t:" + tenantId);
     }
 
     public void invalidateApp(String appId) {

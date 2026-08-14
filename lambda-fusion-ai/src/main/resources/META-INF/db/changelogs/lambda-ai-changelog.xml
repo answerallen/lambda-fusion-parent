@@ -578,4 +578,74 @@
         </addColumn>
     </changeSet>
 
+    <!-- ========== 可恢复对话 Run ========== -->
+    <changeSet id="lambda-ai-202608130001" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="la_ai_chat_run"/>
+            </not>
+        </preConditions>
+        <createTable tableName="la_ai_chat_run" remarks="可恢复对话运行">
+            <column name="id" type="varchar(32)" remarks="业务Run ID">
+                <constraints primaryKey="true" primaryKeyName="pk_la_ai_chat_run" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="session_id" type="varchar(32)" remarks="会话ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="client_request_id" type="varchar(64)" remarks="客户端请求幂等键">
+                <constraints nullable="false"/>
+            </column>
+            <column name="request_hash" type="varchar(64)" remarks="规范请求摘要">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_message_id" type="bigint" remarks="用户消息ID"/>
+            <column name="assistant_message_id" type="bigint" remarks="助手消息ID"/>
+            <column name="status" type="varchar(32)" remarks="Run状态">
+                <constraints nullable="false"/>
+            </column>
+            <column name="finish_reason" type="varchar(64)" remarks="结束原因"/>
+            <column name="phase_no" type="int" defaultValueNumeric="1" remarks="HITL阶段号">
+                <constraints nullable="false"/>
+            </column>
+            <column name="agui_run_id" type="varchar(64)" remarks="当前AG-UI阶段ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="await_confirm_deadline_at" type="datetime" remarks="确认截止时间"/>
+            <column name="snapshot_seq" type="bigint" defaultValueNumeric="0" remarks="快照事件水位">
+                <constraints nullable="false"/>
+            </column>
+            <column name="snapshot_json" type="longtext" remarks="版本化Run展示快照"/>
+            <column name="error_code" type="varchar(64)" remarks="失败码"/>
+            <column name="error_message" type="varchar(1024)" remarks="脱敏失败信息"/>
+            <column name="started_at" type="datetime" remarks="开始时间"/>
+            <column name="finished_at" type="datetime" remarks="结束时间"/>
+            <column name="created_by" type="varchar(128)" remarks="创建用户"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+            <column name="updated_by" type="varchar(128)" remarks="更新用户"/>
+            <column name="updated_at" type="datetime" remarks="更新时间"/>
+        </createTable>
+        <createIndex tableName="la_ai_chat_run" indexName="uk_la_ai_chat_run_request" unique="true">
+            <column name="session_id"/>
+            <column name="client_request_id"/>
+        </createIndex>
+        <createIndex tableName="la_ai_chat_run" indexName="idx_la_ai_chat_run_session">
+            <column name="tenant_id"/>
+            <column name="session_id"/>
+            <column name="created_at"/>
+        </createIndex>
+        <createIndex tableName="la_ai_chat_run" indexName="idx_la_ai_chat_run_status">
+            <column name="status"/>
+            <column name="updated_at"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ========== 长对话最终消息容量 ========== -->
+    <changeSet id="lambda-ai-202608140001" author="Jin">
+        <modifyDataType tableName="ai_chat_message" columnName="content" newDataType="longtext"/>
+        <modifyDataType tableName="ai_chat_message" columnName="tool_call" newDataType="longtext"/>
+    </changeSet>
+
 </databaseChangeLog>

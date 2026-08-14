@@ -106,6 +106,18 @@ public enum AiErrorCode implements ErrorCode {
 
     CHAT_MESSAGE_NOT_FOUND(30202, "对话消息不存在"),
 
+    CHAT_RUN_NOT_FOUND(30203, "对话运行不存在"),
+
+    CHAT_RUN_REQUEST_CONFLICT(30204, "对话请求幂等键冲突"),
+
+    CHAT_RUN_ALREADY_ACTIVE(30205, "会话已有正在运行的对话"),
+
+    CHAT_RUN_CURSOR_EXPIRED(30206, "对话事件游标已过期"),
+
+    CHAT_RUN_EVENTS_EXPIRED(30207, "对话运行事件已过期"),
+
+    CHAT_RUN_STATE_CONFLICT(30208, "对话运行状态冲突"),
+
     ATTACHMENT_NOT_FOUND(30211, "对话附件不存在或已被使用"),
 
     ATTACHMENT_TYPE_NOT_SUPPORTED(30212, "不支持的附件类型"),
