@@ -63,7 +63,8 @@
 
 ### 3.3 条件装配与扩展点（MUST）
 
-- 为模块新增功能时，优先通过 `@ConditionalOnClass` / `@ConditionalOnProperty` / `ObjectProvider` 扩展其 `Configure`，而不是添加无条件 Bean。
+- 条件装配、第三方对象构造和可替换基础设施的默认实现，通过 `@ConditionalOnClass` / `@ConditionalOnProperty` / `@ConditionalOnMissingBean` / `ObjectProvider` 收口到模块 `Configure`。
+- 业务 Service / Component 继续使用 `@Service` / `@Component` 并由模块组件扫描发现；不得仅为了开关一个业务实现而移除 stereotype、改成手工 `@Bean`，也不得把条件注解直接散落到业务 Service 实现类。
 - 优先定义可供下游应用覆盖的扩展点接口（如 `ConfigChangeHandler`、`DataViewProvider`、`DictSourceResolver`、`TreeDataFilter`）。
 
 ### 3.4 自动配置禁令（MUST NOT）
@@ -87,16 +88,21 @@ fusion 模块之间的 `optional=true` 依赖（如 authority → datasource/con
 
 ### 5.1 隔离模型（MUST）
 
-租户隔离为**单一共享库 + 字段级隔离**模型：所有业务表通过 `tenant_id` 列区分租户，不再有按租户切换独立数据源（DEDICATED）的能力。
+租户隔离的默认模型为**单一共享库 + 字段级隔离**：租户业务表通过 `tenant_id` 列区分租户，不再有按租户切换独立数据源（DEDICATED）的能力。
 
-- authority 的 `TenantContextInterceptor` 解析并设置租户上下文（`tenant_id`）。
-- 业务侧通过 `tenant_id` 字段过滤实现隔离，请求期不再按租户切换动态数据源。
-- 动态数据源（`dynamic-datasource` + `p6spy`）仍用于多数据源/多库类型等通用场景，但与租户上下文解耦；演示中 `mybatis-plus.tenant.enabled` 默认为 `false`（租户隔离在应用层处理，而非 MP 租户拦截器）。
+- authority 的 `TenantContextInterceptor` 负责为常规 HTTP 请求解析并设置当前租户上下文（`tenant_id`）。
+- `mybatis-plus.tenant.enabled=true` 时，面向**当前上下文租户**的常规业务 CRUD 以 MyBatis 租户插件作为查询隔离和插入填充的默认机制；同一路径不得再用 Wrapper 重复追加相同 `tenant_id` 条件，也不得手工 `setTenantId` 形成双重机制。
+- authority 的租户/组织/用户开通与管理、平台管理、数据同步等**明确操作目标租户而非当前上下文租户**的受控流程，可以显式传递租户字段、设置目标实体的 `tenantId`、追加目标租户条件，或在确需跨租户访问的 Mapper 上使用 `@InterceptorIgnore(tenantLine = "true")`。此类流程必须有明确的权限入口和目标租户来源，查询/更新仍须按租户或业务主键收窄，并在代码语义或注释中说明绕过原因；不得与当前租户插件过滤叠加成两套事实来源。
+- DTO、查询对象或领域结果中的 `tenantId` 作为业务参数/返回字段，不属于“手工填充数据库租户列”禁令。
+- 动态数据源（`dynamic-datasource` + `p6spy`）仍用于多数据源/多库类型等通用场景，但与租户上下文解耦；请求期不再按租户切换动态数据源。
+- 后台任务、异步回调等脱离请求线程后继续执行普通租户业务时，必须从已完成所有权校验的领域对象恢复 `TenantContextHolder`，并在任务结束后清理/恢复原上下文；明确的跨租户管理流程按上一条例外显式限定目标租户。
+- 无租户上下文会触发框架的系统级缺省策略，只允许用于明确、受控的启动恢复、平台管理或跨租户扫描；取得目标领域对象后，后续普通租户业务必须恢复其真实租户上下文，仍属于跨租户管理职责的操作则必须显式收窄范围。
 
 ### 5.2 多租户禁令（MUST NOT）
 
 - 不得新增按租户切换独立数据源的实现。
-- 不得绕过 `tenant_id` 字段过滤构造跨租户查询路径。
+- 不得在缺少权限校验、明确目标租户和范围约束时，绕过 `tenant_id` 字段过滤构造跨租户查询或写入路径。
+- 不得把 `@InterceptorIgnore(tenantLine = "true")`、手工租户 Wrapper 或实体 `setTenantId` 当作修复普通业务租户上下文缺失的快捷方式；普通租户路径应传播上下文，显式目标租户/跨租户流程按 §5.1 的例外执行。
 
 ## 6. 数据库迁移（Liquibase）契约
 
@@ -105,6 +111,7 @@ fusion 模块之间的 `optional=true` 依赖（如 authority → datasource/con
 - `lambda-cloud-starter-liquibase` 自动聚合 classpath 中所有 `META-INF/db/changelogs/lambda-*-changelog.xml`（正则 `lambda-\w*-changelog.xml`），通过一个 master changelog 执行。
 - **`lambda-datasource-changelog.xml` 被强制最先执行**，`lambda-additional-changelog.xml` 最后执行。
 - 新增/扩展模块表结构时，编辑该模块 `META-INF/db/changelogs/lambda-<module>-changelog.xml`，命名必须严格匹配该模式，否则不会被加载。
+- 已存在于基线的 changeSet 视为可能已经执行，不得删除、改 ID 或改写其内容；结构调整必须追加新的 changeSet。
 
 ### 6.2 同步 SQL（SHOULD）
 
@@ -321,3 +328,18 @@ fusion 模块之间的 `optional=true` 依赖（如 authority → datasource/con
 
 - 不得用散乱 `if (config == xxx)` 判断替代条件装配。
 - 不得引入额外的 feature flag 第三方库（基础框架 `@Conditional*` 已足够）。
+
+## 20. 最小充分设计与变更审计契约
+
+### 20.1 既有事实优先（MUST）
+
+- 新增状态、表、实现类、异常层、配置项或装配分支前，必须先审计既有领域对象、框架拦截器、统一异常机制和可复用 Service；已有事实来源能满足需求时不得复制字段或另建平行事实来源。
+- 设计与实现必须区分“当前已支持”与“未来可能扩展”；不得为尚未纳入本次范围的 Redis、多实例、命令总线、兼容双实现或 feature flag 预埋空壳。
+- 同一业务能力默认保留一个主实现。确需新旧双实现、命令流水表、专用 Advice 或额外配置开关时，必须有可验证的并存/幂等/错误映射需求，不能仅为实现形式完整而新增。
+
+### 20.2 自动化修改禁令（MUST NOT）
+
+- 不得因未核对项目组件扫描与自动配置结构，随意移除业务类的 `@Service` / `@Component`，或把部分业务实现改成 `@Bean`、部分保留 stereotype。
+- 不得因后台线程缺少请求上下文，就在普通租户业务中绕过租户插件、复制 `tenantId` 到多个业务事实、手工设置实体租户字段或为每个 Wrapper 编写租户辅助方法；应从已校验的领域对象传播框架上下文。authority 等显式目标租户/跨租户管理流程按 §5.1 的例外边界执行。
+- 不得把可以由行锁、唯一索引、状态与阶段号直接保证的幂等流程，未经证明确有历史命令查询需求就扩展为额外命令账本。
+- 不得新增只重复统一异常映射职责的局部 `ControllerAdvice`。

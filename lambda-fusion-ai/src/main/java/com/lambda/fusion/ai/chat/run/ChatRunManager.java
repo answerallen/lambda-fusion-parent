@@ -42,16 +42,18 @@ import io.agentscope.core.util.JsonUtils;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.gateway.MsgContext;
+import io.agentscope.harness.agent.gateway.SessionIdUtils;
 import io.agentscope.harness.agent.gateway.channel.OutboundAddress;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -61,6 +63,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -137,7 +141,20 @@ public class ChatRunManager {
         }
     }
 
-    public void resumeConfirmed(ChatRunEntity run, ChatSessionEntity session, ConfirmToolCall command) {
+    public PreparedConfirmation prepareConfirmation(
+            ChatRunEntity run, ChatSessionEntity session, ConfirmToolCall command) {
+        return withTenant(session, () -> {
+            try {
+                return prepareConfirmationInContext(run, session, command);
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        });
+    }
+
+    public void resumePrepared(ChatRunEntity run, ChatSessionEntity session, PreparedConfirmation prepared) {
         withTenant(session, () -> {
             Execution selected = executions.get(run.getId());
             try {
@@ -146,7 +163,7 @@ public class ChatRunManager {
                     Execution existing = executions.putIfAbsent(run.getId(), candidate);
                     selected = existing == null ? candidate : existing;
                 }
-                selected.startConfirmedPhase(run, command);
+                selected.startConfirmedPhase(run, prepared);
             } catch (RuntimeException startFailure) {
                 Execution failed = selected == null ? restoreFinalizer(run, session) : selected;
                 failed.finalizeFailed("START_FAILED", safeMessage(startFailure));
@@ -219,7 +236,7 @@ public class ChatRunManager {
             return;
         }
         try {
-            execution.agent.getDelegate().interrupt(session.getUserId(), run.getSessionId());
+            execution.agent.getDelegate().interrupt(session.getUserId(), execution.agentSessionId);
         } catch (RuntimeException interruptFailure) {
             log.warn("协作式停止Run失败，将等待宽限期后强制停止: runId={}", run.getId(), interruptFailure);
         } finally {
@@ -380,8 +397,15 @@ public class ChatRunManager {
                     .build();
             return agent.streamEvents(message, context);
         }
+        MsgContext context = buildMsgContext(run, session);
+        OutboundAddress outbound = OutboundAddress.direct(CHANNEL_ID, CHANNEL_ID + ":DIRECT:" + run.getSessionId());
+        return gateway.runStream(context, List.of(message), outbound);
+    }
+
+    private MsgContext buildMsgContext(ChatRunEntity run, ChatSessionEntity session) {
+        String tenantId = tenantId(session);
         String stableAgentId = agentFactory.buildStableAgentId(session.getAppId(), tenantId);
-        MsgContext context = new MsgContext(
+        return new MsgContext(
                 CHANNEL_ID,
                 tenantId,
                 run.getSessionId(),
@@ -389,8 +413,15 @@ public class ChatRunManager {
                 null,
                 buildExtra(run, session, stableAgentId, tenantId),
                 session.getUserId());
-        OutboundAddress outbound = OutboundAddress.direct(CHANNEL_ID, CHANNEL_ID + ":DIRECT:" + run.getSessionId());
-        return gateway.runStream(context, List.of(message), outbound);
+    }
+
+    private String resolveAgentSessionId(ChatRunEntity run, ChatSessionEntity session) {
+        HarnessGateway gateway = gatewayProvider.getIfAvailable();
+        if (gateway == null) {
+            return run.getSessionId();
+        }
+        MsgContext context = buildMsgContext(run, session);
+        return "gw-" + SessionIdUtils.deterministicHash(context.canonicalKey());
     }
 
     private static Map<String, String> buildExtra(
@@ -426,17 +457,16 @@ public class ChatRunManager {
         return record;
     }
 
-    private static <T> void withTenant(ChatSessionEntity session, Callable<T> task) {
+    private static <T> T withTenant(ChatSessionEntity session, Callable<T> task) {
         String tenantId = session.getTenantId();
         String previous = TenantContextHolder.getCurrentTenantId();
         try {
             if (StringUtils.isBlank(tenantId)) {
                 TenantContextHolder.getInstance().close();
-                task.call();
-                return;
+            } else {
+                TenantContextHolder.getInstance().setTenantId(tenantId);
             }
-            TenantContextHolder.getInstance().setTenantId(tenantId);
-            task.call();
+            return task.call();
         } catch (RuntimeException runtimeException) {
             throw runtimeException;
         } catch (Exception exception) {
@@ -449,7 +479,68 @@ public class ChatRunManager {
         }
     }
 
+    private PreparedConfirmation prepareConfirmationInContext(
+            ChatRunEntity run, ChatSessionEntity session, ConfirmToolCall command) {
+        if (!ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
+        }
+        if (!Objects.equals(run.getPhaseNo(), command.getPhaseNo())) {
+            throw new AiBusinessException(
+                    AiErrorCode.CHAT_RUN_STATE_CONFLICT,
+                    "phaseNo=" + command.getPhaseNo() + ", current=" + run.getPhaseNo());
+        }
+        if (command.getDecisions() == null || command.getDecisions().isEmpty()) {
+            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "确认决策不能为空");
+        }
+
+        Set<String> decidedIds = new HashSet<>();
+        for (ConfirmToolCall.Decision decision : command.getDecisions()) {
+            if (StringUtils.isBlank(decision.getToolCallId()) || !decidedIds.add(decision.getToolCallId())) {
+                throw new AiBusinessException(
+                        AiErrorCode.INVALID_PARAMETER, "确认决策必须完整且不能重复: " + decision.getToolCallId());
+            }
+        }
+
+        Set<String> snapshotIds = RunSnapshot.fromJson(run.getSnapshotJson()).pendingTools().stream()
+                .map(RunSnapshot.Tool::toolCallId)
+                .collect(Collectors.toSet());
+
+        Execution selected = executions.get(run.getId());
+        if (selected == null) {
+            Execution candidate = restoreExecution(run, session);
+            Execution existing = executions.putIfAbsent(run.getId(), candidate);
+            selected = existing == null ? candidate : existing;
+        }
+        List<ToolUseBlock> askingBlocks = selected.readAskingToolBlocks();
+        Set<String> agentAskingIds =
+                askingBlocks.stream().map(ToolUseBlock::getId).collect(Collectors.toSet());
+
+        if (!snapshotIds.equals(decidedIds) || !snapshotIds.equals(agentAskingIds)) {
+            log.warn(
+                    "确认工具上下文不一致: runId={}, phaseNo={}, snapshotCount={}, decisionCount={}, agentAskingCount={}",
+                    run.getId(),
+                    command.getPhaseNo(),
+                    snapshotIds.size(),
+                    decidedIds.size(),
+                    agentAskingIds.size());
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH, run.getId());
+        }
+
+        Map<String, ToolUseBlock> blockById = askingBlocks.stream()
+                .collect(Collectors.toMap(ToolUseBlock::getId, Function.identity(), (a, b) -> a, LinkedHashMap::new));
+        List<ConfirmResult> results = command.getDecisions().stream()
+                .map(d -> new ConfirmResult(d.isConfirmed(), blockById.get(d.getToolCallId())))
+                .toList();
+        return new PreparedConfirmation(run.getId(), command.getPhaseNo(), results);
+    }
+
     public record BootstrapBatch(long highWatermark, List<String> events, boolean phaseClosed) {}
+
+    public record PreparedConfirmation(String runId, int sourcePhaseNo, List<ConfirmResult> results) {
+        public PreparedConfirmation {
+            results = List.copyOf(results == null ? List.of() : results);
+        }
+    }
 
     private final class Execution {
         private final ChatRunEntity run;
@@ -466,12 +557,15 @@ public class ChatRunManager {
         private AguiEventMapper mapper;
         private List<AguiEvent> pendingConfirmEvents;
 
+        private final String agentSessionId;
+
         private Execution(
                 ChatRunEntity run, ChatSessionEntity session, HarnessAgent agent, RunSnapshot.Accumulator accumulator) {
             this.run = run;
             this.session = session;
             this.agent = agent;
             this.accumulator = accumulator;
+            this.agentSessionId = resolveAgentSessionId(run, session);
             this.mapper = new AguiEventMapper(run.getSessionId(), run.getAguiRunId(), true);
         }
 
@@ -482,7 +576,7 @@ public class ChatRunManager {
             });
         }
 
-        synchronized void startConfirmedPhase(ChatRunEntity updated, ConfirmToolCall command) {
+        synchronized void startConfirmedPhase(ChatRunEntity updated, PreparedConfirmation prepared) {
             if (isRunning() || terminal.get()) {
                 return;
             }
@@ -490,25 +584,54 @@ public class ChatRunManager {
                 finalizeFailed("START_FAILED", "Agent未能恢复");
                 return;
             }
+            if (!Objects.equals(run.getId(), prepared.runId())) {
+                throw new IllegalStateException("PreparedConfirmation 与当前 Run 不匹配: " + prepared.runId());
+            }
+            if (prepared.sourcePhaseNo() + 1 != updated.getPhaseNo()) {
+                throw new IllegalStateException("PreparedConfirmation 阶段号不匹配: " + prepared.sourcePhaseNo());
+            }
             run.setStatus(updated.getStatus());
             run.setPhaseNo(updated.getPhaseNo());
             run.setAguiRunId(updated.getAguiRunId());
             accumulator.beginPhase(run.getAguiRunId(), run.getPhaseNo());
             mapper = new AguiEventMapper(run.getSessionId(), run.getAguiRunId(), true);
             phaseFinished.set(false);
-            List<ToolUseBlock> pending = deserializePendingFromAgentState();
-            List<ConfirmResult> results = new ArrayList<>();
-            for (ConfirmToolCall.Decision decision : command.getDecisions()) {
-                ToolUseBlock target = pending.stream()
-                        .filter(block -> Objects.equals(block.getId(), decision.getToolCallId()))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalStateException("确认工具上下文不存在: " + decision.getToolCallId()));
-                results.add(new ConfirmResult(decision.isConfirmed(), target));
-            }
             Msg confirm = UserMessage.builder()
-                    .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, results))
+                    .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, prepared.results()))
                     .build();
             startPhase(confirm);
+        }
+
+        synchronized List<ToolUseBlock> readAskingToolBlocks() {
+            if (agent == null) {
+                throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
+            }
+            try {
+                var state = agent.getDelegate().getAgentState(session.getUserId(), agentSessionId);
+                if (state == null || state.getContext() == null) {
+                    throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
+                }
+                for (int i = state.getContext().size() - 1; i >= 0; i--) {
+                    Msg message = state.getContext().get(i);
+                    if (message.getRole() != MsgRole.ASSISTANT) {
+                        continue;
+                    }
+                    List<ToolUseBlock> asking = message.getContent().stream()
+                            .filter(block -> block instanceof ToolUseBlock tool
+                                    && tool.getState() == io.agentscope.core.message.ToolCallState.ASKING)
+                            .map(ToolUseBlock.class::cast)
+                            .toList();
+                    if (!asking.isEmpty()) {
+                        return asking;
+                    }
+                }
+            } catch (AiBusinessException e) {
+                throw e;
+            } catch (RuntimeException error) {
+                log.warn("读取HITL Agent状态失败: runId={}", run.getId(), error);
+                throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
+            }
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
         }
 
         synchronized void startPhase(Msg message) {
@@ -838,41 +961,11 @@ public class ChatRunManager {
             try {
                 runService.checkpoint(run, snapshot(), eventStore.latestSeq(run.getId(), run.getSnapshotSeq()));
                 if (agent != null) {
-                    agent.getDelegate().interrupt(session.getUserId(), run.getSessionId());
+                    agent.getDelegate().interrupt(session.getUserId(), agentSessionId);
                 }
             } catch (RuntimeException error) {
                 log.warn("停机中断Run失败: runId={}", run.getId(), error);
             }
-        }
-
-        private List<ToolUseBlock> deserializePendingFromAgentState() {
-            // 快照只保留脱敏工具信息；完整 ToolUseBlock 由 Agent 状态保存，按 session 读取。
-            if (agent == null) {
-                return List.of();
-            }
-            try {
-                var state = agent.getDelegate().getAgentState(session.getUserId(), run.getSessionId());
-                if (state == null || state.getContext() == null) {
-                    return List.of();
-                }
-                for (int i = state.getContext().size() - 1; i >= 0; i--) {
-                    Msg message = state.getContext().get(i);
-                    if (message.getRole() != MsgRole.ASSISTANT) {
-                        continue;
-                    }
-                    List<ToolUseBlock> asking = message.getContent().stream()
-                            .filter(block -> block instanceof ToolUseBlock tool
-                                    && tool.getState() == io.agentscope.core.message.ToolCallState.ASKING)
-                            .map(ToolUseBlock.class::cast)
-                            .toList();
-                    if (!asking.isEmpty()) {
-                        return asking;
-                    }
-                }
-            } catch (RuntimeException error) {
-                log.warn("读取HITL Agent状态失败: runId={}", run.getId(), error);
-            }
-            return List.of();
         }
     }
 }

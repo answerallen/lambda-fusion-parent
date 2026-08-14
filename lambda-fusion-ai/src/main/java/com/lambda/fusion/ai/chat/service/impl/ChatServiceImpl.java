@@ -56,9 +56,13 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command) {
+        ChatRunService.RunContext context = runService.loadOwned(sessionId, runId);
+        ChatRunManager.PreparedConfirmation prepared =
+                runManager.prepareConfirmation(context.run(), context.session(), command);
+
         ChatRunService.ConfirmTransition transition = runService.confirm(sessionId, runId, command);
         if (transition.resumed()) {
-            runManager.resumeConfirmed(transition.run(), transition.session(), command);
+            runManager.resumePrepared(transition.run(), transition.session(), prepared);
         }
         return attach(transition.run(), 0, true);
     }

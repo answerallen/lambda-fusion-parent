@@ -226,7 +226,8 @@ public class AgentFactory {
 
     /**
      * 按配置解析 Agent 状态存储：MEMORY/FILE 内置；MYSQL/POSTGRES/REDIS/OSS/COS 分发到匹配的
-     * {@link StateStoreProvider}（扩展未安装或创建失败时回退 MEMORY，保证启动不阻塞）。
+     * {@link StateStoreProvider}。显式配置非 MEMORY/FILE 类型时，扩展缺失或创建失败必须抛出
+     * {@link AiErrorCode#CONFIGURATION_ERROR}，禁止静默回退 MEMORY。
      */
     static AgentStateStore resolveStateStore(AiProperties props) {
         return resolveStateStore(props, List.of());
@@ -234,27 +235,38 @@ public class AgentFactory {
 
     static AgentStateStore resolveStateStore(AiProperties props, List<StateStoreProvider> providers) {
         AiProperties.StateStore cfg = props.getStateStore();
-        StateStoreType type = StateStoreType.of(Objects.toString(cfg.getType(), StateStoreType.MEMORY.getCode()));
+        String configuredType = cfg.getType();
+        StateStoreType type = StateStoreType.of(configuredType);
+        boolean explicit = StringUtils.isNotBlank(configuredType);
+
         if (type == StateStoreType.FILE) {
             return new JsonFileAgentStateStore(resolveStateRoot(props));
         }
-        if (type == StateStoreType.MEMORY) {
+        if (type == null || type == StateStoreType.MEMORY) {
+            if (explicit && type == null) {
+                throw new AiBusinessException(AiErrorCode.CONFIGURATION_ERROR, "未知的 Agent 状态存储类型: " + configuredType);
+            }
             return new InMemoryAgentStateStore();
         }
+
         try {
-            AgentStateStore store = providers.stream()
+            return providers.stream()
                     .filter(p -> p.type() == type)
                     .findFirst()
                     .map(StateStoreProvider::create)
-                    .orElse(null);
-            if (store != null) {
-                return store;
-            }
-            log.warn("状态存储 {} 的扩展未安装或客户端缺失，回退 MEMORY", type);
+                    .orElseThrow(() -> new AiBusinessException(
+                            AiErrorCode.CONFIGURATION_ERROR, "Agent 状态存储类型 " + type + " 的扩展未安装"));
+        } catch (AiBusinessException e) {
+            throw e;
         } catch (Exception e) {
-            log.warn("状态存储 {} 创建失败，回退 MEMORY: {}", type, e.getMessage());
+            log.error("Agent 状态存储 {} 创建失败", type, e);
+            throw new AiBusinessException(
+                    AiErrorCode.CONFIGURATION_ERROR, "Agent 状态存储 " + type + " 创建失败: " + safeMessage(e));
         }
-        return new InMemoryAgentStateStore();
+    }
+
+    private static String safeMessage(Throwable error) {
+        return error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
     }
 
     /**

@@ -118,6 +118,10 @@ public enum AiErrorCode implements ErrorCode {
 
     CHAT_RUN_STATE_CONFLICT(30208, "对话运行状态冲突"),
 
+    CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE(30209, "确认工具上下文不可用"),
+
+    CHAT_RUN_CONFIRM_CONTEXT_MISMATCH(30210, "确认工具上下文不一致"),
+
     ATTACHMENT_NOT_FOUND(30211, "对话附件不存在或已被使用"),
 
     ATTACHMENT_TYPE_NOT_SUPPORTED(30212, "不支持的附件类型"),

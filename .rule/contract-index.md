@@ -23,6 +23,7 @@
 - 执行与验证：工程契约 §17
 - Git 代码提交规范：工程契约 §18（格式 §18.1 / 粒度 §18.2 / 提交前检查 §18.3 / 禁令 §18.4）
 - 特性开关与条件装配：工程契约 §19
+- 最小充分设计与变更审计：工程契约 §20
 - **标准包分层结构：package-structure.md**
 
 ## B. 关键词索引（用于检索）
@@ -34,9 +35,9 @@
 - `DictEnum` / `@DictMapper` / `BaseEntity` / `@EqualsAndHashCode(callSuper=true)` / `@TableName("la_*")`
 - `@AutoConfiguration` / `*Configure` / `*Properties` / `AutoConfiguration.imports` / 末尾无空行 / `com.lambda.fusion.autoconfig`
 - 配置前缀 / `lambda.fusion.authorize`（authority）/ `lambda.fusion.permission` / `lambda.fusion.datascope` / `lambda.fusion.config` / `lambda.fusion.dict` / `lambda.fusion.datasource` / `lambda.fusion.ai` / cloud-starter 前缀 `lambda.oss` `lambda.security` `lambda.liquibase` `lambda.sse` `lambda.cache`
-- `@ConditionalOnClass` / `@ConditionalOnProperty` / `ObjectProvider` / `optional=true` / 优雅降级 / 扩展点接口（`ConfigChangeHandler` / `DataViewProvider` / `DictSourceResolver` / `TreeDataFilter`）
-- `tenant_id` / `TenantContextInterceptor` / 单一共享库 + 字段级隔离 / `mybatis-plus.tenant.enabled=false` / 动态数据源与租户解耦 / 禁止按租户切换独立数据源
-- Liquibase / `META-INF/db/changelogs` / `lambda-*-changelog.xml` / `lambda-datasource-changelog.xml` 最先 / `lambda-additional-changelog.xml` 最后 / 命名严格匹配
+- `@Service` / `@Component` / `@Bean` 边界 / `@ConditionalOnClass` / `@ConditionalOnProperty` / `@ConditionalOnMissingBean` / `ObjectProvider` / optional=true / 优雅降级 / 条件装配收口 Configure
+- `tenant_id` / `TenantContextInterceptor` / `TenantContextHolder` / 单一共享库 + 字段级隔离 / `mybatis-plus.tenant.enabled=true` / 普通租户 CRUD 默认使用租户插件 / 显式目标租户 / authority 租户开通与管理 / 受控跨租户流程 / `setTenantId` 与 `@InterceptorIgnore(tenantLine=true)` 例外边界 / 后台租户上下文传播
+- Liquibase / `META-INF/db/changelogs` / `lambda-*-changelog.xml` / `lambda-datasource-changelog.xml` 最先 / `lambda-additional-changelog.xml` 最后 / 命名严格匹配 / 禁止改写既有 changeSet
 - Dubbo / `ServiceBean` / `ReferenceBean` / `@ConditionalOnClass` / `RemoteAuthenticationService` 继承 `StpInterface` / `AuthorityConfigure.DubboServiceConfiguration` / `TenantManager` 条件创建 / Nacos 可选
 - Entity / Mapper / `BaseMapper` / `LambdaBaseMapper` / `model/` 禁业务逻辑 / Controller 禁直连 Mapper
 - 包结构 / 模块根级共享 + 子域内分层 / `exception/` / `{Domain}Constants` / `controller` `mapper` `model` `service/impl` / 禁止 `commons/` 包 / 禁止旧式 `vo` `dto` `entity` 集中包
@@ -49,5 +50,6 @@
 - 执行验证 / 冲突先澄清 / 缺失提修订 / `mvn compile` 通过 / 提交前 `mvn verify`
 - Git 提交 / Conventional Commits / type（feat/fix/refactor/style/docs/chore/test/perf）/ scope 优先完整模块名 / subject 中英文 / 原子提交 / 规则文件独立提交 / 禁止裸 fix/refactor / 禁止 --no-verify / 禁止 force push 主分支
 - 特性开关 / `@ConditionalOnProperty` / `matchIfMissing` / 回退装配安全降级 / Nacos `@RefreshScope` / 禁止 if 配置判断 / 禁止 feature flag 库
+- 最小充分设计 / 既有事实来源 / 禁止无需求双实现 / 禁止预埋 Redis 多实例空壳 / 禁止重复 ControllerAdvice / 行锁唯一索引阶段号优先 / 自动化修改错误复盘
 - 模块深度文档 / `docs/skills/<module>/SKILL.md` / 自动配置入口 / 改造入口
 - 例外/过渡条款 / 宪章 §7 登记 / `lambda-fusion-oss` 目录名 vs pom `<name>`=upload / changelog=`lambda-upload-changelog.xml` 命名分歧（待对齐）/ 仅 `lambda-fusion-ai` 有测试（待补）

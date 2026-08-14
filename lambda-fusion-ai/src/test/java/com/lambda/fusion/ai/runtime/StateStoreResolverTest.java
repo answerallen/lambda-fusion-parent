@@ -1,9 +1,12 @@
 package com.lambda.fusion.ai.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lambda.fusion.ai.AiConstants.StateStoreType;
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
 import io.agentscope.core.state.AgentStateStore;
 import io.agentscope.core.state.InMemoryAgentStateStore;
@@ -16,7 +19,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * 验证 {@link AgentFactory#resolveStateStore} 按配置选择 MEMORY / FILE，并按 type 分发到
- * {@link StateStoreProvider}（无匹配 provider 或创建失败时回退 MEMORY）。
+ * {@link StateStoreProvider}。显式配置非 MEMORY/FILE 类型时，扩展缺失或创建失败必须启动失败，
+ * 不再静默回退 MEMORY。
  *
  * @author Jin
  */
@@ -54,18 +58,23 @@ class StateStoreResolverTest {
     }
 
     @Test
-    void unknownTypeFallsBackToInMemory() {
+    void unknownTypeFailsFast() {
         AiProperties props = new AiProperties();
         props.getStateStore().setType("UNKNOWN_STORAGE");
-        assertThat(AgentFactory.resolveStateStore(props)).isInstanceOf(InMemoryAgentStateStore.class);
+        assertThatThrownBy(() -> AgentFactory.resolveStateStore(props))
+                .isInstanceOf(AiBusinessException.class)
+                .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
+                        .isEqualTo(AiErrorCode.CONFIGURATION_ERROR.getCode()));
     }
 
     @Test
-    void distributedTypeWithoutProviderFallsBackToInMemory() {
+    void distributedTypeWithoutProviderFailsFast() {
         AiProperties props = new AiProperties();
         props.getStateStore().setType("REDIS");
-        // 无 provider（扩展未安装）-> 回退 MEMORY
-        assertThat(AgentFactory.resolveStateStore(props)).isInstanceOf(InMemoryAgentStateStore.class);
+        assertThatThrownBy(() -> AgentFactory.resolveStateStore(props))
+                .isInstanceOf(AiBusinessException.class)
+                .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
+                        .isEqualTo(AiErrorCode.CONFIGURATION_ERROR.getCode()));
     }
 
     @Test
@@ -91,7 +100,7 @@ class StateStoreResolverTest {
     }
 
     @Test
-    void providerMismatchFallsBackToInMemory() {
+    void providerMismatchFailsFast() {
         StateStoreProvider redisProvider = new StateStoreProvider() {
             @Override
             public StateStoreType type() {
@@ -106,13 +115,14 @@ class StateStoreResolverTest {
         AiProperties props = new AiProperties();
         props.getStateStore().setType("MYSQL"); // 只有 REDIS provider，不匹配
 
-        AgentStateStore store = AgentFactory.resolveStateStore(props, List.of(redisProvider));
-
-        assertThat(store).isInstanceOf(InMemoryAgentStateStore.class);
+        assertThatThrownBy(() -> AgentFactory.resolveStateStore(props, List.of(redisProvider)))
+                .isInstanceOf(AiBusinessException.class)
+                .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
+                        .isEqualTo(AiErrorCode.CONFIGURATION_ERROR.getCode()));
     }
 
     @Test
-    void providerFailureFallsBackToInMemory() {
+    void providerFailureFailsFast() {
         StateStoreProvider failingProvider = new StateStoreProvider() {
             @Override
             public StateStoreType type() {
@@ -127,8 +137,9 @@ class StateStoreResolverTest {
         AiProperties props = new AiProperties();
         props.getStateStore().setType("REDIS");
 
-        AgentStateStore store = AgentFactory.resolveStateStore(props, List.of(failingProvider));
-
-        assertThat(store).isInstanceOf(InMemoryAgentStateStore.class);
+        assertThatThrownBy(() -> AgentFactory.resolveStateStore(props, List.of(failingProvider)))
+                .isInstanceOf(AiBusinessException.class)
+                .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
+                        .isEqualTo(AiErrorCode.CONFIGURATION_ERROR.getCode()));
     }
 }
