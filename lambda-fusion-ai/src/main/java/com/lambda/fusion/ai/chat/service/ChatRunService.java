@@ -1,17 +1,19 @@
 package com.lambda.fusion.ai.chat.service;
 
 import com.lambda.fusion.ai.chat.model.ChatRun;
-import com.lambda.fusion.ai.chat.model.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
+import com.lambda.fusion.ai.chat.model.ConfirmTransition;
+import com.lambda.fusion.ai.chat.model.RunContext;
 import com.lambda.fusion.ai.chat.model.SendMessage;
-import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
-import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.run.RunSnapshot;
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
-/** 对话 Run 的事务状态机。 */
+/**
+ * 对话 Run 的 HTTP 编排面：供 Controller 链路使用，方法内置会话归属校验。
+ *
+ * <p>执行器侧（无归属校验、{@code REQUIRES_NEW} 独立提交）的状态迁移口见
+ * {@link ChatRunStateService}；两个接口由 {@code ChatRunServiceImpl} 单实现承载。
+ * 出入参信封 {@link RunContext} / {@link ConfirmTransition} 定义在 {@code chat.model}。
+ */
 public interface ChatRunService {
 
     RunContext createOrLoad(String sessionId, SendMessage message);
@@ -23,48 +25,4 @@ public interface ChatRunService {
     RunContext loadOwned(String sessionId, String runId);
 
     ConfirmTransition confirm(String sessionId, String runId, ConfirmToolCall command);
-
-    boolean claimCreated(ChatRunEntity run);
-
-    boolean checkpoint(ChatRunEntity run, RunSnapshot snapshot, long seq);
-
-    boolean awaitConfirm(ChatRunEntity run, RunSnapshot snapshot, long seq, LocalDateTime deadline);
-
-    boolean requestStopping(ChatRunEntity run);
-
-    boolean requestConfirmationTimeout(ChatRunEntity run, LocalDateTime deadline);
-
-    FinalizeResult finalizeRun(
-            ChatRunEntity run,
-            ChatRunStatus targetStatus,
-            String finishReason,
-            RunSnapshot snapshot,
-            String toolCallJson,
-            long lastSeq,
-            String errorCode,
-            String errorMessage);
-
-    void recordTerminalSeq(ChatRunEntity run, RunSnapshot snapshot, long seq);
-
-    ChatRunEntity loadCurrent(String runId);
-
-    ChatSessionEntity loadSession(ChatRunEntity run);
-
-    List<ChatRunEntity> listCreated();
-
-    List<ChatRunEntity> listInterruptedOnRestart();
-
-    List<ChatRunEntity> listExpiredConfirmations(LocalDateTime deadline);
-
-    record RunContext(ChatRunEntity run, ChatSessionEntity session) {}
-
-    record ConfirmTransition(ChatRunEntity run, ChatSessionEntity session, boolean resumed) {}
-
-    record FinalizeResult(
-            boolean committed,
-            Long assistantMessageId,
-            String status,
-            String finishReason,
-            String errorCode,
-            String errorMessage) {}
 }

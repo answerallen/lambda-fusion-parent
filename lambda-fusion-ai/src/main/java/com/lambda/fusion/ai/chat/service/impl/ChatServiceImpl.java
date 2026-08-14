@@ -2,15 +2,17 @@ package com.lambda.fusion.ai.chat.service.impl;
 
 import com.lambda.cloud.core.utils.Assert;
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.chat.execution.agui.AguiEventJsonCodec;
+import com.lambda.fusion.ai.chat.execution.event.ExecutionEvent;
+import com.lambda.fusion.ai.chat.execution.event.ExecutionEventSubscription;
+import com.lambda.fusion.ai.chat.execution.runtime.ExecutionCoordinator;
 import com.lambda.fusion.ai.chat.model.ChatRun;
 import com.lambda.fusion.ai.chat.model.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
+import com.lambda.fusion.ai.chat.model.ConfirmTransition;
+import com.lambda.fusion.ai.chat.model.RunContext;
 import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
-import com.lambda.fusion.ai.chat.run.AguiJson;
-import com.lambda.fusion.ai.chat.run.ChatRunEvent;
-import com.lambda.fusion.ai.chat.run.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.run.ChatRunManager;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
 import com.lambda.fusion.ai.chat.service.ChatService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
@@ -28,14 +30,14 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class ChatServiceImpl implements ChatService {
 
     private final ChatRunService runService;
-    private final ChatRunManager runManager;
+    private final ExecutionCoordinator executionCoordinator;
     private final AiProperties properties;
 
     @Override
     public SseEmitter streamChat(String sessionId, SendMessage message) {
         Assert.isTrue(message.isContentOrAttachmentPresent(), "消息内容与附件不能同时为空");
-        ChatRunService.RunContext context = runService.createOrLoad(sessionId, message);
-        runManager.ensureStarted(context.run(), context.session());
+        RunContext context = runService.createOrLoad(sessionId, message);
+        executionCoordinator.ensureStarted(context.run(), context.session());
         return attach(context.run(), 0, true);
     }
 
@@ -56,34 +58,34 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command) {
-        ChatRunService.RunContext context = runService.loadOwned(sessionId, runId);
-        ChatRunManager.PreparedConfirmation prepared =
-                runManager.prepareConfirmation(context.run(), context.session(), command);
+        RunContext context = runService.loadOwned(sessionId, runId);
+        ExecutionCoordinator.PreparedConfirmation prepared =
+                executionCoordinator.prepareConfirmation(context.run(), context.session(), command);
 
-        ChatRunService.ConfirmTransition transition = runService.confirm(sessionId, runId, command);
+        ConfirmTransition transition = runService.confirm(sessionId, runId, command);
         if (transition.resumed()) {
-            runManager.resumePrepared(transition.run(), transition.session(), prepared);
+            executionCoordinator.resumePrepared(transition.run(), transition.session(), prepared);
         }
         return attach(transition.run(), 0, true);
     }
 
     @Override
     public void stop(String sessionId, String runId) {
-        ChatRunService.RunContext context = runService.loadOwned(sessionId, runId);
-        runManager.stop(context.run(), context.session());
+        RunContext context = runService.loadOwned(sessionId, runId);
+        executionCoordinator.stop(context.run(), context.session());
     }
 
     private SseEmitter attach(ChatRunEntity run, long afterSeq, boolean bootstrap) {
-        runManager.validateCursor(run, afterSeq, bootstrap);
+        executionCoordinator.validateCursor(run, afterSeq, bootstrap);
         long timeout = properties.getChat().getRun().getConnectionTimeoutSeconds() * 1000;
         SseEmitter emitter = new SseEmitter(timeout);
         AtomicBoolean detached = new AtomicBoolean();
-        AtomicReference<ChatRunEventStore.Subscription> subscription = new AtomicReference<>();
+        AtomicReference<ExecutionEventSubscription> subscription = new AtomicReference<>();
         Runnable detach = () -> {
             if (!detached.compareAndSet(false, true)) {
                 return;
             }
-            ChatRunEventStore.Subscription current = subscription.getAndSet(null);
+            ExecutionEventSubscription current = subscription.getAndSet(null);
             if (current != null) {
                 current.close();
             }
@@ -96,7 +98,7 @@ public class ChatServiceImpl implements ChatService {
             long cursor = afterSeq;
             boolean phaseClosed = false;
             if (bootstrap) {
-                ChatRunManager.BootstrapBatch batch = runManager.bootstrap(run);
+                ExecutionCoordinator.BootstrapBatch batch = executionCoordinator.bootstrap(run);
                 for (String event : batch.events()) {
                     emitter.send(SseEmitter.event().data(event));
                 }
@@ -107,7 +109,7 @@ public class ChatServiceImpl implements ChatService {
                     || ChatRunStatus.isTerminal(run.getStatus())
                     || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
                 if (!bootstrap) {
-                    ChatRunEventStore.Subscription replay = runManager.subscribe(
+                    ExecutionEventSubscription replay = executionCoordinator.subscribe(
                             run.getId(), cursor, event -> send(emitter, event), emitter::completeWithError);
                     subscription.set(replay);
                     if (detached.get()) {
@@ -120,7 +122,7 @@ public class ChatServiceImpl implements ChatService {
                 emitter.complete();
                 return emitter;
             }
-            ChatRunEventStore.Subscription attached = runManager.subscribe(
+            ExecutionEventSubscription attached = executionCoordinator.subscribe(
                     run.getId(), cursor, event -> send(emitter, event), emitter::completeWithError);
             subscription.set(attached);
             if (detached.get()) {
@@ -136,10 +138,10 @@ public class ChatServiceImpl implements ChatService {
         return emitter;
     }
 
-    private static void send(SseEmitter emitter, ChatRunEvent event) {
+    private static void send(SseEmitter emitter, ExecutionEvent event) {
         try {
             emitter.send(SseEmitter.event().id(event.id()).data(event.data()));
-            String type = AguiJson.eventType(event.data());
+            String type = AguiEventJsonCodec.readEventType(event.data());
             if ("RUN_FINISHED".equals(type) || "RUN_ERROR".equals(type)) {
                 emitter.complete();
             }

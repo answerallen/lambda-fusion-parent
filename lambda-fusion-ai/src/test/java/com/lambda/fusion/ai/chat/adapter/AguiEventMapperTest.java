@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.chat.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.lambda.fusion.ai.chat.execution.agui.AguiEventMapper;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
@@ -99,6 +100,15 @@ class AguiEventMapperTest {
     }
 
     @Test
+    void toolResultStartDoesNotRepeatToolCallStart() {
+        AguiEventMapper mapper = newMapper(true);
+        mapper.map(new ToolCallStartEvent("reply-1", "tc-1", "search"));
+
+        assertThat(mapper.map(new ToolResultStartEvent("reply-1", "tc-1", "search")))
+                .isEmpty();
+    }
+
+    @Test
     void reasoningEmitsOnlyWhenEnabled() {
         AguiEventMapper enabled = newMapper(true);
         List<AguiEvent> withReasoning = enabled.map(new ThinkingBlockDeltaEvent("r-1", "b-1", "思考"));
@@ -121,25 +131,6 @@ class AguiEventMapperTest {
         assertThat(events).hasSize(2);
         assertThat(events.get(0)).isInstanceOf(AguiEvent.TextMessageEnd.class);
         assertThat(events.get(1)).isInstanceOf(AguiEvent.ToolCallStart.class);
-    }
-
-    @Test
-    void getToolCallsReturnsCompletedSnapshot() {
-        AguiEventMapper mapper = newMapper(true);
-        mapper.map(new ToolCallStartEvent("reply-1", "tc-1", "search"));
-        mapper.map(new ToolCallDeltaEvent("reply-1", "tc-1", "search", "{\"q\":\"x\"}"));
-        mapper.map(new ToolCallEndEvent("reply-1", "tc-1", "search"));
-        mapper.map(new ToolResultStartEvent("reply-1", "tc-1", "search"));
-        mapper.map(new ToolResultTextDeltaEvent("reply-1", "tc-1", "search", "result-text"));
-        mapper.map(new ToolResultEndEvent("reply-1", "tc-1", "search", ToolResultState.SUCCESS));
-
-        List<AguiEventMapper.ToolCallRecord> calls = mapper.getToolCalls();
-        assertThat(calls).hasSize(1);
-        AguiEventMapper.ToolCallRecord call = calls.get(0);
-        assertThat(call.toolCallId()).isEqualTo("tc-1");
-        assertThat(call.toolCallName()).isEqualTo("search");
-        assertThat(call.args()).isEqualTo("{\"q\":\"x\"}");
-        assertThat(call.result()).isEqualTo("result-text");
     }
 
     @Test

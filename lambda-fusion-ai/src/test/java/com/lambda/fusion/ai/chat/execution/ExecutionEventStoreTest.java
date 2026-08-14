@@ -1,21 +1,26 @@
-package com.lambda.fusion.ai.chat.run;
+package com.lambda.fusion.ai.chat.execution;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.chat.execution.event.ExecutionEvent;
+import com.lambda.fusion.ai.chat.execution.event.ExecutionEventCursorWindow;
+import com.lambda.fusion.ai.chat.execution.event.ExecutionEventStore;
+import com.lambda.fusion.ai.chat.execution.event.ExecutionEventSubscription;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-class ChatRunEventStoreTest {
+class ExecutionEventStoreTest {
 
-    private ChatRunEventStore store;
+    private ExecutionEventStore store;
 
     @AfterEach
     void tearDown() {
@@ -31,9 +36,9 @@ class ChatRunEventStoreTest {
         store.append("run-1", "phase-1", "{\"type\":\"RUN_STARTED\"}");
         store.append("run-1", "phase-1", "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"delta\":\"a\"}");
 
-        List<ChatRunEvent> received = new CopyOnWriteArrayList<>();
+        List<ExecutionEvent> received = new CopyOnWriteArrayList<>();
         CountDownLatch latch = new CountDownLatch(2);
-        ChatRunEventStore.Subscription subscription = store.subscribe(
+        ExecutionEventSubscription subscription = store.subscribe(
                 "run-1",
                 1,
                 event -> {
@@ -44,7 +49,7 @@ class ChatRunEventStoreTest {
         store.append("run-1", "phase-1", "{\"type\":\"TEXT_MESSAGE_CONTENT\",\"delta\":\"b\"}");
 
         assertThat(latch.await(2, TimeUnit.SECONDS)).isTrue();
-        assertThat(received).extracting(ChatRunEvent::seq).containsExactly(2L, 3L);
+        assertThat(received).extracting(ExecutionEvent::seq).containsExactly(2L, 3L);
         assertThat(received.getLast().data())
                 .contains("\"chatRunId\":\"run-1\"")
                 .contains("\"runId\":\"phase-1\"")
@@ -58,7 +63,7 @@ class ChatRunEventStoreTest {
         store.append("run-1", "phase-1", "{\"type\":\"A\"}");
         List<Long> received = new CopyOnWriteArrayList<>();
         CountDownLatch replayed = new CountDownLatch(1);
-        ChatRunEventStore.Subscription subscription = store.subscribe(
+        ExecutionEventSubscription subscription = store.subscribe(
                 "run-1",
                 0,
                 event -> {
@@ -79,11 +84,81 @@ class ChatRunEventStoreTest {
     }
 
     @Test
+    void shouldRunDrainedActionAfterReplayIsConsumed() throws Exception {
+        store = newStore(64, 64);
+        store.append("run-1", "phase-1", "{\"type\":\"A\"}");
+        store.append("run-1", "phase-1", "{\"type\":\"B\"}");
+        List<String> timeline = new CopyOnWriteArrayList<>();
+        CountDownLatch latch = new CountDownLatch(3);
+
+        ExecutionEventSubscription subscription = store.subscribe(
+                "run-1",
+                0,
+                event -> {
+                    timeline.add("event-" + event.seq());
+                    latch.countDown();
+                },
+                error -> {});
+        subscription.whenDrained(() -> {
+            timeline.add("drained");
+            latch.countDown();
+        });
+
+        assertThat(latch.await(2, TimeUnit.SECONDS)).isTrue();
+        assertThat(timeline).containsExactly("event-1", "event-2", "drained");
+        subscription.close();
+    }
+
+    @Test
+    void shouldNotifyAndDetachSlowSubscriberWhenQueueIsFull() throws Exception {
+        store = newStore(64, 1);
+        store.initialize("run-1", 0);
+        List<Long> received = new CopyOnWriteArrayList<>();
+        CountDownLatch consumerEntered = new CountDownLatch(1);
+        CountDownLatch releaseConsumer = new CountDownLatch(1);
+        CountDownLatch failed = new CountDownLatch(1);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        ExecutionEventSubscription subscription = store.subscribe(
+                "run-1",
+                0,
+                event -> {
+                    received.add(event.seq());
+                    consumerEntered.countDown();
+                    try {
+                        releaseConsumer.await(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                    }
+                },
+                error -> {
+                    failure.set(error);
+                    failed.countDown();
+                });
+
+        try {
+            store.append("run-1", "phase-1", "{\"type\":\"A\"}");
+            assertThat(consumerEntered.await(2, TimeUnit.SECONDS)).isTrue();
+            store.append("run-1", "phase-1", "{\"type\":\"B\"}");
+            store.append("run-1", "phase-1", "{\"type\":\"C\"}");
+
+            assertThat(failed.await(2, TimeUnit.SECONDS)).isTrue();
+            assertThat(failure.get()).hasMessageContaining("Run订阅者消费过慢");
+            store.append("run-1", "phase-1", "{\"type\":\"D\"}");
+        } finally {
+            releaseConsumer.countDown();
+            subscription.close();
+        }
+
+        Thread.sleep(20);
+        assertThat(received).containsExactly(1L);
+    }
+
+    @Test
     void shouldAppendTerminalOnlyOnceForSameKind() {
         store = newStore(64, 64);
-        ChatRunEvent first =
+        ExecutionEvent first =
                 store.appendTerminalIfAbsent("run-1", "phase-1", "COMPLETED", "{\"type\":\"RUN_FINISHED\"}");
-        ChatRunEvent retried =
+        ExecutionEvent retried =
                 store.appendTerminalIfAbsent("run-1", "phase-1", "COMPLETED", "{\"type\":\"RUN_FINISHED\"}");
 
         assertThat(retried).isEqualTo(first);
@@ -119,7 +194,7 @@ class ChatRunEventStoreTest {
         store.append("run-1", "phase-1", "{\"type\":\"C\"}");
         store.compact("run-1", 3);
 
-        assertThat(store.cursorWindow("run-1")).isEqualTo(new ChatRunEventStore.CursorWindow(2, 3));
+        assertThat(store.cursorWindow("run-1")).isEqualTo(new ExecutionEventCursorWindow(2, 3));
         assertThatThrownBy(() -> store.cursorWindow("missing")).isInstanceOf(AiBusinessException.class);
     }
 
@@ -130,10 +205,10 @@ class ChatRunEventStoreTest {
                 "run-1", "phase-1", List.of("{\"type\":\"A\"}", "{\"type\":\"B\"}", "{\"type\":\"C\"}"));
 
         assertThat(checkpointRequired).isTrue();
-        assertThat(store.cursorWindow("run-1")).isEqualTo(new ChatRunEventStore.CursorWindow(1, 3));
+        assertThat(store.cursorWindow("run-1")).isEqualTo(new ExecutionEventCursorWindow(1, 3));
         assertThatThrownBy(() -> store.compact("run-1", 0)).isInstanceOf(IllegalStateException.class);
         store.compact("run-1", 3);
-        assertThat(store.cursorWindow("run-1")).isEqualTo(new ChatRunEventStore.CursorWindow(2, 3));
+        assertThat(store.cursorWindow("run-1")).isEqualTo(new ExecutionEventCursorWindow(2, 3));
     }
 
     @Test
@@ -147,12 +222,12 @@ class ChatRunEventStoreTest {
         assertThatThrownBy(() -> store.cursorWindow("run-1")).isInstanceOf(AiBusinessException.class);
     }
 
-    private static ChatRunEventStore newStore(int maxEvents, int queueSize) {
+    private static ExecutionEventStore newStore(int maxEvents, int queueSize) {
         AiProperties properties = new AiProperties();
         properties.getChat().getRun().setMaxEvents(maxEvents);
         properties.getChat().getRun().setMaxBytes(65_536);
         properties.getChat().getRun().setSubscriberQueueSize(queueSize);
-        return new ChatRunEventStore(properties);
+        return new ExecutionEventStore(properties);
     }
 
     private static void awaitSize(List<?> values, int expected) throws InterruptedException {

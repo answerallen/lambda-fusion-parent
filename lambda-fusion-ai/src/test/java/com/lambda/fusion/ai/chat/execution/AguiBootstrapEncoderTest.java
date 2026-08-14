@@ -1,18 +1,21 @@
-package com.lambda.fusion.ai.chat.run;
+package com.lambda.fusion.ai.chat.execution;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.lambda.fusion.ai.chat.execution.agui.AguiBootstrapEncoder;
+import com.lambda.fusion.ai.chat.execution.agui.AguiEventJsonCodec;
+import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshot;
 import com.lambda.fusion.ai.chat.model.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class RunBootstrapEncoderTest {
+class AguiBootstrapEncoderTest {
 
     @Test
     void shouldBuildCompleteBootstrapWithoutCommittedSequenceNumbers() {
         ChatRunEntity run = run(ChatRunStatus.RUNNING);
-        RunSnapshot snapshot = new RunSnapshot(
+        ExecutionSnapshot snapshot = new ExecutionSnapshot(
                 run.getId(),
                 run.getAguiRunId(),
                 2,
@@ -22,10 +25,10 @@ class RunBootstrapEncoderTest {
                 "reasoning-1",
                 true,
                 false,
-                List.of(new RunSnapshot.Tool("tool-1", "search", "{q:1}", "result", "complete")),
+                List.of(new ExecutionSnapshot.Tool("tool-1", "search", "{q:1}", "result", "complete")),
                 List.of());
 
-        List<String> events = RunBootstrapEncoder.encode(run, snapshot, 17);
+        List<String> events = AguiBootstrapEncoder.encode(run, snapshot, 17);
 
         assertThat(events.getFirst())
                 .contains("\"type\":\"RUN_STARTED\"")
@@ -47,12 +50,26 @@ class RunBootstrapEncoderTest {
                 .anyMatch(event -> event.contains("\"type\":\"TEXT_MESSAGE_START\"")
                         && event.contains("\"messageId\":\"text-1\""));
         assertThat(events).noneMatch(event -> event.contains("\"type\":\"RAW\""));
+        assertThat(events.stream().map(AguiEventJsonCodec::readEventType))
+                .containsExactly(
+                        "RUN_STARTED",
+                        "REASONING_START",
+                        "REASONING_MESSAGE_START",
+                        "REASONING_MESSAGE_CONTENT",
+                        "REASONING_MESSAGE_END",
+                        "REASONING_END",
+                        "TOOL_CALL_START",
+                        "TOOL_CALL_ARGS",
+                        "TOOL_CALL_END",
+                        "TOOL_CALL_RESULT",
+                        "TEXT_MESSAGE_START",
+                        "TEXT_MESSAGE_CONTENT");
     }
 
     @Test
     void shouldRestoreAwaitingConfirmationAsInterrupt() {
         ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM);
-        RunSnapshot snapshot = new RunSnapshot(
+        ExecutionSnapshot snapshot = new ExecutionSnapshot(
                 run.getId(),
                 run.getAguiRunId(),
                 2,
@@ -63,9 +80,9 @@ class RunBootstrapEncoderTest {
                 false,
                 false,
                 List.of(),
-                List.of(new RunSnapshot.Tool("tool-1", "dangerous", "", "", "asking")));
+                List.of(new ExecutionSnapshot.Tool("tool-1", "dangerous", "", "", "asking")));
 
-        assertThat(RunBootstrapEncoder.encode(run, snapshot, 9))
+        assertThat(AguiBootstrapEncoder.encode(run, snapshot, 9))
                 .anyMatch(event -> event.contains("\"type\":\"RUN_FINISHED\"")
                         && event.contains("\"type\":\"interrupt\"")
                         && event.contains("tool-1"));
@@ -74,7 +91,7 @@ class RunBootstrapEncoderTest {
     @Test
     void shouldLeaveInProgressToolOpenForFollowingDeltas() {
         ChatRunEntity run = run(ChatRunStatus.RUNNING);
-        RunSnapshot snapshot = new RunSnapshot(
+        ExecutionSnapshot snapshot = new ExecutionSnapshot(
                 run.getId(),
                 run.getAguiRunId(),
                 2,
@@ -84,13 +101,44 @@ class RunBootstrapEncoderTest {
                 null,
                 false,
                 false,
-                List.of(new RunSnapshot.Tool("tool-1", "search", "{\"q\":", "", "running")),
+                List.of(new ExecutionSnapshot.Tool("tool-1", "search", "{\"q\":", "", "running")),
                 List.of());
 
-        List<String> events = RunBootstrapEncoder.encode(run, snapshot, 10);
+        List<String> events = AguiBootstrapEncoder.encode(run, snapshot, 10);
 
         assertThat(events).anyMatch(event -> event.contains("\"type\":\"TOOL_CALL_ARGS\""));
         assertThat(events).noneMatch(event -> event.contains("\"type\":\"TOOL_CALL_END\""));
+    }
+
+    @Test
+    void shouldEncodeFailedRunAsRunError() {
+        ChatRunEntity run = run(ChatRunStatus.FAILED);
+        run.setErrorCode("MODEL_ERROR");
+        run.setErrorMessage("model unavailable");
+
+        List<String> events =
+                AguiBootstrapEncoder.encode(run, ExecutionSnapshot.empty(run.getId(), run.getAguiRunId(), 2), 5);
+
+        assertThat(events).hasSize(2);
+        assertThat(events.getLast())
+                .contains("\"type\":\"RUN_ERROR\"")
+                .contains("\"message\":\"model unavailable\"")
+                .contains("\"code\":\"MODEL_ERROR\"");
+    }
+
+    @Test
+    void shouldEncodeStoppedRunAsSuccessfulTerminalEvent() {
+        ChatRunEntity run = run(ChatRunStatus.STOPPED);
+        run.setFinishReason("USER_STOP");
+
+        List<String> events =
+                AguiBootstrapEncoder.encode(run, ExecutionSnapshot.empty(run.getId(), run.getAguiRunId(), 2), 6);
+
+        assertThat(events).hasSize(2);
+        assertThat(events.getLast())
+                .contains("\"type\":\"RUN_FINISHED\"")
+                .contains("\"chatRunStatus\":\"STOPPED\"")
+                .contains("\"finishReason\":\"USER_STOP\"");
     }
 
     private static ChatRunEntity run(ChatRunStatus status) {

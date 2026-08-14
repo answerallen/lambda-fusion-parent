@@ -13,17 +13,18 @@ import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.lambda.fusion.ai.apps.service.AppService;
+import com.lambda.fusion.ai.chat.execution.model.FinalizeCommand;
+import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshot;
 import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.chat.model.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
+import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.run.RunSnapshot;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
-import com.lambda.fusion.ai.chat.service.ChatRunService;
 import com.lambda.fusion.ai.chat.service.ChatSessionService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
@@ -76,8 +77,9 @@ class ChatRunServiceImplTest {
         when(messageService.saveAssistantMessage(session, "partial", null)).thenReturn(assistant);
         when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
 
-        var result = service.finalizeRun(
-                identity, ChatRunStatus.COMPLETED, "SUCCESS", snapshot("partial"), null, 5, null, null);
+        var result = service.finalizeExecution(
+                identity,
+                new FinalizeCommand(ChatRunStatus.COMPLETED, "SUCCESS", snapshot("partial"), null, 5, null, null));
 
         assertThat(result.status()).isEqualTo(ChatRunStatus.STOPPED.name());
         assertThat(result.finishReason()).isEqualTo("USER_STOP");
@@ -123,7 +125,7 @@ class ChatRunServiceImplTest {
         when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
 
         ConfirmToolCall command = confirmCommand(2, List.of(decision("call_1", true)));
-        ChatRunService.ConfirmTransition transition = service.confirm("session-1", "run-1", command);
+        ConfirmTransition transition = service.confirm("session-1", "run-1", command);
 
         assertThat(transition.resumed()).isTrue();
         assertThat(transition.run().getStatus()).isEqualTo(ChatRunStatus.RUNNING.name());
@@ -140,7 +142,7 @@ class ChatRunServiceImplTest {
         when(runMapper.selectOne(any())).thenReturn(run);
 
         ConfirmToolCall command = confirmCommand(2, List.of(decision("call_1", true)));
-        ChatRunService.ConfirmTransition transition = service.confirm("session-1", "run-1", command);
+        ConfirmTransition transition = service.confirm("session-1", "run-1", command);
 
         assertThat(transition.resumed()).isFalse();
         assertThat(transition.run().getPhaseNo()).isEqualTo(3);
@@ -220,15 +222,15 @@ class ChatRunServiceImplTest {
         return run;
     }
 
-    private static ChatRunEntity awaitingConfirmRun(int phaseNo, RunSnapshot snapshot) {
+    private static ChatRunEntity awaitingConfirmRun(int phaseNo, ExecutionSnapshot snapshot) {
         ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM);
         run.setPhaseNo(phaseNo);
         run.setSnapshotJson(io.agentscope.core.util.JsonUtils.getJsonCodec().toJson(snapshot));
         return run;
     }
 
-    private static RunSnapshot snapshotWithPendingTool(String toolCallId) {
-        return new RunSnapshot(
+    private static ExecutionSnapshot snapshotWithPendingTool(String toolCallId) {
+        return new ExecutionSnapshot(
                 "run-1",
                 "phase-1",
                 1,
@@ -239,7 +241,7 @@ class ChatRunServiceImplTest {
                 false,
                 false,
                 List.of(),
-                List.of(new RunSnapshot.Tool(toolCallId, "demo_tool", "", "", "asking")));
+                List.of(new ExecutionSnapshot.Tool(toolCallId, "demo_tool", "", "", "asking")));
     }
 
     private static ConfirmToolCall confirmCommand(int phaseNo, List<ConfirmToolCall.Decision> decisions) {
@@ -256,7 +258,7 @@ class ChatRunServiceImplTest {
         return decision;
     }
 
-    private static RunSnapshot snapshot(String text) {
-        return new RunSnapshot("run-1", "phase-1", 1, text, "", "message-1", null, false, false, null, null);
+    private static ExecutionSnapshot snapshot(String text) {
+        return new ExecutionSnapshot("run-1", "phase-1", 1, text, "", "message-1", null, false, false, null, null);
     }
 }
