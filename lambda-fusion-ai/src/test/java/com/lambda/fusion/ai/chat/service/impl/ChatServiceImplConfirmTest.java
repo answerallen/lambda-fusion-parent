@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.execution.runtime.ExecutionCoordinator;
-import com.lambda.fusion.ai.chat.model.ChatRunStatus;
+import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.RunContext;

@@ -1,11 +1,20 @@
 package com.lambda.fusion.ai.chat.execution.event;
 
-/** Run 事件订阅句柄。 */
+/**
+ * 对话执行事件订阅。
+ *
+ * @author Jin
+ */
 public interface ExecutionEventSubscription extends AutoCloseable {
 
-    /** 在历史回放和当前排队事件均发送完成后执行回调。 */
+    /**
+     * 注册队列排空回调。
+     *
+     * @param action 历史事件和实时队列发送完成后执行的回调
+     */
     void whenDrained(Runnable action);
 
+    /** 关闭订阅。 */
     @Override
     void close();
 }

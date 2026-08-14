@@ -8,16 +8,34 @@ import java.util.Map;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/** 工具调用持久化数据的归一化与敏感信息脱敏。 */
+/**
+ * 执行快照数据清理工具。
+ *
+ * <p>负责工具调用数据归一化，并在持久化前屏蔽常见凭据字段。
+ *
+ * @author Jin
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ExecutionSnapshotSanitizer {
 
+    /**
+     * 清理工具调用快照。
+     *
+     * @param tools 工具调用快照
+     * @return 清理后的工具调用快照
+     */
     public static List<ExecutionSnapshot.Tool> sanitizeTools(List<ExecutionSnapshot.Tool> tools) {
         return tools == null
                 ? List.of()
                 : tools.stream().map(ExecutionSnapshotSanitizer::sanitizeTool).toList();
     }
 
+    /**
+     * 清理待确认工具调用快照。
+     *
+     * @param tools 待确认工具调用
+     * @return 不包含参数和结果的待确认工具调用快照
+     */
     public static List<ExecutionSnapshot.Tool> sanitizePendingTools(List<ExecutionSnapshot.Tool> tools) {
         return tools == null
                 ? List.of()
@@ -28,6 +46,12 @@ public final class ExecutionSnapshotSanitizer {
                         .toList();
     }
 
+    /**
+     * 屏蔽文本中的常见凭据信息。
+     *
+     * @param value 原始文本
+     * @return 清理后的文本
+     */
     public static String redactText(String value) {
         return safe(value)
                 .replaceAll("(?i)(bearer\\s+)[a-z0-9._~+/=-]+", "$1***")

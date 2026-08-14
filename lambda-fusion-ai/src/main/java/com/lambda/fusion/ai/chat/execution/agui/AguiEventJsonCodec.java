@@ -4,11 +4,24 @@ import io.agentscope.core.util.JsonUtils;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** AG-UI 事件 JSON 的解析、扩展与编码边界。 */
+/**
+ * AG-UI 事件 JSON 编解码工具。
+ *
+ * @author Jin
+ */
 public final class AguiEventJsonCodec {
 
     private AguiEventJsonCodec() {}
 
+    /**
+     * 为事件 JSON 添加运行标识和事件序号。
+     *
+     * @param json 原始事件 JSON
+     * @param chatRunId 对话运行标识
+     * @param aguiRunId AG-UI 运行标识
+     * @param seq 事件序号
+     * @return 添加元数据后的事件 JSON
+     */
     @SuppressWarnings("unchecked")
     public static String withRunMetadata(String json, String chatRunId, String aguiRunId, long seq) {
         Map<String, Object> source = JsonUtils.getJsonCodec().fromJson(json.trim(), Map.class);
@@ -19,6 +32,15 @@ public final class AguiEventJsonCodec {
         return JsonUtils.getJsonCodec().toJson(enriched);
     }
 
+    /**
+     * 编码引导事件并添加引导元数据。
+     *
+     * @param event 事件字段
+     * @param chatRunId 对话运行标识
+     * @param aguiRunId AG-UI 运行标识
+     * @param bootstrapSeq 引导事件对应的事件序号上界
+     * @return 引导事件 JSON
+     */
     public static String encodeBootstrapEvent(
             Map<String, Object> event, String chatRunId, String aguiRunId, long bootstrapSeq) {
         Map<String, Object> enriched = new LinkedHashMap<>(event);
@@ -29,6 +51,12 @@ public final class AguiEventJsonCodec {
         return JsonUtils.getJsonCodec().toJson(enriched);
     }
 
+    /**
+     * 读取事件类型。
+     *
+     * @param json 事件 JSON
+     * @return 事件类型；不存在时返回 {@code null}
+     */
     @SuppressWarnings("unchecked")
     public static String readEventType(String json) {
         Map<String, Object> event = JsonUtils.getJsonCodec().fromJson(json, Map.class);
@@ -36,6 +64,14 @@ public final class AguiEventJsonCodec {
         return type == null ? null : String.valueOf(type);
     }
 
+    /**
+     * 为终态事件添加业务状态和结束原因。
+     *
+     * @param json 终态事件 JSON
+     * @param status 业务状态
+     * @param finishReason 结束原因
+     * @return 添加终态元数据后的事件 JSON
+     */
     @SuppressWarnings("unchecked")
     public static String withTerminalMetadata(String json, String status, String finishReason) {
         Map<String, Object> source = JsonUtils.getJsonCodec().fromJson(json.trim(), Map.class);

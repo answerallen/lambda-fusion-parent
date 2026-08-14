@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.chat.execution.event;
 
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.chat.execution.event.ExecutionEventCursor;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import jakarta.annotation.PreDestroy;
@@ -14,7 +15,13 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import org.springframework.stereotype.Component;
 
-/** 单实例 Run 事件存储门面；管理各 Run 的事件缓冲区及其生命周期。 */
+/**
+ * 对话执行事件存储。
+ *
+ * <p>按运行标识管理内存事件缓冲区，并提供事件追加、游标查询、订阅和过期清理功能。
+ *
+ * @author Jin
+ */
 @Component
 public class ExecutionEventStore {
 
@@ -24,25 +31,60 @@ public class ExecutionEventStore {
     private final Map<String, RunEventBuffer> buffers = new HashMap<>();
     private final ExecutorService senderExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
+    /**
+     * 创建事件存储。
+     *
+     * @param properties AI 模块配置
+     */
     public ExecutionEventStore(AiProperties properties) {
         this.maxEvents = properties.getChat().getRun().getMaxEvents();
         this.maxBytes = properties.getChat().getRun().getMaxBytes();
         this.subscriberQueueSize = properties.getChat().getRun().getSubscriberQueueSize();
     }
 
+    /**
+     * 初始化运行的事件序号。
+     *
+     * @param runId 运行标识
+     * @param latestSeq 已持久化的最新事件序号
+     */
     public void initialize(String runId, long latestSeq) {
         buffer(runId).initialize(latestSeq);
     }
 
+    /**
+     * 追加一个 AG-UI 事件。
+     *
+     * @param runId 运行标识
+     * @param aguiRunId AG-UI 运行标识
+     * @param aguiJson 事件 JSON
+     * @return 已编号的执行事件
+     */
     public ExecutionEvent append(String runId, String aguiRunId, String aguiJson) {
         return buffer(runId).append(List.of(aguiJson), aguiRunId, null).events().getFirst();
     }
 
-    /** 批量写入同一个 Agent 事件映射出的 AG-UI 事件；返回是否需要先持久化快照再收缩缓冲。 */
+    /**
+     * 批量追加同一 Agent 事件映射出的 AG-UI 事件。
+     *
+     * @param runId 运行标识
+     * @param aguiRunId AG-UI 运行标识
+     * @param aguiJsonEvents 事件 JSON 列表
+     * @return 缓冲区超过容量限制时返回 {@code true}
+     */
     public boolean appendAll(String runId, String aguiRunId, List<String> aguiJsonEvents) {
         return buffer(runId).append(aguiJsonEvents, aguiRunId, null).checkpointRequired();
     }
 
+    /**
+     * 追加指定类型的终态事件；相同类型已存在时返回原事件。
+     *
+     * @param runId 运行标识
+     * @param aguiRunId AG-UI 运行标识
+     * @param terminalKind 终态类型
+     * @param aguiJson 终态事件 JSON
+     * @return 新增或已存在的终态事件
+     */
     public ExecutionEvent appendTerminalIfAbsent(String runId, String aguiRunId, String terminalKind, String aguiJson) {
         return buffer(runId)
                 .append(List.of(aguiJson), aguiRunId, terminalKind)
@@ -50,7 +92,13 @@ public class ExecutionEventStore {
                 .getFirst();
     }
 
-    /** 仅淘汰已被持久化快照覆盖的旧事件。 */
+    /**
+     * 删除已由持久化快照覆盖的超量事件。
+     *
+     * @param runId 运行标识
+     * @param snapshotSeq 快照覆盖的最大事件序号
+     * @throws IllegalStateException 快照未覆盖需要删除的事件
+     */
     public void compact(String runId, long snapshotSeq) {
         RunEventBuffer current;
         synchronized (buffers) {
@@ -61,7 +109,14 @@ public class ExecutionEventStore {
         }
     }
 
-    public ExecutionEventCursorWindow cursorWindow(String runId) {
+    /**
+     * 查询运行的可订阅游标窗口。
+     *
+     * @param runId 运行标识
+     * @return 游标窗口
+     * @throws AiBusinessException 运行事件已过期或不存在
+     */
+    public ExecutionEventCursor cursorWindow(String runId) {
         RunEventBuffer buffer;
         synchronized (buffers) {
             buffer = buffers.get(runId);
@@ -72,6 +127,16 @@ public class ExecutionEventStore {
         return buffer.cursorWindow();
     }
 
+    /**
+     * 订阅指定游标之后的事件。
+     *
+     * @param runId 运行标识
+     * @param afterSeq 已消费的事件序号
+     * @param consumer 事件消费者
+     * @param failureConsumer 发送失败消费者
+     * @return 订阅句柄
+     * @throws AiBusinessException 运行事件不存在或游标无效
+     */
     public ExecutionEventSubscription subscribe(
             String runId, long afterSeq, Consumer<ExecutionEvent> consumer, Consumer<Throwable> failureConsumer) {
         RunEventBuffer buffer;
@@ -84,6 +149,13 @@ public class ExecutionEventStore {
         return buffer.subscribe(afterSeq, consumer, failureConsumer);
     }
 
+    /**
+     * 查询运行的最新事件序号。
+     *
+     * @param runId 运行标识
+     * @param fallback 缓冲区不存在时使用的序号
+     * @return 最新事件序号
+     */
     public long latestSeq(String runId, Long fallback) {
         RunEventBuffer buffer;
         synchronized (buffers) {
@@ -92,6 +164,12 @@ public class ExecutionEventStore {
         return buffer == null ? (fallback == null ? 0L : fallback) : buffer.latestSeq();
     }
 
+    /**
+     * 标记终态缓冲区的过期时间。
+     *
+     * @param runId 运行标识
+     * @param retention 终态事件保留时长
+     */
     public void markTerminal(String runId, Duration retention) {
         buffer(runId).markExpiresAt(System.currentTimeMillis() + retention.toMillis());
     }
@@ -118,6 +196,7 @@ public class ExecutionEventStore {
         }
     }
 
+    /** 删除所有已到期的终态缓冲区。 */
     public void purgeExpired() {
         long now = System.currentTimeMillis();
         Map<String, RunEventBuffer> current;
@@ -133,6 +212,7 @@ public class ExecutionEventStore {
         expired.forEach(runId -> clear(runId, current.get(runId)));
     }
 
+    /** 关闭事件订阅并释放发送线程池。 */
     @PreDestroy
     public void shutdown() {
         List<String> runIds;

@@ -13,7 +13,7 @@ import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.execution.event.ExecutionEventStore;
 import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshot;
-import com.lambda.fusion.ai.chat.model.ChatRunStatus;
+import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;

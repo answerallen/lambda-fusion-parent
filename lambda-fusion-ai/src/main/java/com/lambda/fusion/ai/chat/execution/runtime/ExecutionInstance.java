@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.chat.execution.runtime;
 
+import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.execution.agui.AguiBootstrapEncoder;
 import com.lambda.fusion.ai.chat.execution.agui.AguiEventJsonCodec;
@@ -10,7 +11,6 @@ import com.lambda.fusion.ai.chat.execution.model.FinalizeCommand;
 import com.lambda.fusion.ai.chat.execution.model.FinalizeResult;
 import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshot;
 import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshotCodec;
-import com.lambda.fusion.ai.chat.model.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
@@ -62,20 +62,29 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
 /**
- * 单次 Run 执行的协调器：持有 Agent Flux 订阅、消费事件推进快照检查点，并驱动终态两阶段提交。
+ * 单个对话运行的执行实例。
  *
- * <p>并发模型：生命周期内的状态变更方法均以本实例为锁（{@code synchronized}），网络回调经
- * {@link #runInTenant} 恢复租户上下文后串行进入；由 {@link ExecutionCoordinator} 保证同一 Run 至多一个实例。
+ * <p>负责持有 Agent 事件流、更新执行快照、写入检查点并提交运行终态。生命周期状态由实例锁和原子变量协调。
  *
- * <p>本类由 {@link ExecutionCoordinator} 构造：{@code agent == null} 表示不构建 Agent 的终结器，
- * 用于容量拒绝、实例丢失、确认等待超时及启动构建失败场景。
+ * @author Jin
  */
 @Slf4j
 final class ExecutionInstance {
 
     private static final String CHANNEL_ID = "fusion-chat";
 
-    /** 执行实例的共享基础设施依赖集，由 {@link ExecutionCoordinator} 统一构造后随实例传递。 */
+    /**
+     * 执行实例依赖。
+     *
+     * @param runService 运行状态服务
+     * @param eventStore 运行事件存储
+     * @param properties AI 模块配置
+     * @param scheduler 定时任务执行器
+     * @param workspaceAuditRecorder 工作区审计记录器
+     * @param gatewayProvider Agent 网关提供器
+     * @param agentFactory Agent 工厂
+     * @param executions 活动执行实例集合
+     */
     record Support(
             ChatRunStateService runService,
             ExecutionEventStore eventStore,
@@ -111,6 +120,15 @@ final class ExecutionInstance {
 
     final String agentSessionId;
 
+    /**
+     * 创建执行实例。
+     *
+     * @param support 执行实例依赖
+     * @param run 运行实体
+     * @param session 会话实体
+     * @param agent Agent 实例；仅执行终结流程时可为 {@code null}
+     * @param accumulator 快照累加器
+     */
     ExecutionInstance(
             Support support,
             ChatRunEntity run,
@@ -133,6 +151,11 @@ final class ExecutionInstance {
         this.mapper = new AguiEventMapper(run.getSessionId(), run.getAguiRunId(), true);
     }
 
+    /**
+     * 在运行所属租户上下文中执行任务。
+     *
+     * @param task 待执行任务
+     */
     void runInTenant(Runnable task) {
         ExecutionCoordinator.withTenant(session, () -> {
             task.run();
@@ -140,6 +163,13 @@ final class ExecutionInstance {
         });
     }
 
+    /**
+     * 使用已确认的工具调用结果启动下一阶段。
+     *
+     * @param updated 更新后的运行实体
+     * @param prepared 已校验的确认结果
+     * @throws IllegalStateException 确认结果与当前运行或阶段不匹配
+     */
     synchronized void startConfirmedPhase(ChatRunEntity updated, ExecutionCoordinator.PreparedConfirmation prepared) {
         if (isRunning() || terminal.get()) {
             return;
@@ -166,6 +196,12 @@ final class ExecutionInstance {
         startPhase(confirm);
     }
 
+    /**
+     * 读取 Agent 状态中等待确认的工具调用。
+     *
+     * @return 待确认工具调用
+     * @throws AiBusinessException Agent 状态不可用或不存在待确认工具调用
+     */
     synchronized List<ToolUseBlock> readAskingToolBlocks() {
         if (agent == null) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
@@ -198,6 +234,11 @@ final class ExecutionInstance {
         throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
     }
 
+    /**
+     * 启动一个 Agent 执行阶段。
+     *
+     * @param message 阶段输入消息
+     */
     synchronized void startPhase(Msg message) {
         if (terminal.get() || isRunning()) {
             return;
@@ -252,8 +293,7 @@ final class ExecutionInstance {
             accumulator.awaiting(confirm.getToolCalls().stream()
                     .map(tool -> new ExecutionSnapshot.Tool(tool.getId(), tool.getName(), "", "", "asking"))
                     .toList());
-            // AgentScope 会在本次 Flux 自然完成前保存 ASKING 状态。这里不能 dispose，
-            // AWAITING_CONFIRM 与 interrupt 事件统一在 onComplete 中发布。
+            // AgentScope 在事件流结束时持久化 ASKING 状态。
             phaseFinished.set(true);
             return;
         }
@@ -363,20 +403,37 @@ final class ExecutionInstance {
         return StringUtils.defaultIfBlank(replyId, run.getAguiRunId());
     }
 
-    /** 回读 Run 落库现状；行已被清理时退回内存标识对象，语义与 {@link ExecutionCoordinator} 侧一致。 */
+    /**
+     * 查询最新持久化运行。
+     *
+     * @param identity 运行标识实体
+     * @return 最新运行实体；记录不存在时返回传入实体
+     */
     private ChatRunEntity loadCurrent(ChatRunEntity identity) {
         ChatRunEntity current = runService.loadCurrent(identity.getId());
         return current == null ? identity : current;
     }
 
+    /** 将运行终结为完成状态。 */
     synchronized void finalizeCompleted() {
         finalizeTerminal(ChatRunStatus.COMPLETED, "SUCCESS", null, null);
     }
 
+    /**
+     * 将运行终结为停止状态。
+     *
+     * @param reason 停止原因
+     */
     synchronized void finalizeStopped(String reason) {
         finalizeTerminal(ChatRunStatus.STOPPED, reason, null, null);
     }
 
+    /**
+     * 将运行终结为失败状态。
+     *
+     * @param errorCode 错误码
+     * @param errorMessage 错误信息
+     */
     synchronized void finalizeFailed(String errorCode, String errorMessage) {
         finalizeTerminal(ChatRunStatus.FAILED, "ERROR", errorCode, errorMessage);
     }
@@ -470,6 +527,11 @@ final class ExecutionInstance {
         }
     }
 
+    /**
+     * 生成当前运行的 AG-UI 引导事件。
+     *
+     * @return 引导事件批次
+     */
     synchronized ExecutionCoordinator.BootstrapBatch bootstrap() {
         long highWatermark = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         return new ExecutionCoordinator.BootstrapBatch(
@@ -479,10 +541,20 @@ final class ExecutionInstance {
                         || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus()));
     }
 
+    /**
+     * 获取当前执行快照。
+     *
+     * @return 执行快照
+     */
     synchronized ExecutionSnapshot snapshot() {
         return accumulator.snapshot();
     }
 
+    /**
+     * 立即写入执行检查点并收缩事件缓冲区。
+     *
+     * @throws IllegalStateException 非终态运行的检查点写入失败
+     */
     synchronized void checkpointNow() {
         long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         if (!runService.checkpoint(run, accumulator.snapshot(), seq)) {
@@ -498,6 +570,11 @@ final class ExecutionInstance {
         lastCheckpointNanos = System.nanoTime();
     }
 
+    /**
+     * 在检查点间隔到期时写入执行快照。
+     *
+     * @param nowNanos 当前单调时钟值
+     */
     synchronized void checkpointIfDue(long nowNanos) {
         if (terminal.get() || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
             return;
@@ -508,15 +585,22 @@ final class ExecutionInstance {
         }
     }
 
+    /**
+     * 判断 Agent 事件流是否正在运行。
+     *
+     * @return 事件流未结束时返回 {@code true}
+     */
     boolean isRunning() {
         Disposable current = disposable.get();
         return current != null && !current.isDisposed();
     }
 
+    /** 将内存运行状态标记为停止中。 */
     synchronized void markStopping() {
         run.setStatus(ChatRunStatus.STOPPING.name());
     }
 
+    /** 取消活动事件流并终结运行。 */
     void forceStopIfRunning() {
         Disposable current = disposable.getAndSet(null);
         if (current != null && !current.isDisposed()) {
@@ -525,6 +609,7 @@ final class ExecutionInstance {
         finalizeStopped("USER_STOP");
     }
 
+    /** 保存当前检查点并中断 Agent。 */
     void interruptForShutdown() {
         try {
             runService.checkpoint(run, snapshot(), eventStore.latestSeq(run.getId(), run.getSnapshotSeq()));

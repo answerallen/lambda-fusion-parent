@@ -17,7 +17,7 @@ import com.lambda.fusion.ai.chat.execution.model.FinalizeCommand;
 import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshot;
 import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
-import com.lambda.fusion.ai.chat.model.ChatRunStatus;
+import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;

@@ -20,15 +20,9 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * agentscope AgentEvent -> AG-UI AguiEvent 映射器。
+ * AgentScope 事件到 AG-UI 事件的映射器。
  *
- * <p>消费 v2 {@code streamEvents} 的细粒度事件流，映射为 AG-UI 协议事件，
- * 供前端 TDesign AGUIAdapter 直接消费。每个对话流新建一个实例，内部维护
- * messageId / toolCallId 状态以正确配对 START/CONTENT/END。
- *
- * <p>覆盖：文本(TEXT_MESSAGE_*)、推理(REASONING_MESSAGE_*，开关)、工具调用
- * (TOOL_CALL_START/ARGS/END)、工具结果(TOOL_CALL_RESULT) 和 HITL
- * (REQUIRE_USER_CONFIRM)。Activity(CUSTOM) 当前不映射。
+ * <p>实例按运行阶段创建，负责维护文本、推理和工具调用事件的配对状态。
  *
  * @author Jin
  */
@@ -39,20 +33,20 @@ public class AguiEventMapper {
     private final boolean enableReasoning;
     private final AguiEventEncoder encoder;
 
-    /** 当前文本消息 id（replyId）；切换时关闭上一条。 */
     private String textMessageId;
-
-    /** 当前推理消息 id。 */
     private String reasoningMessageId;
-
-    /** 当前推理分组是否已经开始。 */
     private boolean reasoningStarted;
-
-    /** 当前推理分组 id。 */
     private String reasoningGroupId;
 
     private final AguiToolCallTracker toolCallTracker = new AguiToolCallTracker();
 
+    /**
+     * 创建事件映射器。
+     *
+     * @param threadId AG-UI 线程标识
+     * @param runId AG-UI 运行标识
+     * @param enableReasoning 是否输出推理事件
+     */
     public AguiEventMapper(String threadId, String runId, boolean enableReasoning) {
         this.threadId = threadId;
         this.runId = runId;
@@ -61,10 +55,10 @@ public class AguiEventMapper {
     }
 
     /**
-     * 映射单个 AgentEvent 为 0..n 个 AguiEvent（一条事件可能产出 START+CONTENT 等）。
+     * 将单个 AgentScope 事件映射为 AG-UI 事件。
      *
-     * @param event agentscope 原始事件
-     * @return 映射后的 AG-UI 事件列表（可能为空，表示该事件不产出 AG-UI 事件）
+     * @param event AgentScope 事件
+     * @return AG-UI 事件列表；无对应协议事件时返回空列表
      */
     public List<AguiEvent> map(AgentEvent event) {
         List<AguiEvent> result = new ArrayList<>();
@@ -81,20 +75,16 @@ public class AguiEventMapper {
             case TOOL_RESULT_END -> mapToolResultEnd(event, result);
             case REQUIRE_USER_CONFIRM -> mapRequireUserConfirm(event, result);
             case AGENT_END -> mapAgentEnd(result);
-            default -> {
-                /* 未映射事件忽略；Activity 后续补 */
-            }
+            default -> {}
         }
         return result;
     }
 
     /**
-     * 编码为 SSE data 字段值（JSON 字符串，配合 SseEmitter.event().data() 使用）。
-     *
-     * <p>返回带前导空格的 JSON，SseEmitter 生成 "data: {json}"，符合 AG-UI SSE 格式。
+     * 将 AG-UI 事件编码为 JSON。
      *
      * @param event AG-UI 事件
-     * @return SSE data 字段值
+     * @return 事件 JSON
      */
     public String encodeToJson(AguiEvent event) {
         return encoder.encodeToJson(event);
@@ -164,7 +154,6 @@ public class AguiEventMapper {
             return;
         }
         closeActiveMessage(out);
-        // 补 ToolCallStart（若上游未发，如直接进结果阶段）
         if (toolCallTracker.markStarted(tr.getToolCallId())) {
             out.add(new AguiEvent.ToolCallStart(threadId, runId, tr.getToolCallId(), tr.getToolCallName()));
         }
@@ -191,17 +180,6 @@ public class AguiEventMapper {
         out.add(new AguiEvent.RunFinished(threadId, runId, null, new AguiEvent.RunFinishedSuccessOutcome()));
     }
 
-    /**
-     * 映射 HITL 确认请求为 RunFinished(interrupt)：agent 暂停，前端展示确认 UI。
-     *
-     * <p>每个待确认 ToolUseBlock 产出一个 {@link AguiEvent.Interrupt}（toolCallId 锚定），
-     * 前端用户确认后调回传端点 {@code POST /sessions/{id}/runs/{runId}/confirm} 恢复。这是 AG-UI 协议
-     * 的标准 interrupt 机制（RunFinished + RunFinishedInterruptOutcome），对应 agentscope
-     * 的 {@link RequireUserConfirmEvent}。
-     *
-     * @param event agentscope 确认请求事件
-     * @param out 输出列表
-     */
     private void mapRequireUserConfirm(AgentEvent event, List<AguiEvent> out) {
         if (!(event instanceof RequireUserConfirmEvent ruc)) {
             return;
@@ -226,12 +204,10 @@ public class AguiEventMapper {
     }
 
     /**
-     * 映射流异常为 RunError 事件（先关闭活跃消息，再发出错误）。
+     * 将执行异常映射为 AG-UI 错误事件。
      *
-     * <p>message 取异常 message，为空时退回异常类名；code 暂留 null。
-     *
-     * @param error 异常
-     * @return 含 RunError 的事件列表
+     * @param error 执行异常
+     * @return 包含消息关闭事件和运行错误事件的列表
      */
     public List<AguiEvent> mapError(Throwable error) {
         List<AguiEvent> out = new ArrayList<>();
@@ -242,14 +218,17 @@ public class AguiEventMapper {
         return out;
     }
 
-    /** 关闭仍活跃的内容块并构造成功阶段终态；调用方可在持久化提交前后拆开发送。 */
+    /**
+     * 生成正常完成事件。
+     *
+     * @return 包含消息关闭事件和运行完成事件的列表
+     */
     public List<AguiEvent> mapCompletion() {
         List<AguiEvent> out = new ArrayList<>();
         mapAgentEnd(out);
         return out;
     }
 
-    /** 关闭活跃的文本/推理消息（工具调用开始或 run 结束前调用）。 */
     private void closeActiveMessage(List<AguiEvent> out) {
         closeTextMessage(out);
         closeReasoningMessage(out);

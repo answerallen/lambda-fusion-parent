@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.execution.event.ExecutionEvent;
-import com.lambda.fusion.ai.chat.execution.event.ExecutionEventCursorWindow;
 import com.lambda.fusion.ai.chat.execution.event.ExecutionEventStore;
 import com.lambda.fusion.ai.chat.execution.event.ExecutionEventSubscription;
+import com.lambda.fusion.ai.chat.execution.event.ExecutionEventCursor;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import java.time.Duration;
 import java.util.List;
@@ -194,7 +194,7 @@ class ExecutionEventStoreTest {
         store.append("run-1", "phase-1", "{\"type\":\"C\"}");
         store.compact("run-1", 3);
 
-        assertThat(store.cursorWindow("run-1")).isEqualTo(new ExecutionEventCursorWindow(2, 3));
+        assertThat(store.cursorWindow("run-1")).isEqualTo(new ExecutionEventCursor(2, 3));
         assertThatThrownBy(() -> store.cursorWindow("missing")).isInstanceOf(AiBusinessException.class);
     }
 
@@ -205,10 +205,10 @@ class ExecutionEventStoreTest {
                 "run-1", "phase-1", List.of("{\"type\":\"A\"}", "{\"type\":\"B\"}", "{\"type\":\"C\"}"));
 
         assertThat(checkpointRequired).isTrue();
-        assertThat(store.cursorWindow("run-1")).isEqualTo(new ExecutionEventCursorWindow(1, 3));
+        assertThat(store.cursorWindow("run-1")).isEqualTo(new ExecutionEventCursor(1, 3));
         assertThatThrownBy(() -> store.compact("run-1", 0)).isInstanceOf(IllegalStateException.class);
         store.compact("run-1", 3);
-        assertThat(store.cursorWindow("run-1")).isEqualTo(new ExecutionEventCursorWindow(2, 3));
+        assertThat(store.cursorWindow("run-1")).isEqualTo(new ExecutionEventCursor(2, 3));
     }
 
     @Test

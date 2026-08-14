@@ -18,7 +18,7 @@ import com.lambda.fusion.ai.chat.execution.model.FinalizeCommand;
 import com.lambda.fusion.ai.chat.execution.model.FinalizeResult;
 import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshot;
 import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshotCodec;
-import com.lambda.fusion.ai.chat.model.ChatRunStatus;
+import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;

@@ -1,19 +1,33 @@
 package com.lambda.fusion.ai.chat.execution.agui;
 
 import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshot;
-import com.lambda.fusion.ai.chat.model.ChatRunStatus;
+import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** 将规范快照编码成不会写回正式事件存储的 AG-UI 引导序列。 */
+/**
+ * AG-UI 引导事件编码器。
+ *
+ * <p>根据运行状态和执行快照生成客户端重连所需的事件序列。生成的事件不写入事件存储。
+ *
+ * @author Jin
+ */
 public final class AguiBootstrapEncoder {
 
     private static final String TOOL_COMPLETE = "complete";
 
     private AguiBootstrapEncoder() {}
 
+    /**
+     * 生成指定运行的 AG-UI 引导事件。
+     *
+     * @param run 运行实体
+     * @param snapshot 执行快照
+     * @param highWatermark 当前事件序号上界
+     * @return 按协议顺序编码的事件 JSON 列表
+     */
     public static List<String> encode(ChatRunEntity run, ExecutionSnapshot snapshot, long highWatermark) {
         AguiBootstrapEventCollector collector = new AguiBootstrapEventCollector(run, highWatermark);
         collector.add(fields("type", "RUN_STARTED", "phaseNo", run.getPhaseNo()));

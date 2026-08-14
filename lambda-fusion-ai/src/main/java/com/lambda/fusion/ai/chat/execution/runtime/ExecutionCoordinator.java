@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.chat.execution.runtime;
 
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
+import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiConstants.StateStoreType;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
@@ -8,13 +9,12 @@ import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.attachment.ChatAttachmentMessageBuilder;
 import com.lambda.fusion.ai.chat.execution.agui.AguiBootstrapEncoder;
 import com.lambda.fusion.ai.chat.execution.event.ExecutionEvent;
-import com.lambda.fusion.ai.chat.execution.event.ExecutionEventCursorWindow;
 import com.lambda.fusion.ai.chat.execution.event.ExecutionEventStore;
 import com.lambda.fusion.ai.chat.execution.event.ExecutionEventSubscription;
+import com.lambda.fusion.ai.chat.execution.event.ExecutionEventCursor;
 import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshot;
 import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshotCodec;
 import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshotSanitizer;
-import com.lambda.fusion.ai.chat.model.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
@@ -58,8 +58,11 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * 单实例 Run 执行器。网络订阅者不持有 Agent Flux：SSE 断开仅 detach，Flux 由
- * {@link ExecutionInstance} 持有到业务终态。单次执行的事件消费、检查点与终态提交见 {@link ExecutionInstance}。
+ * 对话执行协调器。
+ *
+ * <p>负责执行实例的创建、恢复、停止和定时维护。Agent 事件流由执行实例持有，不依赖 SSE 订阅的生命周期。
+ *
+ * @author Jin
  */
 @Slf4j
 @Component
@@ -83,6 +86,12 @@ public class ExecutionCoordinator {
         return thread;
     });
 
+    /**
+     * 启动处于创建状态的运行。
+     *
+     * @param run 运行实体
+     * @param session 会话实体
+     */
     public void ensureStarted(ChatRunEntity run, ChatSessionEntity session) {
         withTenant(session, () -> {
             ensureStartedInContext(run, session);
@@ -123,6 +132,15 @@ public class ExecutionCoordinator {
         }
     }
 
+    /**
+     * 校验用户确认命令并准备 Agent 确认结果。
+     *
+     * @param run 运行实体
+     * @param session 会话实体
+     * @param command 用户确认命令
+     * @return 已校验的确认结果
+     * @throws AiBusinessException 运行状态、阶段或工具调用上下文不一致
+     */
     public PreparedConfirmation prepareConfirmation(
             ChatRunEntity run, ChatSessionEntity session, ConfirmToolCall command) {
         return withTenant(session, () -> {
@@ -136,6 +154,13 @@ public class ExecutionCoordinator {
         });
     }
 
+    /**
+     * 根据已提交的确认状态启动下一执行阶段。
+     *
+     * @param run 更新后的运行实体
+     * @param session 会话实体
+     * @param prepared 已校验的确认结果
+     */
     public void resumePrepared(ChatRunEntity run, ChatSessionEntity session, PreparedConfirmation prepared) {
         withTenant(session, () -> {
             ExecutionInstance selected = executions.get(run.getId());
@@ -154,22 +179,44 @@ public class ExecutionCoordinator {
         });
     }
 
+    /**
+     * 订阅指定序号之后的运行事件。
+     *
+     * @param runId 运行标识
+     * @param afterSeq 已消费的事件序号
+     * @param consumer 事件消费者
+     * @param failureConsumer 发送失败消费者
+     * @return 事件订阅
+     */
     public ExecutionEventSubscription subscribe(
             String runId, long afterSeq, Consumer<ExecutionEvent> consumer, Consumer<Throwable> failureConsumer) {
         return eventStore.subscribe(runId, afterSeq, consumer, failureConsumer);
     }
 
-    /** 在 MVC 切换到异步 SSE 响应前完成窗口校验。 */
+    /**
+     * 校验 SSE 恢复游标。
+     *
+     * @param run 运行实体
+     * @param afterSeq 已消费的事件序号
+     * @param bootstrap 是否返回引导事件
+     * @throws AiBusinessException 非引导模式下游标不在当前事件窗口内
+     */
     public void validateCursor(ChatRunEntity run, long afterSeq, boolean bootstrap) {
         if (bootstrap) {
             return;
         }
-        ExecutionEventCursorWindow window = eventStore.cursorWindow(run.getId());
+        ExecutionEventCursor window = eventStore.cursorWindow(run.getId());
         if (afterSeq < window.minSeq() - 1 || afterSeq > window.latestSeq()) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_CURSOR_EXPIRED, afterSeq);
         }
     }
 
+    /**
+     * 生成运行的 AG-UI 引导事件。
+     *
+     * @param run 运行实体
+     * @return 引导事件批次
+     */
     public BootstrapBatch bootstrap(ChatRunEntity run) {
         ExecutionInstance execution = executions.get(run.getId());
         if (execution != null) {
@@ -185,6 +232,12 @@ public class ExecutionCoordinator {
                         || ChatRunStatus.AWAITING_CONFIRM.name().equals(current.getStatus()));
     }
 
+    /**
+     * 请求停止运行。
+     *
+     * @param run 运行实体
+     * @param session 会话实体
+     */
     public void stop(ChatRunEntity run, ChatSessionEntity session) {
         withTenant(session, () -> {
             stopInContext(run, session);
@@ -230,6 +283,7 @@ public class ExecutionCoordinator {
         }
     }
 
+    /** 恢复服务启动前遗留的运行，并启动定时维护任务。 */
     @EventListener(ApplicationReadyEvent.class)
     public void recoverOnStartup() {
         for (ChatRunEntity run : runService.listInterruptedOnRestart()) {
@@ -237,7 +291,6 @@ public class ExecutionCoordinator {
                 ChatSessionEntity session = loadSession(run);
                 withTenant(session, () -> {
                     if (shouldRetainAwaitingConfirmation(run)) {
-                        // ASKING 是工具执行前的持久化暂停点；确认时按需重建 Agent 并校验上下文。
                         eventStore.initialize(run.getId(), sequenceFallback(run));
                         log.info(
                                 "服务重启后保留待确认Run: runId={}, stateStore={}",
@@ -277,6 +330,7 @@ public class ExecutionCoordinator {
         return type != null && type != StateStoreType.MEMORY;
     }
 
+    /** 中断活动运行并关闭定时维护线程池。 */
     @PreDestroy
     public void shutdown() {
         executions.values().forEach(execution -> execution.runInTenant(execution::interruptForShutdown));
@@ -364,7 +418,6 @@ public class ExecutionCoordinator {
         }
     }
 
-    /** 汇总执行实例所需的基础设施依赖，供各构造点共享一份装配清单。 */
     private ExecutionInstance.Support support() {
         return new ExecutionInstance.Support(
                 runService,
@@ -388,7 +441,6 @@ public class ExecutionCoordinator {
                 new ExecutionSnapshotAccumulator(ExecutionSnapshotCodec.decode(run.getSnapshotJson())));
     }
 
-    /** 不构建 Agent 的终结器，用于容量拒绝、实例丢失、等待超时及启动构建失败。 */
     private ExecutionInstance restoreFinalizer(ChatRunEntity run, ChatSessionEntity session) {
         eventStore.initialize(run.getId(), sequenceFallback(run));
         return new ExecutionInstance(
@@ -399,6 +451,12 @@ public class ExecutionCoordinator {
                 new ExecutionSnapshotAccumulator(ExecutionSnapshotCodec.decode(run.getSnapshotJson())));
     }
 
+    /**
+     * 查询最新持久化运行。
+     *
+     * @param identity 运行标识实体
+     * @return 最新运行实体；记录不存在时返回传入实体
+     */
     ChatRunEntity loadCurrent(ChatRunEntity identity) {
         ChatRunEntity current = runService.loadCurrent(identity.getId());
         return current == null ? identity : current;
@@ -408,20 +466,47 @@ public class ExecutionCoordinator {
         return runService.loadSession(run);
     }
 
+    /**
+     * 获取运行时租户标识。
+     *
+     * @param session 会话实体
+     * @return 租户标识；会话未指定时返回 {@code default}
+     */
     static String tenantId(ChatSessionEntity session) {
         return StringUtils.defaultIfBlank(session.getTenantId(), "default");
     }
 
+    /**
+     * 获取运行的快照事件序号。
+     *
+     * @param run 运行实体
+     * @return 快照事件序号；未设置时返回 {@code 0}
+     */
     static long sequenceFallback(ChatRunEntity run) {
         return run.getSnapshotSeq() == null ? 0L : run.getSnapshotSeq();
     }
 
+    /**
+     * 生成可持久化的错误信息。
+     *
+     * @param error 异常
+     * @return 已清理并限制长度的错误信息
+     */
     static String safeMessage(Throwable error) {
         String message =
                 StringUtils.defaultIfBlank(error.getMessage(), error.getClass().getSimpleName());
         return StringUtils.left(ExecutionSnapshotSanitizer.redactText(message), 1000);
     }
 
+    /**
+     * 在会话租户上下文中执行任务。
+     *
+     * @param session 会话实体
+     * @param task 待执行任务
+     * @param <T> 返回值类型
+     * @return 任务返回值
+     * @throws IllegalStateException 任务抛出受检异常
+     */
     static <T> T withTenant(ChatSessionEntity session, Callable<T> task) {
         String tenantId = session.getTenantId();
         String previous = TenantContextHolder.getCurrentTenantId();
@@ -499,8 +584,22 @@ public class ExecutionCoordinator {
         return new PreparedConfirmation(run.getId(), command.getPhaseNo(), results);
     }
 
+    /**
+     * AG-UI 引导事件批次。
+     *
+     * @param highWatermark 事件序号上界
+     * @param events 引导事件 JSON 列表
+     * @param phaseClosed 当前阶段是否已关闭
+     */
     public record BootstrapBatch(long highWatermark, List<String> events, boolean phaseClosed) {}
 
+    /**
+     * 已校验的用户确认结果。
+     *
+     * @param runId 运行标识
+     * @param sourcePhaseNo 确认来源阶段号
+     * @param results Agent 确认结果
+     */
     public record PreparedConfirmation(String runId, int sourcePhaseNo, List<ConfirmResult> results) {
         public PreparedConfirmation {
             results = List.copyOf(results == null ? List.of() : results);
