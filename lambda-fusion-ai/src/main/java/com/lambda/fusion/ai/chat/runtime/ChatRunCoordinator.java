@@ -180,6 +180,19 @@ public class ChatRunCoordinator {
         if (ChatRunStatus.isTerminal(run.getStatus())) {
             return;
         }
+        // 取规范实例（computeIfAbsent 注册唯一实例），锁顺序恒为 实例 monitor → REQUIRES_NEW 数据库事务。
+        ChatRunInstance execution = executions.computeIfAbsent(
+                run.getId(), ignored -> instanceFactory.restoreForFinalize(run, session, scheduler, executions));
+        if (!execution.isRunning()) {
+            // 非运行态（含待确认、已中断）：数据库迁移到 STOPPING 与终态收敛一并移入实例锁。
+            boolean stopped = execution.stop(() -> runService.requestStopping(run), ChatRunFinishReason.USER_STOP);
+            if (!stopped && ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
+                // 并发方已把 Run 迁到 STOPPING 但尚未终结：由本实例接管终态收敛。
+                execution.finalizeStopped(ChatRunFinishReason.USER_STOP);
+            }
+            return;
+        }
+        // 运行态：先迁 STOPPING（抢占完成路径），再协作式中断并留宽限期兜底。
         if (!runService.requestStopping(run)) {
             ChatRunEntity current = loadCurrent(run);
             run.setStatus(current.getStatus());
@@ -187,22 +200,11 @@ public class ChatRunCoordinator {
                 return;
             }
         }
-        run.setStatus(ChatRunStatus.STOPPING.name());
-        ChatRunInstance execution = executions.get(run.getId());
-        if (execution != null) {
-            execution.markStopping();
-            try {
-                execution.checkpointNow();
-            } catch (RuntimeException checkpointFailure) {
-                log.warn("停止Run前快照写入失败，继续中断执行: runId={}", run.getId(), checkpointFailure);
-            }
-        }
-        if (execution == null || !execution.isRunning()) {
-            ChatRunInstance waiting = execution == null
-                    ? instanceFactory.restoreForFinalize(run, session, scheduler, executions)
-                    : execution;
-            waiting.finalizeStopped(ChatRunFinishReason.USER_STOP);
-            return;
+        execution.markStopping();
+        try {
+            execution.checkpointNow();
+        } catch (RuntimeException checkpointFailure) {
+            log.warn("停止Run前快照写入失败，继续中断执行: runId={}", run.getId(), checkpointFailure);
         }
         try {
             execution.interruptAgent();
@@ -322,14 +324,12 @@ public class ChatRunCoordinator {
     private void expireConfirmation(ChatRunEntity run) {
         ChatSessionEntity session = loadSession(run);
         TenantUtils.withTenant(session.getTenantId(), () -> {
-            if (!runService.requestConfirmationTimeout(run, LocalDateTime.now())) {
-                return;
-            }
-            run.setStatus(ChatRunStatus.STOPPING.name());
+            // 取规范实例（computeIfAbsent 注册唯一实例），确认超时的数据库迁移与终态收敛一并移入实例锁。
             ChatRunInstance execution = executions.computeIfAbsent(
                     run.getId(), ignored -> instanceFactory.restoreForFinalize(run, session, scheduler, executions));
-            execution.markStopping();
-            execution.finalizeStopped(ChatRunFinishReason.CONFIRM_TIMEOUT);
+            execution.stop(
+                    () -> runService.requestConfirmationTimeout(run, LocalDateTime.now()),
+                    ChatRunFinishReason.CONFIRM_TIMEOUT);
         });
     }
 

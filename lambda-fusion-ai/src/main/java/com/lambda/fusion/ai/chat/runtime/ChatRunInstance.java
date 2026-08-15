@@ -45,6 +45,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -563,7 +564,7 @@ final class ChatRunInstance {
         run.setStatus(ChatRunStatus.STOPPING.name());
     }
 
-    /** 取消活动事件流并终结运行。 */
+    /** 取消活动事件流并终结运行。dispose 出锁以避免取消回调回流死锁，DB 终态迁移在锁内完成。 */
     void forceStopIfRunning() {
         Disposable current = disposable.getAndSet(null);
         if (current != null && !current.isDisposed()) {
@@ -572,13 +573,47 @@ final class ChatRunInstance {
         finalizeStopped(ChatRunFinishReason.USER_STOP);
     }
 
-    /** 保存当前检查点并中断 Agent。 */
+    /**
+     * 在实例锁内原子地停止 Run：先写入检查点，再执行数据库迁移并等待提交，最后收敛为停止终态。
+     *
+     * <p>数据库迁移（CAS 到 STOPPING / 确认超时）与内存状态修改在同一实例锁内完成，锁顺序恒为
+     * 实例 monitor → {@code REQUIRES_NEW} 数据库事务。
+     *
+     * @param transition 数据库迁移，成功返回 {@code true}；竞争落败返回 {@code false}
+     * @param reason 停止原因
+     * @return 迁移成功返回 {@code true}；非本实例取胜（竞争落败或已终态）返回 {@code false}
+     */
+    synchronized boolean stop(Supplier<Boolean> transition, ChatRunFinishReason reason) {
+        if (terminal) {
+            return false;
+        }
+        if (isRunning()) {
+            try {
+                checkpointNow();
+            } catch (RuntimeException checkpointFailure) {
+                log.warn("停止Run前快照写入失败，继续中断执行: runId={}", run.getId(), checkpointFailure);
+            }
+        }
+        if (!transition.get()) {
+            run.setStatus(loadCurrent(run).getStatus());
+            return false;
+        }
+        run.setStatus(ChatRunStatus.STOPPING.name());
+        finalizeStopped(reason);
+        return true;
+    }
+
+    /** 保存当前检查点并中断 Agent。检查点在实例锁内写入，中断请求保持在锁外以避免回流死锁。 */
     void interruptForShutdown() {
         try {
-            runService.checkpoint(run, snapshot(), eventStore.latestSeq(run.getId(), run.getSnapshotSeq()));
+            checkpointNow();
+        } catch (RuntimeException checkpointFailure) {
+            log.warn("停机前Run检查点写入失败，仍继续中断: runId={}", run.getId(), checkpointFailure);
+        }
+        try {
             interruptAgent();
-        } catch (RuntimeException error) {
-            log.warn("停机中断Run失败: runId={}", run.getId(), error);
+        } catch (RuntimeException interruptFailure) {
+            log.warn("停机中断Run失败: runId={}", run.getId(), interruptFailure);
         }
     }
 
