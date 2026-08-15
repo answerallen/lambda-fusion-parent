@@ -2,7 +2,7 @@ package com.lambda.fusion.ai.chat.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.lambda.fusion.ai.chat.execution.agui.AguiEventMapper;
+import com.lambda.fusion.ai.chat.runtime.agui.AguiEventMapper;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;

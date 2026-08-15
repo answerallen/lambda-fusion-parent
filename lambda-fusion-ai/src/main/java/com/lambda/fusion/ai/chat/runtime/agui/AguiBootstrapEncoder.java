@@ -1,0 +1,147 @@
+package com.lambda.fusion.ai.chat.runtime.agui;
+
+import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
+import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * AG-UI 引导事件编码器。
+ *
+ * <p>根据运行状态和执行快照生成客户端重连所需的事件序列。生成的事件不写入事件存储。
+ *
+ * @author Jin
+ */
+public final class AguiBootstrapEncoder {
+
+    private static final String TOOL_COMPLETE = "complete";
+
+    private AguiBootstrapEncoder() {}
+
+    /**
+     * 生成指定运行的 AG-UI 引导事件。
+     *
+     * @param run 运行实体
+     * @param snapshot 执行快照
+     * @param highWatermark 当前事件序号上界
+     * @return 按协议顺序编码的事件 JSON 列表
+     */
+    public static List<String> encode(ChatRunEntity run, ExecutionSnapshot snapshot, long highWatermark) {
+        AguiBootstrapEventCollector collector = new AguiBootstrapEventCollector(run, highWatermark);
+        collector.add(fields("type", "RUN_STARTED", "phaseNo", run.getPhaseNo()));
+        appendReasoning(collector, snapshot);
+        appendTools(collector, snapshot);
+        appendText(collector, snapshot);
+        appendTerminal(collector, run, snapshot);
+        return collector.events();
+    }
+
+    private static void appendReasoning(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {
+        if (snapshot.reasoning().isEmpty()) {
+            return;
+        }
+        String messageId = valueOrDefault(snapshot.reasoningMessageId(), "reasoning-" + collector.chatRunId());
+        collector.add(fields("type", "REASONING_START", "messageId", messageId));
+        collector.add(fields("type", "REASONING_MESSAGE_START", "messageId", messageId, "role", "reasoning"));
+        collector.add(
+                fields("type", "REASONING_MESSAGE_CONTENT", "messageId", messageId, "delta", snapshot.reasoning()));
+        if (!snapshot.reasoningOpen()) {
+            collector.add(fields("type", "REASONING_MESSAGE_END", "messageId", messageId));
+            collector.add(fields("type", "REASONING_END", "messageId", messageId));
+        }
+    }
+
+    private static void appendTools(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {
+        for (ExecutionSnapshot.Tool tool : snapshot.tools()) {
+            collector.add(fields(
+                    "type", "TOOL_CALL_START", "toolCallId", tool.toolCallId(), "toolCallName", tool.toolCallName()));
+            if (!tool.args().isEmpty()) {
+                collector.add(fields("type", "TOOL_CALL_ARGS", "toolCallId", tool.toolCallId(), "delta", tool.args()));
+            }
+            if (!TOOL_COMPLETE.equals(tool.status())) {
+                continue;
+            }
+            collector.add(fields("type", "TOOL_CALL_END", "toolCallId", tool.toolCallId()));
+            if (!tool.result().isEmpty()) {
+                collector.add(fields(
+                        "type",
+                        "TOOL_CALL_RESULT",
+                        "toolCallId",
+                        tool.toolCallId(),
+                        "content",
+                        tool.result(),
+                        "role",
+                        "tool",
+                        "messageId",
+                        "tool-result-" + tool.toolCallId()));
+            }
+        }
+    }
+
+    private static void appendText(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {
+        if (snapshot.text().isEmpty()) {
+            return;
+        }
+        String messageId = valueOrDefault(snapshot.textMessageId(), "message-" + collector.chatRunId());
+        collector.add(fields("type", "TEXT_MESSAGE_START", "messageId", messageId, "role", "assistant"));
+        collector.add(fields("type", "TEXT_MESSAGE_CONTENT", "messageId", messageId, "delta", snapshot.text()));
+        if (!snapshot.textOpen()) {
+            collector.add(fields("type", "TEXT_MESSAGE_END", "messageId", messageId));
+        }
+    }
+
+    private static void appendTerminal(
+            AguiBootstrapEventCollector collector, ChatRunEntity run, ExecutionSnapshot snapshot) {
+        if (ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
+            List<Map<String, Object>> interrupts = snapshot.pendingTools().stream()
+                    .map(tool -> fields(
+                            "id", tool.toolCallId(),
+                            "value", "human_confirmation_required",
+                            "message", "工具 '" + tool.toolCallName() + "' 需要您确认后执行",
+                            "toolCallId", tool.toolCallId(),
+                            "metadata", fields("toolName", tool.toolCallName())))
+                    .toList();
+            collector.add(
+                    fields("type", "RUN_FINISHED", "outcome", fields("type", "interrupt", "interrupts", interrupts)));
+            return;
+        }
+        if (ChatRunStatus.COMPLETED.name().equals(run.getStatus())
+                || ChatRunStatus.STOPPED.name().equals(run.getStatus())) {
+            collector.add(fields(
+                    "type",
+                    "RUN_FINISHED",
+                    "chatRunStatus",
+                    run.getStatus(),
+                    "finishReason",
+                    run.getFinishReason(),
+                    "outcome",
+                    fields("type", "success")));
+            return;
+        }
+        if (ChatRunStatus.FAILED.name().equals(run.getStatus())) {
+            collector.add(fields(
+                    "type",
+                    "RUN_ERROR",
+                    "message",
+                    run.getErrorMessage() == null ? "对话运行失败" : run.getErrorMessage(),
+                    "code",
+                    run.getErrorCode()));
+        }
+    }
+
+    private static Map<String, Object> fields(Object... keyValues) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        for (int i = 0; i < keyValues.length; i += 2) {
+            if (keyValues[i + 1] != null) {
+                values.put(String.valueOf(keyValues[i]), keyValues[i + 1]);
+            }
+        }
+        return values;
+    }
+
+    private static String valueOrDefault(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
+    }
+}

@@ -17,7 +17,7 @@ public class AuthUtils {
     }
 
     public static String getTenantIdNullToDefault() {
-        return StrUtil.nullToDefault(AuthUtils.getTenantId(),"default");
+        return StrUtil.nullToDefault(AuthUtils.getTenantId(), "default");
     }
 
     public static String getUsername() {

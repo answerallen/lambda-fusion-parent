@@ -90,11 +90,24 @@ public class AgentFactory {
     private final Map<String, HarnessAgent> cache = new ConcurrentHashMap<>();
 
     /**
+     * 状态存储缓存：同 {@code (appId, tenantId)} 共享同一实例。Agent 因配置变更重建后仍复用原存储，
+     * 进程内（MEMORY）会话状态不随重建丢失；存储类型变更需重启生效。缓存键与 {@link #cache} 一致，
+     * Agent 缓存失效时刻意不清空本缓存（保留会话记忆）。
+     */
+    private final Map<String, AgentStateStore> stateStores = new ConcurrentHashMap<>();
+
+    /**
      * 获取或构建 Agent。缓存键 {@code appId|tenantId}，{@link ConcurrentHashMap#computeIfAbsent} 保证首次构建线程安全。
      */
     public HarnessAgent getOrBuild(String appId, String tenantId) {
         String cacheKey = cacheKey(appId, tenantId);
         return cache.computeIfAbsent(cacheKey, k -> build(appId, tenantId));
+    }
+
+    /** 获取或创建同 {@code (appId, tenantId)} 共享的状态存储。 */
+    private AgentStateStore sharedStateStore(String appId, String tenantId) {
+        return stateStores.computeIfAbsent(
+                cacheKey(appId, tenantId), key -> resolveStateStore(aiProperties, stateStoreProviders));
     }
 
     public String buildStableAgentId(String appId, String tenantId) {
@@ -319,7 +332,7 @@ public class AgentFactory {
                 .maxIters(maxIters)
                 .toolkit(toolkit)
                 .permissionContext(buildPermissionContext())
-                .stateStore(resolveStateStore(aiProperties, stateStoreProviders))
+                .stateStore(sharedStateStore(app.getId(), tenantId))
                 .disableFilesystemTools()
                 .disableWorkspaceContext()
                 .disableAtPathExpansion()
@@ -363,7 +376,7 @@ public class AgentFactory {
                 .maxIters(maxIters)
                 .toolkit(toolkit)
                 .permissionContext(buildPermissionContext())
-                .stateStore(resolveStateStore(aiProperties, stateStoreProviders))
+                .stateStore(sharedStateStore(app.getId(), tenantId))
                 .workspace(hostWorkspace)
                 .skillFilter(resolveSkillFilter(app));
         AgentSkillRepository skillRepo = skillRepositoryResolver.resolve();

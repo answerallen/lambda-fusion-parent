@@ -1,10 +1,10 @@
 package com.lambda.fusion.ai.chat.service;
 
-import com.lambda.fusion.ai.chat.execution.model.FinalizeCommand;
-import com.lambda.fusion.ai.chat.execution.model.FinalizeResult;
-import com.lambda.fusion.ai.chat.execution.snapshot.ExecutionSnapshot;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
+import com.lambda.fusion.ai.chat.runtime.model.FinalizeResult;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
 import java.time.LocalDateTime;
 import java.util.List;
 

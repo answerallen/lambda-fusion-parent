@@ -1,13 +1,13 @@
 package com.lambda.fusion.ai.rag.service;
 
 import com.lambda.fusion.ai.AiConstants.DocumentStatus;
-import com.lambda.fusion.ai.common.DocumentTextExtractor;
 import com.lambda.fusion.ai.rag.mapper.KnowledgeDocumentMapper;
 import com.lambda.fusion.ai.rag.model.entity.KnowledgeDocumentEntity;
 import com.lambda.fusion.ai.rag.runtime.IngestChunk;
 import com.lambda.fusion.ai.rag.runtime.SimpleKnowledgeAdapter;
 import com.lambda.fusion.ai.rag.storage.DocumentFileStorage;
 import com.lambda.fusion.ai.rag.storage.DocumentFileStorageResolver;
+import com.lambda.fusion.ai.runtime.document.DocumentTextExtractor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.rag.reader.Reader;
 import io.agentscope.core.rag.reader.ReaderInput;
