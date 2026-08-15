@@ -18,8 +18,11 @@ import io.agentscope.core.event.ToolResultStartEvent;
 import io.agentscope.core.event.ToolResultTextDeltaEvent;
 import io.agentscope.core.message.ToolUseBlock;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -241,53 +244,6 @@ public class AgentEventInterpreter {
         return new ExecutionInterpretation(List.copyOf(out), delta.build());
     }
 
-    /**
-     * 将执行异常映射为 AG-UI 错误事件。
-     *
-     * @param error 执行异常
-     * @return 包含消息关闭事件和运行错误事件的列表
-     */
-    public ExecutionInterpretation interpretError(Throwable error) {
-        List<AguiEvent> out = new ArrayList<>();
-        SnapshotDeltaBuilder delta = new SnapshotDeltaBuilder();
-        closeActiveMessage(out, delta);
-        String message = error.getMessage();
-        out.add(new AguiEvent.RunError(
-                threadId, runId, message != null ? message : error.getClass().getSimpleName(), null));
-        return new ExecutionInterpretation(List.copyOf(out), delta.build());
-    }
-
-    /**
-     * 将执行异常映射为 AG-UI 错误事件。
-     *
-     * @param error 执行异常
-     * @return 包含消息关闭事件和运行错误事件的列表
-     */
-    public List<AguiEvent> mapError(Throwable error) {
-        return interpretError(error).events();
-    }
-
-    /**
-     * 生成正常完成事件。
-     *
-     * @return 包含消息关闭事件和运行完成事件的解释结果
-     */
-    public ExecutionInterpretation interpretCompletion() {
-        List<AguiEvent> out = new ArrayList<>();
-        SnapshotDeltaBuilder delta = new SnapshotDeltaBuilder();
-        mapAgentEnd(out, delta);
-        return new ExecutionInterpretation(List.copyOf(out), delta.build());
-    }
-
-    /**
-     * 生成正常完成事件。
-     *
-     * @return 包含消息关闭事件和运行完成事件的列表
-     */
-    public List<AguiEvent> mapCompletion() {
-        return interpretCompletion().events();
-    }
-
     private void closeActiveMessage(List<AguiEvent> out, SnapshotDeltaBuilder delta) {
         closeTextMessage(out, delta);
         closeReasoningMessage(out, delta);
@@ -316,6 +272,30 @@ public class AgentEventInterpreter {
 
     private String resolveId(String replyId) {
         return StringUtils.isNotBlank(replyId) ? replyId : runId;
+    }
+
+    /** AG-UI 工具调用状态记录器。 */
+    private static final class AguiToolCallTracker {
+
+        private final Set<String> startedToolCalls = new HashSet<>();
+        private final Map<String, StringBuilder> resultBuffers = new HashMap<>();
+
+        boolean markStarted(String toolCallId) {
+            resultBuffers.computeIfAbsent(toolCallId, ignored -> new StringBuilder());
+            return startedToolCalls.add(toolCallId);
+        }
+
+        void appendResult(String toolCallId, String delta) {
+            StringBuilder buffer = resultBuffers.get(toolCallId);
+            if (buffer != null) {
+                buffer.append(delta);
+            }
+        }
+
+        String result(String toolCallId) {
+            StringBuilder buffer = resultBuffers.get(toolCallId);
+            return buffer == null ? "" : buffer.toString();
+        }
     }
 
     /** 快照增量构建器。 */

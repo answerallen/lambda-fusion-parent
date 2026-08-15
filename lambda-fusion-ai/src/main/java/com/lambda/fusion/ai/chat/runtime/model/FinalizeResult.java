@@ -4,7 +4,6 @@ package com.lambda.fusion.ai.chat.runtime.model;
  * 对话运行终结结果。
  *
  * @param committed 是否由本次调用提交终态
- * @param assistantMessageId 助手消息标识
  * @param status 最终状态
  * @param finishReason 结束原因
  * @param errorCode 错误码
@@ -12,9 +11,4 @@ package com.lambda.fusion.ai.chat.runtime.model;
  * @author Jin
  */
 public record FinalizeResult(
-        boolean committed,
-        Long assistantMessageId,
-        String status,
-        String finishReason,
-        String errorCode,
-        String errorMessage) {}
+        boolean committed, String status, String finishReason, String errorCode, String errorMessage) {}

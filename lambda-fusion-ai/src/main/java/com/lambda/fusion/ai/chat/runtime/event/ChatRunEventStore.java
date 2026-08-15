@@ -6,9 +6,9 @@ import com.lambda.fusion.ai.exception.AiErrorCode;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -27,7 +27,7 @@ public class ChatRunEventStore {
     private final int maxEvents;
     private final long maxBytes;
     private final int subscriberQueueSize;
-    private final Map<String, ChatRunEventBuffer> buffers = new HashMap<>();
+    private final Map<String, ChatRunEventBuffer> buffers = new ConcurrentHashMap<>();
     private final ExecutorService senderExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     /**
@@ -49,18 +49,6 @@ public class ChatRunEventStore {
      */
     public void initialize(String runId, long latestSeq) {
         buffer(runId).initialize(latestSeq);
-    }
-
-    /**
-     * 追加一个 AG-UI 事件。
-     *
-     * @param runId 运行标识
-     * @param aguiRunId AG-UI 运行标识
-     * @param aguiJson 事件 JSON
-     * @return 已编号的执行事件
-     */
-    public ChatRunEvent append(String runId, String aguiRunId, String aguiJson) {
-        return buffer(runId).append(List.of(aguiJson), aguiRunId, null).events().getFirst();
     }
 
     /**
@@ -99,31 +87,10 @@ public class ChatRunEventStore {
      * @throws IllegalStateException 快照未覆盖需要删除的事件
      */
     public void compact(String runId, long snapshotSeq) {
-        ChatRunEventBuffer current;
-        synchronized (buffers) {
-            current = buffers.get(runId);
-        }
+        ChatRunEventBuffer current = buffers.get(runId);
         if (current != null) {
             current.compact(snapshotSeq);
         }
-    }
-
-    /**
-     * 查询运行的可订阅游标窗口。
-     *
-     * @param runId 运行标识
-     * @return 游标窗口
-     * @throws AiBusinessException 运行事件已过期或不存在
-     */
-    public ChatRunEventCursor cursorWindow(String runId) {
-        ChatRunEventBuffer buffer;
-        synchronized (buffers) {
-            buffer = buffers.get(runId);
-        }
-        if (buffer == null) {
-            throw new AiBusinessException(AiErrorCode.CHAT_RUN_EVENTS_EXPIRED, runId);
-        }
-        return buffer.cursorWindow();
     }
 
     /**
@@ -138,10 +105,7 @@ public class ChatRunEventStore {
      */
     public ChatRunEventSubscription subscribe(
             String runId, long afterSeq, Consumer<ChatRunEvent> consumer, Consumer<Throwable> failureConsumer) {
-        ChatRunEventBuffer buffer;
-        synchronized (buffers) {
-            buffer = buffers.get(runId);
-        }
+        ChatRunEventBuffer buffer = buffers.get(runId);
         if (buffer == null) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_EVENTS_EXPIRED, runId);
         }
@@ -156,10 +120,7 @@ public class ChatRunEventStore {
      * @return 最新事件序号
      */
     public long latestSeq(String runId, Long fallback) {
-        ChatRunEventBuffer buffer;
-        synchronized (buffers) {
-            buffer = buffers.get(runId);
-        }
+        ChatRunEventBuffer buffer = buffers.get(runId);
         return buffer == null ? (fallback == null ? 0L : fallback) : buffer.latestSeq();
     }
 
@@ -174,58 +135,39 @@ public class ChatRunEventStore {
     }
 
     private void clear(String runId) {
-        ChatRunEventBuffer removed;
-        synchronized (buffers) {
-            removed = buffers.remove(runId);
-        }
+        ChatRunEventBuffer removed = buffers.remove(runId);
         if (removed != null) {
             removed.clear();
         }
     }
 
     private void clear(String runId, ChatRunEventBuffer identity) {
-        ChatRunEventBuffer removed = null;
-        synchronized (buffers) {
-            if (buffers.remove(runId, identity)) {
-                removed = identity;
-            }
-        }
-        if (removed != null) {
-            removed.clear();
+        if (buffers.remove(runId, identity)) {
+            identity.clear();
         }
     }
 
     /** 删除所有已到期的终态缓冲区。 */
     public void purgeExpired() {
         long now = System.currentTimeMillis();
-        Map<String, ChatRunEventBuffer> current;
-        synchronized (buffers) {
-            current = Map.copyOf(buffers);
-        }
         List<String> expired = new ArrayList<>();
-        current.forEach((runId, buffer) -> {
+        buffers.forEach((runId, buffer) -> {
             if (buffer.expired(now)) {
                 expired.add(runId);
             }
         });
-        expired.forEach(runId -> clear(runId, current.get(runId)));
+        expired.forEach(runId -> clear(runId, buffers.get(runId)));
     }
 
     /** 关闭事件订阅并释放发送线程池。 */
     @PreDestroy
     public void shutdown() {
-        List<String> runIds;
-        synchronized (buffers) {
-            runIds = List.copyOf(buffers.keySet());
-        }
-        runIds.forEach(this::clear);
+        List.copyOf(buffers.keySet()).forEach(this::clear);
         senderExecutor.shutdownNow();
     }
 
     private ChatRunEventBuffer buffer(String runId) {
-        synchronized (buffers) {
-            return buffers.computeIfAbsent(
-                    runId, id -> new ChatRunEventBuffer(id, maxEvents, maxBytes, subscriberQueueSize, senderExecutor));
-        }
+        return buffers.computeIfAbsent(
+                runId, id -> new ChatRunEventBuffer(id, maxEvents, maxBytes, subscriberQueueSize, senderExecutor));
     }
 }

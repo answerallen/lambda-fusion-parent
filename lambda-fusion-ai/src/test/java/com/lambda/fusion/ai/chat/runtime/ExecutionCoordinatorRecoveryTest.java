@@ -153,14 +153,13 @@ class ExecutionCoordinatorRecoveryTest {
             FinalizeCommand command = invocation.getArgument(1);
             return new FinalizeResult(
                     true,
-                    null,
                     command.targetStatus().name(),
                     command.finishReason(),
                     command.errorCode(),
                     command.errorMessage());
         });
         when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString(), anyString()))
-                .thenReturn(new ChatRunEvent(8L, "terminal-8", "{}"));
+                .thenReturn(new ChatRunEvent(8L, "terminal-8", "RUN_FINISHED", "{}"));
     }
 
     /** 注册带 ASKING 待确认工具调用的 Agent，返回 delegate 供校验状态闭合调用。 */

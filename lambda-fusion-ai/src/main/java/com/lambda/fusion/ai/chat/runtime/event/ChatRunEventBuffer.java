@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.chat.runtime.event;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
+import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -29,7 +30,7 @@ final class ChatRunEventBuffer {
     private final Executor senderExecutor;
     private final ArrayDeque<ChatRunEvent> events = new ArrayDeque<>();
     private final Map<String, QueuedEventSubscription> subscribers = new HashMap<>();
-    private final Map<String, ChatRunEvent> terminals = new HashMap<>();
+    private ChatRunEvent terminal;
     private long nextSeq = 1;
     private long bytes;
     private long expiresAt;
@@ -61,8 +62,8 @@ final class ChatRunEventBuffer {
      * @throws IllegalStateException 单个事件超过缓冲区字节限制
      */
     synchronized ChatRunEventOutcome append(List<String> aguiJsonEvents, String aguiRunId, String terminalKind) {
-        if (terminalKind != null && terminals.containsKey(terminalKind)) {
-            return new ChatRunEventOutcome(List.of(terminals.get(terminalKind)), overCapacity());
+        if (terminalKind != null && terminal != null) {
+            return new ChatRunEventOutcome(List.of(terminal), overCapacity());
         }
         if (aguiJsonEvents == null || aguiJsonEvents.isEmpty()) {
             return new ChatRunEventOutcome(List.of(), overCapacity());
@@ -71,12 +72,13 @@ final class ChatRunEventBuffer {
         long appendedBytes = 0;
         long seq = nextSeq;
         for (String aguiJson : aguiJsonEvents) {
+            String type = AguiEventJsonCodec.readEventType(aguiJson);
             String data = AguiEventJsonCodec.withRunMetadata(aguiJson, runId, aguiRunId, seq);
             int size = data.getBytes(StandardCharsets.UTF_8).length;
             if (size > maxBytes) {
                 throw new IllegalStateException("单个Run事件超过缓冲容量: " + runId);
             }
-            appended.add(new ChatRunEvent(seq, runId + ":" + seq, data));
+            appended.add(new ChatRunEvent(seq, runId + ":" + seq, type, data));
             appendedBytes += size;
             seq++;
         }
@@ -84,7 +86,7 @@ final class ChatRunEventBuffer {
         bytes += appendedBytes;
         nextSeq = seq;
         if (terminalKind != null) {
-            terminals.put(terminalKind, appended.getFirst());
+            terminal = appended.getFirst();
         }
         List<QueuedEventSubscription> slowSubscribers = new ArrayList<>();
         for (ChatRunEvent event : appended) {
@@ -137,16 +139,6 @@ final class ChatRunEventBuffer {
     }
 
     /**
-     * 获取当前可订阅的游标窗口。
-     *
-     * @return 游标窗口
-     */
-    synchronized ChatRunEventCursor cursorWindow() {
-        long minSeq = events.isEmpty() ? nextSeq : events.getFirst().seq();
-        return new ChatRunEventCursor(minSeq, nextSeq - 1);
-    }
-
-    /**
      * 根据已持久化序号初始化下一事件序号。
      *
      * @param latestSeq 已持久化的最新事件序号
@@ -195,7 +187,7 @@ final class ChatRunEventBuffer {
         List<QueuedEventSubscription> current = List.copyOf(subscribers.values());
         subscribers.clear();
         events.clear();
-        terminals.clear();
+        terminal = null;
         bytes = 0;
         current.forEach(QueuedEventSubscription::closeWithoutDetach);
     }
@@ -216,5 +208,16 @@ final class ChatRunEventBuffer {
 
     private static int eventBytes(ChatRunEvent event) {
         return event.data().getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    /** 事件订阅队列容量不足异常。 */
+    private static final class SlowEventSubscriberException extends RuntimeException {
+
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        private SlowEventSubscriberException(String runId) {
+            super("Run订阅者消费过慢，已断开: " + runId);
+        }
     }
 }

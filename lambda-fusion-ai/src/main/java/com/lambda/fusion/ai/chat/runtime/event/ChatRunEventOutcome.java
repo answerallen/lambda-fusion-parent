@@ -9,4 +9,4 @@ import java.util.List;
  * @param checkpointRequired 是否需要生成检查点并收缩缓冲区
  * @author Jin
  */
-public record ChatRunEventOutcome(List<ChatRunEvent> events, boolean checkpointRequired) {}
+record ChatRunEventOutcome(List<ChatRunEvent> events, boolean checkpointRequired) {}

@@ -155,15 +155,10 @@ class AguiEventMapperTest {
     }
 
     @Test
-    void mapErrorEmitsRunError() {
+    void encodeRunErrorEmitsJson() {
         AgentEventInterpreter mapper = newMapper(true);
-        List<AguiEvent> events = mapper.mapError(new RuntimeException("boom"));
+        AguiEvent.RunError runError = new AguiEvent.RunError(THREAD_ID, RUN_ID, "boom", null);
 
-        assertThat(events).hasSize(1);
-        assertThat(events.get(0)).isInstanceOf(AguiEvent.RunError.class);
-        AguiEvent.RunError runError = (AguiEvent.RunError) events.get(0);
-        assertThat(runError.message()).isEqualTo("boom");
-        assertThat(runError.code()).isNull();
         String json = mapper.encodeToJson(runError);
         assertThat(json).contains("\"type\":\"RUN_ERROR\"");
         assertThat(json).contains("\"message\":\"boom\"");

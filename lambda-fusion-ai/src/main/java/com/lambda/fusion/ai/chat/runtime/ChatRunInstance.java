@@ -72,7 +72,7 @@ final class ChatRunInstance {
     private final AtomicReference<Disposable> disposable = new AtomicReference<>();
     private final long turnStartMillis = System.currentTimeMillis();
     private long lastCheckpointNanos = System.nanoTime();
-    private AgentEventInterpreter mapper;
+    private AgentEventInterpreter agentEventInterpreter;
     private ExecutionInterpretation pendingConfirmInterpretation;
 
     /**
@@ -110,7 +110,7 @@ final class ChatRunInstance {
         this.session = session;
         this.agentExecutionAdapter = agentExecutionAdapter;
         this.accumulator = accumulator;
-        this.mapper = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
+        this.agentEventInterpreter = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
     }
 
     /**
@@ -147,7 +147,7 @@ final class ChatRunInstance {
         run.setPhaseNo(updated.getPhaseNo());
         run.setAguiRunId(updated.getAguiRunId());
         accumulator.beginPhase(run.getAguiRunId(), run.getPhaseNo());
-        mapper = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
+        agentEventInterpreter = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
         phaseFinished = false;
         Msg confirm = UserMessage.builder()
                 .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, prepared.results()))
@@ -211,7 +211,7 @@ final class ChatRunInstance {
             }
             return;
         }
-        ExecutionInterpretation interpretation = mapper.interpret(event);
+        ExecutionInterpretation interpretation = agentEventInterpreter.interpret(event);
         if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM) {
             if (pendingConfirmInterpretation != null) {
                 return;
@@ -234,7 +234,7 @@ final class ChatRunInstance {
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
             finalizeStopped("USER_STOP");
         } else {
-            finalizeFailed("ERROR", ChatRunCoordinator.safeMessage(error));
+            finalizeFailed("ERROR", ChatRunInstanceFactory.safeMessage(error));
         }
     }
 
@@ -295,7 +295,7 @@ final class ChatRunInstance {
         boolean checkpointRequired = eventStore.appendAll(
                 run.getId(),
                 run.getAguiRunId(),
-                events.stream().map(mapper::encodeToJson).toList());
+                events.stream().map(agentEventInterpreter::encodeToJson).toList());
         if (checkpointRequired) {
             checkpointNow();
         }
@@ -304,7 +304,7 @@ final class ChatRunInstance {
     private void maybeCheckpoint() {
         long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         int every = properties.getChat().getRun().getSnapshotEveryEvents();
-        if (every > 0 && seq - ChatRunCoordinator.sequenceFallback(run) >= every) {
+        if (every > 0 && seq - ChatRunInstanceFactory.sequenceFallback(run) >= every) {
             checkpointNow();
         }
     }
@@ -360,7 +360,7 @@ final class ChatRunInstance {
                     ? ExecutionSnapshotCodec.decode(loadCurrent(run).getSnapshotJson())
                     : accumulator.snapshot();
             if (!terminalCommitted) {
-                ExecutionInterpretation closeInterpretation = mapper.closeOpenMessages();
+                ExecutionInterpretation closeInterpretation = agentEventInterpreter.closeOpenMessages();
                 try {
                     appendAll(closeInterpretation.events());
                 } catch (RuntimeException closeEventFailure) {
@@ -406,7 +406,7 @@ final class ChatRunInstance {
                     : new AguiEvent.RunFinished(
                             run.getSessionId(), run.getAguiRunId(), null, new AguiEvent.RunFinishedSuccessOutcome());
             String json = AguiEventJsonCodec.withTerminalMetadata(
-                    mapper.encodeToJson(terminalEvent), actualStatus.name(), run.getFinishReason());
+                    agentEventInterpreter.encodeToJson(terminalEvent), actualStatus.name(), run.getFinishReason());
             ChatRunEvent appended =
                     eventStore.appendTerminalIfAbsent(run.getId(), run.getAguiRunId(), actualStatus.name(), json);
             runService.recordTerminalSeq(run, snapshot, appended.seq());
@@ -501,11 +501,6 @@ final class ChatRunInstance {
     boolean isRunning() {
         Disposable current = disposable.get();
         return current != null && !current.isDisposed();
-    }
-
-    /** 判断执行实例是否持有可用的 Agent。 */
-    boolean hasAgent() {
-        return agentExecutionAdapter != null;
     }
 
     /** 请求中断 Agent 状态会话。 */

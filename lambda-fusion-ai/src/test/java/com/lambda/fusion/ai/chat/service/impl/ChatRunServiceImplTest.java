@@ -83,7 +83,6 @@ class ChatRunServiceImplTest {
 
         assertThat(result.status()).isEqualTo(ChatRunStatus.STOPPED.name());
         assertThat(result.finishReason()).isEqualTo("USER_STOP");
-        assertThat(result.assistantMessageId()).isEqualTo(11L);
         assertThat(result.errorCode()).isNull();
         assertThat(result.errorMessage()).isNull();
     }

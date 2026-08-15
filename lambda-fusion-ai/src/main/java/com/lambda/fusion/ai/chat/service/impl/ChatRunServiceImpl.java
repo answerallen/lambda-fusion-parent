@@ -325,12 +325,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         // 已终态：幂等返回 committed=false，携带既有终态信息。
         if (ChatRunStatus.isTerminal(run.getStatus())) {
             return new FinalizeResult(
-                    false,
-                    run.getAssistantMessageId(),
-                    run.getStatus(),
-                    run.getFinishReason(),
-                    run.getErrorCode(),
-                    run.getErrorMessage());
+                    false, run.getStatus(), run.getFinishReason(), run.getErrorCode(), run.getErrorMessage());
         }
 
         ChatRunStatus targetStatus = command.targetStatus();
@@ -378,13 +373,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .eq(ChatSessionEntity::getUserId, session.getUserId())
                         .set(ChatSessionEntity::getLastMessageAt, now)
                         .set(ChatSessionEntity::getUpdatedAt, now));
-        return new FinalizeResult(
-                true,
-                assistant == null ? null : assistant.getId(),
-                finalStatus.name(),
-                finalReason,
-                finalErrorCode,
-                finalErrorMessage);
+        return new FinalizeResult(true, finalStatus.name(), finalReason, finalErrorCode, finalErrorMessage);
     }
 
     /** 在终态下补写最终快照与序号；行已被清理时容忍不抛，行仍在却写失败则异常。 */

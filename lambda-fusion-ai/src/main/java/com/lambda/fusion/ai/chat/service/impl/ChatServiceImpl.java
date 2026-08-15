@@ -10,7 +10,6 @@ import com.lambda.fusion.ai.chat.model.RunContext;
 import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.ChatRunCoordinator;
-import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
 import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
@@ -78,7 +77,6 @@ public class ChatServiceImpl implements ChatService {
     }
 
     private SseEmitter openRunEventStream(ChatRunEntity run, long afterSeq, boolean bootstrap) {
-        chatRunCoordinator.validateCursor(run, afterSeq, bootstrap);
         long timeout = properties.getChat().getRun().getConnectionTimeoutSeconds() * 1000;
         SseEmitter emitter = new SseEmitter(timeout);
         AtomicBoolean detached = new AtomicBoolean();
@@ -143,8 +141,7 @@ public class ChatServiceImpl implements ChatService {
     private static void send(SseEmitter emitter, ChatRunEvent event) {
         try {
             emitter.send(SseEmitter.event().id(event.id()).data(event.data()));
-            String type = AguiEventJsonCodec.readEventType(event.data());
-            if ("RUN_FINISHED".equals(type) || "RUN_ERROR".equals(type)) {
+            if ("RUN_FINISHED".equals(event.type()) || "RUN_ERROR".equals(event.type())) {
                 emitter.complete();
             }
         } catch (IOException | IllegalStateException disconnected) {

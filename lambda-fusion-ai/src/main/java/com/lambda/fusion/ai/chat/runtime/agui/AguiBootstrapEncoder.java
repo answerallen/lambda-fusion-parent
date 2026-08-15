@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.chat.runtime.agui;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -143,5 +144,36 @@ public final class AguiBootstrapEncoder {
 
     private static String valueOrDefault(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    /** 引导事件收集器。 */
+    private static final class AguiBootstrapEventCollector {
+
+        private final String threadId;
+        private final String chatRunId;
+        private final String aguiRunId;
+        private final long highWatermark;
+        private final List<String> events = new ArrayList<>();
+
+        private AguiBootstrapEventCollector(ChatRunEntity run, long highWatermark) {
+            this.threadId = run.getSessionId();
+            this.chatRunId = run.getId();
+            this.aguiRunId = run.getAguiRunId();
+            this.highWatermark = highWatermark;
+        }
+
+        private String chatRunId() {
+            return chatRunId;
+        }
+
+        private void add(Map<String, Object> fields) {
+            Map<String, Object> event = new LinkedHashMap<>(fields);
+            event.put("threadId", threadId);
+            events.add(AguiEventJsonCodec.encodeBootstrapEvent(event, chatRunId, aguiRunId, highWatermark));
+        }
+
+        private List<String> events() {
+            return List.copyOf(events);
+        }
     }
 }

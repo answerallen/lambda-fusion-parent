@@ -13,7 +13,6 @@ import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapEncoder;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventCursor;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
 import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
@@ -105,7 +104,6 @@ public class ChatRunCoordinator {
             rejected.finalizeFailed("RUN_CAPACITY_EXCEEDED", safeMessage(capacityFailure));
             return;
         }
-        eventStore.initialize(run.getId(), sequenceFallback(run));
         ChatRunInstance candidate;
         try {
             candidate = instanceFactory.restoreExecution(run, session, scheduler, executions);
@@ -164,7 +162,6 @@ public class ChatRunCoordinator {
                         : selected;
                 failed.finalizeFailed("START_FAILED", safeMessage(startFailure));
             }
-            return null;
         });
     }
 
@@ -180,24 +177,6 @@ public class ChatRunCoordinator {
     public ChatRunEventSubscription subscribe(
             String runId, long afterSeq, Consumer<ChatRunEvent> consumer, Consumer<Throwable> failureConsumer) {
         return eventStore.subscribe(runId, afterSeq, consumer, failureConsumer);
-    }
-
-    /**
-     * 校验 SSE 恢复游标。
-     *
-     * @param run 运行实体
-     * @param afterSeq 已消费的事件序号
-     * @param bootstrap 是否返回引导事件
-     * @throws AiBusinessException 非引导模式下游标不在当前事件窗口内
-     */
-    public void validateCursor(ChatRunEntity run, long afterSeq, boolean bootstrap) {
-        if (bootstrap) {
-            return;
-        }
-        ChatRunEventCursor window = eventStore.cursorWindow(run.getId());
-        if (afterSeq < window.minSeq() - 1 || afterSeq > window.latestSeq()) {
-            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CURSOR_EXPIRED, afterSeq);
-        }
     }
 
     /**
@@ -228,10 +207,7 @@ public class ChatRunCoordinator {
      * @param session 会话实体
      */
     public void stop(ChatRunEntity run, ChatSessionEntity session) {
-        TenantUtils.withTenant(session.getTenantId(), () -> {
-            stopInContext(run, session);
-            return null;
-        });
+        TenantUtils.withTenant(session.getTenantId(), () -> stopInContext(run, session));
     }
 
     private void stopInContext(ChatRunEntity run, ChatSessionEntity session) {
@@ -281,10 +257,7 @@ public class ChatRunCoordinator {
      */
     void recoverInterrupted(ChatRunEntity run) {
         ChatSessionEntity session = loadSession(run);
-        TenantUtils.withTenant(session.getTenantId(), () -> {
-            recoverInterruptedInTenantContext(run, session);
-            return null;
-        });
+        TenantUtils.withTenant(session.getTenantId(), () -> recoverInterruptedInTenantContext(run, session));
     }
 
     /** 启动定时维护任务。供 {@link ChatRunStartupRecovery} 编排调用。 */
@@ -332,10 +305,6 @@ public class ChatRunCoordinator {
             return false;
         }
         run.setStatus(ChatRunStatus.RUNNING.name());
-        if (!execution.hasAgent()) {
-            execution.finalizeFailed("RUN_CAPACITY_EXCEEDED", "后台对话Run已达到实例容量上限");
-            return true;
-        }
         try {
             ChatMessageEntity userMessage = messageService
                     .findByIdAndSession(run.getUserMessageId(), run.getSessionId())
@@ -388,14 +357,13 @@ public class ChatRunCoordinator {
         ChatSessionEntity session = loadSession(run);
         TenantUtils.withTenant(session.getTenantId(), () -> {
             if (!runService.requestConfirmationTimeout(run, LocalDateTime.now())) {
-                return null;
+                return;
             }
             run.setStatus(ChatRunStatus.STOPPING.name());
             ChatRunInstance execution = executions.computeIfAbsent(
                     run.getId(), ignored -> instanceFactory.restoreForFinalize(run, session, scheduler, executions));
             execution.markStopping();
             execution.finalizeStopped("CONFIRM_TIMEOUT");
-            return null;
         });
     }
 
