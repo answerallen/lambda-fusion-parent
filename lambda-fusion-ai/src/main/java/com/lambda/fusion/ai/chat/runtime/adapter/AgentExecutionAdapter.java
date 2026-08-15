@@ -113,7 +113,10 @@ public final class AgentExecutionAdapter {
     }
 
     /**
-     * 读取 Agent 状态中等待确认的工具调用。
+     * 读取 Agent 状态上下文中全部等待确认的工具调用。
+     *
+     * <p>扫描整个上下文而不限定最近一条助手消息，与确认恢复设计的三方一致性口径一致；
+     * 旧消息中残留的未闭合 ASKING 块同样计入。
      *
      * @return 待确认工具调用
      * @throws AiBusinessException Agent 状态不可用或不存在待确认工具调用
@@ -124,18 +127,13 @@ public final class AgentExecutionAdapter {
             if (state == null || state.getContext() == null) {
                 throw confirmationContextUnavailable();
             }
-            for (int i = state.getContext().size() - 1; i >= 0; i--) {
-                Msg message = state.getContext().get(i);
-                if (message.getRole() != MsgRole.ASSISTANT) {
-                    continue;
-                }
-                List<ToolUseBlock> asking = message.getContent().stream()
-                        .filter(block -> block instanceof ToolUseBlock tool && tool.getState() == ToolCallState.ASKING)
-                        .map(ToolUseBlock.class::cast)
-                        .toList();
-                if (!asking.isEmpty()) {
-                    return asking;
-                }
+            List<ToolUseBlock> asking = state.getContext().stream()
+                    .filter(message -> message.getRole() == MsgRole.ASSISTANT)
+                    .flatMap(message -> message.getContentBlocks(ToolUseBlock.class).stream())
+                    .filter(tool -> tool.getState() == ToolCallState.ASKING)
+                    .toList();
+            if (!asking.isEmpty()) {
+                return asking;
             }
         } catch (AiBusinessException exception) {
             throw exception;
