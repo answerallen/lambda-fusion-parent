@@ -44,9 +44,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import reactor.core.Disposable;
@@ -176,12 +174,20 @@ final class ChatRunInstance {
             }
         }
 
-        Set<String> snapshotIds = accumulator.snapshot().pendingTools().stream()
-                .map(ExecutionSnapshot.Tool::toolCallId)
-                .collect(Collectors.toSet());
+        Set<String> snapshotIds = new HashSet<>();
+        for (ExecutionSnapshot.Tool tool : accumulator.snapshot().pendingTools()) {
+            if (!snapshotIds.add(tool.toolCallId())) {
+                throw contextMismatch("快照待确认工具ID重复: " + tool.toolCallId());
+            }
+        }
         List<ToolUseBlock> askingBlocks = agentExecutionAdapter.readAskingToolBlocks();
-        Set<String> agentAskingIds =
-                askingBlocks.stream().map(ToolUseBlock::getId).collect(Collectors.toSet());
+        Map<String, ToolUseBlock> blockById = new LinkedHashMap<>();
+        for (ToolUseBlock block : askingBlocks) {
+            if (blockById.put(block.getId(), block) != null) {
+                throw contextMismatch("Agent待确认工具ID重复: " + block.getId());
+            }
+        }
+        Set<String> agentAskingIds = blockById.keySet();
         if (!snapshotIds.equals(decidedIds) || !snapshotIds.equals(agentAskingIds)) {
             log.warn(
                     "确认工具上下文不一致: runId={}, phaseNo={}, snapshotCount={}, decisionCount={}, agentAskingCount={}",
@@ -193,14 +199,17 @@ final class ChatRunInstance {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH, run.getId());
         }
 
-        Map<String, ToolUseBlock> blockById = askingBlocks.stream()
-                .collect(Collectors.toMap(ToolUseBlock::getId, Function.identity(), (a, b) -> a, LinkedHashMap::new));
         List<ConfirmResult> results = command.getDecisions().stream()
                 .map(decision -> new ConfirmResult(decision.isConfirmed(), blockById.get(decision.getToolCallId())))
                 .toList();
         return UserMessage.builder()
                 .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, results))
                 .build();
+    }
+
+    private AiBusinessException contextMismatch(String detail) {
+        log.warn("确认工具上下文不一致: runId={}, phaseNo={}, detail={}", run.getId(), run.getPhaseNo(), detail);
+        return new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH, run.getId());
     }
 
     /** 把数据库迁移后的 Run 状态同步进实例内存对象。 */
@@ -315,10 +324,14 @@ final class ChatRunInstance {
             finalizeStopped(ChatRunFinishReason.USER_STOP);
             return;
         }
+        ExecutionSnapshot snapshot = accumulator.snapshot();
+        // 先发确认中断事件、再按其后的最新序号持久化待确认：使快照序号覆盖中断事件，
+        // 避免「快照已存、中断事件未到」的错位（不再依赖先存序号再发事件的隐式顺序）。
+        List<AguiEvent> events = pendingConfirmInterpretation.events();
+        appendAll(events);
         long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         LocalDateTime deadline =
                 LocalDateTime.now().plusSeconds(properties.getChat().getRun().getAwaitConfirmTimeoutSeconds());
-        ExecutionSnapshot snapshot = accumulator.snapshot();
         if (!runService.awaitConfirm(run, snapshot, seq, deadline)) {
             ChatRunEntity current = loadCurrent(run);
             run.setStatus(current.getStatus());
@@ -336,9 +349,7 @@ final class ChatRunInstance {
         run.setAwaitConfirmDeadlineAt(deadline);
         run.setSnapshotSeq(seq);
         eventStore.compact(run.getId(), seq);
-        List<AguiEvent> events = pendingConfirmInterpretation.events();
         pendingConfirmInterpretation = null;
-        appendAll(events);
     }
 
     private void appendAll(List<AguiEvent> events) {
