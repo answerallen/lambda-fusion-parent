@@ -11,7 +11,6 @@ import com.lambda.fusion.ai.runtime.AgentFactory;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,12 +39,9 @@ class ChatRunInstanceFactory {
     private final ObjectProvider<HarnessGateway> gatewayProvider;
     private final AiProperties properties;
 
-    /** 恢复带 Agent 的完整执行实例（未注册进活动实例集合，注册由调用方决定）。 */
+    /** 恢复带 Agent 的完整执行实例。 */
     ChatRunInstance restoreExecution(
-            ChatRunEntity run,
-            ChatSessionEntity session,
-            ScheduledExecutorService scheduler,
-            ConcurrentMap<String, ChatRunInstance> executions) {
+            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler, Runnable onTerminal) {
         eventStore.initialize(run.getId(), ChatRunSupport.sequenceFallback(run));
         String tenantId = tenantId(session);
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), tenantId);
@@ -56,53 +52,32 @@ class ChatRunInstanceFactory {
                 run,
                 session,
                 tenantId);
-        return newInstance(run, session, scheduler, executions, agentExecution);
+        return newInstance(run, session, scheduler, onTerminal, agentExecution);
     }
 
     /** 恢复无 Agent 的纯终结实例（仅用于落终态，不闭合 Agent 状态）。 */
     ChatRunInstance restoreFinalizer(
-            ChatRunEntity run,
-            ChatSessionEntity session,
-            ScheduledExecutorService scheduler,
-            ConcurrentMap<String, ChatRunInstance> executions) {
+            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler, Runnable onTerminal) {
         eventStore.initialize(run.getId(), ChatRunSupport.sequenceFallback(run));
-        return newInstance(run, session, scheduler, executions, null);
+        return newInstance(run, session, scheduler, onTerminal, null);
     }
 
     /** 终结前的恢复：优先恢复带 Agent 的实例以闭合未决工具调用，Agent 恢复失败时退化为纯落终态。 */
     ChatRunInstance restoreForFinalize(
-            ChatRunEntity run,
-            ChatSessionEntity session,
-            ScheduledExecutorService scheduler,
-            ConcurrentMap<String, ChatRunInstance> executions) {
+            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler, Runnable onTerminal) {
         try {
-            return restoreExecution(run, session, scheduler, executions);
+            return restoreExecution(run, session, scheduler, onTerminal);
         } catch (RuntimeException restoreFailure) {
             log.warn("终结前Agent恢复失败，仅落终态: runId={}", run.getId(), restoreFailure);
-            return restoreFinalizer(run, session, scheduler, executions);
+            return restoreFinalizer(run, session, scheduler, onTerminal);
         }
-    }
-
-    /** 查询活动实例；不存在时恢复一个并注册（并发竞争下取先注册者）。 */
-    ChatRunInstance selectOrRestore(
-            ChatRunEntity run,
-            ChatSessionEntity session,
-            ScheduledExecutorService scheduler,
-            ConcurrentMap<String, ChatRunInstance> executions) {
-        ChatRunInstance selected = executions.get(run.getId());
-        if (selected != null) {
-            return selected;
-        }
-        ChatRunInstance candidate = restoreExecution(run, session, scheduler, executions);
-        ChatRunInstance existing = executions.putIfAbsent(run.getId(), candidate);
-        return existing == null ? candidate : existing;
     }
 
     private ChatRunInstance newInstance(
             ChatRunEntity run,
             ChatSessionEntity session,
             ScheduledExecutorService scheduler,
-            ConcurrentMap<String, ChatRunInstance> executions,
+            Runnable onTerminal,
             AgentExecutionAdapter agentExecution) {
         return new ChatRunInstance(
                 runService,
@@ -110,7 +85,7 @@ class ChatRunInstanceFactory {
                 properties,
                 scheduler,
                 workspaceAuditRecorder,
-                executions,
+                onTerminal,
                 run,
                 session,
                 agentExecution,

@@ -40,7 +40,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -66,7 +65,7 @@ final class ChatRunInstance {
     private final AiProperties properties;
     private final ScheduledExecutorService scheduler;
     private final WorkspaceAuditRecorder workspaceAuditRecorder;
-    private final ConcurrentMap<String, ChatRunInstance> executions;
+    private final Runnable onTerminal;
 
     final ChatRunEntity run;
     final ChatSessionEntity session;
@@ -90,7 +89,7 @@ final class ChatRunInstance {
      * @param properties AI 模块配置
      * @param scheduler 定时任务执行器
      * @param workspaceAuditRecorder 工作区审计记录器
-     * @param executions 活动执行实例集合
+     * @param onTerminal 终态提交后的摘除信号（由协调器注入，从活动实例注册表移除本实例）
      * @param run 运行实体
      * @param session 会话实体
      * @param agentExecutionAdapter Agent 执行适配器；仅执行终结流程时可为 {@code null}
@@ -102,7 +101,7 @@ final class ChatRunInstance {
             AiProperties properties,
             ScheduledExecutorService scheduler,
             WorkspaceAuditRecorder workspaceAuditRecorder,
-            ConcurrentMap<String, ChatRunInstance> executions,
+            Runnable onTerminal,
             ChatRunEntity run,
             ChatSessionEntity session,
             AgentExecutionAdapter agentExecutionAdapter,
@@ -112,7 +111,7 @@ final class ChatRunInstance {
         this.properties = properties;
         this.scheduler = scheduler;
         this.workspaceAuditRecorder = workspaceAuditRecorder;
-        this.executions = executions;
+        this.onTerminal = onTerminal;
         this.run = run;
         this.session = session;
         this.agentExecutionAdapter = agentExecutionAdapter;
@@ -331,7 +330,7 @@ final class ChatRunInstance {
             } else if (!ChatRunStatus.isTerminal(current.getStatus())) {
                 finalizeFailed(ChatRunFailureCode.STATE_CONFLICT, "Run进入待确认状态失败");
             } else {
-                executions.remove(run.getId(), this);
+                onTerminal.run();
             }
             return;
         }
@@ -469,7 +468,7 @@ final class ChatRunInstance {
             eventStore.markTerminal(
                     run.getId(),
                     Duration.ofSeconds(properties.getChat().getRun().getTerminalTtlSeconds()));
-            executions.remove(run.getId(), this);
+            onTerminal.run();
         } catch (RuntimeException finalizeFailure) {
             terminal = false;
             int attempt = ++finalizeAttempts;

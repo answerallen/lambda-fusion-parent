@@ -166,7 +166,7 @@ class ChatRunInstanceTerminalTest {
                 new AiProperties(),
                 scheduler,
                 workspaceAuditRecorder,
-                executions,
+                () -> executions.remove(run.getId()),
                 run,
                 session(),
                 adapter,

@@ -90,16 +90,16 @@ public class ChatRunCoordinator {
         try {
             enforceCapacity(run, session);
         } catch (RuntimeException capacityFailure) {
-            ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler, executions);
+            ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler, noopTerminal());
             rejected.finalizeFailed(
                     ChatRunFailureCode.RUN_CAPACITY_EXCEEDED, ChatRunSupport.safeMessage(capacityFailure));
             return;
         }
         ChatRunInstance candidate;
         try {
-            candidate = instanceFactory.restoreExecution(run, session, scheduler, executions);
+            candidate = instanceFactory.restoreExecution(run, session, scheduler, onTerminal(run.getId()));
         } catch (RuntimeException restoreFailure) {
-            ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler, executions);
+            ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler, noopTerminal());
             if (runService.claimCreated(run)) {
                 run.setStatus(ChatRunStatus.RUNNING.name());
                 rejected.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSupport.safeMessage(restoreFailure));
@@ -110,6 +110,32 @@ public class ChatRunCoordinator {
         if (execution == null && !startCreated(candidate)) {
             executions.remove(run.getId(), candidate);
         }
+    }
+
+    /** 查询活动实例；不存在时恢复一个并注册（并发竞争下取先注册者）。注册表由本协调器唯一持有。 */
+    private ChatRunInstance selectOrRestore(ChatRunEntity run, ChatSessionEntity session) {
+        ChatRunInstance selected = executions.get(run.getId());
+        if (selected != null) {
+            return selected;
+        }
+        ChatRunInstance candidate = instanceFactory.restoreExecution(run, session, scheduler, onTerminal(run.getId()));
+        ChatRunInstance existing = executions.putIfAbsent(run.getId(), candidate);
+        return existing == null ? candidate : existing;
+    }
+
+    /**
+     * 构造终结信号：实例终结时回调，从注册表摘除 {@code runId} 当前登记实例。
+     *
+     * <p>注册表只登记活跃实例，终结信号由该活跃实例自身触发，故按 runId 摘除即可；{@code remove} 幂等，
+     * 终结重试时重复调用安全。竞争落败或从未注册的实例不会触发本信号（它们不会被登记，见各调用点）。
+     */
+    private Runnable onTerminal(String runId) {
+        return () -> executions.remove(runId);
+    }
+
+    /** 未注册实例（启动失败路径）的空终结信号：这些实例从未登记，终结时无需摘除。 */
+    private Runnable noopTerminal() {
+        return () -> {};
     }
 
     /**
@@ -126,7 +152,7 @@ public class ChatRunCoordinator {
      */
     public ConfirmTransition confirm(ChatRunEntity run, ChatSessionEntity session, ConfirmToolCall command) {
         return TenantUtils.withTenant(session.getTenantId(), () -> {
-            ChatRunInstance execution = instanceFactory.selectOrRestore(run, session, scheduler, executions);
+            ChatRunInstance execution = selectOrRestore(run, session);
             return execution.confirm(command);
         });
     }
@@ -182,7 +208,8 @@ public class ChatRunCoordinator {
         }
         // 取规范实例（computeIfAbsent 注册唯一实例），锁顺序恒为 实例 monitor → REQUIRES_NEW 数据库事务。
         ChatRunInstance execution = executions.computeIfAbsent(
-                run.getId(), ignored -> instanceFactory.restoreForFinalize(run, session, scheduler, executions));
+                run.getId(),
+                ignored -> instanceFactory.restoreForFinalize(run, session, scheduler, onTerminal(run.getId())));
         if (!execution.isRunning()) {
             // 非运行态（含待确认、已中断）：数据库迁移到 STOPPING 与终态收敛一并移入实例锁。
             boolean stopped = execution.stop(() -> runService.requestStopping(run), ChatRunFinishReason.USER_STOP);
@@ -242,7 +269,7 @@ public class ChatRunCoordinator {
                     properties.getStateStore().getType());
             return;
         }
-        ChatRunInstance lost = instanceFactory.restoreForFinalize(run, session, scheduler, executions);
+        ChatRunInstance lost = instanceFactory.restoreForFinalize(run, session, scheduler, onTerminal(run.getId()));
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
             lost.finalizeStopped(ChatRunFinishReason.USER_STOP);
         } else if (ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
@@ -326,7 +353,8 @@ public class ChatRunCoordinator {
         TenantUtils.withTenant(session.getTenantId(), () -> {
             // 取规范实例（computeIfAbsent 注册唯一实例），确认超时的数据库迁移与终态收敛一并移入实例锁。
             ChatRunInstance execution = executions.computeIfAbsent(
-                    run.getId(), ignored -> instanceFactory.restoreForFinalize(run, session, scheduler, executions));
+                    run.getId(),
+                    ignored -> instanceFactory.restoreForFinalize(run, session, scheduler, onTerminal(run.getId())));
             execution.stop(
                     () -> runService.requestConfirmationTimeout(run, LocalDateTime.now()),
                     ChatRunFinishReason.CONFIRM_TIMEOUT);
