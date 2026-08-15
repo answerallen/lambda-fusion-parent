@@ -298,7 +298,16 @@ Run 保持 `AWAITING_CONFIRM` 并返回可重试错误。运维修复 state stor
 
 ### 8.5 JVM 重启
 
-本项目当前明确不恢复旧 Agent 执行器，启动恢复会把遗留 `RUNNING/AWAITING_CONFIRM` 收敛为 `INSTANCE_LOST`。本次修复不改变这一边界。将来若支持跨重启确认恢复，需要另行设计 Agent 版本、工具版本、权限快照和执行所有权，不能仅依赖现有 RunSnapshot。
+当前边界是：仅当 state store 为持久化实现、且重启后仍可恢复并校验确认上下文时，允许保留 `AWAITING_CONFIRM`；否则启动恢复会将遗留 `RUNNING/AWAITING_CONFIRM` 收敛为 `INSTANCE_LOST`。
+
+这里的“可恢复并校验”至少要求：
+
+- Agent 定义、工具集合和权限上下文在重启后仍可识别且未发生不兼容变化；
+- `ASKING` 工具调用上下文能够从 state store 重新读取，并与 Run 快照中的待确认集合一致；
+- 恢复路径不得伪造 `ToolUseBlock`，不得仅凭 `RunSnapshot` 跳过上下文校验；
+- 一旦上下文不可读、集合不一致或版本边界不明确，必须按失败边界收敛，而不是静默继续。
+
+因此，跨重启确认恢复不是默认能力，而是有明确前置条件的受支持边界；不满足条件时仍按 `INSTANCE_LOST` 处理。
 
 ## 9. 安全设计
 

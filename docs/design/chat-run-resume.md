@@ -224,11 +224,12 @@ POST /v1/ai/sessions/{sessionId}/runs/{runId}/stop
 当前事件存储和 Agent 执行都在单实例内存中，因此启动恢复必须诚实处理：
 
 - `CREATED`：尚未认领，可从已落库用户消息和附件首次启动。
-- `RUNNING`、`AWAITING_CONFIRM`：标记为 `FAILED / INSTANCE_LOST`，用最后快照保存部分助手输出。
+- `RUNNING`：标记为 `FAILED / INSTANCE_LOST`，用最后快照保存部分助手输出。
+- `AWAITING_CONFIRM`：仅当 AgentScope state store 为持久化实现且确认上下文可在重启后重新校验时保留；否则收敛为 `FAILED / INSTANCE_LOST`。
 - `STOPPING`：收敛为 `STOPPED / USER_STOP`，避免用户已提交的停止意图在重启后变成执行失败。
 - 确认超时：运行期间扫描 `AWAITING_CONFIRM`，收敛为 `STOPPED / CONFIRM_TIMEOUT`。
 
-不把 Agent 状态存储可持久化等同于“模型流可从 token 中间继续”。
+不把 Agent 状态存储可持久化等同于“模型流可从 token 中间继续”。对 `AWAITING_CONFIRM` 的保留也不等于承认任意版本、任意工具集合都能安全续跑；实现必须保证恢复后仍能校验 Agent、工具和权限上下文一致，否则应按失败边界处理。
 
 ## 7. SSE 事件与恢复
 

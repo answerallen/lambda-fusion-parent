@@ -1,0 +1,381 @@
+package com.lambda.fusion.ai.chat.runtime.agui;
+
+import com.lambda.fusion.ai.chat.runtime.model.ExecutionInterpretation;
+import com.lambda.fusion.ai.chat.runtime.model.ExecutionSnapshotDelta;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
+import io.agentscope.core.agui.encoder.AguiEventEncoder;
+import io.agentscope.core.agui.event.AguiEvent;
+import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.event.AgentEventType;
+import io.agentscope.core.event.RequireUserConfirmEvent;
+import io.agentscope.core.event.TextBlockDeltaEvent;
+import io.agentscope.core.event.ThinkingBlockDeltaEvent;
+import io.agentscope.core.event.ToolCallDeltaEvent;
+import io.agentscope.core.event.ToolCallEndEvent;
+import io.agentscope.core.event.ToolCallStartEvent;
+import io.agentscope.core.event.ToolResultEndEvent;
+import io.agentscope.core.event.ToolResultStartEvent;
+import io.agentscope.core.event.ToolResultTextDeltaEvent;
+import io.agentscope.core.message.ToolUseBlock;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
+
+/**
+ * AgentScope 事件到 AG-UI 事件和快照增量的解释器。
+ *
+ * <p>实例按运行阶段创建，负责维护文本、推理和工具调用事件的配对状态，并向 EventStore 与快照累加器输出一致结果。
+ *
+ * @author Jin
+ */
+public class AgentEventInterpreter {
+
+    private final String threadId;
+    private final String runId;
+    private final boolean enableReasoning;
+    private final AguiEventEncoder encoder;
+
+    private String textMessageId;
+    private String reasoningMessageId;
+    private boolean reasoningStarted;
+    private String reasoningGroupId;
+
+    private final AguiToolCallTracker toolCallTracker = new AguiToolCallTracker();
+
+    /**
+     * 创建事件解释器。
+     *
+     * @param threadId AG-UI 线程标识
+     * @param runId AG-UI 运行标识
+     * @param enableReasoning 是否输出推理事件
+     */
+    public AgentEventInterpreter(String threadId, String runId, boolean enableReasoning) {
+        this.threadId = threadId;
+        this.runId = runId;
+        this.enableReasoning = enableReasoning;
+        this.encoder = new AguiEventEncoder();
+    }
+
+    /**
+     * 将单个 AgentScope 事件解释为 AG-UI 事件和快照增量。
+     *
+     * @param event AgentScope 事件
+     * @return 事件解释结果
+     */
+    public ExecutionInterpretation interpret(AgentEvent event) {
+        List<AguiEvent> events = new ArrayList<>();
+        SnapshotDeltaBuilder delta = new SnapshotDeltaBuilder();
+        AgentEventType type = event.getType();
+        switch (type) {
+            case AGENT_START -> events.add(new AguiEvent.RunStarted(threadId, runId, null, null));
+            case TEXT_BLOCK_DELTA -> mapTextDelta(event, events, delta);
+            case THINKING_BLOCK_DELTA -> mapThinkingDelta(event, events, delta);
+            case TOOL_CALL_START -> mapToolCallStart(event, events, delta);
+            case TOOL_CALL_DELTA -> mapToolCallDelta(event, events, delta);
+            case TOOL_CALL_END -> mapToolCallEnd(event, events, delta);
+            case TOOL_RESULT_START -> mapToolResultStart(event, events, delta);
+            case TOOL_RESULT_TEXT_DELTA -> mapToolResultTextDelta(event, delta);
+            case TOOL_RESULT_END -> mapToolResultEnd(event, events, delta);
+            case REQUIRE_USER_CONFIRM -> mapRequireUserConfirm(event, events, delta);
+            case AGENT_END -> mapAgentEnd(events, delta);
+            default -> {}
+        }
+        return new ExecutionInterpretation(List.copyOf(events), delta.build());
+    }
+
+    /**
+     * 将单个 AgentScope 事件映射为 AG-UI 事件。
+     *
+     * @param event AgentScope 事件
+     * @return AG-UI 事件列表；无对应协议事件时返回空列表
+     */
+    public List<AguiEvent> map(AgentEvent event) {
+        return interpret(event).events();
+    }
+
+    /**
+     * 将 AG-UI 事件编码为 JSON。
+     *
+     * @param event AG-UI 事件
+     * @return 事件 JSON
+     */
+    public String encodeToJson(AguiEvent event) {
+        return encoder.encodeToJson(event);
+    }
+
+    private void mapTextDelta(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        if (!(event instanceof TextBlockDeltaEvent textDelta)) {
+            return;
+        }
+        String msgId = resolveId(textDelta.getReplyId());
+        if (!msgId.equals(textMessageId)) {
+            closeReasoningMessage(out, delta);
+            closeTextMessage(out, delta);
+            textMessageId = msgId;
+            out.add(new AguiEvent.TextMessageStart(threadId, runId, msgId, "assistant"));
+        }
+        out.add(new AguiEvent.TextMessageContent(threadId, runId, msgId, textDelta.getDelta()));
+        delta.appendText(msgId, textDelta.getDelta());
+    }
+
+    private void mapThinkingDelta(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        if (!enableReasoning || !(event instanceof ThinkingBlockDeltaEvent thinkingDelta)) {
+            return;
+        }
+        String msgId = resolveId(thinkingDelta.getReplyId());
+        if (!msgId.equals(reasoningMessageId)) {
+            closeTextMessage(out, delta);
+            if (reasoningMessageId != null) {
+                out.add(new AguiEvent.ReasoningMessageEnd(threadId, runId, reasoningMessageId));
+            }
+            if (!reasoningStarted) {
+                out.add(new AguiEvent.ReasoningStart(threadId, runId, msgId, null));
+                reasoningStarted = true;
+                reasoningGroupId = msgId;
+            }
+            reasoningMessageId = msgId;
+            out.add(new AguiEvent.ReasoningMessageStart(threadId, runId, msgId, "reasoning"));
+        }
+        out.add(new AguiEvent.ReasoningMessageContent(threadId, runId, msgId, thinkingDelta.getDelta()));
+        delta.appendReasoning(msgId, thinkingDelta.getDelta());
+    }
+
+    private void mapToolCallStart(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        if (!(event instanceof ToolCallStartEvent tool)) {
+            return;
+        }
+        closeActiveMessage(out, delta);
+        if (toolCallTracker.markStarted(tool.getToolCallId())) {
+            out.add(new AguiEvent.ToolCallStart(threadId, runId, tool.getToolCallId(), tool.getToolCallName()));
+        }
+        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, "running", false, false);
+    }
+
+    private void mapToolCallDelta(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        if (!(event instanceof ToolCallDeltaEvent tool)) {
+            return;
+        }
+        out.add(new AguiEvent.ToolCallArgs(threadId, runId, tool.getToolCallId(), tool.getDelta()));
+        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), tool.getDelta(), null, "running", false, false);
+    }
+
+    private void mapToolCallEnd(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        if (!(event instanceof ToolCallEndEvent tool)) {
+            return;
+        }
+        out.add(new AguiEvent.ToolCallEnd(threadId, runId, tool.getToolCallId()));
+        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, "running", false, false);
+    }
+
+    private void mapToolResultStart(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        if (!(event instanceof ToolResultStartEvent tool)) {
+            return;
+        }
+        closeActiveMessage(out, delta);
+        if (toolCallTracker.markStarted(tool.getToolCallId())) {
+            out.add(new AguiEvent.ToolCallStart(threadId, runId, tool.getToolCallId(), tool.getToolCallName()));
+        }
+        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, "running", false, false);
+    }
+
+    private void mapToolResultTextDelta(AgentEvent event, SnapshotDeltaBuilder delta) {
+        if (!(event instanceof ToolResultTextDeltaEvent tool)) {
+            return;
+        }
+        toolCallTracker.appendResult(tool.getToolCallId(), tool.getDelta());
+        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, tool.getDelta(), "running", false, false);
+    }
+
+    private void mapToolResultEnd(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        if (!(event instanceof ToolResultEndEvent tool)) {
+            return;
+        }
+        out.add(new AguiEvent.ToolCallEnd(threadId, runId, tool.getToolCallId()));
+        String content = toolCallTracker.result(tool.getToolCallId());
+        out.add(new AguiEvent.ToolCallResult(
+                threadId, runId, tool.getToolCallId(), content, "tool", tool.getReplyId()));
+        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, "complete", false, false);
+    }
+
+    private void mapAgentEnd(List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        closeActiveMessage(out, delta);
+        out.add(new AguiEvent.RunFinished(threadId, runId, null, new AguiEvent.RunFinishedSuccessOutcome()));
+    }
+
+    private void mapRequireUserConfirm(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        if (!(event instanceof RequireUserConfirmEvent confirm)) {
+            return;
+        }
+        closeActiveMessage(out, delta);
+        out.add(new AguiEvent.RunFinished(threadId, runId, null, buildInterruptOutcome(confirm.getToolCalls())));
+        delta.awaiting(confirm.getToolCalls().stream()
+                .map(tool -> new ExecutionSnapshot.Tool(tool.getId(), tool.getName(), "", "", "asking"))
+                .toList());
+    }
+
+    private AguiEvent.RunFinishedInterruptOutcome buildInterruptOutcome(List<ToolUseBlock> blocks) {
+        List<AguiEvent.Interrupt> interrupts = new ArrayList<>();
+        for (ToolUseBlock toolUse : blocks) {
+            interrupts.add(new AguiEvent.Interrupt(
+                    toolUse.getId(),
+                    "human_confirmation_required",
+                    "工具 '" + toolUse.getName() + "' 需要您确认后执行",
+                    toolUse.getId(),
+                    null,
+                    null,
+                    Map.of("toolName", toolUse.getName())));
+        }
+        return new AguiEvent.RunFinishedInterruptOutcome(interrupts);
+    }
+
+    /**
+     * 关闭当前打开的文本和推理消息。
+     *
+     * @return 仅包含消息关闭事件与对应快照增量的解释结果
+     */
+    public ExecutionInterpretation closeOpenMessages() {
+        List<AguiEvent> out = new ArrayList<>();
+        SnapshotDeltaBuilder delta = new SnapshotDeltaBuilder();
+        closeActiveMessage(out, delta);
+        return new ExecutionInterpretation(List.copyOf(out), delta.build());
+    }
+
+    /**
+     * 将执行异常映射为 AG-UI 错误事件。
+     *
+     * @param error 执行异常
+     * @return 包含消息关闭事件和运行错误事件的列表
+     */
+    public ExecutionInterpretation interpretError(Throwable error) {
+        List<AguiEvent> out = new ArrayList<>();
+        SnapshotDeltaBuilder delta = new SnapshotDeltaBuilder();
+        closeActiveMessage(out, delta);
+        String message = error.getMessage();
+        out.add(new AguiEvent.RunError(
+                threadId, runId, message != null ? message : error.getClass().getSimpleName(), null));
+        return new ExecutionInterpretation(List.copyOf(out), delta.build());
+    }
+
+    /**
+     * 将执行异常映射为 AG-UI 错误事件。
+     *
+     * @param error 执行异常
+     * @return 包含消息关闭事件和运行错误事件的列表
+     */
+    public List<AguiEvent> mapError(Throwable error) {
+        return interpretError(error).events();
+    }
+
+    /**
+     * 生成正常完成事件。
+     *
+     * @return 包含消息关闭事件和运行完成事件的解释结果
+     */
+    public ExecutionInterpretation interpretCompletion() {
+        List<AguiEvent> out = new ArrayList<>();
+        SnapshotDeltaBuilder delta = new SnapshotDeltaBuilder();
+        mapAgentEnd(out, delta);
+        return new ExecutionInterpretation(List.copyOf(out), delta.build());
+    }
+
+    /**
+     * 生成正常完成事件。
+     *
+     * @return 包含消息关闭事件和运行完成事件的列表
+     */
+    public List<AguiEvent> mapCompletion() {
+        return interpretCompletion().events();
+    }
+
+    private void closeActiveMessage(List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        closeTextMessage(out, delta);
+        closeReasoningMessage(out, delta);
+    }
+
+    private void closeTextMessage(List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        if (textMessageId != null) {
+            out.add(new AguiEvent.TextMessageEnd(threadId, runId, textMessageId));
+            delta.closeText();
+            textMessageId = null;
+        }
+    }
+
+    private void closeReasoningMessage(List<AguiEvent> out, SnapshotDeltaBuilder delta) {
+        if (reasoningMessageId != null) {
+            out.add(new AguiEvent.ReasoningMessageEnd(threadId, runId, reasoningMessageId));
+            delta.closeReasoning();
+            reasoningMessageId = null;
+        }
+        if (reasoningStarted) {
+            out.add(new AguiEvent.ReasoningEnd(threadId, runId, reasoningGroupId));
+            reasoningStarted = false;
+            reasoningGroupId = null;
+        }
+    }
+
+    private String resolveId(String replyId) {
+        return StringUtils.isNotBlank(replyId) ? replyId : runId;
+    }
+
+    /** 快照增量构建器。 */
+    private static final class SnapshotDeltaBuilder {
+        private String textMessageId;
+        private String textDelta;
+        private String reasoningMessageId;
+        private String reasoningDelta;
+        private boolean closeText;
+        private boolean closeReasoning;
+        private boolean closeActiveMessages;
+        private final List<ExecutionSnapshotDelta.ToolDelta> tools = new ArrayList<>();
+        private List<ExecutionSnapshot.Tool> awaitingTools = List.of();
+
+        void appendText(String messageId, String delta) {
+            textMessageId = messageId;
+            textDelta = textDelta == null ? delta : textDelta + delta;
+        }
+
+        void appendReasoning(String messageId, String delta) {
+            reasoningMessageId = messageId;
+            reasoningDelta = reasoningDelta == null ? delta : reasoningDelta + delta;
+        }
+
+        void closeText() {
+            closeText = true;
+        }
+
+        void closeReasoning() {
+            closeReasoning = true;
+        }
+
+        void upsertTool(
+                String toolCallId,
+                String toolCallName,
+                String argsDelta,
+                String resultDelta,
+                String status,
+                boolean replaceArgs,
+                boolean replaceResult) {
+            tools.add(new ExecutionSnapshotDelta.ToolDelta(
+                    toolCallId, toolCallName, argsDelta, resultDelta, status, replaceArgs, replaceResult));
+        }
+
+        void awaiting(List<ExecutionSnapshot.Tool> toolsToAwait) {
+            awaitingTools = List.copyOf(toolsToAwait);
+            closeActiveMessages = true;
+        }
+
+        ExecutionSnapshotDelta build() {
+            return new ExecutionSnapshotDelta(
+                    textMessageId,
+                    textDelta,
+                    reasoningMessageId,
+                    reasoningDelta,
+                    closeText,
+                    closeReasoning,
+                    closeActiveMessages,
+                    List.copyOf(tools),
+                    awaitingTools);
+        }
+    }
+}

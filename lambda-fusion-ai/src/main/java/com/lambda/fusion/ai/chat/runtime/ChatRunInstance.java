@@ -5,12 +5,13 @@ import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
+import com.lambda.fusion.ai.chat.runtime.agui.AgentEventInterpreter;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapEncoder;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
-import com.lambda.fusion.ai.chat.runtime.agui.AguiEventMapper;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
+import com.lambda.fusion.ai.chat.runtime.model.ExecutionInterpretation;
 import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
 import com.lambda.fusion.ai.chat.runtime.model.FinalizeResult;
 import com.lambda.fusion.ai.chat.runtime.model.PreparedConfirmation;
@@ -24,15 +25,6 @@ import com.lambda.fusion.core.utils.TenantUtils;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventType;
-import io.agentscope.core.event.RequireUserConfirmEvent;
-import io.agentscope.core.event.TextBlockDeltaEvent;
-import io.agentscope.core.event.ThinkingBlockDeltaEvent;
-import io.agentscope.core.event.ToolCallDeltaEvent;
-import io.agentscope.core.event.ToolCallEndEvent;
-import io.agentscope.core.event.ToolCallStartEvent;
-import io.agentscope.core.event.ToolResultEndEvent;
-import io.agentscope.core.event.ToolResultStartEvent;
-import io.agentscope.core.event.ToolResultTextDeltaEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.message.UserMessage;
@@ -47,7 +39,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -74,15 +65,15 @@ final class ChatRunInstance {
     final ChatSessionEntity session;
     private final AgentExecutionAdapter agentExecutionAdapter;
     private final ChatRunSnapshotAccumulator accumulator;
-    private final AtomicBoolean phaseFinished = new AtomicBoolean();
+    private boolean phaseFinished;
     private final AtomicBoolean terminal = new AtomicBoolean();
-    private final AtomicBoolean terminalCommitted = new AtomicBoolean();
-    private final AtomicInteger finalizeAttempts = new AtomicInteger();
+    private boolean terminalCommitted;
+    private int finalizeAttempts;
     private final AtomicReference<Disposable> disposable = new AtomicReference<>();
     private final long turnStartMillis = System.currentTimeMillis();
     private long lastCheckpointNanos = System.nanoTime();
-    private AguiEventMapper mapper;
-    private List<AguiEvent> pendingConfirmEvents;
+    private AgentEventInterpreter mapper;
+    private ExecutionInterpretation pendingConfirmInterpretation;
 
     /**
      * 创建执行实例。
@@ -119,7 +110,7 @@ final class ChatRunInstance {
         this.session = session;
         this.agentExecutionAdapter = agentExecutionAdapter;
         this.accumulator = accumulator;
-        this.mapper = new AguiEventMapper(run.getSessionId(), run.getAguiRunId(), true);
+        this.mapper = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
     }
 
     /**
@@ -156,8 +147,8 @@ final class ChatRunInstance {
         run.setPhaseNo(updated.getPhaseNo());
         run.setAguiRunId(updated.getAguiRunId());
         accumulator.beginPhase(run.getAguiRunId(), run.getPhaseNo());
-        mapper = new AguiEventMapper(run.getSessionId(), run.getAguiRunId(), true);
-        phaseFinished.set(false);
+        mapper = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
+        phaseFinished = false;
         Msg confirm = UserMessage.builder()
                 .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, prepared.results()))
                 .build();
@@ -190,7 +181,7 @@ final class ChatRunInstance {
             finalizeFailed("START_FAILED", "Agent未能初始化");
             return;
         }
-        phaseFinished.set(false);
+        phaseFinished = false;
         disposable.set(null);
         Disposable next = agentExecutionAdapter.stream(message)
                 .timeout(Duration.ofSeconds(properties.getChat().getRun().getMaxRunDurationSeconds()))
@@ -209,14 +200,8 @@ final class ChatRunInstance {
         if (terminal.get()) {
             return;
         }
-        if (event instanceof TextBlockDeltaEvent delta) {
-            accumulator.appendText(resolveMessageId(delta.getReplyId()), delta.getDelta());
-        } else if (event instanceof ThinkingBlockDeltaEvent delta) {
-            accumulator.appendReasoning(resolveMessageId(delta.getReplyId()), delta.getDelta());
-        }
-        accumulateToolEvent(event);
         if (event.getType() == AgentEventType.AGENT_END) {
-            if (phaseFinished.get() || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
+            if (phaseFinished || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
                 return;
             }
             if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
@@ -226,21 +211,19 @@ final class ChatRunInstance {
             }
             return;
         }
-        if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM
-                && event instanceof RequireUserConfirmEvent confirm) {
-            if (pendingConfirmEvents != null) {
+        ExecutionInterpretation interpretation = mapper.interpret(event);
+        if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM) {
+            if (pendingConfirmInterpretation != null) {
                 return;
             }
-            accumulator.closeActiveMessages();
-            pendingConfirmEvents = mapper.map(event);
-            accumulator.awaiting(confirm.getToolCalls().stream()
-                    .map(tool -> new ExecutionSnapshot.Tool(tool.getId(), tool.getName(), "", "", "asking"))
-                    .toList());
+            pendingConfirmInterpretation = interpretation;
+            accumulator.apply(interpretation.snapshotDelta());
             // AgentScope 在事件流结束时持久化 ASKING 状态。
-            phaseFinished.set(true);
+            phaseFinished = true;
             return;
         }
-        appendAll(mapper.map(event));
+        accumulator.apply(interpretation.snapshotDelta());
+        appendAll(interpretation.events());
         maybeCheckpoint();
     }
 
@@ -260,11 +243,11 @@ final class ChatRunInstance {
         if (terminal.get()) {
             return;
         }
-        if (pendingConfirmEvents != null) {
+        if (pendingConfirmInterpretation != null) {
             completeAwaitConfirm();
             return;
         }
-        if (!phaseFinished.get() && !terminal.get()) {
+        if (!phaseFinished && !terminal.get()) {
             if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
                 finalizeStopped("USER_STOP");
             } else {
@@ -275,7 +258,7 @@ final class ChatRunInstance {
 
     private void completeAwaitConfirm() {
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-            pendingConfirmEvents = null;
+            pendingConfirmInterpretation = null;
             finalizeStopped("USER_STOP");
             return;
         }
@@ -286,7 +269,7 @@ final class ChatRunInstance {
         if (!runService.awaitConfirm(run, snapshot, seq, deadline)) {
             ChatRunEntity current = loadCurrent(run);
             run.setStatus(current.getStatus());
-            pendingConfirmEvents = null;
+            pendingConfirmInterpretation = null;
             if (ChatRunStatus.STOPPING.name().equals(current.getStatus())) {
                 finalizeStopped("USER_STOP");
             } else if (!ChatRunStatus.isTerminal(current.getStatus())) {
@@ -300,8 +283,8 @@ final class ChatRunInstance {
         run.setAwaitConfirmDeadlineAt(deadline);
         run.setSnapshotSeq(seq);
         eventStore.compact(run.getId(), seq);
-        List<AguiEvent> events = pendingConfirmEvents;
-        pendingConfirmEvents = null;
+        List<AguiEvent> events = pendingConfirmInterpretation.events();
+        pendingConfirmInterpretation = null;
         appendAll(events);
     }
 
@@ -324,26 +307,6 @@ final class ChatRunInstance {
         if (every > 0 && seq - ChatRunCoordinator.sequenceFallback(run) >= every) {
             checkpointNow();
         }
-    }
-
-    private void accumulateToolEvent(AgentEvent event) {
-        if (event instanceof ToolCallStartEvent tool) {
-            accumulator.startTool(tool.getToolCallId(), tool.getToolCallName());
-        } else if (event instanceof ToolCallDeltaEvent tool) {
-            accumulator.appendToolArgs(tool.getToolCallId(), tool.getToolCallName(), tool.getDelta());
-        } else if (event instanceof ToolCallEndEvent tool) {
-            accumulator.finishToolArgs(tool.getToolCallId(), tool.getToolCallName());
-        } else if (event instanceof ToolResultStartEvent tool) {
-            accumulator.startTool(tool.getToolCallId(), tool.getToolCallName());
-        } else if (event instanceof ToolResultTextDeltaEvent tool) {
-            accumulator.appendToolResult(tool.getToolCallId(), tool.getToolCallName(), tool.getDelta());
-        } else if (event instanceof ToolResultEndEvent tool) {
-            accumulator.finishTool(tool.getToolCallId(), tool.getToolCallName());
-        }
-    }
-
-    private String resolveMessageId(String replyId) {
-        return StringUtils.defaultIfBlank(replyId, run.getAguiRunId());
     }
 
     /**
@@ -386,25 +349,24 @@ final class ChatRunInstance {
         if (!terminal.compareAndSet(false, true)) {
             return;
         }
-        phaseFinished.set(true);
-        pendingConfirmEvents = null;
+        phaseFinished = true;
+        pendingConfirmInterpretation = null;
         accumulator.closeActiveMessages();
         if (status != ChatRunStatus.COMPLETED) {
             closePendingToolCalls();
         }
         try {
-            ExecutionSnapshot snapshot = terminalCommitted.get()
+            ExecutionSnapshot snapshot = terminalCommitted
                     ? ExecutionSnapshotCodec.decode(loadCurrent(run).getSnapshotJson())
                     : accumulator.snapshot();
-            if (!terminalCommitted.get()) {
-                List<AguiEvent> mapped = status == ChatRunStatus.FAILED
-                        ? mapper.mapError(new IllegalStateException(errorMessage))
-                        : mapper.mapCompletion();
+            if (!terminalCommitted) {
+                ExecutionInterpretation closeInterpretation = mapper.closeOpenMessages();
                 try {
-                    appendAll(mapped.subList(0, Math.max(0, mapped.size() - 1)));
+                    appendAll(closeInterpretation.events());
                 } catch (RuntimeException closeEventFailure) {
                     log.warn("Run终结前内容关闭事件写入失败，仍继续提交业务终态: runId={}", run.getId(), closeEventFailure);
                 }
+                accumulator.apply(closeInterpretation.snapshotDelta());
                 snapshot = accumulator.snapshot();
                 long beforeTerminal = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
                 String toolJson = snapshot.tools().isEmpty()
@@ -421,7 +383,7 @@ final class ChatRunInstance {
                 run.setFinishReason(result.finishReason());
                 run.setErrorCode(result.errorCode());
                 run.setErrorMessage(result.errorMessage());
-                terminalCommitted.set(true);
+                terminalCommitted = true;
                 if (result.committed()) {
                     try {
                         workspaceAuditRecorder.recordChanges(session, turnStartMillis);
@@ -456,7 +418,7 @@ final class ChatRunInstance {
             executions.remove(run.getId(), this);
         } catch (RuntimeException finalizeFailure) {
             terminal.set(false);
-            int attempt = finalizeAttempts.incrementAndGet();
+            int attempt = ++finalizeAttempts;
             if (!scheduler.isShutdown()) {
                 if (attempt == 5 || attempt % 10 == 0) {
                     log.error("对话Run终结持续失败，将继续重试: runId={}, attempt={}", run.getId(), attempt, finalizeFailure);

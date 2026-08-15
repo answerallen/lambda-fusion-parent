@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.chat.runtime;
 
+import com.lambda.fusion.ai.chat.runtime.model.ExecutionSnapshotDelta;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +65,7 @@ final class ChatRunSnapshotAccumulator {
      * @param messageId 文本消息标识
      * @param delta 增量文本
      */
-    void appendText(String messageId, String delta) {
+    private void appendText(String messageId, String delta) {
         closeReasoning();
         textMessageId = messageId;
         textOpen = true;
@@ -77,7 +78,7 @@ final class ChatRunSnapshotAccumulator {
      * @param messageId 推理消息标识
      * @param delta 增量文本
      */
-    void appendReasoning(String messageId, String delta) {
+    private void appendReasoning(String messageId, String delta) {
         closeText();
         reasoningMessageId = messageId;
         reasoningOpen = true;
@@ -91,68 +92,67 @@ final class ChatRunSnapshotAccumulator {
     }
 
     /** 关闭当前文本消息。 */
-    void closeText() {
+    private void closeText() {
         textOpen = false;
     }
 
     /** 关闭当前推理消息。 */
-    void closeReasoning() {
+    private void closeReasoning() {
         reasoningOpen = false;
     }
 
     /**
-     * 记录工具调用开始。
+     * 应用执行快照增量。
      *
-     * @param toolCallId 工具调用标识
-     * @param toolCallName 工具名称
+     * @param delta 快照增量
      */
-    void startTool(String toolCallId, String toolCallName) {
-        closeActiveMessages();
-        upsertTool(toolCallId, toolCallName, null, null, "running");
+    void apply(ExecutionSnapshotDelta delta) {
+        if (delta == null || delta.isEmpty()) {
+            return;
+        }
+        if (delta.closeActiveMessages()) {
+            closeActiveMessages();
+        } else {
+            if (delta.closeText()) {
+                closeText();
+            }
+            if (delta.closeReasoning()) {
+                closeReasoning();
+            }
+        }
+        if (delta.reasoningDelta() != null) {
+            appendReasoning(delta.reasoningMessageId(), delta.reasoningDelta());
+        }
+        if (delta.textDelta() != null) {
+            appendText(delta.textMessageId(), delta.textDelta());
+        }
+        for (ExecutionSnapshotDelta.ToolDelta tool : delta.tools()) {
+            applyTool(tool);
+        }
+        if (delta.awaitingTools() != null && !delta.awaitingTools().isEmpty()) {
+            awaiting(delta.awaitingTools());
+        }
     }
 
-    /**
-     * 追加工具参数。
-     *
-     * @param toolCallId 工具调用标识
-     * @param toolCallName 工具名称
-     * @param delta 参数增量
-     */
-    void appendToolArgs(String toolCallId, String toolCallName, String delta) {
-        ExecutionSnapshot.Tool current = findTool(toolCallId);
-        upsertTool(toolCallId, toolCallName, (current == null ? "" : current.args()) + safe(delta), null, "running");
-    }
-
-    /**
-     * 标记工具参数接收完成。
-     *
-     * @param toolCallId 工具调用标识
-     * @param toolCallName 工具名称
-     */
-    void finishToolArgs(String toolCallId, String toolCallName) {
-        upsertTool(toolCallId, toolCallName, null, null, "running");
-    }
-
-    /**
-     * 追加工具执行结果。
-     *
-     * @param toolCallId 工具调用标识
-     * @param toolCallName 工具名称
-     * @param delta 结果增量
-     */
-    void appendToolResult(String toolCallId, String toolCallName, String delta) {
-        ExecutionSnapshot.Tool current = findTool(toolCallId);
-        upsertTool(toolCallId, toolCallName, null, (current == null ? "" : current.result()) + safe(delta), "running");
-    }
-
-    /**
-     * 标记工具调用完成。
-     *
-     * @param toolCallId 工具调用标识
-     * @param toolCallName 工具名称
-     */
-    void finishTool(String toolCallId, String toolCallName) {
-        upsertTool(toolCallId, toolCallName, null, null, "complete");
+    private void applyTool(ExecutionSnapshotDelta.ToolDelta delta) {
+        ExecutionSnapshot.Tool current = findTool(delta.toolCallId());
+        String args = current == null ? "" : current.args();
+        String result = current == null ? "" : current.result();
+        String status = current == null ? null : current.status();
+        if (delta.replaceArgs()) {
+            args = safe(delta.argsDelta());
+        } else if (delta.argsDelta() != null) {
+            args += safe(delta.argsDelta());
+        }
+        if (delta.replaceResult()) {
+            result = safe(delta.resultDelta());
+        } else if (delta.resultDelta() != null) {
+            result += safe(delta.resultDelta());
+        }
+        if (delta.status() != null) {
+            status = delta.status();
+        }
+        upsertTool(delta.toolCallId(), delta.toolCallName(), args, result, status);
     }
 
     /**
@@ -160,7 +160,7 @@ final class ChatRunSnapshotAccumulator {
      *
      * @param awaitingTools 待确认工具调用
      */
-    void awaiting(List<ExecutionSnapshot.Tool> awaitingTools) {
+    private void awaiting(List<ExecutionSnapshot.Tool> awaitingTools) {
         pendingTools = List.copyOf(awaitingTools);
     }
 
@@ -200,12 +200,12 @@ final class ChatRunSnapshotAccumulator {
             }
         }
         ExecutionSnapshot.Tool current = index < 0 ? null : tools.get(index);
-        ExecutionSnapshot.Tool updated = new ExecutionSnapshot.Tool(
-                toolCallId,
-                toolCallName == null && current != null ? current.toolCallName() : safe(toolCallName),
-                args == null && current != null ? current.args() : safe(args),
-                result == null && current != null ? current.result() : safe(result),
-                status);
+        String nextName = toolCallName == null && current != null ? current.toolCallName() : safe(toolCallName);
+        String nextArgs = args == null && current != null ? current.args() : safe(args);
+        String nextResult = result == null && current != null ? current.result() : safe(result);
+        String nextStatus = status == null && current != null ? current.status() : status;
+        ExecutionSnapshot.Tool updated =
+                new ExecutionSnapshot.Tool(toolCallId, nextName, nextArgs, nextResult, nextStatus);
         if (index < 0) {
             tools.add(updated);
         } else {
