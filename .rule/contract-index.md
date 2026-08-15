@@ -23,7 +23,7 @@
 - 执行与验证：工程契约 §17
 - Git 代码提交规范：工程契约 §18（格式 §18.1 / 粒度 §18.2 / 提交前检查 §18.3 / 禁令 §18.4）
 - 特性开关与条件装配：工程契约 §19
-- 最小充分设计与变更审计：工程契约 §20
+- 最小充分设计与变更审计：工程契约 §20（并发与单一事实来源 §20.3）
 - **标准包分层结构：package-structure.md**
 
 ## B. 关键词索引（用于检索）
@@ -51,5 +51,6 @@
 - Git 提交 / Conventional Commits / type（feat/fix/refactor/style/docs/chore/test/perf）/ scope 优先完整模块名 / subject 中英文 / 原子提交 / 规则文件独立提交 / 禁止裸 fix/refactor / 禁止 --no-verify / 禁止 force push 主分支
 - 特性开关 / `@ConditionalOnProperty` / `matchIfMissing` / 回退装配安全降级 / Nacos `@RefreshScope` / 禁止 if 配置判断 / 禁止 feature flag 库
 - 最小充分设计 / 既有事实来源 / 禁止无需求双实现 / 禁止预埋 Redis 多实例空壳 / 禁止重复 ControllerAdvice / 行锁唯一索引阶段号优先 / 自动化修改错误复盘
+- 单一事实来源 / 禁止平行状态机 / 并发边界单一表达 / 锁与原子类不得并用 / TOCTOU / 锁内校验唯一权威 / 显式语义优先 / 禁止隐式顺序约定 / 禁止中转转发方法 / 禁止反向依赖 / 死代码清理 / 禁止仅测试用公开 API
 - 模块深度文档 / `docs/skills/<module>/SKILL.md` / 自动配置入口 / 改造入口
 - 例外/过渡条款 / 宪章 §7 登记 / `lambda-fusion-oss` 目录名 vs pom `<name>`=upload / changelog=`lambda-upload-changelog.xml` 命名分歧（待对齐）/ 仅 `lambda-fusion-ai` 有测试（待补）
