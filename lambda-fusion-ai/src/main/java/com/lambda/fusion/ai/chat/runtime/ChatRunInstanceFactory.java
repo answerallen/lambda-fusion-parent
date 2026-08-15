@@ -40,8 +40,7 @@ class ChatRunInstanceFactory {
     private final AiProperties properties;
 
     /** 恢复带 Agent 的完整执行实例。 */
-    ChatRunInstance restoreExecution(
-            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler, Runnable onTerminal) {
+    ChatRunInstance restoreExecution(ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         eventStore.initialize(run.getId(), ChatRunSupport.sequenceFallback(run));
         String tenantId = tenantId(session);
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), tenantId);
@@ -52,24 +51,23 @@ class ChatRunInstanceFactory {
                 run,
                 session,
                 tenantId);
-        return newInstance(run, session, scheduler, onTerminal, agentExecution);
+        return newInstance(run, session, scheduler, agentExecution);
     }
 
     /** 恢复无 Agent 的纯终结实例（仅用于落终态，不闭合 Agent 状态）。 */
-    ChatRunInstance restoreFinalizer(
-            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler, Runnable onTerminal) {
+    ChatRunInstance restoreFinalizer(ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         eventStore.initialize(run.getId(), ChatRunSupport.sequenceFallback(run));
-        return newInstance(run, session, scheduler, onTerminal, null);
+        return newInstance(run, session, scheduler, null);
     }
 
     /** 终结前的恢复：优先恢复带 Agent 的实例以闭合未决工具调用，Agent 恢复失败时退化为纯落终态。 */
     ChatRunInstance restoreForFinalize(
-            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler, Runnable onTerminal) {
+            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         try {
-            return restoreExecution(run, session, scheduler, onTerminal);
+            return restoreExecution(run, session, scheduler);
         } catch (RuntimeException restoreFailure) {
             log.warn("终结前Agent恢复失败，仅落终态: runId={}", run.getId(), restoreFailure);
-            return restoreFinalizer(run, session, scheduler, onTerminal);
+            return restoreFinalizer(run, session, scheduler);
         }
     }
 
@@ -77,7 +75,6 @@ class ChatRunInstanceFactory {
             ChatRunEntity run,
             ChatSessionEntity session,
             ScheduledExecutorService scheduler,
-            Runnable onTerminal,
             AgentExecutionAdapter agentExecution) {
         return new ChatRunInstance(
                 runService,
@@ -85,7 +82,6 @@ class ChatRunInstanceFactory {
                 properties,
                 scheduler,
                 workspaceAuditRecorder,
-                onTerminal,
                 run,
                 session,
                 agentExecution,

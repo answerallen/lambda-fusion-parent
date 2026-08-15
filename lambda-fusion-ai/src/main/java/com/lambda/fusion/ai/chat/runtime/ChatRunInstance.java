@@ -40,6 +40,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -65,7 +66,7 @@ final class ChatRunInstance {
     private final AiProperties properties;
     private final ScheduledExecutorService scheduler;
     private final WorkspaceAuditRecorder workspaceAuditRecorder;
-    private final Runnable onTerminal;
+    private final CompletableFuture<Void> terminalSignal = new CompletableFuture<>();
 
     final ChatRunEntity run;
     final ChatSessionEntity session;
@@ -89,7 +90,6 @@ final class ChatRunInstance {
      * @param properties AI 模块配置
      * @param scheduler 定时任务执行器
      * @param workspaceAuditRecorder 工作区审计记录器
-     * @param onTerminal 终态提交后的摘除信号（由协调器注入，从活动实例注册表移除本实例）
      * @param run 运行实体
      * @param session 会话实体
      * @param agentExecutionAdapter Agent 执行适配器；仅执行终结流程时可为 {@code null}
@@ -101,7 +101,6 @@ final class ChatRunInstance {
             AiProperties properties,
             ScheduledExecutorService scheduler,
             WorkspaceAuditRecorder workspaceAuditRecorder,
-            Runnable onTerminal,
             ChatRunEntity run,
             ChatSessionEntity session,
             AgentExecutionAdapter agentExecutionAdapter,
@@ -111,7 +110,6 @@ final class ChatRunInstance {
         this.properties = properties;
         this.scheduler = scheduler;
         this.workspaceAuditRecorder = workspaceAuditRecorder;
-        this.onTerminal = onTerminal;
         this.run = run;
         this.session = session;
         this.agentExecutionAdapter = agentExecutionAdapter;
@@ -330,7 +328,7 @@ final class ChatRunInstance {
             } else if (!ChatRunStatus.isTerminal(current.getStatus())) {
                 finalizeFailed(ChatRunFailureCode.STATE_CONFLICT, "Run进入待确认状态失败");
             } else {
-                onTerminal.run();
+                terminalSignal.complete(null);
             }
             return;
         }
@@ -468,7 +466,7 @@ final class ChatRunInstance {
             eventStore.markTerminal(
                     run.getId(),
                     Duration.ofSeconds(properties.getChat().getRun().getTerminalTtlSeconds()));
-            onTerminal.run();
+            terminalSignal.complete(null);
         } catch (RuntimeException finalizeFailure) {
             terminal = false;
             int attempt = ++finalizeAttempts;
@@ -486,6 +484,16 @@ final class ChatRunInstance {
                 log.error("应用已停止，Run终结交由下次启动恢复: runId={}", run.getId(), finalizeFailure);
             }
         }
+    }
+
+    /**
+     * 暴露只读终态信号：终态提交或确认被并发终结时完成。协调器在实例注册后订阅以摘除注册表项；
+     * 未注册实例无人订阅，信号不产生任何效果。实例自身不持有、也不操作注册表。
+     *
+     * @return 终态信号（只读）
+     */
+    java.util.concurrent.CompletionStage<Void> terminalSignal() {
+        return terminalSignal;
     }
 
     /**

@@ -90,16 +90,16 @@ public class ChatRunCoordinator {
         try {
             enforceCapacity(run, session);
         } catch (RuntimeException capacityFailure) {
-            ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler, noopTerminal());
+            ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler);
             rejected.finalizeFailed(
                     ChatRunFailureCode.RUN_CAPACITY_EXCEEDED, ChatRunSupport.safeMessage(capacityFailure));
             return;
         }
         ChatRunInstance candidate;
         try {
-            candidate = instanceFactory.restoreExecution(run, session, scheduler, onTerminal(run.getId()));
+            candidate = instanceFactory.restoreExecution(run, session, scheduler);
         } catch (RuntimeException restoreFailure) {
-            ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler, noopTerminal());
+            ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler);
             if (runService.claimCreated(run)) {
                 run.setStatus(ChatRunStatus.RUNNING.name());
                 rejected.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSupport.safeMessage(restoreFailure));
@@ -107,8 +107,12 @@ public class ChatRunCoordinator {
             return;
         }
         ChatRunInstance execution = executions.putIfAbsent(run.getId(), candidate);
-        if (execution == null && !startCreated(candidate)) {
-            executions.remove(run.getId(), candidate);
+        if (execution == null) {
+            // 注册成功：订阅终结信号，终态时按身份摘除本实例。
+            subscribeTerminal(run.getId(), candidate);
+            if (!startCreated(candidate)) {
+                executions.remove(run.getId(), candidate);
+            }
         }
     }
 
@@ -118,24 +122,36 @@ public class ChatRunCoordinator {
         if (selected != null) {
             return selected;
         }
-        ChatRunInstance candidate = instanceFactory.restoreExecution(run, session, scheduler, onTerminal(run.getId()));
+        ChatRunInstance candidate = instanceFactory.restoreExecution(run, session, scheduler);
         ChatRunInstance existing = executions.putIfAbsent(run.getId(), candidate);
-        return existing == null ? candidate : existing;
+        if (existing == null) {
+            subscribeTerminal(run.getId(), candidate);
+            return candidate;
+        }
+        return existing;
+    }
+
+    /** 查询活动实例；不存在时恢复一个终结用实例并注册（并发竞争下取先注册者）。 */
+    private ChatRunInstance selectOrRestoreForFinalize(ChatRunEntity run, ChatSessionEntity session) {
+        ChatRunInstance selected = executions.get(run.getId());
+        if (selected != null) {
+            return selected;
+        }
+        ChatRunInstance candidate = instanceFactory.restoreForFinalize(run, session, scheduler);
+        ChatRunInstance existing = executions.putIfAbsent(run.getId(), candidate);
+        if (existing == null) {
+            subscribeTerminal(run.getId(), candidate);
+            return candidate;
+        }
+        return existing;
     }
 
     /**
-     * 构造终结信号：实例终结时回调，从注册表摘除 {@code runId} 当前登记实例。
-     *
-     * <p>注册表只登记活跃实例，终结信号由该活跃实例自身触发，故按 runId 摘除即可；{@code remove} 幂等，
-     * 终结重试时重复调用安全。竞争落败或从未注册的实例不会触发本信号（它们不会被登记，见各调用点）。
+     * 在实例成功注册后订阅其终结信号：终态时按身份摘除（{@code remove(runId, instance)} 带实例身份）。
+     * 未注册或竞争落败的实例不会被订阅，其终结信号无人接收，天然无法触碰注册表——杜绝误删规范实例。
      */
-    private Runnable onTerminal(String runId) {
-        return () -> executions.remove(runId);
-    }
-
-    /** 未注册实例（启动失败路径）的空终结信号：这些实例从未登记，终结时无需摘除。 */
-    private Runnable noopTerminal() {
-        return () -> {};
+    private void subscribeTerminal(String runId, ChatRunInstance instance) {
+        instance.terminalSignal().whenComplete((ignored, error) -> executions.remove(runId, instance));
     }
 
     /**
@@ -206,10 +222,8 @@ public class ChatRunCoordinator {
         if (ChatRunStatus.isTerminal(run.getStatus())) {
             return;
         }
-        // 取规范实例（computeIfAbsent 注册唯一实例），锁顺序恒为 实例 monitor → REQUIRES_NEW 数据库事务。
-        ChatRunInstance execution = executions.computeIfAbsent(
-                run.getId(),
-                ignored -> instanceFactory.restoreForFinalize(run, session, scheduler, onTerminal(run.getId())));
+        // 取规范实例（注册唯一实例），锁顺序恒为 实例 monitor → REQUIRES_NEW 数据库事务。
+        ChatRunInstance execution = selectOrRestoreForFinalize(run, session);
         if (!execution.isRunning()) {
             // 非运行态（含待确认、已中断）：数据库迁移到 STOPPING 与终态收敛一并移入实例锁。
             boolean stopped = execution.stop(() -> runService.requestStopping(run), ChatRunFinishReason.USER_STOP);
@@ -269,7 +283,8 @@ public class ChatRunCoordinator {
                     properties.getStateStore().getType());
             return;
         }
-        ChatRunInstance lost = instanceFactory.restoreForFinalize(run, session, scheduler, onTerminal(run.getId()));
+        // 启动恢复的 lost 实例不注册、不订阅：其终结信号无人接收，不会触碰注册表。
+        ChatRunInstance lost = instanceFactory.restoreForFinalize(run, session, scheduler);
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
             lost.finalizeStopped(ChatRunFinishReason.USER_STOP);
         } else if (ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
@@ -351,10 +366,8 @@ public class ChatRunCoordinator {
     private void expireConfirmation(ChatRunEntity run) {
         ChatSessionEntity session = loadSession(run);
         TenantUtils.withTenant(session.getTenantId(), () -> {
-            // 取规范实例（computeIfAbsent 注册唯一实例），确认超时的数据库迁移与终态收敛一并移入实例锁。
-            ChatRunInstance execution = executions.computeIfAbsent(
-                    run.getId(),
-                    ignored -> instanceFactory.restoreForFinalize(run, session, scheduler, onTerminal(run.getId())));
+            // 取规范实例（注册唯一实例），确认超时的数据库迁移与终态收敛一并移入实例锁。
+            ChatRunInstance execution = selectOrRestoreForFinalize(run, session);
             execution.stop(
                     () -> runService.requestConfirmationTimeout(run, LocalDateTime.now()),
                     ChatRunFinishReason.CONFIRM_TIMEOUT);

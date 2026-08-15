@@ -29,8 +29,6 @@ import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.message.Msg;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.junit.jupiter.api.AfterEach;
@@ -46,7 +44,6 @@ class ChatRunInstanceTerminalTest {
     private final AgentExecutionAdapter adapter = mock(AgentExecutionAdapter.class);
     private final WorkspaceAuditRecorder workspaceAuditRecorder = mock(WorkspaceAuditRecorder.class);
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private final ConcurrentMap<String, ChatRunInstance> executions = new ConcurrentHashMap<>();
     private ChatRunInstance instance;
 
     @AfterEach
@@ -166,12 +163,10 @@ class ChatRunInstanceTerminalTest {
                 new AiProperties(),
                 scheduler,
                 workspaceAuditRecorder,
-                () -> executions.remove(run.getId()),
                 run,
                 session(),
                 adapter,
                 new ChatRunSnapshotAccumulator(ExecutionSnapshotCodec.decode(run.getSnapshotJson())));
-        executions.put(run.getId(), created);
         return created;
     }
 
