@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.chat.service;
 
+import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
@@ -33,6 +34,19 @@ public interface ChatRunStateService {
     boolean requestStopping(ChatRunEntity run);
 
     boolean requestConfirmationTimeout(ChatRunEntity run, LocalDateTime deadline);
+
+    /**
+     * 在独立事务内推进确认：复核所有权、做阶段幂等守卫与状态校验，再以
+     * {@code (status=AWAITING_CONFIRM, phaseNo)} 为前置条件 CAS 到下一阶段。
+     *
+     * <p>确认决策内容由调用方在实例锁内解释；本方法只负责权威的每-run 临界区迁移。
+     *
+     * @param identity 运行标识实体（携带 id 与 sessionId）
+     * @param expectedSession 调用方已校验归属的会话，用于复核所有权
+     * @param sourcePhaseNo 确认来源阶段号
+     * @return 迁移结果；{@code resumed=false} 表示阶段已被处理过（幂等重放）
+     */
+    ConfirmTransition advanceConfirmation(ChatRunEntity identity, ChatSessionEntity expectedSession, int sourcePhaseNo);
 
     FinalizeResult finalizeExecution(ChatRunEntity run, FinalizeCommand command);
 

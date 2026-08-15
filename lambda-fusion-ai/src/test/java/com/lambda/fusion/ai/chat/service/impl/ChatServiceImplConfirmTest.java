@@ -1,10 +1,10 @@
 package com.lambda.fusion.ai.chat.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,7 +17,6 @@ import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.ChatRunCoordinator;
 import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
-import com.lambda.fusion.ai.chat.runtime.model.PreparedConfirmation;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -31,59 +30,18 @@ class ChatServiceImplConfirmTest {
     private final ChatServiceImpl chatService = new ChatServiceImpl(runService, chatRunCoordinator, properties);
 
     @Test
-    void shouldNotCallConfirmWhenPrepareFails() {
+    void shouldPropagateWhenConfirmThrows() {
         ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM, 2);
         ChatSessionEntity session = session();
         ConfirmToolCall command = command(2, List.of(decision("call_1", true)));
 
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
-        when(chatRunCoordinator.prepareConfirmation(run, session, command))
+        when(chatRunCoordinator.confirm(run, session, command))
                 .thenThrow(new IllegalStateException("context unavailable"));
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> chatService.confirm("session-1", "run-1", command))
+        assertThatThrownBy(() -> chatService.confirm("session-1", "run-1", command))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("context unavailable");
-        verify(runService, never()).confirm(any(), any(), any());
-    }
-
-    @Test
-    void shouldNotResumeWhenTransitionIsIdempotent() {
-        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM, 2);
-        ChatSessionEntity session = session();
-        ConfirmToolCall command = command(2, List.of(decision("call_1", true)));
-        PreparedConfirmation prepared = new PreparedConfirmation("run-1", 2, List.of());
-        ChatRunEntity transitioned = run(ChatRunStatus.RUNNING, 3);
-
-        when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
-        when(chatRunCoordinator.prepareConfirmation(run, session, command)).thenReturn(prepared);
-        when(runService.confirm("session-1", "run-1", command))
-                .thenReturn(new ConfirmTransition(transitioned, session, false));
-        when(chatRunCoordinator.bootstrap(any())).thenReturn(new AguiBootstrap(0L, List.of(), false));
-        when(chatRunCoordinator.subscribe(any(), anyLong(), any(), any())).thenReturn(mock());
-
-        chatService.confirm("session-1", "run-1", command);
-
-        verify(chatRunCoordinator, never()).resumePrepared(any(), any(), any());
-    }
-
-    @Test
-    void shouldResumeExactlyOnceWhenTransitionAdvances() {
-        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM, 2);
-        ChatSessionEntity session = session();
-        ConfirmToolCall command = command(2, List.of(decision("call_1", true)));
-        PreparedConfirmation prepared = new PreparedConfirmation("run-1", 2, List.of());
-        ChatRunEntity transitioned = run(ChatRunStatus.RUNNING, 3);
-
-        when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
-        when(chatRunCoordinator.prepareConfirmation(run, session, command)).thenReturn(prepared);
-        when(runService.confirm("session-1", "run-1", command))
-                .thenReturn(new ConfirmTransition(transitioned, session, true));
-        when(chatRunCoordinator.bootstrap(any())).thenReturn(new AguiBootstrap(0L, List.of(), false));
-        when(chatRunCoordinator.subscribe(any(), anyLong(), any(), any())).thenReturn(mock());
-
-        chatService.confirm("session-1", "run-1", command);
-
-        verify(chatRunCoordinator).resumePrepared(transitioned, session, prepared);
     }
 
     @Test
@@ -91,14 +49,31 @@ class ChatServiceImplConfirmTest {
         ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM, 2);
         ChatSessionEntity session = session();
         ConfirmToolCall command = command(2, List.of(decision("call_1", true)));
-        PreparedConfirmation prepared = new PreparedConfirmation("run-1", 2, List.of());
         ChatRunEntity transitioned = run(ChatRunStatus.RUNNING, 3);
 
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
-        when(chatRunCoordinator.prepareConfirmation(run, session, command)).thenReturn(prepared);
-        when(runService.confirm("session-1", "run-1", command))
+        when(chatRunCoordinator.confirm(run, session, command))
                 .thenReturn(new ConfirmTransition(transitioned, session, true));
         when(chatRunCoordinator.bootstrap(any())).thenReturn(new AguiBootstrap(0L, List.of(), true));
+
+        SseEmitter emitter = chatService.confirm("session-1", "run-1", command);
+
+        assertThat(emitter).isNotNull();
+        verify(chatRunCoordinator).bootstrap(transitioned);
+    }
+
+    @Test
+    void shouldOpenStreamFromTransitionedRunEvenWhenIdempotent() {
+        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM, 2);
+        ChatSessionEntity session = session();
+        ConfirmToolCall command = command(2, List.of(decision("call_1", true)));
+        ChatRunEntity transitioned = run(ChatRunStatus.RUNNING, 3);
+
+        when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
+        when(chatRunCoordinator.confirm(run, session, command))
+                .thenReturn(new ConfirmTransition(transitioned, session, false));
+        when(chatRunCoordinator.bootstrap(any())).thenReturn(new AguiBootstrap(0L, List.of(), false));
+        when(chatRunCoordinator.subscribe(any(), anyLong(), any(), any())).thenReturn(mock());
 
         SseEmitter emitter = chatService.confirm("session-1", "run-1", command);
 

@@ -4,6 +4,8 @@ import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
 import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
+import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
@@ -16,7 +18,6 @@ import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
 import com.lambda.fusion.ai.chat.runtime.model.ExecutionInterpretation;
 import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
 import com.lambda.fusion.ai.chat.runtime.model.FinalizeResult;
-import com.lambda.fusion.ai.chat.runtime.model.PreparedConfirmation;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
@@ -27,20 +28,24 @@ import com.lambda.fusion.core.utils.TenantUtils;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventType;
+import io.agentscope.core.event.ConfirmResult;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.util.JsonUtils;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import reactor.core.Disposable;
@@ -124,49 +129,94 @@ final class ChatRunInstance {
     }
 
     /**
-     * 使用已确认的工具调用结果启动下一阶段。
+     * 在实例锁内原子地完成确认：读取 Agent ASKING 状态、三方校验、数据库 CAS、同步内存、启动下一阶段。
      *
-     * @param updated 更新后的运行实体
-     * @param prepared 已校验的确认结果
-     * @throws IllegalStateException 确认结果与当前运行或阶段不匹配
+     * <p>临界区顺序为「读 Agent 状态 → 三方 ID 校验并构造确认消息 → 数据库 CAS 并等待提交 → 同步实例内
+     * Run 状态 → 启动下一阶段」。{@code validateAndBuildMessage} 在 CAS 之前完成，因此 CAS 冲突（含
+     * 幂等重放）不产生任何副作用；仅 CAS 成功后的启动失败按 {@code START_FAILED} 收敛。
+     *
+     * @param command 用户确认命令
+     * @return 迁移结果；{@code resumed=false} 表示阶段已被处理过（幂等重放）
+     * @throws AiBusinessException 确认上下文不可用、决策非法或三方工具调用不一致（保持 AWAITING_CONFIRM，不终结）
      */
-    synchronized void startConfirmedPhase(ChatRunEntity updated, PreparedConfirmation prepared) {
-        if (isRunning() || terminal) {
-            return;
+    synchronized ConfirmTransition confirm(ConfirmToolCall command) {
+        Msg confirmMessage = validateAndBuildMessage(command);
+        ConfirmTransition transition = runService.advanceConfirmation(run, session, command.getPhaseNo());
+        if (!transition.resumed()) {
+            syncRun(transition.run());
+            return transition;
         }
-        if (agentExecutionAdapter == null) {
-            finalizeFailed(ChatRunFailureCode.START_FAILED, "Agent未能恢复");
-            return;
+        syncRun(transition.run());
+        try {
+            beginConfirmedPhase();
+            startPhase(confirmMessage);
+        } catch (RuntimeException startFailure) {
+            finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSupport.safeMessage(startFailure));
         }
-        if (!Objects.equals(run.getId(), prepared.runId())) {
-            throw new IllegalStateException("PreparedConfirmation 与当前 Run 不匹配: " + prepared.runId());
-        }
-        if (prepared.sourcePhaseNo() + 1 != updated.getPhaseNo()) {
-            throw new IllegalStateException("PreparedConfirmation 阶段号不匹配: " + prepared.sourcePhaseNo());
-        }
-        run.setStatus(updated.getStatus());
-        run.setPhaseNo(updated.getPhaseNo());
-        run.setAguiRunId(updated.getAguiRunId());
-        accumulator.beginPhase(run.getAguiRunId(), run.getPhaseNo());
-        agentEventInterpreter = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
-        phaseFinished = false;
-        Msg confirm = UserMessage.builder()
-                .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, prepared.results()))
-                .build();
-        startPhase(confirm);
+        return transition;
     }
 
     /**
-     * 读取 Agent 状态中等待确认的工具调用。
+     * 校验确认命令并构造确认消息。读取 Agent 当前 ASKING 工具调用，要求快照、决策、Agent 三方 ID 一致。
      *
-     * @return 待确认工具调用
-     * @throws AiBusinessException Agent 状态不可用或不存在待确认工具调用
+     * @param command 用户确认命令
+     * @return 携带确认结果的下一阶段输入消息
+     * @throws AiBusinessException 确认上下文不可用、决策非法或三方不一致
      */
-    synchronized List<ToolUseBlock> readAskingToolBlocks() {
+    private Msg validateAndBuildMessage(ConfirmToolCall command) {
         if (agentExecutionAdapter == null) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
         }
-        return agentExecutionAdapter.readAskingToolBlocks();
+        if (command.getDecisions() == null || command.getDecisions().isEmpty()) {
+            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "确认决策不能为空");
+        }
+        Set<String> decidedIds = new HashSet<>();
+        for (ConfirmToolCall.Decision decision : command.getDecisions()) {
+            if (StringUtils.isBlank(decision.getToolCallId()) || !decidedIds.add(decision.getToolCallId())) {
+                throw new AiBusinessException(
+                        AiErrorCode.INVALID_PARAMETER, "确认决策必须完整且不能重复: " + decision.getToolCallId());
+            }
+        }
+
+        Set<String> snapshotIds = accumulator.snapshot().pendingTools().stream()
+                .map(ExecutionSnapshot.Tool::toolCallId)
+                .collect(Collectors.toSet());
+        List<ToolUseBlock> askingBlocks = agentExecutionAdapter.readAskingToolBlocks();
+        Set<String> agentAskingIds =
+                askingBlocks.stream().map(ToolUseBlock::getId).collect(Collectors.toSet());
+        if (!snapshotIds.equals(decidedIds) || !snapshotIds.equals(agentAskingIds)) {
+            log.warn(
+                    "确认工具上下文不一致: runId={}, phaseNo={}, snapshotCount={}, decisionCount={}, agentAskingCount={}",
+                    run.getId(),
+                    command.getPhaseNo(),
+                    snapshotIds.size(),
+                    decidedIds.size(),
+                    agentAskingIds.size());
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH, run.getId());
+        }
+
+        Map<String, ToolUseBlock> blockById = askingBlocks.stream()
+                .collect(Collectors.toMap(ToolUseBlock::getId, Function.identity(), (a, b) -> a, LinkedHashMap::new));
+        List<ConfirmResult> results = command.getDecisions().stream()
+                .map(decision -> new ConfirmResult(decision.isConfirmed(), blockById.get(decision.getToolCallId())))
+                .toList();
+        return UserMessage.builder()
+                .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, results))
+                .build();
+    }
+
+    /** 把数据库迁移后的 Run 状态同步进实例内存对象。 */
+    private void syncRun(ChatRunEntity updated) {
+        run.setStatus(updated.getStatus());
+        run.setPhaseNo(updated.getPhaseNo());
+        run.setAguiRunId(updated.getAguiRunId());
+    }
+
+    /** CAS 成功后切换累加器与事件解释器到新阶段。 */
+    private void beginConfirmedPhase() {
+        accumulator.beginPhase(run.getAguiRunId(), run.getPhaseNo());
+        agentEventInterpreter = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
+        phaseFinished = false;
     }
 
     /**

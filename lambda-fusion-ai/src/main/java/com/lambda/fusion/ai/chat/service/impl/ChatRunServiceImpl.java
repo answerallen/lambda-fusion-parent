@@ -10,7 +10,6 @@ import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.chat.model.ChatRun;
-import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.RunContext;
 import com.lambda.fusion.ai.chat.model.SendMessage;
@@ -34,13 +33,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
-import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -160,22 +156,34 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     }
 
     /**
-     * 确认待确认态的工具调用并推进到下一阶段。
+     * 推进确认到下一阶段：在 {@code REQUIRES_NEW} 独立事务内复核所有权、做阶段幂等守卫与状态校验，
+     * 再以 {@code (status=AWAITING_CONFIRM, phaseNo)} 为前置条件 CAS 迁移。
      *
-     * <p>以 {@code phaseNo} 做幂等守卫：Run 已越过本次确认阶段则视为重复确认，返回 {@code resumed=false}；
-     * 命中当前阶段则以 (status=AWAITING_CONFIRM, phaseNo) 为前置条件 CAS 迁移到 RUNNING 并进入下一阶段。
+     * <p>以 {@code sourcePhaseNo} 做幂等守卫：Run 已越过本次确认阶段则视为重复确认，返回 {@code resumed=false}；
+     * 落后则命令过期抛状态冲突。确认决策内容不在此解释（由执行器实例锁内完成），此处只承载权威迁移。
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public ConfirmTransition confirm(String sessionId, String runId, ConfirmToolCall command) {
-        ChatSessionEntity session = sessionService.loadOwnedForUpdate(sessionId);
-        ChatRunEntity run = runMapper.selectOne(ownedQuery(sessionId, runId).last("FOR UPDATE"));
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public ConfirmTransition advanceConfirmation(
+            ChatRunEntity identity, ChatSessionEntity expectedSession, int sourcePhaseNo) {
+        // 复核所有权：会话须为本人所有，Run 须归属该会话，均在行锁下串行化。
+        ChatSessionEntity session = sessionMapper.selectOne(new LambdaQueryWrapper<ChatSessionEntity>()
+                .eq(ChatSessionEntity::getId, identity.getSessionId())
+                .eq(ChatSessionEntity::getUserId, expectedSession.getUserId())
+                .last("FOR UPDATE"));
+        if (session == null) {
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_NOT_FOUND, identity.getId());
+        }
+        ChatRunEntity run = runMapper.selectOne(new LambdaQueryWrapper<ChatRunEntity>()
+                .eq(ChatRunEntity::getId, identity.getId())
+                .eq(ChatRunEntity::getSessionId, session.getId())
+                .last("FOR UPDATE"));
         if (run == null) {
-            throw new AiBusinessException(AiErrorCode.CHAT_RUN_NOT_FOUND, runId);
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_NOT_FOUND, identity.getId());
         }
         // 阶段号守卫：Run 已推进到更新阶段(phaseNo 更大)说明本次确认已被处理过，幂等返回未恢复；落后则命令过期。
-        if (!Objects.equals(run.getPhaseNo(), command.getPhaseNo())) {
-            if (run.getPhaseNo() > command.getPhaseNo()) {
+        if (!Objects.equals(run.getPhaseNo(), sourcePhaseNo)) {
+            if (run.getPhaseNo() > sourcePhaseNo) {
                 return new ConfirmTransition(run, session, false);
             }
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
@@ -183,19 +191,6 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         // 只有待确认态可被确认，否则状态冲突。
         if (!ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
-        }
-        // 校验决策：每个待确认工具必须被决定恰好一次，不得多不得少。
-        Set<String> pendingIds = ExecutionSnapshotCodec.decode(run.getSnapshotJson()).pendingTools().stream()
-                .map(ExecutionSnapshot.Tool::toolCallId)
-                .collect(Collectors.toSet());
-        Set<String> decidedIds = new HashSet<>();
-        boolean valid = !pendingIds.isEmpty()
-                && command.getDecisions().stream()
-                        .allMatch(decision -> pendingIds.contains(decision.getToolCallId())
-                                && decidedIds.add(decision.getToolCallId()))
-                && decidedIds.equals(pendingIds);
-        if (!valid) {
-            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "确认决策必须完整且不能重复");
         }
 
         int targetPhase = run.getPhaseNo() + 1;
@@ -206,7 +201,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                 new LambdaUpdateWrapper<ChatRunEntity>()
                         .eq(ChatRunEntity::getId, run.getId())
                         .eq(ChatRunEntity::getStatus, ChatRunStatus.AWAITING_CONFIRM.name())
-                        .eq(ChatRunEntity::getPhaseNo, command.getPhaseNo())
+                        .eq(ChatRunEntity::getPhaseNo, sourcePhaseNo)
                         .set(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name())
                         .set(ChatRunEntity::getPhaseNo, targetPhase)
                         .set(ChatRunEntity::getAguiRunId, targetAguiRunId)

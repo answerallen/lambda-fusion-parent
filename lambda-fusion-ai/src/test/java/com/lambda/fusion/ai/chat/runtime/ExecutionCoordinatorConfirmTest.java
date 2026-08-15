@@ -3,20 +3,21 @@ package com.lambda.fusion.ai.chat.runtime;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
+import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.model.PreparedConfirmation;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
@@ -37,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
 import reactor.core.publisher.Flux;
 
@@ -86,10 +88,11 @@ class ExecutionCoordinatorConfirmTest {
 
         when(delegate.getAgentState("user-1", "session-1")).thenThrow(new IllegalStateException("boom"));
 
-        assertThatThrownBy(() -> coordinator.prepareConfirmation(run, session, command))
+        assertThatThrownBy(() -> coordinator.confirm(run, session, command))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE.getCode()));
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
     }
 
     @Test
@@ -100,10 +103,11 @@ class ExecutionCoordinatorConfirmTest {
 
         when(delegate.getAgentState("user-1", "session-1")).thenReturn(null);
 
-        assertThatThrownBy(() -> coordinator.prepareConfirmation(run, session, command))
+        assertThatThrownBy(() -> coordinator.confirm(run, session, command))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE.getCode()));
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
     }
 
     @Test
@@ -115,10 +119,11 @@ class ExecutionCoordinatorConfirmTest {
         AgentState state = stateWithToolBlocks(List.of());
         when(delegate.getAgentState("user-1", "session-1")).thenReturn(state);
 
-        assertThatThrownBy(() -> coordinator.prepareConfirmation(run, session, command))
+        assertThatThrownBy(() -> coordinator.confirm(run, session, command))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE.getCode()));
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
     }
 
     @Test
@@ -130,10 +135,11 @@ class ExecutionCoordinatorConfirmTest {
         AgentState state = stateWithAskingBlock("call_2");
         when(delegate.getAgentState("user-1", "session-1")).thenReturn(state);
 
-        assertThatThrownBy(() -> coordinator.prepareConfirmation(run, session, command))
+        assertThatThrownBy(() -> coordinator.confirm(run, session, command))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH.getCode()));
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
     }
 
     @Test
@@ -142,13 +148,11 @@ class ExecutionCoordinatorConfirmTest {
         ChatSessionEntity session = session();
         ConfirmToolCall command = command(2, List.of(decision("call_1", true), decision("call_1", false)));
 
-        AgentState state = stateWithAskingBlock("call_1");
-        when(delegate.getAgentState("user-1", "session-1")).thenReturn(state);
-
-        assertThatThrownBy(() -> coordinator.prepareConfirmation(run, session, command))
+        assertThatThrownBy(() -> coordinator.confirm(run, session, command))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.INVALID_PARAMETER.getCode()));
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
     }
 
     @Test
@@ -160,26 +164,32 @@ class ExecutionCoordinatorConfirmTest {
         AgentState state = stateWithAskingBlocks(List.of("call_1", "call_2"));
         when(delegate.getAgentState("user-1", "session-1")).thenReturn(state);
 
-        assertThatThrownBy(() -> coordinator.prepareConfirmation(run, session, command))
+        assertThatThrownBy(() -> coordinator.confirm(run, session, command))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH.getCode()));
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
     }
 
     @Test
-    void shouldReturnPreparedResultsInDecisionOrder() {
+    void shouldStartNextPhaseWithResultsInDecisionOrder() {
         ChatRunEntity run = awaitingRun(2, List.of("call_1", "call_2"));
         ChatSessionEntity session = session();
         ConfirmToolCall command = command(2, List.of(decision("call_2", false), decision("call_1", true)));
 
         AgentState state = stateWithAskingBlocks(List.of("call_1", "call_2"));
         when(delegate.getAgentState("user-1", "session-1")).thenReturn(state);
+        stubResumed(run, 2);
+        when(agent.streamEvents(any(Msg.class), any())).thenReturn(Flux.never());
 
-        PreparedConfirmation prepared = coordinator.prepareConfirmation(run, session, command);
+        ConfirmTransition transition = coordinator.confirm(run, session, command);
 
-        assertThat(prepared.runId()).isEqualTo("run-1");
-        assertThat(prepared.sourcePhaseNo()).isEqualTo(2);
-        List<ConfirmResult> results = prepared.results();
+        assertThat(transition.resumed()).isTrue();
+        ArgumentCaptor<Msg> captor = ArgumentCaptor.forClass(Msg.class);
+        verify(agent).streamEvents(captor.capture(), any());
+        @SuppressWarnings("unchecked")
+        List<ConfirmResult> results =
+                (List<ConfirmResult>) captor.getValue().getMetadata().get(Msg.METADATA_CONFIRM_RESULTS);
         assertThat(results).hasSize(2);
         assertThat(results.get(0).getToolCall().getId()).isEqualTo("call_2");
         assertThat(results.get(0).isConfirmed()).isFalse();
@@ -188,22 +198,30 @@ class ExecutionCoordinatorConfirmTest {
     }
 
     @Test
-    void shouldNotReadAgentStateWhenResumePrepared() {
+    void shouldNotStartPhaseWhenConfirmationIsReplayed() {
         ChatRunEntity run = awaitingRun(2, List.of("call_1"));
         ChatSessionEntity session = session();
         ConfirmToolCall command = command(2, List.of(decision("call_1", true)));
 
         AgentState state = stateWithAskingBlock("call_1");
         when(delegate.getAgentState("user-1", "session-1")).thenReturn(state);
-        when(agent.streamEvents(any(Msg.class), any())).thenReturn(Flux.never());
+        // 幂等重放：Run 已越过该阶段，返回 resumed=false。
+        when(runService.advanceConfirmation(run, session, 2)).thenReturn(new ConfirmTransition(run, session, false));
 
-        PreparedConfirmation prepared = coordinator.prepareConfirmation(run, session, command);
-        run.setStatus(ChatRunStatus.RUNNING.name());
-        run.setPhaseNo(3);
-        coordinator.resumePrepared(run, session, prepared);
+        ConfirmTransition transition = coordinator.confirm(run, session, command);
 
-        verify(delegate).getAgentState("user-1", "session-1");
-        verifyNoMoreInteractions(delegate);
+        assertThat(transition.resumed()).isFalse();
+        verify(agent, never()).streamEvents(any(Msg.class), any());
+    }
+
+    /** CAS 推进成功：刷新内存实体为新阶段并返回 resumed=true。 */
+    private void stubResumed(ChatRunEntity run, int sourcePhaseNo) {
+        when(runService.advanceConfirmation(run, session(), sourcePhaseNo)).thenAnswer(invocation -> {
+            run.setStatus(ChatRunStatus.RUNNING.name());
+            run.setPhaseNo(sourcePhaseNo + 1);
+            run.setAguiRunId("agui-next");
+            return new ConfirmTransition(run, session(), true);
+        });
     }
 
     private static ChatRunEntity awaitingRun(int phaseNo) {

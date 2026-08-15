@@ -13,7 +13,6 @@ import com.lambda.fusion.ai.chat.runtime.ChatRunCoordinator;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
 import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
-import com.lambda.fusion.ai.chat.runtime.model.PreparedConfirmation;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
 import com.lambda.fusion.ai.chat.service.ChatService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
@@ -60,13 +59,7 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command) {
         RunContext context = runService.loadOwned(sessionId, runId);
-        PreparedConfirmation prepared =
-                chatRunCoordinator.prepareConfirmation(context.run(), context.session(), command);
-
-        ConfirmTransition transition = runService.confirm(sessionId, runId, command);
-        if (transition.resumed()) {
-            chatRunCoordinator.resumePrepared(transition.run(), transition.session(), prepared);
-        }
+        ConfirmTransition transition = chatRunCoordinator.confirm(context.run(), context.session(), command);
         return openRunEventStream(transition.run(), 0, true);
     }
 

@@ -17,7 +17,6 @@ import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
-import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
@@ -122,17 +121,16 @@ class ChatRunServiceImplTest {
     }
 
     @Test
-    void shouldAdvanceWhenPhaseMatchesAndDecisionsAreComplete() {
+    void shouldAdvanceWhenPhaseMatches() {
         ChatRunEntity run = awaitingConfirmRun(2, snapshotWithPendingTool("call_1"));
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
-        when(sessionService.loadOwnedForUpdate("session-1")).thenReturn(session);
+        when(sessionMapper.selectOne(any())).thenReturn(session);
         when(runMapper.selectOne(any())).thenReturn(run);
         when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
 
-        ConfirmToolCall command = confirmCommand(2, List.of(decision("call_1", true)));
-        ConfirmTransition transition = service.confirm("session-1", "run-1", command);
+        ConfirmTransition transition = service.advanceConfirmation(run, session, 2);
 
         assertThat(transition.resumed()).isTrue();
         assertThat(transition.run().getStatus()).isEqualTo(ChatRunStatus.RUNNING.name());
@@ -145,11 +143,10 @@ class ChatRunServiceImplTest {
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
-        when(sessionService.loadOwnedForUpdate("session-1")).thenReturn(session);
+        when(sessionMapper.selectOne(any())).thenReturn(session);
         when(runMapper.selectOne(any())).thenReturn(run);
 
-        ConfirmToolCall command = confirmCommand(2, List.of(decision("call_1", true)));
-        ConfirmTransition transition = service.confirm("session-1", "run-1", command);
+        ConfirmTransition transition = service.advanceConfirmation(run, session, 2);
 
         assertThat(transition.resumed()).isFalse();
         assertThat(transition.run().getPhaseNo()).isEqualTo(3);
@@ -161,11 +158,10 @@ class ChatRunServiceImplTest {
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
-        when(sessionService.loadOwnedForUpdate("session-1")).thenReturn(session);
+        when(sessionMapper.selectOne(any())).thenReturn(session);
         when(runMapper.selectOne(any())).thenReturn(run);
 
-        ConfirmToolCall command = confirmCommand(2, List.of(decision("call_1", true)));
-        assertThatThrownBy(() -> service.confirm("session-1", "run-1", command))
+        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_STATE_CONFLICT.getCode()));
@@ -178,30 +174,28 @@ class ChatRunServiceImplTest {
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
-        when(sessionService.loadOwnedForUpdate("session-1")).thenReturn(session);
+        when(sessionMapper.selectOne(any())).thenReturn(session);
         when(runMapper.selectOne(any())).thenReturn(run);
 
-        ConfirmToolCall command = confirmCommand(2, List.of(decision("call_1", true)));
-        assertThatThrownBy(() -> service.confirm("session-1", "run-1", command))
+        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_STATE_CONFLICT.getCode()));
     }
 
     @Test
-    void shouldRejectConfirmWhenDecisionsAreIncomplete() {
+    void shouldRejectConfirmWhenSessionNotOwned() {
         ChatRunEntity run = awaitingConfirmRun(2, snapshotWithPendingTool("call_1"));
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
-        when(sessionService.loadOwnedForUpdate("session-1")).thenReturn(session);
-        when(runMapper.selectOne(any())).thenReturn(run);
+        // 所有权复核：按 session.id + userId 查不到本人会话。
+        when(sessionMapper.selectOne(any())).thenReturn(null);
 
-        ConfirmToolCall command = confirmCommand(2, List.of());
-        assertThatThrownBy(() -> service.confirm("session-1", "run-1", command))
+        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
-                        .isEqualTo(AiErrorCode.INVALID_PARAMETER.getCode()));
+                        .isEqualTo(AiErrorCode.CHAT_RUN_NOT_FOUND.getCode()));
     }
 
     @Test
@@ -210,12 +204,11 @@ class ChatRunServiceImplTest {
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
-        when(sessionService.loadOwnedForUpdate("session-1")).thenReturn(session);
+        when(sessionMapper.selectOne(any())).thenReturn(session);
         when(runMapper.selectOne(any())).thenReturn(run);
         when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(0);
 
-        ConfirmToolCall command = confirmCommand(2, List.of(decision("call_1", true)));
-        assertThatThrownBy(() -> service.confirm("session-1", "run-1", command))
+        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_STATE_CONFLICT.getCode()));
@@ -249,20 +242,6 @@ class ChatRunServiceImplTest {
                 false,
                 List.of(),
                 List.of(new ExecutionSnapshot.Tool(toolCallId, "demo_tool", "", "", "asking")));
-    }
-
-    private static ConfirmToolCall confirmCommand(int phaseNo, List<ConfirmToolCall.Decision> decisions) {
-        ConfirmToolCall command = new ConfirmToolCall();
-        command.setPhaseNo(phaseNo);
-        command.setDecisions(decisions);
-        return command;
-    }
-
-    private static ConfirmToolCall.Decision decision(String toolCallId, boolean confirmed) {
-        ConfirmToolCall.Decision decision = new ConfirmToolCall.Decision();
-        decision.setToolCallId(toolCallId);
-        decision.setConfirmed(confirmed);
-        return decision;
     }
 
     private static ExecutionSnapshot snapshot(String text) {

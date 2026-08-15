@@ -9,6 +9,7 @@ import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.attachment.ChatAttachmentMessageBuilder;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
+import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
@@ -18,37 +19,24 @@ import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
 import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
-import com.lambda.fusion.ai.chat.runtime.model.PreparedConfirmation;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
-import com.lambda.fusion.ai.exception.AiBusinessException;
-import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.core.utils.TenantUtils;
-import io.agentscope.core.event.ConfirmResult;
 import io.agentscope.core.message.Msg;
-import io.agentscope.core.message.ToolUseBlock;
 import jakarta.annotation.PreDestroy;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 /**
@@ -125,46 +113,21 @@ public class ChatRunCoordinator {
     }
 
     /**
-     * 校验用户确认命令并准备 Agent 确认结果。
+     * 在规范实例锁内原子地确认并推进到下一阶段。
+     *
+     * <p>先取得 {@code executions} 中唯一的 {@link ChatRunInstance}（不存在则恢复并注册），再在该实例锁内
+     * 完成「读 Agent 状态 → 三方校验 → 数据库 CAS → 同步内存 → 启动阶段」，锁顺序恒为 实例 monitor →
+     * {@code REQUIRES_NEW} 数据库事务。
      *
      * @param run 运行实体
      * @param session 会话实体
      * @param command 用户确认命令
-     * @return 已校验的确认结果
-     * @throws AiBusinessException 运行状态、阶段或工具调用上下文不一致
+     * @return 迁移结果；{@code resumed=false} 表示阶段已被处理过（幂等重放）
      */
-    public PreparedConfirmation prepareConfirmation(
-            ChatRunEntity run, ChatSessionEntity session, ConfirmToolCall command) {
+    public ConfirmTransition confirm(ChatRunEntity run, ChatSessionEntity session, ConfirmToolCall command) {
         return TenantUtils.withTenant(session.getTenantId(), () -> {
-            try {
-                return prepareConfirmationInContext(run, session, command);
-            } catch (RuntimeException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new IllegalStateException(e);
-            }
-        });
-    }
-
-    /**
-     * 根据已提交的确认状态启动下一执行阶段。
-     *
-     * @param run 更新后的运行实体
-     * @param session 会话实体
-     * @param prepared 已校验的确认结果
-     */
-    public void resumePrepared(ChatRunEntity run, ChatSessionEntity session, PreparedConfirmation prepared) {
-        TenantUtils.withTenant(session.getTenantId(), () -> {
-            ChatRunInstance selected = null;
-            try {
-                selected = instanceFactory.selectOrRestore(run, session, scheduler, executions);
-                selected.startConfirmedPhase(run, prepared);
-            } catch (RuntimeException startFailure) {
-                ChatRunInstance failed = selected == null
-                        ? instanceFactory.restoreFinalizer(run, session, scheduler, executions)
-                        : selected;
-                failed.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSupport.safeMessage(startFailure));
-            }
+            ChatRunInstance execution = instanceFactory.selectOrRestore(run, session, scheduler, executions);
+            return execution.confirm(command);
         });
     }
 
@@ -391,55 +354,5 @@ public class ChatRunCoordinator {
 
     private ChatSessionEntity loadSession(ChatRunEntity run) {
         return runService.loadSession(run);
-    }
-
-    private PreparedConfirmation prepareConfirmationInContext(
-            ChatRunEntity run, ChatSessionEntity session, ConfirmToolCall command) {
-        if (!ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
-            throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
-        }
-        if (!Objects.equals(run.getPhaseNo(), command.getPhaseNo())) {
-            throw new AiBusinessException(
-                    AiErrorCode.CHAT_RUN_STATE_CONFLICT,
-                    "phaseNo=" + command.getPhaseNo() + ", current=" + run.getPhaseNo());
-        }
-        if (command.getDecisions() == null || command.getDecisions().isEmpty()) {
-            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "确认决策不能为空");
-        }
-
-        Set<String> decidedIds = new HashSet<>();
-        for (ConfirmToolCall.Decision decision : command.getDecisions()) {
-            if (StringUtils.isBlank(decision.getToolCallId()) || !decidedIds.add(decision.getToolCallId())) {
-                throw new AiBusinessException(
-                        AiErrorCode.INVALID_PARAMETER, "确认决策必须完整且不能重复: " + decision.getToolCallId());
-            }
-        }
-
-        Set<String> snapshotIds = ExecutionSnapshotCodec.decode(run.getSnapshotJson()).pendingTools().stream()
-                .map(ExecutionSnapshot.Tool::toolCallId)
-                .collect(Collectors.toSet());
-
-        ChatRunInstance selected = instanceFactory.selectOrRestore(run, session, scheduler, executions);
-        List<ToolUseBlock> askingBlocks = selected.readAskingToolBlocks();
-        Set<String> agentAskingIds =
-                askingBlocks.stream().map(ToolUseBlock::getId).collect(Collectors.toSet());
-
-        if (!snapshotIds.equals(decidedIds) || !snapshotIds.equals(agentAskingIds)) {
-            log.warn(
-                    "确认工具上下文不一致: runId={}, phaseNo={}, snapshotCount={}, decisionCount={}, agentAskingCount={}",
-                    run.getId(),
-                    command.getPhaseNo(),
-                    snapshotIds.size(),
-                    decidedIds.size(),
-                    agentAskingIds.size());
-            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH, run.getId());
-        }
-
-        Map<String, ToolUseBlock> blockById = askingBlocks.stream()
-                .collect(Collectors.toMap(ToolUseBlock::getId, Function.identity(), (a, b) -> a, LinkedHashMap::new));
-        List<ConfirmResult> results = command.getDecisions().stream()
-                .map(d -> new ConfirmResult(d.isConfirmed(), blockById.get(d.getToolCallId())))
-                .toList();
-        return new PreparedConfirmation(run.getId(), command.getPhaseNo(), results);
     }
 }
