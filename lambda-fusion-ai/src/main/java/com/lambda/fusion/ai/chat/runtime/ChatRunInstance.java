@@ -626,6 +626,55 @@ final class ChatRunInstance {
         return true;
     }
 
+    /**
+     * 在实例锁内原子地判定并请求停止：与 {@code confirm}/{@code startPhase} 同一把实例锁，
+     * 「是否运行」的判读与「是否可启动新流」共用临界区，消除检查与分流之间的 TOCTOU 间隙。
+     *
+     * <p>非运行态（含待确认、已中断）在锁内完成 STOPPING 迁移并直接终结；运行态只做 STOPPING
+     * 迁移与检查点，返回 {@link StopOutcome#INTERRUPT} 由协调器在锁外中断并留宽限期兜底。
+     *
+     * @return 停止结果
+     */
+    synchronized StopOutcome requestStop() {
+        if (terminal) {
+            return StopOutcome.ALREADY_TERMINAL;
+        }
+        if (!runService.requestStopping(run)) {
+            ChatRunEntity current = loadCurrent(run);
+            run.setStatus(current.getStatus());
+            if (ChatRunStatus.isTerminal(current.getStatus())) {
+                return StopOutcome.ALREADY_TERMINAL;
+            }
+            if (!ChatRunStatus.STOPPING.name().equals(current.getStatus())) {
+                return StopOutcome.NOT_STOPPING;
+            }
+        }
+        run.setStatus(ChatRunStatus.STOPPING.name());
+        if (!isRunning()) {
+            // 锁内判读：此刻 confirm/startPhase 无法并发改 disposable，可安全直接终结。
+            finalizeStopped(ChatRunFinishReason.USER_STOP);
+            return StopOutcome.STOPPED_NOW;
+        }
+        try {
+            checkpointNow();
+        } catch (RuntimeException checkpointFailure) {
+            log.warn("停止Run前快照写入失败，继续中断执行: runId={}", run.getId(), checkpointFailure);
+        }
+        return StopOutcome.INTERRUPT;
+    }
+
+    /** 停止请求结果。 */
+    enum StopOutcome {
+        /** 运行态：已迁 STOPPING，需协调器在锁外中断并留宽限期。 */
+        INTERRUPT,
+        /** 非运行态：已在实例锁内直接终结。 */
+        STOPPED_NOW,
+        /** Run 已处于终态，无需停止。 */
+        ALREADY_TERMINAL,
+        /** 并发方已推进到其他非 STOPPING 状态，本次停止未取胜。 */
+        NOT_STOPPING
+    }
+
     /** 保存当前检查点并中断 Agent。检查点在实例锁内写入，中断请求保持在锁外以避免回流死锁。 */
     void interruptForShutdown() {
         try {

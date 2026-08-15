@@ -122,6 +122,8 @@ public class ChatRunCoordinator {
         if (selected != null) {
             return selected;
         }
+        // 确认恢复会新建执行：与 CREATED 启动同样受容量约束（终结恢复不受限，见 selectOrRestoreForFinalize）。
+        enforceCapacity(run, session);
         ChatRunInstance candidate = instanceFactory.restoreExecution(run, session, scheduler);
         ChatRunInstance existing = executions.putIfAbsent(run.getId(), candidate);
         if (existing == null) {
@@ -131,7 +133,11 @@ public class ChatRunCoordinator {
         return existing;
     }
 
-    /** 查询活动实例；不存在时恢复一个终结用实例并注册（并发竞争下取先注册者）。 */
+    /**
+     * 查询活动实例；不存在时恢复一个终结用实例并注册（并发竞争下取先注册者）。
+     *
+     * <p>终结/停止恢复用于收敛既有 Run，不受容量上限约束——若因容量拒绝会导致 Run 无法停止或终结。
+     */
     private ChatRunInstance selectOrRestoreForFinalize(ChatRunEntity run, ChatSessionEntity session) {
         ChatRunInstance selected = executions.get(run.getId());
         if (selected != null) {
@@ -224,29 +230,12 @@ public class ChatRunCoordinator {
         }
         // 取规范实例（注册唯一实例），锁顺序恒为 实例 monitor → REQUIRES_NEW 数据库事务。
         ChatRunInstance execution = selectOrRestoreForFinalize(run, session);
-        if (!execution.isRunning()) {
-            // 非运行态（含待确认、已中断）：数据库迁移到 STOPPING 与终态收敛一并移入实例锁。
-            boolean stopped = execution.stop(() -> runService.requestStopping(run), ChatRunFinishReason.USER_STOP);
-            if (!stopped && ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-                // 并发方已把 Run 迁到 STOPPING 但尚未终结：由本实例接管终态收敛。
-                execution.finalizeStopped(ChatRunFinishReason.USER_STOP);
-            }
+        // 运行态判读与 STOPPING 迁移在实例锁内原子完成，消除「检查后启动新流」的 TOCTOU。
+        ChatRunInstance.StopOutcome outcome = execution.requestStop();
+        if (outcome != ChatRunInstance.StopOutcome.INTERRUPT) {
             return;
         }
-        // 运行态：先迁 STOPPING（抢占完成路径），再协作式中断并留宽限期兜底。
-        if (!runService.requestStopping(run)) {
-            ChatRunEntity current = loadCurrent(run);
-            run.setStatus(current.getStatus());
-            if (!ChatRunStatus.STOPPING.name().equals(current.getStatus())) {
-                return;
-            }
-        }
-        execution.markStopping();
-        try {
-            execution.checkpointNow();
-        } catch (RuntimeException checkpointFailure) {
-            log.warn("停止Run前快照写入失败，继续中断执行: runId={}", run.getId(), checkpointFailure);
-        }
+        // 运行态：协作式中断并留宽限期兜底（中断请求保持在实例锁外，避免取消回调回流死锁）。
         try {
             execution.interruptAgent();
         } catch (RuntimeException interruptFailure) {
