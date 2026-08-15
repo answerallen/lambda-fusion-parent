@@ -35,14 +35,15 @@ ChatServiceImpl.confirm
         |
         v
 ChatRunCoordinator.confirm          （loadOwned 已做归属校验）
-  1. computeIfAbsent 取得 executions 中唯一规范 ChatRunInstance
+  1. get 命中则复用；未命中时构造候选实例并以 putIfAbsent 选定唯一注册实例
+  2. 仅注册成功的实例订阅 terminalSignal，终态时按 (runId, instance) 身份摘除
         |
         v
 ChatRunInstance.confirm（synchronized 实例锁内，原子完成）
-  2. validateAndBuildMessage：读 Agent ASKING 状态 → 三方 ID 校验 → 构造确认消息
-  3. advanceConfirmation：REQUIRES_NEW 事务内复核所有权 + 阶段守卫 + (status, phaseNo) CAS
-  4. 同步实例内 Run 状态
-  5. 构造确认消息并启动下一阶段
+  3. validateAndBuildMessage：读 Agent ASKING 状态 → 三方 ID 校验 → 构造确认消息
+  4. advanceConfirmation：REQUIRES_NEW 事务内复核所有权 + 阶段守卫 + (status, phaseNo) CAS
+  5. 同步实例内 Run 状态
+  6. 启动下一阶段
 ```
 
 锁顺序恒为「实例 monitor → REQUIRES_NEW 数据库事务」，不反向持数据库行锁等待实例锁。
@@ -84,7 +85,7 @@ Client           ChatService        ChatRunCoordinator   ChatRunInstance        
   |------------------>| loadOwned          |                    |                     |                |
   |                   | confirm            |                    |                     |                |
   |                   |------------------->| selectOrRestore    |                     |                |
-  |                   |                    | (computeIfAbsent)  |                     |                |
+  |                   |                    | (get / putIfAbsent，注册后订阅终态信号) |                   |                |
   |                   |                    |------------------->| synchronized {      |                |
   |                   |                    |                    | getAgentState       |                |
   |                   |                    |                    |-------------------->|                |
@@ -177,7 +178,7 @@ public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall comman
 }
 ```
 
-`ChatRunCoordinator.confirm` 经 `computeIfAbsent` 取得 `executions` 中唯一规范实例后在实例锁内执行确认。`ChatRunService.confirm`（HTTP 编排面）随之删除，确认推进不再经过该面。
+`ChatRunCoordinator.confirm` 先查询 `executions`；未命中时构造候选实例，再由 `putIfAbsent` 选定唯一注册实例。只有注册成功的实例才由 Coordinator 订阅 `terminalSignal`，并在终态时通过 `remove(runId, instance)` 按实例身份摘除；竞争落败或未注册实例不能操作注册表。取得规范实例后，确认流程在其实例锁内执行。`ChatRunService.confirm`（HTTP 编排面）随之删除，确认推进不再经过该面。
 
 CAS 未推进（幂等重放）时不启动新阶段，仅按数据库当前状态返回恢复流。
 
@@ -283,6 +284,20 @@ Run 保持 `AWAITING_CONFIRM` 并返回可重试错误。运维修复 state stor
 
 因此，跨重启确认恢复不是默认能力，而是有明确前置条件的受支持边界；不满足条件时仍按 `INSTANCE_LOST` 处理。
 
+### 8.6 待确认事件与数据库事实的顺序
+
+进入待确认时，中断事件与 `AWAITING_CONFIRM` 迁移之间存在「事件外发」与「数据库事实」两个事实源，必须显式约定先后，避免两类缺陷：
+
+- **先发事件、后落库**：数据库迁移失败时前端已看到「等待确认」，后端却仍是 `RUNNING`，甚至随后再收到失败终态——业务事实倒置。
+- **先落库、后发事件**：序号先于事件持久化，重启/恢复时快照序号可能不覆盖中断事件——序号覆盖缺口。
+
+收敛为**事件缓冲两态**：中断事件先**暂存**（编码、分配序号并推进 `nextSeq`，但不进入可见窗口、不推送订阅者），`awaitConfirm` 数据库迁移成功后才**发布**（进入窗口并推送），失败则**丢弃**。由此同时满足：
+
+1. 序号在暂存时分配，快照序号天然覆盖中断事件，不依赖「先存序号再发事件」的隐式顺序。
+2. 数据库事实先于信号外发，落库失败时订阅者不可见中断事件，无副作用、可重试。
+
+两态经 `ChatRunEventStore.runExclusive` 收敛为缓冲区实例锁内的单原子操作，不在锁外分散调用暂存/发布/丢弃。`awaitConfirm` 返回 `false`（并发落败）按当前真实状态分流：`STOPPING` 终结、`RUNNING`（确认竞胜，下一阶段仍在执行）安全收尾、其余终态完成终结信号；落库抛错（REQUIRES_NEW 回滚）保持 `RUNNING` 可重试并抛 `CHAT_RUN_AWAIT_CONFIRM_FAILED`，不误判为失败终态。
+
 ## 9. 安全设计
 
 完整 `ToolUseBlock` 可能包含敏感工具参数，只允许短暂存在于：
@@ -325,6 +340,14 @@ RunSnapshot 继续使用现有脱敏逻辑，前端只获得展示和决策所�
 - decision 缺少、多出或重复 ID：拒绝确认，不执行 CAS。
 - 三方 ID 相同但顺序不同：CAS 推进后按 decision 顺序生成确认消息并启动一次新阶段。
 - CAS 幂等重放（`resumed=false`）：不启动第二次 Agent 阶段。
+
+### 11.2 待确认事件两态
+
+- 数据库迁移成功：暂存的中断事件发布，订阅者可见，序号被快照覆盖。
+- 数据库迁移落败（返回 `false`）：暂存事件丢弃，订阅者不可见，可重试。
+- 数据库迁移抛错（回滚）：保持 `RUNNING` 可重试，抛 `CHAT_RUN_AWAIT_CONFIRM_FAILED`，不落失败终态。
+- 确认竞胜（落库返回 `false` 且当前 `RUNNING`）：实例安全收尾，不误判为 `STATE_CONFLICT`。
+- 运行已终结后禁止暂存待确认事件（抛 `IllegalStateException`）。
 
 ### 11.2 `ChatRunStateService.advanceConfirmation` 测试
 
