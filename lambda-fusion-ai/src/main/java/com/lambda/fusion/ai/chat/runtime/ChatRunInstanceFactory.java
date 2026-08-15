@@ -6,7 +6,6 @@ import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotSanitizer;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.runtime.AgentFactory;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
@@ -47,7 +46,7 @@ class ChatRunInstanceFactory {
             ChatSessionEntity session,
             ScheduledExecutorService scheduler,
             ConcurrentMap<String, ChatRunInstance> executions) {
-        eventStore.initialize(run.getId(), sequenceFallback(run));
+        eventStore.initialize(run.getId(), ChatRunSupport.sequenceFallback(run));
         String tenantId = tenantId(session);
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), tenantId);
         AgentExecutionAdapter agentExecution = new AgentExecutionAdapter(
@@ -66,7 +65,7 @@ class ChatRunInstanceFactory {
             ChatSessionEntity session,
             ScheduledExecutorService scheduler,
             ConcurrentMap<String, ChatRunInstance> executions) {
-        eventStore.initialize(run.getId(), sequenceFallback(run));
+        eventStore.initialize(run.getId(), ChatRunSupport.sequenceFallback(run));
         return newInstance(run, session, scheduler, executions, null);
     }
 
@@ -126,27 +125,5 @@ class ChatRunInstanceFactory {
      */
     static String tenantId(ChatSessionEntity session) {
         return StringUtils.defaultIfBlank(session.getTenantId(), "default");
-    }
-
-    /**
-     * 获取运行的快照事件序号。
-     *
-     * @param run 运行实体
-     * @return 快照事件序号；未设置时返回 {@code 0}
-     */
-    static long sequenceFallback(ChatRunEntity run) {
-        return run.getSnapshotSeq() == null ? 0L : run.getSnapshotSeq();
-    }
-
-    /**
-     * 生成可持久化的错误信息。
-     *
-     * @param error 异常
-     * @return 已清理并限制长度的错误信息
-     */
-    static String safeMessage(Throwable error) {
-        String message =
-                StringUtils.defaultIfBlank(error.getMessage(), error.getClass().getSimpleName());
-        return StringUtils.left(ExecutionSnapshotSanitizer.redactText(message), 1000);
     }
 }

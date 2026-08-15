@@ -235,7 +235,7 @@ final class ChatRunInstance {
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
             finalizeStopped(ChatRunFinishReason.USER_STOP);
         } else {
-            finalizeFailed(ChatRunFailureCode.ERROR, ChatRunInstanceFactory.safeMessage(error));
+            finalizeFailed(ChatRunFailureCode.ERROR, ChatRunSupport.safeMessage(error));
         }
     }
 
@@ -305,7 +305,7 @@ final class ChatRunInstance {
     private void maybeCheckpoint() {
         long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         int every = properties.getChat().getRun().getSnapshotEveryEvents();
-        if (every > 0 && seq - ChatRunInstanceFactory.sequenceFallback(run) >= every) {
+        if (every > 0 && seq - ChatRunSupport.sequenceFallback(run) >= every) {
             checkpointNow();
         }
     }

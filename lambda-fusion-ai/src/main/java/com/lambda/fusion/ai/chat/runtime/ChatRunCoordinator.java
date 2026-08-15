@@ -103,7 +103,8 @@ public class ChatRunCoordinator {
             enforceCapacity(run, session);
         } catch (RuntimeException capacityFailure) {
             ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler, executions);
-            rejected.finalizeFailed(ChatRunFailureCode.RUN_CAPACITY_EXCEEDED, safeMessage(capacityFailure));
+            rejected.finalizeFailed(
+                    ChatRunFailureCode.RUN_CAPACITY_EXCEEDED, ChatRunSupport.safeMessage(capacityFailure));
             return;
         }
         ChatRunInstance candidate;
@@ -113,7 +114,7 @@ public class ChatRunCoordinator {
             ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler, executions);
             if (runService.claimCreated(run)) {
                 run.setStatus(ChatRunStatus.RUNNING.name());
-                rejected.finalizeFailed(ChatRunFailureCode.START_FAILED, safeMessage(restoreFailure));
+                rejected.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSupport.safeMessage(restoreFailure));
             }
             return;
         }
@@ -162,7 +163,7 @@ public class ChatRunCoordinator {
                 ChatRunInstance failed = selected == null
                         ? instanceFactory.restoreFinalizer(run, session, scheduler, executions)
                         : selected;
-                failed.finalizeFailed(ChatRunFailureCode.START_FAILED, safeMessage(startFailure));
+                failed.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSupport.safeMessage(startFailure));
             }
         });
     }
@@ -269,7 +270,7 @@ public class ChatRunCoordinator {
 
     private void recoverInterruptedInTenantContext(ChatRunEntity run, ChatSessionEntity session) {
         if (shouldRetainAwaitingConfirmation(run)) {
-            eventStore.initialize(run.getId(), sequenceFallback(run));
+            eventStore.initialize(run.getId(), ChatRunSupport.sequenceFallback(run));
             log.info(
                     "服务重启后保留待确认Run: runId={}, stateStore={}",
                     run.getId(),
@@ -317,7 +318,7 @@ public class ChatRunCoordinator {
                     execution.session, app, userMessage.getContent(), attachments);
             execution.startPhase(msg);
         } catch (RuntimeException startFailure) {
-            execution.finalizeFailed(ChatRunFailureCode.START_FAILED, safeMessage(startFailure));
+            execution.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSupport.safeMessage(startFailure));
         }
         return true;
     }
@@ -390,26 +391,6 @@ public class ChatRunCoordinator {
 
     private ChatSessionEntity loadSession(ChatRunEntity run) {
         return runService.loadSession(run);
-    }
-
-    /**
-     * 获取运行的快照事件序号。
-     *
-     * @param run 运行实体
-     * @return 快照事件序号；未设置时返回 {@code 0}
-     */
-    static long sequenceFallback(ChatRunEntity run) {
-        return ChatRunInstanceFactory.sequenceFallback(run);
-    }
-
-    /**
-     * 生成可持久化的错误信息。
-     *
-     * @param error 异常
-     * @return 已清理并限制长度的错误信息
-     */
-    static String safeMessage(Throwable error) {
-        return ChatRunInstanceFactory.safeMessage(error);
     }
 
     private PreparedConfirmation prepareConfirmationInContext(
