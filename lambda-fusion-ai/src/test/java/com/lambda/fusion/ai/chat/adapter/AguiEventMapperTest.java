@@ -18,6 +18,7 @@ import io.agentscope.core.event.ToolResultTextDeltaEvent;
 import io.agentscope.core.message.ToolResultState;
 import io.agentscope.core.message.ToolUseBlock;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -99,6 +100,32 @@ class AguiEventMapperTest {
         assertThat(json).contains("\"type\":\"TOOL_CALL_RESULT\"");
         assertThat(json).contains("\"toolCallId\":\"tc-1\"");
         assertThat(json).contains("\"content\":\"result-text\"");
+    }
+
+    @Test
+    void toolCallEndEmitsNoEventOnlySnapshotDelta() {
+        AgentEventInterpreter mapper = newMapper(true);
+        events(mapper, new ToolCallStartEvent("reply-1", "tc-1", "search"));
+
+        // TOOL_CALL_END 只推进快照，不发 AG-UI 事件；ToolCallEnd 由 TOOL_RESULT_END 统一发出。
+        assertThat(events(mapper, new ToolCallEndEvent("reply-1", "tc-1", "search")))
+                .isEmpty();
+    }
+
+    @Test
+    void toolCallEndEmittedOnlyOnceAcrossCallAndResultEnd() {
+        AgentEventInterpreter mapper = newMapper(true);
+        events(mapper, new ToolCallStartEvent("reply-1", "tc-1", "search"));
+        List<AguiEvent> callEnd = events(mapper, new ToolCallEndEvent("reply-1", "tc-1", "search"));
+        events(mapper, new ToolResultStartEvent("reply-1", "tc-1", "search"));
+        events(mapper, new ToolResultTextDeltaEvent("reply-1", "tc-1", "search", "r"));
+        List<AguiEvent> resultEnd =
+                events(mapper, new ToolResultEndEvent("reply-1", "tc-1", "search", ToolResultState.SUCCESS));
+
+        long toolCallEndCount = Stream.concat(callEnd.stream(), resultEnd.stream())
+                .filter(e -> e instanceof AguiEvent.ToolCallEnd)
+                .count();
+        assertThat(toolCallEndCount).isEqualTo(1);
     }
 
     @Test

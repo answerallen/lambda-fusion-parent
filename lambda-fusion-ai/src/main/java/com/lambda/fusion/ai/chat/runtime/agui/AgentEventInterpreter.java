@@ -165,11 +165,16 @@ public class AgentEventInterpreter {
                 tool.getToolCallId(), tool.getToolCallName(), tool.getDelta(), null, TOOL_RUNNING, false, false);
     }
 
+    /**
+     * 模型产出工具调用块结束。AgentScope 对同一工具会先经 {@code ModelCallBlockLifecycle} 发
+     * TOOL_CALL_END、再经 {@code CallExecution} 发 TOOL_RESULT_END；此处只推进快照状态，不发
+     * AG-UI 事件——{@code ToolCallEnd} 统一由 result 齐全的 {@code TOOL_RESULT_END} 单一出口发出，
+     * 避免同一「工具结束」事实产生两次 ToolCallEnd。
+     */
     private void mapToolCallEnd(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
         if (!(event instanceof ToolCallEndEvent tool)) {
             return;
         }
-        out.add(new AguiEvent.ToolCallEnd(threadId, runId, tool.getToolCallId()));
         delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, TOOL_RUNNING, false, false);
     }
 
