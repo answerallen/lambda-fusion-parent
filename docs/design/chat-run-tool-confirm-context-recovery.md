@@ -26,35 +26,33 @@ RUN_ERROR: 确认工具上下文不存在: call_xxx
 | 脱敏工具快照 | `la_ai_chat_run.snapshot_json` | bootstrap 展示、确认请求 ID 校验 | 仍然存在 |
 | 完整 `ToolUseBlock(ASKING)` | AgentScope state store | 构造 `ConfirmResult`、继续 Agent 执行 | 不存在、不可读或无法匹配 |
 
-## 2. 当前失败链路
+## 2. 修复后的确认链路
 
-当前确认链路是：
+确认链路已收敛为 `ChatRunInstance` 上的单一原子操作：
 
 ```text
 ChatServiceImpl.confirm
         |
         v
-ChatRunServiceImpl.confirm
-  1. 锁定 Session 和 Run
-  2. 用 RunSnapshot 校验 decisions
-  3. AWAITING_CONFIRM / phase N
-       -> RUNNING / phase N+1
-  4. 提交事务
+ChatRunCoordinator.confirm          （loadOwned 已做归属校验）
+  1. computeIfAbsent 取得 executions 中唯一规范 ChatRunInstance
         |
         v
-ChatRunManager.resumeConfirmed
-  5. 从 AgentScope state store 读取 ASKING ToolUseBlock
-  6. 按 toolCallId 匹配
-  7. 找不到则抛 IllegalStateException
-  8. finalizeFailed(START_FAILED)
+ChatRunInstance.confirm（synchronized 实例锁内，原子完成）
+  2. validateAndBuildMessage：读 Agent ASKING 状态 → 三方 ID 校验 → 构造确认消息
+  3. advanceConfirmation：REQUIRES_NEW 事务内复核所有权 + 阶段守卫 + (status, phaseNo) CAS
+  4. 同步实例内 Run 状态
+  5. 构造确认消息并启动下一阶段
 ```
 
-这个顺序有两个确定缺陷：
+锁顺序恒为「实例 monitor → REQUIRES_NEW 数据库事务」，不反向持数据库行锁等待实例锁。
 
-1. **先迁移、后验证**：数据库已经离开 `AWAITING_CONFIRM`，才验证继续执行所必需的完整上下文。
-2. **读取失败被折叠为空列表**：状态存储异常、状态不存在、没有 `ASKING` block 和 ID 不匹配最终都表现为“确认工具上下文不存在”。
+关键不变量：
 
-失败之后，原确认卡片已经越过阶段号，用户无法重试，Run 只能进入终态失败。
+1. **先验证、后迁移**：完整确认上下文（Agent `ASKING` 块、三方 ID 一致）验证通过前，不执行数据库迁移；验证失败保持 `AWAITING_CONFIRM`。
+2. **读取失败不折叠为空**：状态存储异常、状态不存在、没有 `ASKING` block 抛 `CONFIRM_CONTEXT_UNAVAILABLE`；ID 不一致抛 `CONFIRM_CONTEXT_MISMATCH`；Run 保持可重试。
+3. **CAS 冲突零副作用**：校验与消息构造在 CAS 之前完成；CAS 冲突（含幂等重放）不启动、不主动终结竞争方 Run。
+4. **迁移后失败才终结**：仅 CAS 成功后的启动失败按 `START_FAILED` 收敛终态，且不再静默吞掉。
 
 ## 3. 修复目标与边界
 
@@ -77,67 +75,64 @@ ChatRunManager.resumeConfirmed
 
 ## 4. 目标流程
 
-目标时序如下：
+目标时序如下（确认在 `ChatRunInstance` 实例锁内原子完成）：
 
 ```text
-Client              ChatService          ChatRunManager        Agent state       ChatRunService
-  |                      |                     |                    |                   |
-  | POST /confirm        |                     |                    |                   |
-  |--------------------->|                     |                    |                   |
-  |                      | loadOwned           |                    |                   |
-  |                      |---------------------|                    |                   |
-  |                      | prepareConfirmation |                    |                   |
-  |                      |-------------------->| getAgentState      |                   |
-  |                      |                     |------------------->|                   |
-  |                      |                     |<-------------------|                   |
-  |                      |                     | 校验三方 ID          |                   |
-  |                      |<--------------------| PreparedConfirmation                   |
-  |                      | confirm(CAS)        |                    |                   |
-  |                      |------------------------------------------------------------>|
-  |                      |<------------------------------------------------------------|
-  |                      | resumePrepared      |                    |                   |
-  |                      |-------------------->|                    |                   |
-  |                      |                     | 直接构造确认消息并启动下一阶段           |
-  |<=====================| bootstrap + phase N+1 SSE                                  |
+Client           ChatService        ChatRunCoordinator   ChatRunInstance        Agent state    ChatRunStateService
+  |                   |                    |                    |                     |                |
+  | POST /confirm     |                    |                    |                     |                |
+  |------------------>| loadOwned          |                    |                     |                |
+  |                   | confirm            |                    |                     |                |
+  |                   |------------------->| selectOrRestore    |                     |                |
+  |                   |                    | (computeIfAbsent)  |                     |                |
+  |                   |                    |------------------->| synchronized {      |                |
+  |                   |                    |                    | getAgentState       |                |
+  |                   |                    |                    |-------------------->|                |
+  |                   |                    |                    |<--------------------|                |
+  |                   |                    |                    | 三方校验+构造消息     |                |
+  |                   |                    |                    | advanceConfirmation |                |
+  |                   |                    |                    |-------------------------------------->|
+  |                   |                    |                    | (REQUIRES_NEW CAS)  |                |
+  |                   |                    |                    |<--------------------------------------|
+  |                   |                    |                    | 同步状态+启动新阶段   |                |
+  |                   |                    |                    | }                   |                |
+  |<==================| bootstrap + phase N+1 SSE              |                     |                |
 ```
 
-关键原则是：**读取一次、验证一次、捕获一次、消费一次**。
+关键原则是：**读取一次、验证一次、捕获一次、消费一次**，且全程在同一实例临界区内。
 
 ## 5. 组件改造
 
-### 5.1 `ChatRunManager`：准备确认上下文
+### 5.1 `ChatRunInstance.confirm`：实例锁内单一原子操作
 
-新增仅在 manager 内部使用的不可变对象：
-
-```java
-record PreparedConfirmation(
-        String runId,
-        int sourcePhaseNo,
-        List<ConfirmResult> results) {}
-```
-
-新增方法：
+确认不再拆分为「预检 + CAS + resume」两阶段跨锁流程，而是 `ChatRunInstance` 上的一个 `synchronized` 方法，在同一实例临界区内完成全部步骤：
 
 ```java
-PreparedConfirmation prepareConfirmation(
-        ChatRunEntity run,
-        ChatSessionEntity session,
-        ConfirmToolCall command)
+synchronized ConfirmTransition confirm(ConfirmToolCall command) {
+    Msg confirmMessage = validateAndBuildMessage(command);
+    ConfirmTransition transition = runService.advanceConfirmation(run, session, command.getPhaseNo());
+    if (!transition.resumed()) {          // 幂等重放：阶段已被处理过
+        syncRun(transition.run());
+        return transition;
+    }
+    syncRun(transition.run());
+    try {
+        beginConfirmedPhase();
+        startPhase(confirmMessage);
+    } catch (RuntimeException startFailure) {
+        finalizeFailed(START_FAILED, safeMessage(startFailure));
+    }
+    return transition;
+}
 ```
 
-职责：
+`validateAndBuildMessage` 职责（**全部在 CAS 之前**完成，因此 CAS 冲突零副作用）：
 
-1. 获取或恢复当前 `Execution`。`AWAITING_CONFIRM` 期间 Agent 空闲、Execution 稳定，`prepareConfirmation` 与后续 `resumePrepared`/`startConfirmedPhase` 按 `runId` 取到同一 Execution 实例；即使 Execution 需重建，`getAgentState` 仍从独立的 AgentScope state store 读取，"恢复"不依赖内存中的 Agent 实例。
-2. 在 `Execution` 的串行边界内读取 Agent 状态。
-3. 从 Agent 状态上下文（`getAgentState(...).getContext()`）提取所有 `ToolCallState.ASKING` 的 `ToolUseBlock`，读取范围与现状 `deserializePendingFromAgentState` 一致，不限定“最近一条 assistant message”。
-4. 比较三组 ID：
-   - `RunSnapshot.pendingTools()`；
-   - `command.decisions`；
-   - Agent 状态中的 `ASKING ToolUseBlock`。
-5. 按请求决策顺序构造 `ConfirmResult`。
-6. 返回捕获了完整 `ToolUseBlock` 的 `PreparedConfirmation`。
-
-`PreparedConfirmation` 不对 Controller 暴露，不序列化、不写日志、不存入 RunSnapshot。
+1. `agentExecutionAdapter == null`：抛 `CONFIRM_CONTEXT_UNAVAILABLE`，保持 `AWAITING_CONFIRM`，不终结。
+2. 决策非空、不重复、字段合法，否则 `INVALID_PARAMETER`。
+3. 读取 Agent 状态上下文（`getAgentState(...).getContext()`）中全部 `ToolCallState.ASKING` 的 `ToolUseBlock`，读取范围不限定「最近一条 assistant message」；读取失败抛 `CONFIRM_CONTEXT_UNAVAILABLE`，**不执行 CAS**。
+4. 三方 ID 集合完全相等校验（见 §5.2）。
+5. 按请求决策顺序构造 `ConfirmResult` 并 build 确认消息。
 
 ### 5.2 三方一致性校验
 
@@ -147,65 +142,44 @@ PreparedConfirmation prepareConfirmation(
 snapshotIds == decisionIds == agentAskingIds
 ```
 
-同时校验：
+其中 `snapshotIds` 取自实例锁内 `accumulator.snapshot().pendingTools()`（实例重建时以 DB 快照初始化，与持久化同源，是锁内单一事实来源）。
 
-- `run.status == AWAITING_CONFIRM`；
-- `run.phaseNo == command.phaseNo`；
-- `PreparedConfirmation.sourcePhaseNo == command.phaseNo`；
-- 每个 decision 恰好对应一个 `ToolUseBlock`。
+禁止仅使用 `allMatch` 做子集校验，因为它不能表达三方事实是否完整一致；三方集合相等补上「Agent 侧存在 decision 之外的额外 `ASKING` 块不被察觉」的缺口。
 
-禁止仅使用 `allMatch` 做子集校验，因为它不能表达三方事实是否完整一致。现状 `startConfirmedPhase` 仅按 decision 逐个 `orElseThrow` 查找 Agent 块，Agent 侧存在 decision 之外的额外 `ASKING` 块时不会被察觉；三方集合相等正好补上这一缺口。
+完整 `ToolUseBlock` 只短暂存在于实例锁内的确认消息 metadata，不写入 `RunSnapshot`、不序列化、不写日志。
 
-上述 `run.status == AWAITING_CONFIRM` 等校验基于 `loadOwned` 读到的 Run 快照，可能已被并发请求推进，属 fast-fail 优化而非权威判定；唯一推进判定仍是 `ChatRunServiceImpl.confirm` 的 `(AWAITING_CONFIRM, phaseNo)` CAS。
+### 5.3 `ChatRunStateService.advanceConfirmation`：权威迁移
 
-### 5.3 `ChatServiceImpl`：调整编排顺序
+状态机面新增独立事务方法，只承载权威迁移，不见决策内容：
 
-目标伪代码：
+```java
+@Transactional(propagation = REQUIRES_NEW)
+ConfirmTransition advanceConfirmation(
+        ChatRunEntity identity, ChatSessionEntity expectedSession, int sourcePhaseNo)
+```
+
+事务内职责：
+
+1. **所有权复核**：按 `session.id + expectedSession.userId` 查会话 `FOR UPDATE`；按 `run.id + session.id` 查 Run `FOR UPDATE`（租户由 `withTenant` 与租户插件保证）。
+2. **阶段幂等守卫**：`phaseNo > sourcePhaseNo` 视为重复确认，返回 `resumed=false`；`phaseNo < sourcePhaseNo` 抛 `CHAT_RUN_STATE_CONFLICT`。
+3. **状态校验**：仅 `AWAITING_CONFIRM` 可确认，否则状态冲突。
+4. **CAS 推进**：以 `(status=AWAITING_CONFIRM, phaseNo)` 为前置条件迁移到 `RUNNING / phase N+1 / 新 aguiRunId`，`changed==1` 才视为推进成功，否则状态冲突。
+
+### 5.4 `ChatServiceImpl`：编排下沉
+
+确认的数据库迁移与执行推进整体下沉到协调器/实例，服务层只做归属校验与事件流挂载：
 
 ```java
 public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command) {
     RunContext context = runService.loadOwned(sessionId, runId);
-    PreparedConfirmation prepared =
-            runManager.prepareConfirmation(context.run(), context.session(), command);
-
-    ConfirmTransition transition = runService.confirm(sessionId, runId, command);
-    if (transition.resumed()) {
-        runManager.resumePrepared(
-                transition.run(), transition.session(), prepared);
-    }
-    return attach(transition.run(), 0, true);
+    ConfirmTransition transition = chatRunCoordinator.confirm(context.run(), context.session(), command);
+    return openRunEventStream(transition.run(), 0, true);
 }
 ```
 
-注意：预检不是数据库状态迁移的替代品。两个并发请求都可能完成预检，但 `ChatRunServiceImpl.confirm` 的行锁与 `(AWAITING_CONFIRM, phaseNo)` CAS 仍是唯一推进判定。
+`ChatRunCoordinator.confirm` 经 `computeIfAbsent` 取得 `executions` 中唯一规范实例后在实例锁内执行确认。`ChatRunService.confirm`（HTTP 编排面）随之删除，确认推进不再经过该面。
 
-如果 CAS 返回幂等未推进，当前请求不得消费 `PreparedConfirmation`，只按数据库当前状态返回恢复流。
-
-### 5.4 `Execution.startConfirmedPhase`：禁止二次读取
-
-当前方法接收原始 `ConfirmToolCall`，并调用 `deserializePendingFromAgentState()`。目标方法改为接收准备结果：
-
-```java
-synchronized void startConfirmedPhase(
-        ChatRunEntity updated,
-        PreparedConfirmation prepared)
-```
-
-执行前只校验：
-
-- `prepared.runId` 与当前 Run 相同；
-- `prepared.sourcePhaseNo + 1 == updated.phaseNo`；
-- Execution 未运行且未终结。
-
-随后直接构造：
-
-```java
-Msg confirm = UserMessage.builder()
-        .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, prepared.results()))
-        .build();
-```
-
-这里不得再次访问 Agent state store，否则仍存在“预检成功、迁移成功、二次读取失败”的窗口。
+CAS 未推进（幂等重放）时不启动新阶段，仅按数据库当前状态返回恢复流。
 
 ## 6. 错误语义
 
@@ -279,18 +253,18 @@ ai.chat.confirm.resume.failure
 
 ### 8.1 两个确认请求并发
 
-两个请求可能都读取到同一份 `ASKING` 上下文。允许两者完成预检，最终由数据库行锁和 phase CAS 决定唯一胜者：
+两个请求可能都读取到同一份 `ASKING` 上下文并完成三方校验，最终由数据库行锁和 `(status, phaseNo)` CAS 决定唯一胜者：
 
-- 胜者迁移至 phase N+1 并消费准备结果；
-- 败者看到 phase 已推进，按既有幂等逻辑返回，不启动第二次 Agent 阶段。
+- 胜者在实例锁内迁移至 phase N+1 并启动下一阶段；
+- 败者看到 phase 已推进（`resumed=false`）或 CAS 状态冲突，不启动第二次 Agent 阶段、不终结竞争方 Run。
 
-### 8.2 预检成功、数据库迁移失败
+### 8.2 校验成功、数据库迁移失败
 
-准备结果只存在于当前请求内存中，直接丢弃。Agent 状态和 Run 仍停留在原阶段，不产生副作用。
+校验与确认消息构造均在 CAS 之前完成，CAS 竞争落败（`resumed=false` 重放或状态冲突）时不启动新阶段、不终结竞争方 Run，构造结果直接丢弃，Agent 状态和 Run 停留在原阶段，零副作用。
 
 ### 8.3 数据库迁移成功、启动下一阶段失败
 
-预检已经排除了“上下文缺失”这一类失败，但模型、线程池或 Agent 本身仍可能启动失败。此时 Run 已进入 phase N+1，应使用明确的运行错误收敛为 `FAILED / ERROR`，并保留已有快照；不得错误回滚成 `AWAITING_CONFIRM`，避免重复执行已经确认的外部工具。
+校验已经排除了「上下文缺失」这一类失败，但模型、线程池或 Agent 本身仍可能启动失败。此时 Run 已进入 phase N+1，应使用明确的运行错误收敛为 `FAILED / START_FAILED`，并保留已有快照；不得静默吞掉，也不得错误回滚成 `AWAITING_CONFIRM`，避免重复执行已经确认的外部工具。
 
 ### 8.4 state store 在等待期间失效
 
@@ -314,8 +288,7 @@ Run 保持 `AWAITING_CONFIRM` 并返回可重试错误。运维修复 state stor
 完整 `ToolUseBlock` 可能包含敏感工具参数，只允许短暂存在于：
 
 1. AgentScope state store；
-2. `PreparedConfirmation` 请求内存对象；
-3. AgentScope 确认消息 metadata。
+2. 实例锁内的确认消息 metadata（构造后即交 AgentScope 消费）。
 
 不得把它加入：
 
@@ -332,39 +305,39 @@ RunSnapshot 继续使用现有脱敏逻辑，前端只获得展示和决策所�
 建议按以下原子步骤实施：
 
 1. 在 `AiErrorCode` 增加确认上下文不可用和不一致错误码。
-2. 将 Agent 状态读取方法改为“明确返回结果或抛业务异常”，删除捕获异常后返回空列表的行为。
-3. 在 `ChatRunManager` 增加 `PreparedConfirmation` 和三方一致性校验。
-4. 调整 `ChatServiceImpl.confirm`，在事务状态迁移前完成预检。
-5. 调整 `resumeConfirmed/startConfirmedPhase`，直接消费准备结果并删除二次读取。
+2. 将 Agent 状态读取方法改为「明确返回结果或抛业务异常」，删除捕获异常后返回空列表的行为。
+3. 在 `ChatRunInstance` 增加 `confirm` 单一原子方法与三方一致性校验（锁内完成读取、校验、CAS、启动）。
+4. 在 `ChatRunStateService` 增加 `advanceConfirmation`（REQUIRES_NEW、所有权复核、阶段守卫、CAS），并删除 `ChatRunService.confirm`。
+5. 调整 `ChatServiceImpl.confirm` 为「归属校验 → 协调器确认 → 挂载事件流」的薄编排。
 6. 调整显式持久化 state store 的失败策略，禁止静默回退 MEMORY。
 7. 改写既有 `StateStoreResolverTest`：显式非 MEMORY 配置失败时断言启动失败而非回退 MEMORY（仅未配置/显式 MEMORY 场景保留回退或直接创建用例）；并补充确认上下文相关的单元/集成测试。
 8. 更新 `chat-run-resume.md` 的确认流程及失败语义，使总设计与本修复一致。
 
 ## 11. 测试方案
 
-### 11.1 `ChatRunManager` 单元测试
+### 11.1 `ChatRunInstance` 确认测试
 
-- state store 抛异常：返回 `CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE`。
-- state/context 为 null：返回上下文不可用，Run 不终结。
-- assistant message 不含 `ASKING`：返回上下文不可用。
-- snapshot 与 Agent ID 不一致：返回上下文不一致。
-- decision 缺少、多出或重复 ID：拒绝确认。
-- 三方 ID 相同但顺序不同：按 decision 顺序正确生成 `ConfirmResult`。
-- `resumePrepared` 不再调用 `getAgentState`。
+- state store 抛异常：返回 `CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE`，不执行 CAS，Run 不终结。
+- state/context 为 null：返回上下文不可用，不执行 CAS。
+- assistant message 不含 `ASKING`：返回上下文不可用，不执行 CAS。
+- snapshot 与 Agent ID 不一致：返回上下文不一致，不执行 CAS。
+- decision 缺少、多出或重复 ID：拒绝确认，不执行 CAS。
+- 三方 ID 相同但顺序不同：CAS 推进后按 decision 顺序生成确认消息并启动一次新阶段。
+- CAS 幂等重放（`resumed=false`）：不启动第二次 Agent 阶段。
 
-### 11.2 `ChatRunServiceImpl` 测试
+### 11.2 `ChatRunStateService.advanceConfirmation` 测试
 
 - phase 匹配时只推进一次。
-- 两次相同确认请求中只有一次 `resumed=true`。
-- phase 落后时保持现有幂等返回。
-- phase 超前或状态不为 `AWAITING_CONFIRM` 时返回状态冲突。
+- phase 超前时幂等返回 `resumed=false`。
+- phase 落后或状态不为 `AWAITING_CONFIRM` 时返回状态冲突。
+- 会话所有权复核失败（`session.id + userId` 查不到）时返回 `CHAT_RUN_NOT_FOUND`。
+- CAS 竞争落败（`changed != 1`）时返回状态冲突。
 
 ### 11.3 `ChatServiceImpl` 编排测试
 
-- 预检失败时不调用 `runService.confirm`。
-- CAS 未推进时不调用 `resumePrepared`。
-- CAS 成功时只消费一次准备结果。
-- 确认成功响应仍固定使用 `afterSeq=0, bootstrap=true`。
+- 协调器确认抛错时原样向上抛出。
+- 确认成功响应固定使用 `afterSeq=0, bootstrap=true`，并从迁移后 Run 挂载事件流。
+- CAS 幂等重放时同样从迁移后 Run 挂载事件流（不重复推进）。
 
 ### 11.4 配置测试
 
