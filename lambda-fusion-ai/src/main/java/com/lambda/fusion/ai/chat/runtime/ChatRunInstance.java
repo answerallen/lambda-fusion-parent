@@ -40,7 +40,6 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -68,7 +67,7 @@ final class ChatRunInstance {
     private final AgentExecutionAdapter agentExecutionAdapter;
     private final ChatRunSnapshotAccumulator accumulator;
     private boolean phaseFinished;
-    private final AtomicBoolean terminal = new AtomicBoolean();
+    private boolean terminal;
     private boolean terminalCommitted;
     private int finalizeAttempts;
     private final AtomicReference<Disposable> disposable = new AtomicReference<>();
@@ -132,7 +131,7 @@ final class ChatRunInstance {
      * @throws IllegalStateException 确认结果与当前运行或阶段不匹配
      */
     synchronized void startConfirmedPhase(ChatRunEntity updated, PreparedConfirmation prepared) {
-        if (isRunning() || terminal.get()) {
+        if (isRunning() || terminal) {
             return;
         }
         if (agentExecutionAdapter == null) {
@@ -176,7 +175,7 @@ final class ChatRunInstance {
      * @param message 阶段输入消息
      */
     synchronized void startPhase(Msg message) {
-        if (terminal.get() || isRunning()) {
+        if (terminal || isRunning()) {
             return;
         }
         if (agentExecutionAdapter == null) {
@@ -191,7 +190,7 @@ final class ChatRunInstance {
                         event -> runInTenant(() -> onEvent(event)),
                         error -> runInTenant(() -> onError(error)),
                         () -> runInTenant(this::onComplete));
-        if (terminal.get()) {
+        if (terminal) {
             next.dispose();
         } else {
             disposable.compareAndSet(null, next);
@@ -199,7 +198,7 @@ final class ChatRunInstance {
     }
 
     private synchronized void onEvent(AgentEvent event) {
-        if (terminal.get()) {
+        if (terminal) {
             return;
         }
         if (event.getType() == AgentEventType.AGENT_END) {
@@ -230,7 +229,7 @@ final class ChatRunInstance {
     }
 
     private synchronized void onError(Throwable error) {
-        if (terminal.get()) {
+        if (terminal) {
             return;
         }
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
@@ -242,14 +241,14 @@ final class ChatRunInstance {
 
     private synchronized void onComplete() {
         disposable.set(null);
-        if (terminal.get()) {
+        if (terminal) {
             return;
         }
         if (pendingConfirmInterpretation != null) {
             completeAwaitConfirm();
             return;
         }
-        if (!phaseFinished && !terminal.get()) {
+        if (!phaseFinished && !terminal) {
             if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
                 finalizeStopped(ChatRunFinishReason.USER_STOP);
             } else {
@@ -348,9 +347,10 @@ final class ChatRunInstance {
 
     private synchronized void finalizeTerminal(
             ChatRunStatus status, ChatRunFinishReason reason, ChatRunFailureCode errorCode, String errorMessage) {
-        if (!terminal.compareAndSet(false, true)) {
+        if (terminal) {
             return;
         }
+        terminal = true;
         phaseFinished = true;
         pendingConfirmInterpretation = null;
         accumulator.closeActiveMessages();
@@ -419,7 +419,7 @@ final class ChatRunInstance {
                     Duration.ofSeconds(properties.getChat().getRun().getTerminalTtlSeconds()));
             executions.remove(run.getId(), this);
         } catch (RuntimeException finalizeFailure) {
-            terminal.set(false);
+            terminal = false;
             int attempt = ++finalizeAttempts;
             if (!scheduler.isShutdown()) {
                 if (attempt == 5 || attempt % 10 == 0) {
@@ -486,7 +486,7 @@ final class ChatRunInstance {
      * @param nowNanos 当前单调时钟值
      */
     synchronized void checkpointIfDue(long nowNanos) {
-        if (terminal.get() || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
+        if (terminal || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
             return;
         }
         long interval = TimeUnit.SECONDS.toNanos(properties.getChat().getRun().getSnapshotIntervalSeconds());
