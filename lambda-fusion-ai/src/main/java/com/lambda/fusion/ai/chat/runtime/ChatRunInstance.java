@@ -253,6 +253,10 @@ final class ChatRunInstance {
             return;
         }
         if (event.getType() == AgentEventType.AGENT_END) {
+            if (event.getSource() != null) {
+                // 子 Agent 结束不代表逻辑 Run 结束，忽略。
+                return;
+            }
             if (phaseFinished || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
                 return;
             }
@@ -401,7 +405,6 @@ final class ChatRunInstance {
         terminal = true;
         phaseFinished = true;
         pendingConfirmInterpretation = null;
-        accumulator.closeActiveMessages();
         if (status != ChatRunStatus.COMPLETED) {
             closePendingToolCalls();
         }
@@ -411,12 +414,14 @@ final class ChatRunInstance {
                     : accumulator.snapshot();
             if (!terminalCommitted) {
                 ExecutionInterpretation closeInterpretation = agentEventInterpreter.closeOpenMessages();
+                // 先应用快照增量、后写关闭事件：appendAll 可能触发 checkpointNow，
+                // 必须保证检查点读到的是已关闭快照，而非「事件已关闭、快照仍打开」。
+                accumulator.apply(closeInterpretation.snapshotDelta());
                 try {
                     appendAll(closeInterpretation.events());
                 } catch (RuntimeException closeEventFailure) {
                     log.warn("Run终结前内容关闭事件写入失败，仍继续提交业务终态: runId={}", run.getId(), closeEventFailure);
                 }
-                accumulator.apply(closeInterpretation.snapshotDelta());
                 snapshot = accumulator.snapshot();
                 long beforeTerminal = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
                 String toolJson = snapshot.tools().isEmpty()

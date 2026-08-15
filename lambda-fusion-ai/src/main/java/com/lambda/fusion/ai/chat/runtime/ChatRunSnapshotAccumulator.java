@@ -85,8 +85,8 @@ final class ChatRunSnapshotAccumulator {
         reasoning.append(delta);
     }
 
-    /** 关闭当前文本和推理消息。 */
-    void closeActiveMessages() {
+    /** 关闭当前文本和推理消息；仅经 {@code beginPhase} 与 {@code apply} 的增量驱动。 */
+    private void closeActiveMessages() {
         closeText();
         closeReasoning();
     }

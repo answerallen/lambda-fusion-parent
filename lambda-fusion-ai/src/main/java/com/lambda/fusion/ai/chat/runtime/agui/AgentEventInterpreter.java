@@ -86,7 +86,6 @@ public class AgentEventInterpreter {
             case TOOL_RESULT_TEXT_DELTA -> mapToolResultTextDelta(event, delta);
             case TOOL_RESULT_END -> mapToolResultEnd(event, events, delta);
             case REQUIRE_USER_CONFIRM -> mapRequireUserConfirm(event, events, delta);
-            case AGENT_END -> mapAgentEnd(events, delta);
             default -> {}
         }
         return new ExecutionInterpretation(List.copyOf(events), delta.build());
@@ -198,11 +197,6 @@ public class AgentEventInterpreter {
         delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, TOOL_COMPLETE, false, false);
     }
 
-    private void mapAgentEnd(List<AguiEvent> out, SnapshotDeltaBuilder delta) {
-        closeActiveMessage(out, delta);
-        out.add(new AguiEvent.RunFinished(threadId, runId, null, new AguiEvent.RunFinishedSuccessOutcome()));
-    }
-
     private void mapRequireUserConfirm(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
         if (!(event instanceof RequireUserConfirmEvent confirm)) {
             return;
@@ -232,12 +226,17 @@ public class AgentEventInterpreter {
     /**
      * 关闭当前打开的文本和推理消息。
      *
+     * <p>除为已知内存消息生成 {@code TextMessageEnd}/{@code ReasoningMessageEnd} 外，无条件在快照增量上
+     * 置 {@code closeActiveMessages=true}：即使恢复实例的解释器没有内存消息 ID，也能闭合持久化快照中的
+     * 打开状态。这是关闭路径的唯一出口，累加器的状态变化只经由该增量驱动。
+     *
      * @return 仅包含消息关闭事件与对应快照增量的解释结果
      */
     public ExecutionInterpretation closeOpenMessages() {
         List<AguiEvent> out = new ArrayList<>();
         SnapshotDeltaBuilder delta = new SnapshotDeltaBuilder();
         closeActiveMessage(out, delta);
+        delta.closeActiveMessages();
         return new ExecutionInterpretation(List.copyOf(out), delta.build());
     }
 
@@ -323,6 +322,10 @@ public class AgentEventInterpreter {
 
         void closeReasoning() {
             closeReasoning = true;
+        }
+
+        void closeActiveMessages() {
+            closeActiveMessages = true;
         }
 
         void upsertTool(
