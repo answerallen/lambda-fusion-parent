@@ -214,6 +214,23 @@ class ExecutionCoordinatorConfirmTest {
         verify(agent, never()).streamEvents(any(Msg.class), any());
     }
 
+    /** 回归：旧消息残留的 ASKING 不计入当前确认批次，三方校验以最后一条助手消息为准。 */
+    @Test
+    void shouldConfirmWhenEarlierMessageHasStaleAskingBlock() {
+        ChatRunEntity run = awaitingRun(2, List.of("call_2"));
+        ChatSessionEntity session = session();
+        ConfirmToolCall command = command(2, List.of(decision("call_2", true)));
+
+        when(delegate.getAgentState("user-1", "session-1")).thenReturn(stateWithStaleThenCurrentAsking());
+        stubResumed(run, 2);
+        when(agent.streamEvents(any(Msg.class), any())).thenReturn(Flux.never());
+
+        ConfirmTransition transition = coordinator.confirm(run, session, command);
+
+        assertThat(transition.resumed()).isTrue();
+        verify(agent).streamEvents(any(Msg.class), any());
+    }
+
     /** CAS 推进成功：刷新内存实体为新阶段并返回 resumed=true。 */
     private void stubResumed(ChatRunEntity run, int sourcePhaseNo) {
         when(runService.advanceConfirmation(run, session(), sourcePhaseNo)).thenAnswer(invocation -> {
@@ -281,6 +298,17 @@ class ExecutionCoordinatorConfirmTest {
                 .content(new ArrayList<>(blocks))
                 .build();
         return AgentState.builder().context(List.of(assistant)).build();
+    }
+
+    /** 上下文含多条助手消息：旧消息残留 call_1 的 ASKING，最后一条为当前批次 call_2。 */
+    private static AgentState stateWithStaleThenCurrentAsking() {
+        Msg stale = Msg.builderForRole(MsgRole.ASSISTANT)
+                .content(new ArrayList<>(List.of(askingBlock("call_1"))))
+                .build();
+        Msg current = Msg.builderForRole(MsgRole.ASSISTANT)
+                .content(new ArrayList<>(List.of(askingBlock("call_2"))))
+                .build();
+        return AgentState.builder().context(List.of(stale, current)).build();
     }
 
     private static ToolUseBlock askingBlock(String toolCallId) {

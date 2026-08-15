@@ -113,12 +113,13 @@ public final class AgentExecutionAdapter {
     }
 
     /**
-     * 读取 Agent 状态上下文中全部等待确认的工具调用。
+     * 读取 Agent 状态中当前待确认的工具调用。
      *
-     * <p>扫描整个上下文而不限定最近一条助手消息，与确认恢复设计的三方一致性口径一致；
-     * 旧消息中残留的未闭合 ASKING 块同样计入。
+     * <p>口径与 AgentScope {@code getPendingToolUseIds} 一致：只取最后一条助手消息中的 ASKING 块。
+     * 该口径是 Agent 实际阻塞/待确认的权威界定，也是确认三方校验（快照=决策=Agent）的共同基准；
+     * 不得扫描全上下文——旧消息残留的未收尾 ASKING 块不属于当前确认批次，计入会使三方严格相等误判失败。
      *
-     * @return 待确认工具调用
+     * @return 当前待确认工具调用
      * @throws AiBusinessException Agent 状态不可用或不存在待确认工具调用
      */
     public List<ToolUseBlock> readAskingToolBlocks() {
@@ -127,13 +128,20 @@ public final class AgentExecutionAdapter {
             if (state == null || state.getContext() == null) {
                 throw confirmationContextUnavailable();
             }
-            List<ToolUseBlock> asking = state.getContext().stream()
-                    .filter(message -> message.getRole() == MsgRole.ASSISTANT)
-                    .flatMap(message -> message.getContentBlocks(ToolUseBlock.class).stream())
-                    .filter(tool -> tool.getState() == ToolCallState.ASKING)
-                    .toList();
-            if (!asking.isEmpty()) {
-                return asking;
+            List<Msg> context = state.getContext();
+            for (int i = context.size() - 1; i >= 0; i--) {
+                Msg message = context.get(i);
+                if (message.getRole() != MsgRole.ASSISTANT) {
+                    continue;
+                }
+                List<ToolUseBlock> asking = message.getContentBlocks(ToolUseBlock.class).stream()
+                        .filter(tool -> tool.getState() == ToolCallState.ASKING)
+                        .toList();
+                if (!asking.isEmpty()) {
+                    return asking;
+                }
+                // 最后一条助手消息无 ASKING：当前无待确认批次（不回退到更早消息）。
+                break;
             }
         } catch (AiBusinessException exception) {
             throw exception;
