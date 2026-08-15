@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lambda.fusion.ai.chat.runtime.agui.AgentEventInterpreter;
 import io.agentscope.core.agui.event.AguiEvent;
+import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.event.AgentStartEvent;
 import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.event.ThinkingBlockDeltaEvent;
@@ -152,6 +154,24 @@ class AguiEventMapperTest {
         String json = mapper.encodeToJson(finished);
         assertThat(json).contains("\"type\":\"RUN_FINISHED\"");
         assertThat(json).contains("\"interrupts\"");
+    }
+
+    @Test
+    void rootAgentStartEmitsSingleRunStarted() {
+        AgentEventInterpreter mapper = newMapper(true);
+        List<AguiEvent> events = events(mapper, new AgentStartEvent("session-1", "reply-1", "root"));
+
+        assertThat(events).hasSize(1);
+        assertThat(events.get(0)).isInstanceOf(AguiEvent.RunStarted.class);
+    }
+
+    @Test
+    void childAgentStartDoesNotEmitRunStarted() {
+        AgentEventInterpreter mapper = newMapper(true);
+        AgentEvent childStart = new AgentStartEvent("session-1", "reply-1", "sub").withSource("sub-agent");
+        List<AguiEvent> events = events(mapper, childStart);
+
+        assertThat(events).isEmpty();
     }
 
     @Test

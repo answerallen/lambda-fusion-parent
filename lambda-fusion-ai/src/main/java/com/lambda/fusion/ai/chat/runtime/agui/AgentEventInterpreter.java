@@ -76,7 +76,7 @@ public class AgentEventInterpreter {
         SnapshotDeltaBuilder delta = new SnapshotDeltaBuilder();
         AgentEventType type = event.getType();
         switch (type) {
-            case AGENT_START -> events.add(new AguiEvent.RunStarted(threadId, runId, null, null));
+            case AGENT_START -> mapAgentStart(event, events);
             case TEXT_BLOCK_DELTA -> mapTextDelta(event, events, delta);
             case THINKING_BLOCK_DELTA -> mapThinkingDelta(event, events, delta);
             case TOOL_CALL_START -> mapToolCallStart(event, events, delta);
@@ -99,6 +99,13 @@ public class AgentEventInterpreter {
      */
     public String encodeToJson(AguiEvent event) {
         return encoder.encodeToJson(event);
+    }
+
+    /** 仅根 Agent 的启动才发 RunStarted；子 Agent 的 AGENT_START（带 source）不产生重复 RunStarted。 */
+    private void mapAgentStart(AgentEvent event, List<AguiEvent> out) {
+        if (event.getSource() == null) {
+            out.add(new AguiEvent.RunStarted(threadId, runId, null, null));
+        }
     }
 
     private void mapTextDelta(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
