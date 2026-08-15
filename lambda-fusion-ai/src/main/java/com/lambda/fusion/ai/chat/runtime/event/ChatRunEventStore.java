@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.chat.runtime.event;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
+import io.agentscope.core.agui.event.AguiEvent;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -56,27 +57,23 @@ public class ChatRunEventStore {
      *
      * @param runId 运行标识
      * @param aguiRunId AG-UI 运行标识
-     * @param aguiJsonEvents 事件 JSON 列表
+     * @param aguiEvents AG-UI 事件列表
      * @return 缓冲区超过容量限制时返回 {@code true}
      */
-    public boolean appendAll(String runId, String aguiRunId, List<String> aguiJsonEvents) {
-        return buffer(runId).append(aguiJsonEvents, aguiRunId, null).checkpointRequired();
+    public boolean appendAll(String runId, String aguiRunId, List<AguiEvent> aguiEvents) {
+        return buffer(runId).append(aguiEvents, aguiRunId).checkpointRequired();
     }
 
     /**
-     * 追加指定类型的终态事件；相同类型已存在时返回原事件。
+     * 追加终态事件；终态已存在时返回原事件。
      *
      * @param runId 运行标识
      * @param aguiRunId AG-UI 运行标识
-     * @param terminalKind 终态类型
      * @param aguiJson 终态事件 JSON
      * @return 新增或已存在的终态事件
      */
-    public ChatRunEvent appendTerminalIfAbsent(String runId, String aguiRunId, String terminalKind, String aguiJson) {
-        return buffer(runId)
-                .append(List.of(aguiJson), aguiRunId, terminalKind)
-                .events()
-                .getFirst();
+    public ChatRunEvent appendTerminalIfAbsent(String runId, String aguiRunId, String aguiJson) {
+        return buffer(runId).appendTerminal(aguiJson, aguiRunId);
     }
 
     /**

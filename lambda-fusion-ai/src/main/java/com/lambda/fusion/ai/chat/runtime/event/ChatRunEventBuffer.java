@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.chat.runtime.event;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
+import io.agentscope.core.agui.event.AguiEvent;
 import java.io.Serial;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
@@ -53,39 +54,62 @@ final class ChatRunEventBuffer {
     }
 
     /**
-     * 追加一组 AG-UI 事件。
+     * 追加一组 AG-UI 事件，单次编码并合并运行元数据。
      *
-     * @param aguiJsonEvents 事件 JSON 列表
+     * @param aguiEvents AG-UI 事件列表
      * @param aguiRunId AG-UI 运行标识
-     * @param terminalKind 终态类型；非终态事件传入 {@code null}
      * @return 追加结果
      * @throws IllegalStateException 单个事件超过缓冲区字节限制
      */
-    synchronized ChatRunEventOutcome append(List<String> aguiJsonEvents, String aguiRunId, String terminalKind) {
-        if (terminalKind != null && terminal != null) {
-            return new ChatRunEventOutcome(List.of(terminal), overCapacity());
-        }
-        if (aguiJsonEvents == null || aguiJsonEvents.isEmpty()) {
+    synchronized ChatRunEventOutcome append(List<AguiEvent> aguiEvents, String aguiRunId) {
+        if (aguiEvents == null || aguiEvents.isEmpty()) {
             return new ChatRunEventOutcome(List.of(), overCapacity());
         }
-        List<ChatRunEvent> appended = new ArrayList<>(aguiJsonEvents.size());
-        long appendedBytes = 0;
+        List<ChatRunEvent> appended = new ArrayList<>(aguiEvents.size());
         long seq = nextSeq;
-        for (String aguiJson : aguiJsonEvents) {
-            String type = AguiEventJsonCodec.readEventType(aguiJson);
-            String data = AguiEventJsonCodec.withRunMetadata(aguiJson, runId, aguiRunId, seq);
-            int size = data.getBytes(StandardCharsets.UTF_8).length;
+        for (AguiEvent event : aguiEvents) {
+            String data = AguiEventJsonCodec.encodeRunEvent(event, runId, aguiRunId, seq);
+            appended.add(
+                    new ChatRunEvent(seq, runId + ":" + seq, event.getType().name(), data));
+            seq++;
+        }
+        publish(appended, false);
+        return new ChatRunEventOutcome(List.copyOf(appended), overCapacity());
+    }
+
+    /**
+     * 追加终态事件 JSON；终态已存在时返回原事件。
+     *
+     * @param aguiJson 终态事件 JSON
+     * @param aguiRunId AG-UI 运行标识
+     * @return 新增或已存在的终态事件
+     * @throws IllegalStateException 事件超过缓冲区字节限制
+     */
+    synchronized ChatRunEvent appendTerminal(String aguiJson, String aguiRunId) {
+        if (terminal != null) {
+            return terminal;
+        }
+        String data = AguiEventJsonCodec.withRunMetadata(aguiJson, runId, aguiRunId, nextSeq);
+        ChatRunEvent appended =
+                new ChatRunEvent(nextSeq, runId + ":" + nextSeq, AguiEventJsonCodec.readEventType(aguiJson), data);
+        publish(List.of(appended), true);
+        return appended;
+    }
+
+    /** 校验容量后提交事件并通知订阅者。 */
+    private void publish(List<ChatRunEvent> appended, boolean markTerminal) {
+        long appendedBytes = 0;
+        for (ChatRunEvent event : appended) {
+            int size = eventBytes(event);
             if (size > maxBytes) {
                 throw new IllegalStateException("单个Run事件超过缓冲容量: " + runId);
             }
-            appended.add(new ChatRunEvent(seq, runId + ":" + seq, type, data));
             appendedBytes += size;
-            seq++;
         }
         events.addAll(appended);
         bytes += appendedBytes;
-        nextSeq = seq;
-        if (terminalKind != null) {
+        nextSeq = appended.getLast().seq() + 1;
+        if (markTerminal) {
             terminal = appended.getFirst();
         }
         List<QueuedEventSubscription> slowSubscribers = new ArrayList<>();
@@ -101,7 +125,6 @@ final class ChatRunEventBuffer {
             subscribers.remove(subscriber.id(), subscriber);
             subscriber.fail(new SlowEventSubscriberException(runId));
         }
-        return new ChatRunEventOutcome(List.copyOf(appended), overCapacity());
     }
 
     /**

@@ -161,7 +161,7 @@ class ExecutionCoordinatorRecoveryTest {
                     command.errorCode() == null ? null : command.errorCode().name(),
                     command.errorMessage());
         });
-        when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString(), anyString()))
+        when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
                 .thenReturn(new ChatRunEvent(8L, "terminal-8", "RUN_FINISHED", "{}"));
     }
 

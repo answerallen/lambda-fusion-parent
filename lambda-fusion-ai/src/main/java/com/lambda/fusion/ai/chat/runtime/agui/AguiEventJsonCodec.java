@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.chat.runtime.agui;
 
+import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.util.JsonUtils;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,6 +13,28 @@ import java.util.Map;
 public final class AguiEventJsonCodec {
 
     private AguiEventJsonCodec() {}
+
+    /**
+     * 单次编码运行事件并合并运行元数据。
+     *
+     * <p>事件自身的 runId 已与目标值一致且载荷为 JSON 对象时，直接在尾部拼接元数据，
+     * 避免高频路径上「编码后再整体解析合并再编码」的往返；不满足前置条件时回退整体解析合并。
+     *
+     * @param event AG-UI 事件
+     * @param chatRunId 对话运行标识
+     * @param aguiRunId AG-UI 运行标识
+     * @param seq 事件序号
+     * @return 添加元数据后的事件 JSON
+     */
+    public static String encodeRunEvent(AguiEvent event, String chatRunId, String aguiRunId, long seq) {
+        String json = JsonUtils.getJsonCodec().toJson(event);
+        if (aguiRunId.equals(event.getRunId()) && json.endsWith("}")) {
+            return json.substring(0, json.length() - 1)
+                    + ",\"chatRunId\":" + JsonUtils.getJsonCodec().toJson(chatRunId)
+                    + ",\"seq\":" + seq + "}";
+        }
+        return withRunMetadata(json, chatRunId, aguiRunId, seq);
+    }
 
     /**
      * 为事件 JSON 添加运行标识和事件序号。

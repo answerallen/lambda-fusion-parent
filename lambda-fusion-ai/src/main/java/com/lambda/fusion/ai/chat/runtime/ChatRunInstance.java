@@ -293,10 +293,7 @@ final class ChatRunInstance {
         if (events == null || events.isEmpty()) {
             return;
         }
-        boolean checkpointRequired = eventStore.appendAll(
-                run.getId(),
-                run.getAguiRunId(),
-                events.stream().map(agentEventInterpreter::encodeToJson).toList());
+        boolean checkpointRequired = eventStore.appendAll(run.getId(), run.getAguiRunId(), events);
         if (checkpointRequired) {
             checkpointNow();
         }
@@ -409,8 +406,7 @@ final class ChatRunInstance {
                             run.getSessionId(), run.getAguiRunId(), null, new AguiEvent.RunFinishedSuccessOutcome());
             String json = AguiEventJsonCodec.withTerminalMetadata(
                     agentEventInterpreter.encodeToJson(terminalEvent), actualStatus.name(), run.getFinishReason());
-            ChatRunEvent appended =
-                    eventStore.appendTerminalIfAbsent(run.getId(), run.getAguiRunId(), actualStatus.name(), json);
+            ChatRunEvent appended = eventStore.appendTerminalIfAbsent(run.getId(), run.getAguiRunId(), json);
             runService.recordTerminalSeq(run, snapshot, appended.seq());
             run.setSnapshotSeq(appended.seq());
             eventStore.compact(run.getId(), appended.seq());
