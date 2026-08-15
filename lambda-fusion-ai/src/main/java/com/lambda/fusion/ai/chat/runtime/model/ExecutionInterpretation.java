@@ -12,10 +12,4 @@ import java.util.List;
  * @param snapshotDelta 快照增量
  * @author Jin
  */
-public record ExecutionInterpretation(List<AguiEvent> events, ExecutionSnapshotDelta snapshotDelta) {
-
-    /** 空解释结果。 */
-    public static ExecutionInterpretation empty() {
-        return new ExecutionInterpretation(List.of(), ExecutionSnapshotDelta.empty());
-    }
-}
+public record ExecutionInterpretation(List<AguiEvent> events, ExecutionSnapshotDelta snapshotDelta) {}

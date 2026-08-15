@@ -93,16 +93,6 @@ public class AgentEventInterpreter {
     }
 
     /**
-     * 将单个 AgentScope 事件映射为 AG-UI 事件。
-     *
-     * @param event AgentScope 事件
-     * @return AG-UI 事件列表；无对应协议事件时返回空列表
-     */
-    public List<AguiEvent> map(AgentEvent event) {
-        return interpret(event).events();
-    }
-
-    /**
      * 将 AG-UI 事件编码为 JSON。
      *
      * @param event AG-UI 事件

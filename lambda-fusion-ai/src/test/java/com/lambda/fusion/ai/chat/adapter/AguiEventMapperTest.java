@@ -33,7 +33,7 @@ class AguiEventMapperTest {
     @Test
     void textBlockDeltaEmitsStartThenContent() {
         AgentEventInterpreter mapper = newMapper(true);
-        List<AguiEvent> events = mapper.map(new TextBlockDeltaEvent("reply-1", "block-1", "你好"));
+        List<AguiEvent> events = events(mapper, new TextBlockDeltaEvent("reply-1", "block-1", "你好"));
 
         assertThat(events).hasSize(2);
         assertThat(events.get(0)).isInstanceOf(AguiEvent.TextMessageStart.class);
@@ -46,8 +46,8 @@ class AguiEventMapperTest {
     @Test
     void sameReplyIdDoesNotEmitDuplicateStart() {
         AgentEventInterpreter mapper = newMapper(true);
-        mapper.map(new TextBlockDeltaEvent("reply-1", "block-1", "a"));
-        List<AguiEvent> events = mapper.map(new TextBlockDeltaEvent("reply-1", "block-2", "b"));
+        events(mapper, new TextBlockDeltaEvent("reply-1", "block-1", "a"));
+        List<AguiEvent> events = events(mapper, new TextBlockDeltaEvent("reply-1", "block-2", "b"));
 
         assertThat(events).hasSize(1);
         assertThat(events.get(0)).isInstanceOf(AguiEvent.TextMessageContent.class);
@@ -56,8 +56,8 @@ class AguiEventMapperTest {
     @Test
     void encodeToJsonUsesCamelCaseAndAguiType() {
         AgentEventInterpreter mapper = newMapper(true);
-        mapper.map(new TextBlockDeltaEvent("reply-1", "block-1", "hi"));
-        List<AguiEvent> events = mapper.map(new TextBlockDeltaEvent("reply-1", "block-2", " world"));
+        events(mapper, new TextBlockDeltaEvent("reply-1", "block-1", "hi"));
+        List<AguiEvent> events = events(mapper, new TextBlockDeltaEvent("reply-1", "block-2", " world"));
         AguiEvent content = events.stream()
                 .filter(e -> e instanceof AguiEvent.TextMessageContent)
                 .findFirst()
@@ -78,13 +78,13 @@ class AguiEventMapperTest {
     @Test
     void toolCallSequenceEmitsStartArgsEndResult() {
         AgentEventInterpreter mapper = newMapper(true);
-        mapper.map(new ToolCallStartEvent("reply-1", "tc-1", "search"));
-        mapper.map(new ToolCallDeltaEvent("reply-1", "tc-1", "search", "{\"q\":\"x\"}"));
-        mapper.map(new ToolCallEndEvent("reply-1", "tc-1", "search"));
-        mapper.map(new ToolResultStartEvent("reply-1", "tc-1", "search"));
-        mapper.map(new ToolResultTextDeltaEvent("reply-1", "tc-1", "search", "result-text"));
+        events(mapper, new ToolCallStartEvent("reply-1", "tc-1", "search"));
+        events(mapper, new ToolCallDeltaEvent("reply-1", "tc-1", "search", "{\"q\":\"x\"}"));
+        events(mapper, new ToolCallEndEvent("reply-1", "tc-1", "search"));
+        events(mapper, new ToolResultStartEvent("reply-1", "tc-1", "search"));
+        events(mapper, new ToolResultTextDeltaEvent("reply-1", "tc-1", "search", "result-text"));
         List<AguiEvent> events =
-                mapper.map(new ToolResultEndEvent("reply-1", "tc-1", "search", ToolResultState.SUCCESS));
+                events(mapper, new ToolResultEndEvent("reply-1", "tc-1", "search", ToolResultState.SUCCESS));
 
         // ToolResultEnd -> ToolCallEnd + ToolCallResult
         assertThat(events).hasSize(2);
@@ -102,31 +102,31 @@ class AguiEventMapperTest {
     @Test
     void toolResultStartDoesNotRepeatToolCallStart() {
         AgentEventInterpreter mapper = newMapper(true);
-        mapper.map(new ToolCallStartEvent("reply-1", "tc-1", "search"));
+        events(mapper, new ToolCallStartEvent("reply-1", "tc-1", "search"));
 
-        assertThat(mapper.map(new ToolResultStartEvent("reply-1", "tc-1", "search")))
+        assertThat(events(mapper, new ToolResultStartEvent("reply-1", "tc-1", "search")))
                 .isEmpty();
     }
 
     @Test
     void reasoningEmitsOnlyWhenEnabled() {
         AgentEventInterpreter enabled = newMapper(true);
-        List<AguiEvent> withReasoning = enabled.map(new ThinkingBlockDeltaEvent("r-1", "b-1", "思考"));
+        List<AguiEvent> withReasoning = events(enabled, new ThinkingBlockDeltaEvent("r-1", "b-1", "思考"));
         assertThat(withReasoning).hasSize(3);
         assertThat(withReasoning.get(0)).isInstanceOf(AguiEvent.ReasoningStart.class);
         assertThat(withReasoning.get(1)).isInstanceOf(AguiEvent.ReasoningMessageStart.class);
 
         AgentEventInterpreter disabled = newMapper(false);
-        assertThat(disabled.map(new ThinkingBlockDeltaEvent("r-1", "b-1", "思考")))
+        assertThat(events(disabled, new ThinkingBlockDeltaEvent("r-1", "b-1", "思考")))
                 .isEmpty();
     }
 
     @Test
     void toolCallClosesActiveTextMessage() {
         AgentEventInterpreter mapper = newMapper(true);
-        mapper.map(new TextBlockDeltaEvent("reply-1", "b-1", "text"));
+        events(mapper, new TextBlockDeltaEvent("reply-1", "b-1", "text"));
         // 工具调用开始应先关闭活跃的文本消息
-        List<AguiEvent> events = mapper.map(new ToolCallStartEvent("reply-1", "tc-1", "search"));
+        List<AguiEvent> events = events(mapper, new ToolCallStartEvent("reply-1", "tc-1", "search"));
 
         assertThat(events).hasSize(2);
         assertThat(events.get(0)).isInstanceOf(AguiEvent.TextMessageEnd.class);
@@ -138,7 +138,7 @@ class AguiEventMapperTest {
         AgentEventInterpreter mapper = newMapper(true);
         ToolUseBlock toolUse =
                 ToolUseBlock.builder().id("call-1").name("query_date").build();
-        List<AguiEvent> events = mapper.map(new RequireUserConfirmEvent("reply-1", List.of(toolUse)));
+        List<AguiEvent> events = events(mapper, new RequireUserConfirmEvent("reply-1", List.of(toolUse)));
 
         assertThat(events).hasSize(1);
         assertThat(events.get(0)).isInstanceOf(AguiEvent.RunFinished.class);
@@ -166,5 +166,10 @@ class AguiEventMapperTest {
 
     private static AgentEventInterpreter newMapper(boolean enableReasoning) {
         return new AgentEventInterpreter(THREAD_ID, RUN_ID, enableReasoning);
+    }
+
+    private static List<AguiEvent> events(
+            AgentEventInterpreter interpreter, io.agentscope.core.event.AgentEvent event) {
+        return interpreter.interpret(event).events();
     }
 }

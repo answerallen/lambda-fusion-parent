@@ -21,11 +21,6 @@ public record ExecutionSnapshotDelta(
         List<ToolDelta> tools,
         List<ExecutionSnapshot.Tool> awaitingTools) {
 
-    /** 空快照增量。 */
-    public static ExecutionSnapshotDelta empty() {
-        return new ExecutionSnapshotDelta(null, null, null, null, false, false, false, List.of(), List.of());
-    }
-
     /** 是否存在快照变化。 */
     public boolean isEmpty() {
         return textDelta == null
