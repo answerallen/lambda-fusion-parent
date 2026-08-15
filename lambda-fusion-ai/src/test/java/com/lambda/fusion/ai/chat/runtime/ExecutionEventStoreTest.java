@@ -193,6 +193,67 @@ class ExecutionEventStoreTest {
     }
 
     @Test
+    void shouldPublishStagedEventsOnlyAfterCommit() throws Exception {
+        store = newStore(64, 64);
+        store.initialize("run-1", 0);
+        List<Long> received = new CopyOnWriteArrayList<>();
+        CountDownLatch published = new CountDownLatch(1);
+        ChatRunEventSubscription subscription = store.subscribe(
+                "run-1",
+                0,
+                event -> {
+                    received.add(event.seq());
+                    published.countDown();
+                },
+                error -> {});
+
+        List<AguiEvent> interrupts =
+                List.of(new AguiEvent.TextMessageContent("session-1", "phase-1", "m-1", "interrupt"));
+        // 数据库迁移成功：暂存事件发布，订阅者可见，序号被分配。
+        boolean committed = store.runExclusive("run-1", "phase-1", interrupts, () -> true);
+
+        assertThat(committed).isTrue();
+        assertThat(published.await(2, TimeUnit.SECONDS)).isTrue();
+        assertThat(received).containsExactly(1L);
+        assertThat(store.latestSeq("run-1", 0L)).isEqualTo(1L);
+        subscription.close();
+    }
+
+    @Test
+    void shouldDiscardStagedEventsWhenCommitFails() throws Exception {
+        store = newStore(64, 64);
+        store.initialize("run-1", 0);
+        List<Long> received = new CopyOnWriteArrayList<>();
+        ChatRunEventSubscription subscription =
+                store.subscribe("run-1", 0, event -> received.add(event.seq()), error -> {});
+
+        List<AguiEvent> interrupts =
+                List.of(new AguiEvent.TextMessageContent("session-1", "phase-1", "m-1", "interrupt"));
+        // 数据库迁移落败：暂存事件丢弃，订阅者不可见，但序号已分配（快照覆盖语义保留）。
+        boolean committed = store.runExclusive("run-1", "phase-1", interrupts, () -> false);
+
+        assertThat(committed).isFalse();
+        Thread.sleep(50);
+        assertThat(received).isEmpty();
+        assertThat(store.latestSeq("run-1", 0L)).isEqualTo(1L);
+        subscription.close();
+    }
+
+    @Test
+    void shouldRejectStageAfterTerminal() {
+        store = newStore(64, 64);
+        store.appendTerminalIfAbsent("run-1", "phase-1", "{\"type\":\"RUN_FINISHED\"}");
+
+        assertThatThrownBy(() -> store.runExclusive(
+                        "run-1",
+                        "phase-1",
+                        List.of(new AguiEvent.TextMessageContent("session-1", "phase-1", "m-1", "x")),
+                        () -> true))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("已终结");
+    }
+
+    @Test
     void shouldCompactOnlyAfterBatchIsCoveredBySnapshot() {
         store = newStore(2, 64);
         boolean checkpointRequired = store.appendAll(

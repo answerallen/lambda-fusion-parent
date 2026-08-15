@@ -65,6 +65,34 @@ public class ChatRunEventStore {
     }
 
     /**
+     * 在缓冲区实例锁内原子地完成「暂存事件 → 执行数据库迁移 → 按成败发布或丢弃」。
+     *
+     * <p>把两态操作收敛为单个原子方法，避免在锁外分散调用 stage/publish/discard 而被并发订阅
+     * 或终结打断：暂存事件在迁移成功前不进入可见窗口、不推送订阅者；迁移成功才发布，失败则丢弃。
+     * 序号在暂存时分配，故快照序号覆盖中断事件，且事实先于信号外发。
+     *
+     * @param runId 运行标识
+     * @param aguiRunId AG-UI 运行标识
+     * @param aguiEvents 待暂存的 AG-UI 事件（待确认中断事件）
+     * @param dbAction 数据库迁移；返回 {@code true} 表示已提交并应发布，{@code false} 表示并发落败应丢弃
+     * @return {@code dbAction} 的结果；发布成功且缓冲区超容量时不影响返回值（容量由后续检查点收敛）
+     */
+    public boolean runExclusive(
+            String runId, String aguiRunId, List<AguiEvent> aguiEvents, java.util.function.BooleanSupplier dbAction) {
+        ChatRunEventBuffer buffer = buffer(runId);
+        synchronized (buffer) {
+            buffer.stage(aguiEvents, aguiRunId);
+            boolean committed = dbAction.getAsBoolean();
+            if (committed) {
+                buffer.publishStaged();
+            } else {
+                buffer.discardStaged();
+            }
+            return committed;
+        }
+    }
+
+    /**
      * 追加终态事件；终态已存在时返回原事件。
      *
      * @param runId 运行标识

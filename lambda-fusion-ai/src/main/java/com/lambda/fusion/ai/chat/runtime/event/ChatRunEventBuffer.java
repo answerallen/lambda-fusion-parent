@@ -30,10 +30,12 @@ final class ChatRunEventBuffer {
     private final int subscriberQueueSize;
     private final Executor senderExecutor;
     private final ArrayDeque<ChatRunEvent> events = new ArrayDeque<>();
+    private final ArrayDeque<ChatRunEvent> stagedEvents = new ArrayDeque<>();
     private final Map<String, QueuedEventSubscription> subscribers = new HashMap<>();
     private ChatRunEvent terminal;
     private long nextSeq = 1;
     private long bytes;
+    private long stagedBytes;
     private long expiresAt;
 
     /**
@@ -78,6 +80,60 @@ final class ChatRunEventBuffer {
     }
 
     /**
+     * 暂存一组事件：编码、分配序号并推进 {@code nextSeq}，但不进入可见窗口也不推送订阅者。
+     *
+     * <p>序号在暂存时即分配，故快照序号天然覆盖暂存事件；仅 {@link #publishStaged()} 后事件才对
+     * 订阅者与回放可见。用于「先占序号、待数据库事实落库后再外发」的待确认中断场景。
+     *
+     * @param aguiEvents AG-UI 事件列表
+     * @param aguiRunId AG-UI 运行标识
+     */
+    synchronized void stage(List<AguiEvent> aguiEvents, String aguiRunId) {
+        if (aguiEvents == null || aguiEvents.isEmpty()) {
+            return;
+        }
+        if (terminal != null) {
+            throw new IllegalStateException("运行已终结，禁止暂存待确认事件: " + runId);
+        }
+        long seq = nextSeq;
+        for (AguiEvent event : aguiEvents) {
+            String data = AguiEventJsonCodec.encodeRunEvent(event, runId, aguiRunId, seq);
+            ChatRunEvent staged =
+                    new ChatRunEvent(seq, runId + ":" + seq, event.getType().name(), data);
+            int size = eventBytes(staged);
+            if (size > maxBytes) {
+                throw new IllegalStateException("单个Run事件超过缓冲容量: " + runId);
+            }
+            stagedEvents.addLast(staged);
+            stagedBytes += size;
+            seq++;
+        }
+        nextSeq = seq;
+    }
+
+    /**
+     * 发布已暂存的事件：移入可见窗口、计入容量并推送订阅者。数据库事实落库成功后调用。
+     *
+     * @return 缓冲区超过容量限制时返回 {@code true}
+     */
+    synchronized boolean publishStaged() {
+        if (stagedEvents.isEmpty()) {
+            return overCapacity();
+        }
+        List<ChatRunEvent> appended = List.copyOf(stagedEvents);
+        commitToWindow(appended, false);
+        stagedEvents.clear();
+        stagedBytes = 0;
+        return overCapacity();
+    }
+
+    /** 丢弃已暂存但未发布的事件。数据库事实落库失败时调用，保证无副作用、可重试。 */
+    synchronized void discardStaged() {
+        stagedEvents.clear();
+        stagedBytes = 0;
+    }
+
+    /**
      * 追加终态事件 JSON；终态已存在时返回原事件。
      *
      * @param aguiJson 终态事件 JSON
@@ -92,12 +148,17 @@ final class ChatRunEventBuffer {
         String data = AguiEventJsonCodec.withRunMetadata(aguiJson, runId, aguiRunId, nextSeq);
         ChatRunEvent appended =
                 new ChatRunEvent(nextSeq, runId + ":" + nextSeq, AguiEventJsonCodec.readEventType(aguiJson), data);
-        publish(List.of(appended), true);
+        commitToWindow(List.of(appended), true);
         return appended;
     }
 
     /** 校验容量后提交事件并通知订阅者。 */
     private void publish(List<ChatRunEvent> appended, boolean markTerminal) {
+        commitToWindow(appended, markTerminal);
+    }
+
+    /** 校验容量、把事件并入可见窗口、推进序号并按需标记终态、通知订阅者。 */
+    private void commitToWindow(List<ChatRunEvent> appended, boolean markTerminal) {
         long appendedBytes = 0;
         for (ChatRunEvent event : appended) {
             int size = eventBytes(event);
@@ -210,8 +271,10 @@ final class ChatRunEventBuffer {
         List<QueuedEventSubscription> current = List.copyOf(subscribers.values());
         subscribers.clear();
         events.clear();
+        stagedEvents.clear();
         terminal = null;
         bytes = 0;
+        stagedBytes = 0;
         current.forEach(QueuedEventSubscription::closeWithoutDetach);
     }
 

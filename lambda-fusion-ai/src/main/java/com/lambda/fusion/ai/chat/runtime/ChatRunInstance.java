@@ -325,26 +325,43 @@ final class ChatRunInstance {
             return;
         }
         ExecutionSnapshot snapshot = accumulator.snapshot();
-        // 先发确认中断事件、再按其后的最新序号持久化待确认：使快照序号覆盖中断事件，
-        // 避免「快照已存、中断事件未到」的错位（不再依赖先存序号再发事件的隐式顺序）。
+        // 待确认中断事件先暂存（不占可见窗口、不推送订阅者），数据库事实落库成功后才发布：
+        // 序号在暂存时分配使快照覆盖中断事件，且事实先于信号外发；落库失败则丢弃，零副作用可重试。
         List<AguiEvent> events = pendingConfirmInterpretation.events();
-        appendAll(events);
-        long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         LocalDateTime deadline =
                 LocalDateTime.now().plusSeconds(properties.getChat().getRun().getAwaitConfirmTimeoutSeconds());
-        if (!runService.awaitConfirm(run, snapshot, seq, deadline)) {
+        boolean awaiting;
+        try {
+            awaiting = eventStore.runExclusive(
+                    run.getId(),
+                    run.getAguiRunId(),
+                    events,
+                    () -> runService.awaitConfirm(
+                            run, snapshot, eventStore.latestSeq(run.getId(), run.getSnapshotSeq()), deadline));
+        } catch (RuntimeException awaitFailure) {
+            // 数据库迁移抛错（REQUIRES_NEW 回滚）：暂存事件未发布，Run 仍为 RUNNING 可重试，不落终态。
+            pendingConfirmInterpretation = null;
+            log.error("Run进入待确认失败，保持运行态可重试: runId={}", run.getId(), awaitFailure);
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_AWAIT_CONFIRM_FAILED, run.getId());
+        }
+        if (!awaiting) {
+            // 并发落败：awaitConfirm 仅当状态前置 RUNNING 不满足时返回 false。按当前真实状态分流。
+            pendingConfirmInterpretation = null;
             ChatRunEntity current = loadCurrent(run);
             run.setStatus(current.getStatus());
-            pendingConfirmInterpretation = null;
             if (ChatRunStatus.STOPPING.name().equals(current.getStatus())) {
                 finalizeStopped(ChatRunFinishReason.USER_STOP);
-            } else if (!ChatRunStatus.isTerminal(current.getStatus())) {
-                finalizeFailed(ChatRunFailureCode.STATE_CONFLICT, "Run进入待确认状态失败");
-            } else {
+            } else if (ChatRunStatus.isTerminal(current.getStatus())) {
                 terminalSignal.complete(null);
+            } else if (ChatRunStatus.RUNNING.name().equals(current.getStatus())) {
+                // 确认竞胜：Run 已被并发确认推进回 RUNNING，下一阶段仍在执行；本实例安全收尾，不误判为失败。
+                log.info("Run进入待确认时被并发确认推进，本实例安全收尾: runId={}", run.getId());
+            } else {
+                finalizeFailed(ChatRunFailureCode.STATE_CONFLICT, "Run进入待确认状态失败: " + current.getStatus());
             }
             return;
         }
+        long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         run.setStatus(ChatRunStatus.AWAITING_CONFIRM.name());
         run.setAwaitConfirmDeadlineAt(deadline);
         run.setSnapshotSeq(seq);
