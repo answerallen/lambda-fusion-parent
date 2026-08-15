@@ -310,4 +310,34 @@ public interface AiConstants {
             return TERMINAL_NAMES;
         }
     }
+
+    /** 对话运行结束原因，持久化时写入 finish_reason 列。 */
+    public enum ChatRunFinishReason {
+        SUCCESS,
+        ERROR,
+        USER_STOP,
+        CONFIRM_TIMEOUT
+    }
+
+    /** 对话运行失败码，持久化时写入 error_code 列。 */
+    public enum ChatRunFailureCode {
+        ERROR,
+        START_FAILED,
+        STATE_CONFLICT,
+        INSTANCE_LOST,
+        RUN_CAPACITY_EXCEEDED,
+        CONFIRM_CONTEXT_UNAVAILABLE
+    }
+
+    /** 工具调用状态，持久化字面量为小写 code。 */
+    @Getter
+    @AllArgsConstructor
+    enum ChatRunToolStatus {
+        RUNNING("running"),
+        COMPLETE("complete"),
+        ASKING("asking"),
+        UNKNOWN("unknown");
+
+        private final String code;
+    }
 }

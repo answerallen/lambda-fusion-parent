@@ -1,5 +1,7 @@
 package com.lambda.fusion.ai.chat.runtime.model;
 
+import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
+import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
 
@@ -17,9 +19,9 @@ import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
  */
 public record FinalizeCommand(
         ChatRunStatus targetStatus,
-        String finishReason,
+        ChatRunFinishReason finishReason,
         ExecutionSnapshot snapshot,
         String toolCallJson,
         long lastSeq,
-        String errorCode,
+        ChatRunFailureCode errorCode,
         String errorMessage) {}

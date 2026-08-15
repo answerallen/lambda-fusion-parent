@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.chat.runtime.agui;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
+import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
 import java.util.ArrayList;
@@ -17,7 +18,7 @@ import java.util.Map;
  */
 public final class AguiBootstrapEncoder {
 
-    private static final String TOOL_COMPLETE = "complete";
+    private static final String TOOL_COMPLETE = ChatRunToolStatus.COMPLETE.getCode();
 
     private AguiBootstrapEncoder() {}
 

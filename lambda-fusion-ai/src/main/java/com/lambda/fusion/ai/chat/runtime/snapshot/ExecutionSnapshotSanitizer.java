@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.chat.runtime.snapshot;
 
+import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
 import io.agentscope.core.util.JsonUtils;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,7 +43,11 @@ public final class ExecutionSnapshotSanitizer {
                 : tools.stream()
                         .filter(java.util.Objects::nonNull)
                         .map(tool -> new ExecutionSnapshot.Tool(
-                                safe(tool.toolCallId()), safe(tool.toolCallName()), "", "", "asking"))
+                                safe(tool.toolCallId()),
+                                safe(tool.toolCallName()),
+                                "",
+                                "",
+                                ChatRunToolStatus.ASKING.getCode()))
                         .toList();
     }
 
@@ -62,7 +67,7 @@ public final class ExecutionSnapshotSanitizer {
 
     private static ExecutionSnapshot.Tool sanitizeTool(ExecutionSnapshot.Tool tool) {
         if (tool == null) {
-            return new ExecutionSnapshot.Tool("", "", "", "", "unknown");
+            return new ExecutionSnapshot.Tool("", "", "", "", ChatRunToolStatus.UNKNOWN.getCode());
         }
         return new ExecutionSnapshot.Tool(
                 safe(tool.toolCallId()),

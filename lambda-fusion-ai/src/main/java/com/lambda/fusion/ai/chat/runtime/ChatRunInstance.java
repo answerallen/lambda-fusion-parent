@@ -1,5 +1,7 @@
 package com.lambda.fusion.ai.chat.runtime;
 
+import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
+import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
@@ -134,7 +136,7 @@ final class ChatRunInstance {
             return;
         }
         if (agentExecutionAdapter == null) {
-            finalizeFailed("START_FAILED", "Agent未能恢复");
+            finalizeFailed(ChatRunFailureCode.START_FAILED, "Agent未能恢复");
             return;
         }
         if (!Objects.equals(run.getId(), prepared.runId())) {
@@ -178,7 +180,7 @@ final class ChatRunInstance {
             return;
         }
         if (agentExecutionAdapter == null) {
-            finalizeFailed("START_FAILED", "Agent未能初始化");
+            finalizeFailed(ChatRunFailureCode.START_FAILED, "Agent未能初始化");
             return;
         }
         phaseFinished = false;
@@ -205,7 +207,7 @@ final class ChatRunInstance {
                 return;
             }
             if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-                finalizeStopped("USER_STOP");
+                finalizeStopped(ChatRunFinishReason.USER_STOP);
             } else {
                 finalizeCompleted();
             }
@@ -232,9 +234,9 @@ final class ChatRunInstance {
             return;
         }
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-            finalizeStopped("USER_STOP");
+            finalizeStopped(ChatRunFinishReason.USER_STOP);
         } else {
-            finalizeFailed("ERROR", ChatRunInstanceFactory.safeMessage(error));
+            finalizeFailed(ChatRunFailureCode.ERROR, ChatRunInstanceFactory.safeMessage(error));
         }
     }
 
@@ -249,7 +251,7 @@ final class ChatRunInstance {
         }
         if (!phaseFinished && !terminal.get()) {
             if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-                finalizeStopped("USER_STOP");
+                finalizeStopped(ChatRunFinishReason.USER_STOP);
             } else {
                 finalizeCompleted();
             }
@@ -259,7 +261,7 @@ final class ChatRunInstance {
     private void completeAwaitConfirm() {
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
             pendingConfirmInterpretation = null;
-            finalizeStopped("USER_STOP");
+            finalizeStopped(ChatRunFinishReason.USER_STOP);
             return;
         }
         long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
@@ -271,9 +273,9 @@ final class ChatRunInstance {
             run.setStatus(current.getStatus());
             pendingConfirmInterpretation = null;
             if (ChatRunStatus.STOPPING.name().equals(current.getStatus())) {
-                finalizeStopped("USER_STOP");
+                finalizeStopped(ChatRunFinishReason.USER_STOP);
             } else if (!ChatRunStatus.isTerminal(current.getStatus())) {
-                finalizeFailed("STATE_CONFLICT", "Run进入待确认状态失败");
+                finalizeFailed(ChatRunFailureCode.STATE_CONFLICT, "Run进入待确认状态失败");
             } else {
                 executions.remove(run.getId(), this);
             }
@@ -322,7 +324,7 @@ final class ChatRunInstance {
 
     /** 将运行终结为完成状态。 */
     synchronized void finalizeCompleted() {
-        finalizeTerminal(ChatRunStatus.COMPLETED, "SUCCESS", null, null);
+        finalizeTerminal(ChatRunStatus.COMPLETED, ChatRunFinishReason.SUCCESS, null, null);
     }
 
     /**
@@ -330,7 +332,7 @@ final class ChatRunInstance {
      *
      * @param reason 停止原因
      */
-    synchronized void finalizeStopped(String reason) {
+    synchronized void finalizeStopped(ChatRunFinishReason reason) {
         finalizeTerminal(ChatRunStatus.STOPPED, reason, null, null);
     }
 
@@ -340,12 +342,12 @@ final class ChatRunInstance {
      * @param errorCode 错误码
      * @param errorMessage 错误信息
      */
-    synchronized void finalizeFailed(String errorCode, String errorMessage) {
-        finalizeTerminal(ChatRunStatus.FAILED, "ERROR", errorCode, errorMessage);
+    synchronized void finalizeFailed(ChatRunFailureCode errorCode, String errorMessage) {
+        finalizeTerminal(ChatRunStatus.FAILED, ChatRunFinishReason.ERROR, errorCode, errorMessage);
     }
 
     private synchronized void finalizeTerminal(
-            ChatRunStatus status, String reason, String errorCode, String errorMessage) {
+            ChatRunStatus status, ChatRunFinishReason reason, ChatRunFailureCode errorCode, String errorMessage) {
         if (!terminal.compareAndSet(false, true)) {
             return;
         }
@@ -521,7 +523,7 @@ final class ChatRunInstance {
         if (current != null && !current.isDisposed()) {
             current.dispose();
         }
-        finalizeStopped("USER_STOP");
+        finalizeStopped(ChatRunFinishReason.USER_STOP);
     }
 
     /** 保存当前检查点并中断 Agent。 */

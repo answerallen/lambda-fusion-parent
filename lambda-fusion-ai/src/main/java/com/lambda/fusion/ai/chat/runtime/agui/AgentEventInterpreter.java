@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.chat.runtime.agui;
 
+import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
 import com.lambda.fusion.ai.chat.runtime.model.ExecutionInterpretation;
 import com.lambda.fusion.ai.chat.runtime.model.ExecutionSnapshotDelta;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
@@ -43,6 +44,10 @@ public class AgentEventInterpreter {
     private String reasoningMessageId;
     private boolean reasoningStarted;
     private String reasoningGroupId;
+
+    private static final String TOOL_RUNNING = ChatRunToolStatus.RUNNING.getCode();
+    private static final String TOOL_COMPLETE = ChatRunToolStatus.COMPLETE.getCode();
+    private static final String TOOL_ASKING = ChatRunToolStatus.ASKING.getCode();
 
     private final AguiToolCallTracker toolCallTracker = new AguiToolCallTracker();
 
@@ -152,7 +157,7 @@ public class AgentEventInterpreter {
         if (toolCallTracker.markStarted(tool.getToolCallId())) {
             out.add(new AguiEvent.ToolCallStart(threadId, runId, tool.getToolCallId(), tool.getToolCallName()));
         }
-        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, "running", false, false);
+        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, TOOL_RUNNING, false, false);
     }
 
     private void mapToolCallDelta(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
@@ -160,7 +165,8 @@ public class AgentEventInterpreter {
             return;
         }
         out.add(new AguiEvent.ToolCallArgs(threadId, runId, tool.getToolCallId(), tool.getDelta()));
-        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), tool.getDelta(), null, "running", false, false);
+        delta.upsertTool(
+                tool.getToolCallId(), tool.getToolCallName(), tool.getDelta(), null, TOOL_RUNNING, false, false);
     }
 
     private void mapToolCallEnd(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
@@ -168,7 +174,7 @@ public class AgentEventInterpreter {
             return;
         }
         out.add(new AguiEvent.ToolCallEnd(threadId, runId, tool.getToolCallId()));
-        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, "running", false, false);
+        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, TOOL_RUNNING, false, false);
     }
 
     private void mapToolResultStart(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
@@ -179,7 +185,7 @@ public class AgentEventInterpreter {
         if (toolCallTracker.markStarted(tool.getToolCallId())) {
             out.add(new AguiEvent.ToolCallStart(threadId, runId, tool.getToolCallId(), tool.getToolCallName()));
         }
-        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, "running", false, false);
+        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, TOOL_RUNNING, false, false);
     }
 
     private void mapToolResultTextDelta(AgentEvent event, SnapshotDeltaBuilder delta) {
@@ -187,7 +193,8 @@ public class AgentEventInterpreter {
             return;
         }
         toolCallTracker.appendResult(tool.getToolCallId(), tool.getDelta());
-        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, tool.getDelta(), "running", false, false);
+        delta.upsertTool(
+                tool.getToolCallId(), tool.getToolCallName(), null, tool.getDelta(), TOOL_RUNNING, false, false);
     }
 
     private void mapToolResultEnd(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
@@ -198,7 +205,7 @@ public class AgentEventInterpreter {
         String content = toolCallTracker.result(tool.getToolCallId());
         out.add(new AguiEvent.ToolCallResult(
                 threadId, runId, tool.getToolCallId(), content, "tool", tool.getReplyId()));
-        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, "complete", false, false);
+        delta.upsertTool(tool.getToolCallId(), tool.getToolCallName(), null, null, TOOL_COMPLETE, false, false);
     }
 
     private void mapAgentEnd(List<AguiEvent> out, SnapshotDeltaBuilder delta) {
@@ -213,7 +220,7 @@ public class AgentEventInterpreter {
         closeActiveMessage(out, delta);
         out.add(new AguiEvent.RunFinished(threadId, runId, null, buildInterruptOutcome(confirm.getToolCalls())));
         delta.awaiting(confirm.getToolCalls().stream()
-                .map(tool -> new ExecutionSnapshot.Tool(tool.getId(), tool.getName(), "", "", "asking"))
+                .map(tool -> new ExecutionSnapshot.Tool(tool.getId(), tool.getName(), "", "", TOOL_ASKING))
                 .toList());
     }
 

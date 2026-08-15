@@ -1,5 +1,7 @@
 package com.lambda.fusion.ai.chat.runtime;
 
+import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
+import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiConstants.StateStoreType;
 import com.lambda.fusion.ai.AiProperties;
@@ -101,7 +103,7 @@ public class ChatRunCoordinator {
             enforceCapacity(run, session);
         } catch (RuntimeException capacityFailure) {
             ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler, executions);
-            rejected.finalizeFailed("RUN_CAPACITY_EXCEEDED", safeMessage(capacityFailure));
+            rejected.finalizeFailed(ChatRunFailureCode.RUN_CAPACITY_EXCEEDED, safeMessage(capacityFailure));
             return;
         }
         ChatRunInstance candidate;
@@ -111,7 +113,7 @@ public class ChatRunCoordinator {
             ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler, executions);
             if (runService.claimCreated(run)) {
                 run.setStatus(ChatRunStatus.RUNNING.name());
-                rejected.finalizeFailed("START_FAILED", safeMessage(restoreFailure));
+                rejected.finalizeFailed(ChatRunFailureCode.START_FAILED, safeMessage(restoreFailure));
             }
             return;
         }
@@ -160,7 +162,7 @@ public class ChatRunCoordinator {
                 ChatRunInstance failed = selected == null
                         ? instanceFactory.restoreFinalizer(run, session, scheduler, executions)
                         : selected;
-                failed.finalizeFailed("START_FAILED", safeMessage(startFailure));
+                failed.finalizeFailed(ChatRunFailureCode.START_FAILED, safeMessage(startFailure));
             }
         });
     }
@@ -235,7 +237,7 @@ public class ChatRunCoordinator {
             ChatRunInstance waiting = execution == null
                     ? instanceFactory.restoreForFinalize(run, session, scheduler, executions)
                     : execution;
-            waiting.finalizeStopped("USER_STOP");
+            waiting.finalizeStopped(ChatRunFinishReason.USER_STOP);
             return;
         }
         try {
@@ -276,11 +278,11 @@ public class ChatRunCoordinator {
         }
         ChatRunInstance lost = instanceFactory.restoreForFinalize(run, session, scheduler, executions);
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-            lost.finalizeStopped("USER_STOP");
+            lost.finalizeStopped(ChatRunFinishReason.USER_STOP);
         } else if (ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
-            lost.finalizeFailed("CONFIRM_CONTEXT_UNAVAILABLE", "服务进程重启，内存中的用户确认上下文已丢失");
+            lost.finalizeFailed(ChatRunFailureCode.CONFIRM_CONTEXT_UNAVAILABLE, "服务进程重启，内存中的用户确认上下文已丢失");
         } else {
-            lost.finalizeFailed("INSTANCE_LOST", "服务进程重启，对话运行已终止");
+            lost.finalizeFailed(ChatRunFailureCode.INSTANCE_LOST, "服务进程重启，对话运行已终止");
         }
     }
 
@@ -315,7 +317,7 @@ public class ChatRunCoordinator {
                     execution.session, app, userMessage.getContent(), attachments);
             execution.startPhase(msg);
         } catch (RuntimeException startFailure) {
-            execution.finalizeFailed("START_FAILED", safeMessage(startFailure));
+            execution.finalizeFailed(ChatRunFailureCode.START_FAILED, safeMessage(startFailure));
         }
         return true;
     }
@@ -363,7 +365,7 @@ public class ChatRunCoordinator {
             ChatRunInstance execution = executions.computeIfAbsent(
                     run.getId(), ignored -> instanceFactory.restoreForFinalize(run, session, scheduler, executions));
             execution.markStopping();
-            execution.finalizeStopped("CONFIRM_TIMEOUT");
+            execution.finalizeStopped(ChatRunFinishReason.CONFIRM_TIMEOUT);
         });
     }
 

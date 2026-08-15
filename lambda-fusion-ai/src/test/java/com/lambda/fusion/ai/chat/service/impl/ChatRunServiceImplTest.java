@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
@@ -79,10 +80,17 @@ class ChatRunServiceImplTest {
 
         var result = service.finalizeExecution(
                 identity,
-                new FinalizeCommand(ChatRunStatus.COMPLETED, "SUCCESS", snapshot("partial"), null, 5, null, null));
+                new FinalizeCommand(
+                        ChatRunStatus.COMPLETED,
+                        ChatRunFinishReason.SUCCESS,
+                        snapshot("partial"),
+                        null,
+                        5,
+                        null,
+                        null));
 
         assertThat(result.status()).isEqualTo(ChatRunStatus.STOPPED.name());
-        assertThat(result.finishReason()).isEqualTo("USER_STOP");
+        assertThat(result.finishReason()).isEqualTo(ChatRunFinishReason.USER_STOP.name());
         assertThat(result.errorCode()).isNull();
         assertThat(result.errorMessage()).isNull();
     }

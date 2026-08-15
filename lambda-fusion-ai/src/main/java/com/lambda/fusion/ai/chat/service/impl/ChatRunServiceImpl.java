@@ -3,6 +3,8 @@ package com.lambda.fusion.ai.chat.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
+import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
@@ -336,8 +338,8 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         boolean stopWon =
                 ChatRunStatus.STOPPING.name().equals(run.getStatus()) && targetStatus != ChatRunStatus.STOPPED;
         ChatRunStatus finalStatus = stopWon ? ChatRunStatus.STOPPED : targetStatus;
-        String finalReason = stopWon ? "USER_STOP" : command.finishReason();
-        String finalErrorCode = finalStatus == ChatRunStatus.STOPPED ? null : command.errorCode();
+        ChatRunFinishReason finalReason = stopWon ? ChatRunFinishReason.USER_STOP : command.finishReason();
+        ChatRunFailureCode finalErrorCode = finalStatus == ChatRunStatus.STOPPED ? null : command.errorCode();
         String finalErrorMessage = finalStatus == ChatRunStatus.STOPPED ? null : command.errorMessage();
 
         // 仅 COMPLETED 或仍有正文/工具调用时才落库助手消息。
@@ -353,12 +355,12 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .eq(ChatRunEntity::getId, run.getId())
                         .notIn(ChatRunEntity::getStatus, ChatRunStatus.terminalNames())
                         .set(ChatRunEntity::getStatus, finalStatus.name())
-                        .set(ChatRunEntity::getFinishReason, finalReason)
+                        .set(ChatRunEntity::getFinishReason, finalReason == null ? null : finalReason.name())
                         .set(ChatRunEntity::getAssistantMessageId, assistant == null ? null : assistant.getId())
                         .set(ChatRunEntity::getAwaitConfirmDeadlineAt, null)
                         .set(ChatRunEntity::getSnapshotJson, ExecutionSnapshotCodec.encode(snapshot))
                         .set(ChatRunEntity::getSnapshotSeq, lastSeq)
-                        .set(ChatRunEntity::getErrorCode, finalErrorCode)
+                        .set(ChatRunEntity::getErrorCode, finalErrorCode == null ? null : finalErrorCode.name())
                         .set(ChatRunEntity::getErrorMessage, finalErrorMessage)
                         .set(ChatRunEntity::getFinishedAt, now)
                         .set(ChatRunEntity::getUpdatedAt, now));
@@ -373,7 +375,12 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .eq(ChatSessionEntity::getUserId, session.getUserId())
                         .set(ChatSessionEntity::getLastMessageAt, now)
                         .set(ChatSessionEntity::getUpdatedAt, now));
-        return new FinalizeResult(true, finalStatus.name(), finalReason, finalErrorCode, finalErrorMessage);
+        return new FinalizeResult(
+                true,
+                finalStatus.name(),
+                finalReason == null ? null : finalReason.name(),
+                finalErrorCode == null ? null : finalErrorCode.name(),
+                finalErrorMessage);
     }
 
     /** 在终态下补写最终快照与序号；行已被清理时容忍不抛，行仍在却写失败则异常。 */

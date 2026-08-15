@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.service.AppService;
@@ -80,7 +81,7 @@ class ExecutionCoordinatorRecoveryTest {
 
         FinalizeCommand command = captureFinalizeCommand(run);
         assertThat(command.targetStatus()).isEqualTo(ChatRunStatus.FAILED);
-        assertThat(command.errorCode()).isEqualTo("CONFIRM_CONTEXT_UNAVAILABLE");
+        assertThat(command.errorCode()).isEqualTo(ChatRunFailureCode.CONFIRM_CONTEXT_UNAVAILABLE);
         assertThat(command.errorMessage()).isEqualTo("服务进程重启，内存中的用户确认上下文已丢失");
     }
 
@@ -94,7 +95,7 @@ class ExecutionCoordinatorRecoveryTest {
 
         FinalizeCommand command = captureFinalizeCommand(run);
         assertThat(command.targetStatus()).isEqualTo(ChatRunStatus.FAILED);
-        assertThat(command.errorCode()).isEqualTo("INSTANCE_LOST");
+        assertThat(command.errorCode()).isEqualTo(ChatRunFailureCode.INSTANCE_LOST);
         assertThat(command.errorMessage()).isEqualTo("服务进程重启，对话运行已终止");
     }
 
@@ -108,7 +109,7 @@ class ExecutionCoordinatorRecoveryTest {
         startupRecovery.recoverOnStartup();
 
         FinalizeCommand command = captureFinalizeCommand(run);
-        assertThat(command.errorCode()).isEqualTo("INSTANCE_LOST");
+        assertThat(command.errorCode()).isEqualTo(ChatRunFailureCode.INSTANCE_LOST);
         verify(delegate).saveAgentState("user-1", "session-1");
     }
 
@@ -154,8 +155,10 @@ class ExecutionCoordinatorRecoveryTest {
             return new FinalizeResult(
                     true,
                     command.targetStatus().name(),
-                    command.finishReason(),
-                    command.errorCode(),
+                    command.finishReason() == null
+                            ? null
+                            : command.finishReason().name(),
+                    command.errorCode() == null ? null : command.errorCode().name(),
                     command.errorMessage());
         });
         when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString(), anyString()))
