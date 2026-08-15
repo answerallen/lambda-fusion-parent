@@ -52,5 +52,6 @@
 - 特性开关 / `@ConditionalOnProperty` / `matchIfMissing` / 回退装配安全降级 / Nacos `@RefreshScope` / 禁止 if 配置判断 / 禁止 feature flag 库
 - 最小充分设计 / 既有事实来源 / 禁止无需求双实现 / 禁止预埋 Redis 多实例空壳 / 禁止重复 ControllerAdvice / 行锁唯一索引阶段号优先 / 自动化修改错误复盘
 - 单一事实来源 / 禁止平行状态机 / 并发边界单一表达 / 锁与原子类不得并用 / TOCTOU / 锁内校验唯一权威 / 显式语义优先 / 禁止隐式顺序约定 / 禁止中转转发方法 / 禁止反向依赖 / 死代码清理 / 禁止仅测试用公开 API
+- 第一性原理（宪章 §4.5，上位判据）/ 溯因与权威事实 / 最小因果与必要性 / 可证伪与验证优先 / 分解到不可再分 / 条款冲突时回到宪章 §7.5
 - 模块深度文档 / `docs/skills/<module>/SKILL.md` / 自动配置入口 / 改造入口
 - 例外/过渡条款 / 宪章 §7 登记 / `lambda-fusion-oss` 目录名 vs pom `<name>`=upload / changelog=`lambda-upload-changelog.xml` 命名分歧（待对齐）/ 仅 `lambda-fusion-ai` 有测试（待补）
