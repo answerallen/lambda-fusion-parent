@@ -130,7 +130,7 @@ synchronized ConfirmTransition confirm(ConfirmToolCall command) {
 
 1. `agentExecutionAdapter == null`：抛 `CONFIRM_CONTEXT_UNAVAILABLE`，保持 `AWAITING_CONFIRM`，不终结。
 2. 决策非空、不重复、字段合法，否则 `INVALID_PARAMETER`。
-3. 读取 Agent 状态上下文（`getAgentState(...).getContext()`）中全部 `ToolCallState.ASKING` 的 `ToolUseBlock`，读取范围不限定「最近一条 assistant message」；读取失败抛 `CONFIRM_CONTEXT_UNAVAILABLE`，**不执行 CAS**。
+3. 读取 Agent 状态上下文（`getAgentState(...).getContext()`）中当前待确认批次的 `ToolCallState.ASKING` 的 `ToolUseBlock`，口径与 AgentScope `getPendingToolUseIds` 一致：**只取最后一条 assistant message 的 ASKING 块**，无则判定当前无待确认批次（不回退更早消息）。不得扫描全上下文——旧消息残留的未收尾 ASKING 块不属于当前批次，计入会使三方严格相等误判失败；读取失败抛 `CONFIRM_CONTEXT_UNAVAILABLE`，**不执行 CAS**。
 4. 三方 ID 集合完全相等校验（见 §5.2）。
 5. 按请求决策顺序构造 `ConfirmResult` 并 build 确认消息。
 
@@ -320,6 +320,7 @@ RunSnapshot 继续使用现有脱敏逻辑，前端只获得展示和决策所�
 - state store 抛异常：返回 `CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE`，不执行 CAS，Run 不终结。
 - state/context 为 null：返回上下文不可用，不执行 CAS。
 - assistant message 不含 `ASKING`：返回上下文不可用，不执行 CAS。
+- 旧 assistant message 残留未收尾 `ASKING`、最后一条为当前批次：只认最后一条，三方校验通过并确认（口径对齐 AgentScope `getPendingToolUseIds`，不扫描全上下文）。
 - snapshot 与 Agent ID 不一致：返回上下文不一致，不执行 CAS。
 - decision 缺少、多出或重复 ID：拒绝确认，不执行 CAS。
 - 三方 ID 相同但顺序不同：CAS 推进后按 decision 顺序生成确认消息并启动一次新阶段。
