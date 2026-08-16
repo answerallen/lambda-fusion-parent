@@ -66,14 +66,7 @@
 
 这些后台编排不适合发布页，但底层登录 API、Token Store 和聊天面板可以复用。
 
-认证与租户链路还有一个容易误判的执行顺序：
-
-- `/auth/login` 由 `FormAuthenticationProcessingFilter` 直接处理；当前注册顺序是 `order=30`。
-- 图形验证码过滤器在它之前执行，当前为 `order=20`。
-- `TenantContextInterceptor` 是 Spring MVC `HandlerInterceptor`，只有请求进入 Controller 映射后才执行，因此不能为 `/auth/login` 建立租户上下文。
-- MyBatis 的 `TenantExpressionInterceptor` 在登录后可以从当前 `LoginUser.tenantId` 回填租户，但匿名登录请求还没有这个身份事实。
-
-所以，发布页登录所需的租户解析必须发生在 Servlet Filter 链，而不能只增加一个 MVC 拦截器。
+认证与租户链路曾有一段为「登录前建立发布租户上下文」铺垫的分析（登录由 Filter 处理、MVC 拦截器无法覆盖 `/auth/login` 等）。该分析的结论——「发布页登录必须在 Servlet Filter 链解析租户」——已被推翻：发布功能**不需要**在登录前建立任何租户上下文（见 §6.4），登录完全复用现有流程、租户来自实际查到的用户。匿名 profile 是唯一跨租户查询，用单行精确查询解决，不进入 Filter 链。
 
 ### 2.4 当前需要同步修正的安全问题
 
@@ -243,8 +236,8 @@ AvailableApp                    # 登录后的聊天安全视图
 
 | 登录要求 | 方法 | 路径 | 响应/职责 |
 | :--- | :--- | :--- | :--- |
-| 否 | `GET` | `/v1/ai/public/apps/{publishCode}/profile` | 返回 `PublishedAppProfile` |
-| 是 | `GET` | `/v1/ai/public/apps/{publishCode}/access` | 校验租户、发布态、启用态和受众，返回 `AvailableApp` |
+| 否 | `GET` | `/v1/ai/public/apps/{publishCode}/profile` | 返回 `PublishedAppProfile`（单行精确查询，见 §6.4） |
+| 是 | `GET` | `/v1/ai/public/apps/{publishCode}/access` | 校验发布态、启用态和受众，返回 `AvailableApp` |
 
 只有 `profile` 使用 `@SaIgnore`。Session、Run、附件和 `access` 都继续受现有 Sa-Token 保护。
 
@@ -257,72 +250,40 @@ AvailableApp                    # 登录后的聊天安全视图
 | 应用停用 | “应用暂不可用” |
 | 登录用户无受众权限 | “当前账号无权访问”，不能循环弹登录框 |
 
-### 6.4 发布代码解析与租户上下文
+### 6.4 发布代码解析：单行精确查询，不建租户上下文
 
-发布 URL 在用户登录前就需要定位租户，但 `ai_app` 受 MyBatis 租户插件保护。允许的最小跨租户路径只有一个：
+匿名 profile 要回答的问题极简——“这个 `publish_code` 对应的应用名称/头像/描述是什么”。回答它**不需要租户上下文**：`publish_code` 全局唯一，用一条跨租户精确单行查询即可拿到整行（含 `name/avatar/description`）。**租户是查询的结果，不是查询的前提。**
 
-```text
-WHERE publish_code = ?
-```
+因此本节明确**不引入** `PublishedAppContextFilter`、`PublishedAppRequestContext`、`X-AI-Publish-Code` Header、ThreadLocal 设置与清理、登录前租户解析。把“查到的 `tenantId` 回灌上下文去帮助后续查询”是本末倒置：
 
-实现约束：
+- 匿名 profile：单行查询已返回全部所需字段，无需租户。
+- 登录：`/auth/login` 按用户查出其**真实**租户（`prepareLoginUser` 本来如此）。把 publishCode 的租户塞给登录会反转身份事实。
+- access / 会话 / 对话：登录后 `AuthUtils.getTenantId()` 即真实租户，与 publishCode 无关。
 
-- `AppMapper` 增加一个明确命名的跨租户精确查询，使用 `@InterceptorIgnore(tenantLine = "true")`。
-- 查询只按具有全局唯一索引的高熵 `publish_code` 命中一行，禁止列表、模糊查询或客户端传租户 ID。
-- 代码注释必须说明这是“发布入口解析”的受控跨租户例外。
-- 解析得到应用行后，以该行的 `tenantId` 设置 MyBatis `TenantContextHolder`；请求结束必须在 `finally` 中清理。
-- 如果客户端同时提交 `X-Tenant-Id`、请求已经存在不同租户上下文，或非登录受保护请求中的已认证用户租户与应用租户不同，直接拒绝，不能静默覆盖。
+匿名 profile 的唯一跨租户例外（与既有约定一致）：
 
-发布页为登录和后续请求统一发送：
+- `AppMapper` 增加明确命名的跨租户精确查询 `selectByPublishCode`，使用 `@InterceptorIgnore(tenantLine = "true")`。
+- 只按具有全局唯一索引的高熵 `publish_code` 命中一行，禁止列表、模糊查询或客户端传租户 ID。
+- 代码注释说明这是“发布入口公开资料查询”的受控跨租户例外。
+- 该查询**只**用于匿名 profile；登录后的 access、会话等一律在登录租户上下文内按普通查询进行，不再使用此例外。
 
-```text
-X-AI-Publish-Code: {publishCode}
-```
-
-该 Header 不是租户事实。AI 模块内新增 `PublishedAppContextFilter`，只在下列白名单请求且 Header 存在时，根据它重新解析真实租户：
-
-```text
-/auth/login
-/auth/jcaptcha
-/auth/userinfo
-/v1/ai/public/apps/**
-/v1/ai/sessions/**
-/v1/ai/chat/attachments/**       # 签名 preview 请求除外
-```
-
-过滤链要求：
-
-1. 用 `FilterRegistrationBean` 在 `AiConfigure` 注册，顺序设为 `10`，确保早于验证码 `20` 和表单登录 `30`。
-2. Header 缺失或请求不在白名单时完全透传，不影响后台现有请求。
-3. Header 存在时先执行受控跨租户精确查询；登录、用户资料和聊天请求要求应用仍为 `PUBLISHED` 且已启用。
-4. 用服务端解析出的租户包装请求，使下游读取 `X-Tenant-Id` 时只能得到可信值；浏览器既不接收也不提交租户 ID。
-5. 仅在 Sa-Token 能解析出有效身份时读取 `AuthUtils` 并比较登录用户租户；不一致返回 403，无效 Token 留给现有鉴权链返回 401。登录请求不使用旧 Token 做该比较，以便用户重新认证。
-6. 在 `try/finally` 中设置并清理 `TenantContextHolder`，即使后续认证 Filter 直接写响应、不进入 MVC，也不能泄漏 ThreadLocal。
-
-不能把发布代码解析出的租户写入 `com.lambda.cloud.web.TenantHolder`。`AuthenticationServiceImpl.prepareLoginUser` 会用该 Holder 覆盖查询得到的用户租户；由公开链接决定 Principal 租户会反转身份事实。正确做法是用 `TenantContextHolder` 约束登录 SQL，最终 Token 中的租户仍来自实际查到的用户。
-
-框架虽提供 `FormLoginValidator`，但它位于表单 Filter 内部，无法覆盖验证码和其他请求，也没有包围后续认证流程的 `finally` 生命周期，因此不承担发布上下文建立与清理。
-
-这样既能让现有登录服务在正确租户上下文中工作，也无需向浏览器暴露或信任 `X-Tenant-Id`。Filter 注册应收口到 `AiConfigure`，不得散落为新的全局安全配置。
+登录链路完全复用现有后台登录，发布页不携带任何发布相关 Header，不为登录建立额外租户上下文。
 
 ### 6.5 发布请求与目标应用绑定
 
-发布 Header 不能让同租户下的另一个应用混入当前独立页面。Filter 解析后把 `publishCode + appId + tenantId` 放入只读的 `PublishedAppRequestContext`，业务层按应用 ID 约束：
+发布页必须固定在单个应用上，不能让同租户下的另一个应用混入当前独立页面。删除 Filter 后，应用绑定改由 **access 返回的 `AvailableApp.id`** 承载，不再依赖请求上下文：
 
-- 创建会话时，请求中的 `appId` 必须等于发布应用 ID。
-- 分页会话时由服务端强制使用发布应用 ID，不能接受客户端扩大范围。
-- 读取、删除会话以及消息、Run、附件操作时，已归属当前用户的 Session 还必须属于发布应用。
-- `AppService.loadAvailable(appId)` 在存在发布上下文时先做同一应用校验，再执行现有 `enabled + audience + ownerId` 校验。
+- 前端登录并调用 `access` 成功后，以响应中的 `AvailableApp.id` 作为后续创建会话、分页会话、对话的唯一 `appId`。
+- 服务端在会话、消息、Run、附件入口继续按 `tenant_id + user_id` 隔离并校验 Session 归属当前用户；发布页前端只传 access 给定的 appId，不引入额外的发布上下文校验层。
+- `AppService.loadAvailable(appId)` 在 access 内做 `enabled + audience + ownerId` 校验；不重复解析发布代码或另写受众判断。
 
-Filter 只负责解析和上下文生命周期，不解析业务请求体；应用绑定由 Session/App 服务集中校验。签名附件预览仍按现有短期签名 URL 鉴权，不在 URL 中追加发布代码。
-
-`PublishedAppRequestContext` 若使用 ThreadLocal，也必须和租户上下文在同一个 `finally` 清理。它只参与 Controller 调用期间的同步授权，不传播进后台 Run 线程；下线关闭后续发布入口，但不强杀已经开始的 Run，符合 §4 的状态语义。
+签名附件预览仍按现有短期签名 URL 鉴权，不在 URL 中追加发布代码。下线关闭后续发布入口，但不强杀已经开始的 Run，符合 §4 的状态语义。
 
 ### 6.6 可见性单一事实来源
 
 `audience / ownerId` 的解释必须继续只存在于 `AppService`：
 
-- `PublishedAppService.access` 使用 Filter 已解析的发布上下文，再调用 `AppService.loadAvailable(appId)`；不重复解析 Header 或受众规则。
+- `PublishedAppService.access` 在登录租户上下文内按 `publishCode` 找到 appId，再调用 `AppService.loadAvailable(appId)`；不重复解析发布代码或受众规则。
 - 不在 Controller、拦截器和前端各写一套 B/C/ALL 判断。
 - `GET /available` 与发布 `access` 都使用同一个 `AvailableApp` 转换。
 
@@ -339,14 +300,13 @@ Filter 只负责解析和上下文生命周期，不解析业务请求体；应�
   |                               |------------------------------->|
   |                               |<---- 名称/头像/描述 ------------|
   |                               | 打开独立登录 Dialog             |
-  |                               | POST /auth/login                |
-  |                               | Header: X-AI-Publish-Code       |
+  |                               | POST /auth/login (复用现有登录)  |
   |                               |------------------------------->|
   |                               |<----------- accessToken --------|
   |                               | GET /public/apps/{code}/access  |
   |                               |------------------------------->|
   |                               |<----------- AvailableApp -------|
-  |                               | GET/POST /sessions...           |
+  |                               | GET/POST /sessions... (appId 取自 access) |
   |                               | POST SSE /sessions/{id}/chat    |
 ```
 
@@ -354,7 +314,7 @@ Filter 只负责解析和上下文生命周期，不解析业务请求体；应�
 
 - 页面资料加载成功不等于获得对话权限。
 - 登录成功后必须再调用 `access`，不能只凭“拿到 Token”解锁输入框。
-- 发布页的所有 REST 与原生 SSE fetch 都必须携带相同发布代码 Header。
+- 发布页不携带任何发布相关 Header；后续会话/对话的 appId 取自 access 返回的 `AvailableApp.id`。
 - 发布页下线只关闭分发入口；需要立即停止所有入口时使用现有 `enabled=false`。
 
 ## 8. 独立登录设计
@@ -378,12 +338,12 @@ Filter 只负责解析和上下文生命周期，不解析业务请求体；应�
 
 ```text
 useCredentialLogin
-  login(credentials, requestContext?) -> token | captchaRequired
-  loadCaptcha(requestContext?)
-  loginWithCaptcha(credentials, token, code, requestContext?)
+  login(credentials) -> token | captchaRequired
+  loadCaptcha()
+  loginWithCaptcha(credentials, token, code)
 ```
 
-`requestContext` 在后台登录时为空，在发布页中只包含 `publishCode`，用于统一生成发布 Header；它不包含租户 ID。
+发布页与后台登录使用同一套凭据/验证码流程，不携带任何发布相关 Header；登录身份与租户完全由现有登录链路决定。
 
 后台登录页和发布页登录弹窗共同调用它，但分别处理成功后的编排：
 
@@ -441,7 +401,7 @@ authPresentation: dialog
 - 普通后台路由继续沿用原行为。
 - `chat-panel.vue` 的原生 SSE fetch 也把 401 交给同一个协调器，不能单独实现另一套重认证判断。
 
-若前端与 API 跨域部署，CORS 的 `Access-Control-Allow-Headers` 必须显式允许 `X-AI-Publish-Code`；同源部署不增加这项配置。
+发布页不引入任何自定义发布 Header，因此无需为其调整 CORS `Access-Control-Allow-Headers`。
 
 ## 9. 前端组件边界
 
@@ -472,7 +432,6 @@ props
   app
   session
   presentation: embedded | standalone
-  requestContext?: { publishCode }
 
 events
   sessionCreated
@@ -487,7 +446,7 @@ events
 - 消息内容宽度限制在约 800px 并水平居中；
 - 输入区与消息内容使用相同宽度；
 - 继续使用现有 `useChat`、AG-UI、Run 恢复和 HITL 代码。
-- REST、附件和原生 SSE fetch 都从同一个 request context 构造发布 Header，不能各自读取路由并复制逻辑。
+- `app` 由发布页 access 响应提供（含 `AvailableApp.id`）；REST、附件和原生 SSE fetch 不携带任何发布 Header，与后台聊天走同一套请求客户端。
 
 ### 9.3 发布管理界面
 
@@ -586,13 +545,11 @@ TDesign Chat 组件映射保持现有实现：
 - 匿名只可读取 `PublishedAppProfile`。
 - 公开接口不返回应用 ID、系统提示词、模型 ID、工具、MCP、知识库、技能或子代理配置。
 - 发布代码不可替代登录和授权。
-- 发布上下文解析只允许按唯一代码精确命中一行。
-- 客户端提交的原始 `tenantId` 不是发布流程的权威来源。
-- 登录用户租户必须与发布应用租户一致。
-- 发布上下文中的应用 ID 必须与 Session 归属应用一致。
+- 匿名 profile 的跨租户查询只允许按唯一 `publish_code` 精确命中一行，禁止列表/模糊查询或客户端传租户 ID。
+- access、会话、消息、Run、附件一律在登录租户上下文内进行；跨租户应用因租户插件过滤天然不可见，无需单独的租户比对。
 - 会话和附件继续按当前用户所有权校验。
 - 发布页不能绕过工具白/黑名单、HITL 或应用禁用检查。
-- 日志不得记录密码、Token、验证码、发布上下文中的用户凭据或完整工具参数。
+- 日志不得记录密码、Token、验证码、用户凭据或完整工具参数。
 
 ### 11.2 Markdown 与外部内容
 
@@ -615,17 +572,13 @@ WORKSPACE 应用发布后仍可能使用沙箱、工具和自演化能力。发�
 | `apps/model/entity/AppEntity.java` | 增加 tenant/publish 字段映射 |
 | `apps/model/entity/AppConfigAuditEntity.java` | 配置审计实体（append-only） |
 | `apps/mapper/AppConfigAuditMapper.java` | 审计表 Mapper（仅插入与按应用查询） |
-| `AiConstants.java` | 增加 `AppAudience`、`PublishStatus` 和发布 Header 常量 |
+| `AiConstants.java` | 增加 `AppAudience`、`PublishStatus` 枚举 |
 | `apps/model/` | 增加 `AppPublication`、`PublishedAppProfile`、`AvailableApp` |
 | `apps/mapper/AppMapper.java` | 增加按发布代码的受控精确查询 |
 | `apps/service/AppService*` | 收敛受众校验和安全视图转换；更新/删除前写配置审计 |
-| `apps/service/AppPublicationService*` | 发布、下线、公开资料、授权访问 |
+| `apps/service/AppPublicationService*` | 发布、下线、公开资料（单行精确查询）、登录后授权访问 |
 | `apps/controller/AppPublicationController.java` | `ROLE_DEV` 发布管理接口 |
 | `apps/controller/PublishedAppController.java` | 匿名 profile 与登录后 access |
-| `apps/interceptor/PublishedAppContextFilter.java` | 在认证前解析发布代码、绑定可信租户并在 finally 恢复上下文 |
-| `apps/interceptor/PublishedAppRequestContext.java` | 当前请求的发布代码、应用和租户只读上下文 |
-| `chat/service/` | 在会话、消息、Run、附件入口校验 Session 属于发布应用 |
-| `AiConfigure.java` | 以 order 10 注册发布上下文 Filter |
 | `AiErrorCode.java` | 增加最少必要的发布状态错误码 |
 | `lambda-ai-changelog.xml` | 追加字段和唯一索引 changeSet |
 
@@ -635,7 +588,7 @@ WORKSPACE 应用发布后仍可能使用沙箱、工具和自演化能力。发�
 | :--- | :--- |
 | `apps/web-tdesign/src/router/routes/` | 注册 standalone external route |
 | `apps/web-tdesign/src/router/guard.ts` | standalone 路由不初始化后台权限 |
-| `apps/web-tdesign/src/api/request.ts` | 注入发布 Header；401 原地弹登录 |
+| `apps/web-tdesign/src/api/request.ts` | 401 原地弹登录（发布路由），不注入任何发布 Header |
 | `apps/web-tdesign/src/views/_core/published-ai-app/` | 发布页壳和独立登录 Dialog |
 | `apps/web-tdesign/src/views/_core/authentication/login.vue` | 复用提取后的凭据/验证码能力 |
 | `packages/system-ui/src/api/ai/app.ts` | 发布 API、安全视图类型 |
@@ -650,11 +603,10 @@ WORKSPACE 应用发布后仍可能使用沙箱、工具和自演化能力。发�
 
 - 追加 Liquibase 字段和唯一索引。
 - 增加发布状态、严格 audience 校验、管理接口。
-- 增加公开安全 DTO 和 profile/access 接口。
+- 增加公开安全 DTO 和 profile/access 接口（profile 用单行精确查询，见 §6.4）。
 - 把 `/available` 改为 `AvailableApp`，消除内部配置暴露。
 - 新增 `ai_app_config_audit` 表与实体；`AppService` 更新/删除前写变更前快照（含 create 初始快照）。
-- 完成发布、下线、权限、跨租户、DTO 安全和配置审计追加测试。
-- 增加 Filter 顺序、登录租户约束、ThreadLocal 清理、跨应用 Session 拒绝测试。
+- 完成发布、下线、权限、跨租户精确查询、DTO 安全和配置审计追加测试。
 
 验证：
 
