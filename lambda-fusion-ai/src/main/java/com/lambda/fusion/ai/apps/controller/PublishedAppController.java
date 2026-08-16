@@ -27,6 +27,13 @@ public class PublishedAppController {
 
     private final AppPublicationService appPublicationService;
 
+    /**
+     * 匿名查询发布应用公开资料。
+     *
+     * <p>注意：框架 SaInterceptor 以 {@code isAnnotation(false)} 构建，{@link SaIgnore} 对路径放行
+     * 不生效；真正的匿名放行为 {@code application.yml} 的 {@code lambda.security.sa-token.ignored}
+     * 中的 {@code /v1/ai/public/apps/*\/profile}。此处注解仅作文档标记，access 仍需登录鉴权。
+     */
     @SaIgnore
     @Operation(summary = "匿名查询发布应用公开资料")
     @GetMapping("/{publishCode}/profile")
