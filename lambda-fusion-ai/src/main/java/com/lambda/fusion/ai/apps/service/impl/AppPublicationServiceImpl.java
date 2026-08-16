@@ -5,8 +5,11 @@ import com.lambda.fusion.ai.AiConstants.AppAudience;
 import com.lambda.fusion.ai.AiConstants.PublishStatus;
 import com.lambda.fusion.ai.apps.mapper.AppMapper;
 import com.lambda.fusion.ai.apps.model.AppPublication;
+import com.lambda.fusion.ai.apps.model.AvailableApp;
+import com.lambda.fusion.ai.apps.model.PublishedAppProfile;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppPublicationService;
+import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.llm.service.LlmModelService;
@@ -14,6 +17,7 @@ import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +41,12 @@ public class AppPublicationServiceImpl implements AppPublicationService {
 
     private final AppMapper appMapper;
     private final LlmModelService llmModelService;
+    /**
+     * 受众与租户一致性校验复用 {@link AppService#loadAvailable} 单一事实来源。
+     * {@code @Lazy} 避免与 AppService 的潜在构造环（本类不被 AppService 依赖，仅为防御）。
+     */
+    @Lazy
+    private final AppService appService;
 
     @Override
     public AppPublication get(String appId) {
@@ -117,6 +127,53 @@ public class AppPublicationServiceImpl implements AppPublicationService {
             throw new AiBusinessException(AiErrorCode.APP_NOT_FOUND, appId);
         }
         return entity;
+    }
+
+    @Override
+    public PublishedAppProfile profile(String publishCode) {
+        AppEntity app = requireByPublishCode(publishCode);
+        requirePublished(app);
+        requireEnabled(app);
+        PublishedAppProfile profile = new PublishedAppProfile();
+        profile.setPublishCode(app.getPublishCode());
+        profile.setName(app.getName());
+        profile.setAvatar(app.getAvatar());
+        profile.setDescription(app.getDescription());
+        return profile;
+    }
+
+    @Override
+    public AvailableApp access(String publishCode) {
+        // 先按发布代码定位应用（跨租户精确查询仅为拿到 appId）；再以 loadAvailable 在登录租户
+        // 上下文内做启用+受众+租户一致性校验——别租户应用因租户插件查不到而拒绝，受众不符抛
+        // APP_NOT_FOUND（前端据此显示无权限，不当作未登录）。
+        AppEntity located = requireByPublishCode(publishCode);
+        requirePublished(located);
+        AppEntity app = appService.loadAvailable(located.getId());
+        return AppService.toAvailableView(app);
+    }
+
+    private AppEntity requireByPublishCode(String publishCode) {
+        if (StringUtils.isBlank(publishCode)) {
+            throw new AiBusinessException(AiErrorCode.APP_PUBLICATION_NOT_FOUND, publishCode);
+        }
+        AppEntity app = appMapper.selectByPublishCode(publishCode);
+        if (app == null) {
+            throw new AiBusinessException(AiErrorCode.APP_PUBLICATION_NOT_FOUND, publishCode);
+        }
+        return app;
+    }
+
+    private void requirePublished(AppEntity app) {
+        if (!PublishStatus.PUBLISHED.getCode().equals(app.getPublishStatus())) {
+            throw new AiBusinessException(AiErrorCode.APP_UNPUBLISHED, app.getId());
+        }
+    }
+
+    private void requireEnabled(AppEntity app) {
+        if (!Boolean.TRUE.equals(app.getEnabled())) {
+            throw new AiBusinessException(AiErrorCode.APP_DISABLED, app.getId());
+        }
     }
 
     private static AppPublication toPublication(AppEntity app) {

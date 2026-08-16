@@ -11,6 +11,7 @@ import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.mapper.AppConfigAuditMapper;
 import com.lambda.fusion.ai.apps.mapper.AppMapper;
 import com.lambda.fusion.ai.apps.model.AppPageQuery;
+import com.lambda.fusion.ai.apps.model.AvailableApp;
 import com.lambda.fusion.ai.apps.model.CreateApp;
 import com.lambda.fusion.ai.apps.model.UpdateApp;
 import com.lambda.fusion.ai.apps.model.entity.AppConfigAuditEntity;
@@ -206,6 +207,11 @@ public class AppServiceImpl implements AppService {
                 .filter(app -> isAppVisible(app, roles, userId))
                 .map(this::fillSupportsVision)
                 .toList();
+    }
+
+    @Override
+    public List<AvailableApp> listAvailableView() {
+        return listAvailable().stream().map(AppService::toAvailableView).toList();
     }
 
     // 回填绑定模型的视觉能力，供前端控制图片附件入口；模型被删等异常置 null，不阻断列表

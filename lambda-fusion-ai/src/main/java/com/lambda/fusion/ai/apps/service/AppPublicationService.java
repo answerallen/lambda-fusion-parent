@@ -1,6 +1,8 @@
 package com.lambda.fusion.ai.apps.service;
 
 import com.lambda.fusion.ai.apps.model.AppPublication;
+import com.lambda.fusion.ai.apps.model.AvailableApp;
+import com.lambda.fusion.ai.apps.model.PublishedAppProfile;
 
 /**
  * 应用发布服务。承载发布/下线/查询发布状态，独立于运行开关与受众授权（三态分离）。
@@ -33,4 +35,20 @@ public interface AppPublicationService {
      * @return 发布视图
      */
     AppPublication unpublish(String appId);
+
+    /**
+     * 匿名查询发布应用公开资料（名片，不含 appId/tenantId/运行配置，不替代授权）。
+     *
+     * @param publishCode 发布代码
+     * @return 公开资料
+     */
+    PublishedAppProfile profile(String publishCode);
+
+    /**
+     * 登录后校验当前用户可否经该发布代码访问应用：发布态、启用态、受众校验通过后返回安全视图。
+     *
+     * @param publishCode 发布代码
+     * @return 可用应用安全视图（含 appId，供后续会话绑定）
+     */
+    AvailableApp access(String publishCode);
 }

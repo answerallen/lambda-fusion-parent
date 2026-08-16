@@ -76,6 +76,10 @@ public enum AiErrorCode implements ErrorCode {
 
     APP_PUBLISH_CODE_CONFLICT(30756, "应用发布代码生成冲突,请重试"),
 
+    APP_PUBLICATION_NOT_FOUND(30757, "发布链接无效或应用不存在"),
+
+    APP_UNPUBLISHED(30758, "应用已下线"),
+
     KB_NOT_FOUND(30801, "知识库不存在"),
 
     KB_NAME_EXISTS(30802, "知识库名称已存在"),

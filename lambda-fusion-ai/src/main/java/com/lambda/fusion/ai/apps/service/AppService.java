@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.apps.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.apps.model.AppPageQuery;
+import com.lambda.fusion.ai.apps.model.AvailableApp;
 import com.lambda.fusion.ai.apps.model.CreateApp;
 import com.lambda.fusion.ai.apps.model.UpdateApp;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
@@ -32,10 +33,29 @@ public interface AppService {
     List<AppEntity> listAvailable();
 
     /**
+     * 列出当前用户可见应用的安全视图（剔除内部运行配置），供普通聊天页与发布 access 使用。
+     *
+     * @return 可见应用安全视图列表
+     */
+    List<AvailableApp> listAvailableView();
+
+    /**
      * 加载并校验当前用户对应用可见；不可见或不存在抛 APP_NOT_FOUND。供建会话等校验。
      *
      * @param appId 应用ID
      * @return 应用实体
      */
     AppEntity loadAvailable(String appId);
+
+    /** 应用实体转聊天安全视图（可见性/展示事实的唯一转换点，剔内部配置）。 */
+    static AvailableApp toAvailableView(AppEntity app) {
+        AvailableApp view = new AvailableApp();
+        view.setId(app.getId());
+        view.setName(app.getName());
+        view.setAvatar(app.getAvatar());
+        view.setDescription(app.getDescription());
+        view.setAppType(app.getAppType());
+        view.setSupportsVision(app.getSupportsVision());
+        return view;
+    }
 }

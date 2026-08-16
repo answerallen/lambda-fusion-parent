@@ -10,7 +10,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lambda.fusion.ai.AiConstants.PublishStatus;
 import com.lambda.fusion.ai.apps.mapper.AppMapper;
 import com.lambda.fusion.ai.apps.model.AppPublication;
+import com.lambda.fusion.ai.apps.model.AvailableApp;
+import com.lambda.fusion.ai.apps.model.PublishedAppProfile;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
+import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.llm.service.LlmModelService;
@@ -26,12 +29,14 @@ import org.junit.jupiter.api.Test;
 class AppPublicationServiceImplTest {
 
     private AppMapper appMapper;
+    private AppService appService;
     private AppPublicationServiceImpl service;
 
     @BeforeEach
     void setUp() {
         appMapper = mock(AppMapper.class);
-        service = new AppPublicationServiceImpl(appMapper, mock(LlmModelService.class));
+        appService = mock(AppService.class);
+        service = new AppPublicationServiceImpl(appMapper, mock(LlmModelService.class), appService);
     }
 
     @Test
@@ -113,6 +118,81 @@ class AppPublicationServiceImplTest {
         assertThat(result.getPublishCode()).isNull();
     }
 
+    @Test
+    void shouldReturnProfileForPublishedApp() {
+        AppEntity app = publishedApp();
+        when(appMapper.selectByPublishCode("code-1")).thenReturn(app);
+
+        PublishedAppProfile profile = service.profile("code-1");
+
+        assertThat(profile.getPublishCode()).isEqualTo("code-1");
+        assertThat(profile.getName()).isEqualTo("demo");
+        // 名片不含 appId/tenantId 与运行配置（PublishedAppProfile 类型本身即无这些字段）。
+    }
+
+    @Test
+    void shouldRejectProfileWhenCodeUnknown() {
+        when(appMapper.selectByPublishCode("bad")).thenReturn(null);
+
+        assertThatThrownBy(() -> service.profile("bad"))
+                .isInstanceOf(AiBusinessException.class)
+                .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
+                        .isEqualTo(AiErrorCode.APP_PUBLICATION_NOT_FOUND.getCode()));
+    }
+
+    @Test
+    void shouldRejectProfileWhenUnpublished() {
+        AppEntity app = publishedApp();
+        app.setPublishStatus(PublishStatus.UNPUBLISHED.getCode());
+        when(appMapper.selectByPublishCode("code-1")).thenReturn(app);
+
+        assertThatThrownBy(() -> service.profile("code-1"))
+                .isInstanceOf(AiBusinessException.class)
+                .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
+                        .isEqualTo(AiErrorCode.APP_UNPUBLISHED.getCode()));
+    }
+
+    @Test
+    void shouldRejectProfileWhenAppDisabled() {
+        AppEntity app = publishedApp();
+        app.setEnabled(Boolean.FALSE);
+        when(appMapper.selectByPublishCode("code-1")).thenReturn(app);
+
+        assertThatThrownBy(() -> service.profile("code-1"))
+                .isInstanceOf(AiBusinessException.class)
+                .satisfies(e ->
+                        assertThat(((AiBusinessException) e).getCode()).isEqualTo(AiErrorCode.APP_DISABLED.getCode()));
+    }
+
+    @Test
+    void shouldAccessViaLoadAvailableAndReturnSafeView() {
+        AppEntity located = publishedApp();
+        when(appMapper.selectByPublishCode("code-1")).thenReturn(located);
+        AppEntity visible = publishedApp();
+        visible.setSupportsVision(Boolean.TRUE);
+        visible.setSystemPrompt("内部提示词");
+        visible.setModelId("m-1");
+        when(appService.loadAvailable("app-1")).thenReturn(visible);
+
+        AvailableApp view = service.access("code-1");
+
+        // access 委托 loadAvailable 做受众+租户校验，返回安全视图含 appId 供会话绑定。
+        assertThat(view.getId()).isEqualTo("app-1");
+        assertThat(view.getSupportsVision()).isTrue();
+    }
+
+    @Test
+    void shouldRejectAccessWhenUnpublished() {
+        AppEntity app = publishedApp();
+        app.setPublishStatus(PublishStatus.UNPUBLISHED.getCode());
+        when(appMapper.selectByPublishCode("code-1")).thenReturn(app);
+
+        assertThatThrownBy(() -> service.access("code-1"))
+                .isInstanceOf(AiBusinessException.class)
+                .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
+                        .isEqualTo(AiErrorCode.APP_UNPUBLISHED.getCode()));
+    }
+
     private void stubForUpdate(AppEntity app) {
         // AppMapper.selectByIdForUpdate 为 default 方法，mock 默认不执行 default 实现，需直接对其打桩。
         when(appMapper.selectByIdForUpdate("app-1")).thenReturn(app);
@@ -127,6 +207,13 @@ class AppPublicationServiceImplTest {
         app.setAppType("CHAT");
         app.setEnabled(Boolean.TRUE);
         app.setPublishStatus(PublishStatus.UNPUBLISHED.getCode());
+        return app;
+    }
+
+    private static AppEntity publishedApp() {
+        AppEntity app = draftApp();
+        app.setPublishCode("code-1");
+        app.setPublishStatus(PublishStatus.PUBLISHED.getCode());
         return app;
     }
 }
