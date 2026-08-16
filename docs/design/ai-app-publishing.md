@@ -653,7 +653,3 @@ mvn -pl lambda-fusion-ai -am compile
 - 发布页完整复用现有 AG-UI、Run 恢复、HITL 和附件能力。
 - 桌面和移动端只使用 TDesign/TDesign Chat 可见组件，dark mode 正常。
 - 后端测试与 compile、前端 typecheck/lint 全部通过。
-
-## 15. 实施前置说明
-
-前端仓库 `AGENTS.md` 要求新增能力先读取 `openspec/AGENTS.md` 并按 OpenSpec 建立 change proposal，但当前工作区缺少该文件。正式进入前端编码前，应先恢复/补齐该规则文件或由维护者确认现有 OpenSpec 约定，再创建对应 change；本设计不臆造缺失规则。
