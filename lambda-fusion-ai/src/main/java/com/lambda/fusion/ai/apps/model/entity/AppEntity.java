@@ -107,6 +107,18 @@ public class AppEntity {
     @Schema(description = "是否启用")
     private Boolean enabled;
 
+    @TableField("publish_code")
+    @Schema(description = "发布代码(32位无横线随机UUID;可空,全局唯一,非权限凭据)")
+    private String publishCode;
+
+    @TableField("publish_status")
+    @Schema(description = "发布状态: UNPUBLISHED|PUBLISHED")
+    private String publishStatus;
+
+    @TableField("published_at")
+    @Schema(description = "最近一次成功发布时间")
+    private LocalDateTime publishedAt;
+
     @TableField("created_by")
     @Schema(description = "创建人")
     private String createdBy;

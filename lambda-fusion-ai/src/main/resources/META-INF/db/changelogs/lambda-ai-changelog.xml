@@ -678,4 +678,21 @@
         </createIndex>
     </changeSet>
 
+    <!-- ========== 应用发布入口 ========== -->
+    <changeSet id="lambda-ai-202608160002" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_app" columnName="publish_code"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_app">
+            <column name="publish_code" type="varchar(32)" remarks="发布代码(32位无横线随机UUID;可空,全局唯一,非权限凭据)"/>
+            <column name="publish_status" type="varchar(16)" defaultValue="UNPUBLISHED" remarks="发布状态: UNPUBLISHED|PUBLISHED">
+                <constraints nullable="false"/>
+            </column>
+            <column name="published_at" type="datetime" remarks="最近一次成功发布时间"/>
+        </addColumn>
+        <addUniqueConstraint tableName="ai_app" columnNames="publish_code" constraintName="uk_ai_app_publish_code"/>
+    </changeSet>
+
 </databaseChangeLog>

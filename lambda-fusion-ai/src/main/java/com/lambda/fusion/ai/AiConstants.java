@@ -220,6 +220,34 @@ public interface AiConstants {
     }
 
     /**
+     * 应用发布状态。与运行开关 {@code enabled}、受众授权相互独立（见发布设计三态分离）；
+     * 仅控制独立发布 URL 是否可解析展示。发布代码在下线时保留，重新发布不换链接。
+     */
+    @Getter
+    @AllArgsConstructor
+    enum PublishStatus {
+        UNPUBLISHED("UNPUBLISHED", "未发布"),
+
+        PUBLISHED("PUBLISHED", "已发布");
+
+        private final String code;
+
+        private final String label;
+
+        public static PublishStatus of(String code) {
+            if (code == null) {
+                return null;
+            }
+            for (PublishStatus status : values()) {
+                if (status.code.equalsIgnoreCase(code)) {
+                    return status;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
      * 知识库文档入库状态。
      *
      * <p>PENDING：已落库待入库；READY：解析切块入库完成；FAILED：入库失败（原因见 error_msg）。
