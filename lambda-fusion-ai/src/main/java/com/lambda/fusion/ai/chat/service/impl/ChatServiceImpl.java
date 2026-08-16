@@ -29,47 +29,47 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
-    private final ChatRunService runService;
+    private final ChatRunService chatRunService;
     private final ChatRunCoordinator chatRunCoordinator;
     private final AiProperties properties;
 
     @Override
     public SseEmitter streamChat(String sessionId, SendMessage message) {
         Assert.isTrue(message.isContentOrAttachmentPresent(), "消息内容与附件不能同时为空");
-        RunContext context = runService.createOrLoad(sessionId, message);
+        RunContext context = chatRunService.createOrLoad(sessionId, message);
         chatRunCoordinator.startIfCreated(context.run(), context.session());
         return openRunEventStream(context.run(), 0, true);
     }
 
     @Override
     public Optional<ChatRun> activeRun(String sessionId) {
-        return runService.getActiveOwned(sessionId);
+        return chatRunService.getActiveOwned(sessionId);
     }
 
     @Override
     public ChatRun getRun(String sessionId, String runId) {
-        return runService.getOwned(sessionId, runId);
+        return chatRunService.getOwned(sessionId, runId);
     }
 
     @Override
     public SseEmitter resume(String sessionId, String runId, long afterSeq, boolean bootstrap) {
-        return openRunEventStream(runService.loadOwned(sessionId, runId).run(), afterSeq, bootstrap);
+        return openRunEventStream(chatRunService.loadOwned(sessionId, runId).run(), afterSeq, bootstrap);
     }
 
     @Override
     public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command) {
-        RunContext context = runService.loadOwned(sessionId, runId);
+        RunContext context = chatRunService.loadOwned(sessionId, runId);
         ConfirmTransition transition = chatRunCoordinator.confirm(context.run(), context.session(), command);
         return openRunEventStream(transition.run(), 0, true);
     }
 
     @Override
     public void stop(String sessionId, String runId) {
-        RunContext context = runService.loadOwned(sessionId, runId);
+        RunContext context = chatRunService.loadOwned(sessionId, runId);
         chatRunCoordinator.stop(context.run(), context.session());
     }
 
-    private SseEmitter openRunEventStream(ChatRunEntity run, long afterSeq, boolean bootstrap) {
+    private SseEmitter openRunEventStream(ChatRunEntity chatRunEntity, long afterSeq, boolean bootstrap) {
         long timeout = properties.getChat().getRun().getConnectionTimeoutSeconds() * 1000;
         SseEmitter emitter = new SseEmitter(timeout);
         AtomicBoolean detached = new AtomicBoolean();
@@ -91,7 +91,7 @@ public class ChatServiceImpl implements ChatService {
             long cursor = afterSeq;
             boolean phaseClosed = false;
             if (bootstrap) {
-                AguiBootstrap aguiBootstrap = chatRunCoordinator.bootstrap(run);
+                AguiBootstrap aguiBootstrap = chatRunCoordinator.bootstrap(chatRunEntity);
                 for (String event : aguiBootstrap.events()) {
                     emitter.send(SseEmitter.event().data(event));
                 }
@@ -99,11 +99,11 @@ public class ChatServiceImpl implements ChatService {
                 phaseClosed = aguiBootstrap.phaseClosed();
             }
             if (phaseClosed
-                    || ChatRunStatus.isTerminal(run.getStatus())
-                    || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
+                    || ChatRunStatus.isTerminal(chatRunEntity.getStatus())
+                    || ChatRunStatus.AWAITING_CONFIRM.name().equals(chatRunEntity.getStatus())) {
                 if (!bootstrap) {
                     ChatRunEventSubscription replay = chatRunCoordinator.subscribe(
-                            run.getId(), cursor, event -> send(emitter, event), emitter::completeWithError);
+                            chatRunEntity.getId(), cursor, event -> send(emitter, event), emitter::completeWithError);
                     subscription.set(replay);
                     if (detached.get()) {
                         replay.close();
@@ -116,7 +116,7 @@ public class ChatServiceImpl implements ChatService {
                 return emitter;
             }
             ChatRunEventSubscription attached = chatRunCoordinator.subscribe(
-                    run.getId(), cursor, event -> send(emitter, event), emitter::completeWithError);
+                    chatRunEntity.getId(), cursor, event -> send(emitter, event), emitter::completeWithError);
             subscription.set(attached);
             if (detached.get()) {
                 attached.close();
