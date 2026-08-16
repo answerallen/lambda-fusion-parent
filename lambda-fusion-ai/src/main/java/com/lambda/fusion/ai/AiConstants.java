@@ -189,6 +189,37 @@ public interface AiConstants {
     }
 
     /**
+     * 应用受众。决定哪些已登录用户可使用应用：B/C 分别匹配 {@code AiProperties.audience.bRoles/cRoles}，
+     * ALL 对所有已登录用户可见。创建/更新入口必须经 {@link #of(String)} 硬校验，非法值一律拒绝，
+     * 不得静默落入某一分支。
+     */
+    @Getter
+    @AllArgsConstructor
+    enum AppAudience {
+        B("B", "B端角色"),
+
+        C("C", "C端角色"),
+
+        ALL("ALL", "全部登录用户");
+
+        private final String code;
+
+        private final String label;
+
+        public static AppAudience of(String code) {
+            if (code == null) {
+                return null;
+            }
+            for (AppAudience audience : values()) {
+                if (audience.code.equalsIgnoreCase(code)) {
+                    return audience;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
      * 知识库文档入库状态。
      *
      * <p>PENDING：已落库待入库；READY：解析切块入库完成；FAILED：入库失败（原因见 error_msg）。

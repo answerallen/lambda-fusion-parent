@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.apps.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.fusion.ai.AiConstants.AppAudience;
 import com.lambda.fusion.ai.AiConstants.AppType;
 import com.lambda.fusion.ai.AiConstants.RagMode;
 import com.lambda.fusion.ai.AiConstants.SandboxBackend;
@@ -63,6 +64,7 @@ public class AppServiceImpl implements AppService {
         String appType = validateAppType(dto.getAppType());
         String sandboxBackend = validateSandboxBackend(dto.getSandboxBackend());
         validateRagMode(dto.getRagMode());
+        validateAudience(dto.getAudience());
         ensureNameUnique(dto.getName(), null);
         AppEntity entity = getAppEntity(dto, appType, sandboxBackend);
         appMapper.insert(entity);
@@ -163,6 +165,7 @@ public class AppServiceImpl implements AppService {
             entity.setSandboxBackend(validateSandboxBackend(dto.getSandboxBackend()));
         }
         if (dto.getAudience() != null) {
+            validateAudience(dto.getAudience());
             entity.setAudience(dto.getAudience());
         }
         if (dto.getEnabled() != null) {
@@ -232,16 +235,21 @@ public class AppServiceImpl implements AppService {
 
     /**
      * 应用可见性：独立应用仅所有者可见；平台应用按 audience + 角色（ALL=所有登录用户）。
+     * audience 经 {@link AppAudience} 显式三分支解析；非法/未知值不落入任何分支，显式判不可见。
      */
     private boolean isAppVisible(AppEntity app, Set<String> roles, String userId) {
         if (StringUtils.isNotBlank(app.getOwnerId())) {
             return app.getOwnerId().equals(userId);
         }
-        String audience = StringUtils.defaultIfBlank(app.getAudience(), "ALL");
-        if ("ALL".equalsIgnoreCase(audience)) {
+        AppAudience audience = AppAudience.of(StringUtils.defaultIfBlank(app.getAudience(), AppAudience.ALL.getCode()));
+        if (audience == null) {
+            // 入口已硬校验，此处仅防御历史脏数据：未知受众不提供访问。
+            return false;
+        }
+        if (audience == AppAudience.ALL) {
             return true;
         }
-        List<String> requiredRoles = "B".equalsIgnoreCase(audience)
+        List<String> requiredRoles = audience == AppAudience.B
                 ? aiProperties.getAudience().getBRoles()
                 : aiProperties.getAudience().getCRoles();
         return roles != null && requiredRoles != null && requiredRoles.stream().anyMatch(roles::contains);
@@ -304,6 +312,13 @@ public class AppServiceImpl implements AppService {
     private void validateRagMode(String ragMode) {
         if (StringUtils.isNotBlank(ragMode) && RagMode.of(ragMode) == null) {
             throw new AiBusinessException(AiErrorCode.APP_RAG_MODE_INVALID, ragMode);
+        }
+    }
+
+    // audience 仅允许 B/C/ALL；空值合法（按 ALL 处理）。非法值一律拒绝，不得静默落入某分支。
+    private void validateAudience(String audience) {
+        if (StringUtils.isNotBlank(audience) && AppAudience.of(audience) == null) {
+            throw new AiBusinessException(AiErrorCode.APP_AUDIENCE_INVALID, audience);
         }
     }
 }
