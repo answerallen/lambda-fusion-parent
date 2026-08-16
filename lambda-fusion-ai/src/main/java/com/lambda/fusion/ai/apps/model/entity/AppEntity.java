@@ -19,6 +19,10 @@ public class AppEntity {
     @Schema(description = "主键")
     private String id;
 
+    @TableField("tenant_id")
+    @Schema(description = "租户ID(由租户插件填充/过滤;发布代码解析获得真实租户)")
+    private String tenantId;
+
     @TableField("name")
     @Schema(description = "应用名称")
     private String name;
@@ -116,6 +120,7 @@ public class AppEntity {
     private LocalDateTime updatedAt;
 
     @TableField(exist = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @Schema(description = "绑定模型是否支持视觉(图片输入); 非表字段, 由服务层回填")
     private Boolean supportsVision;
 }

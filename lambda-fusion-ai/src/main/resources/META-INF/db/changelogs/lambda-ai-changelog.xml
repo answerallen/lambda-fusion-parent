@@ -648,4 +648,34 @@
         <modifyDataType tableName="ai_chat_message" columnName="tool_call" newDataType="longtext"/>
     </changeSet>
 
+    <!-- ========== 应用配置变更审计(append-only, 非版本机制) ========== -->
+    <changeSet id="lambda-ai-202608160001" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="ai_app_config_audit"/>
+            </not>
+        </preConditions>
+        <createTable tableName="ai_app_config_audit" remarks="应用配置变更审计(仅追加, 支撑人工回退; 非版本机制, 不参与运行时读取)">
+            <column name="id" type="bigint" autoIncrement="true" remarks="主键">
+                <constraints primaryKey="true" primaryKeyName="pk_ai_app_config_audit_id" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="varchar(32)" remarks="租户ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="app_id" type="varchar(32)" remarks="应用ID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="operation" type="varchar(16)" remarks="操作: CREATE/UPDATE/DELETE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="config_json" type="longtext" remarks="变更前配置快照JSON(CREATE 为初始快照)"/>
+            <column name="operator" type="varchar(64)" remarks="操作者"/>
+            <column name="created_at" type="datetime" remarks="创建时间"/>
+        </createTable>
+        <createIndex tableName="ai_app_config_audit" indexName="idx_ai_app_config_audit_app">
+            <column name="tenant_id"/>
+            <column name="app_id"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

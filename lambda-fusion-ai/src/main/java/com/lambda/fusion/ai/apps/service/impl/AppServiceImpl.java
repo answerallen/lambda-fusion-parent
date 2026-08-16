@@ -7,10 +7,12 @@ import com.lambda.fusion.ai.AiConstants.AppType;
 import com.lambda.fusion.ai.AiConstants.RagMode;
 import com.lambda.fusion.ai.AiConstants.SandboxBackend;
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.apps.mapper.AppConfigAuditMapper;
 import com.lambda.fusion.ai.apps.mapper.AppMapper;
 import com.lambda.fusion.ai.apps.model.AppPageQuery;
 import com.lambda.fusion.ai.apps.model.CreateApp;
 import com.lambda.fusion.ai.apps.model.UpdateApp;
+import com.lambda.fusion.ai.apps.model.entity.AppConfigAuditEntity;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
@@ -20,6 +22,7 @@ import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
 import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
 import com.lambda.fusion.core.utils.AuthUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.agentscope.core.util.JsonUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AppServiceImpl implements AppService {
 
     private final AppMapper appMapper;
+    private final AppConfigAuditMapper appConfigAuditMapper;
     private final LlmModelService llmModelService;
     private final ApplicationEventPublisher eventPublisher;
     private final WorkspacePaths workspacePaths;
@@ -62,6 +66,8 @@ public class AppServiceImpl implements AppService {
         ensureNameUnique(dto.getName(), null);
         AppEntity entity = getAppEntity(dto, appType, sandboxBackend);
         appMapper.insert(entity);
+        // create 的变更前快照即初始配置（insert 后 tenantId 已由租户插件回填到实体）。
+        recordConfigAudit(entity, "CREATE", entity);
         eventPublisher.publishEvent(ConfigChangedEvent.app(entity.getId()));
         return entity;
     }
@@ -99,6 +105,8 @@ public class AppServiceImpl implements AppService {
     @Transactional(rollbackFor = Exception.class)
     public void update(String id, UpdateApp dto) {
         AppEntity entity = requireExists(id);
+        // 在任何字段变更前，先以查到的旧实体写变更前快照，保证回退可查。
+        recordConfigAudit(entity, "UPDATE", entity);
         if (StringUtils.isNotBlank(dto.getModelId()) && !dto.getModelId().equals(entity.getModelId())) {
             llmModelService.loadById(dto.getModelId());
             entity.setModelId(dto.getModelId());
@@ -169,6 +177,8 @@ public class AppServiceImpl implements AppService {
     @Transactional(rollbackFor = Exception.class)
     public void delete(String id) {
         AppEntity app = requireExists(id);
+        // 删除前记录最终配置快照，供误删后人工恢复参考。
+        recordConfigAudit(app, "DELETE", app);
         if (AppType.WORKSPACE.getCode().equalsIgnoreCase(app.getAppType())) {
             workspacePaths.deleteAppWorkspaces(id);
         }
@@ -243,6 +253,26 @@ public class AppServiceImpl implements AppService {
             throw new AiBusinessException(AiErrorCode.APP_NOT_FOUND, id);
         }
         return entity;
+    }
+
+    /**
+     * 追加一条配置变更审计（append-only，非版本机制）。快照取变更前实体，租户取应用真实租户；
+     * 审计失败随业务事务回滚，不产生半状态。仅支撑人工回退，不参与运行时读取。
+     */
+    private void recordConfigAudit(AppEntity app, String operation, AppEntity snapshotSource) {
+        try {
+            AppConfigAuditEntity audit = new AppConfigAuditEntity();
+            audit.setTenantId(app.getTenantId());
+            audit.setAppId(app.getId());
+            audit.setOperation(operation);
+            audit.setConfigJson(JsonUtils.getJsonCodec().toJson(snapshotSource));
+            audit.setOperator(AuthUtils.getUser().getUsername());
+            audit.setCreatedAt(LocalDateTime.now());
+            appConfigAuditMapper.insert(audit);
+        } catch (RuntimeException auditFailure) {
+            // 审计是回退保障而非主流程：失败只告警，不阻断配置变更本身。
+            log.warn("应用配置审计写入失败: appId={}, operation={}", app.getId(), operation, auditFailure);
+        }
     }
 
     private void ensureNameUnique(String name, String excludeId) {
