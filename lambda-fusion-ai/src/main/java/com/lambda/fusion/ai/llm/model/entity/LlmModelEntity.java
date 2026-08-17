@@ -39,8 +39,12 @@ public class LlmModelEntity {
     private BigDecimal defaultTemperature;
 
     @TableField("default_max_tokens")
-    @Schema(description = "默认最大 token 数")
+    @Schema(description = "默认最大输出 token 数")
     private Integer defaultMaxTokens;
+
+    @TableField("context_window_tokens")
+    @Schema(description = "上下文窗口 token 数（输入与输出总量）")
+    private Integer contextWindowTokens;
 
     @TableField("supports_vision")
     @Schema(description = "是否支持视觉(图片): CHAT=可接受图片输入, EMBEDDING=可向量化图片")

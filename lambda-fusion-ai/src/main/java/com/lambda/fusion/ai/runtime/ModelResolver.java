@@ -9,9 +9,11 @@ import com.lambda.fusion.ai.llm.service.LlmModelService;
 import com.lambda.fusion.ai.llm.service.LlmProviderService;
 import com.lambda.fusion.ai.security.KeyEncryptionService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.agentscope.core.model.GenerateOptions;
 import io.agentscope.core.model.Model;
 import io.agentscope.extensions.model.dashscope.DashScopeChatModel;
 import io.agentscope.extensions.model.ollama.OllamaChatModel;
+import io.agentscope.extensions.model.ollama.options.OllamaOptions;
 import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
@@ -58,28 +60,59 @@ public class ModelResolver implements Function<String, Model> {
             throw new AiBusinessException(AiErrorCode.LLM_PROVIDER_TYPE_NOT_SUPPORTED, provider.getProviderType());
         }
         String apiKey = keyEncryptionService.decrypt(provider.getApiKeyEncrypted());
+        GenerateOptions defaultOptions = resolveDefaultGenerateOptions(model);
         switch (type) {
-            case DASHSCOPE:
-                return DashScopeChatModel.builder()
+            case DASHSCOPE: {
+                DashScopeChatModel.Builder builder = DashScopeChatModel.builder()
                         .apiKey(apiKey)
                         .modelName(model.getModelName())
                         .baseUrl(provider.getBaseUrl())
-                        .stream(true)
-                        .build();
-            case OPENAI:
-                return OpenAIChatModel.builder()
+                        .defaultOptions(defaultOptions)
+                        .stream(true);
+                if (model.getContextWindowTokens() != null) {
+                    builder.contextWindowSize(model.getContextWindowTokens());
+                }
+                return builder.build();
+            }
+            case OPENAI: {
+                OpenAIChatModel.Builder builder = OpenAIChatModel.builder()
                         .apiKey(apiKey)
                         .modelName(model.getModelName())
                         .baseUrl(provider.getBaseUrl())
-                        .stream(true)
-                        .build();
-            case OLLAMA:
-                return OllamaChatModel.builder()
+                        .generateOptions(defaultOptions)
+                        .stream(true);
+                if (model.getContextWindowTokens() != null) {
+                    builder.contextWindowSize(model.getContextWindowTokens());
+                }
+                return builder.build();
+            }
+            case OLLAMA: {
+                OllamaChatModel.Builder builder = OllamaChatModel.builder()
                         .modelName(model.getModelName())
                         .baseUrl(provider.getBaseUrl())
-                        .build();
+                        .defaultOptions(OllamaOptions.fromGenerateOptions(defaultOptions));
+                if (model.getContextWindowTokens() != null) {
+                    builder.contextWindowSize(model.getContextWindowTokens());
+                }
+                return builder.build();
+            }
             default:
                 throw new AiBusinessException(AiErrorCode.LLM_PROVIDER_TYPE_NOT_SUPPORTED, provider.getProviderType());
         }
+    }
+
+    /**
+     * 将模型表中的默认生成参数映射为 AgentScope 统一配置。最大 Token 表示单次最大输出量，
+     * 不用于表达模型上下文窗口；空值保留服务商默认行为。
+     */
+    static GenerateOptions resolveDefaultGenerateOptions(LlmModelEntity model) {
+        GenerateOptions.Builder builder = GenerateOptions.builder();
+        if (model.getDefaultTemperature() != null) {
+            builder.temperature(model.getDefaultTemperature().doubleValue());
+        }
+        if (model.getDefaultMaxTokens() != null) {
+            builder.maxTokens(model.getDefaultMaxTokens());
+        }
+        return builder.build();
     }
 }

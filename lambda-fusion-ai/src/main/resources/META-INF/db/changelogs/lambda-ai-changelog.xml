@@ -710,4 +710,16 @@
         </addColumn>
     </changeSet>
 
+    <!-- ========== LLM 模型上下文窗口 ========== -->
+    <changeSet id="lambda-ai-202608170002" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_llm_model" columnName="context_window_tokens"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_llm_model">
+            <column name="context_window_tokens" type="int" remarks="上下文窗口 token 数(输入与输出总量)"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

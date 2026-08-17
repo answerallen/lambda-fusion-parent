@@ -53,6 +53,7 @@ public class LlmModelServiceImpl implements LlmModelService {
         entity.setModelType(dto.getModelType());
         entity.setDefaultTemperature(dto.getDefaultTemperature());
         entity.setDefaultMaxTokens(dto.getDefaultMaxTokens());
+        entity.setContextWindowTokens(dto.getContextWindowTokens());
         entity.setSupportsVision(dto.getSupportsVision());
         entity.setEnabled(dto.getEnabled());
         entity.setCreatedAt(LocalDateTime.now());
@@ -85,6 +86,9 @@ public class LlmModelServiceImpl implements LlmModelService {
         }
         if (dto.getDefaultMaxTokens() != null) {
             entity.setDefaultMaxTokens(dto.getDefaultMaxTokens());
+        }
+        if (dto.getContextWindowTokens() != null) {
+            entity.setContextWindowTokens(dto.getContextWindowTokens());
         }
         if (dto.getSupportsVision() != null) {
             entity.setSupportsVision(dto.getSupportsVision());

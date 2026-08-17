@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.llm.model;
 
 import com.lambda.fusion.ai.AiConstants.ModelType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import java.math.BigDecimal;
 import lombok.Data;
 
@@ -24,8 +25,13 @@ public class UpdateLlmModel {
     @Schema(description = "默认温度")
     private BigDecimal defaultTemperature;
 
-    @Schema(description = "默认最大 token 数")
+    @Schema(description = "默认最大输出 token 数")
+    @Min(value = 1, message = "默认最大输出 token 数必须大于0")
     private Integer defaultMaxTokens;
+
+    @Schema(description = "上下文窗口 token 数（输入与输出总量）")
+    @Min(value = 1, message = "上下文窗口 token 数必须大于0")
+    private Integer contextWindowTokens;
 
     @Schema(description = "是否支持视觉(图片): CHAT=可接受图片输入, EMBEDDING=可向量化图片")
     private Boolean supportsVision;
