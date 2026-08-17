@@ -198,10 +198,42 @@ public class AiProperties {
     public static class Workspace {
 
         /**
-         * workspace 根目录。每个应用 workspace 位于
-         * {@code {root}/tenants/{tenantId}/apps/{appId}/}。默认 {@code ${user.home}/.agentscope/fusion}。
+         * workspace 根目录。本地应用位于 {@code {root}/tenants/{tenantId}/apps/{appId}/}；远程存储的
+         * 初始化模板位于 {@code {root}/.remote-templates/{type}/tenants/{tenantId}/apps/{appId}/}。默认
+         * {@code ${user.home}/.agentscope/fusion}。
          */
         private String root;
+
+        /** Workspace 存储配置。存储类型是部署级属性，所有应用统一使用。 */
+        @Valid
+        private Storage storage = new Storage();
+
+        @Data
+        public static class Storage {
+
+            /** 存储类型：LOCAL（默认）/ MYSQL / POSTGRES。 */
+            private String type = "LOCAL";
+
+            @Valid
+            private Mysql mysql = new Mysql();
+
+            @Valid
+            private Postgres postgres = new Postgres();
+
+            @Data
+            public static class Mysql {
+
+                /** dynamic-datasource 名称；默认复用 master。 */
+                private String datasource = "master";
+            }
+
+            @Data
+            public static class Postgres {
+
+                /** dynamic-datasource 名称；默认复用 ai-postgres。 */
+                private String datasource = "ai-postgres";
+            }
+        }
     }
 
     @Data

@@ -17,10 +17,14 @@ import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.core.tool.ToolResultMessageBuilder;
 import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.IsolationScope;
+import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.gateway.MsgContext;
 import io.agentscope.harness.agent.gateway.SessionIdUtils;
 import io.agentscope.harness.agent.gateway.channel.OutboundAddress;
+import io.agentscope.harness.agent.sandbox.SandboxExecutionGuard;
+import io.agentscope.harness.agent.sandbox.SandboxIsolationKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +33,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * Agent 执行适配器。
@@ -51,6 +57,8 @@ public final class AgentExecutionAdapter {
     private final MsgContext gatewayContext;
     private final OutboundAddress outboundAddress;
     private final String stateSessionId;
+    private final SandboxExecutionGuard workspaceExecutionGuard;
+    private final SandboxIsolationKey workspaceExecutionKey;
 
     /**
      * 创建 Agent 执行适配器。
@@ -76,6 +84,11 @@ public final class AgentExecutionAdapter {
         this.sessionId = Objects.requireNonNull(run.getSessionId(), "run.sessionId");
         this.userId = session.getUserId();
         this.tenantId = Objects.requireNonNull(tenantId, "tenantId");
+        this.workspaceExecutionGuard = resolveWorkspaceExecutionGuard(agent);
+        this.workspaceExecutionKey = workspaceExecutionGuard == null
+                ? null
+                : SandboxIsolationKey.resolve(IsolationScope.AGENT, null, routingAgentId)
+                        .orElseThrow();
         if (gateway == null) {
             this.gatewayContext = null;
             this.outboundAddress = null;
@@ -101,15 +114,25 @@ public final class AgentExecutionAdapter {
      * @return Agent 事件流
      */
     public Flux<AgentEvent> stream(Msg message) {
+        Flux<AgentEvent> source;
         if (gateway != null) {
-            return gateway.runStream(gatewayContext, List.of(message), outboundAddress);
+            source = gateway.runStream(gatewayContext, List.of(message), outboundAddress);
+        } else {
+            RuntimeContext context = RuntimeContext.builder()
+                    .userId(userId)
+                    .sessionId(sessionId)
+                    .put(RuntimeProperty.KEY_TENANT_ID, tenantId)
+                    .build();
+            source = agent.streamEvents(message, context);
         }
-        RuntimeContext context = RuntimeContext.builder()
-                .userId(userId)
-                .sessionId(sessionId)
-                .put(RuntimeProperty.KEY_TENANT_ID, tenantId)
-                .build();
-        return agent.streamEvents(message, context);
+        if (workspaceExecutionGuard == null) {
+            return source;
+        }
+        return Flux.usingWhen(
+                Mono.fromCallable(() -> workspaceExecutionGuard.tryEnter(workspaceExecutionKey))
+                        .subscribeOn(Schedulers.boundedElastic()),
+                ignored -> source,
+                lease -> Mono.fromRunnable(lease::close).subscribeOn(Schedulers.boundedElastic()));
     }
 
     /**
@@ -199,6 +222,17 @@ public final class AgentExecutionAdapter {
 
     private AiBusinessException confirmationContextUnavailable() {
         return new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
+    }
+
+    private SandboxExecutionGuard resolveWorkspaceExecutionGuard(HarnessAgent harnessAgent) {
+        if (harnessAgent.getDistributedStore() == null || harnessAgent.getWorkspaceManager() == null) {
+            return null;
+        }
+        if (harnessAgent.getWorkspaceManager().getFilesystem() instanceof AbstractSandboxFilesystem) {
+            // 沙箱文件系统由 AgentScope 在完整 acquire→release 窗口内持有同一把分布式锁。
+            return null;
+        }
+        return harnessAgent.getDistributedStore().sandboxExecutionGuard();
     }
 
     private static Map<String, String> buildExtra(String agentId, String appId, String sessionId, String tenantId) {

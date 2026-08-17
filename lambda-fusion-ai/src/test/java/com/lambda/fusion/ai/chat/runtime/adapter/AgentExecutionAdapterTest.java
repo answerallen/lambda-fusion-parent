@@ -22,11 +22,18 @@ import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolResultState;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.state.AgentState;
+import io.agentscope.harness.agent.DistributedStore;
 import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
+import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.gateway.MsgContext;
 import io.agentscope.harness.agent.gateway.SessionIdUtils;
 import io.agentscope.harness.agent.gateway.channel.OutboundAddress;
+import io.agentscope.harness.agent.sandbox.SandboxExecutionGuard;
+import io.agentscope.harness.agent.sandbox.SandboxIsolationKey;
+import io.agentscope.harness.agent.sandbox.SandboxLease;
+import io.agentscope.harness.agent.workspace.WorkspaceManager;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -107,6 +114,45 @@ class AgentExecutionAdapterTest {
         adapter.interrupt();
 
         verify(delegate).interrupt("user-1", stateSessionId);
+    }
+
+    @Test
+    void shouldHoldDistributedWorkspaceLockUntilDirectStreamCompletes() throws Exception {
+        HarnessAgent agent = mock(HarnessAgent.class);
+        DistributedStore distributedStore = mock(DistributedStore.class);
+        WorkspaceManager workspaceManager = mock(WorkspaceManager.class);
+        AbstractFilesystem filesystem = mock(AbstractFilesystem.class);
+        SandboxExecutionGuard executionGuard = mock(SandboxExecutionGuard.class);
+        SandboxLease lease = mock(SandboxLease.class);
+        when(agent.getDistributedStore()).thenReturn(distributedStore);
+        when(agent.getWorkspaceManager()).thenReturn(workspaceManager);
+        when(workspaceManager.getFilesystem()).thenReturn(filesystem);
+        when(distributedStore.sandboxExecutionGuard()).thenReturn(executionGuard);
+        when(executionGuard.tryEnter(any(SandboxIsolationKey.class))).thenReturn(lease);
+        when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class))).thenReturn(Flux.empty());
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, null, "agent-1", run(), session(), "tenant-1");
+
+        adapter.stream(userMessage()).blockLast();
+
+        verify(executionGuard).tryEnter(any(SandboxIsolationKey.class));
+        verify(lease).close();
+    }
+
+    @Test
+    void shouldLetSandboxManagerOwnDistributedWorkspaceLock() {
+        HarnessAgent agent = mock(HarnessAgent.class);
+        DistributedStore distributedStore = mock(DistributedStore.class);
+        WorkspaceManager workspaceManager = mock(WorkspaceManager.class);
+        AbstractSandboxFilesystem filesystem = mock(AbstractSandboxFilesystem.class);
+        when(agent.getDistributedStore()).thenReturn(distributedStore);
+        when(agent.getWorkspaceManager()).thenReturn(workspaceManager);
+        when(workspaceManager.getFilesystem()).thenReturn(filesystem);
+        when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class))).thenReturn(Flux.empty());
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, null, "agent-1", run(), session(), "tenant-1");
+
+        adapter.stream(userMessage()).blockLast();
+
+        verify(distributedStore, never()).sandboxExecutionGuard();
     }
 
     @Test

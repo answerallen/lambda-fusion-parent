@@ -29,22 +29,32 @@ public class WorkspaceScaffolder {
      * 脚手架 workspace。已存在的文件不覆盖。
      */
     public void scaffold(Path workspace, AppEntity app) throws IOException {
-        Files.createDirectories(workspace);
-        writeIfAbsent(
+        boolean changed = createDirectoriesIfAbsent(workspace);
+        changed |= writeIfAbsent(
                 workspace.resolve("AGENTS.md"),
                 "# " + Objects.toString(app.getName(), "Agent") + "\n\n"
                         + "在此维护该应用的人格与指令。系统提示词（DB）作为基线，本文件作为可演化的补充。\n");
-        Files.createDirectories(workspace.resolve("skills"));
-        Files.createDirectories(workspace.resolve("subagents"));
-        Files.createDirectories(workspace.resolve("memory"));
-        Files.createDirectories(workspace.resolve("knowledge"));
-        writeIfAbsent(workspace.resolve("tools.json"), DEFAULT_TOOLS_JSON);
-        log.info("workspace 脚手架完成: app={}, path={}", app.getId(), workspace);
+        changed |= createDirectoriesIfAbsent(workspace.resolve("skills"));
+        changed |= createDirectoriesIfAbsent(workspace.resolve("subagents"));
+        changed |= createDirectoriesIfAbsent(workspace.resolve("memory"));
+        changed |= createDirectoriesIfAbsent(workspace.resolve("knowledge"));
+        changed |= writeIfAbsent(workspace.resolve("tools.json"), DEFAULT_TOOLS_JSON);
+        if (changed) {
+            log.info("workspace 脚手架完成: app={}, path={}", app.getId(), workspace);
+        }
     }
 
-    private void writeIfAbsent(Path file, String content) throws IOException {
+    private boolean createDirectoriesIfAbsent(Path directory) throws IOException {
+        boolean absent = Files.notExists(directory);
+        Files.createDirectories(directory);
+        return absent;
+    }
+
+    private boolean writeIfAbsent(Path file, String content) throws IOException {
         if (!Files.exists(file)) {
             Files.writeString(file, content, StandardCharsets.UTF_8);
+            return true;
         }
+        return false;
     }
 }

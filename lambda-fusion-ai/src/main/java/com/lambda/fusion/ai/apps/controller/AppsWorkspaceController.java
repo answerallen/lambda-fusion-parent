@@ -9,14 +9,12 @@ import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceFileEntry;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceFileService;
-import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
 import com.lambda.fusion.ai.runtime.workspace.entity.WorkspaceAuditEntity;
 import com.lambda.fusion.ai.runtime.workspace.service.WorkspaceAuditService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,7 +33,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AppsWorkspaceController {
 
     private final AppService appService;
-    private final WorkspacePaths workspacePaths;
     private final WorkspaceFileService workspaceFileService;
     private final WorkspaceAuditService workspaceAuditService;
 
@@ -47,7 +44,7 @@ public class AppsWorkspaceController {
         AppEntity app = appService.loadById(appId);
         assertWorkspace(app);
         try {
-            return workspaceFileService.list(resolve(app, tenantId));
+            return workspaceFileService.list(tenantId, app);
         } catch (IOException e) {
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, e);
         }
@@ -62,7 +59,7 @@ public class AppsWorkspaceController {
         AppEntity app = appService.loadById(appId);
         assertWorkspace(app);
         try {
-            return workspaceFileService.read(resolve(app, tenantId), path);
+            return workspaceFileService.read(tenantId, app, path);
         } catch (IOException e) {
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, e);
         }
@@ -79,14 +76,10 @@ public class AppsWorkspaceController {
         AppEntity app = appService.loadById(appId);
         assertWorkspace(app);
         try {
-            workspaceFileService.write(resolve(app, tenantId), path, content);
+            workspaceFileService.write(tenantId, app, path, content);
         } catch (IOException e) {
             throw new AiBusinessException(AiErrorCode.SYSTEM_ERROR, e);
         }
-    }
-
-    private Path resolve(AppEntity app, String tenantId) {
-        return workspacePaths.resolveAppWorkspace(tenantId, app.getId());
     }
 
     private void assertWorkspace(AppEntity app) {

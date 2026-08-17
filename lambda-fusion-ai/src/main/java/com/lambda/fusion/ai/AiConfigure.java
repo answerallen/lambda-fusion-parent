@@ -7,6 +7,7 @@ import com.alibaba.nacos.api.exception.NacosException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.lambda.cloud.oss.manager.OssClientManager;
+import com.lambda.fusion.ai.AiConstants.WorkspaceStorageType;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.channel.service.ChannelConfigService;
 import com.lambda.fusion.ai.rag.mapper.KnowledgeDocumentMapper;
@@ -27,6 +28,7 @@ import com.lambda.fusion.ai.runtime.sandbox.SandboxBackendProvider;
 import com.lambda.fusion.ai.runtime.sandbox.SandboxSpecResolver;
 import com.lambda.fusion.ai.runtime.state.StateStoreDataSources;
 import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
+import com.lambda.fusion.ai.runtime.workspace.WorkspaceDistributedStoreProvider;
 import com.lambda.fusion.ai.skill.SkillRepositoryProvider;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.ClientConfig;
@@ -44,8 +46,10 @@ import io.agentscope.extensions.channel.feishu.FeishuChannel;
 import io.agentscope.extensions.channel.wecom.WeComCallbackController;
 import io.agentscope.extensions.channel.wecom.WeComChannel;
 import io.agentscope.extensions.cos.CosAgentStateStore;
+import io.agentscope.extensions.mysql.MysqlDistributedStore;
 import io.agentscope.extensions.mysql.state.MysqlAgentStateStore;
 import io.agentscope.extensions.oss.OssAgentStateStore;
+import io.agentscope.extensions.postgresql.PostgresDistributedStore;
 import io.agentscope.extensions.postgresql.state.PostgresAgentStateStore;
 import io.agentscope.extensions.redis.state.RedisAgentStateStore;
 import io.agentscope.extensions.sandbox.agentrun.AgentRunFilesystemSpec;
@@ -275,6 +279,67 @@ public class AiConfigure {
                                 .workspaceRoot(cfg.getWorkspaceRoot())
                                 .kubernetesClient(new KubernetesClientBuilder().build())
                                 .isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties));
+                    }
+                };
+            }
+        }
+    }
+
+    /** Workspace 分布式存储后端装配。LOCAL 模式不创建外部存储连接。 */
+    @Configuration
+    public static class WorkspaceStorageConfig {
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.extensions.mysql.MysqlDistributedStore")
+        @ConditionalOnBean(DataSource.class)
+        @RequiredArgsConstructor
+        public static class MysqlWorkspaceStorageConfiguration {
+
+            private final AiProperties aiProperties;
+            private final DataSource dataSource;
+
+            @Bean
+            public WorkspaceDistributedStoreProvider mysqlWorkspaceDistributedStoreProvider() {
+                return new WorkspaceDistributedStoreProvider() {
+                    @Override
+                    public WorkspaceStorageType type() {
+                        return WorkspaceStorageType.MYSQL;
+                    }
+
+                    @Override
+                    public io.agentscope.harness.agent.DistributedStore create() {
+                        AiProperties.Workspace.Storage.Mysql cfg =
+                                aiProperties.getWorkspace().getStorage().getMysql();
+                        DataSource ds = StateStoreDataSources.resolveNamed(dataSource, cfg.getDatasource());
+                        return MysqlDistributedStore.create(ds);
+                    }
+                };
+            }
+        }
+
+        @Configuration
+        @ConditionalOnClass(name = "io.agentscope.extensions.postgresql.PostgresDistributedStore")
+        @ConditionalOnBean(DataSource.class)
+        @RequiredArgsConstructor
+        public static class PostgresWorkspaceStorageConfiguration {
+
+            private final AiProperties aiProperties;
+            private final DataSource dataSource;
+
+            @Bean
+            public WorkspaceDistributedStoreProvider postgresWorkspaceDistributedStoreProvider() {
+                return new WorkspaceDistributedStoreProvider() {
+                    @Override
+                    public WorkspaceStorageType type() {
+                        return WorkspaceStorageType.POSTGRES;
+                    }
+
+                    @Override
+                    public io.agentscope.harness.agent.DistributedStore create() {
+                        AiProperties.Workspace.Storage.Postgres cfg =
+                                aiProperties.getWorkspace().getStorage().getPostgres();
+                        DataSource ds = StateStoreDataSources.resolveNamed(dataSource, cfg.getDatasource());
+                        return PostgresDistributedStore.create(ds);
                     }
                 };
             }

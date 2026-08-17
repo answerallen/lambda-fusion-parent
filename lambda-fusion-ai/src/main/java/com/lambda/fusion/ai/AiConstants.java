@@ -370,6 +370,38 @@ public interface AiConstants {
         }
     }
 
+    /**
+     * AgentScope Workspace 存储类型（部署级配置）。
+     *
+     * <p>LOCAL：当前节点本地文件系统，仅适用于单节点；MYSQL/POSTGRES：通过 AgentScope
+     * {@code DistributedStore + RemoteFilesystem} 在多节点间共享 Workspace。
+     */
+    @Getter
+    @AllArgsConstructor
+    enum WorkspaceStorageType {
+        LOCAL("LOCAL", "本地文件系统（单节点）"),
+
+        MYSQL("MYSQL", "MySQL（分布式）"),
+
+        POSTGRES("POSTGRES", "PostgreSQL（分布式）");
+
+        private final String code;
+
+        private final String label;
+
+        public static WorkspaceStorageType of(String code) {
+            if (code == null) {
+                return null;
+            }
+            for (WorkspaceStorageType type : values()) {
+                if (type.code.equalsIgnoreCase(code.trim())) {
+                    return type;
+                }
+            }
+            return null;
+        }
+    }
+
     /** 对话业务 Run 状态。 */
     public enum ChatRunStatus {
         CREATED,

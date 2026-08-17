@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.runtime;
 
-import cn.hutool.crypto.digest.MD5;
 import com.lambda.fusion.ai.AiConstants.AppType;
 import com.lambda.fusion.ai.AiConstants.RagMode;
 import com.lambda.fusion.ai.AiConstants.StateStoreType;
@@ -15,8 +14,7 @@ import com.lambda.fusion.ai.rag.runtime.RagMiddleware;
 import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
 import com.lambda.fusion.ai.runtime.sandbox.SandboxSpecResolver;
 import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
-import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
-import com.lambda.fusion.ai.runtime.workspace.WorkspaceScaffolder;
+import com.lambda.fusion.ai.runtime.workspace.WorkspaceStorage;
 import com.lambda.fusion.ai.skill.runtime.SkillRepositoryResolver;
 import com.lambda.fusion.ai.subagent.service.SubAgentService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -33,12 +31,9 @@ import io.agentscope.core.state.InMemoryAgentStateStore;
 import io.agentscope.core.state.JsonFileAgentStateStore;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.harness.agent.HarnessAgent;
-import io.agentscope.harness.agent.filesystem.spec.LocalFilesystemSpec;
 import io.agentscope.harness.agent.filesystem.spec.SandboxFilesystemSpec;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
 import io.agentscope.harness.agent.subagent.SubagentDeclaration;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -78,8 +73,7 @@ public class AgentFactory {
     private final ModelResolver modelResolver;
     private final ToolkitAssembler toolkitAssembler;
     private final AiProperties aiProperties;
-    private final WorkspacePaths workspacePaths;
-    private final WorkspaceScaffolder workspaceScaffolder;
+    private final WorkspaceStorage workspaceStorage;
     private final SandboxSpecResolver sandboxSpecResolver;
     private final List<StateStoreProvider> stateStoreProviders;
     private final SkillRepositoryResolver skillRepositoryResolver;
@@ -111,7 +105,7 @@ public class AgentFactory {
     }
 
     public String buildStableAgentId(String appId, String tenantId) {
-        return MD5.create().digestHex("app:" + appId + ":t:" + tenantId);
+        return workspaceStorage.stableAgentId(appId, tenantId);
     }
 
     public void invalidateApp(String appId) {
@@ -360,13 +354,7 @@ public class AgentFactory {
             int maxIters,
             List<MiddlewareBase> middlewares,
             List<SubagentDeclaration> subAgents) {
-        Path hostWorkspace = workspacePaths.resolveAppWorkspace(tenantId, app.getId());
-        try {
-            Files.createDirectories(hostWorkspace);
-            workspaceScaffolder.scaffold(hostWorkspace, app);
-        } catch (IOException e) {
-            throw new AiBusinessException(AiErrorCode.CONFIGURATION_ERROR, e);
-        }
+        Path hostWorkspace = workspaceStorage.initializeWorkspace(tenantId, app);
         boolean selfEvolve = Boolean.TRUE.equals(app.getSelfEvolve());
         HarnessAgent.Builder builder = HarnessAgent.builder()
                 .agentId(stableAgentId)
@@ -384,12 +372,7 @@ public class AgentFactory {
             builder.skillRepository(skillRepo);
         }
         Optional<SandboxFilesystemSpec> sandboxSpec = sandboxSpecResolver.resolve(app, hostWorkspace);
-        if (sandboxSpec.isPresent()) {
-            builder.filesystem(sandboxSpec.get());
-        } else {
-            builder.filesystem(
-                    new LocalFilesystemSpec().isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties)));
-        }
+        workspaceStorage.configureFilesystem(builder, sandboxSpec, hostWorkspace, stableAgentId);
         if (!selfEvolve) {
             builder.disableFilesystemTools().disableMemoryTools().disableMemoryHooks();
         }
@@ -405,10 +388,11 @@ public class AgentFactory {
         }
         // 自演化应用保留文件工具和记忆钩子；本轮文件变更由 WorkspaceAuditRecorder 审计。
         log.info(
-                "构建 WORKSPACE Agent: app={}, tenant={}, selfEvolve={}, sandbox={}",
+                "构建 WORKSPACE Agent: app={}, tenant={}, selfEvolve={}, storage={}, sandbox={}",
                 app.getId(),
                 tenantId,
                 selfEvolve,
+                workspaceStorage.type(),
                 sandboxSpec.isPresent() ? "yes" : "HOST");
         return builder.build();
     }

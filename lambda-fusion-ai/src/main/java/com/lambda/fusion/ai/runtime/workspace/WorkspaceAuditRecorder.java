@@ -8,13 +8,8 @@ import com.lambda.fusion.ai.runtime.workspace.entity.WorkspaceAuditEntity;
 import com.lambda.fusion.ai.runtime.workspace.service.WorkspaceAuditService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -34,11 +29,12 @@ import org.springframework.stereotype.Component;
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class WorkspaceAuditRecorder {
 
-    private static final int MAX_DEPTH = 5;
     private static final String AUDIT_DIR_NAME = ".audit";
+    private static final String AGENTSCOPE_DIR_NAME = ".agentscope";
+    private static final String INDEX_DIR_NAME = ".index";
 
     private final AppService appService;
-    private final WorkspacePaths workspacePaths;
+    private final WorkspaceFileService workspaceFileService;
     private final WorkspaceAuditService workspaceAuditService;
 
     /**
@@ -51,14 +47,9 @@ public class WorkspaceAuditRecorder {
                     || !Boolean.TRUE.equals(app.getSelfEvolve())) {
                 return;
             }
-            Path workspace = workspacePaths.resolveAppWorkspace(session.getTenantId(), app.getId());
-            if (!Files.exists(workspace)) {
-                return;
-            }
-            Path auditDir = workspace.resolve(AUDIT_DIR_NAME).resolve(String.valueOf(turnStartMillis));
-            List<String> changed = scanChanged(workspace, turnStartMillis);
+            List<String> changed = scanChanged(session.getTenantId(), app, turnStartMillis);
             for (String relPath : changed) {
-                String snapshotRel = copySnapshot(workspace, relPath, auditDir);
+                String snapshotRel = copySnapshot(session.getTenantId(), app, relPath, turnStartMillis);
                 WorkspaceAuditEntity entry = new WorkspaceAuditEntity();
                 entry.setAppId(app.getId());
                 entry.setSessionId(session.getId());
@@ -77,42 +68,34 @@ public class WorkspaceAuditRecorder {
         }
     }
 
-    private List<String> scanChanged(Path workspace, long turnStartMillis) throws IOException {
-        List<String> changed = new ArrayList<>();
-        Path auditRoot = workspace.resolve(AUDIT_DIR_NAME).toAbsolutePath().normalize();
-        Path base = workspace.toAbsolutePath().normalize();
-        try (Stream<Path> stream = Files.walk(base, MAX_DEPTH)) {
-            stream.filter(Files::isRegularFile)
-                    .filter(p -> !p.toAbsolutePath().normalize().startsWith(auditRoot))
-                    .forEach(p -> {
-                        try {
-                            long mtime = Files.getLastModifiedTime(p).toMillis();
-                            if (mtime > turnStartMillis) {
-                                Path rel = base.relativize(p.toAbsolutePath().normalize());
-                                changed.add(rel.toString().replace('\\', '/'));
-                            }
-                        } catch (IOException ignored) {
-                        }
-                    });
-        }
-        return changed;
+    private List<String> scanChanged(String tenantId, AppEntity app, long turnStartMillis) throws IOException {
+        return workspaceFileService.list(tenantId, app).stream()
+                .filter(entry -> !entry.directory())
+                .filter(entry -> !isInternal(entry.path()))
+                .filter(entry -> entry.updatedAt() > turnStartMillis)
+                .map(WorkspaceFileEntry::path)
+                .toList();
     }
 
-    private String copySnapshot(Path workspace, String relPath, Path auditDir) {
+    private String copySnapshot(String tenantId, AppEntity app, String relPath, long turnStartMillis) {
+        String snapshotPath = AUDIT_DIR_NAME + "/" + turnStartMillis + "/" + relPath;
         try {
-            Path src = workspace.resolve(relPath).toAbsolutePath().normalize();
-            Path dst = auditDir.resolve(relPath).toAbsolutePath().normalize();
-            Files.createDirectories(dst.getParent());
-            Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
-            return workspace
-                    .toAbsolutePath()
-                    .normalize()
-                    .relativize(dst)
-                    .toString()
-                    .replace('\\', '/');
-        } catch (IOException e) {
+            String content = workspaceFileService.read(tenantId, app, relPath);
+            // recordChanges 在 Agent 流的 AGENT_END 处理期间执行，外层仍持有该应用的分布式执行锁。
+            workspaceFileService.writeWhileAgentLocked(tenantId, app, snapshotPath, content);
+            return snapshotPath;
+        } catch (Exception e) {
             log.warn("快照复制失败: {}", relPath, e);
             return null;
         }
+    }
+
+    private boolean isInternal(String path) {
+        return path.equals(AUDIT_DIR_NAME)
+                || path.startsWith(AUDIT_DIR_NAME + "/")
+                || path.equals(AGENTSCOPE_DIR_NAME)
+                || path.startsWith(AGENTSCOPE_DIR_NAME + "/")
+                || path.equals(INDEX_DIR_NAME)
+                || path.startsWith(INDEX_DIR_NAME + "/");
     }
 }

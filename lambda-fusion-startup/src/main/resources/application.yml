@@ -62,6 +62,14 @@ lambda:
         username: ${MAIN_DB_USERNAME}
         password: ${MAIN_DB_PASSWORD}
     ai:
+      #### AgentScope Workspace：LOCAL 单节点；MYSQL/POSTGRES 多节点共享。切换后不迁移旧数据 ####
+      workspace:
+        storage:
+          type: ${AI_WORKSPACE_STORAGE_TYPE:MYSQL}
+          mysql:
+            datasource: ${AI_WORKSPACE_MYSQL_DATASOURCE:master}
+          postgres:
+            datasource: ${AI_WORKSPACE_POSTGRES_DATASOURCE:ai-postgres}
       state-store:
         type: MYSQL
         mysql:
