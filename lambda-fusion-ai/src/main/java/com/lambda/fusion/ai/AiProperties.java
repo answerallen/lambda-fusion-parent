@@ -113,7 +113,7 @@ public class AiProperties {
 
             @Min(1)
             @Max(300)
-            private long stopGraceSeconds = 10;
+            private long stopGraceSeconds = 50;
 
             @Min(1)
             private long terminalTtlSeconds = 600;
