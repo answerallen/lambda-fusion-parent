@@ -165,6 +165,10 @@ lambda:
           type: LOCAL                              # LOCAL（单节点）/ MYSQL / POSTGRES
           mysql:    { datasource }                 # 默认 master
           postgres: { datasource }                 # 默认 ai-postgres
+      memory:
+        flush:
+          mode: THROTTLED                          # ALWAYS / THROTTLED / NEVER
+          min-gap: 10m                             # THROTTLED 最小刷新间隔
       sandbox:
         isolation-scope: AGENT                      # AGENT|USER|SESSION|GLOBAL
         docker:    { image, network, cpu-count, memory-size-bytes, workspace-root }
@@ -199,6 +203,8 @@ lambda:
 | `audience.{b,c}-roles` | B/C 端角色名列表，用于 app 可见性过滤（下游自定义角色名） |
 | `gateway.enabled` | 是否启用 HarnessGateway（默认 true）；关闭后无轮次串行锁与外部通道能力 |
 | `state-store.type` | Agent 多轮记忆后端；分布式后端（MYSQL/POSTGRES/REDIS/OSS/COS）依赖对应 AgentScope 扩展，缺失回退 MEMORY |
+| `memory.flush.mode` | WORKSPACE 自演化应用的长期记忆提取策略；默认 THROTTLED，可选 ALWAYS/THROTTLED/NEVER |
+| `memory.flush.min-gap` | THROTTLED 模式最小刷新间隔，默认 10m；实际发生刷新时仍会等待本次记忆提取完成 |
 | `sandbox.*` | 各沙箱后端凭据；对应扩展需在 classpath（ai 模块已 optional 引入） |
 | `skill.repository.type` | 技能仓库源；`NONE` 或扩展缺失时技能市场禁用 |
 | `rag.enabled` | 知识库检索注入总开关（默认 false）；关闭时管理 CRUD 仍可用 |

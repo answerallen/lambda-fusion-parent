@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
@@ -38,6 +40,12 @@ public class AiProperties {
      * Workspace 配置（WORKSPACE 型应用的文件系统根）。
      */
     private Workspace workspace = new Workspace();
+
+    /**
+     * WORKSPACE 自演化应用的长期记忆配置。
+     */
+    @Valid
+    private Memory memory = new Memory();
 
     /**
      * 沙箱配置（WORKSPACE 型应用的执行隔离）。
@@ -183,6 +191,39 @@ public class AiProperties {
          * 应用未配置 maxIters 时使用的 ReAct 最大迭代次数。
          */
         private int defaultMaxIters = 10;
+    }
+
+    /**
+     * AgentScope 长期记忆配置。仅 WORKSPACE 且 selfEvolve=true 的应用启用记忆钩子。
+     */
+    @Data
+    public static class Memory {
+
+        @Valid
+        private Flush flush = new Flush();
+
+        @Data
+        public static class Flush {
+
+            /** 每轮记忆提取触发模式：ALWAYS / THROTTLED / NEVER。 */
+            @NotNull
+            private Mode mode = Mode.THROTTLED;
+
+            /** THROTTLED 模式的最小刷新间隔；默认 10 分钟。 */
+            @NotNull
+            private Duration minGap = Duration.ofMinutes(10);
+
+            @AssertTrue(message = "lambda.fusion.ai.memory.flush.min-gap 必须大于0")
+            public boolean isMinGapValid() {
+                return minGap != null && !minGap.isNegative() && !minGap.isZero();
+            }
+
+            public enum Mode {
+                ALWAYS,
+                THROTTLED,
+                NEVER
+            }
+        }
     }
 
     @Data

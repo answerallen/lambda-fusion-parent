@@ -33,6 +33,7 @@ import io.agentscope.core.tool.Toolkit;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.filesystem.spec.SandboxFilesystemSpec;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
+import io.agentscope.harness.agent.memory.MemoryConfig;
 import io.agentscope.harness.agent.subagent.SubagentDeclaration;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -366,6 +367,7 @@ public class AgentFactory {
                 .permissionContext(buildPermissionContext())
                 .stateStore(sharedStateStore(app.getId(), tenantId))
                 .workspace(hostWorkspace)
+                .memory(resolveMemoryConfig(aiProperties))
                 .skillFilter(resolveSkillFilter(app));
         AgentSkillRepository skillRepo = skillRepositoryResolver.resolve();
         if (skillRepo != null) {
@@ -395,6 +397,18 @@ public class AgentFactory {
                 workspaceStorage.type(),
                 sandboxSpec.isPresent() ? "yes" : "HOST");
         return builder.build();
+    }
+
+    /** 将系统级记忆刷新策略映射为 AgentScope 官方配置，其余记忆参数保留框架默认值。 */
+    static MemoryConfig resolveMemoryConfig(AiProperties properties) {
+        AiProperties.Memory.Flush flush = properties.getMemory().getFlush();
+        MemoryConfig.FlushTrigger trigger =
+                switch (flush.getMode()) {
+                    case ALWAYS -> MemoryConfig.FlushTrigger.always();
+                    case THROTTLED -> MemoryConfig.FlushTrigger.throttled(flush.getMinGap());
+                    case NEVER -> MemoryConfig.FlushTrigger.never();
+                };
+        return MemoryConfig.builder().flushTrigger(trigger).build();
     }
 
     // 格式与 {@link #invalidateApp} 的 key 前缀匹配逻辑耦合

@@ -70,6 +70,11 @@ lambda:
             datasource: ${AI_WORKSPACE_MYSQL_DATASOURCE:master}
           postgres:
             datasource: ${AI_WORKSPACE_POSTGRES_DATASOURCE:ai-postgres}
+      #### WORKSPACE 自演化长期记忆：默认每 10 分钟最多刷新一次 ####
+      memory:
+        flush:
+          mode: ${AI_MEMORY_FLUSH_MODE:THROTTLED}
+          min-gap: ${AI_MEMORY_FLUSH_MIN_GAP:10m}
       state-store:
         type: MYSQL
         mysql:
