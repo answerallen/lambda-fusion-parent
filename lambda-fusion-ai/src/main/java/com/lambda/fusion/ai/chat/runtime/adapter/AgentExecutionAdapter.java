@@ -4,10 +4,12 @@ import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
+import com.lambda.fusion.ai.runtime.gateway.FusionSubagentGateway;
 import com.lambda.fusion.ai.runtime.gateway.RuntimeProperty;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.event.SubagentExposedEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolCallState;
@@ -53,7 +55,9 @@ public final class AgentExecutionAdapter {
     private final String runId;
     private final String sessionId;
     private final String userId;
+    private final String appId;
     private final String tenantId;
+    private final FusionSubagentGateway subagentGateway;
     private final MsgContext gatewayContext;
     private final OutboundAddress outboundAddress;
     private final String stateSessionId;
@@ -78,12 +82,25 @@ public final class AgentExecutionAdapter {
             ChatRunEntity run,
             ChatSessionEntity session,
             String tenantId) {
+        this(agent, gateway, routingAgentId, run, session, tenantId, null);
+    }
+
+    public AgentExecutionAdapter(
+            HarnessAgent agent,
+            HarnessGateway gateway,
+            String routingAgentId,
+            ChatRunEntity run,
+            ChatSessionEntity session,
+            String tenantId,
+            FusionSubagentGateway subagentGateway) {
         this.agent = Objects.requireNonNull(agent, "agent");
         this.gateway = gateway;
         this.runId = Objects.requireNonNull(run.getId(), "run.id");
         this.sessionId = Objects.requireNonNull(run.getSessionId(), "run.sessionId");
         this.userId = session.getUserId();
+        this.appId = Objects.requireNonNull(session.getAppId(), "session.appId");
         this.tenantId = Objects.requireNonNull(tenantId, "tenantId");
+        this.subagentGateway = subagentGateway;
         this.workspaceExecutionGuard = resolveWorkspaceExecutionGuard(agent);
         this.workspaceExecutionKey = workspaceExecutionGuard == null
                 ? null
@@ -125,14 +142,24 @@ public final class AgentExecutionAdapter {
                     .build();
             source = agent.streamEvents(message, context);
         }
+        if (subagentGateway != null) {
+            source = source.doOnNext(this::recordSubagentExposure);
+        }
         if (workspaceExecutionGuard == null) {
             return source;
         }
+        Flux<AgentEvent> execution = source;
         return Flux.usingWhen(
                 Mono.fromCallable(() -> workspaceExecutionGuard.tryEnter(workspaceExecutionKey))
                         .subscribeOn(Schedulers.boundedElastic()),
-                ignored -> source,
+                ignored -> execution,
                 lease -> Mono.fromRunnable(lease::close).subscribeOn(Schedulers.boundedElastic()));
+    }
+
+    private void recordSubagentExposure(AgentEvent event) {
+        if (event instanceof SubagentExposedEvent exposedEvent) {
+            subagentGateway.recordExposure(exposedEvent, appId, tenantId, userId, stateSessionId);
+        }
     }
 
     /**

@@ -136,7 +136,13 @@ class ExecutionCoordinatorRecoveryTest {
         AiProperties properties = new AiProperties();
         properties.getStateStore().setType(stateStoreType);
         ChatRunInstanceFactory instanceFactory = new ChatRunInstanceFactory(
-                runService, eventStore, agentFactory, workspaceAuditRecorder, gatewayProvider(), properties);
+                runService,
+                eventStore,
+                agentFactory,
+                workspaceAuditRecorder,
+                gatewayProvider(),
+                mock(ObjectProvider.class),
+                properties);
         coordinator = new ChatRunCoordinator(
                 runService,
                 eventStore,

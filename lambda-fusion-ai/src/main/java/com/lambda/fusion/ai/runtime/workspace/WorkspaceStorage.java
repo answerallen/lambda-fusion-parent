@@ -93,6 +93,11 @@ public class WorkspaceStorage {
         return type != WorkspaceStorageType.LOCAL;
     }
 
+    /** 当前远程 Workspace 使用的统一分布式存储；LOCAL 模式返回空。 */
+    public Optional<DistributedStore> distributedStore() {
+        return Optional.ofNullable(distributedStore);
+    }
+
     /** 初始化当前配置对应的 Workspace 模板目录；已存在文件不会被覆盖。 */
     public Path initializeWorkspace(String tenantId, AppEntity app) {
         Path workspace = workspacePaths.resolveAppWorkspace(tenantId, app.getId(), type);

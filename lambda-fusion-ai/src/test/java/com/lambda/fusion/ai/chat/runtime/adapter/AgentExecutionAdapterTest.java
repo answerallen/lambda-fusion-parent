@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.chat.runtime.adapter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -11,10 +12,12 @@ import static org.mockito.Mockito.when;
 
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.runtime.gateway.FusionSubagentGateway;
 import com.lambda.fusion.ai.runtime.gateway.RuntimeProperty;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.event.SubagentExposedEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolCallState;
@@ -114,6 +117,27 @@ class AgentExecutionAdapterTest {
         adapter.interrupt();
 
         verify(delegate).interrupt("user-1", stateSessionId);
+    }
+
+    @Test
+    void shouldCompleteSubagentExposureRecordFromTheBusinessConversation() {
+        HarnessAgent agent = mock(HarnessAgent.class);
+        HarnessGateway gateway = mock(HarnessGateway.class);
+        FusionSubagentGateway subagentGateway = mock(FusionSubagentGateway.class);
+        SubagentExposedEvent event = new SubagentExposedEvent("sub-1", "worker", "child-session", "Worker");
+        when(gateway.runStream(any(MsgContext.class), anyList(), any(OutboundAddress.class)))
+                .thenReturn(Flux.just(event));
+        AgentExecutionAdapter adapter =
+                new AgentExecutionAdapter(agent, gateway, "agent-1", run(), session(), "tenant-1", subagentGateway);
+
+        adapter.stream(userMessage()).blockLast();
+
+        ArgumentCaptor<MsgContext> contextCaptor = ArgumentCaptor.forClass(MsgContext.class);
+        verify(gateway).runStream(contextCaptor.capture(), anyList(), any(OutboundAddress.class));
+        String parentSessionId = "gw-"
+                + SessionIdUtils.deterministicHash(contextCaptor.getValue().canonicalKey());
+        verify(subagentGateway)
+                .recordExposure(eq(event), eq("app-1"), eq("tenant-1"), eq("user-1"), eq(parentSessionId));
     }
 
     @Test

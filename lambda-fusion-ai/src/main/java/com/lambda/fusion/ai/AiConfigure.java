@@ -17,6 +17,7 @@ import com.lambda.fusion.ai.rag.service.KnowledgeBaseService;
 import com.lambda.fusion.ai.rag.storage.DocumentFileStorageResolver;
 import com.lambda.fusion.ai.rag.storage.LocalDocumentFileStorage;
 import com.lambda.fusion.ai.rag.storage.OssDocumentFileStorage;
+import com.lambda.fusion.ai.runtime.AgentFactory;
 import com.lambda.fusion.ai.runtime.EmbeddingModelResolver;
 import com.lambda.fusion.ai.runtime.event.ConfigChangedEvent;
 import com.lambda.fusion.ai.runtime.event.DubboConfigInvalidationBroadcaster;
@@ -24,11 +25,13 @@ import com.lambda.fusion.ai.runtime.event.RemoteAgentCacheInvalidationService;
 import com.lambda.fusion.ai.runtime.gateway.ChannelBootstrap;
 import com.lambda.fusion.ai.runtime.gateway.ChannelConfigApplier;
 import com.lambda.fusion.ai.runtime.gateway.ChannelLifecycle;
+import com.lambda.fusion.ai.runtime.gateway.FusionSubagentGateway;
 import com.lambda.fusion.ai.runtime.sandbox.SandboxBackendProvider;
 import com.lambda.fusion.ai.runtime.sandbox.SandboxSpecResolver;
 import com.lambda.fusion.ai.runtime.state.StateStoreDataSources;
 import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceDistributedStoreProvider;
+import com.lambda.fusion.ai.runtime.workspace.WorkspaceStorage;
 import com.lambda.fusion.ai.skill.SkillRepositoryProvider;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.ClientConfig;
@@ -59,6 +62,9 @@ import io.agentscope.extensions.sandbox.kubernetes.KubernetesFilesystemSpec;
 import io.agentscope.harness.agent.filesystem.spec.SandboxFilesystemSpec;
 import io.agentscope.harness.agent.gateway.ChannelManager;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
+import io.agentscope.harness.agent.gateway.InMemorySubagentRegistry;
+import io.agentscope.harness.agent.gateway.StoreBackedSubagentRegistry;
+import io.agentscope.harness.agent.gateway.SubagentRegistry;
 import io.agentscope.harness.agent.gateway.channel.Channel;
 import io.agentscope.harness.agent.gateway.channel.ChannelFactory;
 import io.agentscope.harness.agent.sandbox.impl.docker.DockerFilesystemSpec;
@@ -105,6 +111,22 @@ public class AiConfigure {
         @Bean
         public ChannelManager channelManager() {
             return new ChannelManager();
+        }
+
+        @Bean
+        public SubagentRegistry fusionSubagentRegistry(WorkspaceStorage workspaceStorage) {
+            return workspaceStorage
+                    .distributedStore()
+                    .<SubagentRegistry>map(store -> new StoreBackedSubagentRegistry(store.baseStore()))
+                    .orElseGet(InMemorySubagentRegistry::new);
+        }
+
+        @Bean
+        public FusionSubagentGateway fusionSubagentGateway(
+                ObjectProvider<AgentFactory> agentFactoryProvider,
+                WorkspaceStorage workspaceStorage,
+                SubagentRegistry subagentRegistry) {
+            return new FusionSubagentGateway(agentFactoryProvider, workspaceStorage, subagentRegistry);
         }
 
         @Bean

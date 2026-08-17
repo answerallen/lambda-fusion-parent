@@ -112,6 +112,10 @@ public enum AiErrorCode implements ErrorCode {
 
     SUB_AGENT_DISABLED(30824, "子代理已禁用"),
 
+    SUB_AGENT_SESSION_UNAVAILABLE(30825, "子代理会话不存在或无权访问"),
+
+    SUB_AGENT_RECOVERY_FAILED(30826, "子代理会话恢复失败"),
+
     CHAT_SESSION_NOT_FOUND(30201, "对话会话不存在"),
 
     CHAT_MESSAGE_NOT_FOUND(30202, "对话消息不存在"),

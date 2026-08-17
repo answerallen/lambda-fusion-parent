@@ -112,6 +112,10 @@
 ### 子代理
 DB 驱动子代理定义（`ai_sub_agent`：`name`/`description`/`prompt`/`modelId`/`steps`/`toolsAllow`/`skillsAllow`/`workspaceMode`）。按应用绑定（`ai_app.sub_agent_ids`，仅 WORKSPACE 型），`AgentFactory` 构建期注册为 `SubagentDeclaration`，主 agent 经 harness 子代理体系（`agent_spawn`/`agent_send`）调度，**路由由 LLM 按 description 自主决策**。同名 `workspace/subagents/*.md` 文件覆盖 DB 声明。端点 `/v1/ai/sub-agents`。详见 SKILL.md「子代理」。
 
+`expose_to_user` 发布事件由 Lambda Fusion 应用层补全应用、租户、用户和父会话信息，不修改 AgentScope 源码。记录中的子 Agent 类型会转换为带应用与租户作用域的内部标识，其他节点据此重建正确的父 Agent，再按其声明恢复子 Agent。直接对话必须通过 `FusionSubagentGateway`，同时校验应用、租户和用户；远程 Workspace 模式下使用同一 `DistributedStore` 的执行锁串行化跨节点请求。
+
+升级前已生成、但未经过 Lambda Fusion 暴露事件补全的旧记录不会参与全局恢复；客户端需从父 Agent 重新生成新的 `subagentId`。平台外部通道若需要开放子 Agent 直接对话，也必须在其认证调用链中补全同样的业务身份后再调用该入口。
+
 ### 技能市场
 技能仓库源按部署形态选择：`MYSQL`（默认）/ `POSTGRES`（可读写，admin CRUD）/ `GIT` / `NACOS`（只读 catalog）。`type=NONE` 或扩展未引入时技能市场禁用（WORKSPACE app 仅用 workspace 本地技能）。端点 `/v1/ai/skills`。
 
@@ -128,6 +132,7 @@ DB 驱动子代理定义（`ai_sub_agent`：`name`/`description`/`prompt`/`model
   - `GET /v1/ai/apps/{id}/workspace/file?tenantId=&path=` 读取
   - `PUT /v1/ai/apps/{id}/workspace/file?tenantId=&path=` 写入
   - `GET /v1/ai/apps/{id}/workspace/audit?tenantId=` 自演化审计记录
+- `workspace.storage.type` 是部署级且不可由应用覆盖：`LOCAL` 保持原本地单节点行为；`MYSQL`/`POSTGRES` 供多节点共享，并要求 `state-store.type` 同时使用分布式后端。切换类型会进入新的存储命名空间，不迁移、复制或删除旧数据。
 
 ## 配置
 
@@ -156,6 +161,10 @@ lambda:
         cos:      { region, secret-id, secret-key, bucket-name, key-prefix }
       workspace:
         root: ${user.home}/.agentscope/fusion      # workspace 根
+        storage:
+          type: LOCAL                              # LOCAL（单节点）/ MYSQL / POSTGRES
+          mysql:    { datasource }                 # 默认 master
+          postgres: { datasource }                 # 默认 ai-postgres
       sandbox:
         isolation-scope: AGENT                      # AGENT|USER|SESSION|GLOBAL
         docker:    { image, network, cpu-count, memory-size-bytes, workspace-root }
@@ -286,11 +295,10 @@ POST /v1/ai/apps   { "appType":"WORKSPACE", "selfEvolve":true, "sandboxBackend":
 
 ## 路线图
 
-已完成：CHAT / WORKSPACE(ASSISTANT+AUTONOMOUS) / 自演化审计 / 多后端沙箱(Docker+K8s+E2B+Daytona+AgentRun) / audience+owner_id 可见性 / **知识库 RAG（MEMORY+PGVECTOR，三检索模式，原文件 LOCAL+OSS）** / **子代理（DB 驱动 + REST）** / **技能市场（MYSQL/POSTGRES/GIT/NACOS）** / **通道配置管理 + 钉钉/飞书/企微适配器** / **Agent 状态存储多后端（MEMORY/FILE/MYSQL/POSTGRES/REDIS/OSS/COS）** / HarnessGateway（per-session 串行 + 外部通道 SPI + 主动出站）。
+已完成：CHAT / WORKSPACE(ASSISTANT+AUTONOMOUS) / 自演化审计 / 多后端沙箱(Docker+K8s+E2B+Daytona+AgentRun) / audience+owner_id 可见性 / **知识库 RAG（MEMORY+PGVECTOR，三检索模式，原文件 LOCAL+OSS）** / **子代理（DB 驱动 + REST）** / **技能市场（MYSQL/POSTGRES/GIT/NACOS）** / **通道配置管理 + 钉钉/飞书/企微适配器** / **Agent 状态存储多后端（MEMORY/FILE/MYSQL/POSTGRES/REDIS/OSS/COS）** / **Workspace 分布式存储（LOCAL/MYSQL/POSTGRES）** / **Lambda 层子 Agent 共享注册、身份补全、跨节点恢复与执行串行** / HarnessGateway（per-session 串行 + 外部通道 SPI + 主动出站）。
 
 待跟进：
 - `WakeupDispatcher` + `MessageBus`（异步子代理完成 announce、团队消息、定时触发）
-- `DistributedStore` / `StoreBackedSubagentRegistry`（跨节点子 agent 恢复，多副本；多副本时 state-store 需换分布式实现）
 - 真实平台通道适配器打磨（钉钉/飞书/企微下游落地）
 - 应用分享与权限（run/edit/fork）
 - 成本/Token 统计

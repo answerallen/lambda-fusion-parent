@@ -8,6 +8,7 @@ import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.runtime.AgentFactory;
+import com.lambda.fusion.ai.runtime.gateway.FusionSubagentGateway;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
@@ -37,6 +38,7 @@ class ChatRunInstanceFactory {
     private final AgentFactory agentFactory;
     private final WorkspaceAuditRecorder workspaceAuditRecorder;
     private final ObjectProvider<HarnessGateway> gatewayProvider;
+    private final ObjectProvider<FusionSubagentGateway> subagentGatewayProvider;
     private final AiProperties properties;
 
     /** 恢复带 Agent 的完整执行实例。 */
@@ -44,13 +46,18 @@ class ChatRunInstanceFactory {
         eventStore.initialize(run.getId(), ChatRunSupport.sequenceFallback(run));
         String tenantId = tenantId(session);
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), tenantId);
+        FusionSubagentGateway subagentGateway = subagentGatewayProvider.getIfAvailable();
+        if (subagentGateway != null) {
+            subagentGateway.configureAgent(agent);
+        }
         AgentExecutionAdapter agentExecution = new AgentExecutionAdapter(
                 agent,
                 gatewayProvider.getIfAvailable(),
                 agentFactory.buildStableAgentId(session.getAppId(), tenantId),
                 run,
                 session,
-                tenantId);
+                tenantId,
+                subagentGateway);
         return newInstance(run, session, scheduler, agentExecution);
     }
 

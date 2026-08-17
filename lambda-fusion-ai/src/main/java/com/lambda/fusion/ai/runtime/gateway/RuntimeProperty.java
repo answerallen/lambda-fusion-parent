@@ -34,6 +34,7 @@ public final class RuntimeProperty {
 
     private static String extra(RuntimeContext ctx, String key) {
         MsgContext mc = msgContext(ctx);
-        return mc != null ? mc.extra().get(key) : null;
+        String value = mc != null ? mc.extra().get(key) : null;
+        return value != null || ctx == null ? value : ctx.get(key, String.class);
     }
 }

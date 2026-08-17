@@ -40,6 +40,7 @@ class WorkspaceStorageTest {
         files.write("tenant-a", app, "memory/note.md", "local-note");
 
         assertThat(storage.type()).isEqualTo(WorkspaceStorageType.LOCAL);
+        assertThat(storage.distributedStore()).isEmpty();
         assertThat(files.read("tenant-a", app, "memory/note.md")).isEqualTo("local-note");
         assertThat(files.list("tenant-a", app))
                 .extracting(WorkspaceFileEntry::path)
@@ -58,6 +59,7 @@ class WorkspaceStorageTest {
                 storage(properties("MYSQL"), List.of(provider(distributedStore(sharedBaseStore))));
         firstStorage.initialize();
         secondStorage.initialize();
+        assertThat(firstStorage.distributedStore()).isPresent();
         WorkspaceFileService firstNode = new WorkspaceFileService(firstStorage);
         WorkspaceFileService secondNode = new WorkspaceFileService(secondStorage);
         AppEntity app = app();
