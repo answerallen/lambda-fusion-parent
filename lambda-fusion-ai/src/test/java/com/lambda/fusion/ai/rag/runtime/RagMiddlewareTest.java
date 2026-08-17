@@ -50,7 +50,7 @@ class RagMiddlewareTest {
     void hitAppendsSyntheticKnowledgeMessage() {
         KnowledgeRetriever retriever = mock(KnowledgeRetriever.class);
         when(retriever.retrieve(anyList(), anyString()))
-                .thenReturn(Mono.just(List.of(new RetrievedChunk("Lambda Fusion 支持 RAG 检索注入", 0.9, "kb1", "doc1"))));
+                .thenReturn(Mono.just(List.of(chunk("Lambda Fusion 支持 RAG 检索注入", 0.9, "产品手册.pdf"))));
         RagMiddleware middleware = new RagMiddleware(retriever, KB_IDS, 4000);
         AgentInput input = inputOf(userMsg("Lambda Fusion 是什么?"));
         AtomicReference<AgentInput> seen = new AtomicReference<>();
@@ -66,6 +66,7 @@ class RagMiddlewareTest {
         assertThat(injected.getTextContent())
                 .contains("<retrieved_knowledge>")
                 .contains("</retrieved_knowledge>")
+                .contains("Source: 产品手册.pdf")
                 .contains("Lambda Fusion 支持 RAG 检索注入");
     }
 
@@ -134,11 +135,8 @@ class RagMiddlewareTest {
         String shortChunk = "AAAAAAAAAA";
         String longChunk = "B".repeat(1000);
         when(retriever.retrieve(anyList(), anyString()))
-                .thenReturn(Mono.just(List.of(
-                        new RetrievedChunk(shortChunk, 0.9, "kb1", "doc1"),
-                        new RetrievedChunk(longChunk, 0.8, "kb1", "doc1"))));
-        // 200 仅够拼入第一条（头部约 94 字符 + 第一条 36 字符），第二条整体跳过
-        RagMiddleware middleware = new RagMiddleware(retriever, KB_IDS, 200);
+                .thenReturn(Mono.just(List.of(chunk(shortChunk, 0.9, "短文档.pdf"), chunk(longChunk, 0.8, "长文档.pdf"))));
+        RagMiddleware middleware = new RagMiddleware(retriever, KB_IDS, 400);
         AgentInput input = inputOf(userMsg("问题"));
         AtomicReference<AgentInput> seen = new AtomicReference<>();
 
@@ -146,7 +144,12 @@ class RagMiddlewareTest {
 
         String text = seen.get().msgs().get(1).getTextContent();
         assertThat(text).contains(shortChunk).doesNotContain(longChunk);
+        assertThat(text).contains("Source: 短文档.pdf").contains("[Content truncated]");
         // 截断后总长不超过 maxInjectChars + 收尾标签长度
-        assertThat(text.length()).isLessThanOrEqualTo(200 + "</retrieved_knowledge>".length());
+        assertThat(text.length()).isLessThanOrEqualTo(400 + "</retrieved_knowledge>".length());
+    }
+
+    private static RetrievedChunk chunk(String content, double score, String fileName) {
+        return new RetrievedChunk(content, score, "kb1", "doc1", fileName, "doc1-0", 0, 1, "第一章");
     }
 }

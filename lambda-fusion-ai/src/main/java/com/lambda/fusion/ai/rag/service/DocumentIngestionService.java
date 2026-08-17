@@ -1,22 +1,22 @@
 package com.lambda.fusion.ai.rag.service;
 
+import com.lambda.fusion.ai.AiConstants.DocumentChunkStrategy;
 import com.lambda.fusion.ai.AiConstants.DocumentStatus;
+import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.rag.mapper.KnowledgeDocumentMapper;
 import com.lambda.fusion.ai.rag.model.entity.KnowledgeDocumentEntity;
+import com.lambda.fusion.ai.rag.runtime.DocumentChunker;
 import com.lambda.fusion.ai.rag.runtime.IngestChunk;
 import com.lambda.fusion.ai.rag.runtime.SimpleKnowledgeAdapter;
 import com.lambda.fusion.ai.rag.storage.DocumentFileStorage;
 import com.lambda.fusion.ai.rag.storage.DocumentFileStorageResolver;
 import com.lambda.fusion.ai.runtime.document.DocumentTextExtractor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.agentscope.core.rag.reader.Reader;
-import io.agentscope.core.rag.reader.ReaderInput;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.annotation.Async;
 
 /**
- * 文档入库管线：从已持久化的原文件读取 → Reader 解析切块 → 向量库写入 → 更新文档行状态。
+ * 文档入库管线：从已持久化的原文件读取 → 抽取全文 → 按文档策略切块 → 向量库写入 → 更新文档行状态。
  *
  * <p>原文件在 upload 端点已通过 {@link DocumentFileStorage} 持久化（LOCAL/OSS），本类按
  * document 行记录的 {@code storageType} 路由取回，下载到本方法创建的临时文件后解析，finally
@@ -33,8 +33,8 @@ import org.springframework.scheduling.annotation.Async;
  * <p>本类异步执行（{@code AiConfigure} 已 {@code @EnableAsync}）；调用方在主事务
  * {@code afterCommit} 阶段触发，保证 document 行已提交可见，避免异步线程 selectById 读不到。
  *
- * <p>Reader 产出的 {@code Document}（deprecated 模型类）在此仅取文本与 chunkId 转为自有
- * {@link IngestChunk}，向量文档的组装由 {@link SimpleKnowledgeAdapter} 防腐层完成。
+ * <p>文件 Reader 只负责格式解析，切割语义统一收敛到 {@link DocumentChunker}；向量文档的组装由
+ * {@link SimpleKnowledgeAdapter} 防腐层完成。
  *
  * @author Jin
  */
@@ -44,9 +44,9 @@ import org.springframework.scheduling.annotation.Async;
 public class DocumentIngestionService {
 
     private final KnowledgeDocumentMapper knowledgeDocumentMapper;
-    private final KnowledgeBaseService knowledgeBaseService;
     private final SimpleKnowledgeAdapter simpleKnowledgeAdapter;
     private final DocumentFileStorageResolver storageResolver;
+    private final AiProperties aiProperties;
 
     /**
      * 异步执行入库；任何失败只落文档行状态（FAILED + error_msg），不向调用方抛出。
@@ -70,24 +70,14 @@ public class DocumentIngestionService {
                 storage.download(document.getStoragePath(), out);
             }
 
-            Reader reader = DocumentTextExtractor.resolveReader(document.getFileType());
-            // ReaderInput 构造按 reader 期望区分：二进制走 fromPath、文本自行读（UTF-8 优先 GBK 兜底）
-            ReaderInput input = DocumentTextExtractor.buildReaderInput(document.getFileType(), tempFile);
-            var documents = reader.read(input).block();
-            List<IngestChunk> chunks = new ArrayList<>();
-            if (documents != null) {
-                int index = 0;
-                for (var doc : documents) {
-                    String chunkId = doc.getMetadata().getChunkId();
-                    chunks.add(new IngestChunk(
-                            StringUtils.defaultIfBlank(chunkId, documentId + "-" + index),
-                            doc.getMetadata().getContentText()));
-                    index++;
-                }
-            }
+            String text = DocumentTextExtractor.extractText(document.getFileType(), tempFile);
+            DocumentChunkStrategy strategy = resolveStrategy(document.getChunkStrategy());
+            List<IngestChunk> chunks = DocumentChunker.chunk(
+                    documentId, text, strategy, aiProperties.getRag().getChunking());
             simpleKnowledgeAdapter.addChunks(
                     document.getKbId(), document.getId(), document.getTenantId(), document.getFileName(), chunks);
             document.setStatus(DocumentStatus.READY.getCode());
+            document.setChunkStrategy(strategy.getCode());
             document.setChunkCount(chunks.size());
             document.setErrorMsg(null);
             document.setUpdatedAt(LocalDateTime.now());
@@ -120,5 +110,16 @@ public class DocumentIngestionService {
         } catch (Exception updateError) {
             log.warn("更新文档失败状态出错: doc={}, {}", documentId, updateError.getMessage());
         }
+    }
+
+    private static DocumentChunkStrategy resolveStrategy(String code) {
+        if (StringUtils.isBlank(code)) {
+            return DocumentChunkStrategy.AUTO;
+        }
+        DocumentChunkStrategy strategy = DocumentChunkStrategy.of(code);
+        if (strategy == null) {
+            throw new IllegalArgumentException("Unknown document chunk strategy: " + code);
+        }
+        return strategy;
     }
 }

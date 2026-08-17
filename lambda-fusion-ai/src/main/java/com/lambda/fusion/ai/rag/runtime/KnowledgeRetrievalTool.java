@@ -15,7 +15,7 @@ import org.apache.commons.lang3.StringUtils;
  * 同一「绑定即挂载 + ConfigChangedEvent 失效重建」生命周期），不走 ToolkitAssembler 的
  * 全局 Bean 扫描（扫描是全局共享语义，无法按 app 隔离检索范围）。
  *
- * <p>格式化沿用旧 {@code KnowledgeRetrievalTools} 的纯文本风格（Score + 内容）；
+ * <p>命中结果统一携带来源文件、文档ID、章节与分块位置，避免多文档片段在 ReAct 上下文中混淆；
  * 空结果/空白 query/检索异常一律返回友好文案，绝不向 ReAct 循环外抛异常
  * （与 RagMiddleware 的降级哲学一致）。
  *
@@ -56,17 +56,15 @@ public class KnowledgeRetrievalTool {
         return formatChunks(chunks);
     }
 
-    // 沿用旧 KnowledgeRetrievalTools 的格式：Retrieved N ... Document i (Score: x.xxx): 内容
+    // 与自动注入中间件复用同一来源格式，保证两种 RAG 模式的文档边界一致
     private static String formatChunks(List<RetrievedChunk> chunks) {
         StringBuilder sb = new StringBuilder("Retrieved ").append(chunks.size()).append(" relevant document(s):\n\n");
         int index = 1;
         for (RetrievedChunk chunk : chunks) {
             sb.append("Document ")
                     .append(index++)
-                    .append(" (Score: ")
-                    .append(String.format("%.3f", chunk.score()))
-                    .append("):\n")
-                    .append(chunk.content())
+                    .append(":\n")
+                    .append(KnowledgeContextFormatter.format(chunk))
                     .append("\n\n");
         }
         return sb.toString();

@@ -541,11 +541,11 @@ public class AiConfigure {
         @Bean
         public DocumentIngestionService documentIngestionService(
                 KnowledgeDocumentMapper knowledgeDocumentMapper,
-                KnowledgeBaseService knowledgeBaseService,
                 SimpleKnowledgeAdapter simpleKnowledgeAdapter,
-                DocumentFileStorageResolver storageResolver) {
+                DocumentFileStorageResolver storageResolver,
+                AiProperties aiProperties) {
             return new DocumentIngestionService(
-                    knowledgeDocumentMapper, knowledgeBaseService, simpleKnowledgeAdapter, storageResolver);
+                    knowledgeDocumentMapper, simpleKnowledgeAdapter, storageResolver, aiProperties);
         }
     }
 

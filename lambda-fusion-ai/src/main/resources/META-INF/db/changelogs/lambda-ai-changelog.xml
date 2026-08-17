@@ -695,4 +695,19 @@
         <addUniqueConstraint tableName="ai_app" columnNames="publish_code" constraintName="uk_ai_app_publish_code"/>
     </changeSet>
 
+    <!-- ========== ai_knowledge_document 增文档切割策略 ========== -->
+    <changeSet id="lambda-ai-202608170001" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_knowledge_document" columnName="chunk_strategy"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_knowledge_document">
+            <column name="chunk_strategy" type="varchar(16)" defaultValue="AUTO"
+                    remarks="切割策略: AUTO/WHOLE/HEADING/PARAGRAPH/TOKEN">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

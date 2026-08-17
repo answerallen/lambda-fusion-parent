@@ -70,16 +70,23 @@ public class RagMiddleware implements HarnessRuntimeMiddleware {
         return null;
     }
 
-    // 拼接注入消息，沿用 GenericRAGHook 的 <retrieved_knowledge> Score/Content 格式，总长受 maxInjectChars 截断
+    // 拼接带来源边界的注入消息；超长片段保留来源头并截断正文，总长受 maxInjectChars 控制
     private Msg buildKnowledgeMsg(List<RetrievedChunk> chunks) {
-        StringBuilder sb = new StringBuilder("<retrieved_knowledge>");
-        sb.append("Use the following content from the knowledge base(s) if it is helpful:\n\n");
+        StringBuilder sb = new StringBuilder("<retrieved_knowledge>\n");
+        sb.append("Use the following knowledge if helpful. Keep facts from different sources separate ")
+                .append("and mention the source file when it matters:\n\n");
         for (RetrievedChunk chunk : chunks) {
-            String entry = String.format("- Score: %.3f, Content: %s\n", chunk.score(), chunk.content());
-            if (sb.length() + entry.length() > maxInjectChars) {
+            String entry = KnowledgeContextFormatter.format(chunk) + "\n\n";
+            int remaining = maxInjectChars - sb.length();
+            if (remaining <= 0) {
                 break;
             }
-            sb.append(entry);
+            if (entry.length() <= remaining) {
+                sb.append(entry);
+                continue;
+            }
+            appendTruncated(sb, entry, remaining);
+            break;
         }
         sb.append("</retrieved_knowledge>");
         return Msg.builder()
@@ -88,5 +95,15 @@ public class RagMiddleware implements HarnessRuntimeMiddleware {
                 .content(TextBlock.builder().text(sb.toString()).build())
                 .metadata(Map.<String, Object>of(Msg.METADATA_SYNTHETIC, true))
                 .build();
+    }
+
+    private static void appendTruncated(StringBuilder target, String entry, int remaining) {
+        String marker = "\n[Content truncated]";
+        if (remaining <= marker.length()) {
+            target.append(entry, 0, Math.min(entry.length(), remaining));
+            return;
+        }
+        int contentLength = Math.min(entry.length(), remaining - marker.length());
+        target.append(entry, 0, contentLength).append(marker);
     }
 }

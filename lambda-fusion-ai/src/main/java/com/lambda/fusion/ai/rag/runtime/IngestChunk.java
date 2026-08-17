@@ -5,6 +5,8 @@ package com.lambda.fusion.ai.rag.runtime;
  *
  * @param chunkId 切块ID
  * @param text 切块文本
+ * @param chunkIndex 文档内零基切块序号
+ * @param sectionPath 所属章节路径；无章节结构时为空
  * @author Jin
  */
-public record IngestChunk(String chunkId, String text) {}
+public record IngestChunk(String chunkId, String text, int chunkIndex, String sectionPath) {}

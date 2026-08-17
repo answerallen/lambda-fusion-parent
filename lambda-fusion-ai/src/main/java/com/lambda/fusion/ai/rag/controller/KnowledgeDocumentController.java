@@ -50,8 +50,11 @@ public class KnowledgeDocumentController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public KnowledgeDocumentEntity upload(
             @Parameter(description = "知识库ID", required = true) @PathVariable String kbId,
-            @RequestParam("file") MultipartFile file) {
-        return knowledgeDocumentService.upload(kbId, file);
+            @RequestParam("file") MultipartFile file,
+            @Parameter(description = "切割策略: AUTO/WHOLE/HEADING/PARAGRAPH/TOKEN")
+                    @RequestParam(value = "chunkStrategy", defaultValue = "AUTO")
+                    String chunkStrategy) {
+        return knowledgeDocumentService.upload(kbId, file, chunkStrategy);
     }
 
     @OperationLog
@@ -68,8 +71,10 @@ public class KnowledgeDocumentController {
     @PostMapping("/{documentId}/reingest")
     public KnowledgeDocumentEntity reingest(
             @Parameter(description = "知识库ID", required = true) @PathVariable String kbId,
-            @Parameter(description = "文档ID", required = true) @PathVariable String documentId) {
-        return knowledgeDocumentService.reingest(kbId, documentId);
+            @Parameter(description = "文档ID", required = true) @PathVariable String documentId,
+            @Parameter(description = "新切割策略；不传则沿用文档当前策略") @RequestParam(value = "chunkStrategy", required = false)
+                    String chunkStrategy) {
+        return knowledgeDocumentService.reingest(kbId, documentId, chunkStrategy);
     }
 
     @Operation(summary = "下载文档原文件")

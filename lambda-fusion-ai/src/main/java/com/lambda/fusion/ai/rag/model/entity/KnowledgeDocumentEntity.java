@@ -40,6 +40,10 @@ public class KnowledgeDocumentEntity {
     @Schema(description = "切块数")
     private Integer chunkCount;
 
+    @TableField("chunk_strategy")
+    @Schema(description = "切割策略: AUTO/WHOLE/HEADING/PARAGRAPH/TOKEN")
+    private String chunkStrategy;
+
     @TableField("error_msg")
     @Schema(description = "失败原因")
     private String errorMsg;

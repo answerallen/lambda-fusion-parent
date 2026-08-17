@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.ArrayList;
@@ -66,6 +67,7 @@ public class AiProperties {
     /**
      * 知识库（RAG）配置（对话检索注入与 pgvector 向量库连接）。
      */
+    @Valid
     private Rag rag = new Rag();
 
     /**
@@ -498,6 +500,10 @@ public class AiProperties {
         /** 单次注入的最大拼接字符数，防上下文膨胀；默认 4000。 */
         private int maxInjectChars = 4000;
 
+        /** 文档切割配置。 */
+        @Valid
+        private Chunking chunking = new Chunking();
+
         /** 向量库后端。 */
         private Store store = new Store();
 
@@ -505,6 +511,28 @@ public class AiProperties {
         private DocumentStorage documentStorage = new DocumentStorage();
 
         private PgVector pgVector = new PgVector();
+
+        /** 文档切割参数；具体策略随文档持久化，参数由模块统一配置。 */
+        @Data
+        public static class Chunking {
+
+            /** 段落/章节切割的目标字符数，TOKEN 策略下表示近似 token 数；默认 512。 */
+            @Min(1)
+            private int chunkSize = 512;
+
+            /** 相邻切块重叠字符数，TOKEN 策略下表示近似 token 数；默认 50。 */
+            @Min(0)
+            private int overlapSize = 50;
+
+            /** AUTO 策略下整篇保留的最大字符数；默认 2000。 */
+            @Min(1)
+            private int wholeDocumentMaxChars = 2000;
+
+            @AssertTrue(message = "lambda.fusion.ai.rag.chunking.overlap-size 必须小于 chunk-size")
+            public boolean isOverlapSizeValid() {
+                return overlapSize < chunkSize;
+            }
+        }
 
         /** 向量库后端：MEMORY（默认，进程内，重启丢失）/ PGVECTOR。 */
         @Data

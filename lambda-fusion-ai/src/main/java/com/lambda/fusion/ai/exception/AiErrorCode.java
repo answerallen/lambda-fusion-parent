@@ -102,6 +102,8 @@ public enum AiErrorCode implements ErrorCode {
 
     DOCUMENT_STORAGE_NOT_SUPPORTED(30815, "不支持的文档存储类型"),
 
+    DOCUMENT_CHUNK_STRATEGY_INVALID(30816, "不支持的文档切割策略(AUTO/WHOLE/HEADING/PARAGRAPH/TOKEN)"),
+
     SUB_AGENT_NOT_FOUND(30821, "子代理不存在"),
 
     SUB_AGENT_NAME_EXISTS(30822, "子代理名称已存在"),

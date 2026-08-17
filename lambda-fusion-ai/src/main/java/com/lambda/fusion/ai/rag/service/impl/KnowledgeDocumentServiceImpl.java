@@ -4,6 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.fusion.ai.AiConstants.DocumentChunkStrategy;
 import com.lambda.fusion.ai.AiConstants.DocumentStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.exception.AiBusinessException;
@@ -66,7 +67,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public KnowledgeDocumentEntity upload(String kbId, MultipartFile file) {
+    public KnowledgeDocumentEntity upload(String kbId, MultipartFile file, String chunkStrategy) {
         KnowledgeBaseEntity kb = knowledgeBaseService.loadById(kbId);
         if (!Boolean.TRUE.equals(kb.getEnabled())) {
             throw new AiBusinessException(AiErrorCode.KB_DISABLED, kbId);
@@ -82,6 +83,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         entity.setKbId(kbId);
         entity.setFileName(file.getOriginalFilename());
         entity.setFileType(extension);
+        entity.setChunkStrategy(resolveChunkStrategy(chunkStrategy).getCode());
         entity.setStatus(DocumentStatus.PENDING.getCode());
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
@@ -160,7 +162,7 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public KnowledgeDocumentEntity reingest(String kbId, String documentId) {
+    public KnowledgeDocumentEntity reingest(String kbId, String documentId, String chunkStrategy) {
         KnowledgeDocumentEntity entity = requireOwned(kbId, documentId);
         if (StringUtils.isBlank(entity.getStorageType()) || StringUtils.isBlank(entity.getStoragePath())) {
             throw new AiBusinessException(AiErrorCode.DOCUMENT_STORAGE_ERROR, "文档原文件缺失，请重新上传");
@@ -169,6 +171,8 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
         if (ingestionService == null) {
             throw new AiBusinessException(AiErrorCode.KB_RAG_NOT_ENABLED);
         }
+        DocumentChunkStrategy resolvedStrategy =
+                resolveChunkStrategy(StringUtils.defaultIfBlank(chunkStrategy, entity.getChunkStrategy()));
         // 先删旧向量数据：addChunks 为追加语义，不删会残留重复 chunk
         deleteVectorData(entity);
         // 显式 set null 清空 errorMsg/chunkCount（updateById 默认跳过 null 字段，无法清空）
@@ -177,10 +181,12 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
                 new LambdaUpdateWrapper<KnowledgeDocumentEntity>()
                         .eq(KnowledgeDocumentEntity::getId, documentId)
                         .set(KnowledgeDocumentEntity::getStatus, DocumentStatus.PENDING.getCode())
+                        .set(KnowledgeDocumentEntity::getChunkStrategy, resolvedStrategy.getCode())
                         .set(KnowledgeDocumentEntity::getErrorMsg, null)
                         .set(KnowledgeDocumentEntity::getChunkCount, null)
                         .set(KnowledgeDocumentEntity::getUpdatedAt, LocalDateTime.now()));
         entity.setStatus(DocumentStatus.PENDING.getCode());
+        entity.setChunkStrategy(resolvedStrategy.getCode());
         entity.setErrorMsg(null);
         entity.setChunkCount(null);
         // 主事务提交后才触发异步入库（与 upload 一致），保证异步线程读到重置后的 PENDING 行
@@ -244,6 +250,15 @@ public class KnowledgeDocumentServiceImpl implements KnowledgeDocumentService {
             throw new AiBusinessException(AiErrorCode.DOCUMENT_TYPE_NOT_SUPPORTED, fileName);
         }
         return extension;
+    }
+
+    private static DocumentChunkStrategy resolveChunkStrategy(String code) {
+        String resolvedCode = StringUtils.defaultIfBlank(code, DocumentChunkStrategy.AUTO.getCode());
+        DocumentChunkStrategy strategy = DocumentChunkStrategy.of(resolvedCode);
+        if (strategy == null) {
+            throw new AiBusinessException(AiErrorCode.DOCUMENT_CHUNK_STRATEGY_INVALID, code);
+        }
+        return strategy;
     }
 
     private KnowledgeDocumentEntity requireOwned(String kbId, String documentId) {

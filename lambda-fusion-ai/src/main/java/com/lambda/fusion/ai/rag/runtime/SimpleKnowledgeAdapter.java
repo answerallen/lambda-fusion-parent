@@ -92,11 +92,7 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
                     continue;
                 }
                 for (Document doc : docs) {
-                    merged.add(new RetrievedChunk(
-                            doc.getMetadata().getContentText(),
-                            doc.getScore() != null ? doc.getScore() : 0d,
-                            kbId,
-                            doc.getMetadata().getDocId()));
+                    merged.add(toRetrievedChunk(doc, kbId));
                 }
             } catch (Exception e) {
                 // 单知识库检索失败跳过，不影响其他知识库与对话主流程
@@ -120,20 +116,74 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
         KnowledgeBaseEntity kb = requireKb(kbId);
         List<Document> documents = new ArrayList<>(chunks.size());
         // tenantId 可能为空，用 HashMap 承载 payload（Map.of 不允许 null 值）
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("kbId", kbId);
-        payload.put("tenantId", tenantId);
-        payload.put("fileName", fileName);
+        Map<String, Object> documentPayload = new HashMap<>();
+        documentPayload.put("kbId", kbId);
+        documentPayload.put("tenantId", tenantId);
+        documentPayload.put("fileName", fileName);
         for (IngestChunk chunk : chunks) {
+            Map<String, Object> chunkPayload = new HashMap<>(documentPayload);
+            chunkPayload.put("chunkIndex", chunk.chunkIndex());
+            chunkPayload.put("chunkCount", chunks.size());
+            if (StringUtils.isNotBlank(chunk.sectionPath())) {
+                chunkPayload.put("sectionPath", chunk.sectionPath());
+            }
             DocumentMetadata metadata = DocumentMetadata.builder()
                     .content(TextBlock.builder().text(chunk.text()).build())
                     .docId(docId)
                     .chunkId(chunk.chunkId())
-                    .payload(payload)
+                    .payload(chunkPayload)
                     .build();
             documents.add(new Document(metadata));
         }
         knowledge(kb).addDocuments(documents).block();
+    }
+
+    static RetrievedChunk toRetrievedChunk(Document document, String kbId) {
+        DocumentMetadata metadata = document.getMetadata();
+        Map<String, Object> payload = metadata.getPayload();
+        Integer chunkIndex = asInteger(payload.get("chunkIndex"));
+        if (chunkIndex == null) {
+            chunkIndex = parseLegacyChunkIndex(metadata.getChunkId());
+        }
+        return new RetrievedChunk(
+                metadata.getContentText(),
+                document.getScore() != null ? document.getScore() : 0d,
+                kbId,
+                metadata.getDocId(),
+                asString(payload.get("fileName")),
+                metadata.getChunkId(),
+                chunkIndex,
+                asInteger(payload.get("chunkCount")),
+                asString(payload.get("sectionPath")));
+    }
+
+    private static String asString(Object value) {
+        return value != null ? String.valueOf(value) : null;
+    }
+
+    private static Integer asInteger(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String text) {
+            try {
+                return Integer.valueOf(text);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static Integer parseLegacyChunkIndex(String chunkId) {
+        if (StringUtils.isBlank(chunkId)) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(chunkId);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     /**

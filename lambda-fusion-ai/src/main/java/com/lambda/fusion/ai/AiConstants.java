@@ -267,6 +267,42 @@ public interface AiConstants {
     }
 
     /**
+     * 知识库文档切割策略。
+     *
+     * <p>AUTO：短文档整篇、存在标题结构时按章节、其余按段落；WHOLE：整篇不切；HEADING：按标题层级切割；
+     * PARAGRAPH：按段落切割；TOKEN：按近似 token 数切割。
+     */
+    @Getter
+    @AllArgsConstructor
+    public enum DocumentChunkStrategy {
+        AUTO("AUTO", "自动"),
+
+        WHOLE("WHOLE", "整篇"),
+
+        HEADING("HEADING", "按章节"),
+
+        PARAGRAPH("PARAGRAPH", "按段落"),
+
+        TOKEN("TOKEN", "按Token");
+
+        private final String code;
+
+        private final String label;
+
+        public static DocumentChunkStrategy of(String code) {
+            if (code == null) {
+                return null;
+            }
+            for (DocumentChunkStrategy strategy : values()) {
+                if (strategy.code.equalsIgnoreCase(code.trim())) {
+                    return strategy;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
      * 知识库向量库后端类型。
      *
      * <p>MEMORY：进程内存（InMemoryStore，零配置，重启丢失，单节点）；PGVECTOR：

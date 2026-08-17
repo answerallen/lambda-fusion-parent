@@ -6,11 +6,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.rag.model.entity.KnowledgeBaseEntity;
+import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.rag.model.Document;
+import io.agentscope.core.rag.model.DocumentMetadata;
 import io.agentscope.core.rag.store.InMemoryStore;
 import io.agentscope.core.rag.store.VDBStoreBase;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -20,14 +24,13 @@ import org.junit.jupiter.api.Test;
  *
  * @author Jin
  */
+@SuppressWarnings("removal")
 class SimpleKnowledgeAdapterTest {
 
     @Test
     void mergeSortsByScoreDescending() {
         List<RetrievedChunk> merged = new ArrayList<>(List.of(
-                new RetrievedChunk("low", 0.3, "kb1", "doc1"),
-                new RetrievedChunk("high", 0.9, "kb2", "doc2"),
-                new RetrievedChunk("mid", 0.6, "kb1", "doc1")));
+                chunk("low", 0.3, "kb1", "doc1"), chunk("high", 0.9, "kb2", "doc2"), chunk("mid", 0.6, "kb1", "doc1")));
 
         List<RetrievedChunk> result = SimpleKnowledgeAdapter.mergeAndTruncate(merged, 5);
 
@@ -37,9 +40,7 @@ class SimpleKnowledgeAdapterTest {
     @Test
     void mergeTruncatesToLimit() {
         List<RetrievedChunk> merged = new ArrayList<>(List.of(
-                new RetrievedChunk("a", 0.9, "kb1", "doc1"),
-                new RetrievedChunk("b", 0.8, "kb1", "doc1"),
-                new RetrievedChunk("c", 0.7, "kb2", "doc2")));
+                chunk("a", 0.9, "kb1", "doc1"), chunk("b", 0.8, "kb1", "doc1"), chunk("c", 0.7, "kb2", "doc2")));
 
         List<RetrievedChunk> result = SimpleKnowledgeAdapter.mergeAndTruncate(merged, 2);
 
@@ -48,7 +49,7 @@ class SimpleKnowledgeAdapterTest {
 
     @Test
     void mergeKeepsAllWhenBelowLimit() {
-        List<RetrievedChunk> merged = new ArrayList<>(List.of(new RetrievedChunk("a", 0.9, "kb1", "doc1")));
+        List<RetrievedChunk> merged = new ArrayList<>(List.of(chunk("a", 0.9, "kb1", "doc1")));
 
         assertThat(SimpleKnowledgeAdapter.mergeAndTruncate(merged, 5)).hasSize(1);
     }
@@ -118,5 +119,29 @@ class SimpleKnowledgeAdapterTest {
         // 合并截断条数：limit 优先，null 回落全局默认
         assertThat(SimpleKnowledgeAdapter.resolveFinalLimit(rag, 10)).isEqualTo(10);
         assertThat(SimpleKnowledgeAdapter.resolveFinalLimit(rag, null)).isEqualTo(5);
+    }
+
+    @Test
+    void retrievalPreservesSourceAndChunkMetadata() {
+        DocumentMetadata metadata = DocumentMetadata.builder()
+                .content(TextBlock.builder().text("读取保持寄存器").build())
+                .docId("doc1")
+                .chunkId("doc1-1")
+                .payload(Map.of("fileName", "设备协议.pdf", "chunkIndex", 1, "chunkCount", 4, "sectionPath", "第3章 / 第2节"))
+                .build();
+        Document document = new Document(metadata);
+        document.setScore(0.86);
+
+        RetrievedChunk result = SimpleKnowledgeAdapter.toRetrievedChunk(document, "kb1");
+
+        assertThat(result.fileName()).isEqualTo("设备协议.pdf");
+        assertThat(result.chunkId()).isEqualTo("doc1-1");
+        assertThat(result.chunkIndex()).isEqualTo(1);
+        assertThat(result.chunkCount()).isEqualTo(4);
+        assertThat(result.sectionPath()).isEqualTo("第3章 / 第2节");
+    }
+
+    private static RetrievedChunk chunk(String content, double score, String kbId, String docId) {
+        return new RetrievedChunk(content, score, kbId, docId, docId + ".pdf", "0", 0, 1, null);
     }
 }

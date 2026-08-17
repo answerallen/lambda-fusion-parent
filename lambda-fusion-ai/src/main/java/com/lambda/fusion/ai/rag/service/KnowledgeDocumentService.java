@@ -21,9 +21,10 @@ public interface KnowledgeDocumentService {
      *
      * @param kbId 知识库ID
      * @param file 上传文件（pdf/doc/docx/txt/md）
+     * @param chunkStrategy 切割策略（AUTO/WHOLE/HEADING/PARAGRAPH/TOKEN）
      * @return 文档行（状态 PENDING）
      */
-    KnowledgeDocumentEntity upload(String kbId, MultipartFile file);
+    KnowledgeDocumentEntity upload(String kbId, MultipartFile file, String chunkStrategy);
 
     /**
      * 下载文档原文件：按文档记录的 storageType 路由到对应存储后端写出内容。
@@ -44,7 +45,8 @@ public interface KnowledgeDocumentService {
      * 重新解析切块入库：复用已持久化的原文件，先删旧向量数据再异步重新入库。
      * 用于失败文档重试或 READY 文档换策略重跑；原文件缺失抛业务异常。
      *
+     * @param chunkStrategy 新切割策略；空值沿用文档当前策略
      * @return 重置为 PENDING 的文档行
      */
-    KnowledgeDocumentEntity reingest(String kbId, String documentId);
+    KnowledgeDocumentEntity reingest(String kbId, String documentId, String chunkStrategy);
 }

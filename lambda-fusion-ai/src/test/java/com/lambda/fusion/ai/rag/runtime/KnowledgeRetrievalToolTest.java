@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 /**
- * 验证 {@link KnowledgeRetrievalTool#retrieveKnowledge}：命中格式化（Score + 内容）、
+ * 验证 {@link KnowledgeRetrievalTool#retrieveKnowledge}：命中格式化（来源 + 章节 + Score + 内容）、
  * 空结果/空白 query/检索异常返回友好文案绝不外抛、limit 原样下传。
  *
  * @author Jin
@@ -31,17 +31,33 @@ class KnowledgeRetrievalToolTest {
         KnowledgeRetriever retriever = mock(KnowledgeRetriever.class);
         when(retriever.retrieve(anyList(), anyString(), any()))
                 .thenReturn(Mono.just(List.of(
-                        new RetrievedChunk("Lambda Fusion 支持 RAG", 0.9, "kb1", "doc1"),
-                        new RetrievedChunk("Lambda Fusion 基于 Spring Boot", 0.75, "kb1", "doc2"))));
+                        new RetrievedChunk(
+                                "Lambda Fusion 支持 RAG", 0.9, "kb1", "doc1", "产品手册.pdf", "doc1-0", 0, 2, "第一章"),
+                        new RetrievedChunk(
+                                "Lambda Fusion 基于 Spring Boot",
+                                0.75,
+                                "kb1",
+                                "doc2",
+                                "架构说明.md",
+                                "doc2-0",
+                                0,
+                                1,
+                                null))));
         KnowledgeRetrievalTool tool = new KnowledgeRetrievalTool(retriever, KB_IDS);
 
         String result = tool.retrieveKnowledge("Lambda Fusion 是什么?", null);
 
         assertThat(result)
                 .contains("Retrieved 2 relevant document(s):")
-                .contains("Document 1 (Score: 0.900):")
+                .contains("Document 1:")
+                .contains("Source: 产品手册.pdf")
+                .contains("Section: 第一章")
+                .contains("Chunk: 1/2")
+                .contains("Score: 0.900")
                 .contains("Lambda Fusion 支持 RAG")
-                .contains("Document 2 (Score: 0.750):")
+                .contains("Document 2:")
+                .contains("Source: 架构说明.md")
+                .contains("Score: 0.750")
                 .contains("Lambda Fusion 基于 Spring Boot");
     }
 
