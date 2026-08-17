@@ -239,6 +239,11 @@ public class AppServiceImpl implements AppService {
         return app;
     }
 
+    @Override
+    public AvailableApp loadAvailableView(String appId) {
+        return AppService.toAvailableView(fillSupportsVision(loadAvailable(appId)));
+    }
+
     /**
      * 应用可见性：独立应用仅所有者可见；平台应用按 audience + 角色（ALL=所有登录用户）。
      * audience 经 {@link AppAudience} 显式三分支解析；非法/未知值不落入任何分支，显式判不可见。

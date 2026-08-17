@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -165,20 +166,20 @@ class AppPublicationServiceImplTest {
     }
 
     @Test
-    void shouldAccessViaLoadAvailableAndReturnSafeView() {
+    void shouldAccessViaLoadAvailableView() {
         AppEntity located = publishedApp();
         when(appMapper.selectByPublishCode("code-1")).thenReturn(located);
-        AppEntity visible = publishedApp();
+        AvailableApp visible = new AvailableApp();
+        visible.setId("app-1");
         visible.setSupportsVision(Boolean.TRUE);
-        visible.setSystemPrompt("内部提示词");
-        visible.setModelId("m-1");
-        when(appService.loadAvailable("app-1")).thenReturn(visible);
+        when(appService.loadAvailableView("app-1")).thenReturn(visible);
 
         AvailableApp view = service.access("code-1");
 
-        // access 委托 loadAvailable 做受众+租户校验，返回安全视图含 appId 供会话绑定。
+        // access 委托 loadAvailableView 做受众+租户校验和模型能力回填。
         assertThat(view.getId()).isEqualTo("app-1");
         assertThat(view.getSupportsVision()).isTrue();
+        verify(appService).loadAvailableView("app-1");
     }
 
     @Test

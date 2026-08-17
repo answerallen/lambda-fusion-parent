@@ -47,6 +47,14 @@ public interface AppService {
      */
     AppEntity loadAvailable(String appId);
 
+    /**
+     * 加载当前用户可访问应用的安全视图，并回填绑定模型的视觉能力。
+     *
+     * @param appId 应用ID
+     * @return 应用安全视图
+     */
+    AvailableApp loadAvailableView(String appId);
+
     /** 应用实体转聊天安全视图（可见性/展示事实的唯一转换点，剔内部配置）。 */
     static AvailableApp toAvailableView(AppEntity app) {
         AvailableApp view = new AvailableApp();

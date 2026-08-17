@@ -149,8 +149,7 @@ public class AppPublicationServiceImpl implements AppPublicationService {
         // APP_NOT_FOUND（前端据此显示无权限，不当作未登录）。
         AppEntity located = requireByPublishCode(publishCode);
         requirePublished(located);
-        AppEntity app = appService.loadAvailable(located.getId());
-        return AppService.toAvailableView(app);
+        return appService.loadAvailableView(located.getId());
     }
 
     private AppEntity requireByPublishCode(String publishCode) {

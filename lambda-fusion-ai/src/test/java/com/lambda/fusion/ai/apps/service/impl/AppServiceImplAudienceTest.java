@@ -11,11 +11,13 @@ import com.lambda.fusion.ai.AiConstants.AppAudience;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.mapper.AppConfigAuditMapper;
 import com.lambda.fusion.ai.apps.mapper.AppMapper;
+import com.lambda.fusion.ai.apps.model.AvailableApp;
 import com.lambda.fusion.ai.apps.model.CreateApp;
 import com.lambda.fusion.ai.apps.model.UpdateApp;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
+import com.lambda.fusion.ai.llm.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.llm.service.LlmModelService;
 import com.lambda.fusion.ai.runtime.workspace.WorkspacePaths;
 import com.lambda.fusion.core.identity.UserDetails;
@@ -37,6 +39,7 @@ import org.springframework.context.ApplicationEventPublisher;
 class AppServiceImplAudienceTest {
 
     private AppMapper appMapper;
+    private LlmModelService llmModelService;
     private AiProperties properties;
     private AppServiceImpl service;
     private UserDetails user;
@@ -47,12 +50,13 @@ class AppServiceImplAudienceTest {
         properties = new AiProperties();
         properties.getAudience().getBRoles().add("ROLE_B");
         properties.getAudience().getCRoles().add("ROLE_C");
+        llmModelService = mock(LlmModelService.class);
         user = mock(UserDetails.class);
         when(user.getUsername()).thenReturn("user-1");
         service = new AppServiceImpl(
                 appMapper,
                 mock(AppConfigAuditMapper.class),
-                mock(LlmModelService.class),
+                llmModelService,
                 mock(ApplicationEventPublisher.class),
                 mock(WorkspacePaths.class),
                 properties);
@@ -98,6 +102,24 @@ class AppServiceImplAudienceTest {
             auth.when(AuthUtils::getUser).thenReturn(user);
             List<AppEntity> visible = service.listAvailable();
             assertThat(visible).extracting(AppEntity::getId).containsExactlyInAnyOrder("all-app", "c-app");
+        }
+    }
+
+    @Test
+    void shouldLoadAvailableViewWithVisionCapability() {
+        AppEntity stored = app("a1", "ALL");
+        stored.setModelId("m-1");
+        when(appMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(stored);
+        LlmModelEntity model = new LlmModelEntity();
+        model.setSupportsVision(Boolean.TRUE);
+        when(llmModelService.loadById("m-1")).thenReturn(model);
+
+        try (MockedStatic<AuthUtils> auth = Mockito.mockStatic(AuthUtils.class)) {
+            auth.when(AuthUtils::getUser).thenReturn(user);
+            AvailableApp view = service.loadAvailableView("a1");
+
+            assertThat(view.getId()).isEqualTo("a1");
+            assertThat(view.getSupportsVision()).isTrue();
         }
     }
 
