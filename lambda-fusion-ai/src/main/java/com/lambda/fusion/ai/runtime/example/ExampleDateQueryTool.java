@@ -27,6 +27,7 @@ public class ExampleDateQueryTool {
             name = TOOL_NAME,
             description = "Query the current date/time with a custom format and timezone. "
                     + "Use this tool when the user asks about the current date, time, or weekday.")
+    @RequireConfirm("日期查询演示 HITL 人工确认")
     public String queryDate(
             @ToolParam(
                             name = "format",

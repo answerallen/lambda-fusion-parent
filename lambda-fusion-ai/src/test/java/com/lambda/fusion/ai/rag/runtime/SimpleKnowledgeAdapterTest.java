@@ -141,6 +141,14 @@ class SimpleKnowledgeAdapterTest {
         assertThat(result.sectionPath()).isEqualTo("第3章 / 第2节");
     }
 
+    @Test
+    void nonPgvectorStoreAlwaysAlive() throws Exception {
+        // 内存库无连接概念，始终视为可用，不会触发重建
+        VDBStoreBase store = InMemoryStore.builder().dimensions(1536).build();
+
+        assertThat(SimpleKnowledgeAdapter.isAlive(store)).isTrue();
+    }
+
     private static RetrievedChunk chunk(String content, double score, String kbId, String docId) {
         return new RetrievedChunk(content, score, kbId, docId, docId + ".pdf", "0", 0, 1, null);
     }

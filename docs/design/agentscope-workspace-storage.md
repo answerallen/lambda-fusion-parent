@@ -1,5 +1,8 @@
 # AgentScope Workspace 存储设计
 
+> 本文只定义 Workspace 的存储、隔离和写入并发边界。ChatRun 调用 AgentScope 的会话身份、完成语义与执行锁边界，
+> 以 [ChatRun 与 AgentScope 执行边界设计](chat-run-agentscope-execution.md) 为准。
+
 ## 1. 设计目标
 
 AgentScope Workspace 属于部署级基础设施，不属于应用自身配置。一个服务实例中的全部应用统一使用
@@ -68,12 +71,21 @@ HOST 模式下，以下 AgentScope 管理内容进入分布式 BaseStore：
 
 ## 4. 并发模型
 
-- HOST Workspace：一次 Agent 流式执行期间持有该 Agent ID 对应的 AgentScope 分布式执行锁。
-- 沙箱 Workspace：沿用 AgentScope `SandboxManager` 的 acquire/release 锁窗口，避免重复加锁。
-- 管理端修改 Workspace 文件时使用同一把锁，避免与 Agent 的记忆、自演化写入互相覆盖。
-- 审计快照在 Agent 结束事件的同一锁窗口内写入，直接复用已持有的锁，避免非重入分布式锁自锁。
+稳定 Agent ID 只用于 Workspace 命名空间和短写操作的互斥键，不作为整次 Agent 执行锁。
 
-锁的粒度是租户应用对应的稳定 Agent ID，因此不同应用可并发执行，同一应用的 Workspace 写入串行化。
+- HOST Workspace：模型调用、工具调用、记忆整理和整个 Agent Flux 外层不持有 Lambda Fusion Workspace 锁。
+  远程文件系统的单文件读写遵循 AgentScope `RemoteFilesystem` 和底层 `BaseStore` 的语义；若某个可变工具确实需要
+  读改写原子性，只在该次工具写入范围内增加窄锁，不串行整个应用的对话。
+- 沙箱 Workspace：完整使用 AgentScope `SandboxManager` 的 acquire、快照和 release 生命周期，不再叠加同键应用锁。
+- 管理端写入：`WorkspaceStorage#withWriteLock` 只包裹一次实际写操作，防止同一管理资源的并发覆盖；不能把该锁
+  扩大到模型或记忆调用。
+- 审计写入：等待 AgentScope 源流结束、Sandbox 快照与 release 完成后，再以短写操作记录审计。审计失败不改变
+  已提交的 ChatRun 业务终态。
+
+同一应用的不同用户允许并发调用模型。Agent 会话状态由 AgentScope 按 `(userId, sessionId)` 保护，Workspace
+共享文件的冲突则由具体文件系统能力或实际写工具的窄临界区处理，不能用应用级全流程串行掩盖。ChatRun 仅按
+同一 Session 的 phase-drained 信号顺序启动完整 AgentScope 源流，保证前一条记忆尾部和审计结束后再启动下一条；
+该非阻塞尾链不是 Workspace 锁，也不会影响同一应用的其他用户。
 
 ## 5. 切换与运维约束
 

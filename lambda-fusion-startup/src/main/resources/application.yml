@@ -31,6 +31,9 @@ spring:
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
       database: ${REDIS_DATABASE}
+  threads:
+    virtual:
+      enabled: true
 logging:
   level:
     io:
@@ -93,6 +96,11 @@ lambda:
         #### 向量库后端：MEMORY(默认,进程内,重启丢失)/PGVECTOR(生产推荐) ####
         store:
           type: ${AI_RAG_STORE_TYPE:PGVECTOR}
+          pg-vector:
+            jdbc-url: ${AI_PGVECTOR_JDBC_URL:${AI_DB_URL}}
+            username: ${AI_PGVECTOR_USERNAME:${AI_DB_USERNAME}}
+            password: ${AI_PGVECTOR_PASSWORD:${AI_DB_PASSWORD}}
+            schema: ${AI_PGVECTOR_SCHEMA:public}
         #### 文档原文件存储：LOCAL(默认,本地目录)/OSS ####
         document-storage:
           type: ${AI_KB_STORAGE_TYPE:OSS}
@@ -101,11 +109,6 @@ lambda:
           oss:
             client-name: ${AI_KB_OSS_CLIENT:default}
             key-prefix: ${AI_KB_OSS_PREFIX:ai/knowledge/}
-        pg-vector:
-          jdbc-url: ${AI_PGVECTOR_JDBC_URL:${AI_DB_URL}}
-          username: ${AI_PGVECTOR_USERNAME:${AI_DB_USERNAME}}
-          password: ${AI_PGVECTOR_PASSWORD:${AI_DB_PASSWORD}}
-          schema: ${AI_PGVECTOR_SCHEMA:public}
   oss:
     clients:
       #### Oss 环境变量 ####

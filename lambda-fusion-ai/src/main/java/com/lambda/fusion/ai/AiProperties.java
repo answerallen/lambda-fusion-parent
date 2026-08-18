@@ -14,12 +14,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 /**
- * AI 模块配置。
- * <p>
- * 模型管理采用数据库驱动：提供方与模型配置持久化在 {@code ai_llm_provider} /
- * {@code ai_llm_model} 表中（API Key 加密存储），由
- * {@code AiModelResolver} 在运行时按 modelId 解析为 AgentScope {@code Model}。
- * 本配置类仅保留运行时参数与安全配置，不承载模型连接信息。
+ * AI 模块运行参数。
+ *
+ * <p>模型提供方和模型连接信息保存在 {@code ai_llm_provider}、{@code ai_llm_model} 表中，
+ * {@code AiModelResolver} 根据 modelId 加载对应模型。API Key 以密文存储。
  *
  * @author Jin
  */
@@ -29,156 +27,145 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "lambda.fusion.ai")
 public class AiProperties {
 
+    /** Agent 运行参数。 */
     private Runtime runtime = new Runtime();
 
-    /**
-     * 安全配置（LLM API Key 加密）。
-     */
+    /** LLM API Key 加密参数。 */
     private Security security = new Security();
 
-    /**
-     * Workspace 配置（WORKSPACE 型应用的文件系统根）。
-     */
+    /** WORKSPACE 应用的工作区参数。 */
     private Workspace workspace = new Workspace();
 
-    /**
-     * WORKSPACE 自演化应用的长期记忆配置。
-     */
+    /** WORKSPACE 自演化应用的长期记忆参数。 */
     @Valid
     private Memory memory = new Memory();
 
-    /**
-     * 沙箱配置（WORKSPACE 型应用的执行隔离）。
-     */
+    /** WORKSPACE 应用的沙箱参数。 */
     private Sandbox sandbox = new Sandbox();
 
-    /**
-     * 受众配置（B/C 端角色映射，用于应用可见性）。
-     */
+    /** 应用可见性使用的 B/C 端角色映射。 */
     private Audience audience = new Audience();
 
-    /**
-     * Gateway 配置（AgentScope harness Gateway + 外部通道 SPI）。
-     */
+    /** AgentScope Harness Gateway 与外部通道参数。 */
     private Gateway gateway = new Gateway();
 
-    /**
-     * Agent 状态存储配置（多轮记忆）。按部署形态选择。
-     */
+    /** 多轮对话状态的存储参数。 */
     private StateStore stateStore = new StateStore();
 
-    /**
-     * 技能市场配置（技能仓库源选择）。
-     */
+    /** 技能仓库参数。 */
     private Skill skill = new Skill();
 
-    /**
-     * 知识库（RAG）配置（对话检索注入与 pgvector 向量库连接）。
-     */
+    /** 知识库检索与向量存储参数。 */
     @Valid
     private Rag rag = new Rag();
 
-    /**
-     * 对话配置（附件上传等）。
-     */
+    /** 对话、附件和后台 Run 参数。 */
     @Valid
     private Chat chat = new Chat();
 
+    /** 集群部署参数。 */
     private Cluster cluster = new Cluster();
 
-    /**
-     * 对话配置。
-     */
+    /** 对话参数。 */
     @Data
     public static class Chat {
 
-        /** 对话附件配置。 */
+        /** 附件参数。 */
         private Attachment attachment = new Attachment();
 
-        /** 可恢复后台对话 Run。 */
+        /** 后台对话 Run 的执行与恢复参数。 */
         @Valid
         private Run run = new Run();
 
         @Data
         public static class Run {
 
+            /** SSE 连接超时时间，单位秒。 */
             @Min(1)
             private long connectionTimeoutSeconds = 300;
 
+            /** 单次 Agent 执行的最长时间，单位秒。 */
             @Min(1)
             private long maxRunDurationSeconds = 1800;
 
+            /** 工具调用等待确认的最长时间，单位秒。 */
             @Min(1)
             private long awaitConfirmTimeoutSeconds = 86400;
 
+            /** 强制停止前等待协作式停止完成的时间，单位秒。 */
             @Min(1)
             @Max(300)
             private long stopGraceSeconds = 50;
 
+            /** Run 结束后内存事件的保留时间，单位秒。 */
             @Min(1)
             private long terminalTtlSeconds = 600;
 
+            /** 单个 Run 最多保留的事件数。 */
             @Min(64)
             private int maxEvents = 4096;
 
+            /** 单个 Run 最多保留的事件字节数。 */
             @Min(65536)
             private long maxBytes = 8_388_608;
 
+            /** 单个实例允许同时执行的 Run 数。 */
             @Min(1)
             private int maxActiveRuns = 200;
 
+            /** 同一租户用户允许同时执行的 Run 数。 */
             @Min(1)
             private int maxActiveRunsPerUser = 4;
 
+            /** 单个订阅者的事件队列容量。 */
             @Min(1)
             private int subscriberQueueSize = 256;
 
+            /** 触发快照写入的新增事件数。 */
             @Min(1)
             private int snapshotEveryEvents = 100;
 
+            /** 定时写入快照的间隔，单位秒。 */
             @Min(1)
-            private long snapshotIntervalSeconds = 2;
+            private long snapshotIntervalSeconds = 15;
         }
 
         /**
-         * 对话附件配置。原文件存储复用 {@code rag.document-storage}（LOCAL/OSS），此处仅承载
-         * 附件自身的校验与注入约束。
+         * 对话附件参数。原文件使用 {@code rag.document-storage} 指定的存储后端。
          */
         @Data
         public static class Attachment {
 
-            /** 单文件大小上限(MB)；默认 10。需与 spring.servlet.multipart.max-file-size 对齐。 */
+            /** 单个附件的大小上限，单位 MB。须与 {@code spring.servlet.multipart.max-file-size} 保持一致。 */
             private long maxFileSizeMb = 10;
 
-            /** 单条消息附件数上限；默认 5。 */
+            /** 每条消息允许上传的附件数。 */
             private int maxCount = 5;
 
-            /** 文档附件抽取文本拼接进 prompt 的最大字符数，防上下文膨胀；默认 8000。 */
+            /** 文档正文注入提示词时保留的最大字符数。 */
             private int maxExtractChars = 8000;
 
-            /** 图片扩展名白名单（小写）。 */
+            /** 支持上传的图片扩展名，须使用小写。 */
             private List<String> imageTypes = List.of("jpg", "jpeg", "png", "gif", "webp");
 
-            /** 文档扩展名白名单（小写）。 */
+            /** 支持上传的文档扩展名，须使用小写。 */
             private List<String> docTypes = List.of("pdf", "doc", "docx", "txt", "md");
 
-            /** 图片预览直链配置。 */
+            /** 图片预览链接参数。 */
             private Preview preview = new Preview();
 
             /**
-             * 图片预览直链配置：为图片附件签发带 HMAC 签名的预览 URL，使 {@code <img src>} 无需 Bearer
-             * 即可访问（preview 端点放行登录，靠签名 token 鉴权；token 绑定 attachmentId 且有时效）。
+             * 图片预览链接参数。预览签名绑定附件 ID，并在到期后失效。
              */
             @Data
             public static class Preview {
 
                 /**
-                 * HMAC-SHA256 签名密钥；生产必须经环境变量注入
-                 * （{@code AI_ATTACHMENT_PREVIEW_SECRET}）。未配置时图片预览直链不可用，降级为文件名展示。
+                 * HMAC-SHA256 签名密钥。生产环境通过 {@code AI_ATTACHMENT_PREVIEW_SECRET} 注入；未配置时不生成预览链接。
                  */
                 private String secret;
 
-                /** token 有效期（秒）；默认 3600。 */
+                /** 预览签名的有效期，单位秒。 */
                 private long ttlSeconds = 3600;
             }
         }
@@ -187,15 +174,11 @@ public class AiProperties {
     @Data
     public static class Runtime {
 
-        /**
-         * 应用未配置 maxIters 时使用的 ReAct 最大迭代次数。
-         */
+        /** 应用未设置 maxIters 时，ReAct Agent 使用的最大迭代次数。 */
         private int defaultMaxIters = 10;
     }
 
-    /**
-     * AgentScope 长期记忆配置。仅 WORKSPACE 且 selfEvolve=true 的应用启用记忆钩子。
-     */
+    /** WORKSPACE 自演化应用的长期记忆参数，仅在 {@code selfEvolve=true} 时生效。 */
     @Data
     public static class Memory {
 
@@ -205,11 +188,11 @@ public class AiProperties {
         @Data
         public static class Flush {
 
-            /** 每轮记忆提取触发模式：ALWAYS / THROTTLED / NEVER。 */
+            /** 记忆提取模式：ALWAYS / THROTTLED / NEVER。 */
             @NotNull
             private Mode mode = Mode.THROTTLED;
 
-            /** THROTTLED 模式的最小刷新间隔；默认 10 分钟。 */
+            /** THROTTLED 模式下两次记忆提取的最小间隔。 */
             @NotNull
             private Duration minGap = Duration.ofMinutes(10);
 
@@ -229,9 +212,7 @@ public class AiProperties {
     @Data
     public static class Security {
 
-        /**
-         * AES 加密密钥（用于加密 LLM API Key），生产环境必须配置；未配置时启动会失败。
-         */
+        /** LLM API Key 的 AES 加密密钥。未配置时，涉及 API Key 的加解密操作会失败。 */
         private String encryptionKey;
     }
 
@@ -239,20 +220,20 @@ public class AiProperties {
     public static class Workspace {
 
         /**
-         * workspace 根目录。本地应用位于 {@code {root}/tenants/{tenantId}/apps/{appId}/}；远程存储的
-         * 初始化模板位于 {@code {root}/.remote-templates/{type}/tenants/{tenantId}/apps/{appId}/}。默认
-         * {@code ${user.home}/.agentscope/fusion}。
+         * 工作区根目录，默认使用 {@code ${user.home}/.agentscope/fusion}。本地应用保存在
+         * {@code {root}/tenants/{tenantId}/apps/{appId}/}，远程存储的初始化模板保存在
+         * {@code {root}/.remote-templates/{type}/tenants/{tenantId}/apps/{appId}/}。
          */
         private String root;
 
-        /** Workspace 存储配置。存储类型是部署级属性，所有应用统一使用。 */
+        /** 工作区存储参数，配置对所有应用生效。 */
         @Valid
         private Storage storage = new Storage();
 
         @Data
         public static class Storage {
 
-            /** 存储类型：LOCAL（默认）/ MYSQL / POSTGRES。 */
+            /** 存储类型：LOCAL / MYSQL / POSTGRES。 */
             private String type = "LOCAL";
 
             @Valid
@@ -264,14 +245,14 @@ public class AiProperties {
             @Data
             public static class Mysql {
 
-                /** dynamic-datasource 名称；默认复用 master。 */
+                /** dynamic-datasource 数据源名。 */
                 private String datasource = "master";
             }
 
             @Data
             public static class Postgres {
 
-                /** dynamic-datasource 名称；默认复用 ai-postgres。 */
+                /** dynamic-datasource 数据源名。 */
                 private String datasource = "ai-postgres";
             }
         }
@@ -280,9 +261,7 @@ public class AiProperties {
     @Data
     public static class Sandbox {
 
-        /**
-         * 隔离粒度：AGENT（默认，app 级共享）/ USER / SESSION / GLOBAL。
-         */
+        /** 隔离范围：AGENT（应用级共享）/ USER / SESSION / GLOBAL。 */
         private String isolationScope = "AGENT";
 
         private Docker docker = new Docker();
@@ -337,49 +316,35 @@ public class AiProperties {
         }
     }
 
-    /**
-     * 受众配置：B/C 端角色名列表，用于应用可见性过滤。
-     */
+    /** 用于区分 B 端和 C 端用户的角色配置。 */
     @Data
     public static class Audience {
 
-        /**
-         * B 端角色名列表（命中即视为 B 端用户，可见 audience=B 的应用）。
-         */
+        /** 用于判定 B 端用户的角色名。 */
         private List<String> bRoles = new ArrayList<>();
 
-        /**
-         * C 端角色名列表。
-         */
+        /** 用于判定 C 端用户的角色名。 */
         private List<String> cRoles = new ArrayList<>();
     }
 
     @Data
     public static class Gateway {
 
-        /** 是否通过 HarnessGateway 路由对话流；关闭时直连 HarnessAgent#streamEvents。 */
+        /** 是否通过 {@code HarnessGateway} 路由对话流。关闭后直接调用 {@code HarnessAgent#streamEvents}。 */
         private boolean enabled = true;
     }
 
     /**
-     * Agent 状态存储配置（多轮记忆）。按部署形态选择后端：
-     *
-     * <ul>
-     *   <li>{@code MEMORY}（默认，进程内，重启丢失）/ {@code FILE}（JSON 落盘，单节点，重启不丢）。</li>
-     *   <li>{@code MYSQL} / {@code POSTGRES} / {@code REDIS}：分布式，多副本共享状态。</li>
-     *   <li>{@code OSS} / {@code COS}：对象存储归档（分布式，低频访问）。</li>
-     * </ul>
-     *
-     * <p>分布式后端依赖对应的 AgentScope 扩展（pom 中为 {@code optional} 依赖 + {@code @ConditionalOnClass}
-     * 条件装配）。扩展或其客户端不在 classpath 时，解析器告警并回退 {@code MEMORY}，不阻塞启动。
+     * Agent 状态存储。MEMORY 和 FILE 适用于单节点；MYSQL、POSTGRES、REDIS、OSS、COS
+     * 可供多实例共享。选择扩展后端时，必须提供对应依赖和客户端配置。
      */
     @Data
     public static class StateStore {
 
-        /** 状态存储后端：MEMORY / FILE / MYSQL / POSTGRES / REDIS / OSS / COS。 */
+        /** 存储类型：MEMORY / FILE / MYSQL / POSTGRES / REDIS / OSS / COS。 */
         private String type = "MEMORY";
 
-        /** FILE 模式状态目录；默认使用 workspace.root/state。 */
+        /** FILE 模式的状态目录。未设置时使用 {@code workspace.root/state}。 */
         private String root;
 
         private Mysql mysql = new Mysql();
@@ -392,49 +357,49 @@ public class AiProperties {
 
         private Cos cos = new Cos();
 
-        /** MySQL 状态存储配置，默认复用 master 数据源。 */
+        /** MySQL 状态存储参数。 */
         @Data
         public static class Mysql {
 
-            // dynamic-datasource 名称；默认 {@code master}
+            /** dynamic-datasource 数据源名。 */
             private String datasource = "master";
 
-            // 库名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope}
+            /** 数据库名。 */
             private String database = "agentscope";
 
-            // 表名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope_sessions}
+            /** 会话表名。 */
             private String table = "agentscope_sessions";
 
-            // 库/表不存在时是否自动创建；默认 true
+            /** 是否自动创建不存在的数据库和表。 */
             private boolean createIfNotExist = true;
         }
 
-        /** PostgreSQL 状态存储配置，默认复用 ai-postgres 数据源。 */
+        /** PostgreSQL 状态存储参数。 */
         @Data
         public static class Postgres {
 
-            // dynamic-datasource 名称；默认 {@code ai-postgres}
+            /** dynamic-datasource 数据源名。 */
             private String datasource = "ai-postgres";
 
-            // schema 名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope}
+            /** Schema 名。 */
             private String schema = "agentscope";
 
-            // 表名（{@code createIfNotExist} 时自动创建）；默认 {@code agentscope_sessions}
+            /** 会话表名。 */
             private String table = "agentscope_sessions";
 
-            // schema/表不存在时是否自动创建；默认 true
+            /** 是否自动创建不存在的 Schema 和表。 */
             private boolean createIfNotExist = true;
         }
 
-        // Redis 分布式状态存储；复用 RedissonClient bean（redisson-spring-boot-starter 自动装配）
+        /** Redis 状态存储，使用 Spring 容器中的 {@code RedissonClient}。 */
         @Data
         public static class Redis {
 
-            // Redis key 前缀；默认 {@code agentscope:session:}
+            /** Redis key 前缀。 */
             private String keyPrefix = "agentscope:session:";
         }
 
-        // 阿里云 OSS 对象存储状态存储；需 agentscope-extensions-oss 扩展
+        /** 阿里云 OSS 状态存储。 */
         @Data
         public static class Oss {
 
@@ -446,15 +411,15 @@ public class AiProperties {
 
             private String bucketName;
 
-            // 对象 key 前缀；默认 {@code agentscope/state/}
+            /** 对象 key 前缀。 */
             private String keyPrefix = "agentscope/state/";
         }
 
-        // 腾讯云 COS 对象存储状态存储；需 agentscope-extensions-cos 扩展
+        /** 腾讯云 COS 状态存储。 */
         @Data
         public static class Cos {
 
-            // 地域（如 {@code ap-guangzhou}）；COS 按地域寻址
+            /** COS 地域，例如 {@code ap-guangzhou}。 */
             private String region;
 
             private String secretId;
@@ -463,16 +428,13 @@ public class AiProperties {
 
             private String bucketName;
 
-            // 对象 key 前缀；默认 {@code agentscope/state/}
+            /** 对象 key 前缀。 */
             private String keyPrefix = "agentscope/state/";
         }
     }
 
     /**
-     * 技能市场配置：技能仓库源按部署形态选择，复用 AgentScope 已有仓库实现。
-     *
-     * <p>MYSQL/POSTGRES：可读写（admin CRUD 经仓库 API）。GIT/NACOS：通常只读 catalog。
-     * 扩展未引入或 {@code type=NONE} 时技能市场禁用（WORKSPACE app 仅用 workspace 本地技能）。
+     * 技能市场的仓库参数。仓库类型为 NONE 或所选后端不可用时，不启用技能市场。
      */
     @Data
     public static class Skill {
@@ -482,7 +444,7 @@ public class AiProperties {
         @Data
         public static class Repository {
 
-            /** 源类型：MYSQL / POSTGRES / GIT / NACOS / NONE（默认 MYSQL）。 */
+            /** 仓库类型：MYSQL / POSTGRES / GIT / NACOS / NONE。 */
             private String type = "MYSQL";
 
             private Mysql mysql = new Mysql();
@@ -493,35 +455,35 @@ public class AiProperties {
 
             private Nacos nacos = new Nacos();
 
-            /** MySQL 技能仓库（复用 MysqlSkillRepository，默认数据源 master）。 */
+            /** MySQL 技能仓库。 */
             @Data
             public static class Mysql {
 
-                /** dynamic-datasource 名称；默认 {@code master}。 */
+                /** dynamic-datasource 数据源名。 */
                 private String datasource = "master";
 
-                /** 库/表不存在时自动创建；默认 true。 */
+                /** 是否自动创建不存在的数据库和表。 */
                 private boolean createIfNotExist = true;
 
-                /** 是否可写（admin CRUD）；默认 true。 */
+                /** 是否允许管理端写入。 */
                 private boolean writeable = true;
             }
 
-            /** PostgreSQL 技能仓库（复用 PostgresSkillRepository，默认数据源 ai-postgres）。 */
+            /** PostgreSQL 技能仓库。 */
             @Data
             public static class Postgres {
 
-                /** dynamic-datasource 名称；默认 {@code ai-postgres}。 */
+                /** dynamic-datasource 数据源名。 */
                 private String datasource = "ai-postgres";
 
-                /** schema/表不存在时自动创建；默认 true。 */
+                /** 是否自动创建不存在的 Schema 和表。 */
                 private boolean createIfNotExist = true;
 
-                /** 是否可写；默认 true。 */
+                /** 是否允许管理端写入。 */
                 private boolean writeable = true;
             }
 
-            /** Git 技能仓库（复用 GitSkillRepository，只读 catalog）。 */
+            /** 只读的 Git 技能仓库。 */
             @Data
             public static class Git {
 
@@ -529,13 +491,13 @@ public class AiProperties {
 
                 private String branch;
 
-                /** 本地克隆目录；默认 {@code ${workspace.root}/skill-git}。 */
+                /** 本地克隆目录。未设置时使用 {@code ${workspace.root}/skill-git}。 */
                 private String localPath;
 
                 private String source;
             }
 
-            /** Nacos 技能仓库（复用 NacosSkillRepository）。 */
+            /** Nacos 技能仓库。 */
             @Data
             public static class Nacos {
 
@@ -551,53 +513,46 @@ public class AiProperties {
     }
 
     /**
-     * 知识库（RAG）配置。
-     *
-     * <p>{@code enabled=false}（默认）时检索注入整组不装配，{@code AgentFactory} 判空跳过。
-     * 向量库默认 MEMORY（进程内，重启丢失，零配置即可体验）；生产建议 PGVECTOR——
-     * {@code PgVectorStore} 只接受 JDBC 连接串（不支持注入 DataSource），故连接信息走本配置
-     * 而非复用 {@code ai-postgres} 动态数据源。
+     * 知识库检索参数。向量存储可使用进程内存或 pgvector；pgvector 需单独配置 JDBC 连接。
      */
     @Data
     public static class Rag {
 
-        /** 是否启用知识库检索注入；默认 false。 */
+        /** 是否为对话启用知识库检索。 */
         private boolean enabled = false;
 
-        /** 知识库未配置时的默认检索条数；默认 5。 */
+        /** 知识库未指定检索条数时使用的值。 */
         private int defaultLimit = 5;
 
-        /** 默认分数阈值；默认 0.5。 */
+        /** 知识库未指定分数阈值时使用的值。 */
         private double defaultScoreThreshold = 0.5;
 
-        /** 单次注入的最大拼接字符数，防上下文膨胀；默认 4000。 */
+        /** 每轮对话可注入的检索文本上限，单位字符。 */
         private int maxInjectChars = 4000;
 
-        /** 文档切割配置。 */
+        /** 文档切块参数。 */
         @Valid
         private Chunking chunking = new Chunking();
 
-        /** 向量库后端。 */
+        /** 向量存储参数。 */
         private Store store = new Store();
 
-        /** 文档原文件存储。知识库文档与对话附件共用本组配置。 */
+        /** 知识库文档和对话附件共用的原文件存储。 */
         private DocumentStorage documentStorage = new DocumentStorage();
 
-        private PgVector pgVector = new PgVector();
-
-        /** 文档切割参数；具体策略随文档持久化，参数由模块统一配置。 */
+        /** 文档切块的全局参数。 */
         @Data
         public static class Chunking {
 
-            /** 段落/章节切割的目标字符数，TOKEN 策略下表示近似 token 数；默认 512。 */
+            /** 目标块大小；TOKEN 策略下表示近似 token 数，其余策略下表示字符数。 */
             @Min(1)
             private int chunkSize = 512;
 
-            /** 相邻切块重叠字符数，TOKEN 策略下表示近似 token 数；默认 50。 */
+            /** 相邻块的重叠大小；TOKEN 策略下表示近似 token 数，其余策略下表示字符数。 */
             @Min(0)
             private int overlapSize = 50;
 
-            /** AUTO 策略下整篇保留的最大字符数；默认 2000。 */
+            /** AUTO 策略整篇保留的字符上限。 */
             @Min(1)
             private int wholeDocumentMaxChars = 2000;
 
@@ -607,18 +562,20 @@ public class AiProperties {
             }
         }
 
-        /** 向量库后端：MEMORY（默认，进程内，重启丢失）/ PGVECTOR。 */
+        /** 向量存储类型：MEMORY / PGVECTOR。 */
         @Data
         public static class Store {
 
             private String type = "MEMORY";
+
+            private PgVector pgVector = new PgVector();
         }
 
-        /** 文档原文件存储配置。 */
+        /** 文档原文件存储。 */
         @Data
         public static class DocumentStorage {
 
-            /** 存储类型：LOCAL（默认）/ OSS。 */
+            /** 存储类型：LOCAL / OSS。 */
             private String type = "LOCAL";
 
             private Local local = new Local();
@@ -629,8 +586,8 @@ public class AiProperties {
             public static class Local {
 
                 /**
-                 * 原文件根目录；默认 {@code {workspace.root}/knowledge-files}，
-                 * workspace.root 未配时 {@code ~/.agentscope/fusion/knowledge-files}。
+                 * 原文件根目录。未设置时使用 {@code {workspace.root}/knowledge-files}；工作区根目录也未设置时，
+                 * 使用 {@code ~/.agentscope/fusion/knowledge-files}。
                  */
                 private String root;
             }
@@ -638,15 +595,15 @@ public class AiProperties {
             @Data
             public static class Oss {
 
-                /** OssClientManager 中的客户端名；空 = 默认客户端。 */
+                /** {@code OssClientManager} 中的客户端名。未设置时使用默认客户端。 */
                 private String clientName;
 
-                /** 对象 key 前缀；默认 {@code ai/knowledge/}。 */
+                /** 对象 key 前缀。 */
                 private String keyPrefix = "ai/knowledge/";
             }
         }
 
-        /** pgvector 向量库连接配置（环境变量驱动，如 {@code ${AI_PGVECTOR_JDBC_URL}}）。 */
+        /** pgvector 连接参数，应通过环境变量注入。 */
         @Data
         public static class PgVector {
 
@@ -656,7 +613,7 @@ public class AiProperties {
 
             private String password;
 
-            /** schema 名；默认 {@code public}。 */
+            /** Schema 名。 */
             private String schema = "public";
         }
     }
@@ -664,10 +621,7 @@ public class AiProperties {
     @Data
     public static class Cluster {
 
-        /**
-         * 是否启用跨实例 Agent 缓存失效广播（Dubbo broadcast）。多实例部署开；单实例可关。
-         * 默认开，Dubbo 不在 classpath 时由条件装配自动退化为本地事件。
-         */
+        /** 是否广播 Agent 缓存失效事件。多实例部署应开启；Dubbo 不可用时仅发布本地事件。 */
         private boolean invalidationBroadcast = true;
     }
 }

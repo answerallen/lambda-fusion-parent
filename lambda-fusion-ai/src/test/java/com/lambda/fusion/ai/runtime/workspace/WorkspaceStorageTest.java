@@ -65,10 +65,10 @@ class WorkspaceStorageTest {
         AppEntity app = app();
 
         firstNode.write("tenant-a", app, "AGENTS.md", "shared-agent");
-        firstNode.write("tenant-a", app, "memory/note.md", "shared-note");
+        firstNode.write("tenant-a", app, "knowledge/note.md", "shared-note");
 
         assertThat(secondNode.read("tenant-a", app, "AGENTS.md")).isEqualTo("shared-agent");
-        assertThat(secondNode.read("tenant-a", app, "memory/note.md")).isEqualTo("shared-note");
+        assertThat(secondNode.read("tenant-a", app, "knowledge/note.md")).isEqualTo("shared-note");
         assertThat(secondNode.read("tenant-b", app, "AGENTS.md")).contains("Demo Agent");
         List<WorkspaceFileEntry> entries = secondNode.list("tenant-a", app);
         assertThat(entries)
@@ -81,7 +81,7 @@ class WorkspaceStorageTest {
                 });
         assertThat(entries)
                 .extracting(WorkspaceFileEntry::path)
-                .contains("memory/note.md")
+                .contains("knowledge/note.md")
                 .allSatisfy(path -> assertThat(path.split("/")[0])
                         .isIn(
                                 ".audit",
@@ -119,6 +119,55 @@ class WorkspaceStorageTest {
     }
 
     @Test
+    void shouldShareRemoteMemoryAcrossUserSessionsAndIsolateOtherUsers() throws Exception {
+        BaseStore sharedBaseStore = new InMemoryStore();
+        WorkspaceStorage firstStorage =
+                storage(properties("MYSQL"), List.of(provider(distributedStore(sharedBaseStore))));
+        WorkspaceStorage secondStorage =
+                storage(properties("MYSQL"), List.of(provider(distributedStore(sharedBaseStore))));
+        firstStorage.initialize();
+        secondStorage.initialize();
+        AppEntity app = app();
+        AbstractFilesystem firstFilesystem = firstStorage.openDistributedFilesystem(
+                "tenant-a", app, firstStorage.initializeWorkspace("tenant-a", app));
+        AbstractFilesystem secondFilesystem = secondStorage.openDistributedFilesystem(
+                "tenant-a", app, secondStorage.initializeWorkspace("tenant-a", app));
+        RuntimeContext firstSession =
+                RuntimeContext.builder().userId("user-a").sessionId("session-a").build();
+        RuntimeContext secondSession =
+                RuntimeContext.builder().userId("user-a").sessionId("session-b").build();
+        RuntimeContext otherUser =
+                RuntimeContext.builder().userId("user-b").sessionId("session-c").build();
+
+        firstFilesystem.uploadFiles(
+                firstSession,
+                List.of(
+                        Map.entry("MEMORY.md", "user-memory".getBytes(StandardCharsets.UTF_8)),
+                        Map.entry("memory/note.md", "daily-memory".getBytes(StandardCharsets.UTF_8)),
+                        Map.entry("AGENTS.md", "shared-agent".getBytes(StandardCharsets.UTF_8))));
+
+        assertThat(secondFilesystem
+                        .read(secondSession, "MEMORY.md", 0, 0)
+                        .fileData()
+                        .content())
+                .isEqualTo("user-memory");
+        assertThat(secondFilesystem
+                        .read(secondSession, "memory/note.md", 0, 0)
+                        .fileData()
+                        .content())
+                .isEqualTo("daily-memory");
+        assertThat(secondFilesystem.read(otherUser, "MEMORY.md", 0, 0).isSuccess())
+                .isFalse();
+        assertThat(secondFilesystem.read(otherUser, "memory/note.md", 0, 0).isSuccess())
+                .isFalse();
+        assertThat(secondFilesystem
+                        .read(otherUser, "AGENTS.md", 0, 0)
+                        .fileData()
+                        .content())
+                .isEqualTo("shared-agent");
+    }
+
+    @Test
     void shouldRejectRemoteWorkspaceWithLocalAgentStateStore() {
         AiProperties properties = properties("MYSQL");
         properties.getStateStore().setType("MEMORY");
@@ -130,7 +179,7 @@ class WorkspaceStorageTest {
     }
 
     @Test
-    void shouldNotAcquireDistributedLockAgainForAuditWrite() throws Exception {
+    void shouldAcquireDistributedLockForEachManagedWrite() throws Exception {
         AtomicInteger lockAcquisitions = new AtomicInteger();
         SandboxExecutionGuard guard = key -> {
             lockAcquisitions.incrementAndGet();
@@ -146,11 +195,11 @@ class WorkspaceStorageTest {
         WorkspaceFileService files = new WorkspaceFileService(storage);
         AppEntity app = app();
 
-        files.write("tenant-a", app, "memory/note.md", "managed-write");
-        files.writeWhileAgentLocked("tenant-a", app, ".audit/1/memory/note.md", "audit-write");
+        files.write("tenant-a", app, "knowledge/note.md", "managed-write");
+        files.write("tenant-a", app, ".audit/1/knowledge/note.md", "audit-write");
 
-        assertThat(lockAcquisitions).hasValue(1);
-        assertThat(files.read("tenant-a", app, ".audit/1/memory/note.md")).isEqualTo("audit-write");
+        assertThat(lockAcquisitions).hasValue(2);
+        assertThat(files.read("tenant-a", app, ".audit/1/knowledge/note.md")).isEqualTo("audit-write");
     }
 
     @Test

@@ -81,8 +81,7 @@ public class WorkspaceAuditRecorder {
         String snapshotPath = AUDIT_DIR_NAME + "/" + turnStartMillis + "/" + relPath;
         try {
             String content = workspaceFileService.read(tenantId, app, relPath);
-            // recordChanges 在 Agent 流的 AGENT_END 处理期间执行，外层仍持有该应用的分布式执行锁。
-            workspaceFileService.writeWhileAgentLocked(tenantId, app, snapshotPath, content);
+            workspaceFileService.write(tenantId, app, snapshotPath, content);
             return snapshotPath;
         } catch (Exception e) {
             log.warn("快照复制失败: {}", relPath, e);

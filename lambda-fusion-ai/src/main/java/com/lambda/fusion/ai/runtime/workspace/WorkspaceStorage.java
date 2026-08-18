@@ -127,7 +127,7 @@ public class WorkspaceStorage {
         }
     }
 
-    /** 为管理与审计链路打开和 Agent 运行时相同命名空间的远程文件系统。 */
+    /** 为管理与审计链路打开 Agent 使用的远程文件系统；无用户上下文时记忆使用默认用户命名空间。 */
     public AbstractFilesystem openDistributedFilesystem(String tenantId, AppEntity app, Path workspace) {
         if (!isDistributed()) {
             throw new IllegalStateException("LOCAL Workspace 不应打开远程文件系统");
@@ -140,7 +140,7 @@ public class WorkspaceStorage {
         return MD5.create().digestHex("app:" + appId + ":t:" + tenantId);
     }
 
-    /** 与 Agent 执行使用同一分布式锁，避免管理写入和自演化写入并发覆盖。 */
+    /** 使用应用级短锁串行化跨节点的 Workspace 管理写入。 */
     public <T> T withWriteLock(String tenantId, AppEntity app, Callable<T> operation) throws IOException {
         if (!isDistributed()) {
             return call(operation);

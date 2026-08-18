@@ -31,21 +31,11 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 /**
- * 知识检索/入库适配器：基于 AgentScope {@code agentscope-extensions-rag-simple}
- * （{@link SimpleKnowledge} + {@link VDBStoreBase}，未过期）实现 {@link KnowledgeRetriever}。
+ * 基于 AgentScope {@link SimpleKnowledge} 的知识库适配器。
  *
- * <p><b>防腐层说明</b>：{@code io.agentscope.core.rag.model} 下的 {@link Document} /
- * {@link DocumentMetadata} / {@link RetrieveConfig} 已 {@code @Deprecated(forRemoval = true)}，
- * 全模块仅允许本类 import 这些类型——将来 AgentScope 删除该包时只需改造本类，
- * 业务层（service/中间件）只依赖自有的 {@link KnowledgeRetriever} / {@link RetrievedChunk} /
- * {@link IngestChunk}。
- *
- * <p>向量库双后端（{@code lambda.fusion.ai.rag.store.type}）：MEMORY（默认，
- * {@link InMemoryStore}，每知识库一个实例天然隔离，零配置但重启丢失）/ PGVECTOR
- * （{@link PgVectorStore}，每知识库一张向量表 {@code ai_kb_{kbId}}——{@code SearchDocumentDto}
- * 无 payload 过滤，且各知识库 embedding 维度可能不同，表名由系统在建库时生成）。
- * {@link SimpleKnowledge} 与知识库实体按 kbId 缓存；知识库配置变更/删除时由业务层调
- * {@link #evict(String)} 失效。
+ * <p>AgentScope 已弃用的 RAG 文档类型集中在本类转换，业务代码只依赖
+ * {@link KnowledgeRetriever}、{@link RetrievedChunk} 和 {@link IngestChunk}。
+ * 每个知识库独立缓存配置和向量存储实例。
  *
  * @author Jin
  */
@@ -54,6 +44,9 @@ import reactor.core.scheduler.Schedulers;
 @SuppressWarnings("removal")
 @SuppressFBWarnings("EI_EXPOSE_REP2")
 public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
+
+    /** 向量库连接有效性探测超时（秒）。 */
+    private static final int CONNECTION_VALID_CHECK_SECONDS = 2;
 
     private final KnowledgeBaseService knowledgeBaseService;
     private final EmbeddingModelResolver embeddingModelResolver;
@@ -69,7 +62,7 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
 
     @Override
     public Mono<List<RetrievedChunk>> retrieve(List<String> kbIds, String query, Integer limit) {
-        // 单 KB 检索内部为阻塞 IO（embedding HTTP + JDBC），整体放弹性线程池串行执行
+        // Embedding 请求和向量检索可能阻塞，交给弹性线程池执行。
         return Mono.fromCallable(() -> doRetrieve(kbIds, query, limit)).subscribeOn(Schedulers.boundedElastic());
     }
 
@@ -83,7 +76,6 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
             }
             try {
                 RetrieveConfig config = RetrieveConfig.builder()
-                        // 调用方显式 limit 优先（Agentic 工具），否则知识库级，最后全局默认
                         .limit(resolveLimit(kb, rag, limit))
                         .scoreThreshold(resolveScoreThreshold(kb, rag))
                         .build();
@@ -95,27 +87,24 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
                     merged.add(toRetrievedChunk(doc, kbId));
                 }
             } catch (Exception e) {
-                // 单知识库检索失败跳过，不影响其他知识库与对话主流程
+                // 单个知识库检索失败不影响其他知识库。
                 log.warn("知识库 {} 检索失败，跳过: {}", kbId, e.getMessage());
             }
         }
-        // 跨知识库合并按分数降序，截断到 limit 或全局默认条数
         return mergeAndTruncate(merged, resolveFinalLimit(rag, limit));
     }
 
-    // 包级可见便于单测
+    /** 按分数降序排列检索结果，并截断到指定条数。 */
     static List<RetrievedChunk> mergeAndTruncate(List<RetrievedChunk> merged, int limit) {
         merged.sort(Comparator.comparingDouble(RetrievedChunk::score).reversed());
         return merged.size() > limit ? new ArrayList<>(merged.subList(0, limit)) : merged;
     }
 
-    /**
-     * 文档切块入库：组装向量文档（payload 写入 kbId/tenantId/fileName）后写入知识库向量表。
-     */
+    /** 将文档切块转换为 AgentScope 文档并写入指定知识库。 */
     public void addChunks(String kbId, String docId, String tenantId, String fileName, List<IngestChunk> chunks) {
         KnowledgeBaseEntity kb = requireKb(kbId);
         List<Document> documents = new ArrayList<>(chunks.size());
-        // tenantId 可能为空，用 HashMap 承载 payload（Map.of 不允许 null 值）
+        // tenantId 允许为空，不能使用 Map.of。
         Map<String, Object> documentPayload = new HashMap<>();
         documentPayload.put("kbId", kbId);
         documentPayload.put("tenantId", tenantId);
@@ -186,9 +175,7 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
         }
     }
 
-    /**
-     * 按文档ID删除整文档切块；向量库实例未构建过时跳过（库里本就没有该文档数据）。
-     */
+    /** 删除指定文档的全部向量切块。知识库不存在时不处理。 */
     public void deleteDocument(String kbId, String docId) {
         KnowledgeBaseEntity kb = loadKb(kbId);
         if (kb == null) {
@@ -201,12 +188,14 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
         }
     }
 
-    /**
-     * 失效知识库缓存（实体 + 向量库连接）；配置变更或删除时调用。
-     */
+    /** 清除知识库实体与向量存储缓存，并关闭已创建的存储连接。 */
     public void evict(String kbId) {
         kbCache.remove(kbId);
-        SimpleKnowledge knowledge = knowledgeCache.remove(kbId);
+        closeQuietly(kbId, knowledgeCache.remove(kbId));
+    }
+
+    /** 静默关闭向量库连接；实例为空或不支持关闭时不处理。 */
+    private void closeQuietly(String kbId, SimpleKnowledge knowledge) {
         if (knowledge != null && knowledge.getEmbeddingStore() instanceof AutoCloseable closeable) {
             try {
                 closeable.close();
@@ -216,7 +205,7 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
         }
     }
 
-    // 知识库实体缓存；不存在时不缓存 null（下次重试加载）
+    /** 加载并缓存知识库；查询不到时不写入缓存。 */
     private KnowledgeBaseEntity loadKb(String kbId) {
         return kbCache.computeIfAbsent(kbId, id -> {
             try {
@@ -236,7 +225,47 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
     }
 
     private SimpleKnowledge knowledge(KnowledgeBaseEntity kb) {
-        return knowledgeCache.computeIfAbsent(kb.getId(), id -> buildKnowledge(kb));
+        String kbId = kb.getId();
+        SimpleKnowledge cached = knowledgeCache.get(kbId);
+        if (cached != null && isAlive(cached)) {
+            return cached;
+        }
+        // 缓存缺失或底层连接已失效（pgvector 为单条长连接，空闲会被服务端断开），
+        // 按知识库维度串行重建，避免并发检索重复建连。
+        synchronized (kbId.intern()) {
+            cached = knowledgeCache.get(kbId);
+            if (cached != null && isAlive(cached)) {
+                return cached;
+            }
+            closeQuietly(kbId, cached);
+            SimpleKnowledge rebuilt = buildKnowledge(kb);
+            knowledgeCache.put(kbId, rebuilt);
+            return rebuilt;
+        }
+    }
+
+    private boolean isAlive(SimpleKnowledge knowledge) {
+        try {
+            return isAlive(knowledge.getEmbeddingStore());
+        } catch (Exception e) {
+            log.debug("知识库向量库连接探测失败，将重建: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 判断向量库连接是否仍然可用（抽出以便单测）。
+     *
+     * <p>AgentScope 的 {@link PgVectorStore} 是构造时建立的单条 JDBC 长连接，无连接池、
+     * 无保活、无断线重连，且 {@code ensureNotClosed} 只检查内存标志不探测底层连接，
+     * 因此这里主动用 {@code isValid} 做一次轻量探测，失效则触发重建。非 pgvector
+     * 存储（如内存库）视为始终可用。
+     */
+    static boolean isAlive(VDBStoreBase store) throws Exception {
+        if (!(store instanceof PgVectorStore pgStore)) {
+            return true;
+        }
+        return !pgStore.isClosed() && pgStore.getConnection().isValid(CONNECTION_VALID_CHECK_SECONDS);
     }
 
     private SimpleKnowledge buildKnowledge(KnowledgeBaseEntity kb) {
@@ -249,7 +278,7 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
                 .build();
     }
 
-    // 按配置创建向量库实例（包级可见便于单测）；MEMORY 零依赖，PGVECTOR 需 JDBC 连接配置
+    /** 根据知识库与模块配置创建向量存储。 */
     static VDBStoreBase createStore(AiProperties.Rag rag, KnowledgeBaseEntity kb, int dimensions) {
         VectorStoreType type = VectorStoreType.of(rag.getStore().getType());
         if (type == null) {
@@ -258,10 +287,9 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
                     "未知向量库类型: " + rag.getStore().getType());
         }
         if (type == VectorStoreType.MEMORY) {
-            // 进程内存实现：无需 jdbcUrl/vectorTable，数据重启丢失
             return InMemoryStore.builder().dimensions(dimensions).build();
         }
-        AiProperties.Rag.PgVector pgvector = rag.getPgVector();
+        AiProperties.Rag.PgVector pgvector = rag.getStore().getPgVector();
         if (StringUtils.isBlank(pgvector.getJdbcUrl())) {
             throw new AiBusinessException(AiErrorCode.KB_VECTOR_STORE_NOT_CONFIGURED);
         }
@@ -279,11 +307,12 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
         }
     }
 
-    // 单 KB 检索条数：调用方显式 limit（Agentic 工具）> 知识库级 > 全局默认（包级可见便于单测）
+    /** 解析单个知识库的检索条数，知识库配置优先于全局配置。 */
     static int resolveLimit(KnowledgeBaseEntity kb, AiProperties.Rag rag) {
         return resolveLimit(kb, rag, null);
     }
 
+    /** 解析单个知识库的检索条数，调用参数优先于知识库和全局配置。 */
     static int resolveLimit(KnowledgeBaseEntity kb, AiProperties.Rag rag, Integer overrideLimit) {
         if (overrideLimit != null) {
             return overrideLimit;
@@ -291,12 +320,12 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
         return kb.getRetrieveLimit() != null ? kb.getRetrieveLimit() : rag.getDefaultLimit();
     }
 
-    // 跨知识库合并后的最终截断条数：调用方显式 limit 优先，否则全局默认（包级可见便于单测）
+    /** 解析跨知识库合并后的结果上限，调用参数优先于全局配置。 */
     static int resolveFinalLimit(AiProperties.Rag rag, Integer overrideLimit) {
         return overrideLimit != null ? overrideLimit : rag.getDefaultLimit();
     }
 
-    // 知识库级 scoreThreshold 覆盖全局默认（包级可见便于单测）
+    /** 解析检索分数阈值，知识库配置优先于全局配置。 */
     static double resolveScoreThreshold(KnowledgeBaseEntity kb, AiProperties.Rag rag) {
         return kb.getScoreThreshold() != null ? kb.getScoreThreshold().doubleValue() : rag.getDefaultScoreThreshold();
     }

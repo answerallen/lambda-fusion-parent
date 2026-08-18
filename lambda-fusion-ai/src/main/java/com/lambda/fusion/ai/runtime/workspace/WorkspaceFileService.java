@@ -76,19 +76,6 @@ public class WorkspaceFileService {
     }
 
     public void write(String tenantId, AppEntity app, String relativePath, String content) throws IOException {
-        write(tenantId, app, relativePath, content, true);
-    }
-
-    /**
-     * 在 Agent 执行锁已经持有时写入文件。仅供同一执行窗口内的 Workspace 审计使用，避免重复获取非重入分布式锁。
-     */
-    void writeWhileAgentLocked(String tenantId, AppEntity app, String relativePath, String content) throws IOException {
-        write(tenantId, app, relativePath, content, false);
-    }
-
-    private void write(
-            String tenantId, AppEntity app, String relativePath, String content, boolean acquireDistributedLock)
-            throws IOException {
         String path = validateRelativePath(relativePath);
         Path workspace = workspaceStorage.initializeWorkspace(tenantId, app);
         if (!workspaceStorage.isDistributed()) {
@@ -101,12 +88,8 @@ public class WorkspaceFileService {
         }
 
         AbstractFilesystem filesystem = workspaceStorage.openDistributedFilesystem(tenantId, app, workspace);
-        List<FileUploadResponse> responses;
-        if (acquireDistributedLock) {
-            responses = workspaceStorage.withWriteLock(tenantId, app, () -> upload(filesystem, path, content));
-        } else {
-            responses = upload(filesystem, path, content);
-        }
+        List<FileUploadResponse> responses =
+                workspaceStorage.withWriteLock(tenantId, app, () -> upload(filesystem, path, content));
         if (responses.isEmpty() || !responses.getFirst().isSuccess()) {
             String error = responses.isEmpty()
                     ? "Workspace 文件写入无响应"

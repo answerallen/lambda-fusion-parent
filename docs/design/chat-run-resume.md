@@ -3,6 +3,9 @@
 > 目标：解决用户在 LLM 输出过程中切换会话、关闭页面或网络断开后，生成被取消、助手回复丢失的问题。
 >
 > 当前范围：单实例、内存事件缓冲。浏览器连接断开后后台继续执行；服务进程重启后不继续原 LLM/工具调用，而是将遗留 Run 收敛为失败并保存已有快照。
+>
+> AgentScope 的调用入口、状态会话 ID、业务完成/资源排空和 Workspace 锁边界，以
+> [ChatRun 与 AgentScope 执行边界设计](chat-run-agentscope-execution.md) 为准。
 
 ## 1. 源码结论
 
@@ -33,6 +36,7 @@
 - `STOPPED` 或 `FAILED` 时，只要已经生成文本或工具结果，也保存部分助手消息。
 - 页面刷新、切换会话后切回、网络重连都能从 Run 快照恢复当前展示状态。
 - HITL 等待确认、确认续跑和停止都以具体 `runId` 为目标。
+- 同一 Session 的完整 AgentScope 源流按 phase-drained 顺序启动；前一条记忆尾部未排空时不订阅下一条。
 
 ### 2.2 明确不保证
 
@@ -44,13 +48,16 @@
 
 ## 3. 最小组件与职责
 
-实现只保留四个核心职责：
+核心组件按业务编排、执行生命周期和事件恢复分工：
 
 | 组件 | 类型 | 职责 |
 | :--- | :--- | :--- |
 | `ChatServiceImpl` | `@Service` | 唯一对话入口；创建/查询 Run，建立 SSE 订阅，处理确认与停止编排 |
-| `ChatRunServiceImpl` | `@Service` | Run 单表 Service；负责事务、状态迁移、所有权校验和最终落库 |
-| `ChatRunManager` | `@Component` | 持有 Agent Flux，处理事件、快照、后台生命周期、停止和启动恢复 |
+| `ChatRunServiceImpl` / `ChatRunStateService` | `@Service` | Run 查询与事务状态迁移、所有权校验和最终落库 |
+| `ChatRunCoordinator` | `@Component` | 注册和选择规范执行实例，处理容量、会话源流尾链、启动、确认、停止及启动恢复 |
+| `ChatRunInstanceFactory` | `@Component` | 按 Session 构建 Agent 和执行实例 |
+| `ChatRunInstance` | 普通对象 | 持有 AgentScope 订阅，处理阶段事件、快照、业务终态和资源排空 |
+| `AgentExecutionAdapter` | 普通对象 | 直连已选定的 `HarnessAgent`，统一 Agent 状态身份和 HITL 操作 |
 | `ChatRunEventStore` | `@Component` | 为每个 Run 分配序号，提供有界内存缓冲、回放和实时订阅 |
 
 这些类都属于当前模块自有且只有一个实现，由既有组件扫描发现：
@@ -76,11 +83,15 @@ Run 不复制 `userId` 和 `appId`，而是通过 `session_id` 使用 `ChatSessi
 
 标识含义：
 
-- `sessionId`：多轮会话。
+- `sessionId`：`ChatSessionEntity.id`，既是多轮业务会话，也是 AgentScope 状态会话。
+- `userId`：`ChatSessionEntity.userId`，与 `sessionId` 共同组成 AgentScope 状态槽。
 - `runId`：一次用户消息触发的逻辑回合，也是查询、续看、确认和停止的稳定标识。
 - `aguiRunId`：一个 AG-UI 执行阶段。首次执行和每次 HITL 确认后的阶段各自使用新的值。
 - `clientRequestId`：前端为一次“发送消息”生成的幂等键。
 - `phaseNo`：HITL 阶段号，同时用于确认操作的自然幂等控制。
+
+内部 ChatRun 的 AgentScope 状态身份固定为 `(userId, sessionId)`。不经 `HarnessGateway` 重新派生 `gw-*`
+会话 ID；`runId` 和 `aguiRunId` 也不能代替多轮状态会话 ID。
 
 ### 4.1 状态机
 
@@ -143,15 +154,21 @@ CREATED ──认领──► RUNNING
 3. 仅在确需新建 Run 时，校验 Session 绑定应用仍可用。
 4. 查询当前会话是否已有非终态 Run；有则返回 `CHAT_RUN_ALREADY_ACTIVE`。
 5. 在同一事务内插入 `CREATED` Run、用户消息，绑定附件并更新 Session 的 `last_message_at`。
-6. 事务提交后，`ChatRunManager` 通过 `CREATED -> RUNNING` 条件更新认领 Run；只有认领成功的一方订阅 Agent Flux。
+6. 事务提交后，`ChatRunCoordinator` 通过 `CREATED -> RUNNING` 条件更新认领 Run；只有认领成功的一方注册
+   `ChatRunInstance` 并订阅 AgentScope Flux。
 
 当前附件模型没有顺序字段，后台按消息重新查询附件，因此附件在本领域中按集合处理；请求摘要对附件 ID 去重、排序后再计算，后台查询按附件 ID 固定排序，避免同一附件集合因客户端排列、重复项或数据库返回顺序产生伪冲突。这里不为未定义的附件顺序新增数据库字段。
 
 如果进程在创建事务提交后、认领前退出，启动扫描可以安全启动仍为 `CREATED` 的 Run。已进入 `RUNNING` 后不自动重新执行，避免重复模型调用和工具副作用。
 
+上一条同 Session Run 可能已经提交业务终态，但 AgentScope 的记忆尾部和 Workspace 审计仍未结束。新 Run 可以创建、
+注册并建立 SSE；Coordinator 将其启动动作追加到 `(tenantId, userId, sessionId)` 的进程内尾链，等前驱 phase-drained
+后再认领/订阅。排队等待不计入 `max-run-duration`，排队中的实例仍计入容量上限。
+
 ### 6.2 Agent 与 SSE 解耦
 
-`ChatRunManager.Execution` 持有唯一 Agent `Disposable`。`ChatServiceImpl` 创建的 SSE 连接只持有 `ChatRunEventStore.Subscription`。
+`ChatRunInstance` 持有 AgentScope 源流订阅。`ChatServiceImpl` 创建的 SSE 连接只持有
+`ChatRunEventSubscription`，两者没有所有权关系。
 
 SSE 的 completion、timeout 和 error 回调只执行：
 
@@ -159,19 +176,25 @@ SSE 的 completion、timeout 和 error 回调只执行：
 subscription.close()
 ```
 
-不会调用 Agent `Disposable.dispose()`。所以一个订阅者断开不影响 Run，也不影响其他订阅者。
+不会调用 AgentScope 源流的 `Disposable.dispose()`。所以一个订阅者断开不影响 Run，也不影响其他订阅者。
+
+内部 ChatRun 已经选定目标 Agent，`AgentExecutionAdapter` 使用 Session 的权威 `(userId, sessionId)` 构建
+`RuntimeContext`，直接调用 `HarnessAgent#streamEvents`。`HarnessGateway` 只保留给需要通道路由的外部 Channel。
+
+AgentScope 的状态槽串行保护位于 `ReActAgent` 核心调用内，不能覆盖其外层的记忆中间件。Coordinator 因此只对
+同一 Session 做非阻塞的“前驱排空后再订阅”排序；它不在源流执行期间持有线程锁、数据库锁或 Workspace 锁。
 
 Agent 每产生一条事件时：
 
-1. `AguiEventMapper` 映射为 AG-UI 事件；
-2. `RunSnapshot.Accumulator` 更新规范展示状态；
+1. `AgentEventInterpreter` 解释为 AG-UI 事件和快照增量；
+2. `ChatRunSnapshotAccumulator` 更新规范展示状态；
 3. `ChatRunEventStore` 追加事件并分配严格递增的 `seq`；
 4. 已连接订阅者异步消费事件；慢订阅者只断开自身；
 5. 按事件数或时间间隔写入快照检查点。
 
 ### 6.3 最终落库
 
-正常完成、停止和失败竞争同一个终结门闩。终结流程为：
+正常完成、停止和失败竞争同一个业务终结门闩。普通完成以当前阶段根 Agent 的 `AGENT_END` 为业务边界：
 
 1. 关闭仍打开的文本/推理内容块并取得最终快照。
 2. 开启 `REQUIRES_NEW` 事务，依次锁定 Session 和 Run。
@@ -181,26 +204,37 @@ Agent 每产生一条事件时：
 6. 同一事务更新 Run 终态、快照、助手消息 ID、错误信息和 Session `last_message_at`。
 7. 事务提交后，才追加 `RUN_FINISHED` 或 `RUN_ERROR`，再记录包含终态事件的 `snapshot_seq`。
 
-数据库或终态事件记录短暂失败时，管理器以最大 30 秒间隔继续重试，直到成功或进程停止。若业务终态事务已提交而后续事件记录失败，重试会读取已提交 Run 和快照，不重复写助手消息，也不会用旧尝试覆盖真实终态。
+业务终态提交并发布后完成 `terminalSignal`，但不能因此取消底层订阅。AgentScope 的记忆中间件、Sandbox 快照
+与 release 可能仍在根 `AGENT_END` 后继续；源流终止后才记录 Workspace 审计。最终 `drainedSignal` 在
+`terminalSignal` 与 phase-drained 都完成后触发，避免数据库终结仍在重试时提前摘除实例。根事件后的后处理失败
+只记录后处理错误，不把已经提交的 `COMPLETED` 改为 `FAILED`。
+
+phase-drained 还会释放同一 Session 源流尾链中的后继启动动作。`terminalSignal` 只服务业务完成，不能释放该尾链。
+
+数据库或终态事件记录短暂失败时，执行实例以最大 30 秒间隔继续重试，直到成功或进程停止。若业务终态事务已
+提交而后续事件记录失败，重试读取已提交 Run 和快照，不重复写助手消息，也不会用旧尝试覆盖真实终态。
 
 ### 6.4 HITL
 
 收到 `REQUIRE_USER_CONFIRM` 时：
 
-1. 累积器保存脱敏的工具 ID/名称和当前展示快照。
-2. 不取消 Agent Flux，等待当前 Agent 调用自然结束，使 AgentScope 完成 ASKING 状态保存。
-3. Run 条件更新为 `AWAITING_CONFIRM`，写入确认截止时间。
-4. 事件流发送 `RUN_FINISHED(interrupt)`，结束当前 AG-UI 阶段，但逻辑 Run 不终结，Agent 实例仍保留。
+1. 累积器保存脱敏的工具 ID/名称和当前展示快照，暂存 `RUN_FINISHED(interrupt)`。
+2. 不取消 AgentScope Flux；等待当前阶段的根 `AGENT_END`，确认 AgentScope 已保存 `ASKING` 状态。
+3. Run 条件更新为 `AWAITING_CONFIRM`，写入确认截止时间，再发布暂存的中断事件。
+4. 当前 AG-UI 阶段对用户已结束，但执行实例继续等待该阶段的 AgentScope 源流排空。
 
 确认请求必须提交当前 `phaseNo` 和全部工具决策：
 
 - 事务锁定 Session 和 Run；
 - 校验 Run 正处于相同阶段的 `AWAITING_CONFIRM`；
 - 校验决策 ID 与快照中的待确认 ID 完全一致且不重复；
+- 从 Agent 状态读取完整 `ToolUseBlock`，并与请求及快照做三方一致性校验；
 - 将状态改为 `RUNNING`、`phaseNo + 1`，生成新的 `aguiRunId`；
-- 事务提交后，管理器从 Agent 状态读取完整 `ToolUseBlock` 并继续同一逻辑 Run。
+- 若旧阶段已经排空，立即启动新阶段；否则只登记一次待启动确认消息，待旧阶段 phase-drained 后启动。
 
 如果相同旧 `phaseNo` 再次提交，而 Run 已进入更高阶段，则只返回当前 Run 并重新挂接，不再次应用确认。这里使用阶段号保证“状态迁移至多一次”，不额外建立命令流水表。
+
+确认卡片可以在旧阶段排空前响应，但同一逻辑 Run 的两个 AgentScope phase 不能重叠执行。
 
 ### 6.5 停止
 
@@ -213,7 +247,7 @@ POST /v1/ai/sessions/{sessionId}/runs/{runId}/stop
 流程为：
 
 1. 条件更新 `CREATED/RUNNING/AWAITING_CONFIRM -> STOPPING`。
-2. 有运行中 Agent 时先调用协作式 `interrupt(userId, sessionId)`。
+2. 有运行中 Agent 时先按 Session 权威身份调用协作式 `interrupt(ChatSession.userId, ChatSession.id)`。
 3. 宽限期内未结束时才 dispose Flux。
 4. 最终以 `STOPPED` 落库，并保存已有部分输出。
 
@@ -230,6 +264,9 @@ POST /v1/ai/sessions/{sessionId}/runs/{runId}/stop
 - 确认超时：运行期间扫描 `AWAITING_CONFIRM`，收敛为 `STOPPED / CONFIRM_TIMEOUT`。
 
 不把 Agent 状态存储可持久化等同于“模型流可从 token 中间继续”。对 `AWAITING_CONFIRM` 的保留也不等于承认任意版本、任意工具集合都能安全续跑；实现必须保证恢复后仍能校验 Agent、工具和权限上下文一致，否则应按失败边界处理。
+
+从 Gateway 派生状态 ID 切换到 Session 权威 ID 的发布不做旧状态迁移或双读。该次发布前必须结束所有
+`RUNNING` / `AWAITING_CONFIRM` Run；发布后的后续同版本重启，才适用上述 `AWAITING_CONFIRM` 保留规则。
 
 ## 7. SSE 事件与恢复
 
@@ -373,6 +410,10 @@ lambda:
 这些配置只控制超时和资源上限，不改变 Bean 拓扑。默认值已定义在
 `AiProperties.Chat.Run`，启动模块无需逐项重复配置；只有部署确需调整时才覆盖对应项。
 
+`max-run-duration-seconds` 只约束一个 phase 从启动到根 `AGENT_END` 的交互阶段。到达根事件后取消该计时，
+不能用同一个 Reactor `timeout()` 覆盖后续记忆整理和 Sandbox 清理。后处理目前只记录耗时和失败；若以后增加
+独立硬超时，也不能反向改变已提交的业务终态。
+
 ## 13. 失败语义与安全
 
 - Agent 启动失败：`FAILED / START_FAILED`。
@@ -381,6 +422,7 @@ lambda:
 - 进程重启遗留执行：`FAILED / INSTANCE_LOST`。
 - 用户停止：`STOPPED / USER_STOP`。
 - HITL 超时：`STOPPED / CONFIRM_TIMEOUT`。
+- 根 `AGENT_END` 后的记忆整理、Sandbox 清理或 Workspace 审计失败：保留已提交业务终态，单独记录后处理失败。
 - 慢 SSE 订阅者：只断开该订阅者，Run 继续。
 - 快照中的工具参数和结果按常见 secret/token/password 字段脱敏；日志不输出提示词、完整工具输入或凭据。
 - 删除 Session 前检查是否存在非终态 Run；存在时拒绝删除。
@@ -399,8 +441,13 @@ lambda:
 8. 不增加 `active_session_id`、`last_seq` 等与现有状态/快照重复的字段。
 9. 不预埋未实现的 Redis、多节点 owner 或 feature flag。
 10. 助手消息写入复用现有 `ChatMessageService`，不在 Run Service 重复构造消息持久化逻辑。
+11. 内部 ChatRun 直连已选定的 `HarnessAgent`；外部 Channel 才使用 `HarnessGateway`。
+12. Agent 状态、中断和保存统一使用 `(ChatSession.userId, ChatSession.id)`，不复制 Gateway 的 `gw-*` 规则。
+13. 不在模型调用或记忆整理期间持有 Lambda Fusion Workspace 锁；审计在源流排空后使用短写锁。
+14. `terminalSignal` 表示业务终态，`drainedSignal` 表示源流、审计和资源清理完成，两者不可合并。
+15. 同一 Session 使用非阻塞 phase-drained 尾链顺序启动完整源流；它不是应用级 Workspace 执行锁。
 
-## 15. 验证要求与当前结果
+## 15. 验证要求
 
 必须覆盖：
 
@@ -413,17 +460,22 @@ lambda:
 - 相同 `clientRequestId` 不重复写用户消息；
 - 最终消息和 Run 终态事务幂等；
 - 切换会话后切回可恢复；
-- 主动停止保存部分输出。
+- 主动停止保存部分输出；
+- 内部 ChatRun 不调用 `HarnessGateway#runStream`，代码和测试中不再生成 `gw-*`；
+- 根 `AGENT_END` 后立即完成业务终态，记忆尾部继续运行，且业务终态不会 dispose 底层订阅；
+- `drainedSignal` 只在 AgentScope 源流终止、Workspace 审计和实例清理完成后触发；
+- 业务已完成但前一源流仍在排空时发送下一条消息：新 Run 可挂载，实际 AgentScope 订阅在前驱排空后开始；
+- 排空前到达的 HITL 确认只登记一个待启动阶段，旧 phase 排空后恰好启动一次；
+- 同一应用的不同用户可以并发进入模型调用，模型和记忆调用期间没有 Workspace 全流程锁。
 
-当前已完成的验证：
+执行以下命令验证当前分支，不在设计文档中固化会随代码增长而过时的测试数量或历史执行结果：
 
-- `mvn -pl lambda-fusion-ai -DskipTests compile` 通过，AI 模块 Spotless 全量检查通过；父 POM 当前配置将 SpotBugs 标记为 skip。
-- `mvn -pl lambda-fusion-ai test` 通过：共 98 个测试，0 failure / 0 error / 0 skipped；覆盖 Run 事件存储、bootstrap、快照、停止竞态与终态游标删除竞态。
-- Liquibase changelog XML 解析通过，根仓库与前端仓库 `git diff --check` 通过。
-- 前端本次修改的 `chat.ts`、`chat-panel.vue` ESLint 通过。
-- 前端 `pnpm --filter @vben/web-tdesign typecheck` 通过。
+```shell
+mvn -pl lambda-fusion-ai test
+mvn -pl lambda-fusion-ai -am compile
+git diff --check -- docs/design
+```
 
-其中“浏览器断开不 dispose Agent”、请求幂等、终态事务、切换恢复和停止部分输出属于联调验收项；
-当前自动化测试主要覆盖事件窗口、bootstrap 与快照，不把尚未完成的浏览器/数据库集成场景写成已自动验证。
+浏览器断开、HITL 排空竞态、记忆尾部延迟和多用户同应用并发仍需做集成验证；单元测试通过不能替代这些生命周期验收。
 
 当前实现的部署声明只能写为“单实例浏览器断线续跑与恢复”，不能写成“多实例高可用”或“服务重启后继续生成”。

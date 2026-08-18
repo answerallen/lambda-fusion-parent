@@ -25,7 +25,7 @@ final class ChatRunSnapshotAccumulator {
     private boolean textOpen;
     private boolean reasoningOpen;
     private final List<ExecutionSnapshot.Tool> tools = new ArrayList<>();
-    private List<ExecutionSnapshot.Tool> pendingTools = List.of();
+    private List<ExecutionSnapshot.Tool> pendingTools;
 
     /**
      * 根据已有快照创建累加器。

@@ -3,6 +3,8 @@
 > 目标：修复 Run 已能通过 bootstrap 重建待确认工具卡片，但确认时 AgentScope 中找不到对应 `ToolUseBlock`，最终错误进入 `FAILED / START_FAILED` 的问题。
 >
 > 本文只描述修复设计。实际代码改造完成前，本文中的目标流程和新增错误码均不代表当前实现已经具备。
+> AgentScope 的直连方式、状态身份和 phase 排空边界以
+> [ChatRun 与 AgentScope 执行边界设计](chat-run-agentscope-execution.md) 为准。
 
 ## 1. 问题现象
 
@@ -36,24 +38,27 @@ ChatServiceImpl.confirm
         v
 ChatRunCoordinator.confirm          （loadOwned 已做归属校验）
   1. get 命中则复用；未命中时构造候选实例并以 putIfAbsent 选定唯一注册实例
-  2. 仅注册成功的实例订阅 terminalSignal，终态时按 (runId, instance) 身份摘除
+  2. 仅注册成功的实例参与信号管理；业务终态完成 terminalSignal，最终排空后才按
+     (runId, instance) 身份摘除
         |
         v
 ChatRunInstance.confirm（synchronized 实例锁内，原子完成）
   3. validateAndBuildMessage：读 Agent ASKING 状态 → 三方 ID 校验 → 构造确认消息
   4. advanceConfirmation：REQUIRES_NEW 事务内复核所有权 + 阶段守卫 + (status, phaseNo) CAS
   5. 同步实例内 Run 状态
-  6. 启动下一阶段
+  6. 旧 phase 已排空则启动下一阶段；否则登记待启动消息，排空后恰好启动一次
 ```
 
 锁顺序恒为「实例 monitor → REQUIRES_NEW 数据库事务」，不反向持数据库行锁等待实例锁。
 
 关键不变量：
 
-1. **先验证、后迁移**：完整确认上下文（Agent `ASKING` 块、三方 ID 一致）验证通过前，不执行数据库迁移；验证失败保持 `AWAITING_CONFIRM`。
+1. **先验证、后推进**：完整确认上下文（Agent `ASKING` 块、三方 ID 一致）验证通过前，不推进 Run 数据库状态；验证失败保持 `AWAITING_CONFIRM`。
 2. **读取失败不折叠为空**：状态存储异常、状态不存在、没有 `ASKING` block 抛 `CONFIRM_CONTEXT_UNAVAILABLE`；ID 不一致抛 `CONFIRM_CONTEXT_MISMATCH`；Run 保持可重试。
 3. **CAS 冲突零副作用**：校验与消息构造在 CAS 之前完成；CAS 冲突（含幂等重放）不启动、不主动终结竞争方 Run。
 4. **迁移后失败才终结**：仅 CAS 成功后的启动失败按 `START_FAILED` 收敛终态，且不再静默吞掉。
+5. **阶段不重叠**：确认请求可以在旧 phase 的记忆尾部仍运行时完成 CAS，但新的 `streamEvents` 必须等旧 phase
+   源流终止、Sandbox release 完成后再启动。
 
 ## 3. 修复目标与边界
 
@@ -66,13 +71,16 @@ ChatRunInstance.confirm（synchronized 实例锁内，原子完成）
 - 并发确认仍由 `(status, phaseNo)` CAS 保证只有一个请求推进。
 - 不在日志、RunSnapshot 或错误响应中输出完整工具参数、Token、密码或凭据。
 - bootstrap 继续只承担展示恢复，不冒充可执行上下文恢复。
+- Agent 状态读取和确认续跑固定使用 `(ChatSession.userId, ChatSession.id)`，不得自行拼接 `gw-*`。
 
 ### 3.2 本次不做
 
 - 不把完整 `ToolUseBlock` 写入当前脱敏 `RunSnapshot`。
 - 不新增确认命令流水表、事务 outbox、Redis Stream 或多实例执行租约。
-- 不尝试恢复 JVM 重启前正在等待确认的 Agent。当前设计仍按 `INSTANCE_LOST` 收敛遗留 Run。
+- 不恢复 JVM 重启前处于模型或工具执行中的 phase。`AWAITING_CONFIRM` 仅在持久化 state store 可按权威
+  `(userId, sessionId)` 重新读取并通过三方校验时保留，否则按失败边界收敛。
 - 不改变现有前端确认协议；前端仍提交 `phaseNo` 和全部 `decisions`。
+- 不迁移或双读旧的 `(userId, gw-*)` Agent state。
 
 ## 4. 目标流程
 
@@ -95,7 +103,9 @@ Client           ChatService        ChatRunCoordinator   ChatRunInstance        
   |                   |                    |                    |-------------------------------------->|
   |                   |                    |                    | (REQUIRES_NEW CAS)  |                |
   |                   |                    |                    |<--------------------------------------|
-  |                   |                    |                    | 同步状态+启动新阶段   |                |
+  |                   |                    |                    | 同步状态             |                |
+  |                   |                    |                    | 旧 phase 已排空？     |                |
+  |                   |                    |                    | 是：启动；否：登记待启动消息          |
   |                   |                    |                    | }                   |                |
   |<==================| bootstrap + phase N+1 SSE              |                     |                |
 ```
@@ -117,15 +127,19 @@ synchronized ConfirmTransition confirm(ConfirmToolCall command) {
         return transition;
     }
     syncRun(transition.run());
-    try {
-        beginConfirmedPhase();
-        startPhase(confirmMessage);
-    } catch (RuntimeException startFailure) {
-        finalizeFailed(START_FAILED, safeMessage(startFailure));
+    PendingPhase next = new PendingPhase(transition.run().getPhaseNo(), confirmMessage);
+    if (currentPhaseDrained()) {
+        startConfirmedPhase(next);
+    } else {
+        registerPendingPhaseOnce(next);
     }
     return transition;
 }
 ```
+
+`startConfirmedPhase` 在实际启动时统一处理 `beginConfirmedPhase` 和启动失败收敛。旧 phase 的 complete、error、cancel
+都进入同一个排空回调；回调取得实例锁后消费一次 `PendingPhase`。不能在确认 HTTP 线程和排空回调中分别直接调用
+`startPhase`，否则会形成双启动竞态。
 
 `validateAndBuildMessage` 职责（**全部在 CAS 之前**完成，因此 CAS 冲突零副作用）：
 
@@ -147,7 +161,8 @@ snapshotIds == decisionIds == agentAskingIds
 
 禁止仅使用 `allMatch` 做子集校验，因为它不能表达三方事实是否完整一致；三方集合相等补上「Agent 侧存在 decision 之外的额外 `ASKING` 块不被察觉」的缺口。
 
-完整 `ToolUseBlock` 只短暂存在于实例锁内的确认消息 metadata，不写入 `RunSnapshot`、不序列化、不写日志。
+完整 `ToolUseBlock` 只存在于 AgentScope state 和当前进程内的确认消息 metadata。旧 phase 尚未排空时，它会随
+`PendingPhase` 暂存在执行实例内存中，启动或终结后立即清除；不得写入 `RunSnapshot`、数据库、SSE 或日志。
 
 ### 5.3 `ChatRunStateService.advanceConfirmation`：权威迁移
 
@@ -168,7 +183,7 @@ ConfirmTransition advanceConfirmation(
 
 ### 5.4 `ChatServiceImpl`：编排下沉
 
-确认的数据库迁移与执行推进整体下沉到协调器/实例，服务层只做归属校验与事件流挂载：
+确认的数据库状态推进与执行编排整体下沉到协调器/实例，服务层只做归属校验与事件流挂载：
 
 ```java
 public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command) {
@@ -178,7 +193,10 @@ public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall comman
 }
 ```
 
-`ChatRunCoordinator.confirm` 先查询 `executions`；未命中时构造候选实例，再由 `putIfAbsent` 选定唯一注册实例。只有注册成功的实例才由 Coordinator 订阅 `terminalSignal`，并在终态时通过 `remove(runId, instance)` 按实例身份摘除；竞争落败或未注册实例不能操作注册表。取得规范实例后，确认流程在其实例锁内执行。`ChatRunService.confirm`（HTTP 编排面）随之删除，确认推进不再经过该面。
+`ChatRunCoordinator.confirm` 先查询 `executions`；未命中时构造候选实例，再由 `putIfAbsent` 选定唯一注册实例。
+竞争落败或未注册实例不能操作注册表。业务终态只完成 `terminalSignal`；Coordinator 等最终 `drainedSignal` 后才
+通过 `remove(runId, instance)` 按实例身份摘除，避免记忆尾部仍运行时丢失实例所有权。取得规范实例后，确认流程在
+其实例锁内执行。`ChatRunService.confirm`（HTTP 编排面）随之删除，确认推进不再经过该面。
 
 CAS 未推进（幂等重放）时不启动新阶段，仅按数据库当前状态返回恢复流。
 
@@ -256,16 +274,18 @@ ai.chat.confirm.resume.failure
 
 两个请求可能都读取到同一份 `ASKING` 上下文并完成三方校验，最终由数据库行锁和 `(status, phaseNo)` CAS 决定唯一胜者：
 
-- 胜者在实例锁内迁移至 phase N+1 并启动下一阶段；
+- 胜者在实例锁内迁移至 phase N+1；旧 phase 已排空时直接启动，否则只登记一个待启动阶段；
 - 败者看到 phase 已推进（`resumed=false`）或 CAS 状态冲突，不启动第二次 Agent 阶段、不终结竞争方 Run。
 
-### 8.2 校验成功、数据库迁移失败
+### 8.2 校验成功、数据库状态推进失败
 
 校验与确认消息构造均在 CAS 之前完成，CAS 竞争落败（`resumed=false` 重放或状态冲突）时不启动新阶段、不终结竞争方 Run，构造结果直接丢弃，Agent 状态和 Run 停留在原阶段，零副作用。
 
-### 8.3 数据库迁移成功、启动下一阶段失败
+### 8.3 数据库状态推进成功、启动下一阶段失败
 
-校验已经排除了「上下文缺失」这一类失败，但模型、线程池或 Agent 本身仍可能启动失败。此时 Run 已进入 phase N+1，应使用明确的运行错误收敛为 `FAILED / START_FAILED`，并保留已有快照；不得静默吞掉，也不得错误回滚成 `AWAITING_CONFIRM`，避免重复执行已经确认的外部工具。
+校验已经排除了「上下文缺失」这一类失败，但排空回调、线程池或 Agent 本身仍可能在实际启动 phase N+1 时失败。
+此时 Run 已进入 phase N+1，应使用明确的运行错误收敛为 `FAILED / START_FAILED`，并保留已有快照；不得静默吞掉，
+也不得错误回滚成 `AWAITING_CONFIRM`，避免重复执行已经确认的外部工具。
 
 ### 8.4 state store 在等待期间失效
 
@@ -288,10 +308,10 @@ Run 保持 `AWAITING_CONFIRM` 并返回可重试错误。运维修复 state stor
 
 进入待确认时，中断事件与 `AWAITING_CONFIRM` 迁移之间存在「事件外发」与「数据库事实」两个事实源，必须显式约定先后，避免两类缺陷：
 
-- **先发事件、后落库**：数据库迁移失败时前端已看到「等待确认」，后端却仍是 `RUNNING`，甚至随后再收到失败终态——业务事实倒置。
+- **先发事件、后落库**：数据库状态提交失败时前端已看到「等待确认」，后端却仍是 `RUNNING`，甚至随后再收到失败终态——业务事实倒置。
 - **先落库、后发事件**：序号先于事件持久化，重启/恢复时快照序号可能不覆盖中断事件——序号覆盖缺口。
 
-收敛为**事件缓冲两态**：中断事件先**暂存**（编码、分配序号并推进 `nextSeq`，但不进入可见窗口、不推送订阅者），`awaitConfirm` 数据库迁移成功后才**发布**（进入窗口并推送），失败则**丢弃**。由此同时满足：
+收敛为**事件缓冲两态**：中断事件先**暂存**（编码、分配序号并推进 `nextSeq`，但不进入可见窗口、不推送订阅者），`awaitConfirm` 数据库状态提交成功后才**发布**（进入窗口并推送），失败则**丢弃**。由此同时满足：
 
 1. 序号在暂存时分配，快照序号天然覆盖中断事件，不依赖「先存序号再发事件」的隐式顺序。
 2. 数据库事实先于信号外发，落库失败时订阅者不可见中断事件，无副作用、可重试。
@@ -303,7 +323,7 @@ Run 保持 `AWAITING_CONFIRM` 并返回可重试错误。运维修复 state stor
 完整 `ToolUseBlock` 可能包含敏感工具参数，只允许短暂存在于：
 
 1. AgentScope state store；
-2. 实例锁内的确认消息 metadata（构造后即交 AgentScope 消费）。
+2. 当前进程执行实例中的确认消息 metadata（旧 phase 排空后交 AgentScope 消费，随后清除引用）。
 
 不得把它加入：
 
@@ -321,12 +341,13 @@ RunSnapshot 继续使用现有脱敏逻辑，前端只获得展示和决策所�
 
 1. 在 `AiErrorCode` 增加确认上下文不可用和不一致错误码。
 2. 将 Agent 状态读取方法改为「明确返回结果或抛业务异常」，删除捕获异常后返回空列表的行为。
-3. 在 `ChatRunInstance` 增加 `confirm` 单一原子方法与三方一致性校验（锁内完成读取、校验、CAS、启动）。
+3. 在 `ChatRunInstance` 增加 `confirm` 单一原子方法与三方一致性校验（锁内完成读取、校验、CAS，以及立即启动或登记待启动阶段）。
 4. 在 `ChatRunStateService` 增加 `advanceConfirmation`（REQUIRES_NEW、所有权复核、阶段守卫、CAS），并删除 `ChatRunService.confirm`。
 5. 调整 `ChatServiceImpl.confirm` 为「归属校验 → 协调器确认 → 挂载事件流」的薄编排。
-6. 调整显式持久化 state store 的失败策略，禁止静默回退 MEMORY。
-7. 改写既有 `StateStoreResolverTest`：显式非 MEMORY 配置失败时断言启动失败而非回退 MEMORY（仅未配置/显式 MEMORY 场景保留回退或直接创建用例）；并补充确认上下文相关的单元/集成测试。
-8. 更新 `chat-run-resume.md` 的确认流程及失败语义，使总设计与本修复一致。
+6. 增加 phase 排空回调和单槽 `PendingPhase`；最终业务终态与实例摘除分别使用 `terminalSignal`、`drainedSignal`。
+7. 调整显式持久化 state store 的失败策略，禁止静默回退 MEMORY。
+8. 改写既有 `StateStoreResolverTest`：显式非 MEMORY 配置失败时断言启动失败而非回退 MEMORY（仅未配置/显式 MEMORY 场景保留回退或直接创建用例）；并补充确认上下文相关的单元/集成测试。
+9. 更新 `chat-run-resume.md` 的确认流程及失败语义，使总设计与本修复一致。
 
 ## 11. 测试方案
 
@@ -340,16 +361,19 @@ RunSnapshot 继续使用现有脱敏逻辑，前端只获得展示和决策所�
 - decision 缺少、多出或重复 ID：拒绝确认，不执行 CAS。
 - 三方 ID 相同但顺序不同：CAS 推进后按 decision 顺序生成确认消息并启动一次新阶段。
 - CAS 幂等重放（`resumed=false`）：不启动第二次 Agent 阶段。
+- 旧 phase 未排空：CAS 成功但不立即调用 `streamEvents`，排空后只启动一次。
+- 确认与旧 phase 排空并发：由同一实例锁决定立即启动或登记，不能丢失、重复启动。
+- Run 在等待排空时停止或失败：清除 `PendingPhase`，不再启动确认阶段。
 
 ### 11.2 待确认事件两态
 
-- 数据库迁移成功：暂存的中断事件发布，订阅者可见，序号被快照覆盖。
-- 数据库迁移落败（返回 `false`）：暂存事件丢弃，订阅者不可见，可重试。
-- 数据库迁移抛错（回滚）：保持 `RUNNING` 可重试，抛 `CHAT_RUN_AWAIT_CONFIRM_FAILED`，不落失败终态。
+- 数据库状态提交成功：暂存的中断事件发布，订阅者可见，序号被快照覆盖。
+- 数据库状态提交落败（返回 `false`）：暂存事件丢弃，订阅者不可见，可重试。
+- 数据库状态提交抛错（回滚）：保持 `RUNNING` 可重试，抛 `CHAT_RUN_AWAIT_CONFIRM_FAILED`，不落失败终态。
 - 确认竞胜（落库返回 `false` 且当前 `RUNNING`）：实例安全收尾，不误判为 `STATE_CONFLICT`。
 - 运行已终结后禁止暂存待确认事件（抛 `IllegalStateException`）。
 
-### 11.2 `ChatRunStateService.advanceConfirmation` 测试
+### 11.3 `ChatRunStateService.advanceConfirmation` 测试
 
 - phase 匹配时只推进一次。
 - phase 超前时幂等返回 `resumed=false`。
@@ -357,13 +381,13 @@ RunSnapshot 继续使用现有脱敏逻辑，前端只获得展示和决策所�
 - 会话所有权复核失败（`session.id + userId` 查不到）时返回 `CHAT_RUN_NOT_FOUND`。
 - CAS 竞争落败（`changed != 1`）时返回状态冲突。
 
-### 11.3 `ChatServiceImpl` 编排测试
+### 11.4 `ChatServiceImpl` 编排测试
 
 - 协调器确认抛错时原样向上抛出。
 - 确认成功响应固定使用 `afterSeq=0, bootstrap=true`，并从迁移后 Run 挂载事件流。
 - CAS 幂等重放时同样从迁移后 Run 挂载事件流（不重复推进）。
 
-### 11.4 配置测试
+### 11.5 配置测试
 
 > 既有 `StateStoreResolverTest` 中 `distributedTypeWithoutProviderFallsBackToInMemory`、`providerMismatchFallsBackToInMemory`、`providerFailureFallsBackToInMemory`、`unknownTypeFallsBackToInMemory` 当前断言“显式非 MEMORY 配置失败 -> 回退 MEMORY”，须随 §7.1 改写为断言启动失败（抛 `CONFIGURATION_ERROR`）；`defaultsToInMemory`、`fileMode*`、`dispatchesToMatchingProvider` 等成功路径用例保留。
 
@@ -372,7 +396,7 @@ RunSnapshot 继续使用现有脱敏逻辑，前端只获得展示和决策所�
 - 显式 MYSQL 但 provider 缺失时启动失败，不回退 MEMORY。
 - provider 创建异常时错误信息不包含密码或完整连接串。
 
-### 11.5 回归测试
+### 11.6 回归测试
 
 执行：
 
@@ -398,6 +422,8 @@ mvn -pl lambda-fusion-ai -am compile
 - 确认 state store 表、账号权限和连接池健康。
 - 检查历史日志中是否出现过 MYSQL 回退 MEMORY。
 - 发布前等待或显式停止旧版本实例上的活跃 Run，避免滚动发布把等待确认的执行器判为 `INSTANCE_LOST`。
+- 本次不迁移旧 `(userId, gw-*)` 状态；发布后只使用 `(ChatSession.userId, ChatSession.id)`，因此发布前必须结束
+  所有 `RUNNING` 和 `AWAITING_CONFIRM` Run，不做跨版本续跑。
 
 ### 12.2 上线观察
 
@@ -411,7 +437,9 @@ mvn -pl lambda-fusion-ai -am compile
 
 ### 12.3 回滚策略
 
-本方案不修改表结构和前端协议，代码可直接回滚。回滚前应停止新版本实例接收流量，并等待其正在执行的 Run 收敛；否则进程切换仍会触发当前单实例设计的 `INSTANCE_LOST`。
+本方案不修改表结构和前端协议，但 Agent state 身份切换不是无损回滚。回滚前必须停止新版本接收流量并等待活动
+Run 收敛；旧版本会重新使用历史 `(userId, gw-*)` 状态并忽略新版本写入的 `(userId, ChatSession.id)` 状态。既然本次
+明确不做数据迁移，运维必须接受这段状态不连续，不能宣传为“会话记忆无损回滚”。
 
 ## 13. 验收标准
 
@@ -420,6 +448,7 @@ mvn -pl lambda-fusion-ai -am compile
 - Agent 上下文缺失时，数据库仍为原 `AWAITING_CONFIRM / phase N`。
 - 相同确认命令在上下文恢复后可以重试成功。
 - 确认成功后只推进一次 phase，只启动一次下一阶段。
+- 用户可在旧 phase 记忆尾部排空前提交确认，但新旧 phase 的 AgentScope Flux 不重叠。
 - bootstrap 展示快照与 Agent 上下文不一致时返回明确业务错误。
 - 不再出现“先产生 phase N+1 bootstrap，再因旧阶段工具上下文缺失而 `START_FAILED`”的事件序列。
 - 显式 MYSQL state store 初始化失败时不会静默使用 MEMORY。
