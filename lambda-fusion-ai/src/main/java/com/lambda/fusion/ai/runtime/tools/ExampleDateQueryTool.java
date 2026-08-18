@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.runtime.example;
+package com.lambda.fusion.ai.runtime.tools;
 
 import com.lambda.fusion.ai.runtime.annotaion.RequireConfirm;
 import io.agentscope.core.tool.Tool;

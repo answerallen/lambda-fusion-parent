@@ -33,6 +33,7 @@ import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceDistributedStoreProvider;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceStorage;
 import com.lambda.fusion.ai.skill.SkillRepositoryProvider;
+import com.lambda.fusion.authority.api.RemoteUserService;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.ClientConfig;
 import com.qcloud.cos.auth.BasicCOSCredentials;
@@ -797,6 +798,24 @@ public class AiConfigure {
             reference.setCluster("broadcast");
             reference.setCheck(false);
             return new DubboConfigInvalidationBroadcaster(reference.get());
+        }
+    }
+
+    /**
+     * authority 远程用户查询引用：暴露 {@link RemoteUserService} Dubbo 引用，供 {@code CurrentUserQueryTool}
+     * 获取用户身份详情（昵称/组织/角色/账户状态）。Dubbo 不在 classpath 时不装配，工具退化为仅返回对话上下文中的基础身份。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ServiceBean")
+    public static class DubboRemoteUserConfiguration {
+
+        @Bean
+        public RemoteUserService remoteUserService() {
+            // check=false：authority 未就绪/缺失时不阻塞本地启动，调用期失败由工具降级处理
+            ReferenceConfig<RemoteUserService> reference = new ReferenceConfig<>();
+            reference.setInterface(RemoteUserService.class);
+            reference.setCheck(false);
+            return reference.get();
         }
     }
 }
