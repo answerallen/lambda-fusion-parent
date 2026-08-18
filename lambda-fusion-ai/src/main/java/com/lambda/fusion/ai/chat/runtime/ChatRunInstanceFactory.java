@@ -11,7 +11,6 @@ import com.lambda.fusion.ai.runtime.AgentFactory;
 import com.lambda.fusion.ai.runtime.gateway.FusionSubagentGateway;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import io.agentscope.harness.agent.HarnessAgent;
-import io.agentscope.harness.agent.gateway.HarnessGateway;
 import java.util.concurrent.ScheduledExecutorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +36,6 @@ class ChatRunInstanceFactory {
     private final ChatRunEventStore eventStore;
     private final AgentFactory agentFactory;
     private final WorkspaceAuditRecorder workspaceAuditRecorder;
-    private final ObjectProvider<HarnessGateway> gatewayProvider;
     private final ObjectProvider<FusionSubagentGateway> subagentGatewayProvider;
     private final AiProperties properties;
 
@@ -50,14 +48,8 @@ class ChatRunInstanceFactory {
         if (subagentGateway != null) {
             subagentGateway.configureAgent(agent);
         }
-        AgentExecutionAdapter agentExecution = new AgentExecutionAdapter(
-                agent,
-                gatewayProvider.getIfAvailable(),
-                agentFactory.buildStableAgentId(session.getAppId(), tenantId),
-                run,
-                session,
-                tenantId,
-                subagentGateway);
+        AgentExecutionAdapter agentExecution =
+                new AgentExecutionAdapter(agent, run, session, tenantId, subagentGateway);
         return newInstance(run, session, scheduler, agentExecution);
     }
 

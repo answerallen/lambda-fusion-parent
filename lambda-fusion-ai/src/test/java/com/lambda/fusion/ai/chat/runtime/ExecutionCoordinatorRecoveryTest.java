@@ -34,7 +34,6 @@ import io.agentscope.core.message.ToolCallState;
 import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.harness.agent.HarnessAgent;
-import io.agentscope.harness.agent.gateway.HarnessGateway;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -136,13 +135,7 @@ class ExecutionCoordinatorRecoveryTest {
         AiProperties properties = new AiProperties();
         properties.getStateStore().setType(stateStoreType);
         ChatRunInstanceFactory instanceFactory = new ChatRunInstanceFactory(
-                runService,
-                eventStore,
-                agentFactory,
-                workspaceAuditRecorder,
-                gatewayProvider(),
-                mock(ObjectProvider.class),
-                properties);
+                runService, eventStore, agentFactory, workspaceAuditRecorder, mock(ObjectProvider.class), properties);
         coordinator = new ChatRunCoordinator(
                 runService,
                 eventStore,
@@ -195,11 +188,6 @@ class ExecutionCoordinatorRecoveryTest {
         ArgumentCaptor<FinalizeCommand> captor = ArgumentCaptor.forClass(FinalizeCommand.class);
         verify(runService).finalizeExecution(eq(run), captor.capture());
         return captor.getValue();
-    }
-
-    @SuppressWarnings("unchecked")
-    private static ObjectProvider<HarnessGateway> gatewayProvider() {
-        return mock(ObjectProvider.class);
     }
 
     private static ChatRunEntity run(ChatRunStatus status) {

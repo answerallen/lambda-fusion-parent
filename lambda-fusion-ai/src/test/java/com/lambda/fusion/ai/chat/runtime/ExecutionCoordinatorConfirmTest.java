@@ -68,7 +68,6 @@ class ExecutionCoordinatorConfirmTest {
                 agentFactory,
                 mock(WorkspaceAuditRecorder.class),
                 mock(ObjectProvider.class),
-                mock(ObjectProvider.class),
                 properties);
         coordinator = new ChatRunCoordinator(
                 runService,

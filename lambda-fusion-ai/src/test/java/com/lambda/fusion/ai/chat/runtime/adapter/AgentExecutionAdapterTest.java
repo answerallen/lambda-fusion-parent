@@ -2,8 +2,6 @@ package com.lambda.fusion.ai.chat.runtime.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -27,16 +25,6 @@ import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.harness.agent.DistributedStore;
 import io.agentscope.harness.agent.HarnessAgent;
-import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
-import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
-import io.agentscope.harness.agent.gateway.HarnessGateway;
-import io.agentscope.harness.agent.gateway.MsgContext;
-import io.agentscope.harness.agent.gateway.SessionIdUtils;
-import io.agentscope.harness.agent.gateway.channel.OutboundAddress;
-import io.agentscope.harness.agent.sandbox.SandboxExecutionGuard;
-import io.agentscope.harness.agent.sandbox.SandboxIsolationKey;
-import io.agentscope.harness.agent.sandbox.SandboxLease;
-import io.agentscope.harness.agent.workspace.WorkspaceManager;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -57,7 +45,7 @@ class AgentExecutionAdapterTest {
         when(agent.getDelegate()).thenReturn(delegate);
         when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class))).thenReturn(Flux.empty());
         when(delegate.getAgentState("user-1", "session-1")).thenReturn(stateWithAskingBlock());
-        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, null, "agent-1", run(), session(), "tenant-1");
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-1");
         Msg message = userMessage();
 
         adapter.stream(message).blockLast();
@@ -70,7 +58,10 @@ class AgentExecutionAdapterTest {
             assertThat(context.getSessionId()).isEqualTo("session-1");
             assertThat(context.getUserId()).isEqualTo("user-1");
             assertThat(context.<String>get(RuntimeProperty.KEY_TENANT_ID)).isEqualTo("tenant-1");
+            assertThat(context.<String>get(RuntimeProperty.KEY_APP_ID)).isEqualTo("app-1");
+            assertThat(context.<String>get(RuntimeProperty.KEY_LF_SESSION_ID)).isEqualTo("session-1");
         });
+        // 每次订阅都新建 RuntimeContext，不复用。
         assertThat(contexts.get(0)).isNotSameAs(contexts.get(1));
         assertThat(adapter.readAskingToolBlocks())
                 .extracting(ToolUseBlock::getId)
@@ -82,97 +73,26 @@ class AgentExecutionAdapterTest {
     }
 
     @Test
-    void shouldUseGatewayRoutingSessionInGatewayMode() {
+    void shouldRecordSubagentExposureWithBusinessSessionAsParent() {
         HarnessAgent agent = mock(HarnessAgent.class);
-        ReActAgent delegate = mock(ReActAgent.class);
-        HarnessGateway gateway = mock(HarnessGateway.class);
-        when(agent.getDelegate()).thenReturn(delegate);
-        when(gateway.runStream(any(MsgContext.class), anyList(), any(OutboundAddress.class)))
-                .thenReturn(Flux.<AgentEvent>empty());
-        // 路由标识必须使用 AgentFactory 注册进网关的稳定键，getAgentId() 是随机实例 UUID（本测试不调用）。
-        AgentExecutionAdapter adapter =
-                new AgentExecutionAdapter(agent, gateway, "agent-1", run(), session(), "tenant-1");
-
-        adapter.stream(userMessage()).blockLast();
-
-        ArgumentCaptor<MsgContext> contextCaptor = ArgumentCaptor.forClass(MsgContext.class);
-        verify(gateway).runStream(contextCaptor.capture(), anyList(), any(OutboundAddress.class));
-        MsgContext context = contextCaptor.getValue();
-        assertThat(context.channel()).isEqualTo("fusion-chat");
-        assertThat(context.group()).isEqualTo("tenant-1");
-        assertThat(context.room()).isEqualTo("session-1");
-        assertThat(context.userId()).isEqualTo("user-1");
-        assertThat(context.extra())
-                .containsEntry(RuntimeProperty.KEY_AGENT_ID, "agent-1")
-                .containsEntry(RuntimeProperty.KEY_APP_ID, "app-1")
-                .containsEntry(RuntimeProperty.KEY_LF_SESSION_ID, "session-1")
-                .containsEntry(RuntimeProperty.KEY_TENANT_ID, "tenant-1");
-
-        String stateSessionId = "gw-" + SessionIdUtils.deterministicHash(context.canonicalKey());
-        when(delegate.getAgentState("user-1", stateSessionId)).thenReturn(stateWithAskingBlock());
-        assertThat(adapter.readAskingToolBlocks())
-                .extracting(ToolUseBlock::getId)
-                .containsExactly("call-1");
-
-        adapter.interrupt();
-
-        verify(delegate).interrupt("user-1", stateSessionId);
-    }
-
-    @Test
-    void shouldCompleteSubagentExposureRecordFromTheBusinessConversation() {
-        HarnessAgent agent = mock(HarnessAgent.class);
-        HarnessGateway gateway = mock(HarnessGateway.class);
         FusionSubagentGateway subagentGateway = mock(FusionSubagentGateway.class);
         SubagentExposedEvent event = new SubagentExposedEvent("sub-1", "worker", "child-session", "Worker");
-        when(gateway.runStream(any(MsgContext.class), anyList(), any(OutboundAddress.class)))
-                .thenReturn(Flux.just(event));
-        AgentExecutionAdapter adapter =
-                new AgentExecutionAdapter(agent, gateway, "agent-1", run(), session(), "tenant-1", subagentGateway);
+        when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class))).thenReturn(Flux.<AgentEvent>just(event));
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-1", subagentGateway);
 
         adapter.stream(userMessage()).blockLast();
 
-        ArgumentCaptor<MsgContext> contextCaptor = ArgumentCaptor.forClass(MsgContext.class);
-        verify(gateway).runStream(contextCaptor.capture(), anyList(), any(OutboundAddress.class));
-        String parentSessionId = "gw-"
-                + SessionIdUtils.deterministicHash(contextCaptor.getValue().canonicalKey());
-        verify(subagentGateway)
-                .recordExposure(eq(event), eq("app-1"), eq("tenant-1"), eq("user-1"), eq(parentSessionId));
+        // 父会话归属使用业务 ChatSession.id，而非 Gateway 派生的 gw-* 状态槽。
+        verify(subagentGateway).recordExposure(event, "app-1", "tenant-1", "user-1", "session-1");
     }
 
     @Test
-    void shouldHoldDistributedWorkspaceLockUntilDirectStreamCompletes() throws Exception {
+    void shouldLeaveWorkspaceConcurrencyToAgentScope() {
         HarnessAgent agent = mock(HarnessAgent.class);
         DistributedStore distributedStore = mock(DistributedStore.class);
-        WorkspaceManager workspaceManager = mock(WorkspaceManager.class);
-        AbstractFilesystem filesystem = mock(AbstractFilesystem.class);
-        SandboxExecutionGuard executionGuard = mock(SandboxExecutionGuard.class);
-        SandboxLease lease = mock(SandboxLease.class);
         when(agent.getDistributedStore()).thenReturn(distributedStore);
-        when(agent.getWorkspaceManager()).thenReturn(workspaceManager);
-        when(workspaceManager.getFilesystem()).thenReturn(filesystem);
-        when(distributedStore.sandboxExecutionGuard()).thenReturn(executionGuard);
-        when(executionGuard.tryEnter(any(SandboxIsolationKey.class))).thenReturn(lease);
         when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class))).thenReturn(Flux.empty());
-        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, null, "agent-1", run(), session(), "tenant-1");
-
-        adapter.stream(userMessage()).blockLast();
-
-        verify(executionGuard).tryEnter(any(SandboxIsolationKey.class));
-        verify(lease).close();
-    }
-
-    @Test
-    void shouldLetSandboxManagerOwnDistributedWorkspaceLock() {
-        HarnessAgent agent = mock(HarnessAgent.class);
-        DistributedStore distributedStore = mock(DistributedStore.class);
-        WorkspaceManager workspaceManager = mock(WorkspaceManager.class);
-        AbstractSandboxFilesystem filesystem = mock(AbstractSandboxFilesystem.class);
-        when(agent.getDistributedStore()).thenReturn(distributedStore);
-        when(agent.getWorkspaceManager()).thenReturn(workspaceManager);
-        when(workspaceManager.getFilesystem()).thenReturn(filesystem);
-        when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class))).thenReturn(Flux.empty());
-        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, null, "agent-1", run(), session(), "tenant-1");
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-1");
 
         adapter.stream(userMessage()).blockLast();
 
@@ -187,7 +107,7 @@ class AgentExecutionAdapterTest {
         when(agent.getName()).thenReturn("demo-agent");
         AgentState state = stateWithAskingBlock();
         when(delegate.getAgentState("user-1", "session-1")).thenReturn(state);
-        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, null, "agent-1", run(), session(), "tenant-1");
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-1");
 
         adapter.denyPendingToolCalls();
 
@@ -222,7 +142,7 @@ class AgentExecutionAdapterTest {
         AgentState state =
                 AgentState.builder().context(List.of(assistant, result)).build();
         when(delegate.getAgentState("user-1", "session-1")).thenReturn(state);
-        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, null, "agent-1", run(), session(), "tenant-1");
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-1");
 
         adapter.denyPendingToolCalls();
 

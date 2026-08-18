@@ -19,146 +19,84 @@ import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.core.tool.ToolResultMessageBuilder;
 import io.agentscope.harness.agent.HarnessAgent;
-import io.agentscope.harness.agent.IsolationScope;
-import io.agentscope.harness.agent.filesystem.sandbox.AbstractSandboxFilesystem;
-import io.agentscope.harness.agent.gateway.HarnessGateway;
-import io.agentscope.harness.agent.gateway.MsgContext;
-import io.agentscope.harness.agent.gateway.SessionIdUtils;
-import io.agentscope.harness.agent.gateway.channel.OutboundAddress;
-import io.agentscope.harness.agent.sandbox.SandboxExecutionGuard;
-import io.agentscope.harness.agent.sandbox.SandboxIsolationKey;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * Agent 执行适配器。
  *
- * <p>统一直连 Agent 与 Harness 网关两种调用模式，并封装状态会话标识、状态读取和执行中断。
+ * <p>内部 ChatRun 直连已选定的 {@link HarnessAgent}，不再经过 Harness 网关二次路由。状态会话标识统一为
+ * {@code (userId, ChatSession.id)}，并封装状态读取、执行中断与未决工具调用闭合。
  *
  * @author Jin
  */
 @Slf4j
 public final class AgentExecutionAdapter {
 
-    private static final String CHANNEL_ID = "fusion-chat";
-
     private final HarnessAgent agent;
-    private final HarnessGateway gateway;
     private final String runId;
     private final String sessionId;
     private final String userId;
     private final String appId;
     private final String tenantId;
     private final FusionSubagentGateway subagentGateway;
-    private final MsgContext gatewayContext;
-    private final OutboundAddress outboundAddress;
-    private final String stateSessionId;
-    private final SandboxExecutionGuard workspaceExecutionGuard;
-    private final SandboxIsolationKey workspaceExecutionKey;
 
     /**
      * 创建 Agent 执行适配器。
      *
      * @param agent Agent 实例
-     * @param gateway Harness 网关；直连模式下为 {@code null}
-     * @param routingAgentId 网关路由标识，须与 AgentFactory 注册进网关的键一致；
-     *        注意不能用 {@link HarnessAgent#getAgentId()}（其为随机实例 UUID，并非注册键）
      * @param run 运行实体
      * @param session 会话实体
      * @param tenantId 已归一化的租户标识
      */
-    public AgentExecutionAdapter(
-            HarnessAgent agent,
-            HarnessGateway gateway,
-            String routingAgentId,
-            ChatRunEntity run,
-            ChatSessionEntity session,
-            String tenantId) {
-        this(agent, gateway, routingAgentId, run, session, tenantId, null);
+    public AgentExecutionAdapter(HarnessAgent agent, ChatRunEntity run, ChatSessionEntity session, String tenantId) {
+        this(agent, run, session, tenantId, null);
     }
 
     public AgentExecutionAdapter(
             HarnessAgent agent,
-            HarnessGateway gateway,
-            String routingAgentId,
             ChatRunEntity run,
             ChatSessionEntity session,
             String tenantId,
             FusionSubagentGateway subagentGateway) {
         this.agent = Objects.requireNonNull(agent, "agent");
-        this.gateway = gateway;
         this.runId = Objects.requireNonNull(run.getId(), "run.id");
         this.sessionId = Objects.requireNonNull(run.getSessionId(), "run.sessionId");
         this.userId = session.getUserId();
         this.appId = Objects.requireNonNull(session.getAppId(), "session.appId");
         this.tenantId = Objects.requireNonNull(tenantId, "tenantId");
         this.subagentGateway = subagentGateway;
-        this.workspaceExecutionGuard = resolveWorkspaceExecutionGuard(agent);
-        this.workspaceExecutionKey = workspaceExecutionGuard == null
-                ? null
-                : SandboxIsolationKey.resolve(IsolationScope.AGENT, null, routingAgentId)
-                        .orElseThrow();
-        if (gateway == null) {
-            this.gatewayContext = null;
-            this.outboundAddress = null;
-            this.stateSessionId = sessionId;
-            return;
-        }
-        this.gatewayContext = new MsgContext(
-                CHANNEL_ID,
-                tenantId,
-                sessionId,
-                null,
-                null,
-                buildExtra(routingAgentId, session.getAppId(), sessionId, tenantId),
-                userId);
-        this.outboundAddress = OutboundAddress.direct(CHANNEL_ID, CHANNEL_ID + ":DIRECT:" + sessionId);
-        this.stateSessionId = "gw-" + SessionIdUtils.deterministicHash(gatewayContext.canonicalKey());
     }
 
     /**
-     * 启动 Agent 事件流。
+     * 启动 Agent 事件流。每次调用新建 {@link RuntimeContext} 并直调 {@link HarnessAgent#streamEvents}。
      *
      * @param message 输入消息
      * @return Agent 事件流
      */
     public Flux<AgentEvent> stream(Msg message) {
-        Flux<AgentEvent> source;
-        if (gateway != null) {
-            source = gateway.runStream(gatewayContext, List.of(message), outboundAddress);
-        } else {
-            RuntimeContext context = RuntimeContext.builder()
-                    .userId(userId)
-                    .sessionId(sessionId)
-                    .put(RuntimeProperty.KEY_TENANT_ID, tenantId)
-                    .build();
-            source = agent.streamEvents(message, context);
-        }
+        RuntimeContext context = RuntimeContext.builder()
+                .userId(userId)
+                .sessionId(sessionId)
+                .put(RuntimeProperty.KEY_TENANT_ID, tenantId)
+                .put(RuntimeProperty.KEY_APP_ID, appId)
+                .put(RuntimeProperty.KEY_LF_SESSION_ID, sessionId)
+                .build();
+        Flux<AgentEvent> source = agent.streamEvents(message, context);
         if (subagentGateway != null) {
             source = source.doOnNext(this::recordSubagentExposure);
         }
-        if (workspaceExecutionGuard == null) {
-            return source;
-        }
-        Flux<AgentEvent> execution = source;
-        return Flux.usingWhen(
-                Mono.fromCallable(() -> workspaceExecutionGuard.tryEnter(workspaceExecutionKey))
-                        .subscribeOn(Schedulers.boundedElastic()),
-                ignored -> execution,
-                lease -> Mono.fromRunnable(lease::close).subscribeOn(Schedulers.boundedElastic()));
+        return source;
     }
 
     private void recordSubagentExposure(AgentEvent event) {
         if (event instanceof SubagentExposedEvent exposedEvent) {
-            subagentGateway.recordExposure(exposedEvent, appId, tenantId, userId, stateSessionId);
+            subagentGateway.recordExposure(exposedEvent, appId, tenantId, userId, sessionId);
         }
     }
 
@@ -174,7 +112,7 @@ public final class AgentExecutionAdapter {
      */
     public List<ToolUseBlock> readAskingToolBlocks() {
         try {
-            var state = agent.getDelegate().getAgentState(userId, stateSessionId);
+            var state = agent.getDelegate().getAgentState(userId, sessionId);
             if (state == null || state.getContext() == null) {
                 throw confirmationContextUnavailable();
             }
@@ -204,7 +142,7 @@ public final class AgentExecutionAdapter {
 
     /** 中断当前 Agent 状态会话。 */
     public void interrupt() {
-        agent.getDelegate().interrupt(userId, stateSessionId);
+        agent.getDelegate().interrupt(userId, sessionId);
     }
 
     /**
@@ -215,7 +153,7 @@ public final class AgentExecutionAdapter {
      */
     public void denyPendingToolCalls() {
         ReActAgent delegate = agent.getDelegate();
-        AgentState state = delegate.getAgentState(userId, stateSessionId);
+        AgentState state = delegate.getAgentState(userId, sessionId);
         if (state == null || state.getContext() == null) {
             return;
         }
@@ -244,33 +182,10 @@ public final class AgentExecutionAdapter {
                     .withState(ToolResultState.DENIED);
             state.contextMutable().add(ToolResultMessageBuilder.buildToolResultMsg(denied, tool, agent.getName()));
         }
-        delegate.saveAgentState(userId, stateSessionId);
+        delegate.saveAgentState(userId, sessionId);
     }
 
     private AiBusinessException confirmationContextUnavailable() {
         return new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
-    }
-
-    private SandboxExecutionGuard resolveWorkspaceExecutionGuard(HarnessAgent harnessAgent) {
-        if (harnessAgent.getDistributedStore() == null || harnessAgent.getWorkspaceManager() == null) {
-            return null;
-        }
-        if (harnessAgent.getWorkspaceManager().getFilesystem() instanceof AbstractSandboxFilesystem) {
-            // 沙箱文件系统由 AgentScope 在完整 acquire→release 窗口内持有同一把分布式锁。
-            return null;
-        }
-        return harnessAgent.getDistributedStore().sandboxExecutionGuard();
-    }
-
-    private static Map<String, String> buildExtra(String agentId, String appId, String sessionId, String tenantId) {
-        return Map.of(
-                RuntimeProperty.KEY_AGENT_ID,
-                agentId,
-                RuntimeProperty.KEY_APP_ID,
-                appId,
-                RuntimeProperty.KEY_LF_SESSION_ID,
-                sessionId,
-                RuntimeProperty.KEY_TENANT_ID,
-                tenantId);
     }
 }
