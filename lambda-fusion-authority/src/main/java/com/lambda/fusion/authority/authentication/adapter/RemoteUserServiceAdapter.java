@@ -1,0 +1,68 @@
+package com.lambda.fusion.authority.authentication.adapter;
+
+import com.lambda.fusion.authority.api.RemoteUser;
+import com.lambda.fusion.authority.api.RemoteUserService;
+import com.lambda.fusion.authority.organization.model.SimpleOrganization;
+import com.lambda.fusion.authority.role.model.SimpleRole;
+import com.lambda.fusion.authority.user.model.User;
+import com.lambda.fusion.authority.user.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Collections;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+/**
+ * {@link RemoteUserService} 实现：基于本地 {@link UserService} 装配用户详情，经 Dubbo 暴露给其他服务。
+ *
+ * <p>对齐 {@code AuthorityConfigure.DubboServiceConfiguration} 的 {@code RemoteAuthenticationService} 暴露模式。
+ *
+ * @author zx
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+@SuppressFBWarnings("EI_EXPOSE_REP2")
+public class RemoteUserServiceAdapter implements RemoteUserService {
+
+    private final UserService userService;
+
+    @Override
+    public RemoteUser getByUsername(String username) {
+        if (username == null || username.isBlank()) {
+            return null;
+        }
+        User user = userService.getByUsername(username);
+        if (user == null) {
+            return null;
+        }
+        return toRemoteUser(user);
+    }
+
+    private static RemoteUser toRemoteUser(User user) {
+        RemoteUser remote = new RemoteUser();
+        remote.setUsername(user.getUsername());
+        remote.setNickname(user.getNickname());
+        remote.setMobile(user.getMobile());
+        remote.setEmail(user.getEmail());
+        remote.setTenantId(user.getTenantId());
+        remote.setEnabled(user.isEnabled());
+        remote.setLocked(user.isLocked());
+        remote.setExpiredTime(user.getExpiredTime());
+
+        SimpleOrganization org = user.getOrganization();
+        if (org != null) {
+            remote.setOrgId(org.getId());
+            remote.setOrgName(org.getAlias());
+            remote.setOrgFullName(org.getFullName());
+        }
+
+        List<SimpleRole> authorities = user.getAuthorities();
+        List<String> roles = authorities == null
+                ? Collections.emptyList()
+                : authorities.stream().map(SimpleRole::getAuthority).toList();
+        remote.setRoles(roles);
+        return remote;
+    }
+}

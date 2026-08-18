@@ -5,9 +5,11 @@ import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
 import com.lambda.cloud.sse.listener.SseEventListener;
 import com.lambda.fusion.authority.api.RemoteAuthenticationService;
+import com.lambda.fusion.authority.api.RemoteUserService;
 import com.lambda.fusion.authority.application.service.ApplicationService;
 import com.lambda.fusion.authority.application.service.impl.DbPermissionTokenVerifier;
 import com.lambda.fusion.authority.authentication.adapter.RemoteAuthenticationServiceAdapter;
+import com.lambda.fusion.authority.authentication.adapter.RemoteUserServiceAdapter;
 import com.lambda.fusion.authority.authentication.provider.alipay.AlipayMaLoginAdapter;
 import com.lambda.fusion.authority.authentication.provider.alipay.AlipayMaLoginHandler;
 import com.lambda.fusion.authority.authentication.provider.dingtalk.DingTalkLoginAdapter;
@@ -77,6 +79,12 @@ public class AuthorityConfigure implements WebMvcConfigurer {
         public RemoteAuthenticationService remoteAuthenticationService(
                 RemoteAuthenticationServiceAdapter remoteAuthenticationServiceAdapter) {
             return remoteAuthenticationServiceAdapter;
+        }
+
+        @Bean
+        @DubboService(interfaceClass = RemoteUserService.class)
+        public RemoteUserService remoteUserService(RemoteUserServiceAdapter remoteUserServiceAdapter) {
+            return remoteUserServiceAdapter;
         }
     }
 
