@@ -4,11 +4,9 @@ import java.io.OutputStream;
 import java.nio.file.Path;
 
 /**
- * 知识库文档原文件存储 SPI（扩展点）。
- *
- * <p>内置 LOCAL（本地目录，默认）/ OSS（lambda-cloud-starter-oss）两个实现，
- * 由 {@code AiConfigure.RagConfiguration} 装配；自定义后端实现本接口注册为 Bean
- * 即可（按 {@link #type()} 路由，对齐 {@code StateStoreProvider} 模式）。
+ * 知识库文档原文件存储 SPI（扩展点）：内置 LOCAL（默认）/ OSS（lambda-cloud-starter-oss）
+ * 两个实现，由 {@code AiConfigure.RagConfiguration} 装配；自定义后端实现本接口注册为
+ * Bean 即可（按 {@link #type()} 路由）。
  *
  * @author Jin
  */

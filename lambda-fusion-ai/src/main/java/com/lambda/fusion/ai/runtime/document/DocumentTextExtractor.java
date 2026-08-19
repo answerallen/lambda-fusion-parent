@@ -17,12 +17,9 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * 文档文本抽取共享工具：按扩展名选择 AgentScope {@link Reader} 解析文件并抽取全文。
- *
- * <p>抽取逻辑原属 {@code DocumentIngestionService}（知识库入库管线），此处上移为无状态静态工具，
- * 供知识库入库与对话附件（文档附件注入 prompt）两处复用，避免把 rag 的条件装配/入库语义
- * 拖进对话链路。本类不依赖任何 Spring Bean，{@code rag.enabled=false} 时对话附件仍可用。
- *
- * <p>临时文件生命周期归调用方负责（下载到临时文件 → 调 {@link #extractText} → finally 删除）。
+ * 从入库管线上移为无状态静态工具，供知识库入库与对话附件复用；不依赖 Spring Bean，
+ * {@code rag.enabled=false} 时对话附件仍可用。临时文件生命周期归调用方负责
+ * （下载 → {@link #extractText} → finally 删除）。
  *
  * @author Jin
  */

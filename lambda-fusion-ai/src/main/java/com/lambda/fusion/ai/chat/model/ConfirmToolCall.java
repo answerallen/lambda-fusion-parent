@@ -10,10 +10,8 @@ import java.util.List;
 import lombok.Data;
 
 /**
- * HITL 工具调用确认请求。
- *
- * <p>用户对 {@code RequireUserConfirmEvent} 暂停的工具调用给出确认/拒绝决策，前端从
- * {@code RunFinished(interrupt)} 事件拿到 {@code toolCallId} 后回传本 DTO 到
+ * HITL 工具调用确认请求：用户对 {@code RequireUserConfirmEvent} 暂停的工具调用给出确认/拒绝决策，前端从
+ * {@code RunFinished(interrupt)} 拿到 {@code toolCallId} 后回传本 DTO 到
  * {@code POST /v1/ai/sessions/{id}/runs/{runId}/confirm} 恢复 Agent 执行。
  *
  * @author Jin

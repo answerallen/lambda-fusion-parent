@@ -9,15 +9,9 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * Agentic 模式知识检索工具：把应用绑定的知识库注册为 agent 的 {@code retrieve_knowledge}
- * 工具，由模型在 ReAct 循环中自主决定何时检索、检索什么。
- *
- * <p>kbIds 在 agent 构建期绑定（{@code AgentFactory.build} 按 app 注册，与 RagMiddleware
- * 同一「绑定即挂载 + ConfigChangedEvent 失效重建」生命周期），不走 ToolkitAssembler 的
- * 全局 Bean 扫描（扫描是全局共享语义，无法按 app 隔离检索范围）。
- *
- * <p>命中结果统一携带来源文件、文档ID、章节与分块位置，避免多文档片段在 ReAct 上下文中混淆；
- * 空结果/空白 query/检索异常一律返回友好文案，绝不向 ReAct 循环外抛异常
- * （与 RagMiddleware 的降级哲学一致）。
+ * 工具，由模型在 ReAct 循环中自主决定何时检索、检索什么。kbIds 在 agent 构建期按 app 注册
+ * （不走 ToolkitAssembler 全局扫描）；命中结果携带来源文件/文档/章节/分块位置，
+ * 空结果与检索异常一律返回友好文案，不向 ReAct 循环外抛异常。
  *
  * @author Jin
  */

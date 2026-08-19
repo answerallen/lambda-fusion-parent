@@ -585,11 +585,9 @@ public class AiConfigure {
     }
 
     /**
-     * 文档原文件存储后端（LOCAL/OSS）：知识库文档与对话附件共用。
-     *
-     * <p>无条件注册（不依赖 {@code rag.enabled}），对话附件功能在 rag 关闭时仍可存储/读取原文件；
-     * OSS 客户端缺失时由 {@link OssDocumentFileStorage} 内部 {@code ObjectProvider} 判空降级报错。
-     * service 注入 {@code List<DocumentFileStorage>} 按 {@code type()} 路由，扩展后端注册 Bean 即可。
+     * 文档原文件存储后端（LOCAL/OSS）：知识库文档与对话附件共用。无条件注册（不依赖 {@code rag.enabled}），
+     * rag 关闭时对话附件仍可存取原文件；OSS 客户端缺失由 {@link OssDocumentFileStorage} 内部 {@code ObjectProvider}
+     * 判空降级报错，service 按 {@code List<DocumentFileStorage>} 的 {@code type()} 路由。
      */
     @Configuration
     public static class DocumentStorageConfiguration {
@@ -607,12 +605,9 @@ public class AiConfigure {
     }
 
     /**
-     * 知识库（RAG）运行时装配：仅 {@code lambda.fusion.ai.rag.enabled=true} 时注册检索适配器
-     * 与文档入库管线 Bean；未启用时 {@code AgentFactory} 通过 {@code ObjectProvider<KnowledgeRetriever>}
-     * 判空跳过中间件挂载，知识库/文档管理 CRUD（Controller/Service）不受影响。
-     *
-     * <p>原文件存储后端（LOCAL/OSS）已上移至 {@link DocumentStorageConfiguration} 无条件注册，
-     * 与对话附件共用，故此处不再重复声明。
+     * 知识库（RAG）运行时装配：仅 {@code lambda.fusion.ai.rag.enabled=true} 时注册检索适配器与
+     * 文档入库管线 Bean；未启用时 {@code AgentFactory} 判空跳过中间件挂载，管理 CRUD 不受影响。
+     * 原文件存储后端已上移至 {@link DocumentStorageConfiguration} 无条件注册，此处不再重复。
      */
     @Configuration
     @ConditionalOnProperty(prefix = "lambda.fusion.ai.rag", name = "enabled", havingValue = "true")

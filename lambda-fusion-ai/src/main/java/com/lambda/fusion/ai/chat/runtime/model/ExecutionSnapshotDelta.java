@@ -4,9 +4,7 @@ import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
 import java.util.List;
 
 /**
- * 执行快照增量。
- *
- * <p>描述一次 AgentEvent 解释后对执行快照应产生的语义变化。
+ * 执行快照增量；描述一次 AgentEvent 解释后对执行快照应产生的语义变化。
  *
  * @author Jin
  */

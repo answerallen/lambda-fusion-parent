@@ -28,10 +28,9 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 
 /**
- * Workspace 文件读写服务。管理 API 与自演化审计统一服从系统级存储配置。
- *
- * <p>LOCAL 保留原生 NIO 行为；分布式模式通过 AgentScope 远程文件系统访问共享存储，避免请求落到不同节点时
- * 读取各自本地目录。
+ * Workspace 文件读写服务，管理 API 与自演化审计统一服从系统级存储配置。
+ * LOCAL 保留原生 NIO；分布式模式经 AgentScope 远程文件系统访问共享存储，
+ * 避免不同节点读取各自本地目录。
  *
  * @author Jin
  */

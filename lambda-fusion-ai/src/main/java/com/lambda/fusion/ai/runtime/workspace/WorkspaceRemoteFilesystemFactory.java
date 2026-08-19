@@ -12,10 +12,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 构建远程 Workspace 文件系统。
- *
- * <p>应用指令、技能和知识等文件由同一 Agent 共享；{@code MEMORY.md} 与 {@code memory/}
- * 按 AgentScope USER 语义隔离。未路由文件的本地层严格锚定在 Workspace，避免根目录操作越出应用目录。
+ * 构建远程 Workspace 文件系统：应用指令/技能/知识等文件由同一 Agent 共享，
+ * {@code MEMORY.md} 与 {@code memory/} 按 AgentScope USER 语义隔离；
+ * 未路由文件的本地层严格锚定 Workspace，避免越出应用目录。
  */
 final class WorkspaceRemoteFilesystemFactory {
 

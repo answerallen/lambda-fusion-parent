@@ -8,16 +8,11 @@ import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 按会话键维护的进程内非阻塞源流尾链。
- *
- * <p>决定「什么时候订阅下一条源流」，不包裹源流执行，也不占用线程等待。同一 {@link SessionKey} 的相邻
- * 源流按完成信号串行：新节点原子取得并替换当前尾，前驱的完成信号（该次源流的排空信号）结束后，才在调度器上
- * 执行本节点的 {@code startAction}（真正订阅 {@code streamEvents}）。前驱 error、cancel、审计失败均不阻塞
- * 后继——完成信号以完成语义推进，异常各自记录。
- *
- * <p>这是「单实例执行、内存事件缓冲」范围内的进程内设施，不持有线程锁、数据库锁或 Workspace 锁，也不替代
- * AgentScope 对 state、文件和 Sandbox 的内部保护。若未来允许同一 Session 跨节点接续，需另行设计执行
- * owner/lease，不能用本尾链充当分布式调度器。
+ * 按会话键维护的进程内非阻塞源流尾链：决定「什么时候订阅下一条源流」，不包裹源流执行、不占用线程等待。
+ * 同一 {@link SessionKey} 的相邻源流按完成信号串行——新节点原子取得并替换当前尾，前驱的排空信号结束后才在
+ * 调度器上执行本节点 {@code startAction}；前驱 error、cancel、审计失败均不阻塞后继。这是进程内设施，不持有线程、
+ * 数据库或 Workspace 锁，也不替代 AgentScope 对 state、文件和 Sandbox 的内部保护；若未来允许跨节点接续，
+ * 需另行设计执行 owner/lease，不能用本尾链充当分布式调度器。
  *
  * @author Jin
  */

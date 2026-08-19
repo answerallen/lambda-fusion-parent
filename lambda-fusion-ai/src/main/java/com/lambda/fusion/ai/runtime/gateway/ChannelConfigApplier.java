@@ -11,8 +11,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 把持久化的通道路由配置下发到运行中的 {@link Channel}：启动时全量下发，admin CRUD 后按 channelId 下发。
- *
- * <p>Gateway 未启用时 {@link ChannelManager} 缺省 -> 下发 no-op；channel 未注册时遍历空集 -> no-op。
+ * Gateway 未启用时 {@link ChannelManager} 缺省 -> 下发 no-op；channel 未注册时遍历空集 -> no-op。
  * 全程 try/catch，下发失败不影响 admin CRUD 返回。
  *
  * @author Jin

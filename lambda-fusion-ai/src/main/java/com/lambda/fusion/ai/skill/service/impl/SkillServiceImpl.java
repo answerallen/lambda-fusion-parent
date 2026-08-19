@@ -18,9 +18,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * 技能市场服务实现：CRUD 经 {@link SkillRepositoryResolver} 解析的 {@link AgentSkillRepository}。
- *
- * <p>仓库未配置 -> {@link AiErrorCode#CONFIGURATION_ERROR}；只读仓库写操作 ->
- * {@link AiErrorCode#OPERATION_NOT_SUPPORTED}。
+ * 仓库未配置 -> {@link AiErrorCode#CONFIGURATION_ERROR}；只读仓库写操作 -> {@link AiErrorCode#OPERATION_NOT_SUPPORTED}。
  *
  * @author Jin
  */

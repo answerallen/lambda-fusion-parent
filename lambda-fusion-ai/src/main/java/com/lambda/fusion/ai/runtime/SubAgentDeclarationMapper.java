@@ -8,11 +8,9 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * 子代理实体 → harness {@link SubagentDeclaration} 纯函数转换（包级静态便于单测）。
- *
- * <p>字段映射：{@code prompt → inlineAgentsBody}（子代理 system prompt）；
- * {@code modelId → model}（字符串即 fusion 模型ID，经 {@code HarnessAgent.Builder.modelResolver}
- * 桥接到 {@link ModelResolver} 解析，空 = 继承主 agent 模型）；steps/temperature/topP/
- * toolsAllow/skillsAllow 空值省略（走 harness 默认/全继承）。
+ * 字段映射：{@code prompt → inlineAgentsBody}；{@code modelId → model}（fusion 模型ID，
+ * 经 modelResolver 桥接到 {@link ModelResolver}，空 = 继承主 agent 模型）；
+ * steps/temperature/topP/toolsAllow/skillsAllow 空值省略（走 harness 默认/全继承）。
  *
  * @author Jin
  */

@@ -31,18 +31,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 /**
- * 对话用户消息组装器：把「文本 + 附件」组装为 AgentScope 多模态 {@link Msg}。
- *
- * <p>降级矩阵：
- * <ul>
- *   <li>图片 && 模型 supportsVision=true → {@link ImageBlock}（base64），与文本同消息多模态；</li>
- *   <li>图片 && 非视觉模型 → 抛 {@link AiErrorCode#ATTACHMENT_VISION_NOT_SUPPORTED}；</li>
- *   <li>文档 → 抽取文本拼进 {@link TextBlock}（截断至 maxExtractChars），任何模型可用；</li>
- *   <li>无附件 → 走原纯文本路径，零行为变化。</li>
- * </ul>
- *
- * <p>图片经 base64 内联而非 URLSource：OSS 私有读不暴露签名 URL。注意 base64 体积约为原图 1.37 倍，
- * 且多模态块会随 ReAct 历史重复发送——已由上传侧 maxFileSizeMb 兜底，如需进一步优化可改 URLSource。
+ * 对话用户消息组装器：把「文本 + 附件」组装为 AgentScope 多模态 {@link Msg}。降级：图片 + 视觉模型 →
+ * {@link ImageBlock}（base64 内联，OSS 私有读不暴露签名 URL）；图片 + 非视觉模型 → 抛
+ * {@link AiErrorCode#ATTACHMENT_VISION_NOT_SUPPORTED}；文档 → 抽取文本拼进 {@link TextBlock}（截断至
+ * maxExtractChars）；无附件 → 走纯文本路径。base64 体积约原图 1.37 倍且随 ReAct 历史重复发送，由上传侧
+ * maxFileSizeMb 兜底。
  *
  * @author Jin
  */

@@ -42,10 +42,9 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 /**
- * Lambda Fusion 子 Agent 发布、鉴权与跨节点恢复入口。
- *
- * <p>该适配器仅使用 AgentScope 已公开的 {@link SubagentRegistry}、{@link SubagentMaterializer}
- * 和 {@link HarnessGateway} 接口，不修改 AgentScope 源码。AgentScope 暴露事件到达后，本类把应用、租户、用户和父会话补入共享记录；直接对话必须经本类校验并恢复调用上下文。
+ * Lambda Fusion 子 Agent 发布、鉴权与跨节点恢复入口。仅使用 AgentScope 已公开的 {@link SubagentRegistry}、
+ * {@link SubagentMaterializer} 和 {@link HarnessGateway} 接口，不修改 AgentScope 源码。暴露事件到达后把应用、
+ * 租户、用户和父会话补入共享记录；直接对话必须经本类校验并恢复调用上下文。
  */
 @Slf4j
 public final class FusionSubagentGateway implements SubagentMaterializer {
@@ -78,9 +77,8 @@ public final class FusionSubagentGateway implements SubagentMaterializer {
     }
 
     /**
-     * 使用当前业务对话身份补全 AgentScope 暴露记录。
-     *
-     * <p>记录中的 {@code agentId} 被编码为应用、租户与真实子 Agent 名称的组合，解决不同应用声明同名子 Agent 时恢复到错误父 Agent 的问题。
+     * 使用当前业务对话身份补全 AgentScope 暴露记录：{@code agentId} 被编码为应用、租户与真实子 Agent 名称的组合，
+     * 解决不同应用声明同名子 Agent 时恢复到错误父 Agent 的问题。
      */
     public void recordExposure(
             SubagentExposedEvent event, String appId, String tenantId, String userId, String parentSessionId) {

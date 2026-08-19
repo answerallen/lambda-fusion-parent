@@ -34,11 +34,9 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 通道路由配置服务。
- *
- * <p>平台凭证（{@code properties}）以 AES 密文落库（{@code properties_encrypted}），读取时解密。
- * CRUD 后通过 {@link ChannelBootstrap#rebuild} 重建运行中的 channel（best-effort）。
- * 不发 {@code ConfigChangedEvent}：路由/渠道配置不影响 agent 缓存。
+ * 通道路由配置服务。平台凭证（{@code properties}）以 AES 密文落库（{@code properties_encrypted}），
+ * 读取时解密；CRUD 后通过 {@link ChannelBootstrap#rebuild} 重建运行中的 channel（best-effort），
+ * 不发 {@code ConfigChangedEvent}（路由/渠道配置不影响 agent 缓存）。
  *
  * @author Jin
  */

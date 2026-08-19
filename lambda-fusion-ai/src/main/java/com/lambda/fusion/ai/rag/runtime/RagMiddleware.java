@@ -20,12 +20,8 @@ import reactor.core.publisher.Flux;
 /**
  * RAG 检索注入中间件：对话调用前按应用绑定的知识库检索相关片段，
  * 命中时以合成 USER 消息（{@link Msg#METADATA_SYNTHETIC}，不落 memory）追加到输入尾部。
- *
- * <p>只覆写 {@link #onAgent}（每次 call 检索一次，语义对齐旧 {@code GenericRAGHook} 的
- * PreCallEvent）；不用 {@code onReasoning}，避免 ReAct 每轮对同一 query 重复检索。
- * 检索失败/未命中一律原样放行，降级不阻断对话。
- *
- * <p>实现 {@link HarnessRuntimeMiddleware}（框架资产标记接口），agent 序列化复制时不被携带。
+ * 只覆写 {@link #onAgent}（避免 ReAct 每轮对同一 query 重复检索），检索失败/未命中一律原样放行；
+ * 实现 {@link HarnessRuntimeMiddleware}，agent 序列化复制时不被携带。
  *
  * @author Jin
  */

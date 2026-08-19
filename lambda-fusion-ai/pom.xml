@@ -31,6 +31,11 @@
         </dependency>
         <dependency>
             <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-cloud-starter-ykc</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.lambda.cloud</groupId>
             <artifactId>lambda-cloud-starter-web</artifactId>
         </dependency>
         <dependency>

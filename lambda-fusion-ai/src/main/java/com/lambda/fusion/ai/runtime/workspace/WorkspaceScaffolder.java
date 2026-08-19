@@ -11,9 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * Workspace 脚手架：WORKSPACE 型应用创建时初始化目录结构与默认文件。
- *
- * <p>生成：{@code AGENTS.md}（人格占位）、{@code skills/}、{@code subagents/}、{@code memory/}、
+ * Workspace 脚手架：WORKSPACE 型应用创建时初始化目录结构与默认文件，
+ * 生成 {@code AGENTS.md}（人格占位）、{@code skills/}、{@code subagents/}、{@code memory/}、
  * {@code knowledge/}、{@code tools.json}（空 allow/deny/mcpServers）。
  *
  * @author Jin

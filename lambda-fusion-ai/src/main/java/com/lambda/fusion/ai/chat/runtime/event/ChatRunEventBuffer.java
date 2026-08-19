@@ -16,9 +16,7 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
 /**
- * 单个对话运行的事件缓冲区。
- *
- * <p>事件追加和订阅注册使用同一实例锁，保证历史回放与实时订阅之间不存在事件缺口。
+ * 单个对话运行的事件缓冲区；事件追加和订阅注册使用同一实例锁，保证历史回放与实时订阅之间无事件缺口。
  *
  * @author Jin
  */
@@ -80,10 +78,8 @@ final class ChatRunEventBuffer {
     }
 
     /**
-     * 暂存一组事件：编码、分配序号并推进 {@code nextSeq}，但不进入可见窗口也不推送订阅者。
-     *
-     * <p>序号在暂存时即分配，故快照序号天然覆盖暂存事件；仅 {@link #publishStaged()} 后事件才对
-     * 订阅者与回放可见。用于「先占序号、待数据库事实落库后再外发」的待确认中断场景。
+     * 暂存一组事件：编码、分配序号并推进 {@code nextSeq} 但不进入可见窗口也不推送订阅者，仅
+     * {@link #publishStaged()} 后才对订阅者与回放可见；序号在暂存时分配，用于「先占序号、待数据库事实落库后再外发」的待确认中断场景。
      *
      * @param aguiEvents AG-UI 事件列表
      * @param aguiRunId AG-UI 运行标识

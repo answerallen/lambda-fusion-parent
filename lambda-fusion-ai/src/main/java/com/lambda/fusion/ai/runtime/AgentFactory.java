@@ -52,15 +52,9 @@ import org.springframework.stereotype.Component;
 
 /**
  * 智能应用运行时工厂：按 {@code (appId, tenantId)} 构建并缓存 {@link HarnessAgent}。
- *
- * <p>支持两种应用类型：
- * <ul>
- *   <li>{@code CHAT}：纯 DB 配置，无 workspace，关闭 harness workspace 能力（v1 行为）。</li>
- *   <li>{@code WORKSPACE}：per-app workspace，对齐 AgentScope harness 完整能力（AGENTS.md/技能/子agent/记忆）。
- *       {@code selfEvolve=false}（ASSISTANT）只读、无自记忆；{@code selfEvolve=true}（AUTONOMOUS）可写、自演化。
- *       {@code sandboxBackend} 非 HOST 时走沙箱文件系统（Docker/K8s/E2B/Daytona/AgentRun，条件装配），
- *       启用 shell 工具与执行隔离；后端不可用时回退宿主文件系统。</li>
- * </ul>
+ * CHAT 为纯 DB 配置、无 workspace（关闭 harness workspace 能力）；WORKSPACE 为 per-app workspace，
+ * {@code selfEvolve=false} 只读无自记忆、{@code true} 可写自演化，{@code sandboxBackend} 非 HOST 时
+ * 走沙箱文件系统（Docker/K8s/E2B/Daytona/AgentRun，条件装配，后端不可用时回退宿主）。
  *
  * @author Jin
  */
@@ -165,9 +159,8 @@ public class AgentFactory {
     }
 
     /**
-     * 按 app 的 {@code knowledgeBaseIds} 绑定解析运行时中间件：检索功能启用、绑定非空且
-     * 模式为 GENERIC/BOTH 时挂载 {@link RagMiddleware}（对话时实时检索注入）；绑定变更复用
-     * {@code ConfigChangedEvent} 失效机制重建 agent。
+     * 按 app 的 {@code knowledgeBaseIds} 绑定 RAG 中间件：GENERIC/BOTH 且启用检索时挂载
+     * {@link RagMiddleware}（对话实时检索注入）；绑定变更经 {@code ConfigChangedEvent} 重建 agent。
      */
     private List<MiddlewareBase> resolveMiddlewares(AppEntity app) {
         RagMode ragMode = resolveRagMode(app);
@@ -216,8 +209,8 @@ public class AgentFactory {
     }
 
     /**
-     * 构建 HITL 权限上下文：BYPASS 模式 + {@code @RequireConfirm} 工具的 ASK 规则。ask 优先于
-     * BYPASS，故仅名单内工具触发确认，其余放行（DEFAULT 模式会全拦）。无名单返回 null（向后兼容）。
+     * 构建 HITL 权限上下文：BYPASS 模式 + {@code @RequireConfirm} 工具的 ASK 规则，ask 优先于
+     * BYPASS 故仅名单内工具触发确认（DEFAULT 会全拦）；无名单返回 null（向后兼容）。
      */
     private PermissionContextState buildPermissionContext() {
         Set<String> askToolNames = toolkitAssembler.getAskToolNames();
@@ -233,8 +226,8 @@ public class AgentFactory {
     }
 
     /**
-     * 按配置解析 Agent 状态存储：MEMORY/FILE 内置；MYSQL/POSTGRES/REDIS/OSS/COS 分发到匹配的
-     * {@link StateStoreProvider}。显式配置非 MEMORY/FILE 类型时，扩展缺失或创建失败必须抛出
+     * 按配置解析 Agent 状态存储：MEMORY/FILE 内置，MYSQL/POSTGRES/REDIS/OSS/COS 分发到匹配的
+     * {@link StateStoreProvider}。显式配置非 MEMORY/FILE 时，扩展缺失或创建失败必须抛出
      * {@link AiErrorCode#CONFIGURATION_ERROR}，禁止静默回退 MEMORY。
      */
     static AgentStateStore resolveStateStore(AiProperties props) {
@@ -293,10 +286,8 @@ public class AgentFactory {
     }
 
     /**
-     * 按 app 的 {@code skillsAllow}/{@code skillsDeny} 解析 harness {@link SkillFilter}。
-     *
-     * <p>{@code skillsAllow} 非空 -> 仅这些技能；否则 {@code skillsDeny} 非空 -> 除这些外；均空 -> 全放行。
-     * allow 优先于 deny。作用于所有技能源（市场 DB repo + workspace 文件系统 repo）。
+     * 按 app 的 {@code skillsAllow}/{@code skillsDeny} 解析 {@link SkillFilter}：allow 非空则仅这些技能，
+     * 否则 deny 非空则除这些外，均空则全放行（allow 优先于 deny）；作用于市场 DB 与 workspace 两类技能源。
      */
     static SkillFilter resolveSkillFilter(AppEntity app) {
         List<String> allow = app.getSkillsAllow();

@@ -31,11 +31,9 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 /**
- * 基于 AgentScope {@link SimpleKnowledge} 的知识库适配器。
- *
- * <p>AgentScope 已弃用的 RAG 文档类型集中在本类转换，业务代码只依赖
- * {@link KnowledgeRetriever}、{@link RetrievedChunk} 和 {@link IngestChunk}。
- * 每个知识库独立缓存配置和向量存储实例。
+ * 基于 AgentScope {@link SimpleKnowledge} 的知识库适配器：集中转换 AgentScope 已弃用的
+ * RAG 文档类型，业务侧只依赖 {@link KnowledgeRetriever}、{@link RetrievedChunk} 和
+ * {@link IngestChunk}；每个知识库独立缓存配置和向量存储实例。
  *
  * @author Jin
  */
@@ -254,12 +252,9 @@ public class SimpleKnowledgeAdapter implements KnowledgeRetriever {
     }
 
     /**
-     * 判断向量库连接是否仍然可用（抽出以便单测）。
-     *
-     * <p>AgentScope 的 {@link PgVectorStore} 是构造时建立的单条 JDBC 长连接，无连接池、
-     * 无保活、无断线重连，且 {@code ensureNotClosed} 只检查内存标志不探测底层连接，
-     * 因此这里主动用 {@code isValid} 做一次轻量探测，失效则触发重建。非 pgvector
-     * 存储（如内存库）视为始终可用。
+     * 判断向量库连接是否仍然可用（抽出以便单测）。{@link PgVectorStore} 是构造时建立的
+     * 单条 JDBC 长连接，无连接池/保活/重连，{@code ensureNotClosed} 只检查内存标志，
+     * 故用 {@code isValid} 轻量探测底层连接，失效触发重建；非 pgvector 存储视为始终可用。
      */
     static boolean isAlive(VDBStoreBase store) throws Exception {
         if (!(store instanceof PgVectorStore pgStore)) {

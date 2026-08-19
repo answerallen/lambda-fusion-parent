@@ -56,10 +56,8 @@ public interface AiConstants {
     }
 
     /**
-     * 智能应用类型。决定 Agent 构建方式与可用能力栈。
-     *
-     * <p>CHAT：纯 DB 配置，无 workspace（v1）。WORKSPACE：带 per-app workspace，
-     * 对齐 AgentScope harness 完整能力（技能/子agent/记忆/沙箱/自演化）。
+     * 智能应用类型，决定 Agent 构建方式与可用能力栈。CHAT 纯 DB 配置、无 workspace（v1）；
+     * WORKSPACE 带 per-app workspace，对齐 AgentScope harness 完整能力（技能/子agent/记忆/沙箱/自演化）。
      */
     @Getter
     @AllArgsConstructor
@@ -89,9 +87,7 @@ public interface AiConstants {
 
     /**
      * 沙箱后端类型。仅 WORKSPACE 型应用有效，决定文件/shell 执行的隔离环境。
-     *
-     * <p>HOST：宿主文件系统（无沙箱，无 shell）。DOCKER/KUBERNETES/E2B/DAYTONA/AGENTRUN：
-     * 对应 AgentScope 沙箱后端，启用 shell 工具与隔离。
+     * HOST 为宿主文件系统（无沙箱、无 shell）；其余对应 AgentScope 沙箱后端，启用 shell 工具与隔离。
      */
     @Getter
     @AllArgsConstructor
@@ -126,10 +122,8 @@ public interface AiConstants {
     }
 
     /**
-     * 子代理工作区模式。
-     *
-     * <p>ISOLATED（默认）：子代理在父 workspace 下的独立子目录执行，互不干扰；
-     * SHARED：与主 agent 共享同一 workspace。
+     * 子代理工作区模式。ISOLATED（默认）在父 workspace 独立子目录执行、互不干扰；
+     * SHARED 与主 agent 共享同一 workspace。
      */
     @Getter
     @AllArgsConstructor
@@ -156,11 +150,9 @@ public interface AiConstants {
     }
 
     /**
-     * 知识库检索模式（应用级，{@code ai_app.rag_mode}）。
-     *
-     * <p>GENERIC：中间件自动检索注入（RagMiddleware，稳定保底）；AGENTIC：注册
-     * {@code retrieve_knowledge} 工具由模型自主检索（省 token，依赖模型工具调用能力）；
-     * BOTH：两者兼得（中间件保底 + 工具可追问补查）。空值按 GENERIC 处理（向后兼容）。
+     * 知识库检索模式（应用级，{@code ai_app.rag_mode}）。GENERIC 中间件自动检索注入（稳定保底）；
+     * AGENTIC 注册 {@code retrieve_knowledge} 工具由模型自主检索（省 token）；BOTH 两者兼得。
+     * 空值按 GENERIC 处理（向后兼容）。
      */
     @Getter
     @AllArgsConstructor
@@ -248,9 +240,7 @@ public interface AiConstants {
     }
 
     /**
-     * 知识库文档入库状态。
-     *
-     * <p>PENDING：已落库待入库；READY：解析切块入库完成；FAILED：入库失败（原因见 error_msg）。
+     * 知识库文档入库状态。PENDING 已落库待入库；READY 解析切块入库完成；FAILED 入库失败（原因见 error_msg）。
      */
     @Getter
     @AllArgsConstructor
@@ -267,10 +257,8 @@ public interface AiConstants {
     }
 
     /**
-     * 知识库文档切割策略。
-     *
-     * <p>AUTO：短文档整篇、存在标题结构时按章节、其余按段落；WHOLE：整篇不切；HEADING：按标题层级切割；
-     * PARAGRAPH：按段落切割；TOKEN：按近似 token 数切割。
+     * 知识库文档切割策略。AUTO 自动（短文档整篇、按章节、其余按段落）；WHOLE 整篇不切；
+     * HEADING 按标题层级；PARAGRAPH 按段落；TOKEN 按近似 token 数。
      */
     @Getter
     @AllArgsConstructor
@@ -303,10 +291,7 @@ public interface AiConstants {
     }
 
     /**
-     * 知识库向量库后端类型。
-     *
-     * <p>MEMORY：进程内存（InMemoryStore，零配置，重启丢失，单节点）；PGVECTOR：
-     * PostgreSQL pgvector（PgVectorStore，生产推荐，多副本共享）。
+     * 知识库向量库后端类型。MEMORY 进程内存（零配置、重启丢失、单节点）；PGVECTOR PostgreSQL pgvector（生产推荐、多副本共享）。
      */
     @Getter
     @AllArgsConstructor
@@ -371,10 +356,8 @@ public interface AiConstants {
     }
 
     /**
-     * AgentScope Workspace 存储类型（部署级配置）。
-     *
-     * <p>LOCAL：当前节点本地文件系统，仅适用于单节点；MYSQL/POSTGRES：通过 AgentScope
-     * {@code DistributedStore + RemoteFilesystem} 在多节点间共享 Workspace。
+     * AgentScope Workspace 存储类型（部署级配置）。LOCAL 当前节点本地文件系统、仅适用于单节点；
+     * MYSQL/POSTGRES 通过 AgentScope {@code DistributedStore + RemoteFilesystem} 多节点共享 Workspace。
      */
     @Getter
     @AllArgsConstructor

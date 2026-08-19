@@ -10,9 +10,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 /**
- * 执行快照数据清理工具。
- *
- * <p>负责工具调用数据归一化，并在持久化前屏蔽常见凭据字段。
+ * 执行快照数据清理工具：负责工具调用数据归一化，并在持久化前屏蔽常见凭据字段。
  *
  * @author Jin
  */

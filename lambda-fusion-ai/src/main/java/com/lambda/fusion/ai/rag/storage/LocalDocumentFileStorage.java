@@ -16,8 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * 本地目录文档原文件存储（默认）：{@code {root}/{tenantId}/{kbId}/{documentId}.{ext}}。
- *
- * <p>root 解析规则与 FILE state store 的目录习惯一致：显式配置
+ * root 解析与 FILE state store 的目录习惯一致：显式配置
  * {@code lambda.fusion.ai.rag.document-storage.local.root} 优先，其次
  * {@code workspace.root/knowledge-files}，最后 {@code ~/.agentscope/fusion/knowledge-files}。
  *

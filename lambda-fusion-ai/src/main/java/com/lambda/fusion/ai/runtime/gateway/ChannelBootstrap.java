@@ -16,11 +16,9 @@ import org.springframework.context.event.EventListener;
 
 /**
  * DB 驱动的渠道启动器：应用就绪时按 {@code ai_channel_config} 启用行构造 {@link Channel} 注册进
- * {@link ChannelManager}；admin CRUD 后按 channelId 重建。
- *
- * <p>构造委托给按 type 命名的 {@link ChannelFactory} Bean（钉钉/飞书/企微）。无匹配工厂（扩展未引入）
- * -> 单条 warn 跳过；单条构造失败 -> 隔离，不阻塞其余与启动。仅在 gateway 启用时装配（见
- * {@code AiConfigure.GatewayConfiguration}），故直接注入 ChannelManager/HarnessGateway。
+ * {@link ChannelManager}；admin CRUD 后按 channelId 重建。构造委托给按 type 命名的 {@link ChannelFactory}
+ * Bean（钉钉/飞书/企微）。无匹配工厂 -> 单条 warn 跳过；单条构造失败 -> 隔离，不阻塞其余与启动。仅在 gateway
+ * 启用时装配（见 {@code AiConfigure.GatewayConfiguration}），故直接注入 ChannelManager/HarnessGateway。
  *
  * @author Jin
  */

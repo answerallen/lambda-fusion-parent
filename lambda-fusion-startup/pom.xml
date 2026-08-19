@@ -63,6 +63,10 @@
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.lambda.cloud</groupId>
+            <artifactId>lambda-cloud-starter-ykc</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-mysql</artifactId>
         </dependency>

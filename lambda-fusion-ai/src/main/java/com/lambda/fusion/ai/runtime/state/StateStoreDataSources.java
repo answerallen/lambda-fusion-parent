@@ -6,10 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * 从 dynamic-datasource 主数据源中按名解析底层 {@link DataSource}，供 MySQL/Postgres 状态存储后端复用。
- *
- * <p>fusion 通过 dynamic-datasource 暴露多个命名数据源（如 {@code master}、{@code ai-postgres}）。
- * AgentScope 的 {@code MysqlAgentStateStore}/{@code PostgresAgentStateStore} 需要直连底层 {@link DataSource}
- * （而非路由数据源，否则跨线程取连接会回到主库），故按名取出底层 ds 注入。
+ * AgentScope 状态存储需直连底层 ds（而非路由数据源，否则跨线程取连接会回主库），故按名注入。
  *
  * @author Jin
  */

@@ -7,9 +7,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 执行快照累加器。
- *
- * <p>根据单个运行的 Agent 事件更新文本、推理和工具调用状态，并生成可持久化快照。
+ * 执行快照累加器：根据单个运行的 Agent 事件更新文本、推理和工具调用状态，并生成可持久化快照。
  *
  * @author Jin
  */

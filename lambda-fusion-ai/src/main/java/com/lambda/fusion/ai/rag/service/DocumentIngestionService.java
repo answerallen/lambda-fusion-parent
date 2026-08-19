@@ -25,16 +25,10 @@ import org.springframework.scheduling.annotation.Async;
 
 /**
  * 文档入库管线：从已持久化的原文件读取 → 抽取全文 → 按文档策略切块 → 向量库写入 → 更新文档行状态。
- *
- * <p>原文件在 upload 端点已通过 {@link DocumentFileStorage} 持久化（LOCAL/OSS），本类按
- * document 行记录的 {@code storageType} 路由取回，下载到本方法创建的临时文件后解析，finally
- * 删除--临时文件生命周期完全闭合在 {@link #ingest(String)} 内，不跨同步/异步边界传递。
- *
- * <p>本类异步执行（{@code AiConfigure} 已 {@code @EnableAsync}）；调用方在主事务
- * {@code afterCommit} 阶段触发，保证 document 行已提交可见，避免异步线程 selectById 读不到。
- *
- * <p>文件 Reader 只负责格式解析，切割语义统一收敛到 {@link DocumentChunker}；向量文档的组装由
- * {@link SimpleKnowledgeAdapter} 防腐层完成。
+ * 按 document 行记录的 {@code storageType} 路由取回原文件（临时文件生命周期闭合在
+ * {@link #ingest(String)} 内，不跨同步/异步边界传递）；异步执行，调用方在 {@code afterCommit}
+ * 触发保证行已提交可见；格式解析与切割语义收敛到 {@link DocumentChunker}，
+ * 向量文档组装由 {@link SimpleKnowledgeAdapter} 完成。
  *
  * @author Jin
  */
@@ -49,9 +43,8 @@ public class DocumentIngestionService {
     private final AiProperties aiProperties;
 
     /**
-     * 异步执行入库；任何失败只落文档行状态（FAILED + error_msg），不向调用方抛出。
-     *
-     * <p>从已持久化的原文件取回内容（而非依赖 upload 临时文件路径），临时文件由本方法创建并清理。
+     * 异步执行入库；任何失败只落文档行状态（FAILED + error_msg），不向调用方抛出，
+     * 内容从已持久化的原文件取回，临时文件由本方法创建并清理。
      *
      * @param documentId 文档行ID
      */

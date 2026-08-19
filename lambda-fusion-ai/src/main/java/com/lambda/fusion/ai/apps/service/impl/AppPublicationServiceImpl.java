@@ -23,11 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 应用发布服务实现。
- *
- * <p>发布事务：行锁串行化同一应用行 → 校验存在/启用/模型有效/受众合法 → 首次生成 publishCode
- * （唯一索引冲突时重新生成有限次）→ 置 PUBLISHED 与 publishedAt。纯发布状态变化不影响 Agent
- * 配置，不发 {@code ConfigChangedEvent}（见发布设计 §4）。下线仅关闭独立 URL，保留代码。
+ * 应用发布服务实现。发布事务：行锁串行化同一应用行 → 校验存在/启用/模型有效/受众合法 →
+ * 首次生成 publishCode（唯一索引冲突重新生成有限次）→ 置 PUBLISHED。纯发布状态变化不影响
+ * Agent 配置，不发 {@code ConfigChangedEvent}（见发布设计 §4）；下线仅关闭独立 URL，保留代码。
  *
  * @author Jin
  */

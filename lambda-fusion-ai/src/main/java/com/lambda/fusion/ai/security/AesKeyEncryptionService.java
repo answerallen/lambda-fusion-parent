@@ -18,14 +18,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 /**
- * 基于 AES-256-GCM 的 API Key 加解密实现。
- *
- * <p>加密密钥由 {@code lambda.fusion.ai.security.encryption-key} 配置，经 SHA-256 派生为 32 字节
- * AES 密钥。每次加密使用随机 12 字节 IV，密文格式为 {@code base64(IV || ciphertext+tag)}。
- *
- * <p>未配置加密密钥时启动仅打印告警；当实际调用加解密时抛出
- * {@link AiErrorCode#LLM_ENCRYPTION_KEY_NOT_CONFIGURED}，以便仅使用无密钥提供方（如 Ollama）
- * 的环境也能正常启动。
+ * 基于 AES-256-GCM 的 API Key 加解密实现。密钥由 {@code lambda.fusion.ai.security.encryption-key}
+ * 配置，经 SHA-256 派生为 32 字节 AES 密钥；每次加密使用随机 12 字节 IV，
+ * 密文格式为 {@code base64(IV || ciphertext+tag)}。未配置密钥时启动仅打印告警，
+ * 实际调用加解密时抛 {@link AiErrorCode#LLM_ENCRYPTION_KEY_NOT_CONFIGURED}，
+ * 便于仅使用无密钥提供方（如 Ollama）的环境正常启动。
  *
  * @author Jin
  */

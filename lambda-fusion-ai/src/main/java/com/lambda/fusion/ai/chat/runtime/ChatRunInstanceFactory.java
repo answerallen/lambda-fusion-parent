@@ -19,11 +19,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 /**
- * 执行实例工厂：统一恢复/构造 {@link ChatRunInstance}，并承载其所需的静态小工具。
- *
- * <p>恢复与终结共用同一套实例装配：带 Agent 的完整实例用于执行与确认恢复，无 Agent 的纯落库实例
- * 仅用于终结。构造依赖（事件存储、Agent 工厂、审计、网关、配置）集中在工厂，调度器由协调器按次传入。
- * 活动实例注册表始终由协调器独占，工厂不持有、查询或修改注册表。
+ * 执行实例工厂：统一恢复/构造 {@link ChatRunInstance} 并承载所需静态小工具。恢复与终结共用同一套装配——带 Agent
+ * 的实例用于执行与确认恢复，无 Agent 的纯落库实例仅用于终结；构造依赖集中在工厂，调度器由协调器按次传入，
+ * 活动实例注册表始终由协调器独占，工厂不持有、查询或修改。
  *
  * @author Jin
  */

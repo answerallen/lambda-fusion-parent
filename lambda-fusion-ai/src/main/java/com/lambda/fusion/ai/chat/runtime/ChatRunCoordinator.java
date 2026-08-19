@@ -40,12 +40,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 对话执行协调器。
- *
- * <p>负责执行实例的创建、恢复、停止和定时维护。Agent 事件流由执行实例持有，不依赖 SSE 订阅的生命周期。
- * 实例在业务终态后不立即摘除：仅当最终阶段的 AgentScope 源流与后处理全部结束（{@code drainedSignal}）后，
- * 才按 {@code (runId, instance)} 身份摘除。同一 {@code (tenantId, userId, sessionId)} 的相邻源流通过进程内
- * 非阻塞尾链排序——新 Run 可创建并建立 SSE，但只有前一条源流排空后才真正订阅下一次 {@code streamEvents}。
+ * 对话执行协调器：负责执行实例的创建、恢复、停止与定时维护。Agent 事件流由执行实例持有，不依赖 SSE 生命周期；
+ * 实例在业务终态后按 {@code drainedSignal}（最终源流与后处理全部结束）以 {@code (runId, instance)} 身份摘除。
+ * 同一 {@code (tenantId, userId, sessionId)} 的相邻源流经进程内非阻塞尾链排序：新 Run 可建立 SSE，但仅当前一条
+ * 源流排空后才真正订阅下一次 {@code streamEvents}。
  *
  * @author Jin
  */
@@ -147,11 +145,7 @@ public class ChatRunCoordinator {
         return existing;
     }
 
-    /**
-     * 查询活动实例；不存在时恢复一个终结用实例并注册（并发竞争下取先注册者）。
-     *
-     * <p>终结/停止恢复用于收敛既有 Run，不受容量上限约束——若因容量拒绝会导致 Run 无法停止或终结。
-     */
+    /** 查询活动实例；不存在时恢复一个终结用实例并注册（并发竞争下取先注册者）。终结/停止恢复不受容量上限约束，否则会因容量拒绝导致 Run 无法停止或终结。 */
     private ChatRunInstance selectOrRestoreForFinalize(ChatRunEntity run, ChatSessionEntity session) {
         ChatRunInstance selected = executions.get(run.getId());
         if (selected != null) {
@@ -167,21 +161,18 @@ public class ChatRunCoordinator {
     }
 
     /**
-     * 在实例成功注册后订阅其排空信号：最终源流与后处理全部结束时按身份摘除
-     * （{@code remove(runId, instance)} 带实例身份）。未注册或竞争落败的实例不会被订阅，其排空信号
-     * 无人接收，天然无法触碰注册表——杜绝误删规范实例。业务终态（{@code terminalSignal}）不触发摘除，
-     * 仍在排空的实例继续保留至 {@code drainedSignal}。
+     * 在实例成功注册后订阅其排空信号：最终源流与后处理全部结束时按身份摘除（{@code remove(runId, instance)}）。
+     * 未注册或竞争落败的实例排空信号无人接收，不会触碰注册表；业务终态（{@code terminalSignal}）不触发摘除，
+     * 仍在排空的实例保留至 {@code drainedSignal}。
      */
     private void subscribeDrained(String runId, ChatRunInstance instance) {
         instance.drainedSignal().whenComplete((ignored, error) -> executions.remove(runId, instance));
     }
 
     /**
-     * 在规范实例锁内原子地确认并推进到下一阶段。
-     *
-     * <p>先取得 {@code executions} 中唯一的 {@link ChatRunInstance}（不存在则恢复并注册），再交给该实例处理。
-     * 实例在旧 phase 源流排空前只暂存确认、立即受理返回（读法 B），待 phase-drained 后才完成
-     * 「校验 → CAS → 启动下一 phase」；锁顺序恒为 实例 monitor → {@code REQUIRES_NEW} 数据库事务。
+     * 在规范实例锁内原子地确认并推进到下一阶段：取规范实例（不存在则恢复并注册），旧 phase 源流排空前仅暂存确认、
+     * 立即受理（读法 B），待 phase-drained 后才完成「校验 → CAS → 启动下一 phase」；锁顺序恒为 实例 monitor →
+     * {@code REQUIRES_NEW} 数据库事务。
      *
      * @param run 运行实体
      * @param session 会话实体
@@ -264,11 +255,7 @@ public class ChatRunCoordinator {
         }
     }
 
-    /**
-     * 恢复或终结单个重启前遗留的中断态 Run：持久化存储的待确认 Run 保留，其余按状态终结。
-     *
-     * <p>供 {@link ChatRunStartupRecovery} 编排调用。
-     */
+    /** 恢复或终结单个重启前遗留的中断态 Run（持久化存储的待确认 Run 保留，其余按状态终结）；供 {@link ChatRunStartupRecovery} 编排调用。 */
     void recoverInterrupted(ChatRunEntity run) {
         ChatSessionEntity session = loadSession(run);
         TenantUtils.withTenant(session.getTenantId(), () -> recoverInterruptedInTenantContext(run, session));

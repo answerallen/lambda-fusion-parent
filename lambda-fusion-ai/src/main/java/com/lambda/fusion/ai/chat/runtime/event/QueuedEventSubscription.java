@@ -8,9 +8,7 @@ import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 基于有界队列的事件订阅实现。
- *
- * <p>历史事件和实时事件由同一发送任务按顺序消费。
+ * 基于有界队列的事件订阅实现；历史事件和实时事件由同一发送任务按顺序消费。
  *
  * @author Jin
  */

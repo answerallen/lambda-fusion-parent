@@ -32,14 +32,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * 对话附件服务实现。
- *
- * <p>上传先落临时文件再经 {@link DocumentFileStorage} 持久化（与知识库文档同一套存储后端，
- * 复用 {@code rag.document-storage} 配置）；附件相对路径用独立前缀
- * {@code chat/{sessionId}/{attachmentId}.{ext}} 与知识库文件隔离。
- *
- * <p>孤儿附件（上传后未发送，message_id IS NULL）由 {@link #delete} 主动撤销或
- * {@link #deleteBySession} 会话级联清理，未引入定时清理任务。
+ * 对话附件服务实现。上传先落临时文件再经 {@link DocumentFileStorage} 持久化（与知识库文档同套存储后端，复用
+ * {@code rag.document-storage} 配置），相对路径用独立前缀 {@code chat/{sessionId}/{attachmentId}.{ext}} 与知识库
+ * 文件隔离；孤儿附件（message_id IS NULL）由 {@link #delete} 主动撤销或 {@link #deleteBySession} 会话级联清理，
+ * 未引入定时清理任务。
  *
  * @author Jin
  */

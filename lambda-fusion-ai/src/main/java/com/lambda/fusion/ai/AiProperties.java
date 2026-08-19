@@ -14,10 +14,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 /**
- * AI 模块运行参数。
- *
- * <p>模型提供方和模型连接信息保存在 {@code ai_llm_provider}、{@code ai_llm_model} 表中，
- * {@code AiModelResolver} 根据 modelId 加载对应模型。API Key 以密文存储。
+ * AI 模块运行参数。模型提供方和模型连接信息保存在 {@code ai_llm_provider}、{@code ai_llm_model} 表中，
+ * {@code AiModelResolver} 根据 modelId 加载对应模型；API Key 以密文存储。
  *
  * @author Jin
  */

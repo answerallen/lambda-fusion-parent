@@ -18,16 +18,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 /**
- * 对话附件预览直链签名服务：为附件签发/校验 HMAC-SHA256 签名 token。
- *
- * <p>preview 端点放行 Bearer 登录（供 {@code <img src>} / {@code <a>} 直连），鉴权完全依赖签名 token：
- * <ul>
- *   <li>token 由后端在用户通过 Bearer 鉴权后签发（upload / list messages 时），绑定 attachmentId + 过期时间；</li>
- *   <li>持有 token 即可访问对应附件，与 OSS presigned URL 同一安全模型；token 有时效且不可伪造（HMAC）；</li>
- *   <li>未配置密钥时不阻断启动，仅使预览直链不可用（前端降级为文件名展示）。</li>
- * </ul>
- *
- * <p>签名比较使用 {@link MessageDigest#isEqual} 常量时间比较，规避时序攻击。
+ * 对话附件预览直链签名服务：为附件签发/校验 HMAC-SHA256 签名 token。preview 端点放行 Bearer 登录，鉴权完全
+ * 依赖 token：token 由后端在 Bearer 鉴权后签发（upload / list messages 时），绑定 attachmentId + 过期时间，有时效
+ * 且不可伪造，与 OSS presigned URL 同一安全模型；未配置密钥时不阻断启动，仅使预览直链不可用（前端降级为文件名）。
+ * 签名比较用 {@link MessageDigest#isEqual} 常量时间比较，规避时序攻击。
  *
  * @author Jin
  */

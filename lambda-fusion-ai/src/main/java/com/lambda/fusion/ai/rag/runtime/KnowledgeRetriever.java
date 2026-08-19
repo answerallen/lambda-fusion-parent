@@ -4,11 +4,10 @@ import java.util.List;
 import reactor.core.publisher.Mono;
 
 /**
- * 知识检索器（防腐层自有接口）：对话时按绑定的知识库实时检索相关片段。
- *
- * <p>实现（{@code SimpleKnowledgeAdapter}）由 {@code AiConfigure.RagConfiguration}
+ * 知识检索器（防腐层自有接口）：对话时按绑定的知识库实时检索相关片段。实现
+ * （{@code SimpleKnowledgeAdapter}）由 {@code AiConfigure.RagConfiguration}
  * 在 {@code lambda.fusion.ai.rag.enabled=true} 时装配；未启用时容器内无此 Bean，
- * {@code AgentFactory} 通过 {@code ObjectProvider} 判空跳过中间件挂载。
+ * {@code AgentFactory} 判空跳过中间件挂载。
  *
  * @author Jin
  */

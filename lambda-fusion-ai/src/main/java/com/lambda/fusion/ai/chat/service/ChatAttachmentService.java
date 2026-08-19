@@ -9,10 +9,8 @@ import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * 对话附件服务：上传(校验+存储+插行)、按消息/会话查询、下载、删除与消息绑定。
- *
- * <p>附件经 session_id 关联会话，由现有租户插件和会话 user_id 所有权校验共同限制访问，
- * 防止同租户用户互访附件。
+ * 对话附件服务：上传(校验+存储+插行)、按消息/会话查询、下载、删除与消息绑定。附件经 session_id 关联会话，
+ * 由现有租户插件和会话 user_id 所有权校验共同限制访问，防同租户用户互访。
  *
  * @author Jin
  */

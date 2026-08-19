@@ -7,9 +7,7 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * 对话运行共享的无状态小工具。
- *
- * <p>承载 Factory/Coordinator/Instance 三方共用的纯函数，避免经由彼此中转或反向依赖。
+ * 对话运行共享的无状态小工具：承载 Factory/Coordinator/Instance 三方共用的纯函数，避免彼此中转或反向依赖。
  *
  * @author Jin
  */

@@ -22,13 +22,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 /**
- * 工具集装配器：为每个应用构建 {@link Toolkit}。
- *
- * <p>装配内容：
- * <ul>
- *   <li>容器中所有带 {@code @Tool} 方法的 Spring Bean（全局本地工具）</li>
- *   <li>应用绑定的 MCP 服务（每个独立装载，单个失败不影响其余）</li>
- * </ul>
+ * 工具集装配器：为每个应用构建 {@link Toolkit}，含全局本地 {@code @Tool} Bean
+ * 与应用绑定的 MCP 服务（每个独立装载，单个失败不影响其余）。
  *
  * @author Jin
  */

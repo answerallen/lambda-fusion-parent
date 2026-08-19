@@ -44,22 +44,12 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Run 的唯一持久化 Service：负责创建幂等、状态迁移、检查点与最终落库。
- *
- * <p>单一实现同时承载两个调用面：{@link ChatRunService}（HTTP 编排面，内置会话归属校验）与
- * {@link ChatRunStateService}（执行器状态机面，无归属校验、迁移方法独立提交）。
- *
- * <p>Run 是一次对话回合的执行载体，状态机为：
- * {@code CREATED -> RUNNING <-> AWAITING_CONFIRM -> STOPPING -> COMPLETED/STOPPED/FAILED}。
- *
- * <p>并发与一致性约定：
- *
- * <ul>
- *   <li>创建幂等：以 {@code clientRequestId} 去重，并以 {@code requestHash} 校验同请求体，命中既有 Run 直接复用；
- *   <li>状态迁移用「带前置条件的 UPDATE」（CAS）实现，{@code changed == 1} 才视为迁移成功，避免覆盖并发改动；
- *   <li>检查点与各迁移方法均用 {@link Propagation#REQUIRES_NEW}，使每一次状态推进/快照独立提交，
- *       不被驱动事务的后续失败回滚——这是 Run 进度可恢复的关键。
- * </ul>
+ * Run 的唯一持久化 Service：负责创建幂等、状态迁移、检查点与最终落库。单一实现同时承载两个调用面：
+ * {@link ChatRunService}（HTTP 编排面，内置会话归属校验）与 {@link ChatRunStateService}（执行器状态机面，
+ * 无归属校验、迁移独立提交）。状态机为 {@code CREATED -> RUNNING <-> AWAITING_CONFIRM -> STOPPING ->
+ * COMPLETED/STOPPED/FAILED}。并发与一致性：创建以 {@code clientRequestId} 去重、{@code requestHash} 校验同请求体，
+ * 命中既有 Run 直接复用；状态迁移用「带前置条件的 UPDATE」(CAS)，{@code changed == 1} 才视为成功；
+ * 检查点与各迁移均用 {@link Propagation#REQUIRES_NEW} 独立提交，不被驱动事务的后续失败回滚（Run 可恢复的关键）。
  */
 @Service
 @RequiredArgsConstructor
@@ -156,11 +146,10 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     }
 
     /**
-     * 推进确认到下一阶段：在 {@code REQUIRES_NEW} 独立事务内复核所有权、做阶段幂等守卫与状态校验，
-     * 再以 {@code (status=AWAITING_CONFIRM, phaseNo)} 为前置条件 CAS 迁移。
-     *
-     * <p>以 {@code sourcePhaseNo} 做幂等守卫：Run 已越过本次确认阶段则视为重复确认，返回 {@code resumed=false}；
-     * 落后则命令过期抛状态冲突。确认决策内容不在此解释（由执行器实例锁内完成），此处只承载权威迁移。
+     * 在 {@code REQUIRES_NEW} 独立事务内推进确认：复核所有权、做阶段幂等守卫与状态校验，以
+     * {@code (status=AWAITING_CONFIRM, phaseNo)} 为前置条件 CAS 迁移。以 {@code sourcePhaseNo} 做幂等守卫：
+     * Run 已越过该阶段视为重复确认返回 {@code resumed=false}，落后则命令过期抛状态冲突。确认决策内容不在此解释
+     * （由执行器实例锁内完成），此处只承载权威迁移。
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
@@ -300,10 +289,9 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     }
 
     /**
-     * 终结 Run：在非终态下写入终态、助手消息与最终快照，独立事务提交。
-     *
-     * <p>幂等：已终态时返回 {@code committed=false} 并携带既有终态信息。stop 优先：处于 {@code STOPPING}
-     * 时无论目标态为何都落为 {@code STOPPED}（理由 {@code USER_STOP}）并清空错误信息。
+     * 终结 Run：在非终态下写入终态、助手消息与最终快照，独立事务提交。幂等：已终态时返回 {@code committed=false}
+     * 并携带既有终态信息。stop 优先：处于 {@code STOPPING} 时无论目标态为何都落为 {@code STOPPED}
+     * （理由 {@code USER_STOP}）并清空错误信息。
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)

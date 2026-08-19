@@ -15,9 +15,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 /**
- * 沙箱 spec 解析器：按应用 {@code sandboxBackend} 找到匹配的 {@link SandboxBackendProvider} 构建 spec。
- *
- * <p>HOST 或对应后端的扩展未安装时返回 {@link Optional#empty()}，调用方回退到宿主文件系统。
+ * 沙箱 spec 解析器：按应用 {@code sandboxBackend} 找到匹配的 {@link SandboxBackendProvider} 构建 spec；
+ * HOST 或对应后端扩展未安装时返回 {@link Optional#empty()}，调用方回退宿主文件系统。
  *
  * @author Jin
  */

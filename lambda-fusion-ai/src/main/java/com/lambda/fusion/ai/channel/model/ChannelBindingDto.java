@@ -5,10 +5,9 @@ import java.util.Set;
 import lombok.Data;
 
 /**
- * 通道路由绑定规则，对齐 AgentScope {@code ChannelBinding}（9 字段一一对应）。
- *
- * <p>一条规则把一个入站维度（peer/guild/team/account/channel 之一）绑定到目标 agent。
- * 序列化为 JSON 存入 {@code ai_channel_config.bindings}。
+ * 通道路由绑定规则，对齐 AgentScope {@code ChannelBinding}（9 字段一一对应），一条规则把一个
+ * 入站维度（peer/guild/team/account/channel 之一）绑定到目标 agent，序列化为 JSON 存入
+ * {@code ai_channel_config.bindings}。
  *
  * @author Jin
  */

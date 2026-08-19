@@ -15,10 +15,8 @@ public final class AguiEventJsonCodec {
     private AguiEventJsonCodec() {}
 
     /**
-     * 单次编码运行事件并合并运行元数据。
-     *
-     * <p>事件自身的 runId 已与目标值一致且载荷为 JSON 对象时，直接在尾部拼接元数据，
-     * 避免高频路径上「编码后再整体解析合并再编码」的往返；不满足前置条件时回退整体解析合并。
+     * 单次编码运行事件并合并运行元数据；当事件 runId 与目标值一致且载荷为 JSON 对象时直接在尾部拼接元数据，避免
+     * 高频路径上「编码后再解析合并再编码」的往返，否则回退整体解析合并。
      *
      * @param event AG-UI 事件
      * @param chatRunId 对话运行标识

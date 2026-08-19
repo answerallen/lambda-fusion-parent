@@ -24,10 +24,8 @@ public interface AppMapper extends BaseMapper<AppEntity> {
 
     /**
      * 按全局唯一 publish_code 精确命中一行（发布入口公开资料查询的受控跨租户例外）。
-     *
-     * <p>匿名 profile 无租户上下文，需绕过租户插件按高熵唯一代码精确查询；仅限本方法，
-     * 禁止用于列表、模糊查询或任何登录后路径（登录后应在租户上下文内按普通查询进行）。
-     * 用显式 @Select 让 MyBatis 代理识别 {@code @InterceptorIgnore}（default 方法不被代理）。
+     * 匿名 profile 无租户上下文，需绕过租户插件精确查询；仅限本方法，禁止用于列表、模糊或登录后路径。
+     * 用显式 {@code @Select} 让 MyBatis 代理识别 {@code @InterceptorIgnore}（default 方法不被代理）。
      *
      * @param publishCode 发布代码
      * @return 应用实体；不存在返回 null

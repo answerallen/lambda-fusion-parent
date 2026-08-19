@@ -21,13 +21,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 运行时模型解析器：按 modelId 从数据库加载模型与提供方配置，解密 API Key，
- * 构建对应的 AgentScope {@link Model} 客户端。
- *
- * <p>当前为无缓存实现——{@code AiAgentFactory} 在应用维度缓存 {@code HarnessAgent}
- * （其中持有 {@code Model}），配置变更时由 AgentFactory 失效缓存即可重建。
- *
- * <p>实现 {@link Function} 以便后续可直接作为 {@code HarnessAgent.Builder.modelResolver} 注入。
+ * 运行时模型解析器：按 modelId 从数据库加载模型/提供方配置并解密 API Key，构建 AgentScope
+ * {@link Model} 客户端。无缓存——由 AgentFactory 在应用维度缓存 {@code HarnessAgent}，配置变更
+ * 经失效缓存重建；实现 {@link Function} 便于后续作为 modelResolver 注入。
  *
  * @author Jin
  */

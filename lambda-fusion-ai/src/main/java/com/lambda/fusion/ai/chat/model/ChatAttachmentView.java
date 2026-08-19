@@ -6,10 +6,8 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 /**
- * 对话附件视图：平铺 {@link ChatAttachmentEntity} 对外字段，并携带图片附件的签名预览直链。
- *
- * <p>与实体的区别：不含 {@code storageType / storagePath / tenantId} 等存储与租户内部字段
- * （收口在后端），新增 {@link #previewUrl} 供前端 {@code <img src>} 直连预览。与
+ * 对话附件视图：平铺 {@link ChatAttachmentEntity} 对外字段并携带图片签名预览直链。不含 storageType/storagePath/
+ * tenantId 等存储与租户内部字段（收口在后端），新增 {@link #previewUrl} 供前端 {@code <img src>} 直连预览；与
  * {@link ChatMessageView} 同为 chat 子域视图，沿用 {@code of} 静态工厂手写转换的既有模式。
  *
  * @author Jin
@@ -45,10 +43,7 @@ public class ChatAttachmentView {
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;
 
-    /**
-     * 图片附件的签名预览直链（相对路径，前端拼接 {@code apiURL}；文档为 {@code null}）。
-     * 由 {@code ChatAttachmentPreviewTokenService} 签发，preview 端点放行 Bearer、靠签名 token 鉴权。
-     */
+    /** 图片附件的签名预览直链（相对路径，前端拼 {@code apiURL}；文档为 {@code null}），由预览签名服务签发、preview 端点靠签名 token 鉴权。 */
     @Schema(description = "图片预览直链(相对路径，前端拼接 apiURL；文档为空)")
     private String previewUrl;
 

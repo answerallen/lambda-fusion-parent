@@ -19,11 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 按 modelId 从数据库加载 EMBEDDING 类型模型与提供方配置，解密 API Key，
- * 构建对应的 AgentScope {@link EmbeddingModel} 客户端。
- *
- * <p>平行于 {@link ModelResolver}（ChatModel）。无缓存——嵌入模型实例由
- * {@code SimpleKnowledgeAdapter} 按知识库维度缓存持有。
+ * 按 modelId 从数据库加载 EMBEDDING 模型与提供方配置并解密 API Key，构建 AgentScope
+ * {@link EmbeddingModel} 客户端。平行于 {@link ModelResolver}（ChatModel），无缓存——
+ * 实例由 {@code SimpleKnowledgeAdapter} 按知识库维度缓存持有。
  *
  * @author Jin
  */

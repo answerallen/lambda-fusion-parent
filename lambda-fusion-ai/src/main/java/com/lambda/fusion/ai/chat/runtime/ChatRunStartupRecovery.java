@@ -9,10 +9,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * 对话执行的启动恢复编排。
- *
- * <p>应用就绪时恢复或终结重启前遗留的中断态 Run、拉起待执行的 CREATED Run，并启动定时维护任务；
- * 具体恢复动作委托给 {@link ChatRunCoordinator}。
+ * 对话执行的启动恢复编排：应用就绪时恢复或终结重启前遗留的中断态 Run、拉起待执行的 CREATED Run，并启动定时维护；
+ * 具体动作委托给 {@link ChatRunCoordinator}。
  *
  * @author Jin
  */

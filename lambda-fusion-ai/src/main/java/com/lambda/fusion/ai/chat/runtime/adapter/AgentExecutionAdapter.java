@@ -28,10 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * Agent 执行适配器。
- *
- * <p>内部 ChatRun 直连已选定的 {@link HarnessAgent}，不再经过 Harness 网关二次路由。状态会话标识统一为
- * {@code (userId, ChatSession.id)}，并封装状态读取、执行中断与未决工具调用闭合。
+ * Agent 执行适配器：内部 ChatRun 直连已选定的 {@link HarnessAgent}，不经 Harness 网关二次路由。状态会话标识统一为
+ * {@code (userId, ChatSession.id)}，封装状态读取、执行中断与未决工具调用闭合。
  *
  * @author Jin
  */
@@ -103,9 +101,8 @@ public final class AgentExecutionAdapter {
     /**
      * 读取 Agent 状态中当前待确认的工具调用。
      *
-     * <p>口径与 AgentScope {@code getPendingToolUseIds} 一致：只取最后一条助手消息中的 ASKING 块。
-     * 该口径是 Agent 实际阻塞/待确认的权威界定，也是确认三方校验（快照=决策=Agent）的共同基准；
-     * 不得扫描全上下文——旧消息残留的未收尾 ASKING 块不属于当前确认批次，计入会使三方严格相等误判失败。
+     * <p>口径与 AgentScope {@code getPendingToolUseIds} 一致：只取最后一条助手消息中的 ASKING 块——这是确认
+     * 三方校验（快照=决策=Agent）的共同基准；不得扫描全上下文，旧消息残留的未收尾 ASKING 块会让三方严格相等误判失败。
      *
      * @return 当前待确认工具调用
      * @throws AiBusinessException Agent 状态不可用或不存在待确认工具调用
@@ -148,8 +145,8 @@ public final class AgentExecutionAdapter {
     /**
      * 将状态会话中遗留的未决工具调用补写为用户拒绝结果并落盘。
      *
-     * <p>AgentScope 约定：ASKING 或尚未落结果的工具调用会阻塞同一状态会话的后续调用。Run 停止、
-     * 确认超时或异常终结时调用本方法，等价于确认恢复的拒绝分支，使会话可继续对话。幂等：无未决调用时为空操作。
+     * <p>ASKING 或未落结果的工具调用会阻塞同一状态会话后续调用；Run 停止、确认超时或异常终结时调用，等价于确认
+     * 恢复的拒绝分支，使会话可继续对话。幂等：无未决调用时为空操作。
      */
     public void denyPendingToolCalls() {
         ReActAgent delegate = agent.getDelegate();

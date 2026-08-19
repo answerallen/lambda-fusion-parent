@@ -7,10 +7,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 标注 {@code @Tool} 工具需要 HITL 人工确认：调用前触发 {@code RequireUserConfirmEvent} 暂停，
- * 用户确认后恢复。由 {@code ToolkitAssembler} 启动时扫描，{@code AgentFactory} 构建 ASK 规则。
- *
- * <p>支持方法级（单工具）与类级（该类所有 @Tool 方法）标注。仅本地 @Tool 工具，MCP 后续。
+ * 标注 {@code @Tool} 工具需 HITL 人工确认：调用前触发 {@code RequireUserConfirmEvent} 暂停，
+ * 确认后恢复，由 {@code ToolkitAssembler} 扫描、{@code AgentFactory} 构建 ASK 规则。
+ * 支持方法级（单工具）与类级（该类全部 @Tool 方法）；仅本地 @Tool 工具，MCP 后续。
  *
  * @author Jin
  */

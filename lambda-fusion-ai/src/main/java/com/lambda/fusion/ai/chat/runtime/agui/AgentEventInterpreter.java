@@ -27,9 +27,8 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * AgentScope 事件到 AG-UI 事件和快照增量的解释器。
- *
- * <p>实例按运行阶段创建，负责维护文本、推理和工具调用事件的配对状态，并向 EventStore 与快照累加器输出一致结果。
+ * AgentScope 事件到 AG-UI 事件和快照增量的解释器；实例按运行阶段创建，负责维护文本、推理和工具调用事件的配对状态，
+ * 并向 EventStore 与快照累加器输出一致结果。
  *
  * @author Jin
  */
@@ -166,10 +165,8 @@ public class AgentEventInterpreter {
     }
 
     /**
-     * 模型产出工具调用块结束。AgentScope 对同一工具会先经 {@code ModelCallBlockLifecycle} 发
-     * TOOL_CALL_END、再经 {@code CallExecution} 发 TOOL_RESULT_END；此处只推进快照状态，不发
-     * AG-UI 事件——{@code ToolCallEnd} 统一由 result 齐全的 {@code TOOL_RESULT_END} 单一出口发出，
-     * 避免同一「工具结束」事实产生两次 ToolCallEnd。
+     * 模型产出工具调用块结束；AgentScope 对同一工具先发 TOOL_CALL_END 再发 TOOL_RESULT_END，此处只推进快照状态，
+     * 因 {@code ToolCallEnd} 统一由 result 齐全的 {@code TOOL_RESULT_END} 单一出口发出，避免同一「工具结束」产生两次事件。
      */
     private void mapToolCallEnd(AgentEvent event, List<AguiEvent> out, SnapshotDeltaBuilder delta) {
         if (!(event instanceof ToolCallEndEvent tool)) {
@@ -236,11 +233,9 @@ public class AgentEventInterpreter {
     }
 
     /**
-     * 关闭当前打开的文本和推理消息。
-     *
-     * <p>除为已知内存消息生成 {@code TextMessageEnd}/{@code ReasoningMessageEnd} 外，无条件在快照增量上
-     * 置 {@code closeActiveMessages=true}：即使恢复实例的解释器没有内存消息 ID，也能闭合持久化快照中的
-     * 打开状态。这是关闭路径的唯一出口，累加器的状态变化只经由该增量驱动。
+     * 关闭当前打开的文本和推理消息；除为已知内存消息生成 {@code TextMessageEnd}/{@code ReasoningMessageEnd} 外，
+     * 无条件在快照增量上置 {@code closeActiveMessages=true}，使无内存消息 ID 的恢复实例也能闭合持久化快照中的打开状态，
+     * 是关闭路径的唯一出口。
      *
      * @return 仅包含消息关闭事件与对应快照增量的解释结果
      */

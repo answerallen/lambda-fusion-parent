@@ -15,11 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 自演化审计记录器：在 selfEvolve 应用的每轮对话后，扫描 workspace 中在本轮被修改的文件，
- * 复制快照并写入审计表。
- *
- * <p>通过文件 mtime &gt; 轮次起始时间检测变更（无需侵入 AgentScope 工具调用链）。
- * .audit 目录本身排除扫描。
+ * 自演化审计记录器：selfEvolve 应用每轮对话后扫描 workspace 中被修改文件，复制快照写入审计表。
+ * 通过文件 mtime &gt; 轮次起始时间检测变更（无需侵入 AgentScope 工具调用链）；.audit 目录排除扫描。
  *
  * @author Jin
  */

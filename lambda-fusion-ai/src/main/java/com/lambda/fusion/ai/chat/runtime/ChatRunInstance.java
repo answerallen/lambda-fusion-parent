@@ -52,12 +52,11 @@ import org.apache.commons.lang3.StringUtils;
 import reactor.core.Disposable;
 
 /**
- * 单个对话运行的执行实例。
+ * 单个对话运行的执行实例：持有 Agent 事件流、维护执行快照并提交运行终态。
  *
- * <p>负责持有 Agent 事件流、更新执行快照、写入检查点并提交运行终态。实例维护两类完成信号：
- * {@code terminalSignal} 表示业务 Run 已进入最终状态（供 API 返回与 SSE 终态），{@code drainedSignal}
- * 表示最终阶段的 AgentScope 源流与后处理（Sandbox 释放、Workspace 审计）全部结束（供实例摘除与关机等待）。
- * 业务终态不 dispose 底层订阅，记忆尾部继续运行；生命周期状态由实例锁和原子变量协调。
+ * <p>维护两类完成信号：{@code terminalSignal} 表示业务 Run 已进入最终状态（供 API/SSE 终态），
+ * {@code drainedSignal} 表示最终阶段源流与后处理（Sandbox 释放、Workspace 审计）全部结束（供实例摘除与
+ * 关机等待）。业务终态不 dispose 底层订阅，记忆尾部继续运行；状态由实例锁和原子变量协调。
  *
  * @author Jin
  */
@@ -139,11 +138,8 @@ final class ChatRunInstance {
     }
 
     /**
-     * 在实例锁内处理用户确认。
-     *
-     * <p>读法 B：确认在旧 phase 排空前到达时只暂存决策、立即返回（{@code resumed=false}），不执行数据库 CAS，
-     * Run 保持 {@code AWAITING_CONFIRM}；待当前 phase 源流排空（phase-drained）后才在锁内完成
-     * 「校验 → CAS → 启动下一 phase」。若当前无待排空 phase（纯待确认恢复实例），则立即按原路径推进。
+     * 处理用户确认（读法 B）：确认在旧 phase 排空前到达时只暂存并立即返回（{@code resumed=false}），等待
+     * phase 源流排空后在锁内执行「校验 → CAS → 启动下一 phase」；无待排空 phase 时按原路径立即推进。
      *
      * @param command 用户确认命令
      * @return 迁移结果；{@code resumed=false} 表示阶段已被处理或已受理待排空
@@ -252,11 +248,9 @@ final class ChatRunInstance {
     }
 
     /**
-     * 启动一个 Agent 执行阶段。
-     *
-     * <p>交互超时只约束「订阅到根 {@code AGENT_END}」阶段：订阅时调度 {@code max-run-duration} 截止，
-     * 根 {@code AGENT_END} 到达即取消；不再用单个 Reactor {@code timeout()} 包围整条 Flux（记忆尾部不受交互
-     * 超时约束）。底层订阅在业务终态后保留，直到源流自然终止。
+     * 启动一个 Agent 执行阶段。交互超时只约束「订阅到根 {@code AGENT_END}」：订阅时调度
+     * {@code max-run-duration} 截止、根 {@code AGENT_END} 到达即取消；不再用单个 Reactor {@code timeout()}
+     * 包围整条 Flux（记忆尾部不受交互超时约束）。底层订阅在业务终态后保留直到源流自然终止。
      *
      * @param message 阶段输入消息
      */
@@ -404,10 +398,9 @@ final class ChatRunInstance {
     }
 
     /**
-     * AgentScope 源流终止（complete/error/cancel）后的收尾：此时 Sandbox 已释放，执行当前 phase 的
-     * Workspace 审计，随后推进 phase-drained。本方法在每条源流终止时恰好执行一次，与业务终态解耦。
-     * 仅当业务终态已提交（最终 phase）时才汇入实例 {@code drainedSignal}；待确认的中间 phase 只推进当前
-     * phase 的确认恢复，不摘除实例。
+     * AgentScope 源流终止（complete/error/cancel）后的收尾：此刻 Sandbox 已释放，执行当前 phase 的
+     * Workspace 审计并推进 phase-drained，与业务终态解耦、每条源流恰好执行一次。仅最终 phase（业务终态
+     * 已提交）才汇入实例 {@code drainedSignal}；待确认的中间 phase 只推进确认恢复，不摘除实例。
      */
     private synchronized void onSourceTerminated() {
         sourceActive = false;
@@ -531,12 +524,7 @@ final class ChatRunInstance {
         }
     }
 
-    /**
-     * 查询最新持久化运行。
-     *
-     * @param identity 运行标识实体
-     * @return 最新运行实体；记录不存在时返回传入实体
-     */
+    /** 查询最新持久化运行；不存在时返回传入实体。 */
     private ChatRunEntity loadCurrent(ChatRunEntity identity) {
         ChatRunEntity current = runService.loadCurrent(identity.getId());
         return current == null ? identity : current;
@@ -547,21 +535,12 @@ final class ChatRunInstance {
         finalizeTerminal(ChatRunStatus.COMPLETED, ChatRunFinishReason.SUCCESS, null, null);
     }
 
-    /**
-     * 将运行终结为停止状态。
-     *
-     * @param reason 停止原因
-     */
+    /** 将运行终结为停止状态。 */
     synchronized void finalizeStopped(ChatRunFinishReason reason) {
         finalizeTerminal(ChatRunStatus.STOPPED, reason, null, null);
     }
 
-    /**
-     * 将运行终结为失败状态。
-     *
-     * @param errorCode 错误码
-     * @param errorMessage 错误信息
-     */
+    /** 将运行终结为失败状态。 */
     synchronized void finalizeFailed(ChatRunFailureCode errorCode, String errorMessage) {
         finalizeTerminal(ChatRunStatus.FAILED, ChatRunFinishReason.ERROR, errorCode, errorMessage);
     }
@@ -679,20 +658,14 @@ final class ChatRunInstance {
         return failure instanceof IllegalStateException;
     }
 
-    /**
-     * 暴露只读终态信号：业务终态提交或确认被并发终结时完成。供 API 返回与 SSE 终态使用；
-     * 不触发底层订阅的 dispose。
-     *
-     * @return 业务终态信号（只读）
-     */
+    /** 业务终态信号：供 API 返回与 SSE 终态使用，不触发底层订阅的 dispose。 */
     CompletionStage<Void> terminalSignal() {
         return terminalSignal;
     }
 
     /**
-     * 释放一个「已注册但未能启动」的实例：Run 在排队/认领期间已被并发取胜方终结（如停止），本实例从未
-     * 建立源流，无需也不应再写数据库。直接完成全部信号，使协调器摘除实例、会话尾链释放后继。
-     * 仅在 {@code !terminal && !sourceActive} 时生效，否则为空操作。
+     * 释放「已注册但未能启动」的实例（排队/认领期间已被并发取胜方终结，从未建立源流）：直接完成全部信号，
+     * 使协调器摘除实例、会话尾链释放后继。仅在 {@code !terminal && !sourceActive} 时生效。
      */
     synchronized void releaseNeverStarted() {
         if (terminal || sourceActive) {
@@ -705,31 +678,18 @@ final class ChatRunInstance {
     }
 
     /**
-     * 暴露只读排空信号：最终阶段的 AgentScope 源流与后处理（Sandbox 释放、Workspace 审计）全部结束时完成。
-     * 协调器在实例注册后订阅它以摘除注册表项；未注册实例无人订阅，信号不产生任何效果。
-     *
-     * @return 排空信号（只读）
+     * 排空信号：最终阶段源流与后处理全部结束时完成，协调器订阅以摘除注册表项；未注册实例无人订阅。
      */
     CompletionStage<Void> drainedSignal() {
         return drainedSignal;
     }
 
-    /**
-     * 暴露当前 phase 的源流排空信号：该次 AgentScope 源流终止（complete/error/cancel）并完成 Workspace
-     * 审计后即完成，与终结重试解耦。会话源流尾链以此信号释放同会话后继——前驱源流排空即可启动下一条，
-     * 不被单实例的终结故障或延迟阻塞。
-     *
-     * @return 当前 phase 的源流排空信号（只读）
-     */
+    /** 当前 phase 的源流排空信号：源流终止并完成 Workspace 审计后即完成，与终结重试解耦；会话尾链据此释放后继。 */
     CompletionStage<Void> phaseDrainedSignal() {
         return phaseDrainedSignal;
     }
 
-    /**
-     * 生成当前运行的 AG-UI 引导事件。
-     *
-     * @return 引导事件批次
-     */
+    /** 生成当前运行的 AG-UI 引导事件。 */
     synchronized AguiBootstrap bootstrap() {
         long highWatermark = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         return new AguiBootstrap(
@@ -739,20 +699,12 @@ final class ChatRunInstance {
                         || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus()));
     }
 
-    /**
-     * 获取当前执行快照。
-     *
-     * @return 执行快照
-     */
+    /** 获取当前执行快照。 */
     synchronized ExecutionSnapshot snapshot() {
         return accumulator.snapshot();
     }
 
-    /**
-     * 立即写入执行检查点并收缩事件缓冲区。
-     *
-     * @throws IllegalStateException 非终态运行的检查点写入失败
-     */
+    /** 立即写入执行检查点并收缩事件缓冲区。抛 {@link IllegalStateException} 表示非终态运行的检查点失败。 */
     synchronized void checkpointNow() {
         long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         if (!runService.checkpoint(run, accumulator.snapshot(), seq)) {
@@ -768,11 +720,7 @@ final class ChatRunInstance {
         lastCheckpointNanos = System.nanoTime();
     }
 
-    /**
-     * 在检查点间隔到期时写入执行快照。
-     *
-     * @param nowNanos 当前单调时钟值
-     */
+    /** 检查点间隔到期时写入执行快照。 */
     synchronized void checkpointIfDue(long nowNanos) {
         if (terminal || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
             return;
@@ -783,11 +731,7 @@ final class ChatRunInstance {
         }
     }
 
-    /**
-     * 判断 Agent 事件流是否正在运行。
-     *
-     * @return 事件流未结束时返回 {@code true}
-     */
+    /** 判断 Agent 事件流是否正在运行。 */
     boolean isRunning() {
         Disposable current = disposable.get();
         return current != null && !current.isDisposed();
@@ -815,10 +759,9 @@ final class ChatRunInstance {
     }
 
     /**
-     * 在实例锁内原子地停止 Run：先写入检查点，再执行数据库迁移并等待提交，最后收敛为停止终态。
+     * 在实例锁内原子地停止 Run：先写检查点，再执行数据库迁移并等待提交，最后收敛为停止终态。
      *
-     * <p>数据库迁移（CAS 到 STOPPING / 确认超时）与内存状态修改在同一实例锁内完成，锁顺序恒为
-     * 实例 monitor → {@code REQUIRES_NEW} 数据库事务。
+     * <p>数据库迁移与内存状态修改在同一实例锁内完成，锁顺序恒为实例 monitor → {@code REQUIRES_NEW} 事务。
      *
      * @param transition 数据库迁移，成功返回 {@code true}；竞争落败返回 {@code false}
      * @param reason 停止原因
@@ -845,11 +788,9 @@ final class ChatRunInstance {
     }
 
     /**
-     * 在实例锁内原子地判定并请求停止：与 {@code confirm}/{@code startPhase} 同一把实例锁，
-     * 「是否运行」的判读与「是否可启动新流」共用临界区，消除检查与分流之间的 TOCTOU 间隙。
-     *
-     * <p>非运行态（含待确认、已中断）在锁内完成 STOPPING 迁移并直接终结；运行态只做 STOPPING
-     * 迁移与检查点，返回 {@link StopOutcome#INTERRUPT} 由协调器在锁外中断并留宽限期兜底。
+     * 在实例锁内原子地判定并请求停止；与 {@code confirm}/{@code startPhase} 同一把实例锁，消除
+     * 「是否运行」判读与「是否可启动新流」之间的 TOCTOU 间隙。非运行态在锁内完成 STOPPING 并直接终结；
+     * 运行态只做 STOPPING 迁移与检查点、返回 {@link StopOutcome#INTERRUPT}，由协调器在锁外中断并留宽限期。
      *
      * @return 停止结果
      */

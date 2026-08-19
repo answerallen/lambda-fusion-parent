@@ -30,9 +30,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 /**
- * Workspace 存储唯一解析入口。存储类型由部署配置统一决定，不随应用变化。
- *
- * <p>LOCAL 保留原本地目录行为；MYSQL/POSTGRES 使用 AgentScope 分布式存储。切换配置只会切换到另一套
+ * Workspace 存储唯一解析入口。存储类型由部署配置统一决定，不随应用变化：
+ * LOCAL 保留原本地目录；MYSQL/POSTGRES 用 AgentScope 分布式存储。切换配置只换另一套
  * Workspace，不复制、迁移或删除原数据。
  *
  * @author Jin

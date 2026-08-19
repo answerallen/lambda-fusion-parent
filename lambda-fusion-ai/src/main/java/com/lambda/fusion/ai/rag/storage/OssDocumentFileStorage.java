@@ -14,12 +14,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.ObjectProvider;
 
 /**
- * OSS 文档原文件存储：走 lambda-cloud-starter-oss 的 {@link OssClientManager}
- * （多客户端模型，与 lambda-fusion-oss 用法一致），
- * objectKey = {@code {keyPrefix}{tenantId}/{kbId}/{documentId}.{ext}}。
- *
- * <p>starter 未注册客户端（{@code lambda.oss.clients} 为空）时，存储操作抛带明确提示的
- * 业务异常——配置 OSS 客户端或改用 LOCAL。
+ * OSS 文档原文件存储：走 lambda-cloud-starter-oss 的 {@link OssClientManager}（多客户端模型，
+ * 与 lambda-fusion-oss 用法一致），objectKey = {@code {keyPrefix}{tenantId}/{kbId}/{documentId}.{ext}}。
+ * starter 未注册客户端（{@code lambda.oss.clients} 为空）时，存储操作抛带明确提示的业务异常，
+ * 需配置 OSS 客户端或改用 LOCAL。
  *
  * @author Jin
  */
