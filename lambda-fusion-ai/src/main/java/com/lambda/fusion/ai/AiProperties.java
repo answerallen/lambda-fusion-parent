@@ -64,6 +64,26 @@ public class AiProperties {
     /** 集群部署参数。 */
     private Cluster cluster = new Cluster();
 
+    /** 定时 Agent 任务调度参数。 */
+    @Valid
+    private Schedule schedule = new Schedule();
+
+    /** 定时 Agent 任务调度参数。 */
+    @Data
+    public static class Schedule {
+
+        /** 是否启用定时任务调度。 */
+        private boolean enabled = false;
+
+        /** Quartz 调度器实例标识(同 JVM 多调度器时区分;经 QuartzAgentSchedulerRegistry 关联)。 */
+        private String schedulerId = "lambda-fusion-ai-scheduler";
+
+        /** Quartz worker 线程数(并发执行 Agent 的上限),仅自建内存调度器时生效。 */
+        @Min(1)
+        @Max(64)
+        private int threadPoolSize = 4;
+    }
+
     /** 对话参数。 */
     @Data
     public static class Chat {

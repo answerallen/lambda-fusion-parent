@@ -150,6 +150,57 @@ public interface AiConstants {
     }
 
     /**
+     * 子代理分类（{@code ai_sub_agent.category}）。SUB_AGENT 供主 Agent 路由委派；
+     * SCHEDULED_TASK 由调度器定时触发，不参与主 Agent 路由。
+     */
+    @Getter
+    @AllArgsConstructor
+    enum SubAgentCategory {
+        SUB_AGENT("SUB_AGENT", "专家子代理"),
+
+        SCHEDULED_TASK("SCHEDULED_TASK", "定时任务");
+
+        private final String code;
+
+        private final String label;
+
+        public static SubAgentCategory of(String code) {
+            if (code == null) {
+                return null;
+            }
+            for (SubAgentCategory category : values()) {
+                if (category.code.equalsIgnoreCase(code)) {
+                    return category;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 定时任务调度模式（{@code ai_sub_agent.schedule_mode}），字面量对齐 AgentScope
+     * {@code io.agentscope.extensions.scheduler.config.ScheduleMode}。
+     */
+    enum ScheduleMode {
+        NONE,
+        CRON,
+        FIXED_RATE,
+        FIXED_DELAY;
+
+        public static ScheduleMode of(String code) {
+            if (code == null) {
+                return null;
+            }
+            for (ScheduleMode mode : values()) {
+                if (mode.name().equalsIgnoreCase(code)) {
+                    return mode;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
      * 知识库检索模式（应用级，{@code ai_app.rag_mode}）。GENERIC 中间件自动检索注入（稳定保底）；
      * AGENTIC 注册 {@code retrieve_knowledge} 工具由模型自主检索（省 token）；BOTH 两者兼得。
      * 空值按 GENERIC 处理（向后兼容）。

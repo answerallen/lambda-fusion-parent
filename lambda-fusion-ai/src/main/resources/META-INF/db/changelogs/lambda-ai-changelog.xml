@@ -722,4 +722,29 @@
         </addColumn>
     </changeSet>
 
+    <!-- ========== ai_sub_agent 定时任务分类与调度字段 ========== -->
+    <changeSet id="lambda-ai-202608190001" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_sub_agent" columnName="category"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_sub_agent">
+            <column name="category" type="varchar(16)" defaultValue="SUB_AGENT"
+                    remarks="分类: SUB_AGENT(主Agent路由的子代理)|SCHEDULED_TASK(定时任务)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="schedule_mode" type="varchar(16)"
+                    remarks="调度模式: NONE|CRON|FIXED_RATE|FIXED_DELAY(仅 SCHEDULED_TASK 有效)"/>
+            <column name="cron_expression" type="varchar(64)" remarks="cron 表达式(CRON 模式)"/>
+            <column name="fixed_rate" type="bigint" remarks="固定频率毫秒(FIXED_RATE 模式)"/>
+            <column name="fixed_delay" type="bigint" remarks="固定延迟毫秒(FIXED_DELAY 模式)"/>
+            <column name="initial_delay" type="bigint" remarks="首次执行前初始延迟毫秒"/>
+            <column name="zone_id" type="varchar(64)" remarks="cron 时区(如 Asia/Shanghai)"/>
+            <column name="input_msg" type="text" remarks="定时触发初始输入(可选)"/>
+            <column name="schedule_enabled" type="boolean" defaultValueBoolean="false"
+                    remarks="调度启用态(仅 SCHEDULED_TASK;区别于 enabled 路由态)"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

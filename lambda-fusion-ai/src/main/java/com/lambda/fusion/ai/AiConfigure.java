@@ -60,6 +60,7 @@ import io.agentscope.extensions.sandbox.agentrun.AgentRunFilesystemSpec;
 import io.agentscope.extensions.sandbox.daytona.DaytonaFilesystemSpec;
 import io.agentscope.extensions.sandbox.e2b.E2bFilesystemSpec;
 import io.agentscope.extensions.sandbox.kubernetes.KubernetesFilesystemSpec;
+import io.agentscope.extensions.scheduler.quartz.QuartzAgentScheduler;
 import io.agentscope.harness.agent.filesystem.spec.SandboxFilesystemSpec;
 import io.agentscope.harness.agent.gateway.ChannelManager;
 import io.agentscope.harness.agent.gateway.HarnessGateway;
@@ -811,6 +812,27 @@ public class AiConfigure {
             reference.setInterface(RemoteUserService.class);
             reference.setCheck(false);
             return reference.get();
+        }
+    }
+
+    /**
+     * 定时 Agent 任务调度装配：仅在 {@code lambda.fusion.ai.schedule.enabled=true} 且 Quartz 扩展
+     * 在 classpath 时注册。自建 Quartz 内存调度器（RAMJobStore），业务任务定义以
+     * {@code ai_sub_agent}(category=SCHEDULED_TASK) 为唯一事实来源，启动时经 {@code AgentTaskBootstrap}
+     * 重注册恢复。Bean 由 {@code AiConfigure} 组件扫描发现，此处仅注册调度器本身。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "io.agentscope.extensions.scheduler.quartz.QuartzAgentScheduler")
+    public static class ScheduleConfiguration {
+
+        @Bean(destroyMethod = "")
+        public QuartzAgentScheduler quartzAgentScheduler(AiProperties aiProperties) {
+            // 自建内存 Quartz 调度器；destroyMethod="" 交由 DisposableBean 之外的容器生命周期不管，
+            // 避免误关。生产 JDBC 持久化/集群为 §8 开放点，本期单机内存即可。
+            return QuartzAgentScheduler.builder()
+                    .schedulerId(aiProperties.getSchedule().getSchedulerId())
+                    .autoStart(true)
+                    .build();
         }
     }
 }

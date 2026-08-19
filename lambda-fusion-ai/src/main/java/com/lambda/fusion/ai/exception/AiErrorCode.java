@@ -116,6 +116,12 @@ public enum AiErrorCode implements ErrorCode {
 
     SUB_AGENT_RECOVERY_FAILED(30826, "子代理会话恢复失败"),
 
+    SCHEDULED_TASK_NOT_FOUND(30830, "定时任务不存在"),
+
+    SCHEDULED_TASK_NAME_EXISTS(30831, "定时任务名称已存在"),
+
+    SCHEDULED_TASK_CONFIG_INVALID(30832, "定时任务调度配置无效"),
+
     CHAT_SESSION_NOT_FOUND(30201, "对话会话不存在"),
 
     CHAT_MESSAGE_NOT_FOUND(30202, "对话消息不存在"),

@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.subagent.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.lambda.fusion.ai.AiConstants.SubAgentCategory;
 import com.lambda.fusion.ai.AiConstants.SubAgentWorkspaceMode;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
@@ -58,6 +59,7 @@ public class SubAgentServiceImpl implements SubAgentService {
         SubAgentEntity entity = new SubAgentEntity();
         entity.setId(IdUtil.getSnowflakeNextIdStr());
         entity.setTenantId(AuthUtils.getTenantId());
+        entity.setCategory(SubAgentCategory.SUB_AGENT.getCode());
         entity.setName(dto.getName());
         entity.setDescription(dto.getDescription());
         entity.setPrompt(dto.getPrompt());
@@ -142,11 +144,18 @@ public class SubAgentServiceImpl implements SubAgentService {
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
+        // 路由污染防线：主 Agent 路由只取 SUB_AGENT 分类，定时任务（SCHEDULED_TASK）不参与委派
         Map<String, SubAgentEntity> byId = subAgentMapper.selectByIds(ids).stream()
                 .filter(entity -> Boolean.TRUE.equals(entity.getEnabled()))
+                .filter(entity -> isSubAgentCategory(entity.getCategory()))
                 .collect(Collectors.toMap(SubAgentEntity::getId, Function.identity()));
         // 按入参 ids 顺序输出（声明顺序即主 agent 可见的子代理顺序）
         return ids.stream().filter(byId::containsKey).map(byId::get).toList();
+    }
+
+    /** category 为空（存量数据）按 SUB_AGENT 处理，向后兼容。 */
+    private static boolean isSubAgentCategory(String category) {
+        return category == null || SubAgentCategory.SUB_AGENT.getCode().equalsIgnoreCase(category);
     }
 
     // 子代理声明在 agent 构建期固化，保存/删除/启停后全量失效 agent 缓存触发重建

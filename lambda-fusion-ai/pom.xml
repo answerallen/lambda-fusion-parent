@@ -114,6 +114,14 @@
         </dependency>
         <dependency>
             <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-scheduler-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
+            <artifactId>agentscope-extensions-scheduler-quartz</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.agentscope</groupId>
             <artifactId>agentscope-extensions-postgresql</artifactId>
             <optional>true</optional>
         </dependency>

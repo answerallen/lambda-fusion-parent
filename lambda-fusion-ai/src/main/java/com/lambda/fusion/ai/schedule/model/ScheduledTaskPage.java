@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.subagent.model;
+package com.lambda.fusion.ai.schedule.model;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
@@ -9,26 +9,28 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+/**
+ * 定时任务分页查询：固定过滤 category=SCHEDULED_TASK，与子代理路由记录隔离。
+ *
+ * @author Jin
+ */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@Schema(description = "子代理分页查询参数")
-public class SubAgentPage extends PageQuery<SubAgentEntity> {
+@Schema(description = "定时任务分页查询参数")
+public class ScheduledTaskPage extends PageQuery<SubAgentEntity> {
 
-    @Schema(description = "子代理名，支持模糊查询")
+    @Schema(description = "任务名，支持模糊查询")
     private String name;
 
-    @Schema(description = "是否启用")
-    private Boolean enabled;
+    @Schema(description = "调度是否启用")
+    private Boolean scheduleEnabled;
 
     @Override
     public LambdaQueryWrapper<SubAgentEntity> getLambdaQueryWrapper() {
         LambdaQueryWrapper<SubAgentEntity> wrapper = new LambdaQueryWrapper<>();
-        // 子代理列表只展示 SUB_AGENT 分类；定时任务(SCHEDULED_TASK)经专属入口管理
-        wrapper.and(w -> w.eq(SubAgentEntity::getCategory, SubAgentCategory.SUB_AGENT.getCode())
-                .or()
-                .isNull(SubAgentEntity::getCategory));
+        wrapper.eq(SubAgentEntity::getCategory, SubAgentCategory.SCHEDULED_TASK.getCode());
         wrapper.like(StringUtils.isNotBlank(name), SubAgentEntity::getName, name);
-        wrapper.eq(enabled != null, SubAgentEntity::getEnabled, enabled);
+        wrapper.eq(scheduleEnabled != null, SubAgentEntity::getScheduleEnabled, scheduleEnabled);
         wrapper.orderByDesc(SubAgentEntity::getCreatedAt);
         return wrapper;
     }

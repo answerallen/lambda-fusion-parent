@@ -63,6 +63,42 @@ public class SubAgentEntity {
     @Schema(description = "工作区模式: ISOLATED|SHARED")
     private String workspaceMode;
 
+    @TableField("category")
+    @Schema(description = "分类: SUB_AGENT(主Agent路由的子代理)|SCHEDULED_TASK(定时任务)")
+    private String category;
+
+    @TableField("schedule_mode")
+    @Schema(description = "调度模式: NONE|CRON|FIXED_RATE|FIXED_DELAY(仅 SCHEDULED_TASK)")
+    private String scheduleMode;
+
+    @TableField("cron_expression")
+    @Schema(description = "cron 表达式(CRON 模式)")
+    private String cronExpression;
+
+    @TableField("fixed_rate")
+    @Schema(description = "固定频率毫秒(FIXED_RATE 模式)")
+    private Long fixedRate;
+
+    @TableField("fixed_delay")
+    @Schema(description = "固定延迟毫秒(FIXED_DELAY 模式)")
+    private Long fixedDelay;
+
+    @TableField("initial_delay")
+    @Schema(description = "首次执行前初始延迟毫秒")
+    private Long initialDelay;
+
+    @TableField("zone_id")
+    @Schema(description = "cron 时区(如 Asia/Shanghai)")
+    private String zoneId;
+
+    @TableField("input_msg")
+    @Schema(description = "定时触发初始输入(可选)")
+    private String inputMsg;
+
+    @TableField("schedule_enabled")
+    @Schema(description = "调度启用态(仅 SCHEDULED_TASK;区别于 enabled 路由态)")
+    private Boolean scheduleEnabled;
+
     @TableField("enabled")
     @Schema(description = "是否启用")
     private Boolean enabled;

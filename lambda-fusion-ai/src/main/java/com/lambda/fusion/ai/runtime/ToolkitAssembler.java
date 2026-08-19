@@ -83,6 +83,14 @@ public class ToolkitAssembler {
         return toolkit;
     }
 
+    /**
+     * 共享的本地 {@code @Tool} Bean 列表（启动时扫描，只读）。
+     * 供无 App 维度的场景（如定时任务）按 {@code tools_allow} 白名单选择性注册。
+     */
+    public List<Object> getLocalToolBeans() {
+        return localToolBeans;
+    }
+
     private void registerMcpServers(Toolkit toolkit, List<String> mcpServerIds) {
         if (mcpServerIds == null || mcpServerIds.isEmpty()) {
             return;
