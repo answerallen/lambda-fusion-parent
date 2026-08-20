@@ -41,9 +41,10 @@ spring:
       initialize-schema: always
     properties:
       org.quartz.scheduler.instanceId: AUTO
+      org.quartz.threadPool.threadCount: ${AI_SCHEDULE_THREAD_POOL_SIZE:4}
+      #### 集群属性仅对 jdbc JobStore 生效;数据源由 AiConfigure 显式注入主库底层 ds ####
       org.quartz.jobStore.isClustered: ${AI_SCHEDULE_CLUSTERED:true}
       org.quartz.jobStore.clusterCheckinInterval: 20000
-      org.quartz.threadPool.threadCount: ${AI_SCHEDULE_THREAD_POOL_SIZE:4}
 logging:
   level:
     io:
@@ -93,6 +94,10 @@ lambda:
         type: MYSQL
         mysql:
           database: lambda_cloud
+      #### 定时任务调度：JDBC JobStore 持久化(数据源默认主库 master,见 spring.quartz) ####
+      schedule:
+        enabled: ${AI_SCHEDULE_ENABLED:false}
+        datasource: ${AI_SCHEDULE_DATASOURCE:master}
       security:
         encryption-key: ${AI_ENCRYPTION_KEY:dev-only-please-change-in-production-32chars}
       #### 对话附件：图片预览直链签名密钥（生产请配 AI_ATTACHMENT_PREVIEW_SECRET） ####

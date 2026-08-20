@@ -89,12 +89,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.quartz.autoconfigure.QuartzDataSource;
+import org.springframework.boot.quartz.autoconfigure.SchedulerFactoryBeanCustomizer;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 
 @Slf4j
 @EnableAsync
@@ -826,19 +827,27 @@ public class AiConfigure {
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "io.agentscope.extensions.scheduler.quartz.QuartzAgentScheduler")
-    public static class ScheduleConfiguration {
+    @RequiredArgsConstructor
+    public static class ScheduleConfiguration implements SchedulerFactoryBeanCustomizer {
+
+        private final DataSource dataSource;
+        private final AiProperties aiProperties;
 
         /**
-         * 为 Quartz 显式指定主库 master 底层数据源：primary 是 dynamic-datasource 路由数据源，
-         * Quartz 后台线程直连会有路由歧义，故经 {@link StateStoreDataSources#resolveNamed} 锁定 master。
-         * 标注 {@link QuartzDataSource} 后，Spring Quartz 装配与 QRTZ_* 表初始化（initialize-schema=always）
-         * 都用该数据源，与业务表 ai_sub_agent 同库。
+         * 把 Quartz 用的底层数据源显式设进 SchedulerFactoryBean：primary 是 dynamic-datasource 路由
+         * 数据源，Quartz 后台线程直连会有路由歧义，故经 {@link StateStoreDataSources#resolveNamed}
+         * 解析出配置的底层 ds（默认主库 master）覆盖注入。本类自身实现 SchedulerFactoryBeanCustomizer,
+         * 不另立 @QuartzDataSource DataSource bean,避免与 primary 形成多候选导致 Spring Quartz 的
+         * @ConditionalOnSingleCandidate 失效而不装配数据源。
          */
-        @Bean
-        @QuartzDataSource
-        @ConditionalOnBean(DataSource.class)
-        public DataSource quartzDataSource(DataSource dataSource) {
-            return StateStoreDataSources.resolveNamed(dataSource, "master");
+        @Override
+        public void customize(SchedulerFactoryBean schedulerFactoryBean) {
+            String dsName = aiProperties.getSchedule().getDatasource();
+            DataSource resolved = StateStoreDataSources.resolveNamed(dataSource, dsName);
+            if (resolved == null) {
+                throw new IllegalStateException("Quartz 数据源解析失败: schedule.datasource=" + dsName);
+            }
+            schedulerFactoryBean.setDataSource(resolved);
         }
 
         /**
@@ -846,7 +855,7 @@ public class AiConfigure {
          * 不调用其 shutdown()（内部会误关共享 Scheduler）。
          */
         @Bean(destroyMethod = "")
-        public QuartzAgentScheduler quartzAgentScheduler(AiProperties aiProperties, Scheduler scheduler) {
+        public QuartzAgentScheduler quartzAgentScheduler(Scheduler scheduler) {
             return QuartzAgentScheduler.builder()
                     .scheduler(scheduler)
                     .schedulerId(aiProperties.getSchedule().getSchedulerId())

@@ -82,6 +82,9 @@ public class AiProperties {
         @Min(1)
         @Max(64)
         private int threadPoolSize = 4;
+
+        /** Quartz 调度持久化所用的 dynamic-datasource 数据源名(默认主库 master)。 */
+        private String datasource = "master";
     }
 
     /** 对话参数。 */
