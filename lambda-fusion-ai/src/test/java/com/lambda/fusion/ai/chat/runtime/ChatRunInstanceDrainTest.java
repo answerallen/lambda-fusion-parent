@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.chat.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -8,13 +9,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
-import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
@@ -25,18 +26,27 @@ import com.lambda.fusion.ai.chat.runtime.model.FinalizeResult;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
+import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
+import io.agentscope.core.message.ToolCallState;
+import io.agentscope.core.message.ToolUseBlock;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 /**
@@ -122,51 +132,72 @@ class ChatRunInstanceDrainTest {
 
         assertThat(instance.terminalSignal().toCompletableFuture()).isDone();
         assertThat(instance.drainedSignal().toCompletableFuture()).isDone();
-        assertThat(instance.phaseDrainedSignal().toCompletableFuture()).isDone();
         // 从未建立源流，不写数据库终结。
         verify(runService, never()).finalizeExecution(any(), any());
     }
 
     @Test
-    void shouldDeferConfirmationWhenSourceStillDraining() {
-        // 读法 B：实例仍有在排空的源流（sourceActive=true）时，confirm 只暂存、立即受理返回 resumed=false，
-        // 不在排空中执行数据库 CAS。恢复与三方校验由真实 Agent 的特征测试端到端覆盖。
-        instance = newInstance(runWithPendingTool(ChatRunStatus.AWAITING_CONFIRM, "call-1"));
+    void shouldExposeAwaitingConfirmationOnlyAfterSourceDrains() {
+        instance = newInstance(run(ChatRunStatus.RUNNING));
         Sinks.Many<AgentEvent> source = Sinks.many().unicast().onBackpressureBuffer();
         when(adapter.stream(any(Msg.class))).thenReturn(source.asFlux());
-        // 让实例进入一个仍在排空的源流（首 phase），随后处于待确认。
-        instance.run.setStatus(ChatRunStatus.RUNNING.name());
+        when(eventStore.runExclusive(anyString(), anyString(), any(), any())).thenAnswer(invocation -> {
+            BooleanSupplier dbAction = invocation.getArgument(3);
+            return dbAction.getAsBoolean();
+        });
+        when(runService.awaitConfirm(eq(instance.run), any(ExecutionSnapshot.class), anyLong(), any()))
+                .thenReturn(true);
+
         instance.startPhase(userMsg());
-        instance.run.setStatus(ChatRunStatus.AWAITING_CONFIRM.name());
+        source.tryEmitNext(requireConfirm("call-1"));
+        source.tryEmitNext(agentEnd());
 
-        ConfirmTransition transition = instance.confirm(command(1));
-
-        // 排空中：暂存确认、立即受理（resumed=false），未做数据库 CAS。
-        assertThat(transition.resumed()).isFalse();
+        // 根 AGENT_END 后源流仍保持打开（模拟 MemoryFlush 尾部）：Run 仍是 RUNNING，提前确认必须拒绝且不暂存。
+        assertThat(instance.run.getStatus()).isEqualTo(ChatRunStatus.RUNNING.name());
+        assertThatThrownBy(() -> instance.confirm(command(1)))
+                .isInstanceOf(AiBusinessException.class)
+                .satisfies(error -> assertThat(((AiBusinessException) error).getCode())
+                        .isEqualTo(AiErrorCode.CHAT_RUN_STATE_CONFLICT.getCode()));
         verify(runService, never()).advanceConfirmation(any(), any(), org.mockito.ArgumentMatchers.anyInt());
+        verify(runService, never()).awaitConfirm(any(), any(), anyLong(), any());
+
+        // 整个 AgentScope/Harness 源流排空后才提交待确认事实并发布中断事件。
+        source.tryEmitComplete();
+
+        assertThat(instance.run.getStatus()).isEqualTo(ChatRunStatus.AWAITING_CONFIRM.name());
+        assertThat(instance.drainedSignal().toCompletableFuture()).isNotDone();
+        verify(runService).awaitConfirm(eq(instance.run), any(ExecutionSnapshot.class), anyLong(), any());
+        verify(workspaceAuditRecorder).recordChanges(eq(instance.session), anyLong());
     }
 
-    private static io.agentscope.core.message.ToolUseBlock askingBlock(String toolCallId) {
-        return io.agentscope.core.message.ToolUseBlock.builder()
+    @Test
+    void shouldInterruptAndDisposeSourceAfterInteractionTimeout() throws Exception {
+        AiProperties properties = new AiProperties();
+        properties.getChat().getRun().setMaxRunDurationSeconds(0);
+        properties.getChat().getRun().setStopGraceSeconds(1);
+        instance = newInstance(run(ChatRunStatus.RUNNING), properties);
+        stubTerminalCommit();
+        CountDownLatch cancelled = new CountDownLatch(1);
+        when(adapter.stream(any(Msg.class))).thenReturn(Flux.<AgentEvent>never().doOnCancel(cancelled::countDown));
+
+        instance.startPhase(userMsg());
+
+        verify(adapter, timeout(2_000)).interrupt();
+        assertThat(cancelled.await(3, TimeUnit.SECONDS)).isTrue();
+        assertThat(instance.run.getStatus()).isEqualTo(ChatRunStatus.FAILED.name());
+        assertThat(instance.drainedSignal().toCompletableFuture()).succeedsWithin(Duration.ofSeconds(2));
+    }
+
+    private static ToolUseBlock askingBlock(String toolCallId) {
+        return ToolUseBlock.builder()
                 .id(toolCallId)
                 .name("demo_tool")
-                .state(io.agentscope.core.message.ToolCallState.ASKING)
+                .state(ToolCallState.ASKING)
                 .build();
     }
 
-    private static ChatRunEntity runWithPendingTool(ChatRunStatus status, String toolCallId) {
-        ChatRunEntity run = new ChatRunEntity();
-        run.setId("run-1");
-        run.setSessionId("session-1");
-        run.setStatus(status.name());
-        run.setPhaseNo(1);
-        run.setAguiRunId("agui-1");
-        run.setSnapshotSeq(0L);
-        ExecutionSnapshot.Tool tool = new ExecutionSnapshot.Tool(toolCallId, "demo_tool", "", "", "asking");
-        ExecutionSnapshot snapshot =
-                new ExecutionSnapshot("run-1", "agui-1", 1, "", "", null, null, false, false, List.of(), List.of(tool));
-        run.setSnapshotJson(ExecutionSnapshotCodec.encode(snapshot));
-        return run;
+    private static AgentEvent requireConfirm(String toolCallId) {
+        return new RequireUserConfirmEvent("reply-1", List.of(askingBlock(toolCallId)));
     }
 
     private static ConfirmToolCall command(int phaseNo) {
@@ -202,10 +233,14 @@ class ChatRunInstanceDrainTest {
     }
 
     private ChatRunInstance newInstance(ChatRunEntity run) {
+        return newInstance(run, new AiProperties());
+    }
+
+    private ChatRunInstance newInstance(ChatRunEntity run, AiProperties properties) {
         return new ChatRunInstance(
                 runService,
                 eventStore,
-                new AiProperties(),
+                properties,
                 scheduler,
                 workspaceAuditRecorder,
                 run,

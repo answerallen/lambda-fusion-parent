@@ -121,14 +121,15 @@ ChatRun 终态，并在事务提交后发布 `RUN_FINISHED` 或 `RUN_ERROR`。
 - 业务终态完成 `terminalSignal`，让客户端及时结束当前展示；
 - 不 dispose 底层 AgentScope 订阅；
 - 源流 complete、error 或 cancel 后再执行 Workspace 审计和资源清理；
-- 最终 phase-drained 与 `terminalSignal` 汇合为 `drainedSignal`，Coordinator 此时才摘除实例；
+- 最终源流排空与 `terminalSignal` 汇合为稳定的实例级 `drainedSignal`，Coordinator 此时才摘除实例；
 - 根事件后的后处理失败不反向覆盖已提交的 `COMPLETED`。
 
-HITL phase 同样先结束用户可见阶段、再等待旧源流排空。排空前到达的确认可以完成校验和数据库 CAS，但新的
-`streamEvents` 只能登记为待启动阶段，旧 phase 排空后再启动。
+HITL phase 收到确认事件后继续等待根 `AGENT_END`，确认 AgentScope 已保存 `ASKING` 状态；执行适配器随后在根事件处
+结束当前适配流，取消尚未订阅的记忆尾部。适配流终止并完成 Workspace 审计后再提交 `AWAITING_CONFIRM`，
+根事件前的确认按状态冲突拒绝；进入待确认后完成校验和数据库 CAS，新的 `streamEvents` 可以立即启动。
 
 普通下一条消息遵循相同原则：前端可在上一 Run 业务完成后创建并挂载新 Run，但同一 Session 的 AgentScope
-源流由 Coordinator 按 phase-drained 尾链启动。该排序不阻塞其他 Session，也不是 Workspace 执行锁。
+源流由 Coordinator 按实例级 `drainedSignal` 尾链启动。该排序不阻塞其他 Session，也不是 Workspace 执行锁。
 
 ## 7. SSE 所有权
 

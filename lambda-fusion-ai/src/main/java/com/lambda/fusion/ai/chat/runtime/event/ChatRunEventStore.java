@@ -77,13 +77,18 @@ public class ChatRunEventStore {
         ChatRunEventBuffer buffer = buffer(runId);
         synchronized (buffer) {
             buffer.stage(aguiEvents, aguiRunId);
-            boolean committed = dbAction.getAsBoolean();
-            if (committed) {
-                buffer.publishStaged();
-            } else {
+            try {
+                boolean committed = dbAction.getAsBoolean();
+                if (committed) {
+                    buffer.publishStaged();
+                } else {
+                    buffer.discardStaged();
+                }
+                return committed;
+            } catch (RuntimeException failure) {
                 buffer.discardStaged();
+                throw failure;
             }
-            return committed;
         }
     }
 

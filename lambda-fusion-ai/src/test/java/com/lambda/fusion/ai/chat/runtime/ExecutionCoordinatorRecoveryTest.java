@@ -7,7 +7,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
@@ -59,15 +58,30 @@ class ExecutionCoordinatorRecoveryTest {
 
     @Test
     void shouldRetainAwaitingConfirmationWithPersistentStateStore() {
-        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM);
+        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM, List.of("call-1"));
         prepareRecovery(run, "FILE");
+        stubAgentWithAskingState();
 
         startupRecovery.recoverOnStartup();
 
         verify(eventStore).initialize("run-1", 7L);
         verify(runService, never()).finalizeExecution(any(), any());
-        verifyNoInteractions(agentFactory);
         assertThat(run.getStatus()).isEqualTo(ChatRunStatus.AWAITING_CONFIRM.name());
+    }
+
+    @Test
+    void shouldFailAwaitingConfirmationWhenPersistentStateDoesNotMatchSnapshot() {
+        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM, List.of("call-1"));
+        prepareRecovery(run, "FILE");
+        stubAgentWithState(AgentState.builder().context(List.of()).build());
+        stubTerminalCommit(run);
+
+        startupRecovery.recoverOnStartup();
+
+        FinalizeCommand command = captureFinalizeCommand(run);
+        assertThat(command.targetStatus()).isEqualTo(ChatRunStatus.FAILED);
+        assertThat(command.errorCode()).isEqualTo(ChatRunFailureCode.CONFIRM_CONTEXT_UNAVAILABLE);
+        assertThat(command.errorMessage()).isEqualTo("服务进程重启，用户确认上下文不可恢复");
     }
 
     @Test
@@ -81,7 +95,7 @@ class ExecutionCoordinatorRecoveryTest {
         FinalizeCommand command = captureFinalizeCommand(run);
         assertThat(command.targetStatus()).isEqualTo(ChatRunStatus.FAILED);
         assertThat(command.errorCode()).isEqualTo(ChatRunFailureCode.CONFIRM_CONTEXT_UNAVAILABLE);
-        assertThat(command.errorMessage()).isEqualTo("服务进程重启，内存中的用户确认上下文已丢失");
+        assertThat(command.errorMessage()).isEqualTo("服务进程重启，用户确认上下文不可恢复");
     }
 
     @Test
@@ -166,10 +180,6 @@ class ExecutionCoordinatorRecoveryTest {
 
     /** 注册带 ASKING 待确认工具调用的 Agent，返回 delegate 供校验状态闭合调用。 */
     private ReActAgent stubAgentWithAskingState() {
-        HarnessAgent agent = mock(HarnessAgent.class);
-        ReActAgent delegate = mock(ReActAgent.class);
-        when(agent.getDelegate()).thenReturn(delegate);
-        when(agent.getName()).thenReturn("demo-agent");
         ToolUseBlock block = ToolUseBlock.builder()
                 .id("call-1")
                 .name("demo_tool")
@@ -178,8 +188,16 @@ class ExecutionCoordinatorRecoveryTest {
         Msg assistant = Msg.builderForRole(MsgRole.ASSISTANT)
                 .content(new ArrayList<>(List.of(block)))
                 .build();
-        when(delegate.getAgentState("user-1", "session-1"))
-                .thenReturn(AgentState.builder().context(List.of(assistant)).build());
+        return stubAgentWithState(
+                AgentState.builder().context(List.of(assistant)).build());
+    }
+
+    private ReActAgent stubAgentWithState(AgentState state) {
+        HarnessAgent agent = mock(HarnessAgent.class);
+        ReActAgent delegate = mock(ReActAgent.class);
+        when(agent.getDelegate()).thenReturn(delegate);
+        when(agent.getName()).thenReturn("demo-agent");
+        when(delegate.getAgentState("user-1", "session-1")).thenReturn(state);
         when(agentFactory.getOrBuild("app-1", "tenant-1")).thenReturn(agent);
         return delegate;
     }
@@ -191,6 +209,10 @@ class ExecutionCoordinatorRecoveryTest {
     }
 
     private static ChatRunEntity run(ChatRunStatus status) {
+        return run(status, List.of());
+    }
+
+    private static ChatRunEntity run(ChatRunStatus status, List<String> pendingIds) {
         ChatRunEntity run = new ChatRunEntity();
         run.setId("run-1");
         run.setSessionId("session-1");
@@ -198,7 +220,11 @@ class ExecutionCoordinatorRecoveryTest {
         run.setPhaseNo(1);
         run.setAguiRunId("agui-1");
         run.setSnapshotSeq(7L);
-        run.setSnapshotJson(ExecutionSnapshotCodec.encode(ExecutionSnapshot.empty("run-1", "agui-1", 1)));
+        List<ExecutionSnapshot.Tool> pendingTools = pendingIds.stream()
+                .map(id -> new ExecutionSnapshot.Tool(id, "demo_tool", "", "", "asking"))
+                .toList();
+        run.setSnapshotJson(ExecutionSnapshotCodec.encode(new ExecutionSnapshot(
+                "run-1", "agui-1", 1, "", "", null, null, false, false, List.of(), pendingTools)));
         return run;
     }
 

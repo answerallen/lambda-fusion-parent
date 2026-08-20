@@ -112,13 +112,13 @@ public class ChatRunCoordinator {
         if (execution == null) {
             // 注册成功后监听排空信号，最终源流结束时按实例身份安全摘除。
             subscribeDrained(run.getId(), candidate);
-            // 会话尾链等待上一阶段的 phaseDrainedSignal，而不是实例级 drainedSignal；前者在源流终止时即完成，
-            // 与终态提交重试解耦，因此前驱排空后即可启动后继，不会被单个实例的终结故障阻塞。
+            // 一个 Run 可能包含多个 HITL phase；会话尾链必须等待稳定的实例级 drainedSignal，
+            // 避免首个 phase 排空后提前释放后继，导致后续确认 phase 与下一条 Run 的源流重叠。
             sourceTailChain.enqueue(
                     sessionKey(session),
                     scheduler,
                     () -> runInTenant(candidate, () -> startCreated(candidate)),
-                    candidate.phaseDrainedSignal());
+                    candidate.drainedSignal());
         }
     }
 
@@ -171,14 +171,13 @@ public class ChatRunCoordinator {
     }
 
     /**
-     * 在规范实例锁内原子地确认并推进到下一阶段。若上一阶段源流尚未排空，则先受理并暂存确认；
-     * 排空后再完成校验、CAS 迁移和下一阶段启动。锁顺序始终为实例 monitor，再进入
-     * {@code REQUIRES_NEW} 数据库事务。
+     * 在规范实例锁内原子地确认并推进到下一阶段。只有上一阶段完整排空并进入待确认态后才允许确认；
+     * 锁顺序始终为实例 monitor，再进入 {@code REQUIRES_NEW} 数据库事务。
      *
      * @param run 运行实体
      * @param session 会话实体
      * @param command 用户确认命令
-     * @return 迁移结果；{@code resumed=false} 表示阶段已被处理或已受理待排空
+     * @return 迁移结果；{@code resumed=false} 表示来源阶段已经被处理
      */
     public ConfirmTransition confirm(ChatRunEntity run, ChatSessionEntity session, ConfirmToolCall command) {
         return TenantUtils.withTenant(session.getTenantId(), () -> {
@@ -268,7 +267,7 @@ public class ChatRunCoordinator {
     }
 
     private void recoverInterruptedInTenantContext(ChatRunEntity run, ChatSessionEntity session) {
-        if (shouldRetainAwaitingConfirmation(run)) {
+        if (shouldRetainAwaitingConfirmation(run, session)) {
             eventStore.initialize(run.getId(), ChatRunSupport.sequenceFallback(run));
             log.info(
                     "服务重启后保留待确认Run: runId={}, stateStore={}",
@@ -281,18 +280,26 @@ public class ChatRunCoordinator {
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
             lost.finalizeStopped(ChatRunFinishReason.USER_STOP);
         } else if (ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
-            lost.finalizeFailed(ChatRunFailureCode.CONFIRM_CONTEXT_UNAVAILABLE, "服务进程重启，内存中的用户确认上下文已丢失");
+            lost.finalizeFailed(ChatRunFailureCode.CONFIRM_CONTEXT_UNAVAILABLE, "服务进程重启，用户确认上下文不可恢复");
         } else {
             lost.finalizeFailed(ChatRunFailureCode.INSTANCE_LOST, "服务进程重启，对话运行已终止");
         }
     }
 
-    private boolean shouldRetainAwaitingConfirmation(ChatRunEntity run) {
+    private boolean shouldRetainAwaitingConfirmation(ChatRunEntity run, ChatSessionEntity session) {
         if (!ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
             return false;
         }
         StateStoreType type = StateStoreType.of(properties.getStateStore().getType());
-        return type != null && type != StateStoreType.MEMORY;
+        if (type == null || type == StateStoreType.MEMORY) {
+            return false;
+        }
+        try {
+            return instanceFactory.hasRecoverableConfirmation(run, session);
+        } catch (RuntimeException recoveryFailure) {
+            log.warn("服务重启后待确认上下文校验失败: runId={}", run.getId(), recoveryFailure);
+            return false;
+        }
     }
 
     /** 中断活动运行并关闭定时维护线程池。 */

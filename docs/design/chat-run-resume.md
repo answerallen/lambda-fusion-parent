@@ -36,7 +36,7 @@
 - `STOPPED` 或 `FAILED` 时，只要已经生成文本或工具结果，也保存部分助手消息。
 - 页面刷新、切换会话后切回、网络重连都能从 Run 快照恢复当前展示状态。
 - HITL 等待确认、确认续跑和停止都以具体 `runId` 为目标。
-- 同一 Session 的完整 AgentScope 源流按 phase-drained 顺序启动；前一条记忆尾部未排空时不订阅下一条。
+- 同一 Session 的相邻 Run 按实例级 `drainedSignal` 顺序启动；前一 Run 的最终记忆尾部未排空时不订阅下一条。
 
 ### 2.2 明确不保证
 
@@ -162,8 +162,8 @@ CREATED ──认领──► RUNNING
 如果进程在创建事务提交后、认领前退出，启动扫描可以安全启动仍为 `CREATED` 的 Run。已进入 `RUNNING` 后不自动重新执行，避免重复模型调用和工具副作用。
 
 上一条同 Session Run 可能已经提交业务终态，但 AgentScope 的记忆尾部和 Workspace 审计仍未结束。新 Run 可以创建、
-注册并建立 SSE；Coordinator 将其启动动作追加到 `(tenantId, userId, sessionId)` 的进程内尾链，等前驱 phase-drained
-后再认领/订阅。排队等待不计入 `max-run-duration`，排队中的实例仍计入容量上限。
+注册并建立 SSE；Coordinator 将其启动动作追加到 `(tenantId, userId, sessionId)` 的进程内尾链，等前驱实例的
+`drainedSignal` 后再认领/订阅。排队等待不计入 `max-run-duration`，排队中的实例仍计入容量上限。
 
 ### 6.2 Agent 与 SSE 解耦
 
@@ -205,11 +205,10 @@ Agent 每产生一条事件时：
 7. 事务提交后，才追加 `RUN_FINISHED` 或 `RUN_ERROR`，再记录包含终态事件的 `snapshot_seq`。
 
 业务终态提交并发布后完成 `terminalSignal`，但不能因此取消底层订阅。AgentScope 的记忆中间件、Sandbox 快照
-与 release 可能仍在根 `AGENT_END` 后继续；源流终止后才记录 Workspace 审计。最终 `drainedSignal` 在
-`terminalSignal` 与 phase-drained 都完成后触发，避免数据库终结仍在重试时提前摘除实例。根事件后的后处理失败
-只记录后处理错误，不把已经提交的 `COMPLETED` 改为 `FAILED`。
-
-phase-drained 还会释放同一 Session 源流尾链中的后继启动动作。`terminalSignal` 只服务业务完成，不能释放该尾链。
+与 release 可能仍在根 `AGENT_END` 后继续；源流终止后才记录 Workspace 审计。最终 `drainedSignal` 在业务终态、
+最终源流和审计都完成后触发，避免数据库终结仍在重试时提前摘除实例。根事件后的后处理失败只记录后处理错误，
+不把已经提交的 `COMPLETED` 改为 `FAILED`。同一 Session 尾链只由稳定的实例级 `drainedSignal` 释放，
+`terminalSignal` 只服务业务完成，不能释放该尾链。
 
 数据库或终态事件记录短暂失败时，执行实例以最大 30 秒间隔继续重试，直到成功或进程停止。若业务终态事务已
 提交而后续事件记录失败，重试读取已提交 Run 和快照，不重复写助手消息，也不会用旧尝试覆盖真实终态。
@@ -220,21 +219,22 @@ phase-drained 还会释放同一 Session 源流尾链中的后继启动动作。
 
 1. 累积器保存脱敏的工具 ID/名称和当前展示快照，暂存 `RUN_FINISHED(interrupt)`。
 2. 不取消 AgentScope Flux；等待当前阶段的根 `AGENT_END`，确认 AgentScope 已保存 `ASKING` 状态。
-3. Run 条件更新为 `AWAITING_CONFIRM`，写入确认截止时间，再发布暂存的中断事件。
-4. 当前 AG-UI 阶段对用户已结束，但执行实例继续等待该阶段的 AgentScope 源流排空。
+3. `AgentExecutionAdapter` 在根事件处结束 HITL 适配流，取消尚未订阅的 MemoryFlush/MemoryMaintenance 尾部。
+4. 适配流终止并完成 Workspace 审计后，Run 条件更新为 `AWAITING_CONFIRM`，写入确认截止时间，再发布暂存的中断事件。
 
 确认请求必须提交当前 `phaseNo` 和全部工具决策：
 
+- 先校验来源 `phaseNo`：已处理的旧 phase 幂等返回，不读取当前 AgentState；
+- 仅相同 phase 的 `AWAITING_CONFIRM` 可继续，排空前的 `RUNNING` 请求按状态冲突拒绝；
 - 事务锁定 Session 和 Run；
-- 校验 Run 正处于相同阶段的 `AWAITING_CONFIRM`；
 - 校验决策 ID 与快照中的待确认 ID 完全一致且不重复；
 - 从 Agent 状态读取完整 `ToolUseBlock`，并与请求及快照做三方一致性校验；
 - 将状态改为 `RUNNING`、`phaseNo + 1`，生成新的 `aguiRunId`；
-- 若旧阶段已经排空，立即启动新阶段；否则只登记一次待启动确认消息，待旧阶段 phase-drained 后启动。
+- 立即启动新阶段；此时旧阶段已按待确认不变量完整排空。
 
 如果相同旧 `phaseNo` 再次提交，而 Run 已进入更高阶段，则只返回当前 Run 并重新挂接，不再次应用确认。这里使用阶段号保证“状态迁移至多一次”，不额外建立命令流水表。
 
-确认卡片可以在旧阶段排空前响应，但同一逻辑 Run 的两个 AgentScope phase 不能重叠执行。
+确认卡片只在旧阶段排空后响应，因此不需要保存排空期确认命令，两个 AgentScope phase 天然不会重叠执行。
 
 ### 6.5 停止
 
@@ -445,7 +445,7 @@ lambda:
 12. Agent 状态、中断和保存统一使用 `(ChatSession.userId, ChatSession.id)`，不复制 Gateway 的 `gw-*` 规则。
 13. 不在模型调用或记忆整理期间持有 Lambda Fusion Workspace 锁；审计在源流排空后使用短写锁。
 14. `terminalSignal` 表示业务终态，`drainedSignal` 表示源流、审计和资源清理完成，两者不可合并。
-15. 同一 Session 使用非阻塞 phase-drained 尾链顺序启动完整源流；它不是应用级 Workspace 执行锁。
+15. 同一 Session 使用等待实例级 `drainedSignal` 的非阻塞尾链顺序启动相邻 Run；它不是应用级 Workspace 执行锁。
 
 ## 15. 验证要求
 
@@ -465,7 +465,7 @@ lambda:
 - 根 `AGENT_END` 后立即完成业务终态，记忆尾部继续运行，且业务终态不会 dispose 底层订阅；
 - `drainedSignal` 只在 AgentScope 源流终止、Workspace 审计和实例清理完成后触发；
 - 业务已完成但前一源流仍在排空时发送下一条消息：新 Run 可挂载，实际 AgentScope 订阅在前驱排空后开始；
-- 排空前到达的 HITL 确认只登记一个待启动阶段，旧 phase 排空后恰好启动一次；
+- 根 `AGENT_END` 前到达的 HITL 确认按状态冲突拒绝，不保留内存命令；适配流结束后当前 phase 确认恰好启动一次；
 - 同一应用的不同用户可以并发进入模型调用，模型和记忆调用期间没有 Workspace 全流程锁。
 
 执行以下命令验证当前分支，不在设计文档中固化会随代码增长而过时的测试数量或历史执行结果：

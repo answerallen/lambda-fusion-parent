@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -56,7 +57,8 @@ import reactor.core.Disposable;
  *
  * <p>实例维护两类完成信号：{@code terminalSignal} 表示业务运行已进入终态，供 API 和 SSE 返回结果；
  * {@code drainedSignal} 表示最终阶段的源流与后处理（沙箱释放、工作区审计）均已结束，供协调器摘除实例和
- * 关机等待。业务终态不会取消底层订阅，记忆尾部仍可继续执行；状态由实例锁和原子变量共同协调。
+ * 关机等待。普通业务终态不会取消底层订阅，记忆尾部仍可继续执行；HITL 阶段由执行适配器在根
+ * {@code AGENT_END} 后结束交互源流，避免记忆尾部阻塞待确认状态。状态由实例锁和原子变量共同协调。
  *
  * @author Jin
  */
@@ -73,7 +75,6 @@ final class ChatRunInstance {
     private final WorkspaceAuditRecorder workspaceAuditRecorder;
     private final CompletableFuture<Void> terminalSignal = new CompletableFuture<>();
     private final CompletableFuture<Void> drainedSignal = new CompletableFuture<>();
-    private volatile CompletableFuture<Void> phaseDrainedSignal = new CompletableFuture<>();
 
     final ChatRunEntity run;
     final ChatSessionEntity session;
@@ -91,7 +92,6 @@ final class ChatRunInstance {
     private long lastCheckpointNanos = System.nanoTime();
     private AgentEventInterpreter agentEventInterpreter;
     private ExecutionInterpretation pendingConfirmInterpretation;
-    private ConfirmToolCall pendingConfirmCommand;
 
     /**
      * 创建执行实例。
@@ -138,27 +138,34 @@ final class ChatRunInstance {
     }
 
     /**
-     * 处理用户确认。确认在上一阶段源流排空前到达时，先暂存命令并返回 {@code resumed=false}；
-     * 源流排空后再在实例锁内完成校验、CAS 迁移并启动下一阶段。没有待排空源流时立即推进。
+     * 在实例锁内处理用户确认。只有旧阶段源流已经完整排空、运行处于 {@code AWAITING_CONFIRM} 时才校验并推进；
+     * 已处理的旧阶段直接按幂等重放返回，不再读取当前 Agent 状态。
      *
      * @param command 用户确认命令
-     * @return 迁移结果；{@code resumed=false} 表示阶段已被处理或已受理待排空
-     * @throws AiBusinessException 确认上下文不可用、决策非法或三方工具调用不一致（保持 AWAITING_CONFIRM，不终结）
+     * @return 迁移结果；{@code resumed=false} 仅表示来源阶段已经被处理
+     * @throws AiBusinessException 状态/阶段冲突、确认上下文不可用、决策非法或三方工具调用不一致
      */
     synchronized ConfirmTransition confirm(ConfirmToolCall command) {
-        if (isDraining()) {
-            // 上一阶段源流尚未排空，先暂存确认；排空后再统一推进状态和后续执行。
-            pendingConfirmCommand = command;
-            log.info("Run确认已受理，待当前phase源流排空后恢复: runId={}, phaseNo={}", run.getId(), command.getPhaseNo());
+        Integer sourcePhaseNo = command == null ? null : command.getPhaseNo();
+        if (sourcePhaseNo == null) {
+            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "phaseNo不能为空");
+        }
+        if (run.getPhaseNo() > sourcePhaseNo) {
+            log.info(
+                    "Run确认幂等重放，来源阶段已处理: runId={}, sourcePhaseNo={}, currentPhaseNo={}",
+                    run.getId(),
+                    sourcePhaseNo,
+                    run.getPhaseNo());
             return new ConfirmTransition(run, session, false);
         }
-        return doConfirm(command);
-    }
+        if (!Objects.equals(run.getPhaseNo(), sourcePhaseNo)
+                || !ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())
+                || sourceActive) {
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
+        }
 
-    /** 在实例锁内原子地完成确认：校验、数据库 CAS、同步内存、启动下一阶段。 */
-    private ConfirmTransition doConfirm(ConfirmToolCall command) {
         Msg confirmMessage = validateAndBuildMessage(command);
-        ConfirmTransition transition = runService.advanceConfirmation(run, session, command.getPhaseNo());
+        ConfirmTransition transition = runService.advanceConfirmation(run, session, sourcePhaseNo);
         if (!transition.resumed()) {
             syncRun(transition.run());
             return transition;
@@ -249,8 +256,8 @@ final class ChatRunInstance {
 
     /**
      * 启动一个 Agent 执行阶段。交互超时仅覆盖从订阅开始到根 {@code AGENT_END} 到达的区间：
-     * 订阅时注册 {@code max-run-duration} 截止任务，根事件到达后立即取消。底层订阅在业务终态后仍保留，
-     * 直到不受交互超时约束的记忆尾部自然结束。
+     * 订阅时注册 {@code max-run-duration} 截止任务，根事件到达后立即取消。普通阶段的底层订阅在业务终态后仍保留，
+     * 直到不受交互超时约束的记忆尾部自然结束；HITL 阶段的适配流在根事件处结束。
      *
      * @param message 阶段输入消息
      */
@@ -278,7 +285,7 @@ final class ChatRunInstance {
                             () -> runInTenant(this::onComplete));
         } catch (RuntimeException subscribeFailure) {
             // 装配或订阅同步失败时源流尚未建立，doFinally 不会触发；立即复位 sourceActive，
-            // 使终结流程直接完成 drainedSignal 和 phaseDrainedSignal。
+            // 使终结流程直接完成 drainedSignal。
             sourceActive = false;
             cancelInteractionTimeout();
             throw subscribeFailure;
@@ -310,14 +317,47 @@ final class ChatRunInstance {
     }
 
     /** 仅在根 {@code AGENT_END} 尚未到达时处理中断，避免误伤后续记忆尾部。 */
-    private synchronized void onInteractionTimeout() {
-        if (terminal || rootAgentEnded) {
+    private void onInteractionTimeout() {
+        synchronized (this) {
+            if (terminal || rootAgentEnded) {
+                return;
+            }
+            log.warn("Run交互超时，中断当前phase: runId={}", run.getId());
+            finalizeFailed(
+                    ChatRunFailureCode.ERROR,
+                    "对话运行超过最大时长 " + properties.getChat().getRun().getMaxRunDurationSeconds() + " 秒");
+        }
+        // AgentScope 中断可能触发流回调，必须在实例锁外调用，避免回流等待同一 monitor。
+        try {
+            interruptAgent();
+        } catch (RuntimeException interruptFailure) {
+            log.warn("Run交互超时后协作式中断失败，将等待宽限期后强制取消: runId={}", run.getId(), interruptFailure);
+        }
+        scheduleTimeoutForceDispose();
+    }
+
+    /** 超时中断宽限期结束后仍有活动源流时强制取消，只释放资源，不覆盖已经提交的失败终态。 */
+    private void scheduleTimeoutForceDispose() {
+        if (scheduler.isShutdown()) {
+            forceDisposeSource();
             return;
         }
-        log.warn("Run交互超时，中断当前phase: runId={}", run.getId());
-        finalizeFailed(
-                ChatRunFailureCode.ERROR,
-                "对话运行超过最大时长 " + properties.getChat().getRun().getMaxRunDurationSeconds() + " 秒");
+        try {
+            scheduler.schedule(
+                    () -> runInTenant(this::forceDisposeSource),
+                    properties.getChat().getRun().getStopGraceSeconds(),
+                    TimeUnit.SECONDS);
+        } catch (RuntimeException scheduleFailure) {
+            log.warn("Run交互超时后无法调度强制取消，立即释放源流: runId={}", run.getId(), scheduleFailure);
+            forceDisposeSource();
+        }
+    }
+
+    private void forceDisposeSource() {
+        Disposable current = disposable.getAndSet(null);
+        if (current != null && !current.isDisposed()) {
+            current.dispose();
+        }
     }
 
     private synchronized void onEvent(AgentEvent event) {
@@ -329,7 +369,7 @@ final class ChatRunInstance {
                 // 子 Agent 结束不代表整个对话运行结束。
                 return;
             }
-            // 根 AGENT_END 是业务回答边界；到达后取消交互超时，允许记忆尾部继续执行。
+            // 根 AGENT_END 是业务回答边界；普通阶段允许记忆尾部继续，HITL 阶段由适配器在此结束源流。
             rootAgentEnded = true;
             cancelInteractionTimeout();
             if (phaseFinished || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
@@ -377,15 +417,7 @@ final class ChatRunInstance {
             return;
         }
         if (pendingConfirmInterpretation != null) {
-            try {
-                completeAwaitConfirm();
-            } catch (RuntimeException awaitConfirmFailure) {
-                // Reactor 回调中的待确认落库失败若直接外抛，会使运行停留在 RUNNING 并悬挂实例和尾链。
-                // 转为失败终态，复用 finalizeTerminal 的重试与熔断机制完成最终收敛。
-                log.error("Run进入待确认失败，收敛为失败终态: runId={}", run.getId(), awaitConfirmFailure);
-                finalizeFailed(
-                        ChatRunFailureCode.AWAIT_CONFIRM_FAILED, ChatRunSupport.safeMessage(awaitConfirmFailure));
-            }
+            // 待确认状态必须等 doFinally 确认适配后的当前阶段源流已经结束后再提交。
             return;
         }
         if (!phaseFinished) {
@@ -398,23 +430,28 @@ final class ChatRunInstance {
     }
 
     /**
-     * AgentScope 源流完成、失败或取消后的统一收尾。此时沙箱已释放，方法执行当前阶段的工作区审计并完成
-     * 阶段排空信号，且与业务终态相互独立。只有已提交业务终态的最终阶段才完成实例
-     * {@code drainedSignal}；待确认的中间阶段仅继续处理已受理的确认。
+     * AgentScope 源流完成、失败或取消后的统一收尾。此时沙箱已释放，方法先执行当前阶段的工作区审计，
+     * 再把正常完成的 HITL 阶段提交为待确认。只有最终业务终态才完成实例 {@code drainedSignal}；
+     * 待确认阶段保留实例，确认请求随后可立即启动下一阶段。
      */
     private synchronized void onSourceTerminated() {
         sourceActive = false;
         cancelInteractionTimeout();
         runWorkspaceAudit();
-        // 每个阶段源流排空后均释放会话尾链；该信号与终态重试解耦，避免前一实例的终结故障阻塞后继。
-        phaseDrainedSignal.complete(null);
+        if (!terminal && pendingConfirmInterpretation != null) {
+            try {
+                completeAwaitConfirm();
+            } catch (RuntimeException awaitConfirmFailure) {
+                // 源流已经排空，待确认事实仍无法提交时转为失败终态，避免运行永久停留在 RUNNING。
+                log.error("Run进入待确认失败，收敛为失败终态: runId={}", run.getId(), awaitConfirmFailure);
+                finalizeFailed(
+                        ChatRunFailureCode.AWAIT_CONFIRM_FAILED, ChatRunSupport.safeMessage(awaitConfirmFailure));
+            }
+        }
         if (terminal) {
             // 最终阶段已提交业务终态，源流排空后即可完成实例级排空信号。
             drainedSignal.complete(null);
-            return;
         }
-        // 中间阶段排空后继续处理已经受理的确认。
-        resumePendingConfirmationIfAny();
     }
 
     /** 源流排空后审计当前阶段的工作区变更；审计失败不回滚业务终态。 */
@@ -426,29 +463,7 @@ final class ChatRunInstance {
         }
     }
 
-    /** 当前阶段源流排空后，在实例锁内处理已受理的确认并启动下一阶段。 */
-    private void resumePendingConfirmationIfAny() {
-        if (pendingConfirmCommand == null || terminal) {
-            return;
-        }
-        ConfirmToolCall command = pendingConfirmCommand;
-        pendingConfirmCommand = null;
-        // 排空期间运行可能已被停止或因确认超时而终结；此时丢弃确认，避免误启新阶段或覆盖既有终态。
-        if (!ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
-            log.info("源流排空后确认恢复时Run已离开待确认态，丢弃该确认: runId={}, status={}", run.getId(), run.getStatus());
-            return;
-        }
-        try {
-            doConfirm(command);
-        } catch (RuntimeException confirmFailure) {
-            log.warn("排空后恢复确认失败: runId={}", run.getId(), confirmFailure);
-            if (!terminal) {
-                finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSupport.safeMessage(confirmFailure));
-            }
-        }
-    }
-
-    /** 判断是否仍有已订阅但尚未触发 {@code doFinally} 的 AgentScope 源流，包括记忆尾部。 */
+    /** 判断是否仍有已订阅但尚未触发 {@code doFinally} 的 AgentScope 源流；普通阶段包括记忆尾部。 */
     private boolean isDraining() {
         return sourceActive;
     }
@@ -551,7 +566,6 @@ final class ChatRunInstance {
         terminal = true;
         phaseFinished = true;
         pendingConfirmInterpretation = null;
-        pendingConfirmCommand = null;
         if (status != ChatRunStatus.COMPLETED) {
             closePendingToolCalls();
         }
@@ -612,9 +626,8 @@ final class ChatRunInstance {
                     Duration.ofSeconds(properties.getChat().getRun().getTerminalTtlSeconds()));
             terminalSignal.complete(null);
             // 业务终态后若无活动源流（如纯终结恢复、源流已先终止、启动同步失败），立即完成排空信号；
-            // 否则等待 onSourceTerminated 在源流排空后完成它。phaseDrainedSignal 同步完成以释放会话尾链。
+            // 否则等待 onSourceTerminated 在源流排空后完成它。
             if (!isDraining()) {
-                phaseDrainedSignal.complete(null);
                 drainedSignal.complete(null);
             }
         } catch (RuntimeException finalizeFailure) {
@@ -632,7 +645,6 @@ final class ChatRunInstance {
                         isPermanentFinalizeFailure(finalizeFailure),
                         finalizeFailure);
                 terminal = true;
-                phaseDrainedSignal.complete(null);
                 terminalSignal.complete(null);
                 if (!isDraining()) {
                     drainedSignal.complete(null);
@@ -670,7 +682,6 @@ final class ChatRunInstance {
             return;
         }
         terminal = true;
-        phaseDrainedSignal.complete(null);
         terminalSignal.complete(null);
         drainedSignal.complete(null);
     }
@@ -680,11 +691,6 @@ final class ChatRunInstance {
      */
     CompletionStage<Void> drainedSignal() {
         return drainedSignal;
-    }
-
-    /** 当前阶段的源流排空信号；源流终止并完成工作区审计后触发，会话尾链据此释放后继。 */
-    CompletionStage<Void> phaseDrainedSignal() {
-        return phaseDrainedSignal;
     }
 
     /** 生成当前运行的 AG-UI 引导事件。 */

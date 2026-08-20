@@ -207,16 +207,14 @@ delegate.saveAgentState(userId, sessionId);
 `ChatRunInstance` 分别维护：
 
 - `terminalSignal`：业务 Run 已进入最终状态，供 API 返回和 SSE 终态使用。
-- `drainedSignal`：最终阶段的 AgentScope 源流和后处理全部结束，供实例摘除、关机等待和资源统计使用。
+- `drainedSignal`：当前 Run 的最终阶段、业务终态和后处理全部结束，供实例摘除、会话尾链、关机等待和资源统计使用。
 
 `terminalSignal` 不得触发底层 `Disposable.dispose()`。
 
-最终实例的 `drainedSignal` 是 `terminalSignal` 与最终 phase-drained 的汇合信号：数据库终结重试尚未成功时，
-即使源流已经排空也不能摘除实例；反过来，业务先完成时也要继续保留实例到源流和审计结束。
-
-Coordinator 另以每次源流的 phase-drained 信号推进会话尾链。phase-drained 表示源流终止、Sandbox release 和
-该 phase 的 Workspace 审计均已结束。最终 phase 的该信号汇入实例 `drainedSignal`；等待确认的中间 phase 排空
-只推进当前实例，不摘除它。
+`drainedSignal` 是稳定的实例级信号：数据库终结重试尚未成功时，即使源流已经排空也不能摘除实例；反过来，
+业务先完成时也要继续保留实例到最终源流和审计结束。HITL 中间 phase 排空不会完成该信号，确认后的新 phase
+继续由同一个实例承载。Coordinator 的会话尾链只等待这个稳定信号，不能持有“首个 phase 排空即完成”的一次性信号，
+否则 phase N+1 尚未排空时下一条 Run 可能提前启动。
 
 ### 6.2 普通完成
 
@@ -238,28 +236,26 @@ Agent 主流程
 
 ### 6.3 HITL
 
-收到 `REQUIRE_USER_CONFIRM` 时只记录待确认工具。根 `AGENT_END` 到达且状态保存完成后：
+收到根 `REQUIRE_USER_CONFIRM` 时只记录脱敏待确认工具和中断事件。`AgentExecutionAdapter` 继续等待根
+`AGENT_END`，以确认 AgentScope 已保存 `ASKING` 状态；随后在该事件处结束当前 HITL 交互源流，使 AgentScope
+通过 `concatWith` 追加的 MemoryFlush/MemoryMaintenance 尾部不被订阅。适配流终止并完成 Workspace 审计后，才原子地：
 
-1. 将 Run 迁移为 `AWAITING_CONFIRM`。
-2. 发布当前 AG-UI phase 的 `RUN_FINISHED(interrupt)`。
-3. 将本地 phase 标记为 `AWAITING_CONFIRM_DRAINING`。
-4. 继续等待当前 AgentScope Flux 排空。
+1. 将 Run 迁移为 `AWAITING_CONFIRM`；
+2. 写入确认截止时间和当前快照；
+3. 发布当前 AG-UI phase 的 `RUN_FINISHED(interrupt)`。
 
-确认卡片随 `AWAITING_CONFIRM` 落库即可展示，不等待排空。用户在旧 phase 排空前即可提交确认：请求被受理并
-暂存为待启动确认，确认 API 立即返回，但 `advanceConfirmation` 的数据库 CAS（`AWAITING_CONFIRM -> RUNNING`）
-与「订阅下一次 `streamEvents`」整体推迟到旧 phase 完成 phase-drained 之后才执行。排空期间 Run 保持
-`AWAITING_CONFIRM`（业务终态、数据库中无新增非终态 Run），因此新 phase 的订阅严格满足第 2.6 节
-「数据库中已无非终态 Run」的前提，两个 phase 不会共享同一 Sandbox 或调用期资源，也不会重叠执行。
-
-若同一 Run 在排空期间收到多个确认，只登记一个待启动确认；排空后恰好执行一次 `advanceConfirmation` 并启动
-一次新 phase（幂等由 `advanceConfirmation` 的 `phaseNo` 守卫兜底，重复确认返回 `resumed=false` 不再启动）。
+必须保持以下不变量：`Run == AWAITING_CONFIRM => sourceActive == false`。旧 phase 排空前到达的确认请求按
+`CHAT_RUN_STATE_CONFLICT` 拒绝，不暂存、不提前返回“已受理”。进入待确认后，确认在实例锁内先处理旧 phase
+幂等守卫，再读取 AgentScope `ASKING` 状态并做三方 ID 校验，最后执行
+`AWAITING_CONFIRM -> RUNNING` CAS 并立即启动 phase N+1。旧 phase 重放直接返回 `resumed=false`，不得读取
+当前新 phase 的 AgentState。
 
 ### 6.4 停止和失败
 
 - 根 `AGENT_END` 前失败：Run 收敛为 `FAILED`，保存已有部分输出。
 - 根 `AGENT_END` 后的记忆或维护失败：Run 保持 `COMPLETED`，记录后处理错误。
 - 用户停止：先按 `(userId, sessionId)` 调用 AgentScope `interrupt`，宽限期后仍未结束才 dispose。
-- 所有 complete、error、cancel 路径都必须完成 phase-drained；最终 phase 还要完成实例 `drainedSignal`，
+- 所有 complete、error、cancel 路径都必须执行源流终止清理；最终业务终态还要完成实例 `drainedSignal`，
   不能只在 `onComplete` 清理。
 
 ### 6.5 会话源流尾链
@@ -272,21 +268,21 @@ enqueue(sessionKey, startAction)
     -> predecessor 完成后在 ChatRun 调度器执行 startAction
     -> source complete/error/cancel
     -> Sandbox release
-    -> phase Workspace audit
-    -> 完成当前 tail 节点
+    -> Workspace audit
+    -> 完成当前 Run 的 drainedSignal/tail 节点
     -> compare-and-remove 已无后继的 sessionKey
 ```
 
 约束：
 
 - `sessionKey = (tenantId, userId, ChatSession.id)`，不能使用 appId 或 Workspace Agent ID。
-- 普通新 Run 和 HITL 续跑共用同一条尾链。
+- HITL 续跑由同一实例在旧 phase 已排空后直接启动；会话尾链约束相邻 Run，不为每个 phase 创建一次性节点。
 - Run 在排队期间被停止或已终态时，跳过 `startAction`，但必须完成自己的尾链节点。
 - 前驱 error、cancel、审计失败均不能阻塞后继；错误各自记录，尾链按完成语义继续。
 - 排队等待时间不计入 `max-run-duration`；交互计时从实际订阅当前 phase 时开始。
-- 排队等待启动的 Run/phase 计入交互容量，避免请求在内存中无上限堆积；已经业务终态、仅等待排空的实例不占
+- 排队等待启动的 Run 计入交互容量，避免请求在内存中无上限堆积；已经业务终态、仅等待排空的实例不占
   交互容量，但仍计入单独的 draining 资源统计。
-- `terminalSignal` 不能释放尾链；只有 phase-drained 可以释放。
+- `terminalSignal` 不能释放尾链；只有实例级 `drainedSignal` 可以释放。
 
 该尾链是当前“单实例执行、内存事件缓冲”范围内的进程内设施。若未来允许同一 Session 在多节点接续，需要另行
 设计执行 owner/lease，不能把 Workspace 分布式写锁拿来充当调度器。
@@ -357,12 +353,12 @@ enqueue(sessionKey, startAction)
 
 ### 10.3 `ChatRunInstance`
 
-- 拆分业务终态与 phase/实例排空。
-- 根 `AGENT_END` 提交普通完成或待确认状态。
+- 拆分业务终态与实例排空。
+- 根 `AGENT_END` 提交普通完成；HITL 在根事件处结束适配流，待该唯一源流终止后提交待确认状态。
 - 保留业务完成后的底层订阅。
 - 分离交互超时与后处理观测。
 - 将 Workspace 审计移到源流终止之后。
-- 对排空前到达的确认保存待启动消息，排空后启动下一 phase。
+- 排空前到达的确认按状态冲突拒绝；进入待确认后确认可立即启动下一 phase。
 
 ### 10.4 `ChatRunCoordinator`
 
@@ -370,21 +366,22 @@ enqueue(sessionKey, startAction)
 - 交互实例参与容量统计；仅排空中的最终态实例不占用交互容量，但仍受关机和资源清理管理。
 - 等待确认的实例继续保留在活动注册表中。
 - 最终 `drainedSignal` 后按 `(runId, instance)` 删除，避免旧实例删除并发创建的新实例。
-- 按 Session 维护非阻塞源流尾链；`CREATED` Run 或确认 phase 等前驱排空后才启动。
+- 按 Session 维护非阻塞 Run 尾链；`CREATED` Run 等前一实例最终排空后才启动。
 - 启动失败、取消和关机都必须完成尾链节点，不能让同会话后续 Run 永久等待。
 
 ### 10.5 保留项
 
 - `AgentFactory` 继续把 Agent 注册到共享 Gateway，供外部 Channel 使用。
-- AgentScope MemoryFlush、MemoryMaintenance、WorkspaceManager 和 Sandbox 生命周期实现不变。
+- AgentScope MemoryFlush、MemoryMaintenance、WorkspaceManager 和 Sandbox 生命周期实现不变；Fusion 适配层仅在
+  HITL 根 `AGENT_END` 处取消后续记忆尾段。
 - `WorkspaceStorage#withWriteLock` 继续服务管理端和审计等短写操作。
 
 ### 10.6 实施顺序
 
 1. 先增加特征测试，固定根 `AGENT_END` 早于记忆尾部、源流终止后 Sandbox 才释放等已确认语义。
 2. 改造 `AgentExecutionAdapter` 和 `ChatRunInstanceFactory`，让内部 ChatRun 直连 Agent，并统一状态身份。
-3. 在 `ChatRunInstance` 引入 phase-drained、`terminalSignal`、`drainedSignal` 和单槽待启动 phase。
-4. 在 `ChatRunCoordinator` 引入按 Session 的源流尾链，再把普通 Run 与 HITL 启动统一接入该入口。
+3. 在 `ChatRunInstance` 分离 `terminalSignal`、`drainedSignal`，并保证 HITL 完整排空后才进入待确认。
+4. 在 `ChatRunCoordinator` 引入按 Session 的 Run 尾链，以稳定的实例级 `drainedSignal` 释放后继。
 5. 把交互超时截止点改到根 `AGENT_END`，把 Workspace 审计移动到 phase 排空路径。
 6. 完成身份、生命周期、HITL、停止、容量与并发测试后，再按第 11 节发布边界上线。
 
@@ -425,9 +422,10 @@ enqueue(sessionKey, startAction)
 
 ### 12.3 HITL
 
-- 待确认状态在根 `AGENT_END` 后可见，不等待记忆模型完成。
-- 排空前提交确认只推进一次数据库 phase，并只登记一个待启动阶段。
-- 旧 phase 排空后恰好启动一次新 phase。
+- 根 `REQUIRE_USER_CONFIRM` 后必须继续等到根 `AGENT_END`，不得在 Agent state 保存前提前取消。
+- HITL 根 `AGENT_END` 后不订阅记忆尾部；适配流终止后才提交 `AWAITING_CONFIRM` 并发布确认卡片。
+- 普通最终回答仍保留既有记忆尾部及完整排空语义。
+- 旧 phase 重放不读取当前 AgentState；当前 phase 确认只推进一次并立即启动新 phase。
 - 两个 phase 不同时持有同一个 Sandbox 生命周期资源。
 
 ### 12.4 锁

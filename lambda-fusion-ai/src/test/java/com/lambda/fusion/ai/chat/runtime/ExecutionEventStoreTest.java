@@ -240,6 +240,30 @@ class ExecutionEventStoreTest {
     }
 
     @Test
+    void shouldDiscardStagedEventsWhenCommitThrows() throws Exception {
+        store = newStore(64, 64);
+        store.initialize("run-1", 0);
+        List<Long> received = new CopyOnWriteArrayList<>();
+        ChatRunEventSubscription subscription =
+                store.subscribe("run-1", 0, event -> received.add(event.seq()), error -> {});
+        List<AguiEvent> interrupts =
+                List.of(new AguiEvent.TextMessageContent("session-1", "phase-1", "m-1", "interrupt"));
+
+        assertThatThrownBy(() -> store.runExclusive("run-1", "phase-1", interrupts, () -> {
+                    throw new IllegalStateException("db failed");
+                }))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("db failed");
+
+        // 前一次失败暂存不得混入后续成功批次；仅后续事件可见。
+        assertThat(store.runExclusive("run-1", "phase-1", interrupts, () -> true))
+                .isTrue();
+        awaitSize(received, 1);
+        assertThat(received).containsExactly(2L);
+        subscription.close();
+    }
+
+    @Test
     void shouldRejectStageAfterTerminal() {
         store = newStore(64, 64);
         store.appendTerminalIfAbsent("run-1", "phase-1", "{\"type\":\"RUN_FINISHED\"}");

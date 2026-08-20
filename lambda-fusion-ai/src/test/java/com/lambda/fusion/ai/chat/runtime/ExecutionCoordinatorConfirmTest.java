@@ -199,18 +199,15 @@ class ExecutionCoordinatorConfirmTest {
 
     @Test
     void shouldNotStartPhaseWhenConfirmationIsReplayed() {
-        ChatRunEntity run = awaitingRun(2, List.of("call_1"));
+        ChatRunEntity run = awaitingRun(3, List.of("call_2"));
         ChatSessionEntity session = session();
         ConfirmToolCall command = command(2, List.of(decision("call_1", true)));
-
-        AgentState state = stateWithAskingBlock("call_1");
-        when(delegate.getAgentState("user-1", "session-1")).thenReturn(state);
-        // 幂等重放：Run 已越过该阶段，返回 resumed=false。
-        when(runService.advanceConfirmation(run, session, 2)).thenReturn(new ConfirmTransition(run, session, false));
 
         ConfirmTransition transition = coordinator.confirm(run, session, command);
 
         assertThat(transition.resumed()).isFalse();
+        verify(delegate, never()).getAgentState(any(), any());
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
         verify(agent, never()).streamEvents(any(Msg.class), any());
     }
 

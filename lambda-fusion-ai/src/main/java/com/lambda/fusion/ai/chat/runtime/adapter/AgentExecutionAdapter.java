@@ -9,6 +9,7 @@ import com.lambda.fusion.ai.runtime.gateway.RuntimeProperty;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.event.AgentEventType;
 import io.agentscope.core.event.SubagentExposedEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -90,7 +92,30 @@ public final class AgentExecutionAdapter {
         if (subagentGateway != null) {
             source = source.doOnNext(this::recordSubagentExposure);
         }
-        return source;
+        return endAtHitlPhaseBoundary(source);
+    }
+
+    /**
+     * 在权限确认阶段的根 {@code AGENT_END} 处结束当前交互源流。
+     *
+     * <p>AgentScope 会先持久化 {@code ASKING} 状态，再发送根 {@code AGENT_END}，随后才通过
+     * {@code concatWith} 订阅记忆冲刷和整理尾部。此处等待根结束事件后再取消上游，既保留可恢复的确认状态，
+     * 又避免记忆模型阻塞 Run 进入 {@code AWAITING_CONFIRM}。普通最终回答和子 Agent 事件不受影响。
+     */
+    private Flux<AgentEvent> endAtHitlPhaseBoundary(Flux<AgentEvent> source) {
+        return Flux.defer(() -> {
+            AtomicBoolean awaitingConfirmation = new AtomicBoolean();
+            return source.doOnNext(event -> {
+                        if (isRootEvent(event, AgentEventType.REQUIRE_USER_CONFIRM)) {
+                            awaitingConfirmation.set(true);
+                        }
+                    })
+                    .takeUntil(event -> awaitingConfirmation.get() && isRootEvent(event, AgentEventType.AGENT_END));
+        });
+    }
+
+    private static boolean isRootEvent(AgentEvent event, AgentEventType type) {
+        return event.getType() == type && event.getSource() == null;
     }
 
     private void recordSubagentExposure(AgentEvent event) {

@@ -14,7 +14,10 @@ import com.lambda.fusion.ai.runtime.gateway.FusionSubagentGateway;
 import com.lambda.fusion.ai.runtime.gateway.RuntimeProperty;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.event.AgentEventType;
+import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.SubagentExposedEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
@@ -27,6 +30,7 @@ import io.agentscope.harness.agent.DistributedStore;
 import io.agentscope.harness.agent.HarnessAgent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Flux;
@@ -97,6 +101,65 @@ class AgentExecutionAdapterTest {
         adapter.stream(userMessage()).blockLast();
 
         verify(distributedStore, never()).sandboxExecutionGuard();
+    }
+
+    @Test
+    void shouldEndAtRootAgentEndWithoutSubscribingHitlMemoryTail() {
+        HarnessAgent agent = mock(HarnessAgent.class);
+        AtomicBoolean memoryTailSubscribed = new AtomicBoolean();
+        AgentEvent requireConfirm = new RequireUserConfirmEvent("reply-1", List.of(askingBlock("call-1")));
+        AgentEvent rootEnd = new AgentEndEvent("reply-1");
+        Flux<AgentEvent> source = Flux.concat(Flux.just(requireConfirm, rootEnd), Flux.defer(() -> {
+            memoryTailSubscribed.set(true);
+            return Flux.empty();
+        }));
+        when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class))).thenReturn(source);
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-1");
+
+        List<AgentEvent> events = adapter.stream(userMessage()).collectList().block();
+
+        assertThat(events)
+                .extracting(AgentEvent::getType)
+                .containsExactly(AgentEventType.REQUIRE_USER_CONFIRM, AgentEventType.AGENT_END);
+        assertThat(memoryTailSubscribed).isFalse();
+    }
+
+    @Test
+    void shouldKeepMemoryTailForNormalFinalAnswer() {
+        HarnessAgent agent = mock(HarnessAgent.class);
+        AtomicBoolean memoryTailSubscribed = new AtomicBoolean();
+        Flux<AgentEvent> source = Flux.concat(Flux.just(new AgentEndEvent("reply-1")), Flux.defer(() -> {
+            memoryTailSubscribed.set(true);
+            return Flux.empty();
+        }));
+        when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class))).thenReturn(source);
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-1");
+
+        List<AgentEvent> events = adapter.stream(userMessage()).collectList().block();
+
+        assertThat(events).extracting(AgentEvent::getType).containsExactly(AgentEventType.AGENT_END);
+        assertThat(memoryTailSubscribed).isTrue();
+    }
+
+    @Test
+    void shouldIgnoreSubagentConfirmBoundary() {
+        HarnessAgent agent = mock(HarnessAgent.class);
+        AtomicBoolean tailSubscribed = new AtomicBoolean();
+        AgentEvent childConfirm = new RequireUserConfirmEvent("child-reply", List.of(askingBlock("child-call")))
+                .withSource("root/worker");
+        AgentEvent childEnd = new AgentEndEvent("child-reply").withSource("root/worker");
+        Flux<AgentEvent> source =
+                Flux.concat(Flux.just(childConfirm, childEnd, new AgentEndEvent("root-reply")), Flux.defer(() -> {
+                    tailSubscribed.set(true);
+                    return Flux.empty();
+                }));
+        when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class))).thenReturn(source);
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-1");
+
+        List<AgentEvent> events = adapter.stream(userMessage()).collectList().block();
+
+        assertThat(events).hasSize(3);
+        assertThat(tailSubscribed).isTrue();
     }
 
     @Test
@@ -171,14 +234,18 @@ class AgentExecutionAdapterTest {
     }
 
     private static AgentState stateWithAskingBlock() {
-        ToolUseBlock block = ToolUseBlock.builder()
-                .id("call-1")
-                .name("demo_tool")
-                .state(ToolCallState.ASKING)
-                .build();
+        ToolUseBlock block = askingBlock("call-1");
         Msg assistant = Msg.builderForRole(MsgRole.ASSISTANT)
                 .content(new ArrayList<>(List.of(block)))
                 .build();
         return AgentState.builder().context(List.of(assistant)).build();
+    }
+
+    private static ToolUseBlock askingBlock(String toolCallId) {
+        return ToolUseBlock.builder()
+                .id(toolCallId)
+                .name("demo_tool")
+                .state(ToolCallState.ASKING)
+                .build();
     }
 }
