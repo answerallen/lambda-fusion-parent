@@ -159,22 +159,42 @@ public class ScheduledTaskServiceImpl implements ScheduledTaskService {
         agentTaskScheduler.cancel(entity.getTenantId(), entity.getName());
     }
 
+    /**
+     * 暂停调度：回写 {@code schedule_enabled=false} 作为业务事实来源；调度器暂停仅作运行时联动，
+     * 内存调度器下任务未注册（返回 false）不视为失败，仅记录告警。
+     */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void pause(String id) {
         SubAgentEntity entity = requireTask(id);
-        agentTaskScheduler.pause(entity.getTenantId(), entity.getName());
+        boolean paused = agentTaskScheduler.pause(entity.getTenantId(), entity.getName());
+        if (!paused) {
+            log.warn("定时任务暂停时调度器未找到活动任务(可能未注册/已重启): id={}, name={}", id, entity.getName());
+        }
+        entity.setScheduleEnabled(Boolean.FALSE);
+        entity.setUpdatedAt(LocalDateTime.now());
+        subAgentMapper.updateById(entity);
     }
 
+    /**
+     * 恢复调度：回写 {@code schedule_enabled=true} 并按当前配置重排（scheduleTask 幂等先取消再排），
+     * 确保内存调度器下任务被重新注册，而非仅 resume 一个可能不存在的壳。
+     */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void resume(String id) {
         SubAgentEntity entity = requireTask(id);
-        agentTaskScheduler.resume(entity.getTenantId(), entity.getName());
+        entity.setScheduleEnabled(Boolean.TRUE);
+        entity.setUpdatedAt(LocalDateTime.now());
+        subAgentMapper.updateById(entity);
+        agentTaskScheduler.scheduleTask(entity);
     }
 
+    /** 手动触发：同步直跑，装配/执行异常抛业务异常反馈前端，不假成功。 */
     @Override
     public void trigger(String id) {
         SubAgentEntity entity = requireTask(id);
-        agentTaskScheduler.triggerNow(entity);
+        agentTaskScheduler.runOnce(entity);
     }
 
     @Override

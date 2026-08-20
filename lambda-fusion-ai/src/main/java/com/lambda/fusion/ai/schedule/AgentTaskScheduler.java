@@ -13,6 +13,7 @@ import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.Toolkit;
+import io.agentscope.extensions.scheduler.BaseScheduleAgentTask;
 import io.agentscope.extensions.scheduler.ScheduleAgentTask;
 import io.agentscope.extensions.scheduler.config.ModelConfig;
 import io.agentscope.extensions.scheduler.config.RuntimeAgentConfig;
@@ -94,7 +95,13 @@ public class AgentTaskScheduler {
         return agentScheduler.getStatus(scheduleName(tenantId, name));
     }
 
-    /** 立即触发一次（不影响既定调度）；未注册时以当前配置临时注册后执行。 */
+    /**
+     * 立即触发一次（不影响既定调度）；未注册时以当前配置临时注册后执行。
+     *
+     * @deprecated 临时注册路径对 NONE 模式不建 trigger，且异常吞在异步回调里导致假成功；
+     * 手动触发请改用 {@link #runOnce(SubAgentEntity)} 同步直跑。
+     */
+    @Deprecated
     public void triggerNow(SubAgentEntity entity) {
         String name = scheduleName(entity.getTenantId(), entity.getName());
         ScheduleAgentTask<Msg> task = agentScheduler.getScheduledAgent(name);
@@ -109,6 +116,39 @@ public class AgentTaskScheduler {
             tenantTask.run().subscribe();
         }
         log.info("定时任务已手动触发: name={}", name);
+    }
+
+    /**
+     * 手动同步触发一次：不进 Quartz 调度、不污染内存 tasks map，直接以当前实体配置
+     * 构建一次性 task 并 {@code block()} 等待执行结束。装配/模型/执行异常在调用线程同步抛出，
+     * 由调用方转为业务异常反馈前端，避免「已触发但无效果」的假成功（NONE 模式亦可触发）。
+     */
+    public void runOnce(SubAgentEntity entity) {
+        validate(entity);
+        RuntimeAgentConfig agentConfig = RuntimeAgentConfig.builder()
+                .name(scheduleName(entity.getTenantId(), entity.getName()))
+                .modelConfig(new EntityModelConfig(entity))
+                .sysPrompt(buildSysPrompt(entity))
+                .toolkit(buildToolkit(entity))
+                .build();
+        // 一次性任务：空调度配置，不参与持久调度
+        BaseScheduleAgentTask task =
+                new BaseScheduleAgentTask(agentConfig, ScheduleConfig.builder().build(), agentScheduler);
+        ScheduleAgentTask<Msg> tenantTask = new TenantAwareTask(task, entity.getTenantId());
+        Msg input = buildInput(entity);
+        try {
+            if (input != null) {
+                tenantTask.run(input).block();
+            } else {
+                tenantTask.run().block();
+            }
+            log.info("定时任务已手动触发执行完成: name={}", entity.getName());
+        } catch (AiBusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("定时任务手动触发执行失败: name={}", entity.getName(), e);
+            throw new AiBusinessException(AiErrorCode.SCHEDULED_TASK_CONFIG_INVALID, "手动触发执行失败: " + e.getMessage());
+        }
     }
 
     // ---------- 实体 → 配置 转换 ----------
