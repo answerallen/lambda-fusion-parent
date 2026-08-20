@@ -32,17 +32,16 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 /**
- * 定时任务调度器：把 {@code ai_sub_agent}(category=SCHEDULED_TASK) 的任务定义转换为
- * AgentScope {@link RuntimeAgentConfig} + {@link ScheduleConfig}，委托 {@link QuartzAgentScheduler}
- * 完成调度 / 持久化 / 暂停恢复取消。调度事实来源归调度器（工程契约 §20.3 单一事实来源），
- * 本类只做「实体 → 配置」转换与生命周期转发。
+ * 将 {@code ai_sub_agent} 中的定时任务定义转换为 AgentScope 的 {@link RuntimeAgentConfig} 和
+ * {@link ScheduleConfig}，再委托 {@link QuartzAgentScheduler} 管理调度生命周期。本类只负责配置转换与
+ * 生命周期转发，不维护另一份调度状态。
  *
- * <p><b>租户传递（双通道）</b>：
+ * <p><b>租户信息通过两个通道传递：</b>
  * <ul>
- *   <li>DB 层：{@link TenantAwareTask} 装饰器在订阅执行时恢复、结束时清理
- *   {@code TenantContextHolder}（覆盖本地 Mapper/租户插件直连场景）。</li>
- *   <li>Agent 上下文层：{@link #buildSysPrompt} 把 tenantId 注入系统提示词，供 LLM 与走 Dubbo
- *   远程的工具感知归属租户（DB 层 ThreadLocal 对远程调用无效）。</li>
+ *   <li>数据库通道由 {@link TenantAwareTask} 在订阅时恢复、结束时清理
+ *   {@code TenantContextHolder}。</li>
+ *   <li>Agent 上下文通道由 {@link #buildSysPrompt} 注入 tenantId，供 LLM 和远程工具识别归属租户；
+ *   ThreadLocal 无法跨越远程调用边界。</li>
  * </ul>
  *
  * @author Jin
@@ -58,16 +57,16 @@ public class AgentTaskScheduler {
     private final ToolkitAssembler toolkitAssembler;
     private final ScheduledTaskLogService scheduledTaskLogService;
 
-    /** 调度内唯一名：租户隔离，避免跨租户同名冲突。 */
+    /** 生成调度器内的唯一名称，以租户前缀隔离同名任务。 */
     public static String scheduleName(String tenantId, String name) {
         return tenantId + ":" + name;
     }
 
-    /** 提交（或重排）任务到调度器；返回带租户上下文恢复的装饰 task。 */
+    /** 提交或重排任务，并返回可在执行时恢复租户上下文的任务装饰器。 */
     public ScheduleAgentTask<Msg> scheduleTask(SubAgentEntity entity) {
         validate(entity);
         String name = scheduleName(entity.getTenantId(), entity.getName());
-        // 同名重排：先取消旧任务再排新配置（更新场景）
+        // 更新任务时先取消同名旧调度，确保调度器只保留当前配置。
         agentScheduler.cancel(name);
 
         RuntimeAgentConfig agentConfig = RuntimeAgentConfig.builder()
@@ -100,10 +99,10 @@ public class AgentTaskScheduler {
     }
 
     /**
-     * 立即触发一次（不影响既定调度）；未注册时以当前配置临时注册后执行。
+     * 立即异步触发一次，不改变既有调度；任务尚未注册时先按当前配置临时注册。
      *
-     * @deprecated 临时注册路径对 NONE 模式不建 trigger，且异常吞在异步回调里导致假成功；
-     * 手动触发请改用 {@link #runOnce(SubAgentEntity)} 同步直跑。
+     * @deprecated 临时注册无法触发 {@code NONE} 模式，异步执行异常也无法反馈调用方；请改用
+     *     {@link #runOnce(SubAgentEntity)}。
      */
     @Deprecated
     public void triggerNow(SubAgentEntity entity) {
@@ -123,9 +122,8 @@ public class AgentTaskScheduler {
     }
 
     /**
-     * 手动同步触发一次：不进 Quartz 调度、不污染内存 tasks map，直接以当前实体配置
-     * 构建一次性 task 并 {@code block()} 等待执行结束。装配/模型/执行异常在调用线程同步抛出，
-     * 由调用方转为业务异常反馈前端，避免「已触发但无效果」的假成功（NONE 模式亦可触发）。
+     * 按当前实体配置同步执行一次，不注册 Quartz 调度，也不写入调度器的任务缓存。
+     * 方法等待执行完成，并在调用线程抛出配置、模型或执行异常；{@code NONE} 模式同样适用。
      */
     public void runOnce(SubAgentEntity entity) {
         validate(entity);
@@ -135,7 +133,7 @@ public class AgentTaskScheduler {
                 .sysPrompt(buildSysPrompt(entity))
                 .toolkit(buildToolkit(entity))
                 .build();
-        // 一次性任务：空调度配置，不参与持久调度
+        // 空调度配置只用于本次执行，不会创建持久触发器。
         BaseScheduleAgentTask task =
                 new BaseScheduleAgentTask(agentConfig, ScheduleConfig.builder().build(), agentScheduler);
         ScheduleAgentTask<Msg> tenantTask = new TenantAwareTask(task, entity.getTenantId());
@@ -178,8 +176,6 @@ public class AgentTaskScheduler {
                 finishedAt);
     }
 
-    // ---------- 实体 → 配置 转换 ----------
-
     private void validate(SubAgentEntity entity) {
         if (StringUtils.isBlank(entity.getModelId())) {
             throw new AiBusinessException(AiErrorCode.SCHEDULED_TASK_CONFIG_INVALID, "定时任务必须绑定模型");
@@ -204,19 +200,19 @@ public class AgentTaskScheduler {
         } else if (mode == ScheduleMode.FIXED_RATE) {
             builder.fixedRate(entity.getFixedRate());
         }
-        // NONE 保持默认（仅手动触发）
+        // NONE 不设置触发条件，仅允许手动执行。
         if (entity.getInitialDelay() != null) {
             builder.initialDelay(entity.getInitialDelay());
         }
         return builder.build();
     }
 
-    /** 系统提示词附带租户标识（Agent 上下文层租户传递），供 LLM 与远程工具感知归属租户。 */
+    /** 在系统提示词中注入租户标识，供 LLM 和远程工具识别任务归属。 */
     private String buildSysPrompt(SubAgentEntity entity) {
         return StringUtils.defaultString(entity.getPrompt()) + "\n\n[运行上下文] 归属租户 tenantId=" + entity.getTenantId();
     }
 
-    /** 初始输入消息（可选）；无则触发时不带输入。 */
+    /** 构建可选的初始输入；未配置输入内容时返回 {@code null}。 */
     private Msg buildInput(SubAgentEntity entity) {
         if (StringUtils.isBlank(entity.getInputMsg())) {
             return null;
@@ -227,7 +223,7 @@ public class AgentTaskScheduler {
                 .build();
     }
 
-    /** 工具集：注册本地工具 Bean，按 tools_allow 白名单过滤（空=全部本地工具）。 */
+    /** 注册本地工具，并按 {@code tools_allow} 白名单过滤；空白名单表示全部允许。 */
     private Toolkit buildToolkit(SubAgentEntity entity) {
         Toolkit toolkit = new Toolkit();
         List<String> allow = entity.getToolsAllow();
@@ -240,7 +236,7 @@ public class AgentTaskScheduler {
         return toolkit;
     }
 
-    /** Bean 是否声明了白名单内的任一 @Tool 方法（工具名取 @Tool.name，空则方法名）。 */
+    /** 判断工具 Bean 是否声明了白名单中的任一 {@link Tool} 方法。未命名的工具使用方法名。 */
     private boolean hasAllowedTool(Object toolBean, List<String> allow) {
         for (Method method : toolBean.getClass().getMethods()) {
             Tool tool = method.getAnnotation(Tool.class);
@@ -255,7 +251,7 @@ public class AgentTaskScheduler {
         return false;
     }
 
-    /** 由 modelId 惰性构建 AgentScope Model 的 ModelConfig 适配（复用 ModelResolver 解密构建）。 */
+    /** 将实体中的模型 ID 适配为 AgentScope 配置，并通过 {@link ModelResolver} 延迟创建模型。 */
     private final class EntityModelConfig implements ModelConfig {
         private final SubAgentEntity entity;
 
@@ -275,12 +271,11 @@ public class AgentTaskScheduler {
     }
 
     /**
-     * 租户感知装饰 task：在订阅执行时把归属租户写入 Reactor Context 并设置
-     * {@code TenantContextHolder}，执行结束（完成/出错/取消）清理。委派其余方法到底层 task，
-     * 不持有独立状态（§20.3 调度事实来源仍归调度器）。
+     * 租户感知任务装饰器：订阅时恢复 {@code TenantContextHolder}，执行完成、失败或取消后统一清理。
+     * 除租户上下文外不维护独立状态，其余行为均委托给底层任务。
      *
-     * <p>{@code run()} 只组装 Mono，真正执行发生在订阅线程（Quartz worker {@code .block()} 所在），
-     * 故租户必须在订阅点经 Reactor Context 恢复，而非在组装点（ThreadLocal 已切换）。
+     * <p>{@code run()} 只负责组装 Mono，实际执行发生在调用方订阅时，且可能位于 Quartz 工作线程。
+     * 因此租户上下文必须在订阅阶段恢复，不能依赖组装阶段所在的 ThreadLocal。
      */
     private static final class TenantAwareTask implements ScheduleAgentTask<Msg> {
         private final ScheduleAgentTask<Msg> delegate;

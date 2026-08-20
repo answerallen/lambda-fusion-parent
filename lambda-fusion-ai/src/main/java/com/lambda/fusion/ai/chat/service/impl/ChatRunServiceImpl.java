@@ -44,12 +44,13 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Run 的唯一持久化 Service：负责创建幂等、状态迁移、检查点与最终落库。单一实现同时承载两个调用面：
- * {@link ChatRunService}（HTTP 编排面，内置会话归属校验）与 {@link ChatRunStateService}（执行器状态机面，
- * 无归属校验、迁移独立提交）。状态机为 {@code CREATED -> RUNNING <-> AWAITING_CONFIRM -> STOPPING ->
- * COMPLETED/STOPPED/FAILED}。并发与一致性：创建以 {@code clientRequestId} 去重、{@code requestHash} 校验同请求体，
- * 命中既有 Run 直接复用；状态迁移用「带前置条件的 UPDATE」(CAS)，{@code changed == 1} 才视为成功；
- * 检查点与各迁移均用 {@link Propagation#REQUIRES_NEW} 独立提交，不被驱动事务的后续失败回滚（Run 可恢复的关键）。
+ * 对话运行的唯一持久化服务，负责幂等创建、状态迁移、检查点和终态提交。该实现同时服务于两个调用面：
+ * {@link ChatRunService} 面向 HTTP 编排并校验会话归属，{@link ChatRunStateService} 面向执行状态机并独立提交迁移。
+ * 状态机为 {@code CREATED -> RUNNING <-> AWAITING_CONFIRM -> STOPPING -> COMPLETED/STOPPED/FAILED}。
+ *
+ * <p>创建请求以 {@code clientRequestId} 去重，并通过 {@code requestHash} 校验请求内容；状态迁移采用带前置条件的
+ * UPDATE 实现 CAS，只有影响一行时才成功。检查点和状态迁移使用 {@link Propagation#REQUIRES_NEW} 独立提交，
+ * 保证执行流程后续失败时仍可根据已保存状态恢复。
  */
 @Service
 @RequiredArgsConstructor
@@ -64,20 +65,20 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     private final ChatAttachmentService attachmentService;
     private final AppService appService;
 
-    /** 创建或载入幂等 Run：同一 {@code clientRequestId} 复用既有 Run，否则在无活跃 Run 时新建并落库用户消息。 */
+    /** 幂等创建或加载运行；同一请求 ID 复用已有记录，否则在会话无活动运行时创建并保存用户消息。 */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public RunContext createOrLoad(String sessionId, SendMessage message) {
         ChatSessionEntity session = sessionService.loadOwnedForUpdate(sessionId);
         String requestHash = hashRequest(message);
-        // 幂等去重：同 clientRequestId 命中既有 Run 时直接复用，下方再校验请求体一致。
+        // 命中同一 clientRequestId 时复用已有运行，并继续校验请求内容是否一致。
         ChatRunEntity existing = findByRequest(sessionId, message.getClientRequestId());
         if (existing != null) {
             requireSameRequest(existing, requestHash);
             return new RunContext(existing, session);
         }
         appService.loadAvailable(session.getAppId());
-        // 同会话不允许并发活跃 Run，避免执行上下文竞争。
+        // 同一会话只允许一个活动运行，避免多个执行上下文竞争状态槽。
         ChatRunEntity active = findActive(sessionId);
         if (active != null) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_ALREADY_ACTIVE, active.getId());
@@ -95,7 +96,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         run.setSnapshotSeq(0L);
         runMapper.insert(run);
 
-        // 落库用户消息并绑定附件，随后回填 userMessageId 与初始空快照。
+        // 先保存用户消息并绑定附件，再回填消息 ID 和初始空快照。
         ChatMessageEntity userMessage =
                 messageService.saveUserMessage(session, StringUtils.defaultString(message.getContent()));
         if (message.getAttachmentIds() != null) {
@@ -113,7 +114,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .eq(ChatSessionEntity::getId, sessionId)
                         .set(ChatSessionEntity::getLastMessageAt, now)
                         .set(ChatSessionEntity::getUpdatedAt, now));
-        // 回读一次，拿到 insert + update 后的权威落库状态。
+        // 重新读取记录，返回插入和更新后的最终持久化状态。
         ChatRunEntity persisted = runMapper.selectById(run.getId());
         if (persisted == null) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_NOT_FOUND, run.getId());
@@ -146,16 +147,16 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     }
 
     /**
-     * 在 {@code REQUIRES_NEW} 独立事务内推进确认：复核所有权、做阶段幂等守卫与状态校验，以
-     * {@code (status=AWAITING_CONFIRM, phaseNo)} 为前置条件 CAS 迁移。以 {@code sourcePhaseNo} 做幂等守卫：
-     * Run 已越过该阶段视为重复确认返回 {@code resumed=false}，落后则命令过期抛状态冲突。确认决策内容不在此解释
-     * （由执行器实例锁内完成），此处只承载权威迁移。
+     * 在独立事务中推进用户确认。方法复核资源归属并校验阶段，以
+     * {@code status=AWAITING_CONFIRM, phaseNo=sourcePhaseNo} 为前置条件执行 CAS 迁移。
+     * 运行已越过来源阶段时按重复确认返回 {@code resumed=false}；运行尚未到达该阶段时按过期命令处理。
+     * 确认内容由执行实例校验，本方法只负责权威状态迁移。
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public ConfirmTransition advanceConfirmation(
             ChatRunEntity identity, ChatSessionEntity expectedSession, int sourcePhaseNo) {
-        // 复核所有权：会话须为本人所有，Run 须归属该会话，均在行锁下串行化。
+        // 在行锁内复核会话所有权和运行归属，使并发确认串行化。
         ChatSessionEntity session = sessionMapper.selectOne(new LambdaQueryWrapper<ChatSessionEntity>()
                 .eq(ChatSessionEntity::getId, identity.getSessionId())
                 .eq(ChatSessionEntity::getUserId, expectedSession.getUserId())
@@ -170,7 +171,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         if (run == null) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_NOT_FOUND, identity.getId());
         }
-        // 阶段号守卫：Run 已推进到更新阶段(phaseNo 更大)说明本次确认已被处理过，幂等返回未恢复；落后则命令过期。
+        // 当前阶段号更大表示确认已处理，幂等返回；更小表示命令尚不适用于当前阶段。
         if (!Objects.equals(run.getPhaseNo(), sourcePhaseNo)) {
             if (run.getPhaseNo() > sourcePhaseNo) {
                 return new ConfirmTransition(run, session, false);
@@ -184,7 +185,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
 
         int targetPhase = run.getPhaseNo() + 1;
         String targetAguiRunId = newAguiRunId();
-        // CAS 推进：以 (status=AWAITING_CONFIRM, phaseNo) 为前置条件迁移到 RUNNING 并进入下一阶段；竞争失败则状态冲突。
+        // 以待确认状态和阶段号为前置条件迁移到 RUNNING；并发更新未命中时报告状态冲突。
         int changed = runMapper.update(
                 null,
                 new LambdaUpdateWrapper<ChatRunEntity>()
@@ -289,14 +290,13 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     }
 
     /**
-     * 终结 Run：在非终态下写入终态、助手消息与最终快照，独立事务提交。幂等：已终态时返回 {@code committed=false}
-     * 并携带既有终态信息。stop 优先：处于 {@code STOPPING} 时无论目标态为何都落为 {@code STOPPED}
-     * （理由 {@code USER_STOP}）并清空错误信息。
+     * 在独立事务中提交运行终态、助手消息和最终快照。已有终态时返回 {@code committed=false} 并携带原结果。
+     * {@code STOPPING} 优先于调用方给出的目标状态，最终统一写为 {@code STOPPED}，原因设为 {@code USER_STOP}。
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public FinalizeResult finalizeExecution(ChatRunEntity identity, FinalizeCommand command) {
-        // 悲观锁会话与 Run，串行化终结，避免与并发迁移/停止竞争。
+        // 悲观锁定会话和运行，使终结过程与其他状态迁移串行执行。
         ChatSessionEntity session = sessionMapper.selectForUpdate(identity.getSessionId());
         if (session == null) {
             throw new IllegalStateException("Run会话不存在，无法终结: " + identity.getSessionId());
@@ -317,7 +317,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         ExecutionSnapshot snapshot = command.snapshot();
         String toolCallJson = command.toolCallJson();
         long lastSeq = command.lastSeq();
-        // stop 优先：处于 STOPPING 时无论目标态为何都落为 STOPPED，并清空错误信息。
+        // STOPPING 优先，避免已接受的停止请求被完成或失败结果覆盖。
         boolean stopWon =
                 ChatRunStatus.STOPPING.name().equals(run.getStatus()) && targetStatus != ChatRunStatus.STOPPED;
         ChatRunStatus finalStatus = stopWon ? ChatRunStatus.STOPPED : targetStatus;
@@ -331,7 +331,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
             assistant = messageService.saveAssistantMessage(session, snapshot.text(), toolCallJson);
         }
         LocalDateTime now = LocalDateTime.now();
-        // CAS 终结：以非终态为前置条件写入终态；竞争失败说明已被并发终结。
+        // 仅允许非终态记录写入终态；更新未命中表示其他并发方已先完成终结。
         int changed = runMapper.update(
                 null,
                 new LambdaUpdateWrapper<ChatRunEntity>()
@@ -385,7 +385,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         }
     }
 
-    /** 按 runId 载入 Run 实体（不做归属校验，供执行器内部使用）。 */
+    /** 按运行 ID 加载实体，不校验用户归属，仅供内部执行状态机使用。 */
     @Override
     public ChatRunEntity loadCurrent(String runId) {
         return runMapper.selectById(runId);
@@ -401,14 +401,14 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         return session;
     }
 
-    /** 枚举处于 {@code CREATED} 待认领的 Run（调度器扫描用）。 */
+    /** 查询处于 {@code CREATED}、等待调度器认领的运行。 */
     @Override
     public List<ChatRunEntity> listCreated() {
         return runMapper.selectList(
                 new LambdaQueryWrapper<ChatRunEntity>().eq(ChatRunEntity::getStatus, ChatRunStatus.CREATED.name()));
     }
 
-    /** 枚举重启时需恢复或终结的中断态 Run（{@code RUNNING/STOPPING/AWAITING_CONFIRM}）。 */
+    /** 查询服务重启后需要恢复或终结的中断态运行。 */
     @Override
     public List<ChatRunEntity> listInterruptedOnRestart() {
         return runMapper.selectList(new LambdaQueryWrapper<ChatRunEntity>()
@@ -419,7 +419,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         ChatRunStatus.AWAITING_CONFIRM.name()));
     }
 
-    /** 枚举超时未确认的 Run（{@code AWAITING_CONFIRM} 且截止时间不晚于给定时刻）。 */
+    /** 查询截止时间不晚于给定时刻的待确认运行。 */
     @Override
     public List<ChatRunEntity> listExpiredConfirmations(LocalDateTime deadline) {
         return runMapper.selectList(new LambdaQueryWrapper<ChatRunEntity>()
@@ -440,7 +440,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         return view;
     }
 
-    /** 按 (sessionId, clientRequestId) 查找既有 Run（幂等去重用）。 */
+    /** 按会话 ID 和客户端请求 ID 查找已有运行，用于幂等去重。 */
     private ChatRunEntity findByRequest(String sessionId, String requestId) {
         return runMapper.selectOne(new LambdaQueryWrapper<ChatRunEntity>()
                 .eq(ChatRunEntity::getSessionId, sessionId)
@@ -454,7 +454,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                 .notIn(ChatRunEntity::getStatus, ChatRunStatus.terminalNames()));
     }
 
-    /** 构造 (runId, sessionId) 双键查询，确保 Run 归属目标会话。 */
+    /** 使用运行 ID 和会话 ID 构造双键查询，确保运行归属目标会话。 */
     private static LambdaQueryWrapper<ChatRunEntity> ownedQuery(String sessionId, String runId) {
         return new LambdaQueryWrapper<ChatRunEntity>()
                 .eq(ChatRunEntity::getId, runId)

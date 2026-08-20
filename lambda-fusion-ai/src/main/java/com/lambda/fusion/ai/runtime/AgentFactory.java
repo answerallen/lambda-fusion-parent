@@ -51,10 +51,11 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * 智能应用运行时工厂：按 {@code (appId, tenantId)} 构建并缓存 {@link HarnessAgent}。
- * CHAT 为纯 DB 配置、无 workspace（关闭 harness workspace 能力）；WORKSPACE 为 per-app workspace，
- * {@code selfEvolve=false} 只读无自记忆、{@code true} 可写自演化，{@code sandboxBackend} 非 HOST 时
- * 走沙箱文件系统（Docker/K8s/E2B/Daytona/AgentRun，条件装配，后端不可用时回退宿主）。
+ * 按 {@code (appId, tenantId)} 构建并缓存智能应用的 {@link HarnessAgent}。
+ *
+ * <p>CHAT 应用只使用数据库配置，不启用工作区能力；WORKSPACE 应用拥有独立工作区，并根据
+ * {@code selfEvolve} 控制文件与记忆的写能力。配置了非 HOST 沙箱后端时优先使用沙箱文件系统，
+ * 后端不可用时返回空配置并回退宿主环境。
  *
  * @author Jin
  */
@@ -85,9 +86,7 @@ public class AgentFactory {
      */
     private final Map<String, AgentStateStore> stateStores = new ConcurrentHashMap<>();
 
-    /**
-     * 获取或构建 Agent。缓存键 {@code appId|tenantId}，{@link ConcurrentHashMap#computeIfAbsent} 保证首次构建线程安全。
-     */
+    /** 按应用和租户获取 Agent；首次构建由 {@link ConcurrentHashMap#computeIfAbsent} 保证线程安全。 */
     public HarnessAgent getOrBuild(String appId, String tenantId) {
         String cacheKey = cacheKey(appId, tenantId);
         return cache.computeIfAbsent(cacheKey, k -> build(appId, tenantId));
@@ -148,7 +147,7 @@ public class AgentFactory {
         return agent;
     }
 
-    // 解析绑定的启用中子代理为 harness 声明（声明构建期固化；子代理变更由 ConfigChangedEvent 全量失效重建）
+    /** 将已绑定且启用的子代理转换为构建期声明；配置变更后通过缓存失效触发重建。 */
     private List<SubagentDeclaration> resolveSubAgents(AppEntity app) {
         if (app.getSubAgentIds() == null || app.getSubAgentIds().isEmpty()) {
             return List.of();
@@ -175,8 +174,10 @@ public class AgentFactory {
                 retriever, app.getKnowledgeBaseIds(), aiProperties.getRag().getMaxInjectChars()));
     }
 
-    // AGENTIC/BOTH 模式：注册 retrieve_knowledge 工具由模型自主检索（构建期绑定 kbIds，
-    // 不走 ToolkitAssembler 全局扫描——检索范围必须按 app 隔离）
+    /**
+     * 为 AGENTIC/BOTH 模式注册应用专属的知识检索工具。工具在构建期绑定知识库列表，
+     * 不参与 {@link ToolkitAssembler} 的全局扫描，避免跨应用扩大检索范围。
+     */
     private void registerKnowledgeTool(Toolkit toolkit, AppEntity app) {
         RagMode ragMode = resolveRagMode(app);
         if (ragMode != RagMode.AGENTIC && ragMode != RagMode.BOTH) {
@@ -190,8 +191,10 @@ public class AgentFactory {
         log.info("应用 {} 启用 Agentic 知识检索工具(kbs={})", app.getId(), app.getKnowledgeBaseIds());
     }
 
-    // 知识库检索模式解析：kbIds 为空不启用任何模式；ragMode 空/未知按 GENERIC（向后兼容，
-    // 非法值在应用保存时已校验拦截）。包级可见便于单测
+    /**
+     * 解析应用的知识检索模式。未绑定知识库时禁用检索；模式为空或无法识别时按 GENERIC
+     * 兼容历史数据，新增和更新入口仍负责拒绝非法值。
+     */
     static RagMode resolveRagMode(AppEntity app) {
         if (app.getKnowledgeBaseIds() == null || app.getKnowledgeBaseIds().isEmpty()) {
             return null;
@@ -209,8 +212,8 @@ public class AgentFactory {
     }
 
     /**
-     * 构建 HITL 权限上下文：BYPASS 模式 + {@code @RequireConfirm} 工具的 ASK 规则，ask 优先于
-     * BYPASS 故仅名单内工具触发确认（DEFAULT 会全拦）；无名单返回 null（向后兼容）。
+     * 构建 HITL 权限上下文。默认使用 BYPASS，仅为 {@code @RequireConfirm} 工具追加 ASK 规则；
+     * ASK 的优先级高于 BYPASS，因此不会误拦截其他工具。没有确认规则时不创建上下文。
      */
     private PermissionContextState buildPermissionContext() {
         Set<String> askToolNames = toolkitAssembler.getAskToolNames();
@@ -270,9 +273,7 @@ public class AgentFactory {
         return error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
     }
 
-    /**
-     * FILE 状态目录优先使用显式配置，其次 workspace.root/state，最后 ~/.agentscope/fusion/state。
-     */
+    /** FILE 状态目录依次取显式配置、{@code workspace.root/state} 和用户目录下的默认路径。 */
     private static Path resolveStateRoot(AiProperties props) {
         String configured = props.getStateStore().getRoot();
         if (StringUtils.isNotBlank(configured)) {
@@ -286,8 +287,8 @@ public class AgentFactory {
     }
 
     /**
-     * 按 app 的 {@code skillsAllow}/{@code skillsDeny} 解析 {@link SkillFilter}：allow 非空则仅这些技能，
-     * 否则 deny 非空则除这些外，均空则全放行（allow 优先于 deny）；作用于市场 DB 与 workspace 两类技能源。
+     * 根据应用的技能白名单和黑名单创建过滤器。白名单优先；未配置白名单时才应用黑名单，
+     * 两者均为空则允许全部技能。过滤器同时作用于技能市场和工作区技能源。
      */
     static SkillFilter resolveSkillFilter(AppEntity app) {
         List<String> allow = app.getSkillsAllow();
@@ -373,13 +374,12 @@ public class AgentFactory {
             builder.middlewares(middlewares);
         }
         if (!subAgents.isEmpty()) {
-            // 编程式注册 DB 子代理声明；与 workspace/subagents/*.md 文件扫描合并（同名文件覆盖 DB）
+            // 数据库声明与 workspace/subagents/*.md 的文件声明合并；同名文件声明优先。
             builder.subagents(subAgents);
-            // declaration.model 存 fusion 模型ID，桥接 ModelResolver 按 ai_llm_model 解析；
-            // 不影响主模型（已由 .model(model) 显式指定）
+            // declaration.model 保存 Fusion 模型 ID，由 ModelResolver 桥接到 ai_llm_model；主模型不受影响。
             builder.modelResolver(modelResolver);
         }
-        // 自演化应用保留文件工具和记忆钩子；本轮文件变更由 WorkspaceAuditRecorder 审计。
+        // 自演化应用保留文件工具和记忆钩子，执行期间的文件变更由 WorkspaceAuditRecorder 审计。
         log.info(
                 "构建 WORKSPACE Agent: app={}, tenant={}, selfEvolve={}, storage={}, sandbox={}",
                 app.getId(),
@@ -402,7 +402,7 @@ public class AgentFactory {
         return MemoryConfig.builder().flushTrigger(trigger).build();
     }
 
-    // 格式与 {@link #invalidateApp} 的 key 前缀匹配逻辑耦合
+    /** 缓存键格式须与 {@link #invalidateApp(String)} 的应用前缀匹配规则保持一致。 */
     private String cacheKey(String appId, String tenantId) {
         return appId + "|" + StringUtils.defaultString(tenantId);
     }

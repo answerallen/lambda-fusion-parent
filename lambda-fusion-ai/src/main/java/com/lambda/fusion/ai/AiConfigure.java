@@ -540,9 +540,8 @@ public class AiConfigure {
     }
 
     /**
-     * 渠道适配器装配：ChannelFactory Bean 名必须等于 {@code ai_channel_config.type}。
-     * Spring 注入 {@code Map<String, ChannelFactory>} 时 key 为 Bean 名，ChannelBootstrap 直接按 type 查找。
-     * webhook 型(飞书/企微)额外注册 CallbackController bean 让回调端点生效。
+     * 装配消息渠道适配器。{@link ChannelFactory} 的 Bean 名必须与 {@code ai_channel_config.type} 一致，
+     * 供 {@code ChannelBootstrap} 按类型查找。飞书和企业微信还需注册回调控制器以接收入站 Webhook。
      */
     @Configuration
     public static class ChannelAdapterConfig {
@@ -566,7 +565,7 @@ public class AiConfigure {
                 return FeishuChannel::fromProperties;
             }
 
-            // 飞书回调端点（webhook 入站）；channel 在 start() 时自注册到 FeishuChannelRegistry
+            // 提供飞书 Webhook 入站端点；渠道启动时会自行注册到 FeishuChannelRegistry。
             @Bean
             public FeishuCallbackController feishuCallbackController() {
                 return new FeishuCallbackController();
@@ -582,7 +581,7 @@ public class AiConfigure {
                 return WeComChannel::fromProperties;
             }
 
-            // 企微回调端点（webhook 入站）；channel 在 start() 时自注册到 WeComChannelRegistry
+            // 提供企业微信 Webhook 入站端点；渠道启动时会自行注册到 WeComChannelRegistry。
             @Bean
             public WeComCallbackController wecomCallbackController() {
                 return new WeComCallbackController();
@@ -591,9 +590,8 @@ public class AiConfigure {
     }
 
     /**
-     * 文档原文件存储后端（LOCAL/OSS）：知识库文档与对话附件共用。无条件注册（不依赖 {@code rag.enabled}），
-     * rag 关闭时对话附件仍可存取原文件；OSS 客户端缺失由 {@link OssDocumentFileStorage} 内部 {@code ObjectProvider}
-     * 判空降级报错，service 按 {@code List<DocumentFileStorage>} 的 {@code type()} 路由。
+     * 装配知识库文档与对话附件共用的原文件存储。该配置不依赖 {@code rag.enabled}，确保关闭 RAG 后仍可访问附件。
+     * {@link OssDocumentFileStorage} 延迟获取 OSS 客户端，业务服务根据 {@link DocumentFileStorage#type()} 选择后端。
      */
     @Configuration
     public static class DocumentStorageConfiguration {
@@ -639,8 +637,8 @@ public class AiConfigure {
     }
 
     /**
-     * 技能仓库源装配：每个后端一个 {@code @ConditionalOnClass} 嵌套配置，注册 {@link SkillRepositoryProvider}
-     * bean（委托 AgentScope 已有仓库）。扩展未引入时不注册，{@code SkillRepositoryResolver} 对该 type 返回 null。
+     * 按可用依赖装配技能仓库提供者。每种后端委托 AgentScope 对应实现；扩展未引入时不注册提供者，
+     * {@code SkillRepositoryResolver} 会将该类型解析为未启用。
      */
     @Configuration
     public static class SkillRepositoryConfig {
@@ -772,9 +770,8 @@ public class AiConfigure {
     }
 
     /**
-     * Dubbo 跨实例 Agent 缓存失效广播：每个实例暴露 {@link RemoteAgentCacheInvalidationService}，
-     * 本地配置变更由 {@code DubboConfigInvalidationBroadcaster} 广播；远端收到后回放 {@code remote} 事件
-     * 失效本地缓存。Dubbo 不在 classpath 或开关关闭时不装配，退化为单实例本地事件。
+     * 装配基于 Dubbo 的跨实例 Agent 缓存失效广播。每个实例既接收远程失效请求，也向其他实例广播本地配置变更。
+     * Dubbo 不可用或广播开关关闭时不装配，配置变更仅通过本地事件生效。
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ServiceBean")
@@ -785,15 +782,13 @@ public class AiConfigure {
         @DubboService(interfaceClass = RemoteAgentCacheInvalidationService.class)
         public RemoteAgentCacheInvalidationService remoteAgentCacheInvalidationService(
                 ApplicationEventPublisher publisher) {
-            // 远端广播收到 -> 回放为 remote 事件，让 AgentFactory 等所有本地监听者失效；
-            // remote 标记避免 DubboConfigInvalidationBroadcaster 二次外播形成回环
+            // 将远端请求转换为本地 remote 事件；来源标记可阻止监听器再次广播形成回环。
             return appId -> publisher.publishEvent(ConfigChangedEvent.remote(appId));
         }
 
         @Bean
         public DubboConfigInvalidationBroadcaster dubboConfigInvalidationBroadcaster() {
-            // broadcast 集群：一次调用扩散到所有注册 provider（含自身，幂等无害）；
-            // check=false 避免其他实例未就绪时阻塞本地启动
+            // broadcast 模式向所有提供者发送失效请求；关闭启动检查，避免未就绪实例阻塞本地启动。
             ReferenceConfig<RemoteAgentCacheInvalidationService> reference = new ReferenceConfig<>();
             reference.setInterface(RemoteAgentCacheInvalidationService.class);
             reference.setCluster("broadcast");
@@ -803,8 +798,8 @@ public class AiConfigure {
     }
 
     /**
-     * authority 远程用户查询引用：暴露 {@link RemoteUserService} Dubbo 引用，供 {@code CurrentUserQueryTool}
-     * 获取用户身份详情（昵称/组织/角色/账户状态）。Dubbo 不在 classpath 时不装配，工具退化为仅返回对话上下文中的基础身份。
+     * 装配 Authority 用户服务的 Dubbo 引用，供 {@code CurrentUserQueryTool} 查询昵称、组织、角色和账户状态。
+     * Dubbo 不可用时不装配，工具仅返回对话上下文已有的基础身份。
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "org.apache.dubbo.config.spring.ServiceBean")
@@ -812,7 +807,7 @@ public class AiConfigure {
 
         @Bean
         public RemoteUserService remoteUserService() {
-            // check=false：authority 未就绪/缺失时不阻塞本地启动，调用期失败由工具降级处理
+            // 关闭启动检查；Authority 未就绪时由工具在实际调用阶段降级处理。
             ReferenceConfig<RemoteUserService> reference = new ReferenceConfig<>();
             reference.setInterface(RemoteUserService.class);
             reference.setCheck(false);
@@ -821,11 +816,9 @@ public class AiConfigure {
     }
 
     /**
-     * 定时 Agent 任务调度装配：仅在 {@code lambda.fusion.ai.schedule.enabled=true} 且 Quartz 扩展
-     * 在 classpath 时注册。复用 Spring 装配的 {@link Scheduler}（spring-boot-starter-quartz，
-     * JDBC JobStore 持久化，支持集群；读 {@code spring.quartz.*}），业务任务定义以
-     * {@code ai_sub_agent}(category=SCHEDULED_TASK) 为唯一事实来源，启动时经 {@code AgentTaskBootstrap}
-     * 重注册恢复。
+     * 装配定时 Agent 任务调度。仅在功能启用且 Quartz 扩展可用时注册，并复用 Spring 管理的
+     * {@link Scheduler}。Quartz 使用 JDBC JobStore 保存触发器，业务任务定义仍以 {@code ai_sub_agent} 为准，
+     * 应用启动时由 {@code AgentTaskBootstrap} 重新注册。
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "io.agentscope.extensions.scheduler.quartz.QuartzAgentScheduler")
@@ -836,11 +829,9 @@ public class AiConfigure {
         private final AiProperties aiProperties;
 
         /**
-         * 把 Quartz 用的底层数据源显式设进 SchedulerFactoryBean：primary 是 dynamic-datasource 路由
-         * 数据源，Quartz 后台线程直连会有路由歧义，故经 {@link StateStoreDataSources#resolveNamed}
-         * 解析出配置的底层 ds（默认主库 master）覆盖注入。本类自身实现 SchedulerFactoryBeanCustomizer,
-         * 不另立 @QuartzDataSource DataSource bean,避免与 primary 形成多候选导致 Spring Quartz 的
-         * &#064;ConditionalOnSingleCandidate  失效而不装配数据源。
+         * 为 Quartz 显式设置底层数据源。项目主数据源是动态路由数据源，后台线程直连时无法可靠选择路由，
+         * 因此通过 {@link StateStoreDataSources#resolveNamed} 解析配置的数据源名称，默认使用主库。
+         * 这里直接定制 {@link SchedulerFactoryBean}，避免额外声明 Quartz 数据源后形成多个候选项。
          */
         @Override
         public void customize(@NonNull SchedulerFactoryBean schedulerFactoryBean) {

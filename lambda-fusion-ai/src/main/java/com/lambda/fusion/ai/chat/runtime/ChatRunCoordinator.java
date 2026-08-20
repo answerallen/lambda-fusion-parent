@@ -40,10 +40,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 对话执行协调器：负责执行实例的创建、恢复、停止与定时维护。Agent 事件流由执行实例持有，不依赖 SSE 生命周期；
- * 实例在业务终态后按 {@code drainedSignal}（最终源流与后处理全部结束）以 {@code (runId, instance)} 身份摘除。
- * 同一 {@code (tenantId, userId, sessionId)} 的相邻源流经进程内非阻塞尾链排序：新 Run 可建立 SSE，但仅当前一条
- * 源流排空后才真正订阅下一次 {@code streamEvents}。
+ * 负责对话执行实例的创建、恢复、停止与定时维护。Agent 事件流由执行实例持有，不依赖 SSE 连接生命周期；
+ * 业务进入终态且最终源流与后处理全部排空后，协调器才根据 {@code drainedSignal} 摘除对应实例。
+ * 同一 {@code (tenantId, userId, sessionId)} 的相邻源流通过进程内非阻塞尾链排序：新运行可以先建立 SSE，
+ * 但必须等待上一条源流排空后才能订阅下一次 {@code streamEvents}。
  *
  * @author Jin
  */
@@ -110,11 +110,10 @@ public class ChatRunCoordinator {
         }
         ChatRunInstance execution = executions.putIfAbsent(run.getId(), candidate);
         if (execution == null) {
-            // 注册成功：订阅排空信号，最终源流排空后按身份摘除本实例。
+            // 注册成功后监听排空信号，最终源流结束时按实例身份安全摘除。
             subscribeDrained(run.getId(), candidate);
-            // 经会话源流尾链排序：前一条源流排空（phaseDrained）后才真正订阅本次 streamEvents。
-            // 尾链绑定 phaseDrainedSignal 而非实例 drainedSignal——前者在源流终止即完成、与终结重试解耦，
-            // 保证前驱排空即可启动后继，不被单实例终结故障放大成会话级阻塞（设计 §6.5）。
+            // 会话尾链等待上一阶段的 phaseDrainedSignal，而不是实例级 drainedSignal；前者在源流终止时即完成，
+            // 与终态提交重试解耦，因此前驱排空后即可启动后继，不会被单个实例的终结故障阻塞。
             sourceTailChain.enqueue(
                     sessionKey(session),
                     scheduler,
@@ -128,13 +127,13 @@ public class ChatRunCoordinator {
         execution.runInTenant(task);
     }
 
-    /** 查询活动实例；不存在时恢复一个并注册（并发竞争下取先注册者）。注册表由本协调器唯一持有。 */
+    /** 查询活动实例；不存在时恢复并注册，并发竞争时使用最先注册的实例。 */
     private ChatRunInstance selectOrRestore(ChatRunEntity run, ChatSessionEntity session) {
         ChatRunInstance selected = executions.get(run.getId());
         if (selected != null) {
             return selected;
         }
-        // 确认恢复会新建执行：与 CREATED 启动同样受容量约束（终结恢复不受限，见 selectOrRestoreForFinalize）。
+        // 确认恢复会创建执行实例，因此与 CREATED 启动使用相同的容量约束。
         enforceCapacity(run, session);
         ChatRunInstance candidate = instanceFactory.restoreExecution(run, session, scheduler);
         ChatRunInstance existing = executions.putIfAbsent(run.getId(), candidate);
@@ -145,7 +144,10 @@ public class ChatRunCoordinator {
         return existing;
     }
 
-    /** 查询活动实例；不存在时恢复一个终结用实例并注册（并发竞争下取先注册者）。终结/停止恢复不受容量上限约束，否则会因容量拒绝导致 Run 无法停止或终结。 */
+    /**
+     * 查询活动实例；不存在时恢复一个仅用于终结的实例。终结和停止恢复不受容量上限约束，
+     * 避免容量已满时已有运行无法收敛。
+     */
     private ChatRunInstance selectOrRestoreForFinalize(ChatRunEntity run, ChatSessionEntity session) {
         ChatRunInstance selected = executions.get(run.getId());
         if (selected != null) {
@@ -161,17 +163,16 @@ public class ChatRunCoordinator {
     }
 
     /**
-     * 在实例成功注册后订阅其排空信号：最终源流与后处理全部结束时按身份摘除（{@code remove(runId, instance)}）。
-     * 未注册或竞争落败的实例排空信号无人接收，不会触碰注册表；业务终态（{@code terminalSignal}）不触发摘除，
-     * 仍在排空的实例保留至 {@code drainedSignal}。
+     * 实例注册成功后订阅其排空信号，最终源流和后处理全部结束时按身份摘除。
+     * 业务终态信号不会触发摘除，仍在排空的实例会保留到 {@code drainedSignal} 完成。
      */
     private void subscribeDrained(String runId, ChatRunInstance instance) {
         instance.drainedSignal().whenComplete((ignored, error) -> executions.remove(runId, instance));
     }
 
     /**
-     * 在规范实例锁内原子地确认并推进到下一阶段：取规范实例（不存在则恢复并注册），旧 phase 源流排空前仅暂存确认、
-     * 立即受理（读法 B），待 phase-drained 后才完成「校验 → CAS → 启动下一 phase」；锁顺序恒为 实例 monitor →
+     * 在规范实例锁内原子地确认并推进到下一阶段。若上一阶段源流尚未排空，则先受理并暂存确认；
+     * 排空后再完成校验、CAS 迁移和下一阶段启动。锁顺序始终为实例 monitor，再进入
      * {@code REQUIRES_NEW} 数据库事务。
      *
      * @param run 运行实体
@@ -235,14 +236,14 @@ public class ChatRunCoordinator {
         if (ChatRunStatus.isTerminal(run.getStatus())) {
             return;
         }
-        // 取规范实例（注册唯一实例），锁顺序恒为 实例 monitor → REQUIRES_NEW 数据库事务。
+        // 获取注册表中的规范实例，后续锁顺序始终为实例 monitor，再进入独立数据库事务。
         ChatRunInstance execution = selectOrRestoreForFinalize(run, session);
-        // 运行态判读与 STOPPING 迁移在实例锁内原子完成，消除「检查后启动新流」的 TOCTOU。
+        // 在实例锁内同时判断运行状态并迁移到 STOPPING，消除检查与启动新源流之间的竞态窗口。
         ChatRunInstance.StopOutcome outcome = execution.requestStop();
         if (outcome != ChatRunInstance.StopOutcome.INTERRUPT) {
             return;
         }
-        // 运行态：协作式中断并留宽限期兜底（中断请求保持在实例锁外，避免取消回调回流死锁）。
+        // 先在锁外发起协作式中断，再以宽限期后的强制停止作为兜底，避免取消回调造成锁重入。
         try {
             execution.interruptAgent();
         } catch (RuntimeException interruptFailure) {
@@ -255,7 +256,7 @@ public class ChatRunCoordinator {
         }
     }
 
-    /** 恢复或终结单个重启前遗留的中断态 Run（持久化存储的待确认 Run 保留，其余按状态终结）；供 {@link ChatRunStartupRecovery} 编排调用。 */
+    /** 恢复或终结重启前遗留的中断态运行；持久化存储中的待确认运行保留，其余按状态终结。 */
     void recoverInterrupted(ChatRunEntity run) {
         ChatSessionEntity session = loadSession(run);
         TenantUtils.withTenant(session.getTenantId(), () -> recoverInterruptedInTenantContext(run, session));
@@ -275,7 +276,7 @@ public class ChatRunCoordinator {
                     properties.getStateStore().getType());
             return;
         }
-        // 启动恢复的 lost 实例不注册、不订阅：其排空信号无人接收，不会触碰注册表。
+        // 仅用于启动恢复的遗失实例不注册也不订阅排空信号，因此不会修改活动实例注册表。
         ChatRunInstance lost = instanceFactory.restoreForFinalize(run, session, scheduler);
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
             lost.finalizeStopped(ChatRunFinishReason.USER_STOP);
@@ -304,8 +305,8 @@ public class ChatRunCoordinator {
     private boolean startCreated(ChatRunInstance execution) {
         ChatRunEntity run = execution.run;
         if (!runService.claimCreated(run)) {
-            // Run 在排队/认领期间已被并发取胜方终结（如停止）：本实例从未建立源流，释放其全部信号，
-            // 使协调器摘除实例、会话尾链释放后继（设计 §6.5「跳过 startAction，但必须完成自己的尾链节点」）。
+            // 运行在排队或认领期间已被并发方终结，本实例未建立源流；仍需完成全部信号，
+            // 让协调器摘除实例并释放会话尾链的后继节点。
             execution.releaseNeverStarted();
             return false;
         }

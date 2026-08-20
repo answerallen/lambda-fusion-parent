@@ -19,20 +19,18 @@ import org.quartz.JobListener;
 import org.springframework.stereotype.Component;
 
 /**
- * 定时任务执行监听器：挂在共享 Quartz {@code Scheduler} 上，覆盖「定时触发」路径
- * （该路径不经过 {@code AgentTaskScheduler.TenantAwareTask}）。
+ * 监听共享 Quartz {@code Scheduler} 的定时执行，补齐任务执行期间的租户上下文并记录执行结果。
+ * Quartz 定时触发不经过 {@code AgentTaskScheduler.TenantAwareTask}，因此需要在监听器中单独恢复上下文。
  *
- * <p>职责二合一：
+ * <p>执行前后分别承担以下职责：
  * <ul>
- *   <li>{@link #jobToBeExecuted}：按 JobDataMap 的 taskName({@code tenantId:name}）解析租户并恢复
- *   {@link TenantContextHolder}，供本次执行内 Agent 工具访问租户表（如 {@code ai_sub_agent}）的
- *   DB 层租户上下文（契约 §5.1 后台任务例外）。</li>
- *   <li>{@link #jobWasExecuted}：按 {@code jobException} 判成败、{@code getJobRunTime()} 取耗时，
- *   落一条 SCHEDULED 执行记录；清理租户上下文。执行记录为运维观测数据，不做租户隔离
- *   （表无 tenant_id 列），落库本身不依赖租户上下文。</li>
+ *   <li>{@link #jobToBeExecuted} 从 JobDataMap 的 {@code taskName}（格式为 {@code tenantId:name}）
+ *   解析租户，使 Agent 工具能够访问对应租户的数据。</li>
+ *   <li>{@link #jobWasExecuted} 根据执行异常判断结果并写入 SCHEDULED 日志，最后清理租户上下文。
+ *   日志表不含 {@code tenant_id}，写日志本身不依赖租户上下文。</li>
  * </ul>
  *
- * <p>注意：Quartz Job 不回传 Agent 返回的 {@code Msg}，定时路径 output 暂记空（见设计文档开放点）。
+ * <p>Quartz Job 不暴露 Agent 返回的 {@code Msg}，因此定时执行日志暂不记录输出正文。
  *
  * @author Jin
  */
@@ -60,14 +58,14 @@ public class AgentExecutionJobListener implements JobListener {
 
     @Override
     public void jobExecutionVetoed(JobExecutionContext context) {
-        // 触发被否决（如暂停态），不记录
+        // 被调度器否决的任务没有实际执行，因此不记录执行日志。
     }
 
     @Override
     public void jobWasExecuted(JobExecutionContext context, JobExecutionException jobException) {
         try {
             String taskName = parseTaskName(context);
-            // taskName 是记录的核心标识，缺失则无法归因，直接跳过；tenantId 仅用于反查任务ID，可空
+            // 任务名缺失时无法归因；tenantId 仅用于反查任务 ID，可以为空。
             if (StringUtils.isBlank(taskName)) {
                 return;
             }
@@ -75,7 +73,7 @@ public class AgentExecutionJobListener implements JobListener {
             boolean success = jobException == null;
             String errorMessage = success ? null : String.valueOf(jobException.getMessage());
             LocalDateTime finishedAt = LocalDateTime.now();
-            // getFireTime 为本次触发时间，作为开始时间；getJobRunTime 为执行耗时
+            // 以 Quartz 的触发时间作为开始时间；耗时由开始和当前完成时间计算。
             LocalDateTime startedAt = context.getFireTime() == null
                     ? finishedAt
                     : LocalDateTime.ofInstant(context.getFireTime().toInstant(), ZoneId.systemDefault());
@@ -96,7 +94,7 @@ public class AgentExecutionJobListener implements JobListener {
         }
     }
 
-    /** 从 JobDataMap 的 taskName({@code tenantId:name}）解析租户。 */
+    /** 从 JobDataMap 的 {@code taskName}（格式为 {@code tenantId:name}）解析租户。 */
     private String parseTenantId(JobExecutionContext context) {
         String taskName = context.getJobDetail().getJobDataMap().getString("taskName");
         if (StringUtils.isBlank(taskName)) {
@@ -106,7 +104,7 @@ public class AgentExecutionJobListener implements JobListener {
         return idx > 0 ? taskName.substring(0, idx) : null;
     }
 
-    /** 从 JobDataMap 的 taskName({@code tenantId:name}）解析任务名。 */
+    /** 从 JobDataMap 的 {@code taskName}（格式为 {@code tenantId:name}）解析业务任务名。 */
     private String parseTaskName(JobExecutionContext context) {
         String taskName = context.getJobDetail().getJobDataMap().getString("taskName");
         if (StringUtils.isBlank(taskName)) {
@@ -116,7 +114,7 @@ public class AgentExecutionJobListener implements JobListener {
         return idx > 0 ? taskName.substring(idx + 1) : taskName;
     }
 
-    /** 按租户 + 任务名解析业务任务ID（ai_sub_agent.id）；查不到时退化用任务名占位。 */
+    /** 按租户和任务名解析业务任务 ID；无法解析时使用任务名保证日志仍可归因。 */
     private String resolveTaskId(String tenantId, String taskName) {
         try {
             SubAgentEntity entity = subAgentMapper.selectOne(new LambdaQueryWrapper<SubAgentEntity>()

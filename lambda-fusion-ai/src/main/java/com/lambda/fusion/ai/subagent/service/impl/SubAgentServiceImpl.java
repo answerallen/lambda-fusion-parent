@@ -144,26 +144,26 @@ public class SubAgentServiceImpl implements SubAgentService {
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
-        // 路由污染防线：主 Agent 路由只取 SUB_AGENT 分类，定时任务（SCHEDULED_TASK）不参与委派
+        // 仅加载 SUB_AGENT 分类，防止定时任务进入主 Agent 的子代理路由。
         Map<String, SubAgentEntity> byId = subAgentMapper.selectByIds(ids).stream()
                 .filter(entity -> Boolean.TRUE.equals(entity.getEnabled()))
                 .filter(entity -> isSubAgentCategory(entity.getCategory()))
                 .collect(Collectors.toMap(SubAgentEntity::getId, Function.identity()));
-        // 按入参 ids 顺序输出（声明顺序即主 agent 可见的子代理顺序）
+        // 保持调用方传入的 ID 顺序，该顺序也是主 Agent 看到的子代理声明顺序。
         return ids.stream().filter(byId::containsKey).map(byId::get).toList();
     }
 
-    /** category 为空（存量数据）按 SUB_AGENT 处理，向后兼容。 */
+    /** 将历史数据中缺失的分类按 {@code SUB_AGENT} 处理。 */
     private static boolean isSubAgentCategory(String category) {
         return category == null || SubAgentCategory.SUB_AGENT.getCode().equalsIgnoreCase(category);
     }
 
-    // 子代理声明在 agent 构建期固化，保存/删除/启停后全量失效 agent 缓存触发重建
+    /** 子代理声明在 Agent 构建期固化，配置变化后需使 Agent 缓存失效以触发重建。 */
     private void publishChanged() {
         eventPublisher.publishEvent(ConfigChangedEvent.all());
     }
 
-    // 绑定模型存在且启用（空 = 继承主 agent 模型，不校验）
+    /** 校验显式绑定的模型存在且已启用；未绑定模型时继承主 Agent，无需校验。 */
     private void validateModel(String modelId) {
         if (StringUtils.isBlank(modelId)) {
             return;

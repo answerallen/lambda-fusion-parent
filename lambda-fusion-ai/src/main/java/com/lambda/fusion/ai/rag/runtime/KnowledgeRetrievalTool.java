@@ -8,10 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Agentic 模式知识检索工具：把应用绑定的知识库注册为 agent 的 {@code retrieve_knowledge}
- * 工具，由模型在 ReAct 循环中自主决定何时检索、检索什么。kbIds 在 agent 构建期按 app 注册
- * （不走 ToolkitAssembler 全局扫描）；命中结果携带来源文件/文档/章节/分块位置，
- * 空结果与检索异常一律返回友好文案，不向 ReAct 循环外抛异常。
+ * Agentic 模式下的 {@code retrieve_knowledge} 工具，由模型在 ReAct 循环中自主决定检索时机和查询内容。
+ * 工具在 Agent 构建期绑定应用的知识库范围，不参与全局工具扫描。检索结果保留文件、文档、章节和分块来源；
+ * 空结果或检索异常转换为可读文本，避免中断 ReAct 循环。
  *
  * @author Jin
  */
@@ -40,7 +39,7 @@ public class KnowledgeRetrievalTool {
         try {
             chunks = retriever.retrieve(kbIds, query, limit).block();
         } catch (Exception e) {
-            // 检索故障不阻断 ReAct 循环，返回友好文案
+            // 将检索故障转为工具结果，避免中断 ReAct 循环。
             log.warn("知识库工具检索失败(kbIds={}): {}", kbIds, e.getMessage());
             return "Knowledge retrieval failed: " + e.getMessage();
         }
@@ -50,7 +49,7 @@ public class KnowledgeRetrievalTool {
         return formatChunks(chunks);
     }
 
-    // 与自动注入中间件复用同一来源格式，保证两种 RAG 模式的文档边界一致
+    // 与自动注入中间件复用来源格式，使两种 RAG 模式呈现一致的文档边界。
     private static String formatChunks(List<RetrievedChunk> chunks) {
         StringBuilder sb = new StringBuilder("Retrieved ").append(chunks.size()).append(" relevant document(s):\n\n");
         int index = 1;

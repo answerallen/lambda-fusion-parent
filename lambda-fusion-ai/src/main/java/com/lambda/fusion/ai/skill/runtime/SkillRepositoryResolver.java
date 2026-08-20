@@ -9,9 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 技能仓库解析器：按 {@code lambda.fusion.ai.skill.repository.type} 选匹配的 {@link SkillRepositoryProvider}
- * 构造 {@link AgentSkillRepository} 并缓存（共享单例）。{@code type=NONE}、无匹配 provider 或构造失败时返回 null
- * （技能市场禁用，WORKSPACE app 仅用 workspace 本地技能）。
+ * 根据 {@code lambda.fusion.ai.skill.repository.type} 选择提供者，构建并缓存共享的技能仓库。
+ * 配置为 {@code NONE}、缺少匹配提供者或创建失败时返回 {@code null}；此时技能市场不可用，
+ * WORKSPACE 应用仍可加载自身工作区中的技能。
  *
  * @author Jin
  */
@@ -26,7 +26,7 @@ public class SkillRepositoryResolver {
     private volatile AgentSkillRepository cached;
     private volatile boolean resolved = false;
 
-    /** 解析并缓存技能仓库；未启用返回 null。 */
+    /** 解析并缓存技能仓库；未启用或无法创建时返回 {@code null}。 */
     public AgentSkillRepository resolve() {
         if (!resolved) {
             synchronized (this) {

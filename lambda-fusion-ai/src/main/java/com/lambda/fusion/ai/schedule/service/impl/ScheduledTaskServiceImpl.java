@@ -30,8 +30,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 定时任务服务实现：任务定义落 {@code ai_sub_agent}(category=SCHEDULED_TASK)，
- * 调度经 {@link AgentTaskScheduler} 联动；调度状态由调度器单一解释（§20.3）。
+ * 管理存储在 {@code ai_sub_agent} 中的定时任务，并通过 {@link AgentTaskScheduler} 同步运行时调度。
+ * {@code schedule_enabled} 表示任务是否应参与调度，实际运行状态以调度器查询结果为准。
  *
  * @author Jin
  */
@@ -68,8 +68,7 @@ public class ScheduledTaskServiceImpl implements ScheduledTaskService {
         entity.setTenantId(AuthUtils.getTenantId());
         entity.setName(dto.getName());
         entity.setCategory(SubAgentCategory.SCHEDULED_TASK.getCode());
-        // description 列 NOT NULL 无默认值(对子代理是路由依据必填)；定时任务不参与路由,
-        // 用备注或任务名兜底占位,避免 insert 违反非空约束
+        // description 是子代理模型的非空字段；定时任务不参与路由，使用备注或任务名满足存储约束。
         entity.setDescription(StringUtils.defaultIfBlank(dto.getRemark(), dto.getName()));
         entity.setPrompt(dto.getPrompt());
         entity.setModelId(dto.getModelId());
@@ -84,7 +83,7 @@ public class ScheduledTaskServiceImpl implements ScheduledTaskService {
         entity.setTopP(dto.getTopP());
         entity.setSteps(dto.getSteps());
         entity.setRemark(dto.getRemark());
-        // 定时任务不参与主 Agent 路由：路由态恒禁用，调度态独立
+        // 定时任务不参与主 Agent 路由，路由启用状态与调度启用状态相互独立。
         entity.setEnabled(Boolean.FALSE);
         entity.setScheduleEnabled(Boolean.TRUE.equals(dto.getScheduleEnabled()));
         entity.setCreatedAt(LocalDateTime.now());
@@ -164,8 +163,7 @@ public class ScheduledTaskServiceImpl implements ScheduledTaskService {
     }
 
     /**
-     * 暂停调度：回写 {@code schedule_enabled=false} 作为业务事实来源；调度器暂停仅作运行时联动，
-     * 内存调度器下任务未注册（返回 false）不视为失败，仅记录告警。
+     * 停用任务并同步暂停运行时调度。调度器中未注册该任务时仍保存停用状态，仅记录告警。
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -180,10 +178,7 @@ public class ScheduledTaskServiceImpl implements ScheduledTaskService {
         subAgentMapper.updateById(entity);
     }
 
-    /**
-     * 恢复调度：回写 {@code schedule_enabled=true} 并按当前配置重排（scheduleTask 幂等先取消再排），
-     * 确保内存调度器下任务被重新注册，而非仅 resume 一个可能不存在的壳。
-     */
+    /** 启用任务并按当前配置重新提交，确保应用重启后缺失的运行时调度也能恢复。 */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void resume(String id) {
@@ -194,7 +189,7 @@ public class ScheduledTaskServiceImpl implements ScheduledTaskService {
         agentTaskScheduler.scheduleTask(entity);
     }
 
-    /** 手动触发：同步直跑，装配/执行异常抛业务异常反馈前端，不假成功。 */
+    /** 同步执行一次任务，使配置、模型或执行异常能够直接反馈给调用方。 */
     @Override
     public void trigger(String id) {
         SubAgentEntity entity = requireTask(id);
@@ -214,7 +209,7 @@ public class ScheduledTaskServiceImpl implements ScheduledTaskService {
         return scheduledTaskLogService.page(query);
     }
 
-    /** 按启用态重排：启用→提交调度，禁用→取消调度。 */
+    /** 根据任务启用状态提交或取消运行时调度。 */
     private void reschedule(SubAgentEntity entity) {
         if (Boolean.TRUE.equals(entity.getScheduleEnabled())) {
             agentTaskScheduler.scheduleTask(entity);
@@ -223,7 +218,7 @@ public class ScheduledTaskServiceImpl implements ScheduledTaskService {
         }
     }
 
-    /** 按主键加载并限定为定时任务分类；不存在或非定时任务抛业务异常。 */
+    /** 按主键加载定时任务；记录不存在或分类不匹配时抛出业务异常。 */
     private SubAgentEntity requireTask(String id) {
         SubAgentEntity entity = subAgentMapper.selectOne(new LambdaQueryWrapper<SubAgentEntity>()
                 .eq(SubAgentEntity::getId, id)

@@ -15,8 +15,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 /**
- * 沙箱 spec 解析器：按应用 {@code sandboxBackend} 找到匹配的 {@link SandboxBackendProvider} 构建 spec；
- * HOST 或对应后端扩展未安装时返回 {@link Optional#empty()}，调用方回退宿主文件系统。
+ * 根据应用的 {@code sandboxBackend} 选择 {@link SandboxBackendProvider} 并创建沙箱文件系统配置。
+ * 使用 HOST、扩展未安装或后端创建失败时返回 {@link Optional#empty()}，由调用方回退宿主文件系统。
  *
  * @author Jin
  */
@@ -50,9 +50,7 @@ public class SandboxSpecResolver {
         return spec;
     }
 
-    /**
-     * 解析隔离粒度，配置非法时回退 AGENT。
-     */
+    /** 解析沙箱隔离粒度；配置为空或非法时使用 {@link IsolationScope#AGENT}。 */
     public static IsolationScope parseIsolationScope(AiProperties aiProperties) {
         try {
             return IsolationScope.valueOf(

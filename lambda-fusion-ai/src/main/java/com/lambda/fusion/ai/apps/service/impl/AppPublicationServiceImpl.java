@@ -23,9 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 应用发布服务实现。发布事务：行锁串行化同一应用行 → 校验存在/启用/模型有效/受众合法 →
- * 首次生成 publishCode（唯一索引冲突重新生成有限次）→ 置 PUBLISHED。纯发布状态变化不影响
- * Agent 配置，不发 {@code ConfigChangedEvent}（见发布设计 §4）；下线仅关闭独立 URL，保留代码。
+ * 管理应用的发布状态和公开访问入口。发布过程先锁定应用记录，再校验应用、模型和受众配置；首次发布时生成
+ * 全局唯一的发布代码，发生唯一索引冲突时有限次重试。发布状态变化不修改 Agent 配置，因此不发送
+ * {@code ConfigChangedEvent}；下线只关闭公开入口并保留发布代码。
  *
  * @author Jin
  */
@@ -34,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AppPublicationServiceImpl implements AppPublicationService {
 
-    /** publishCode 全局唯一冲突时的最大重试次数（32 位随机 UUID 碰撞概率极低，有限次兜底）。 */
+    /** 发布代码发生唯一索引冲突时的最大重试次数。 */
     private static final int MAX_CODE_RETRIES = 3;
 
     private final AppMapper appMapper;
@@ -142,9 +142,8 @@ public class AppPublicationServiceImpl implements AppPublicationService {
 
     @Override
     public AvailableApp access(String publishCode) {
-        // 先按发布代码定位应用（跨租户精确查询仅为拿到 appId）；再以 loadAvailable 在登录租户
-        // 上下文内做启用+受众+租户一致性校验——别租户应用因租户插件查不到而拒绝，受众不符抛
-        // APP_NOT_FOUND（前端据此显示无权限，不当作未登录）。
+        // 跨租户查询仅用于把公开发布代码解析为应用 ID；实际访问仍在当前登录租户上下文中校验应用状态、
+        // 受众和租户归属。其他租户或无权访问的应用统一按 APP_NOT_FOUND 处理，避免泄露应用信息。
         AppEntity located = requireByPublishCode(publishCode);
         requirePublished(located);
         return appService.loadAvailableView(located.getId());

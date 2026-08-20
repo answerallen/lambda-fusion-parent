@@ -10,8 +10,7 @@ import com.lambda.fusion.ai.subagent.model.entity.SubAgentEntity;
 import org.quartz.Trigger.TriggerState;
 
 /**
- * 定时任务服务：任务定义复用 {@code ai_sub_agent}(category=SCHEDULED_TASK)，
- * 生命周期联动 {@code AgentTaskScheduler}。
+ * 定时任务管理服务。任务定义存储在 {@code ai_sub_agent} 中，并与运行时调度器同步生命周期。
  *
  * @author Jin
  */
@@ -27,10 +26,10 @@ public interface ScheduledTaskService {
 
     void delete(String id);
 
-    /** 暂停调度（保留任务定义）。 */
+    /** 停用调度，但保留任务定义。 */
     void pause(String id);
 
-    /** 恢复调度。 */
+    /** 启用调度。 */
     void resume(String id);
 
     /** 立即触发一次（不影响既定调度）。 */

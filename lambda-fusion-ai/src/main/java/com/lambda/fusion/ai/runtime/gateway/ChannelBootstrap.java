@@ -15,10 +15,9 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 
 /**
- * DB 驱动的渠道启动器：应用就绪时按 {@code ai_channel_config} 启用行构造 {@link Channel} 注册进
- * {@link ChannelManager}；admin CRUD 后按 channelId 重建。构造委托给按 type 命名的 {@link ChannelFactory}
- * Bean（钉钉/飞书/企微）。无匹配工厂 -> 单条 warn 跳过；单条构造失败 -> 隔离，不阻塞其余与启动。仅在 gateway
- * 启用时装配（见 {@code AiConfigure.GatewayConfiguration}），故直接注入 ChannelManager/HarnessGateway。
+ * 根据数据库配置启动和重建消息渠道。应用就绪时加载 {@code ai_channel_config} 中的启用记录，
+ * 由对应类型的 {@link ChannelFactory} 创建渠道并注册到 {@link ChannelManager}。单个渠道缺少工厂或启动失败时
+ * 仅跳过该渠道，不影响其他渠道及应用启动。本组件只在 Harness 网关启用时装配。
  *
  * @author Jin
  */
@@ -44,7 +43,7 @@ public class ChannelBootstrap {
         }
     }
 
-    // 先停旧 channel，再按当前 DB 状态重建；禁用/删除则只停不建
+    /** 先停止并注销旧渠道，再按最新数据库配置重建；配置已禁用或删除时仅执行注销。 */
     public void rebuild(String channelId) {
         stopAndUnregister(channelId);
         ChannelDefinition def = channelConfigService.resolveDefinition(channelId);

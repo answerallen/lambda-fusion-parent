@@ -56,8 +56,8 @@ public interface AiConstants {
     }
 
     /**
-     * 智能应用类型，决定 Agent 构建方式与可用能力栈。CHAT 纯 DB 配置、无 workspace（v1）；
-     * WORKSPACE 带 per-app workspace，对齐 AgentScope harness 完整能力（技能/子agent/记忆/沙箱/自演化）。
+     * 智能应用类型，决定 Agent 的构建方式和可用能力。CHAT 仅使用数据库配置，不启用工作区；
+     * WORKSPACE 为每个应用提供独立工作区，并支持技能、子代理、记忆、沙箱和自演化能力。
      */
     @Getter
     @AllArgsConstructor
@@ -86,8 +86,8 @@ public interface AiConstants {
     }
 
     /**
-     * 沙箱后端类型。仅 WORKSPACE 型应用有效，决定文件/shell 执行的隔离环境。
-     * HOST 为宿主文件系统（无沙箱、无 shell）；其余对应 AgentScope 沙箱后端，启用 shell 工具与隔离。
+     * 工作区应用使用的沙箱后端。HOST 直接使用宿主文件系统，不提供 Shell 或沙箱隔离；
+     * 其他类型使用对应的 AgentScope 沙箱后端，并启用隔离环境中的 Shell 工具。
      */
     @Getter
     @AllArgsConstructor
@@ -122,8 +122,7 @@ public interface AiConstants {
     }
 
     /**
-     * 子代理工作区模式。ISOLATED（默认）在父 workspace 独立子目录执行、互不干扰；
-     * SHARED 与主 agent 共享同一 workspace。
+     * 子代理工作区模式。ISOLATED 在父工作区的独立子目录中执行；SHARED 与主 Agent 共用工作区。
      */
     @Getter
     @AllArgsConstructor
@@ -150,8 +149,8 @@ public interface AiConstants {
     }
 
     /**
-     * 子代理分类（{@code ai_sub_agent.category}）。SUB_AGENT 供主 Agent 路由委派；
-     * SCHEDULED_TASK 由调度器定时触发，不参与主 Agent 路由。
+     * {@code ai_sub_agent.category} 的取值。SUB_AGENT 可由主 Agent 路由调用；SCHEDULED_TASK
+     * 仅由调度器触发，不参与主 Agent 路由。
      */
     @Getter
     @AllArgsConstructor
@@ -383,8 +382,8 @@ public interface AiConstants {
     }
 
     /**
-     * Agent 状态存储类型（多轮记忆）。按部署形态配置：
-     * MEMORY/FILE 单节点；MYSQL/POSTGRES/REDIS 分布式（多副本共享）；OSS/COS 对象存储归档。
+     * Agent 多轮状态的存储类型。MEMORY 和 FILE 适用于单节点；MYSQL、POSTGRES 和 REDIS
+     * 支持多副本共享；OSS 和 COS 使用对象存储持久化。
      */
     @Getter
     @AllArgsConstructor
@@ -421,8 +420,8 @@ public interface AiConstants {
     }
 
     /**
-     * AgentScope Workspace 存储类型（部署级配置）。LOCAL 当前节点本地文件系统、仅适用于单节点；
-     * MYSQL/POSTGRES 通过 AgentScope {@code DistributedStore + RemoteFilesystem} 多节点共享 Workspace。
+     * AgentScope 工作区的部署级存储类型。LOCAL 使用当前节点的文件系统，仅适用于单节点部署；
+     * MYSQL 和 POSTGRES 通过 AgentScope 的分布式存储与远程文件系统支持多节点共享。
      */
     @Getter
     @AllArgsConstructor

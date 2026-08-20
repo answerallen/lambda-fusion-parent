@@ -28,8 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 
 /**
- * Agent 执行适配器：内部 ChatRun 直连已选定的 {@link HarnessAgent}，不经 Harness 网关二次路由。状态会话标识统一为
- * {@code (userId, ChatSession.id)}，封装状态读取、执行中断与未决工具调用闭合。
+ * 对话运行与 {@link HarnessAgent} 之间的执行适配器。内部执行直接调用已选定的 Agent，不再经过 Harness 网关路由；
+ * 状态会话统一使用 {@code (userId, ChatSession.id)} 标识，并在此封装事件流、中断和待确认工具调用处理。
  *
  * @author Jin
  */
@@ -72,7 +72,8 @@ public final class AgentExecutionAdapter {
     }
 
     /**
-     * 启动 Agent 事件流。每次调用新建 {@link RuntimeContext} 并直调 {@link HarnessAgent#streamEvents}。
+     * 启动 Agent 事件流。每次调用都创建独立的 {@link RuntimeContext}，并直接调用
+     * {@link HarnessAgent#streamEvents}。
      *
      * @param message 输入消息
      * @return Agent 事件流
@@ -101,8 +102,8 @@ public final class AgentExecutionAdapter {
     /**
      * 读取 Agent 状态中当前待确认的工具调用。
      *
-     * <p>口径与 AgentScope {@code getPendingToolUseIds} 一致：只取最后一条助手消息中的 ASKING 块——这是确认
-     * 三方校验（快照=决策=Agent）的共同基准；不得扫描全上下文，旧消息残留的未收尾 ASKING 块会让三方严格相等误判失败。
+     * <p>与 AgentScope 的 {@code getPendingToolUseIds} 保持一致，只检查最后一条助手消息中的 ASKING 块。
+     * 该范围是快照、用户决策和 Agent 状态三方校验的共同基准；若扫描更早消息，遗留块可能造成误判。
      *
      * @return 当前待确认工具调用
      * @throws AiBusinessException Agent 状态不可用或不存在待确认工具调用
@@ -125,7 +126,7 @@ public final class AgentExecutionAdapter {
                 if (!asking.isEmpty()) {
                     return asking;
                 }
-                // 最后一条助手消息无 ASKING：当前无待确认批次（不回退到更早消息）。
+                // 最后一条助手消息没有 ASKING 块，表示当前不存在待确认批次，不再回查历史消息。
                 break;
             }
         } catch (AiBusinessException exception) {
@@ -143,10 +144,10 @@ public final class AgentExecutionAdapter {
     }
 
     /**
-     * 将状态会话中遗留的未决工具调用补写为用户拒绝结果并落盘。
+     * 将状态会话中遗留的工具调用补写为用户拒绝结果并保存。
      *
-     * <p>ASKING 或未落结果的工具调用会阻塞同一状态会话后续调用；Run 停止、确认超时或异常终结时调用，等价于确认
-     * 恢复的拒绝分支，使会话可继续对话。幂等：无未决调用时为空操作。
+     * <p>ASKING 或缺少结果的工具调用会阻塞同一状态会话的后续请求。运行停止、确认超时或异常终结时调用本方法，
+     * 可闭合未决调用并恢复会话可用性；不存在未决调用时不产生修改。
      */
     public void denyPendingToolCalls() {
         ReActAgent delegate = agent.getDelegate();
@@ -154,7 +155,7 @@ public final class AgentExecutionAdapter {
         if (state == null || state.getContext() == null) {
             return;
         }
-        // 与 AgentScope getPendingToolUseIds 口径一致：最后一条助手消息的工具调用中，尚无对应结果的视为未决。
+        // 与 AgentScope 保持同一判定范围：最后一条助手消息中缺少对应结果的工具调用视为未决。
         Set<String> resultIds = state.getContext().stream()
                 .flatMap(message -> message.getContentBlocks(ToolResultBlock.class).stream())
                 .map(ToolResultBlock::getId)

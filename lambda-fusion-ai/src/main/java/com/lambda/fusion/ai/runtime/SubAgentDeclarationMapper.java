@@ -7,10 +7,9 @@ import io.agentscope.harness.agent.subagent.WorkspaceMode;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * 子代理实体 → harness {@link SubagentDeclaration} 纯函数转换（包级静态便于单测）。
- * 字段映射：{@code prompt → inlineAgentsBody}；{@code modelId → model}（fusion 模型ID，
- * 经 modelResolver 桥接到 {@link ModelResolver}，空 = 继承主 agent 模型）；
- * steps/temperature/topP/toolsAllow/skillsAllow 空值省略（走 harness 默认/全继承）。
+ * 将子代理实体转换为 Harness {@link SubagentDeclaration}。
+ * {@code prompt} 映射为内联指令，{@code modelId} 由 {@link ModelResolver} 解析；未指定模型时继承主 Agent。
+ * 其余可选参数为空时不写入声明，由 Harness 使用默认值或继承主 Agent 配置。
  *
  * @author Jin
  */
@@ -21,7 +20,7 @@ public final class SubAgentDeclarationMapper {
     static SubagentDeclaration toDeclaration(SubAgentEntity entity) {
         SubagentDeclaration.Builder builder = SubagentDeclaration.builder()
                 .name(entity.getName())
-                // description 是主 agent 路由的唯一依据（保存时已强制非空）
+                // 主 Agent 根据 description 选择子代理，保存入口已保证该字段非空。
                 .description(entity.getDescription())
                 .inlineAgentsBody(entity.getPrompt());
         if (StringUtils.isNotBlank(entity.getModelId())) {

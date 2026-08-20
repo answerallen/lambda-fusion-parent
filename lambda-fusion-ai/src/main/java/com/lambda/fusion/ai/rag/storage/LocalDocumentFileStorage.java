@@ -15,10 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * 本地目录文档原文件存储（默认）：{@code {root}/{tenantId}/{kbId}/{documentId}.{ext}}。
- * root 解析与 FILE state store 的目录习惯一致：显式配置
- * {@code lambda.fusion.ai.rag.document-storage.local.root} 优先，其次
- * {@code workspace.root/knowledge-files}，最后 {@code ~/.agentscope/fusion/knowledge-files}。
+ * 将文档原文件保存在本地目录，路径格式为 {@code {root}/{tenantId}/{kbId}/{documentId}.{ext}}。
+ * 根目录依次取文档存储的显式配置、{@code workspace.root/knowledge-files} 和用户目录下的默认路径。
  *
  * @author Jin
  */
@@ -66,7 +64,6 @@ public class LocalDocumentFileStorage implements DocumentFileStorage {
         }
     }
 
-    // root 解析：显式配置 > workspace.root/knowledge-files > ~/.agentscope/fusion/knowledge-files
     private Path resolveRoot() {
         String configured =
                 aiProperties.getRag().getDocumentStorage().getLocal().getRoot();
