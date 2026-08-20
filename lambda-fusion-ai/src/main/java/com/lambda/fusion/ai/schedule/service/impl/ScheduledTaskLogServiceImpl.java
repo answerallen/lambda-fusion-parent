@@ -7,7 +7,6 @@ import com.lambda.fusion.ai.schedule.mapper.ScheduledTaskLogMapper;
 import com.lambda.fusion.ai.schedule.model.ScheduledTaskLogPage;
 import com.lambda.fusion.ai.schedule.model.entity.ScheduledTaskLogEntity;
 import com.lambda.fusion.ai.schedule.service.ScheduledTaskLogService;
-import com.lambda.fusion.core.utils.TenantUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -17,8 +16,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 /**
- * 定时任务执行记录服务实现：双路径埋点写入（调度/手动），落库前经 {@link TenantUtils#withTenant}
- * 恢复归属租户上下文（Quartz worker / 手动触发线程无 HTTP 租户上下文，§5.1 后台任务例外）。
+ * 定时任务执行记录服务实现：双路径埋点写入（调度/手动）。
+ *
+ * <p>日志为运维观测数据，不做租户隔离（表无 tenant_id 列，跨租户可读），故写入不依赖
+ * 租户上下文，Quartz worker / 手动触发线程直接落库，无需恢复租户。
  *
  * @author Jin
  */
@@ -32,7 +33,6 @@ public class ScheduledTaskLogServiceImpl implements ScheduledTaskLogService {
 
     @Override
     public void record(
-            String tenantId,
             String taskId,
             String taskName,
             String triggerType,
@@ -42,21 +42,18 @@ public class ScheduledTaskLogServiceImpl implements ScheduledTaskLogService {
             LocalDateTime startedAt,
             LocalDateTime finishedAt) {
         try {
-            TenantUtils.withTenant(tenantId, () -> {
-                ScheduledTaskLogEntity entity = new ScheduledTaskLogEntity();
-                entity.setId(IdUtil.getSnowflakeNextIdStr());
-                entity.setTenantId(tenantId);
-                entity.setTaskId(taskId);
-                entity.setTaskName(taskName);
-                entity.setTriggerType(triggerType);
-                entity.setStatus(success ? TaskExecStatus.SUCCESS.name() : TaskExecStatus.FAILED.name());
-                entity.setOutput(output);
-                entity.setErrorMessage(StringUtils.left(errorMessage, 1024));
-                entity.setDurationMs(durationMillis(startedAt, finishedAt));
-                entity.setStartedAt(startedAt);
-                entity.setFinishedAt(finishedAt);
-                scheduledTaskLogMapper.insert(entity);
-            });
+            ScheduledTaskLogEntity entity = new ScheduledTaskLogEntity();
+            entity.setId(IdUtil.getSnowflakeNextIdStr());
+            entity.setTaskId(taskId);
+            entity.setTaskName(taskName);
+            entity.setTriggerType(triggerType);
+            entity.setStatus(success ? TaskExecStatus.SUCCESS.name() : TaskExecStatus.FAILED.name());
+            entity.setOutput(output);
+            entity.setErrorMessage(StringUtils.left(errorMessage, 1024));
+            entity.setDurationMs(durationMillis(startedAt, finishedAt));
+            entity.setStartedAt(startedAt);
+            entity.setFinishedAt(finishedAt);
+            scheduledTaskLogMapper.insert(entity);
         } catch (Exception e) {
             // 记录失败不反向影响任务执行结果，仅告警
             log.error("定时任务执行记录落库失败: taskId={}, triggerType={}", taskId, triggerType, e);

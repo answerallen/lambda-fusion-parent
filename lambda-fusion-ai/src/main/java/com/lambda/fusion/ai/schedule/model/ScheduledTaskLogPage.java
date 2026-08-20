@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * 定时任务执行记录分页查询：固定按任务过滤（租户由插件拼接），按开始时间倒序。
+ * 定时任务执行记录分页查询：按任务过滤（task_id 雪花 ID 全局唯一，无需租户条件），按开始时间倒序。
  *
  * @author Jin
  */

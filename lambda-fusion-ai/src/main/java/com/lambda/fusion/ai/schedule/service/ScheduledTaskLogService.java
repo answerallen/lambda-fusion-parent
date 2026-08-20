@@ -13,9 +13,9 @@ import java.time.LocalDateTime;
 public interface ScheduledTaskLogService {
 
     /**
-     * 记录一次执行（调度线程安全：内部恢复租户上下文后落库）。
+     * 记录一次执行。日志为运维观测数据，不做租户隔离（表无 tenant_id 列，跨租户可读），
+     * 写入不依赖租户上下文。
      *
-     * @param tenantId 归属租户
      * @param taskId 定时任务ID
      * @param taskName 任务名快照
      * @param triggerType 触发方式（SCHEDULED/MANUAL）
@@ -26,7 +26,6 @@ public interface ScheduledTaskLogService {
      * @param finishedAt 结束时间
      */
     void record(
-            String tenantId,
             String taskId,
             String taskName,
             String triggerType,

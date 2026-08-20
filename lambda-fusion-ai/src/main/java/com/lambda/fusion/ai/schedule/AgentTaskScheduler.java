@@ -168,7 +168,6 @@ public class AgentTaskScheduler {
             LocalDateTime startedAt,
             LocalDateTime finishedAt) {
         scheduledTaskLogService.record(
-                entity.getTenantId(),
                 entity.getId(),
                 entity.getName(),
                 TaskTriggerType.MANUAL.name(),

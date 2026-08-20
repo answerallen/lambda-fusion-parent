@@ -188,28 +188,29 @@
 
 定时任务执行后须「看得见」：每次执行（**定时 + 手动都记**）落一条记录，含任务、触发方式、状态、起止时间、
 耗时、错误信息、最终输出文本；前端在任务行内点「执行记录」查抽屉明细。简版定位：只记**结果 + 状态**，不记
-ReAct 过程明细；`output` 存全文。
+ReAct 过程明细；Java/API 字段 `output` 的全文存入数据库列 `result_output`，避开 JSqlParser 的 `OUTPUT` 关键字。
 
 ### 10.1 数据模型 `ai_scheduled_task_log`
 
-新建平行表（不复用 `ai_sub_agent`，记录是「调度器之外的落库事实」，§20.3 不与触发态双写冲突）。追加
-changeSet `lambda-ai-202608200012` 到 `lambda-ai-changelog.xml`（`MARK_RAN + not tableExists` 幂等，§6.1）：
+新建平行表（不复用 `ai_sub_agent`，记录是「调度器之外的落库事实」，§20.3 不与触发态双写冲突）。该表是
+跨租户可见的运维观测数据，不保存 `tenant_id` 和 BaseEntity 审计列；租户内查询必须先通过 `ai_sub_agent`
+完成任务所有权校验，再按全局唯一 `task_id` 查询。Liquibase 保留初始 changeSet `lambda-ai-202608200012`，
+并通过后续 changeSet 去租户/审计列、在表被手工删除时重建最终结构，以及把旧 `output` 列迁移为
+`result_output`（§6.1 禁止改写已执行 changeSet）：
 
 | 字段 | 类型 | 说明 |
 | :--- | :--- | :--- |
 | `id` | varchar(32) PK | 雪花 id |
-| `tenant_id` | varchar(32) NN | 租户（插件自动拼接查询条件） |
 | `task_id` | varchar(32) NN | 关联 `ai_sub_agent.id` |
 | `task_name` | varchar(128) | 任务名快照（删任务后仍可读） |
 | `trigger_type` | varchar(16) NN | `SCHEDULED`（定时）/ `MANUAL`（手动） |
 | `status` | varchar(16) NN | `SUCCESS` / `FAILED` |
-| `output` | longtext | Agent 最终输出全文（定时路径暂为空，见开放点） |
+| `result_output` | longtext | Agent 最终输出全文（Java/API 字段仍为 `output`；定时路径暂为空，见开放点） |
 | `error_message` | varchar(1024) | 失败信息（成功为空，截断 1024） |
 | `duration_ms` | bigint | 耗时毫秒 |
 | `started_at` / `finished_at` | datetime | 起止时间 |
-| + BaseEntity 审计列 | | created_by/at、updated_by/at |
 
-索引：`idx_ai_scheduled_task_log_task`(tenant_id, task_id, started_at)、`idx_ai_scheduled_task_log_status`(status, started_at)。
+索引：`idx_ai_scheduled_task_log_task`(task_id, started_at)、`idx_ai_scheduled_task_log_status`(status, started_at)。
 §6.2 同步：ai 域无对应 `docs/sql/la_*.sql` 参考脚本，不同步。
 
 ### 10.2 双路径埋点
@@ -227,13 +228,14 @@ changeSet `lambda-ai-202608200012` 到 `lambda-ai-changelog.xml`（`MARK_RAN + n
   - `jobWasExecuted`：按 `jobException` 判成败、`context.getFireTime()`/`getJobRunTime()` 取起止与耗时写记录，
     finally 清理租户上下文；`taskId` 由 (tenantId, category=SCHEDULED_TASK, name) 反查 `SubAgentMapper`。
 
-两处都调 `ScheduledTaskLogService.record(...)`，其内部 `TenantUtils.withTenant(tenantId, ...)` 恢复归属租户上下文后
-insert（§5.1 后台任务例外；**禁止** `@InterceptorIgnore`/手工 Wrapper，§5.2），落库异常只告警不反向影响执行结果。
+两处都调 `ScheduledTaskLogService.record(...)`。执行记录表本身无 `tenant_id`，其 Mapper 明确跳过租户行插件；
+Quartz 恢复的租户上下文仍用于执行期间访问 `ai_sub_agent` 等租户业务表。落库异常只告警，不反向影响执行结果。
 
 ### 10.3 查询与前端入口
 
 - 查询 API：`ScheduledTaskController` 加 `GET /v1/ai/scheduled-tasks/{id}/logs/page`，按 `task_id` 分页
-  （`ScheduledTaskLogPage extends PageQuery`，复用 §8.2 范式，租户由插件拼接）。
+  （`ScheduledTaskLogPage extends PageQuery`，复用 §8.2 范式）。Controller 路径先调用 `requireTask(id)`，由
+  `ai_sub_agent` 的租户过滤完成所有权校验，再以全局唯一 `task_id` 查询执行记录；不得绕过该校验直接暴露日志分页。
 - 前端：`api/ai/scheduled-task.ts` 加 `ScheduledTaskLog` 类型 + `pageScheduledTaskLogsApi`；`scheduled-task-table.vue`
   操作列加「执行记录」链接 → 打开 `scheduled-task-log-drawer.vue`（TDesign Drawer + `useVbenVxeGrid`：状态 Tag
   SUCCESS 绿/FAILED 红、触发方式、起止时间、耗时、错误；行点「详情」开二层抽屉看 output 全文）。

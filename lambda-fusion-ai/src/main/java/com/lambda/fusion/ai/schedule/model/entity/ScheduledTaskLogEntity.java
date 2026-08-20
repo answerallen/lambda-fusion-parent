@@ -3,30 +3,26 @@ package com.lambda.fusion.ai.schedule.model.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.lambda.fusion.core.entity.BaseEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 /**
  * 定时任务执行记录：一次执行（定时触发或手动触发）的落库事实，独立于调度器状态（§20.3）。
  *
+ * <p>只增不改的运维日志，无需审计列，故不继承 {@code BaseEntity}（时间已由
+ * {@code startedAt/finishedAt} 表达，记录由系统写入无「创建用户」）。
+ *
  * @author Jin
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
 @TableName("ai_scheduled_task_log")
 @Schema(description = "定时任务执行记录")
-public class ScheduledTaskLogEntity extends BaseEntity {
+public class ScheduledTaskLogEntity {
 
     @TableId("id")
     @Schema(description = "主键")
     private String id;
-
-    @TableField("tenant_id")
-    @Schema(description = "租户ID")
-    private String tenantId;
 
     @TableField("task_id")
     @Schema(description = "定时任务ID(ai_sub_agent.id)")
@@ -44,7 +40,7 @@ public class ScheduledTaskLogEntity extends BaseEntity {
     @Schema(description = "执行状态: SUCCESS|FAILED")
     private String status;
 
-    @TableField("output")
+    @TableField("result_output")
     @Schema(description = "Agent 最终输出全文(定时路径暂为空)")
     private String output;
 

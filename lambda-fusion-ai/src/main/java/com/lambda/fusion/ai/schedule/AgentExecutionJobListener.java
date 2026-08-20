@@ -25,9 +25,11 @@ import org.springframework.stereotype.Component;
  * <p>职责二合一：
  * <ul>
  *   <li>{@link #jobToBeExecuted}：按 JobDataMap 的 taskName({@code tenantId:name}）解析租户并恢复
- *   {@link TenantContextHolder}，补齐定时路径缺失的 DB 层租户上下文（契约 §5.1 后台任务例外）。</li>
+ *   {@link TenantContextHolder}，供本次执行内 Agent 工具访问租户表（如 {@code ai_sub_agent}）的
+ *   DB 层租户上下文（契约 §5.1 后台任务例外）。</li>
  *   <li>{@link #jobWasExecuted}：按 {@code jobException} 判成败、{@code getJobRunTime()} 取耗时，
- *   落一条 SCHEDULED 执行记录；清理租户上下文。</li>
+ *   落一条 SCHEDULED 执行记录；清理租户上下文。执行记录为运维观测数据，不做租户隔离
+ *   （表无 tenant_id 列），落库本身不依赖租户上下文。</li>
  * </ul>
  *
  * <p>注意：Quartz Job 不回传 Agent 返回的 {@code Msg}，定时路径 output 暂记空（见设计文档开放点）。
@@ -64,11 +66,12 @@ public class AgentExecutionJobListener implements JobListener {
     @Override
     public void jobWasExecuted(JobExecutionContext context, JobExecutionException jobException) {
         try {
-            String tenantId = parseTenantId(context);
             String taskName = parseTaskName(context);
-            if (StringUtils.isBlank(tenantId) || StringUtils.isBlank(taskName)) {
+            // taskName 是记录的核心标识，缺失则无法归因，直接跳过；tenantId 仅用于反查任务ID，可空
+            if (StringUtils.isBlank(taskName)) {
                 return;
             }
+            String tenantId = parseTenantId(context);
             boolean success = jobException == null;
             String errorMessage = success ? null : String.valueOf(jobException.getMessage());
             LocalDateTime finishedAt = LocalDateTime.now();
@@ -78,7 +81,6 @@ public class AgentExecutionJobListener implements JobListener {
                     : LocalDateTime.ofInstant(context.getFireTime().toInstant(), ZoneId.systemDefault());
             String taskId = resolveTaskId(tenantId, taskName);
             scheduledTaskLogService.record(
-                    tenantId,
                     taskId,
                     taskName,
                     TaskTriggerType.SCHEDULED.name(),
@@ -118,7 +120,7 @@ public class AgentExecutionJobListener implements JobListener {
     private String resolveTaskId(String tenantId, String taskName) {
         try {
             SubAgentEntity entity = subAgentMapper.selectOne(new LambdaQueryWrapper<SubAgentEntity>()
-                    .eq(SubAgentEntity::getTenantId, tenantId)
+                    .eq(StringUtils.isNotBlank(tenantId), SubAgentEntity::getTenantId, tenantId)
                     .eq(SubAgentEntity::getCategory, SubAgentCategory.SCHEDULED_TASK.getCode())
                     .eq(SubAgentEntity::getName, taskName));
             return entity == null ? taskName : entity.getId();
