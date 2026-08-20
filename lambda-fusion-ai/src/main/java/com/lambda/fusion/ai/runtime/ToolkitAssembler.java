@@ -36,6 +36,14 @@ public class ToolkitAssembler {
     private final ApplicationContext applicationContext;
     private final McpServerService mcpServerService;
 
+    /**
+     * -- GETTER --
+     *  共享的本地
+     *  Bean 列表（启动时扫描，只读）。
+     *  供无 App 维度的场景（如定时任务）按
+     *  白名单选择性注册。
+     */
+    @Getter
     private List<Object> localToolBeans = Collections.emptyList();
 
     /** 需要 HITL 确认的本地工具名（{@code @RequireConfirm} 声明，启动时扫描）。 */
@@ -81,14 +89,6 @@ public class ToolkitAssembler {
         }
         registerMcpServers(toolkit, app.getMcpServerIds());
         return toolkit;
-    }
-
-    /**
-     * 共享的本地 {@code @Tool} Bean 列表（启动时扫描，只读）。
-     * 供无 App 维度的场景（如定时任务）按 {@code tools_allow} 白名单选择性注册。
-     */
-    public List<Object> getLocalToolBeans() {
-        return localToolBeans;
     }
 
     private void registerMcpServers(Toolkit toolkit, List<String> mcpServerIds) {
