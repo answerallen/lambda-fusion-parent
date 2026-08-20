@@ -34,6 +34,16 @@ spring:
   threads:
     virtual:
       enabled: true
+  #### Quartz 定时任务调度：JDBC JobStore 持久化到主库 master + 集群;QRTZ_* 表由 Spring 自动建(initialize-schema=always) ####
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+    properties:
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.jobStore.isClustered: ${AI_SCHEDULE_CLUSTERED:true}
+      org.quartz.jobStore.clusterCheckinInterval: 20000
+      org.quartz.threadPool.threadCount: ${AI_SCHEDULE_THREAD_POOL_SIZE:4}
 logging:
   level:
     io:
@@ -176,4 +186,3 @@ lambda:
   cache:
     type: caffeine
     enabled: true
-

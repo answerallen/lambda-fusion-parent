@@ -78,7 +78,7 @@ public class AiProperties {
         /** Quartz 调度器实例标识(同 JVM 多调度器时区分;经 QuartzAgentSchedulerRegistry 关联)。 */
         private String schedulerId = "lambda-fusion-ai-scheduler";
 
-        /** Quartz worker 线程数(并发执行 Agent 的上限),仅自建内存调度器时生效。 */
+        /** Quartz worker 线程数(并发执行 Agent 的上限),映射 spring.quartz 的 threadPool.threadCount。 */
         @Min(1)
         @Max(64)
         private int threadPoolSize = 4;

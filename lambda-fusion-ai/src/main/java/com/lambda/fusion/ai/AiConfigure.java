@@ -82,12 +82,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.mybatis.spring.annotation.MapperScan;
+import org.quartz.Scheduler;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.quartz.autoconfigure.QuartzDataSource;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -817,21 +819,38 @@ public class AiConfigure {
 
     /**
      * 定时 Agent 任务调度装配：仅在 {@code lambda.fusion.ai.schedule.enabled=true} 且 Quartz 扩展
-     * 在 classpath 时注册。自建 Quartz 内存调度器（RAMJobStore），业务任务定义以
+     * 在 classpath 时注册。复用 Spring 装配的 {@link Scheduler}（spring-boot-starter-quartz，
+     * JDBC JobStore 持久化，支持集群；读 {@code spring.quartz.*}），业务任务定义以
      * {@code ai_sub_agent}(category=SCHEDULED_TASK) 为唯一事实来源，启动时经 {@code AgentTaskBootstrap}
-     * 重注册恢复。Bean 由 {@code AiConfigure} 组件扫描发现，此处仅注册调度器本身。
+     * 重注册恢复。
      */
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(name = "io.agentscope.extensions.scheduler.quartz.QuartzAgentScheduler")
     public static class ScheduleConfiguration {
 
+        /**
+         * 为 Quartz 显式指定主库 master 底层数据源：primary 是 dynamic-datasource 路由数据源，
+         * Quartz 后台线程直连会有路由歧义，故经 {@link StateStoreDataSources#resolveNamed} 锁定 master。
+         * 标注 {@link QuartzDataSource} 后，Spring Quartz 装配与 QRTZ_* 表初始化（initialize-schema=always）
+         * 都用该数据源，与业务表 ai_sub_agent 同库。
+         */
+        @Bean
+        @QuartzDataSource
+        @ConditionalOnBean(DataSource.class)
+        public DataSource quartzDataSource(DataSource dataSource) {
+            return StateStoreDataSources.resolveNamed(dataSource, "master");
+        }
+
+        /**
+         * 复用 Spring 装配的共享 {@link Scheduler}:autoStart(false) 因 Spring 自启；destroyMethod=""
+         * 不调用其 shutdown()（内部会误关共享 Scheduler）。
+         */
         @Bean(destroyMethod = "")
-        public QuartzAgentScheduler quartzAgentScheduler(AiProperties aiProperties) {
-            // 自建内存 Quartz 调度器；destroyMethod="" 交由 DisposableBean 之外的容器生命周期不管，
-            // 避免误关。生产 JDBC 持久化/集群为 §8 开放点，本期单机内存即可。
+        public QuartzAgentScheduler quartzAgentScheduler(AiProperties aiProperties, Scheduler scheduler) {
             return QuartzAgentScheduler.builder()
+                    .scheduler(scheduler)
                     .schedulerId(aiProperties.getSchedule().getSchedulerId())
-                    .autoStart(true)
+                    .autoStart(false)
                     .build();
         }
     }
