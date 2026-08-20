@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.runtime.tools;
+package com.fusion.startup.ai;
 
 import cn.hutool.core.util.HexUtil;
 import com.lambda.cloud.netty.protocol.annotation.ProtocolField;
@@ -30,6 +30,8 @@ import org.springframework.util.StringUtils;
  * （零重复）；首次解析前单独扫描注册 v16 包以覆盖 v17/v20 的同帧类型（全局注册表仅按帧类型键控，无版本维度），
  * 确定性按 v16 语义解析。加密帧（encryptFlag=0x01）需配置 {@code lambda.fusion.ai.ykc.encrypt-key}；工具不向模型抛异常，
  * 任何失败降级为可读错误说明。
+ * <p>
+ * (示例项目)
  *
  * @author zx
  */
