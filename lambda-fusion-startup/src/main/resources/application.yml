@@ -48,7 +48,7 @@ spring:
 logging:
   level:
     io:
-      agentscope.extensions: debug
+      agentscope.extensions: error
       lettuce: error
     com:
       zaxxer: error
