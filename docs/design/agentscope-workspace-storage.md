@@ -28,10 +28,21 @@ lambda:
             datasource: ${AI_WORKSPACE_MYSQL_DATASOURCE:master}
           postgres:
             datasource: ${AI_WORKSPACE_POSTGRES_DATASOURCE:ai-postgres}
+      memory:
+        max-output-tokens: ${AI_MEMORY_MAX_OUTPUT_TOKENS:32768}
+        model-timeout: ${AI_MEMORY_MODEL_TIMEOUT:3m}
+        flush:
+          mode: ${AI_MEMORY_FLUSH_MODE:THROTTLED}
+          min-gap: ${AI_MEMORY_FLUSH_MIN_GAP:10m}
 ```
 
 `lambda-fusion-ai` 的通用默认值为 `LOCAL`，保证既有单节点项目无配置升级。启动示例模块默认选择
 `MYSQL`，与其既有 MySQL Agent state store 配置保持一致。
+
+长期记忆仍由 AgentScope 的 flush 与 consolidation 负责写入。Lambda Fusion 只在它们共用的记忆模型外建立
+完整性边界：输出 Token 超过上限时由模型返回截断原因；若响应明确为 `length`、内容过滤等不完整状态，或调用超过
+`model-timeout`，模型流以错误结束。AgentScope 因而不会追加当日日记、覆盖 `MEMORY.md` 或推进 consolidation
+watermark，下一次维护仍可重试同一批日记。未返回 `finishReason` 的兼容模型保持原行为。
 
 远程 Workspace 必须同时使用分布式 Agent state store。若 Workspace 为 `MYSQL`/`POSTGRES`，而
 `state-store.type` 仍为 `MEMORY` 或 `FILE`，系统启动时直接失败，避免集群节点间状态与文件行为不一致。
@@ -84,8 +95,8 @@ HOST 模式下，以下 AgentScope 管理内容进入分布式 BaseStore：
 
 同一应用的不同用户允许并发调用模型。Agent 会话状态由 AgentScope 按 `(userId, sessionId)` 保护，Workspace
 共享文件的冲突则由具体文件系统能力或实际写工具的窄临界区处理，不能用应用级全流程串行掩盖。ChatRun 仅按
-同一 Session 的 phase-drained 信号顺序启动完整 AgentScope 源流，保证前一条记忆尾部和审计结束后再启动下一条；
-该非阻塞尾链不是 Workspace 锁，也不会影响同一应用的其他用户。
+同一 Session 的实例级 `drainedSignal` 顺序启动相邻 Run，保证前一 Run 的最终记忆尾部和审计结束后再启动下一条；
+HITL 新 phase 由同一实例在旧 phase 已排空后启动。该非阻塞尾链不是 Workspace 锁，也不会影响同一应用的其他用户。
 
 ## 5. 切换与运维约束
 

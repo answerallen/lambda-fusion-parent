@@ -359,7 +359,7 @@ public class AgentFactory {
                 .permissionContext(buildPermissionContext())
                 .stateStore(sharedStateStore(app.getId(), tenantId))
                 .workspace(hostWorkspace)
-                .memory(resolveMemoryConfig(aiProperties))
+                .memory(resolveMemoryConfig(aiProperties, model))
                 .skillFilter(resolveSkillFilter(app));
         AgentSkillRepository skillRepo = skillRepositoryResolver.resolve();
         if (skillRepo != null) {
@@ -390,16 +390,20 @@ public class AgentFactory {
         return builder.build();
     }
 
-    /** 将系统级记忆刷新策略映射为 AgentScope 官方配置，其余记忆参数保留框架默认值。 */
-    static MemoryConfig resolveMemoryConfig(AiProperties properties) {
-        AiProperties.Memory.Flush flush = properties.getMemory().getFlush();
+    /** 将系统级记忆刷新与模型安全边界映射为 AgentScope 官方配置。 */
+    static MemoryConfig resolveMemoryConfig(AiProperties properties, Model model) {
+        AiProperties.Memory memory = properties.getMemory();
+        AiProperties.Memory.Flush flush = memory.getFlush();
         MemoryConfig.FlushTrigger trigger =
                 switch (flush.getMode()) {
                     case ALWAYS -> MemoryConfig.FlushTrigger.always();
                     case THROTTLED -> MemoryConfig.FlushTrigger.throttled(flush.getMinGap());
                     case NEVER -> MemoryConfig.FlushTrigger.never();
                 };
-        return MemoryConfig.builder().flushTrigger(trigger).build();
+        return MemoryConfig.builder()
+                .model(new MemoryModelGuard(model, memory.getMaxOutputTokens(), memory.getModelTimeout()))
+                .flushTrigger(trigger)
+                .build();
     }
 
     /** 缓存键格式须与 {@link #invalidateApp(String)} 的应用前缀匹配规则保持一致。 */

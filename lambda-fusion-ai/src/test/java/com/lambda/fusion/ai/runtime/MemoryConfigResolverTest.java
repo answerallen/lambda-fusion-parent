@@ -1,8 +1,10 @@
 package com.lambda.fusion.ai.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.lambda.fusion.ai.AiProperties;
+import io.agentscope.core.model.Model;
 import io.agentscope.harness.agent.memory.MemoryConfig;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -12,17 +14,20 @@ class MemoryConfigResolverTest {
 
     @Test
     void defaultsToTenMinuteThrottle() {
-        MemoryConfig config = AgentFactory.resolveMemoryConfig(new AiProperties());
+        Model model = mock(Model.class);
+
+        MemoryConfig config = AgentFactory.resolveMemoryConfig(new AiProperties(), model);
 
         assertThat(config.flushTrigger().mode()).isEqualTo(MemoryConfig.FlushMode.THROTTLED);
         assertThat(config.flushTrigger().minGap()).isEqualTo(Duration.ofMinutes(10));
+        assertThat(config.model()).isNotNull().isNotSameAs(model);
     }
 
     @Test
     void mapsAlwaysMode() {
         AiProperties properties = properties(AiProperties.Memory.Flush.Mode.ALWAYS, Duration.ofMinutes(3));
 
-        MemoryConfig config = AgentFactory.resolveMemoryConfig(properties);
+        MemoryConfig config = AgentFactory.resolveMemoryConfig(properties, mock(Model.class));
 
         assertThat(config.flushTrigger()).isSameAs(MemoryConfig.FlushTrigger.always());
     }
@@ -31,7 +36,7 @@ class MemoryConfigResolverTest {
     void mapsNeverMode() {
         AiProperties properties = properties(AiProperties.Memory.Flush.Mode.NEVER, Duration.ofMinutes(3));
 
-        MemoryConfig config = AgentFactory.resolveMemoryConfig(properties);
+        MemoryConfig config = AgentFactory.resolveMemoryConfig(properties, mock(Model.class));
 
         assertThat(config.flushTrigger()).isSameAs(MemoryConfig.FlushTrigger.never());
     }
@@ -40,7 +45,7 @@ class MemoryConfigResolverTest {
     void mapsConfiguredThrottleGap() {
         AiProperties properties = properties(AiProperties.Memory.Flush.Mode.THROTTLED, Duration.ofMinutes(30));
 
-        MemoryConfig config = AgentFactory.resolveMemoryConfig(properties);
+        MemoryConfig config = AgentFactory.resolveMemoryConfig(properties, mock(Model.class));
 
         assertThat(config.flushTrigger().mode()).isEqualTo(MemoryConfig.FlushMode.THROTTLED);
         assertThat(config.flushTrigger().minGap()).isEqualTo(Duration.ofMinutes(30));
