@@ -11,7 +11,7 @@ import lombok.EqualsAndHashCode;
 /** 持久化的一次逻辑对话回合。 */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("la_ai_chat_run")
+@TableName("ai_chat_run")
 public class ChatRunEntity extends BaseEntity {
 
     @TableId("id")

@@ -6,35 +6,74 @@
 
 # 🚀 Lambda Fusion Framework
 
-**基于 lambda-cloud 构建的全栈企业级微服务业务开发框架**
+**企业级基础能力 × AI 智能平台，开箱即用的全栈微服务开发框架**
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-2025.1.x-brightblue.svg)](https://spring.io/projects/spring-cloud)
 [![JDK](https://img.shields.io/badge/JDK-21+-orange.svg)](https://www.oracle.com/java/technologies/javase-downloads.html)
+[![AgentScope](https://img.shields.io/badge/AgentScope-2.0-ff69b4.svg)](https://github.com/agentscope-ai/agentscope)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-   
+
 </div>
 
 ---
 
 ## 📋 项目简介
 
-Lambda Fusion 是一套面向企业的全栈微服务业务开发框架，基于 Spring Boot 4 / Spring Cloud 2025.1 / JDK 21 构建。在 [lambda-cloud-parent](https://gitee.com/westboy/lambda-cloud-parent) 基座之上，将权限、配置、数据字典、AI 智能平台等核心能力沉淀为开箱即用的 `lambda-fusion-*` starter，下游应用按需引入、聚焦业务，无需重复搭建基础设施。
+Lambda Fusion 是一套 **「企业级基础能力 + AI 智能平台」** 的全栈微服务开发框架，基于 Spring Boot 4 / Spring Cloud 2025.1 / JDK 21 构建，AI 能力由 **AgentScope 2.0** 多智能体运行时驱动。
 
-### ✨ 核心特性
+在 [lambda-cloud-parent](https://gitee.com/westboy/lambda-cloud-parent) 基座之上，框架将两条主线能力统一沉淀为开箱即用的 `lambda-fusion-*` starter：
 
-- 🔐 **权限体系** - RBAC + 轻量级多租户支持(字段级隔离)
-- ⚙️ **动态配置** - 数据库配置源 + 热更新 + Nacos 发布
-- 📚 **数据字典** - 静态 / 动态字典，枚举扫描注册
-- 🤖 **AI 智能平台** - 智能应用、LLM 管理、知识库 RAG、子代理、MCP、技能市场、通道网关
+- 🏢 **企业级基础能力**：权限、多租户、配置、字典、数据源、附件 —— 业务系统的生产级底座
+- 🤖 **大模型应用开发**：智能体、知识库 RAG、LLM 管理、子代理、技能市场、MCP、通道网关 —— 让系统长出 AI 能力
 
+
+## 🏢 企业级基础能力
+
+业务系统的生产级底座，覆盖后台管理的高频刚需：
+
+| 能力 | 说明 |
+|------|------|
+| 🔐 **权限体系** | 完整 RBAC：用户、角色、组织、资源（菜单/按钮/API）、客户端管理；Sa-Token 认证、SSO、动态菜单 |
+| 🏠 **多租户** | 轻量 tenant_id 字段级隔离，可完全复用 RBAC 能力 |
+| 🛡️ **细粒度授权** | API 权限元数据（client/server）+ 数据权限授权树 |
+| ⚙️ **动态配置** | 数据库配置源 + 热更新 + Nacos 发布 |
+| 📚 **数据字典** | 静态 / 动态字典，枚举扫描自动注册 |
+| 🗄️ **动态数据源** | server/client 多数据源管理，Dubbo 分发 |
+| 📤 **附件管理** | 七牛 / S3 对象存储 |
+
+## 🤖 AI应用开发能力
+
+`lambda-fusion-ai` 基于 **AgentScope 2.0** 构建，覆盖 **模型接入 → 知识增强 → Agent 编排 → 通道落地** 的完整链路：
+
+### 🧠 智能应用
+
+| 形态 | 说明 |
+|------|------|
+| 💬 **CHAT 型** | 轻量对话应用，SSE 流式输出，开箱即用 |
+| 🕹️ **AGENTIC 型** | 具备工具调用与自主规划能力的智能体应用 |
+
+### 🧰 核心能力
+
+| 能力 | 说明 |
+|------|------|
+| ♻️ **自演化** | 应用在运行过程中持续自我优化演进 |
+| 🖥️ **多沙箱后端** | 代码与工具执行环境隔离，支持多种沙箱实现按需切换 |
+| 📚 **知识库 RAG** | 文档切块入库，基于 pgvector 的向量检索，提供 `GENERIC` / `AGENTIC` / `BOTH` 三种检索注入模式 |
+| 🧠 **LLM 管理** | 大模型统一接入与集中管理，模型能力即插即用 |
+| 🧩 **子代理（Sub-Agent）** | DB 驱动的子代理体系，定义持久化、运行可编排 |
+| 🛠️ **技能市场** | 技能注册、沉淀与复用，Agent 能力可插拔扩展 |
+| 🔌 **MCP 工具接入** | 原生支持 Model Context Protocol，接入开放的 MCP 工具生态 |
+| 📨 **通道网关** | 钉钉 / 飞书 / 企业微信通道适配，智能体能力直达 IM 工作场景 |
 
 ## 🏗️ 项目架构
 
-采用模块化设计，各模块职责清晰，可按需引入：
+模块化设计，双引擎并列，各模块职责清晰、按需引入：
 
 ```
 lambda-fusion-parent/
+├── 🤖 lambda-fusion-ai/                   # AI 智能平台（基于 AgentScope 2.0）
+│   #   智能应用 / 知识库 RAG / LLM / 子代理 / 技能市场 / MCP / 通道网关 / 沙箱
 ├── 📦 lambda-fusion-bom/                  # BOM 依赖管理
 ├── 🎯 lambda-fusion-core/                 # 核心模块（分页/CRUD/树/字典/身份）
 ├── 🔐 lambda-fusion-authority-api/        # 权限 API（Dubbo 远程认证 + Sa-Token 适配）
@@ -46,67 +85,49 @@ lambda-fusion-parent/
 ├── 📚 lambda-fusion-dictionary/           # 数据字典（静态/动态字典、枚举扫描）
 ├── 🗄️ lambda-fusion-datasource/           # 动态数据源管理（server/client、Dubbo 分发）
 ├── 📤 lambda-fusion-oss/                  # 附件管理（七牛/S3）
-├── 🤖 lambda-fusion-ai/                   # AI 模块（基于 AgentScope 2.0）
 └── 🚀 lambda-fusion-startup/              # 可运行演示应用（端口 20005）
 ```
 
-
-## 🎯 核心功能
-| 项目 | 说明                                                 | 
-|------|----------------------------------------------------|
-| 👤 **用户管理** | 用户信息维护、在线状态监控、密码策略管理                               |
-| 🎭 **角色管理** | 角色权限分配、角色组管理、角色继承                                  |
-| 🏢 **组织架构** | 多层级组织结构、部门管理、岗位管理                                  |
-| 📋 **资源管理** | 菜单权限、按钮权限、API 资源控制                                 |
-| 🔑 **客户端管理** | 客户端管理、授权、访问控制                                      |
-| 🏠 **多租户支持** | 轻量 tenant_id 字段级隔离，可完全复用RBAC能力               |
-| 🔒 **认证服务** | 用户认证、SSO 支持、动态菜单生成                                 |
-| 🤖 **智能应用** | CHAT/AGENTIC 两型、自演化、多沙箱后端、SSE 流式对话                 |
-| 🤖 **知识库 RAG** | 文档切块入库、pgvector 向量库、三种检索注入模式（GENERIC/AGENTIC/BOTH） |
-| 🤖 **子代理 / 技能 / MCP / 通道** | DB 驱动子代理、技能市场、MCP 工具接入、钉钉/飞书/企微通道适配                |
-
-
 ## 🛠️ 技术栈
 
-| 技术 | 版本     | 说明 |
-|------|--------|------|
-| ☕ **Java** | 21+    | 最新 LTS 版本，性能优异 |
-| 🍃 **Spring Boot** | 4.0.2  | 微服务开发框架 |
+| 技术 | 版本 | 说明 |
+|------|------|------|
+| ☕ **Java** | 21+ | 最新 LTS 版本，性能优异 |
+| 🍃 **Spring Boot** | 4.0.2 | 微服务开发框架 |
 | ☁️ **Spring Cloud** | 2025.1.x | 微服务生态组件 |
+| 🤖 **AgentScope** | 2.0 | AI 多智能体运行时（harness / 模型 / 沙箱 / 通道 / 技能 / RAG） |
+| 🐘 **pgvector** | Latest | PostgreSQL 向量检索（知识库 RAG） |
 | 🔐 **Sa-Token** | Latest | 轻量级权限认证框架 |
 | 💾 **MyBatis Plus** | Latest | 增强版 ORM 框架 |
-| 🔄 **MapStruct** | Latest |高性能对象映射 |
-| 🤖 **AgentScope** | 2.0 | AI 多智能体运行时（harness/模型/沙箱/通道/技能/RAG） |
-| 🌶️ **Lombok** |Latest | 简化 Java 代码 |
-| ☁️ **Nacos** |Latest | 配置中心 / 注册中心 |
-| ☁️ **Dubbo** |Latest | 远程认证 / 数据源 / 权限元数据同步 |
-| ☕ **Caffeine** |Latest | 高性能本地缓存 |
-| 🔧 **Hutool** |Latest | Java 工具类库 |
-
+| 🔄 **MapStruct** | Latest | 高性能对象映射 |
+| 🌶️ **Lombok** | Latest | 简化 Java 代码 |
+| ☁️ **Nacos** | Latest | 配置中心 / 注册中心 |
+| ☁️ **Dubbo** | Latest | 远程认证 / 数据源 / 权限元数据同步 |
+| ☕ **Caffeine** | Latest | 高性能本地缓存 |
+| 🔧 **Hutool** | Latest | Java 工具类库 |
 
 ## 🎨 预览与体验
 
 <div align="center">
 <table>
   <tr>
-    <td align="center"><img src="docs/images/img_0.png" alt="资源管理" width="420"/></td>
+    <td align="center"><img src="docs/images/img_5.png" alt="AI应用管理" width="420"/></td>
     <td align="center"><img src="docs/images/img_1.png" alt="用户管理" width="420"/></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/img_2.png" alt="系统配置" width="420"/></td>
-    <td align="center"><img src="docs/images/img_3.png" alt="字典管理" width="420"/></td>
+    <td align="center"><img src="docs/images/img_6.png" alt="AI对话体验" width="420"/></td>
+    <td align="center"><img src="docs/images/img_0.png" alt="资源管理" width="420"/></td>
   </tr>
   <tr>
     <td align="center"><img src="docs/images/img_4.png" alt="AI知识库" width="420"/></td>
-    <td align="center"><img src="docs/images/img_5.png" alt="AI应用管理" width="420"/></td>
+    <td align="center"><img src="docs/images/img_3.png" alt="字典管理" width="420"/></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/img_6.png" alt="AI对话体验" width="420"/></td>
     <td align="center"><img src="docs/images/img_7.png" alt="AI模型管理" width="420"/></td>
+    <td align="center"><img src="docs/images/img_2.png" alt="系统配置" width="420"/></td>
   </tr>
 </table>
 </div>
-
 
 ## 🚀 快速开始
 
@@ -137,9 +158,15 @@ lambda-fusion-parent/
 
 ### 使用模块
 
-根据需要引入具体模块：
+按需引入，两条引擎可独立使用、也可自由组合：
 
 ```xml
+<!-- AI 智能平台（基于 AgentScope 2.0） -->
+<dependency>
+    <groupId>com.lambda.cloud</groupId>
+    <artifactId>lambda-fusion-ai</artifactId>
+</dependency>
+
 <!-- 权限管理 -->
 <dependency>
     <groupId>com.lambda.cloud</groupId>
@@ -156,12 +183,6 @@ lambda-fusion-parent/
 <dependency>
     <groupId>com.lambda.cloud</groupId>
     <artifactId>lambda-fusion-dictionary</artifactId>
-</dependency>
-
-<!-- AI 智能平台（基于 AgentScope 2.0） -->
-<dependency>
-    <groupId>com.lambda.cloud</groupId>
-    <artifactId>lambda-fusion-ai</artifactId>
 </dependency>
 ```
 
@@ -193,15 +214,13 @@ mvn -pl lambda-fusion-ai test -Dtest=AgentGraphTest#shouldRoute
 
 ## 📖 生态依赖
 
-- **[lambda-cloud-parent](https://gitee.com/westboy/lambda-cloud-parent)** - 核心基座，封装底层自动化配置与基础工具类
-- **[lambda-cloud-project-parent](https://gitee.com/westboy/lambda-cloud-project-parent)** - 统管项目依赖版本与 Maven 构建标准
-- **[lambda-fusion-web](https://gitee.com/westboy/lambda-fusion-web)** - 基于 Vben Admin 构建的现代化前端界面
-
+- **[lambda-cloud-parent](https://gitee.com/westboy/lambda-cloud-parent)** — 核心基座，封装底层自动化配置与基础工具类
+- **[lambda-cloud-project-parent](https://gitee.com/westboy/lambda-cloud-project-parent)** — 统管项目依赖版本与 Maven 构建标准
+- **[lambda-fusion-web](https://gitee.com/westboy/lambda-fusion-web)** — 基于 Vben Admin 构建的现代化前端界面
 
 ## 📚 相关资源
 
 - 🎯 [实战项目示例](https://gitee.com/westboy/lambda-fusion-admin)
-
 
 ## 📄 开源协议
 

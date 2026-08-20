@@ -82,6 +82,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.annotation.DubboService;
+import org.jspecify.annotations.NonNull;
 import org.mybatis.spring.annotation.MapperScan;
 import org.quartz.Scheduler;
 import org.redisson.api.RedissonClient;
@@ -839,10 +840,10 @@ public class AiConfigure {
          * 数据源，Quartz 后台线程直连会有路由歧义，故经 {@link StateStoreDataSources#resolveNamed}
          * 解析出配置的底层 ds（默认主库 master）覆盖注入。本类自身实现 SchedulerFactoryBeanCustomizer,
          * 不另立 @QuartzDataSource DataSource bean,避免与 primary 形成多候选导致 Spring Quartz 的
-         * @ConditionalOnSingleCandidate 失效而不装配数据源。
+         * &#064;ConditionalOnSingleCandidate  失效而不装配数据源。
          */
         @Override
-        public void customize(SchedulerFactoryBean schedulerFactoryBean) {
+        public void customize(@NonNull SchedulerFactoryBean schedulerFactoryBean) {
             String dsName = aiProperties.getSchedule().getDatasource();
             DataSource resolved = StateStoreDataSources.resolveNamed(dataSource, dsName);
             if (resolved == null) {

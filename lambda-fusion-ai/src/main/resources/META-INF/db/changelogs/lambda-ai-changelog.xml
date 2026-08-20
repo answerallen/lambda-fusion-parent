@@ -579,15 +579,15 @@
     </changeSet>
 
     <!-- ========== 可恢复对话 Run ========== -->
-    <changeSet id="lambda-ai-202608130001" author="Jin">
+    <changeSet id="lambda-ai-2026081300011" author="Jin">
         <preConditions onFail="MARK_RAN">
             <not>
-                <tableExists tableName="la_ai_chat_run"/>
+                <tableExists tableName="ai_chat_run"/>
             </not>
         </preConditions>
-        <createTable tableName="la_ai_chat_run" remarks="可恢复对话运行">
+        <createTable tableName="ai_chat_run" remarks="可恢复对话运行">
             <column name="id" type="varchar(32)" remarks="业务Run ID">
-                <constraints primaryKey="true" primaryKeyName="pk_la_ai_chat_run" nullable="false"/>
+                <constraints primaryKey="true" primaryKeyName="pk_ai_chat_run" nullable="false"/>
             </column>
             <column name="tenant_id" type="varchar(32)" remarks="租户ID">
                 <constraints nullable="false"/>
@@ -627,16 +627,16 @@
             <column name="updated_by" type="varchar(128)" remarks="更新用户"/>
             <column name="updated_at" type="datetime" remarks="更新时间"/>
         </createTable>
-        <createIndex tableName="la_ai_chat_run" indexName="uk_la_ai_chat_run_request" unique="true">
+        <createIndex tableName="ai_chat_run" indexName="uk_ai_chat_run_request" unique="true">
             <column name="session_id"/>
             <column name="client_request_id"/>
         </createIndex>
-        <createIndex tableName="la_ai_chat_run" indexName="idx_la_ai_chat_run_session">
+        <createIndex tableName="ai_chat_run" indexName="idx_ai_chat_run_session">
             <column name="tenant_id"/>
             <column name="session_id"/>
             <column name="created_at"/>
         </createIndex>
-        <createIndex tableName="la_ai_chat_run" indexName="idx_la_ai_chat_run_status">
+        <createIndex tableName="ai_chat_run" indexName="idx_ai_chat_run_status">
             <column name="status"/>
             <column name="updated_at"/>
         </createIndex>
