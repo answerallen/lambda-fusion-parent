@@ -17,9 +17,11 @@ import com.lambda.fusion.ai.exception.AiErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -78,7 +80,9 @@ public class ChatController {
     @PostMapping(value = "/{id}/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chat(
             @Parameter(description = "会话ID", required = true) @PathVariable String id,
-            @RequestBody @Valid SendMessage dto) {
+            @RequestBody @Valid SendMessage dto,
+            HttpServletResponse response) {
+        prepareSseResponse(response);
         return chatService.streamChat(id, dto);
     }
 
@@ -103,7 +107,9 @@ public class ChatController {
             @Parameter(description = "Run ID", required = true) @PathVariable String runId,
             @RequestParam(required = false) Long afterSeq,
             @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
-            @RequestParam(defaultValue = "false") boolean bootstrap) {
+            @RequestParam(defaultValue = "false") boolean bootstrap,
+            HttpServletResponse response) {
+        prepareSseResponse(response);
         return chatService.resume(id, runId, resolveCursor(runId, afterSeq, lastEventId), bootstrap);
     }
 
@@ -112,7 +118,9 @@ public class ChatController {
     public SseEmitter confirmRun(
             @Parameter(description = "会话ID", required = true) @PathVariable String id,
             @Parameter(description = "Run ID", required = true) @PathVariable String runId,
-            @RequestBody @Valid ConfirmToolCall dto) {
+            @RequestBody @Valid ConfirmToolCall dto,
+            HttpServletResponse response) {
+        prepareSseResponse(response);
         return chatService.confirm(id, runId, dto);
     }
 
@@ -148,6 +156,11 @@ public class ChatController {
         } catch (NumberFormatException invalidCursor) {
             throw invalidCursor("Last-Event-ID", invalidCursor);
         }
+    }
+
+    private static void prepareSseResponse(HttpServletResponse response) {
+        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache, no-transform");
+        response.setHeader("X-Accel-Buffering", "no");
     }
 
     private static AiBusinessException invalidCursor(String parameter, Throwable cause) {

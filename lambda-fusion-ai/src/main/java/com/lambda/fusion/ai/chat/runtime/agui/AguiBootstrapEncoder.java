@@ -31,26 +31,34 @@ public final class AguiBootstrapEncoder {
     public static List<String> encode(ChatRunEntity run, ExecutionSnapshot snapshot, long highWatermark) {
         AguiBootstrapEventCollector collector = new AguiBootstrapEventCollector(run, highWatermark);
         collector.add(fields("type", "RUN_STARTED", "phaseNo", run.getPhaseNo()));
-        appendReasoning(collector, snapshot);
+        boolean reopenReasoningAfterTools = appendReasoning(collector, snapshot);
         appendTools(collector, snapshot);
+        if (reopenReasoningAfterTools) {
+            reopenReasoning(collector, snapshot);
+        }
         appendText(collector, snapshot);
         appendTerminal(collector, run, snapshot);
         return collector.events();
     }
 
-    private static void appendReasoning(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {
+    private static boolean appendReasoning(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {
         if (snapshot.reasoning().isEmpty()) {
-            return;
+            return false;
         }
         String messageId = valueOrDefault(snapshot.reasoningMessageId(), "reasoning-" + collector.chatRunId());
         collector.add(fields("type", "REASONING_START", "messageId", messageId));
         collector.add(fields("type", "REASONING_MESSAGE_START", "messageId", messageId, "role", "reasoning"));
         collector.add(
                 fields("type", "REASONING_MESSAGE_CONTENT", "messageId", messageId, "delta", snapshot.reasoning()));
-        if (!snapshot.reasoningOpen()) {
+
+        // 快照只保存累计推理文本，无法还原工具前后的精确分段。当存在历史工具且推理仍打开时，
+        // 先关闭恢复出来的累计推理块，避免前端把随后恢复的工具嵌套进 reasoning；工具恢复后再打开空块承接实时增量。
+        boolean reopenAfterTools = snapshot.reasoningOpen() && !snapshot.tools().isEmpty();
+        if (!snapshot.reasoningOpen() || reopenAfterTools) {
             collector.add(fields("type", "REASONING_MESSAGE_END", "messageId", messageId));
             collector.add(fields("type", "REASONING_END", "messageId", messageId));
         }
+        return reopenAfterTools;
     }
 
     private static void appendTools(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {
@@ -78,6 +86,12 @@ public final class AguiBootstrapEncoder {
                         "tool-result-" + tool.toolCallId()));
             }
         }
+    }
+
+    private static void reopenReasoning(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {
+        String messageId = valueOrDefault(snapshot.reasoningMessageId(), "reasoning-" + collector.chatRunId());
+        collector.add(fields("type", "REASONING_START", "messageId", messageId));
+        collector.add(fields("type", "REASONING_MESSAGE_START", "messageId", messageId, "role", "reasoning"));
     }
 
     private static void appendText(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {

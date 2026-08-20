@@ -67,6 +67,43 @@ class AguiBootstrapEncoderTest {
     }
 
     @Test
+    void shouldCloseRestoredReasoningAroundToolsAndReopenItForLiveDeltas() {
+        ChatRunEntity run = run(ChatRunStatus.RUNNING);
+        ExecutionSnapshot snapshot = new ExecutionSnapshot(
+                run.getId(),
+                run.getAguiRunId(),
+                2,
+                "",
+                "restored thought",
+                null,
+                "reasoning-1",
+                false,
+                true,
+                List.of(new ExecutionSnapshot.Tool("tool-1", "search", "{q:1}", "result", "complete")),
+                List.of());
+
+        List<String> events = AguiBootstrapEncoder.encode(run, snapshot, 18);
+
+        assertThat(events.stream().map(AguiEventJsonCodec::readEventType))
+                .containsExactly(
+                        "RUN_STARTED",
+                        "REASONING_START",
+                        "REASONING_MESSAGE_START",
+                        "REASONING_MESSAGE_CONTENT",
+                        "REASONING_MESSAGE_END",
+                        "REASONING_END",
+                        "TOOL_CALL_START",
+                        "TOOL_CALL_ARGS",
+                        "TOOL_CALL_END",
+                        "TOOL_CALL_RESULT",
+                        "REASONING_START",
+                        "REASONING_MESSAGE_START");
+        assertThat(events)
+                .filteredOn(event -> event.contains("restored thought"))
+                .hasSize(1);
+    }
+
+    @Test
     void shouldRestoreAwaitingConfirmationAsInterrupt() {
         ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM);
         ExecutionSnapshot snapshot = new ExecutionSnapshot(
