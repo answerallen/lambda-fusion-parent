@@ -2,10 +2,12 @@ package com.lambda.fusion.ai.schedule;
 
 import com.lambda.cloud.mybatis.tenant.TenantContextHolder;
 import com.lambda.fusion.ai.AiConstants.ScheduleMode;
+import com.lambda.fusion.ai.AiConstants.TaskTriggerType;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.runtime.ModelResolver;
 import com.lambda.fusion.ai.runtime.ToolkitAssembler;
+import com.lambda.fusion.ai.schedule.service.ScheduledTaskLogService;
 import com.lambda.fusion.ai.subagent.model.entity.SubAgentEntity;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.agentscope.core.message.Msg;
@@ -20,6 +22,7 @@ import io.agentscope.extensions.scheduler.config.RuntimeAgentConfig;
 import io.agentscope.extensions.scheduler.config.ScheduleConfig;
 import io.agentscope.extensions.scheduler.quartz.QuartzAgentScheduler;
 import java.lang.reflect.Method;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +56,7 @@ public class AgentTaskScheduler {
     private final QuartzAgentScheduler agentScheduler;
     private final ModelResolver modelResolver;
     private final ToolkitAssembler toolkitAssembler;
+    private final ScheduledTaskLogService scheduledTaskLogService;
 
     /** 调度内唯一名：租户隔离，避免跨租户同名冲突。 */
     public static String scheduleName(String tenantId, String name) {
@@ -136,19 +140,43 @@ public class AgentTaskScheduler {
                 new BaseScheduleAgentTask(agentConfig, ScheduleConfig.builder().build(), agentScheduler);
         ScheduleAgentTask<Msg> tenantTask = new TenantAwareTask(task, entity.getTenantId());
         Msg input = buildInput(entity);
+        LocalDateTime startedAt = LocalDateTime.now();
         try {
-            if (input != null) {
-                tenantTask.run(input).block();
-            } else {
-                tenantTask.run().block();
-            }
+            Msg result = (input != null)
+                    ? tenantTask.run(input).block()
+                    : tenantTask.run().block();
+            LocalDateTime finishedAt = LocalDateTime.now();
             log.info("定时任务已手动触发执行完成: name={}", entity.getName());
-        } catch (AiBusinessException e) {
-            throw e;
+            recordExecution(entity, true, result == null ? null : result.getTextContent(), null, startedAt, finishedAt);
         } catch (Exception e) {
+            LocalDateTime finishedAt = LocalDateTime.now();
             log.error("定时任务手动触发执行失败: name={}", entity.getName(), e);
+            recordExecution(entity, false, null, e.getMessage(), startedAt, finishedAt);
+            if (e instanceof AiBusinessException be) {
+                throw be;
+            }
             throw new AiBusinessException(AiErrorCode.SCHEDULED_TASK_CONFIG_INVALID, "手动触发执行失败: " + e.getMessage());
         }
+    }
+
+    /** 记录一次手动执行（MANUAL）；落库失败不影响执行结果。 */
+    private void recordExecution(
+            SubAgentEntity entity,
+            boolean success,
+            String output,
+            String errorMessage,
+            LocalDateTime startedAt,
+            LocalDateTime finishedAt) {
+        scheduledTaskLogService.record(
+                entity.getTenantId(),
+                entity.getId(),
+                entity.getName(),
+                TaskTriggerType.MANUAL.name(),
+                success,
+                output,
+                errorMessage,
+                startedAt,
+                finishedAt);
     }
 
     // ---------- 实体 → 配置 转换 ----------

@@ -32,6 +32,7 @@ import com.lambda.fusion.ai.runtime.state.StateStoreDataSources;
 import com.lambda.fusion.ai.runtime.state.StateStoreProvider;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceDistributedStoreProvider;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceStorage;
+import com.lambda.fusion.ai.schedule.AgentExecutionJobListener;
 import com.lambda.fusion.ai.skill.SkillRepositoryProvider;
 import com.lambda.fusion.authority.api.RemoteUserService;
 import com.qcloud.cos.COSClient;
@@ -861,6 +862,21 @@ public class AiConfigure {
                     .schedulerId(aiProperties.getSchedule().getSchedulerId())
                     .autoStart(false)
                     .build();
+        }
+
+        /**
+         * 注册定时任务执行监听器到共享 Scheduler：覆盖定时触发路径的租户恢复与执行记录落库
+         * （手动触发路径由 {@code AgentTaskScheduler.runOnce} 自行记录）。注册失败仅告警，不阻塞启动。
+         */
+        @Bean
+        public Boolean agentExecutionJobListenerRegistration(Scheduler scheduler, AgentExecutionJobListener listener) {
+            try {
+                scheduler.getListenerManager().addJobListener(listener);
+                return Boolean.TRUE;
+            } catch (Exception e) {
+                log.error("注册定时任务执行监听器失败", e);
+                return Boolean.FALSE;
+            }
         }
     }
 }

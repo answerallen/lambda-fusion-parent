@@ -2,8 +2,10 @@ package com.lambda.fusion.ai.schedule.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.fusion.ai.schedule.model.CreateScheduledTask;
+import com.lambda.fusion.ai.schedule.model.ScheduledTaskLogPage;
 import com.lambda.fusion.ai.schedule.model.ScheduledTaskPage;
 import com.lambda.fusion.ai.schedule.model.UpdateScheduledTask;
+import com.lambda.fusion.ai.schedule.model.entity.ScheduledTaskLogEntity;
 import com.lambda.fusion.ai.subagent.model.entity.SubAgentEntity;
 import org.quartz.Trigger.TriggerState;
 
@@ -36,4 +38,7 @@ public interface ScheduledTaskService {
 
     /** 查询调度状态。 */
     TriggerState status(String id);
+
+    /** 分页查询该任务的执行记录。 */
+    Page<ScheduledTaskLogEntity> pageLogs(String id, ScheduledTaskLogPage query);
 }

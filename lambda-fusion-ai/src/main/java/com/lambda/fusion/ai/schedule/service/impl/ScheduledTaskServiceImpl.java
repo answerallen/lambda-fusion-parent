@@ -11,8 +11,11 @@ import com.lambda.fusion.ai.llm.model.entity.LlmModelEntity;
 import com.lambda.fusion.ai.llm.service.LlmModelService;
 import com.lambda.fusion.ai.schedule.AgentTaskScheduler;
 import com.lambda.fusion.ai.schedule.model.CreateScheduledTask;
+import com.lambda.fusion.ai.schedule.model.ScheduledTaskLogPage;
 import com.lambda.fusion.ai.schedule.model.ScheduledTaskPage;
 import com.lambda.fusion.ai.schedule.model.UpdateScheduledTask;
+import com.lambda.fusion.ai.schedule.model.entity.ScheduledTaskLogEntity;
+import com.lambda.fusion.ai.schedule.service.ScheduledTaskLogService;
 import com.lambda.fusion.ai.schedule.service.ScheduledTaskService;
 import com.lambda.fusion.ai.subagent.mapper.SubAgentMapper;
 import com.lambda.fusion.ai.subagent.model.entity.SubAgentEntity;
@@ -41,6 +44,7 @@ public class ScheduledTaskServiceImpl implements ScheduledTaskService {
     private final SubAgentMapper subAgentMapper;
     private final LlmModelService llmModelService;
     private final AgentTaskScheduler agentTaskScheduler;
+    private final ScheduledTaskLogService scheduledTaskLogService;
 
     @Override
     public Page<SubAgentEntity> page(ScheduledTaskPage query) {
@@ -201,6 +205,13 @@ public class ScheduledTaskServiceImpl implements ScheduledTaskService {
     public TriggerState status(String id) {
         SubAgentEntity entity = requireTask(id);
         return agentTaskScheduler.status(entity.getTenantId(), entity.getName());
+    }
+
+    @Override
+    public Page<ScheduledTaskLogEntity> pageLogs(String id, ScheduledTaskLogPage query) {
+        requireTask(id);
+        query.setTaskId(id);
+        return scheduledTaskLogService.page(query);
     }
 
     /** 按启用态重排：启用→提交调度，禁用→取消调度。 */

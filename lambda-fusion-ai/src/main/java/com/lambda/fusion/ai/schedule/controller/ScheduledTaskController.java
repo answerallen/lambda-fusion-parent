@@ -4,8 +4,10 @@ import cn.dev33.satoken.annotation.SaCheckRole;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lambda.cloud.logger.annotation.OperationLog;
 import com.lambda.fusion.ai.schedule.model.CreateScheduledTask;
+import com.lambda.fusion.ai.schedule.model.ScheduledTaskLogPage;
 import com.lambda.fusion.ai.schedule.model.ScheduledTaskPage;
 import com.lambda.fusion.ai.schedule.model.UpdateScheduledTask;
+import com.lambda.fusion.ai.schedule.model.entity.ScheduledTaskLogEntity;
 import com.lambda.fusion.ai.schedule.service.ScheduledTaskService;
 import com.lambda.fusion.ai.subagent.model.entity.SubAgentEntity;
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,6 +55,14 @@ public class ScheduledTaskController {
     @GetMapping("/{id}/status")
     public TriggerState status(@Parameter(description = "任务ID", required = true) @PathVariable String id) {
         return scheduledTaskService.status(id);
+    }
+
+    @Operation(summary = "分页查询定时任务执行记录")
+    @GetMapping("/{id}/logs/page")
+    public Page<ScheduledTaskLogEntity> pageLogs(
+            @Parameter(description = "任务ID", required = true) @PathVariable String id,
+            @Valid ScheduledTaskLogPage query) {
+        return scheduledTaskService.pageLogs(id, query);
     }
 
     @OperationLog

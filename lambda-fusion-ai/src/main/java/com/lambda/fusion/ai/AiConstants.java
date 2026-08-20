@@ -200,6 +200,20 @@ public interface AiConstants {
         }
     }
 
+    /** 定时任务执行触发方式（{@code ai_scheduled_task_log.trigger_type}）。 */
+    enum TaskTriggerType {
+        /** 定时到点触发 */
+        SCHEDULED,
+        /** 手动触发 */
+        MANUAL
+    }
+
+    /** 定时任务执行状态（{@code ai_scheduled_task_log.status}）。 */
+    enum TaskExecStatus {
+        SUCCESS,
+        FAILED
+    }
+
     /**
      * 知识库检索模式（应用级，{@code ai_app.rag_mode}）。GENERIC 中间件自动检索注入（稳定保底）；
      * AGENTIC 注册 {@code retrieve_knowledge} 工具由模型自主检索（省 token）；BOTH 两者兼得。
