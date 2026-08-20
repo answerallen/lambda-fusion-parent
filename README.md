@@ -73,7 +73,6 @@ Lambda Fusion 是一套 **「企业级基础能力 + AI 智能平台」** 的全
 ```
 lambda-fusion-parent/
 ├── 🤖 lambda-fusion-ai/                   # AI 智能平台（基于 AgentScope 2.0）
-│   #   智能应用 / 知识库 RAG / LLM / 子代理 / 技能市场 / MCP / 通道网关 / 沙箱
 ├── 📦 lambda-fusion-bom/                  # BOM 依赖管理
 ├── 🎯 lambda-fusion-core/                 # 核心模块（分页/CRUD/树/字典/身份）
 ├── 🔐 lambda-fusion-authority-api/        # 权限 API（Dubbo 远程认证 + Sa-Token 适配）
