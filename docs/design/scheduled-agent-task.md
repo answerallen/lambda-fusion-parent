@@ -184,7 +184,67 @@
 2. FIXED_DELAY 首期是否支持（Quartz 原生不支持，扩展靠手动 reschedule）—— 默认首期 NONE/CRON/FIXED_RATE。
 3. 集群跨节点任务同步 —— 本期单机 JDBC JobStore 即可，`clustered` 作配置项预留，不做额外 Dubbo 广播（§20 不预埋）。
 
-## 10. 验证
+## 10. 执行记录
+
+定时任务执行后须「看得见」：每次执行（**定时 + 手动都记**）落一条记录，含任务、触发方式、状态、起止时间、
+耗时、错误信息、最终输出文本；前端在任务行内点「执行记录」查抽屉明细。简版定位：只记**结果 + 状态**，不记
+ReAct 过程明细；`output` 存全文。
+
+### 10.1 数据模型 `ai_scheduled_task_log`
+
+新建平行表（不复用 `ai_sub_agent`，记录是「调度器之外的落库事实」，§20.3 不与触发态双写冲突）。追加
+changeSet `lambda-ai-202608200012` 到 `lambda-ai-changelog.xml`（`MARK_RAN + not tableExists` 幂等，§6.1）：
+
+| 字段 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `id` | varchar(32) PK | 雪花 id |
+| `tenant_id` | varchar(32) NN | 租户（插件自动拼接查询条件） |
+| `task_id` | varchar(32) NN | 关联 `ai_sub_agent.id` |
+| `task_name` | varchar(128) | 任务名快照（删任务后仍可读） |
+| `trigger_type` | varchar(16) NN | `SCHEDULED`（定时）/ `MANUAL`（手动） |
+| `status` | varchar(16) NN | `SUCCESS` / `FAILED` |
+| `output` | longtext | Agent 最终输出全文（定时路径暂为空，见开放点） |
+| `error_message` | varchar(1024) | 失败信息（成功为空，截断 1024） |
+| `duration_ms` | bigint | 耗时毫秒 |
+| `started_at` / `finished_at` | datetime | 起止时间 |
+| + BaseEntity 审计列 | | created_by/at、updated_by/at |
+
+索引：`idx_ai_scheduled_task_log_task`(tenant_id, task_id, started_at)、`idx_ai_scheduled_task_log_status`(status, started_at)。
+§6.2 同步：ai 域无对应 `docs/sql/la_*.sql` 参考脚本，不同步。
+
+### 10.2 双路径埋点
+
+两条触发路径在**不同线程、不同收口点**，须分别埋点：
+
+- **手动路径**（经 HTTP）：收口在 `AgentTaskScheduler.runOnce()` 的 try/catch——同步 `.block()` 拿到结果
+  `Msg`，成功取 `Msg.getTextContent()` 记 SUCCESS，异常记 FAILED + error_message；记 started/finished/duration。
+  此处线程带 HTTP 租户上下文。
+- **定时路径**（Quartz worker 线程，**不经** `TenantAwareTask`）：扩展的 `AgentQuartzJob` 在 jar 内、拿不到返回
+  `Msg`，只能经全局 Quartz `JobListener` 观测。新增 `AgentExecutionJobListener implements JobListener`，注册到共享
+  `Scheduler`（`AiConfigure.ScheduleConfiguration` 里 `scheduler.getListenerManager().addJobListener(...)`）：
+  - `jobToBeExecuted`：按 JobDataMap 的 `taskName`（`tenantId:name`）解析 tenantId → `TenantContextHolder.setTenant(...)`
+    （**顺带补上** §6.2 中 `TenantAwareTask` 未覆盖定时路径的 DB 层租户缺口）；
+  - `jobWasExecuted`：按 `jobException` 判成败、`context.getFireTime()`/`getJobRunTime()` 取起止与耗时写记录，
+    finally 清理租户上下文；`taskId` 由 (tenantId, category=SCHEDULED_TASK, name) 反查 `SubAgentMapper`。
+
+两处都调 `ScheduledTaskLogService.record(...)`，其内部 `TenantUtils.withTenant(tenantId, ...)` 恢复归属租户上下文后
+insert（§5.1 后台任务例外；**禁止** `@InterceptorIgnore`/手工 Wrapper，§5.2），落库异常只告警不反向影响执行结果。
+
+### 10.3 查询与前端入口
+
+- 查询 API：`ScheduledTaskController` 加 `GET /v1/ai/scheduled-tasks/{id}/logs/page`，按 `task_id` 分页
+  （`ScheduledTaskLogPage extends PageQuery`，复用 §8.2 范式，租户由插件拼接）。
+- 前端：`api/ai/scheduled-task.ts` 加 `ScheduledTaskLog` 类型 + `pageScheduledTaskLogsApi`；`scheduled-task-table.vue`
+  操作列加「执行记录」链接 → 打开 `scheduled-task-log-drawer.vue`（TDesign Drawer + `useVbenVxeGrid`：状态 Tag
+  SUCCESS 绿/FAILED 红、触发方式、起止时间、耗时、错误；行点「详情」开二层抽屉看 output 全文）。
+
+### 10.4 开放点
+
+- **定时路径 `output` 为空**：Quartz `Job` 不回传 Agent 结果 `Msg`，`JobListener` 只能拿到状态/耗时/错误。首期定时
+  路径只记状态 + 错误，手动路径记全文。后续如需定时也记 output，用 `RuntimeAgentConfig.hooks` 注入 AgentScope Hook
+  在执行内捕获最终 `Msg`（两条路径通用）。
+
+## 11. 验证
 
 - 前置：先发 scheduler 并对齐 `agentscope.version`，确保 `_lambda_cloud_parent` 已 install（§1.3），
   `mvn -pl lambda-fusion-ai -am clean install` 能解析。
