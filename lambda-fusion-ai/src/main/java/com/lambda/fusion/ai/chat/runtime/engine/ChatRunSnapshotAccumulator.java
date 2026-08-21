@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime;
+package com.lambda.fusion.ai.chat.runtime.engine;
 
 import com.lambda.fusion.ai.chat.runtime.model.ExecutionSnapshotDelta;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;

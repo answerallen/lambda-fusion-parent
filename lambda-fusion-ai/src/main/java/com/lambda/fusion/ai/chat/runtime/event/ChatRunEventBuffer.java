@@ -221,10 +221,11 @@ final class ChatRunEventBuffer {
     /**
      * 根据已持久化序号初始化下一事件序号。
      *
-     * @param latestSeq 已持久化的最新事件序号
+     * @param latestSeq 已持久化的最新事件序号；{@code null} 按 {@code 0} 处理
      */
-    synchronized void initialize(long latestSeq) {
-        nextSeq = Math.max(nextSeq, latestSeq + 1);
+    synchronized void initialize(Long latestSeq) {
+        long seq = latestSeq == null ? 0L : latestSeq;
+        nextSeq = Math.max(nextSeq, seq + 1);
     }
 
     /**

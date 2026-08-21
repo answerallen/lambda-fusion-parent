@@ -44,9 +44,9 @@ public class ChatRunEventStore {
      * 初始化运行的事件序号。
      *
      * @param runId 运行标识
-     * @param latestSeq 已持久化的最新事件序号
+     * @param latestSeq 已持久化的最新事件序号；{@code null} 按 {@code 0} 处理
      */
-    public void initialize(String runId, long latestSeq) {
+    public void initialize(String runId, Long latestSeq) {
         buffer(runId).initialize(latestSeq);
     }
 

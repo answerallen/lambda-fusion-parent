@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime;
+package com.lambda.fusion.ai.chat.runtime.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -82,7 +82,7 @@ class ChatRunInstanceDrainTest {
         source.tryEmitNext(agentEnd());
 
         // 根 AGENT_END：业务终态已提交，但源流未终止，drainedSignal 不应完成，且未审计。
-        verify(runService).finalizeExecution(eq(instance.run), any(FinalizeCommand.class));
+        verify(runService).finalizeExecution(eq(instance.run()), any(FinalizeCommand.class));
         assertThat(instance.drainedSignal().toCompletableFuture()).isNotDone();
         verify(workspaceAuditRecorder, never()).recordChanges(any(), anyLong());
 
@@ -90,7 +90,7 @@ class ChatRunInstanceDrainTest {
         source.tryEmitComplete();
         assertThat(instance.drainedSignal().toCompletableFuture()).succeedsWithin(Duration.ofSeconds(2));
         ArgumentCaptor<Long> auditSince = ArgumentCaptor.forClass(Long.class);
-        verify(workspaceAuditRecorder).recordChanges(eq(instance.session), auditSince.capture());
+        verify(workspaceAuditRecorder).recordChanges(eq(instance.session()), auditSince.capture());
         assertThat(auditSince.getValue()).isGreaterThanOrEqualTo(beforeStart);
     }
 
@@ -107,7 +107,7 @@ class ChatRunInstanceDrainTest {
         // 业务终态后的记忆/维护尾部失败：Run 保持 COMPLETED，不改为 FAILED；源流终止仍完成排空。
         source.tryEmitError(new RuntimeException("memory flush failed"));
         assertThat(instance.drainedSignal().toCompletableFuture()).succeedsWithin(Duration.ofSeconds(2));
-        assertThat(instance.run.getStatus()).isEqualTo(ChatRunStatus.COMPLETED.name());
+        assertThat(instance.run().getStatus()).isEqualTo(ChatRunStatus.COMPLETED.name());
     }
 
     @Test
@@ -141,7 +141,7 @@ class ChatRunInstanceDrainTest {
             BooleanSupplier dbAction = invocation.getArgument(3);
             return dbAction.getAsBoolean();
         });
-        when(runService.awaitConfirm(eq(instance.run), any(ExecutionSnapshot.class), anyLong(), any()))
+        when(runService.awaitConfirm(eq(instance.run()), any(ExecutionSnapshot.class), anyLong(), any()))
                 .thenReturn(true);
 
         instance.startPhase(userMsg());
@@ -149,7 +149,7 @@ class ChatRunInstanceDrainTest {
         source.tryEmitNext(agentEnd());
 
         // 根 AGENT_END 后源流仍保持打开（模拟 MemoryFlush 尾部）：Run 仍是 RUNNING，提前确认必须拒绝且不暂存。
-        assertThat(instance.run.getStatus()).isEqualTo(ChatRunStatus.RUNNING.name());
+        assertThat(instance.run().getStatus()).isEqualTo(ChatRunStatus.RUNNING.name());
         assertThatThrownBy(() -> instance.confirm(command(1)))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(error -> assertThat(((AiBusinessException) error).getCode())
@@ -160,10 +160,10 @@ class ChatRunInstanceDrainTest {
         // 整个 AgentScope/Harness 源流排空后才提交待确认事实并发布中断事件。
         source.tryEmitComplete();
 
-        assertThat(instance.run.getStatus()).isEqualTo(ChatRunStatus.AWAITING_CONFIRM.name());
+        assertThat(instance.run().getStatus()).isEqualTo(ChatRunStatus.AWAITING_CONFIRM.name());
         assertThat(instance.drainedSignal().toCompletableFuture()).isNotDone();
-        verify(runService).awaitConfirm(eq(instance.run), any(ExecutionSnapshot.class), anyLong(), any());
-        verify(workspaceAuditRecorder).recordChanges(eq(instance.session), anyLong());
+        verify(runService).awaitConfirm(eq(instance.run()), any(ExecutionSnapshot.class), anyLong(), any());
+        verify(workspaceAuditRecorder).recordChanges(eq(instance.session()), anyLong());
     }
 
     @Test
@@ -180,7 +180,7 @@ class ChatRunInstanceDrainTest {
 
         verify(adapter, timeout(2_000)).interrupt();
         assertThat(cancelled.await(3, TimeUnit.SECONDS)).isTrue();
-        assertThat(instance.run.getStatus()).isEqualTo(ChatRunStatus.FAILED.name());
+        assertThat(instance.run().getStatus()).isEqualTo(ChatRunStatus.FAILED.name());
         assertThat(instance.drainedSignal().toCompletableFuture()).succeedsWithin(Duration.ofSeconds(2));
     }
 
@@ -208,7 +208,7 @@ class ChatRunInstanceDrainTest {
 
     private void stubTerminalCommit() {
         lenient()
-                .when(runService.finalizeExecution(eq(instance.run), any(FinalizeCommand.class)))
+                .when(runService.finalizeExecution(eq(instance.run()), any(FinalizeCommand.class)))
                 .thenAnswer(invocation -> {
                     FinalizeCommand command = invocation.getArgument(1);
                     return new FinalizeResult(

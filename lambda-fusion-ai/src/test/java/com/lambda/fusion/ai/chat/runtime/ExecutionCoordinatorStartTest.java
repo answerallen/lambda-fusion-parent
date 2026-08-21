@@ -19,6 +19,7 @@ import com.lambda.fusion.ai.chat.attachment.ChatAttachmentMessageBuilder;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstanceFactory;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;

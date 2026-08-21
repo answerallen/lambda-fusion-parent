@@ -15,6 +15,7 @@ import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstanceFactory;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;

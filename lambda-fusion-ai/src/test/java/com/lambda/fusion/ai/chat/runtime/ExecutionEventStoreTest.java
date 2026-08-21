@@ -32,7 +32,7 @@ class ExecutionEventStoreTest {
     @Test
     void shouldReplayThenContinueWithLiveEventsWithoutGap() throws Exception {
         store = newStore(64, 64);
-        store.initialize("run-1", 0);
+        store.initialize("run-1", 0L);
         append("run-1", "phase-1", "a");
         append("run-1", "phase-1", "b");
 
@@ -112,7 +112,7 @@ class ExecutionEventStoreTest {
     @Test
     void shouldNotifyAndDetachSlowSubscriberWhenQueueIsFull() throws Exception {
         store = newStore(64, 1);
-        store.initialize("run-1", 0);
+        store.initialize("run-1", 0L);
         List<Long> received = new CopyOnWriteArrayList<>();
         CountDownLatch consumerEntered = new CountDownLatch(1);
         CountDownLatch releaseConsumer = new CountDownLatch(1);
@@ -195,7 +195,7 @@ class ExecutionEventStoreTest {
     @Test
     void shouldPublishStagedEventsOnlyAfterCommit() throws Exception {
         store = newStore(64, 64);
-        store.initialize("run-1", 0);
+        store.initialize("run-1", 0L);
         List<Long> received = new CopyOnWriteArrayList<>();
         CountDownLatch published = new CountDownLatch(1);
         ChatRunEventSubscription subscription = store.subscribe(
@@ -222,7 +222,7 @@ class ExecutionEventStoreTest {
     @Test
     void shouldDiscardStagedEventsWhenCommitFails() throws Exception {
         store = newStore(64, 64);
-        store.initialize("run-1", 0);
+        store.initialize("run-1", 0L);
         List<Long> received = new CopyOnWriteArrayList<>();
         ChatRunEventSubscription subscription =
                 store.subscribe("run-1", 0, event -> received.add(event.seq()), error -> {});
@@ -242,7 +242,7 @@ class ExecutionEventStoreTest {
     @Test
     void shouldDiscardStagedEventsWhenCommitThrows() throws Exception {
         store = newStore(64, 64);
-        store.initialize("run-1", 0);
+        store.initialize("run-1", 0L);
         List<Long> received = new CopyOnWriteArrayList<>();
         ChatRunEventSubscription subscription =
                 store.subscribe("run-1", 0, event -> received.add(event.seq()), error -> {});

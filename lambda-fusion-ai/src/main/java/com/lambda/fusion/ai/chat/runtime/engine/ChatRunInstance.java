@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime;
+package com.lambda.fusion.ai.chat.runtime.engine;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
 import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
@@ -11,15 +11,14 @@ import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
 import com.lambda.fusion.ai.chat.runtime.agui.AgentEventInterpreter;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapEncoder;
-import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
+import com.lambda.fusion.ai.chat.runtime.engine.finalize.RunFinalizer;
+import com.lambda.fusion.ai.chat.runtime.engine.hitl.ConfirmationValidator;
+import com.lambda.fusion.ai.chat.runtime.engine.stream.AgentSourceStream;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
 import com.lambda.fusion.ai.chat.runtime.model.ExecutionInterpretation;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeResult;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotSanitizer;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
@@ -28,27 +27,15 @@ import com.lambda.fusion.core.utils.TenantUtils;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventType;
-import io.agentscope.core.event.ConfirmResult;
 import io.agentscope.core.message.Msg;
-import io.agentscope.core.message.ToolUseBlock;
-import io.agentscope.core.message.UserMessage;
-import io.agentscope.core.util.JsonUtils;
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import reactor.core.Disposable;
 
 /**
@@ -62,7 +49,7 @@ import reactor.core.Disposable;
  * @author Jin
  */
 @Slf4j
-final class ChatRunInstance {
+public final class ChatRunInstance {
 
     /** 终态提交的最大重试次数；达到上限后释放实例，避免局部故障永久占用运行容量。 */
     private static final int MAX_FINALIZE_ATTEMPTS = 100;
@@ -73,17 +60,17 @@ final class ChatRunInstance {
     private final ScheduledExecutorService scheduler;
     private final WorkspaceAuditRecorder workspaceAuditRecorder;
     private final CompletableFuture<Void> drainedSignal = new CompletableFuture<>();
+    private final RunFinalizer runFinalizer;
+    private final AgentSourceStream sourceStream;
 
-    final ChatRunEntity run;
-    final ChatSessionEntity session;
+    private final ChatRunEntity run;
+    private final ChatSessionEntity session;
     private final AgentExecutionAdapter agentExecutionAdapter;
     private final ChatRunSnapshotAccumulator accumulator;
     private boolean rootAgentEnded;
     private boolean terminal;
     private boolean sourceActive;
     private int finalizeAttempts;
-    private final AtomicReference<Disposable> disposable = new AtomicReference<>();
-    private final AtomicReference<ScheduledFuture<?>> interactionTimeout = new AtomicReference<>();
     private volatile long phaseStartedAtMillis = System.currentTimeMillis();
     private long lastCheckpointNanos = System.nanoTime();
     private AgentEventInterpreter agentEventInterpreter;
@@ -121,7 +108,19 @@ final class ChatRunInstance {
         this.session = session;
         this.agentExecutionAdapter = agentExecutionAdapter;
         this.accumulator = accumulator;
+        this.runFinalizer = new RunFinalizer(runService, eventStore, properties);
+        this.sourceStream = new AgentSourceStream(run.getId(), scheduler, properties);
         this.agentEventInterpreter = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
+    }
+
+    /** 运行实体。 */
+    public ChatRunEntity run() {
+        return run;
+    }
+
+    /** 会话实体。 */
+    public ChatSessionEntity session() {
+        return session;
     }
 
     /**
@@ -129,7 +128,7 @@ final class ChatRunInstance {
      *
      * @param task 待执行任务
      */
-    void runInTenant(Runnable task) {
+    public void runInTenant(Runnable task) {
         TenantUtils.withTenant(session.getTenantId(), task);
     }
 
@@ -141,7 +140,7 @@ final class ChatRunInstance {
      * @return 迁移结果；{@code resumed=false} 仅表示来源阶段已经被处理
      * @throws AiBusinessException 状态/阶段冲突、确认上下文不可用、决策非法或三方工具调用不一致
      */
-    synchronized ConfirmTransition confirm(ConfirmToolCall command) {
+    public synchronized ConfirmTransition confirm(ConfirmToolCall command) {
         Integer sourcePhaseNo = command == null ? null : command.getPhaseNo();
         if (sourcePhaseNo == null) {
             throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "phaseNo不能为空");
@@ -171,13 +170,14 @@ final class ChatRunInstance {
             beginConfirmedPhase();
             startPhase(confirmMessage);
         } catch (RuntimeException startFailure) {
-            finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSupport.safeMessage(startFailure));
+            finalizeFailed(ChatRunFailureCode.START_FAILED, ExecutionSnapshotSanitizer.safeMessage(startFailure));
         }
         return transition;
     }
 
     /**
-     * 校验确认命令并构造确认消息。读取 Agent 当前 ASKING 工具调用，要求快照、决策、Agent 三方 ID 一致。
+     * 校验确认命令并构造确认消息：委托 {@link ConfirmationValidator} 读取 Agent 当前 ASKING 工具调用，
+     * 要求快照、决策、Agent 三方 ID 一致。
      *
      * @param command 用户确认命令
      * @return 携带确认结果的下一阶段输入消息
@@ -187,53 +187,11 @@ final class ChatRunInstance {
         if (agentExecutionAdapter == null) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
         }
-        if (command.getDecisions() == null || command.getDecisions().isEmpty()) {
-            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "确认决策不能为空");
-        }
-        Set<String> decidedIds = new HashSet<>();
-        for (ConfirmToolCall.Decision decision : command.getDecisions()) {
-            if (StringUtils.isBlank(decision.getToolCallId()) || !decidedIds.add(decision.getToolCallId())) {
-                throw new AiBusinessException(
-                        AiErrorCode.INVALID_PARAMETER, "确认决策必须完整且不能重复: " + decision.getToolCallId());
-            }
-        }
-
-        Set<String> snapshotIds = new HashSet<>();
-        for (ExecutionSnapshot.Tool tool : accumulator.buildSnapshot().pendingTools()) {
-            if (!snapshotIds.add(tool.toolCallId())) {
-                throw contextMismatch("快照待确认工具ID重复: " + tool.toolCallId());
-            }
-        }
-        List<ToolUseBlock> askingBlocks = agentExecutionAdapter.readAskingToolBlocks();
-        Map<String, ToolUseBlock> blockById = new LinkedHashMap<>();
-        for (ToolUseBlock block : askingBlocks) {
-            if (blockById.put(block.getId(), block) != null) {
-                throw contextMismatch("Agent待确认工具ID重复: " + block.getId());
-            }
-        }
-        Set<String> agentAskingIds = blockById.keySet();
-        if (!snapshotIds.equals(decidedIds) || !snapshotIds.equals(agentAskingIds)) {
-            log.warn(
-                    "确认工具上下文不一致: runId={}, phaseNo={}, snapshotCount={}, decisionCount={}, agentAskingCount={}",
-                    run.getId(),
-                    command.getPhaseNo(),
-                    snapshotIds.size(),
-                    decidedIds.size(),
-                    agentAskingIds.size());
-            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH, run.getId());
-        }
-
-        List<ConfirmResult> results = command.getDecisions().stream()
-                .map(decision -> new ConfirmResult(decision.isConfirmed(), blockById.get(decision.getToolCallId())))
-                .toList();
-        return UserMessage.builder()
-                .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, results))
-                .build();
-    }
-
-    private AiBusinessException contextMismatch(String detail) {
-        log.warn("确认工具上下文不一致: runId={}, phaseNo={}, detail={}", run.getId(), run.getPhaseNo(), detail);
-        return new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH, run.getId());
+        return ConfirmationValidator.validateAndBuildMessage(
+                run,
+                accumulator.buildSnapshot().pendingTools(),
+                command.getDecisions(),
+                () -> agentExecutionAdapter.readAskingToolBlocks());
     }
 
     /** 将数据库迁移后的运行状态同步到实例内存对象。 */
@@ -256,7 +214,7 @@ final class ChatRunInstance {
      *
      * @param message 阶段输入消息
      */
-    synchronized void startPhase(Msg message) {
+    public synchronized void startPhase(Msg message) {
         if (terminal || isRunning()) {
             return;
         }
@@ -266,9 +224,9 @@ final class ChatRunInstance {
         }
         rootAgentEnded = false;
         sourceActive = true;
-        disposable.set(null);
+        sourceStream.reset();
         phaseStartedAtMillis = System.currentTimeMillis();
-        scheduleInteractionTimeout();
+        sourceStream.scheduleInteractionTimeout(() -> runInTenant(this::onInteractionTimeout));
         Disposable next;
         try {
             next = agentExecutionAdapter.stream(message)
@@ -281,32 +239,13 @@ final class ChatRunInstance {
             // 装配或订阅同步失败时源流尚未建立，doFinally 不会触发；立即复位 sourceActive，
             // 使终结流程直接完成 drainedSignal。
             sourceActive = false;
-            cancelInteractionTimeout();
+            sourceStream.cancelInteractionTimeout();
             throw subscribeFailure;
         }
         if (terminal) {
             next.dispose();
         } else {
-            disposable.compareAndSet(null, next);
-        }
-    }
-
-    /** 注册交互超时任务；根 {@code AGENT_END} 到达后取消，未到达则在截止时中断当前阶段。 */
-    private void scheduleInteractionTimeout() {
-        cancelInteractionTimeout();
-        if (scheduler.isShutdown()) {
-            return;
-        }
-        long seconds = properties.getChat().getRun().getMaxRunDurationSeconds();
-        ScheduledFuture<?> timeout =
-                scheduler.schedule(() -> runInTenant(this::onInteractionTimeout), seconds, TimeUnit.SECONDS);
-        interactionTimeout.set(timeout);
-    }
-
-    private void cancelInteractionTimeout() {
-        ScheduledFuture<?> timeout = interactionTimeout.getAndSet(null);
-        if (timeout != null) {
-            timeout.cancel(false);
+            sourceStream.adopt(next);
         }
     }
 
@@ -327,31 +266,8 @@ final class ChatRunInstance {
         } catch (RuntimeException interruptFailure) {
             log.warn("Run交互超时后协作式中断失败，将等待宽限期后强制取消: runId={}", run.getId(), interruptFailure);
         }
-        scheduleTimeoutForceDispose();
-    }
-
-    /** 超时中断宽限期结束后仍有活动源流时强制取消，只释放资源，不覆盖已经提交的失败终态。 */
-    private void scheduleTimeoutForceDispose() {
-        if (scheduler.isShutdown()) {
-            forceDisposeSource();
-            return;
-        }
-        try {
-            scheduler.schedule(
-                    () -> runInTenant(this::forceDisposeSource),
-                    properties.getChat().getRun().getStopGraceSeconds(),
-                    TimeUnit.SECONDS);
-        } catch (RuntimeException scheduleFailure) {
-            log.warn("Run交互超时后无法调度强制取消，立即释放源流: runId={}", run.getId(), scheduleFailure);
-            forceDisposeSource();
-        }
-    }
-
-    private void forceDisposeSource() {
-        Disposable current = disposable.getAndSet(null);
-        if (current != null && !current.isDisposed()) {
-            current.dispose();
-        }
+        // 超时中断宽限期结束后仍有活动源流时强制取消，只释放资源，不覆盖已经提交的失败终态。
+        sourceStream.scheduleForceDispose(() -> runInTenant(sourceStream::forceDispose));
     }
 
     private synchronized void onEvent(AgentEvent event) {
@@ -365,7 +281,7 @@ final class ChatRunInstance {
             }
             // 根 AGENT_END 是业务回答边界；普通阶段允许记忆尾部继续，HITL 阶段由适配器在此结束源流。
             rootAgentEnded = true;
-            cancelInteractionTimeout();
+            sourceStream.cancelInteractionTimeout();
             if (pendingConfirmInterpretation != null
                     || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
                 return;
@@ -401,12 +317,12 @@ final class ChatRunInstance {
         if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
             finalizeStopped(ChatRunFinishReason.USER_STOP);
         } else {
-            finalizeFailed(ChatRunFailureCode.ERROR, ChatRunSupport.safeMessage(error));
+            finalizeFailed(ChatRunFailureCode.ERROR, ExecutionSnapshotSanitizer.safeMessage(error));
         }
     }
 
     private synchronized void onComplete() {
-        disposable.set(null);
+        sourceStream.clear();
         if (terminal) {
             return;
         }
@@ -428,7 +344,7 @@ final class ChatRunInstance {
      */
     private synchronized void onSourceTerminated() {
         sourceActive = false;
-        cancelInteractionTimeout();
+        sourceStream.cancelInteractionTimeout();
         runWorkspaceAudit();
         if (!terminal && pendingConfirmInterpretation != null) {
             try {
@@ -437,7 +353,8 @@ final class ChatRunInstance {
                 // 源流已经排空，待确认事实仍无法提交时转为失败终态，避免运行永久停留在 RUNNING。
                 log.error("Run进入待确认失败，收敛为失败终态: runId={}", run.getId(), awaitConfirmFailure);
                 finalizeFailed(
-                        ChatRunFailureCode.AWAIT_CONFIRM_FAILED, ChatRunSupport.safeMessage(awaitConfirmFailure));
+                        ChatRunFailureCode.AWAIT_CONFIRM_FAILED,
+                        ExecutionSnapshotSanitizer.safeMessage(awaitConfirmFailure));
             }
         }
         if (terminal) {
@@ -525,9 +442,14 @@ final class ChatRunInstance {
     private void maybeCheckpoint() {
         long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         int every = properties.getChat().getRun().getSnapshotEveryEvents();
-        if (every > 0 && seq - ChatRunSupport.sequenceFallback(run) >= every) {
+        if (every > 0 && seq - snapshotSeqOrZero(run) >= every) {
             checkpointNow();
         }
+    }
+
+    /** 快照事件序号兜底：未设置时按 0 计。 */
+    private static long snapshotSeqOrZero(ChatRunEntity run) {
+        return run.getSnapshotSeq() == null ? 0L : run.getSnapshotSeq();
     }
 
     /** 查询最新持久化运行；不存在时返回传入实体。 */
@@ -542,12 +464,12 @@ final class ChatRunInstance {
     }
 
     /** 将运行终结为停止状态。 */
-    synchronized void finalizeStopped(ChatRunFinishReason reason) {
+    public synchronized void finalizeStopped(ChatRunFinishReason reason) {
         finalizeTerminal(ChatRunStatus.STOPPED, reason, null, null);
     }
 
     /** 将运行终结为失败状态。 */
-    synchronized void finalizeFailed(ChatRunFailureCode errorCode, String errorMessage) {
+    public synchronized void finalizeFailed(ChatRunFailureCode errorCode, String errorMessage) {
         finalizeTerminal(ChatRunStatus.FAILED, ChatRunFinishReason.ERROR, errorCode, errorMessage);
     }
 
@@ -571,44 +493,8 @@ final class ChatRunInstance {
             } catch (RuntimeException closeEventFailure) {
                 log.warn("Run终结前内容关闭事件写入失败，仍继续提交业务终态: runId={}", run.getId(), closeEventFailure);
             }
-            ExecutionSnapshot snapshot = accumulator.buildSnapshot();
-            long beforeTerminal = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
-            String toolJson = snapshot.tools().isEmpty()
-                    ? null
-                    : JsonUtils.getJsonCodec()
-                            .toJson(snapshot.tools().stream()
-                                    .map(ChatRunInstance::toPersistedToolCall)
-                                    .toList());
-            FinalizeResult result = runService.finalizeExecution(
-                    run,
-                    new FinalizeCommand(status, reason, snapshot, toolJson, beforeTerminal, errorCode, errorMessage));
-            run.setStatus(result.status());
-            run.setFinishReason(result.finishReason());
-            run.setErrorCode(result.errorCode());
-            run.setErrorMessage(result.errorMessage());
-            if (!result.committed()) {
-                ChatRunEntity persisted = loadCurrent(run);
-                run.setAguiRunId(persisted.getAguiRunId());
-                snapshot = ExecutionSnapshotCodec.decode(persisted.getSnapshotJson());
-            }
-            ChatRunStatus actualStatus = ChatRunStatus.valueOf(run.getStatus());
-            AguiEvent terminalEvent = actualStatus == ChatRunStatus.FAILED
-                    ? new AguiEvent.RunError(
-                            run.getSessionId(),
-                            run.getAguiRunId(),
-                            StringUtils.defaultIfBlank(run.getErrorMessage(), "对话运行失败"),
-                            run.getErrorCode())
-                    : new AguiEvent.RunFinished(
-                            run.getSessionId(), run.getAguiRunId(), null, new AguiEvent.RunFinishedSuccessOutcome());
-            String json = AguiEventJsonCodec.withTerminalMetadata(
-                    agentEventInterpreter.encodeToJson(terminalEvent), actualStatus.name(), run.getFinishReason());
-            ChatRunEvent appended = eventStore.appendTerminalIfAbsent(run.getId(), run.getAguiRunId(), json);
-            runService.recordTerminalSeq(run, snapshot, appended.seq());
-            run.setSnapshotSeq(appended.seq());
-            eventStore.compact(run.getId(), appended.seq());
-            eventStore.markTerminal(
-                    run.getId(),
-                    Duration.ofSeconds(properties.getChat().getRun().getTerminalTtlSeconds()));
+            runFinalizer.commitTerminal(
+                    run, accumulator.buildSnapshot(), agentEventInterpreter, status, reason, errorCode, errorMessage);
             // 业务终态后若无活动源流（如纯终结恢复、源流已先终止、启动同步失败），立即完成排空信号；
             // 否则等待 onSourceTerminated 在源流排空后完成它。
             if (!isDraining()) {
@@ -655,7 +541,7 @@ final class ChatRunInstance {
      * 释放「已注册但未能启动」的实例（调度/认领期间已被并发取胜方终结，从未建立源流）：直接完成排空信号，
      * 使协调器摘除实例。仅在 {@code !terminal && !sourceActive} 时生效。
      */
-    synchronized void releaseNeverStarted() {
+    public synchronized void releaseNeverStarted() {
         if (terminal || sourceActive) {
             return;
         }
@@ -666,12 +552,12 @@ final class ChatRunInstance {
     /**
      * 排空信号：最终阶段源流与后处理全部结束时完成，协调器订阅以摘除注册表项；未注册实例无人订阅。
      */
-    CompletionStage<Void> drainedSignal() {
+    public CompletionStage<Void> drainedSignal() {
         return drainedSignal;
     }
 
     /** 生成当前运行的 AG-UI 引导事件。 */
-    synchronized AguiBootstrap bootstrap() {
+    public synchronized AguiBootstrap bootstrap() {
         long highWatermark = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         return new AguiBootstrap(
                 highWatermark,
@@ -697,7 +583,7 @@ final class ChatRunInstance {
     }
 
     /** 检查点间隔到期时写入执行快照。 */
-    synchronized void checkpointIfDue(long nowNanos) {
+    public synchronized void checkpointIfDue(long nowNanos) {
         if (terminal || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
             return;
         }
@@ -709,28 +595,24 @@ final class ChatRunInstance {
 
     /** 判断 Agent 事件流是否正在运行。 */
     boolean isRunning() {
-        Disposable current = disposable.get();
-        return current != null && !current.isDisposed();
+        return sourceStream.isRunning();
     }
 
     /** 请求中断 Agent 状态会话。 */
-    void interruptAgent() {
+    public void interruptAgent() {
         if (agentExecutionAdapter != null) {
             agentExecutionAdapter.interrupt();
         }
     }
 
     /** 取消活动事件流并终结运行。dispose 出锁以避免取消回调回流死锁，DB 终态迁移在锁内完成。 */
-    void forceStopIfRunning() {
-        Disposable current = disposable.getAndSet(null);
-        if (current != null && !current.isDisposed()) {
-            current.dispose();
-        }
+    public void forceStopIfRunning() {
+        sourceStream.forceDispose();
         finalizeStopped(ChatRunFinishReason.USER_STOP);
     }
 
     /** 在实例锁内原子地处理确认超时，迁移成功后收敛为停止终态。 */
-    synchronized void expireConfirmation(LocalDateTime deadline) {
+    public synchronized void expireConfirmation(LocalDateTime deadline) {
         if (terminal) {
             return;
         }
@@ -756,7 +638,7 @@ final class ChatRunInstance {
      *
      * @return 是否需要协调器在锁外中断活动源流
      */
-    synchronized boolean requestStop() {
+    public synchronized boolean requestStop() {
         if (terminal) {
             return false;
         }
@@ -785,7 +667,7 @@ final class ChatRunInstance {
     }
 
     /** 保存当前检查点并中断 Agent。检查点在实例锁内写入，中断请求保持在锁外以避免回流死锁。 */
-    void interruptForShutdown() {
+    public void interruptForShutdown() {
         try {
             checkpointNow();
         } catch (RuntimeException checkpointFailure) {
@@ -808,14 +690,5 @@ final class ChatRunInstance {
         } catch (RuntimeException error) {
             log.warn("Run终结时补写未决工具调用失败: runId={}", run.getId(), error);
         }
-    }
-
-    private static Map<String, String> toPersistedToolCall(ExecutionSnapshot.Tool tool) {
-        Map<String, String> record = new LinkedHashMap<>();
-        record.put("toolCallId", tool.toolCallId());
-        record.put("toolCallName", tool.toolCallName());
-        record.put("args", tool.args());
-        record.put("result", tool.result());
-        return record;
     }
 }

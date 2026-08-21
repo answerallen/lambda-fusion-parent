@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * 执行快照数据清理工具：负责工具调用数据归一化，并在持久化前屏蔽常见凭据字段。
@@ -61,6 +62,18 @@ public final class ExecutionSnapshotSanitizer {
                 .replaceAll(
                         "(?i)(password|secret|token|api[_-]?key|authorization|credential)(\\s*[:=]\\s*)[^,;\\s]+",
                         "$1$2***");
+    }
+
+    /**
+     * 生成可持久化的错误信息：空消息回退为异常类名，清理常见凭据并限制长度。
+     *
+     * @param error 异常
+     * @return 已清理并限制长度的错误信息
+     */
+    public static String safeMessage(Throwable error) {
+        String message =
+                StringUtils.defaultIfBlank(error.getMessage(), error.getClass().getSimpleName());
+        return StringUtils.left(redactText(message), 1000);
     }
 
     private static ExecutionSnapshot.Tool sanitizeTool(ExecutionSnapshot.Tool tool) {

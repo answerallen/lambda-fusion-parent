@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime;
+package com.lambda.fusion.ai.chat.runtime.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,7 +64,7 @@ class ChatRunInstanceTerminalTest {
         FinalizeCommand command = captureFinalize();
         assertThat(command.targetStatus()).isEqualTo(ChatRunStatus.COMPLETED);
         assertThat(command.finishReason()).isEqualTo(ChatRunFinishReason.SUCCESS);
-        verify(runService, times(1)).finalizeExecution(eq(instance.run), any(FinalizeCommand.class));
+        verify(runService, times(1)).finalizeExecution(eq(instance.run()), any(FinalizeCommand.class));
     }
 
     @Test
@@ -112,7 +112,7 @@ class ChatRunInstanceTerminalTest {
         assertThat(command.snapshot().textOpen()).isFalse();
         assertThat(command.snapshot().reasoningOpen()).isFalse();
         // 关闭事件经快照增量一次性驱动，终态快照已闭合。
-        verify(runService, times(1)).finalizeExecution(eq(instance.run), any(FinalizeCommand.class));
+        verify(runService, times(1)).finalizeExecution(eq(instance.run()), any(FinalizeCommand.class));
     }
 
     @Test
@@ -156,7 +156,7 @@ class ChatRunInstanceTerminalTest {
     }
 
     private void stubTerminalCommit() {
-        when(runService.finalizeExecution(eq(instance.run), any(FinalizeCommand.class)))
+        when(runService.finalizeExecution(eq(instance.run()), any(FinalizeCommand.class)))
                 .thenAnswer(invocation -> {
                     FinalizeCommand command = invocation.getArgument(1);
                     return new FinalizeResult(
@@ -177,7 +177,7 @@ class ChatRunInstanceTerminalTest {
 
     private FinalizeCommand captureFinalize() {
         ArgumentCaptor<FinalizeCommand> captor = ArgumentCaptor.forClass(FinalizeCommand.class);
-        verify(runService).finalizeExecution(eq(instance.run), captor.capture());
+        verify(runService).finalizeExecution(eq(instance.run()), captor.capture());
         return captor.getValue();
     }
 
