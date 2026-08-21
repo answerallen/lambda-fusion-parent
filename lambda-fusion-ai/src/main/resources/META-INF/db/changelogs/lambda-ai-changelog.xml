@@ -869,4 +869,24 @@
                       columnDataType="longtext"/>
     </changeSet>
 
+    <!-- ========== 对话 Run 集群执行所有权与租约 fencing ========== -->
+    <changeSet id="lambda-ai-202608210001" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_chat_run" columnName="lease_epoch"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_chat_run">
+            <column name="owner_instance_id" type="varchar(128)" remarks="执行节点标识(NULL=无主)"/>
+            <column name="lease_until" type="datetime" remarks="租约截止时间(数据库时间;过期后他节点可接管)"/>
+            <column name="lease_epoch" type="bigint" defaultValueNumeric="0" remarks="fencing令牌(认领/接管单调+1;终态后保留)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <createIndex tableName="ai_chat_run" indexName="idx_ai_chat_run_status_lease">
+            <column name="status"/>
+            <column name="lease_until"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

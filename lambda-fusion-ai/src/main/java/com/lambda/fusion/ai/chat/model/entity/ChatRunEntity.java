@@ -67,4 +67,13 @@ public class ChatRunEntity extends BaseEntity {
 
     @TableField("finished_at")
     private LocalDateTime finishedAt;
+
+    @TableField("owner_instance_id")
+    private String ownerInstanceId;
+
+    @TableField("lease_until")
+    private LocalDateTime leaseUntil;
+
+    @TableField("lease_epoch")
+    private Long leaseEpoch;
 }

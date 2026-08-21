@@ -149,6 +149,32 @@ public class AiProperties {
             /** 定时写入快照的间隔，单位秒。 */
             @Min(1)
             private long snapshotIntervalSeconds = 15;
+
+            /** 集群执行租约时长，单位秒（数据库时间计）。 */
+            @Min(1)
+            private long leaseTtlSeconds = 90;
+
+            /** 集群执行租约续约周期，单位秒。 */
+            @Min(1)
+            private long leaseRenewIntervalSeconds = 30;
+
+            /** 失效租约扫描周期，单位秒。 */
+            @Min(1)
+            private long leaseScanIntervalSeconds = 30;
+
+            /** 续约失败后本地自我隔离的安全余量，单位秒。 */
+            @Min(0)
+            private long leaseSafetyMarginSeconds = 5;
+
+            /** 接管宽限期：确认租约过期后再等待的秒数，避免误接管仍活着的节点。 */
+            @Min(0)
+            private long takeoverGraceSeconds = 30;
+
+            /** 租约参数须满足 lease-ttl 不小于 3 倍续约周期，否则 fencing 无法可靠工作。 */
+            @AssertTrue(message = "lease-ttl-seconds 必须不小于 3 倍 lease-renew-interval-seconds")
+            public boolean isLeaseTtlSufficient() {
+                return leaseTtlSeconds >= 3 * leaseRenewIntervalSeconds;
+            }
         }
 
         /**
