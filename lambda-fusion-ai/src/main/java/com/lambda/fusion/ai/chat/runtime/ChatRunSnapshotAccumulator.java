@@ -167,7 +167,7 @@ final class ChatRunSnapshotAccumulator {
      *
      * @return 执行快照
      */
-    ExecutionSnapshot snapshot() {
+    ExecutionSnapshot buildSnapshot() {
         return new ExecutionSnapshot(
                 runId,
                 aguiRunId,

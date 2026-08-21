@@ -28,6 +28,7 @@ import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.message.Msg;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -128,6 +129,30 @@ class ChatRunInstanceTerminalTest {
         FinalizeCommand command = captureFinalize();
         // closeOpenMessages 无条件置 closeActiveMessages，闭合持久化快照。
         assertThat(command.snapshot().textOpen()).isFalse();
+    }
+
+    @Test
+    void shouldRetryTerminalEventThroughIdempotentDatabaseFinalization() {
+        ChatRunEntity run = run(ChatRunStatus.RUNNING, snapshot("partial", true, false));
+        ChatRunEntity persisted = run(ChatRunStatus.COMPLETED, snapshot("partial", false, false));
+        persisted.setFinishReason(ChatRunFinishReason.SUCCESS.name());
+        instance = newInstance(run);
+        when(runService.finalizeExecution(eq(run), any(FinalizeCommand.class)))
+                .thenReturn(
+                        new FinalizeResult(true, "COMPLETED", "SUCCESS", null, null),
+                        new FinalizeResult(false, "COMPLETED", "SUCCESS", null, null));
+        when(runService.loadCurrent("run-1")).thenReturn(persisted);
+        when(eventStore.latestSeq(anyString(), anyLong())).thenReturn(1L);
+        when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
+                .thenThrow(new RuntimeException("event store unavailable"))
+                .thenReturn(new ChatRunEvent(8L, "run-1:8", "RUN_FINISHED", "{}"));
+
+        instance.finalizeCompleted();
+
+        assertThat(instance.drainedSignal().toCompletableFuture()).succeedsWithin(Duration.ofSeconds(3));
+        verify(runService, times(2)).finalizeExecution(eq(run), any(FinalizeCommand.class));
+        verify(eventStore, times(2)).appendTerminalIfAbsent(anyString(), anyString(), anyString());
+        verify(runService).recordTerminalSeq(eq(run), any(ExecutionSnapshot.class), eq(8L));
     }
 
     private void stubTerminalCommit() {

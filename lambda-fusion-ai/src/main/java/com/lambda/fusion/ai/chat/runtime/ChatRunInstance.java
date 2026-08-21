@@ -47,7 +47,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import reactor.core.Disposable;
@@ -55,9 +54,9 @@ import reactor.core.Disposable;
 /**
  * 单个对话运行的执行实例：持有 Agent 事件流、维护执行快照并提交运行终态。
  *
- * <p>实例维护两类完成信号：{@code terminalSignal} 表示业务运行已进入终态，供 API 和 SSE 返回结果；
- * {@code drainedSignal} 表示最终阶段的源流与后处理（沙箱释放、工作区审计）均已结束，供协调器摘除实例和
- * 关机等待。普通业务终态不会取消底层订阅，记忆尾部仍可继续执行；HITL 阶段由执行适配器在根
+ * <p>业务终态通过持久化状态和终态事件对外发布；{@code drainedSignal} 仅表示最终阶段的源流与后处理
+ * （沙箱释放、工作区审计）均已结束，供协调器摘除实例和关机等待。普通业务终态不会取消底层订阅，
+ * 记忆尾部仍可继续执行；HITL 阶段由执行适配器在根
  * {@code AGENT_END} 后结束交互源流，避免记忆尾部阻塞待确认状态。状态由实例锁和原子变量共同协调。
  *
  * @author Jin
@@ -65,7 +64,7 @@ import reactor.core.Disposable;
 @Slf4j
 final class ChatRunInstance {
 
-    /** 终态提交的最大重试次数；达到上限后释放实例和会话尾链，避免局部故障永久阻塞后续运行。 */
+    /** 终态提交的最大重试次数；达到上限后释放实例，避免局部故障永久占用运行容量。 */
     private static final int MAX_FINALIZE_ATTEMPTS = 100;
 
     private final ChatRunStateService runService;
@@ -73,17 +72,14 @@ final class ChatRunInstance {
     private final AiProperties properties;
     private final ScheduledExecutorService scheduler;
     private final WorkspaceAuditRecorder workspaceAuditRecorder;
-    private final CompletableFuture<Void> terminalSignal = new CompletableFuture<>();
     private final CompletableFuture<Void> drainedSignal = new CompletableFuture<>();
 
     final ChatRunEntity run;
     final ChatSessionEntity session;
     private final AgentExecutionAdapter agentExecutionAdapter;
     private final ChatRunSnapshotAccumulator accumulator;
-    private boolean phaseFinished;
     private boolean rootAgentEnded;
     private boolean terminal;
-    private boolean terminalCommitted;
     private boolean sourceActive;
     private int finalizeAttempts;
     private final AtomicReference<Disposable> disposable = new AtomicReference<>();
@@ -203,7 +199,7 @@ final class ChatRunInstance {
         }
 
         Set<String> snapshotIds = new HashSet<>();
-        for (ExecutionSnapshot.Tool tool : accumulator.snapshot().pendingTools()) {
+        for (ExecutionSnapshot.Tool tool : accumulator.buildSnapshot().pendingTools()) {
             if (!snapshotIds.add(tool.toolCallId())) {
                 throw contextMismatch("快照待确认工具ID重复: " + tool.toolCallId());
             }
@@ -251,7 +247,6 @@ final class ChatRunInstance {
     private void beginConfirmedPhase() {
         accumulator.beginPhase(run.getAguiRunId(), run.getPhaseNo());
         agentEventInterpreter = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
-        phaseFinished = false;
     }
 
     /**
@@ -269,7 +264,6 @@ final class ChatRunInstance {
             finalizeFailed(ChatRunFailureCode.START_FAILED, "Agent未能初始化");
             return;
         }
-        phaseFinished = false;
         rootAgentEnded = false;
         sourceActive = true;
         disposable.set(null);
@@ -372,7 +366,8 @@ final class ChatRunInstance {
             // 根 AGENT_END 是业务回答边界；普通阶段允许记忆尾部继续，HITL 阶段由适配器在此结束源流。
             rootAgentEnded = true;
             cancelInteractionTimeout();
-            if (phaseFinished || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
+            if (pendingConfirmInterpretation != null
+                    || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
                 return;
             }
             if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
@@ -390,7 +385,6 @@ final class ChatRunInstance {
             pendingConfirmInterpretation = interpretation;
             accumulator.apply(interpretation.snapshotDelta());
             // AgentScope 在事件流结束时持久化 ASKING 状态。
-            phaseFinished = true;
             return;
         }
         accumulator.apply(interpretation.snapshotDelta());
@@ -420,12 +414,10 @@ final class ChatRunInstance {
             // 待确认状态必须等 doFinally 确认适配后的当前阶段源流已经结束后再提交。
             return;
         }
-        if (!phaseFinished) {
-            if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-                finalizeStopped(ChatRunFinishReason.USER_STOP);
-            } else {
-                finalizeCompleted();
-            }
+        if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
+            finalizeStopped(ChatRunFinishReason.USER_STOP);
+        } else {
+            finalizeCompleted();
         }
     }
 
@@ -474,7 +466,7 @@ final class ChatRunInstance {
             finalizeStopped(ChatRunFinishReason.USER_STOP);
             return;
         }
-        ExecutionSnapshot snapshot = accumulator.snapshot();
+        ExecutionSnapshot snapshot = accumulator.buildSnapshot();
         // 待确认中断事件先暂存（不占可见窗口、不推送订阅者），数据库事实落库成功后才发布：
         // 序号在暂存时分配使快照覆盖中断事件，且事实先于信号外发；落库失败则丢弃，零副作用可重试。
         List<AguiEvent> events = pendingConfirmInterpretation.events();
@@ -502,7 +494,8 @@ final class ChatRunInstance {
             if (ChatRunStatus.STOPPING.name().equals(current.getStatus())) {
                 finalizeStopped(ChatRunFinishReason.USER_STOP);
             } else if (ChatRunStatus.isTerminal(current.getStatus())) {
-                terminalSignal.complete(null);
+                terminal = true;
+                drainedSignal.complete(null);
             } else if (ChatRunStatus.RUNNING.name().equals(current.getStatus())) {
                 // 另一确认已将运行推进到 RUNNING，下一阶段仍在执行；当前实例只需安全收尾。
                 log.info("Run进入待确认时被并发确认推进，本实例安全收尾: runId={}", run.getId());
@@ -564,47 +557,39 @@ final class ChatRunInstance {
             return;
         }
         terminal = true;
-        phaseFinished = true;
         pendingConfirmInterpretation = null;
         if (status != ChatRunStatus.COMPLETED) {
             closePendingToolCalls();
         }
         try {
-            ExecutionSnapshot snapshot = terminalCommitted
-                    ? ExecutionSnapshotCodec.decode(loadCurrent(run).getSnapshotJson())
-                    : accumulator.snapshot();
-            if (!terminalCommitted) {
-                ExecutionInterpretation closeInterpretation = agentEventInterpreter.closeOpenMessages();
-                // 先应用快照增量、后写关闭事件：appendAll 可能触发 checkpointNow，
-                // 必须保证检查点读到的是已关闭快照，而非「事件已关闭、快照仍打开」。
-                accumulator.apply(closeInterpretation.snapshotDelta());
-                try {
-                    appendAll(closeInterpretation.events());
-                } catch (RuntimeException closeEventFailure) {
-                    log.warn("Run终结前内容关闭事件写入失败，仍继续提交业务终态: runId={}", run.getId(), closeEventFailure);
-                }
-                snapshot = accumulator.snapshot();
-                long beforeTerminal = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
-                String toolJson = snapshot.tools().isEmpty()
-                        ? null
-                        : JsonUtils.getJsonCodec()
-                                .toJson(snapshot.tools().stream()
-                                        .map(ChatRunInstance::toPersistedToolCall)
-                                        .toList());
-                FinalizeResult result = runService.finalizeExecution(
-                        run,
-                        new FinalizeCommand(
-                                status, reason, snapshot, toolJson, beforeTerminal, errorCode, errorMessage));
-                run.setStatus(result.status());
-                run.setFinishReason(result.finishReason());
-                run.setErrorCode(result.errorCode());
-                run.setErrorMessage(result.errorMessage());
-                terminalCommitted = true;
-                if (!result.committed()) {
-                    ChatRunEntity persisted = loadCurrent(run);
-                    run.setAguiRunId(persisted.getAguiRunId());
-                    snapshot = ExecutionSnapshotCodec.decode(persisted.getSnapshotJson());
-                }
+            ExecutionInterpretation closeInterpretation = agentEventInterpreter.closeOpenMessages();
+            // 先应用快照增量、后写关闭事件：appendAll 可能触发 checkpointNow，
+            // 必须保证检查点读到的是已关闭快照，而非「事件已关闭、快照仍打开」。
+            accumulator.apply(closeInterpretation.snapshotDelta());
+            try {
+                appendAll(closeInterpretation.events());
+            } catch (RuntimeException closeEventFailure) {
+                log.warn("Run终结前内容关闭事件写入失败，仍继续提交业务终态: runId={}", run.getId(), closeEventFailure);
+            }
+            ExecutionSnapshot snapshot = accumulator.buildSnapshot();
+            long beforeTerminal = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
+            String toolJson = snapshot.tools().isEmpty()
+                    ? null
+                    : JsonUtils.getJsonCodec()
+                            .toJson(snapshot.tools().stream()
+                                    .map(ChatRunInstance::toPersistedToolCall)
+                                    .toList());
+            FinalizeResult result = runService.finalizeExecution(
+                    run,
+                    new FinalizeCommand(status, reason, snapshot, toolJson, beforeTerminal, errorCode, errorMessage));
+            run.setStatus(result.status());
+            run.setFinishReason(result.finishReason());
+            run.setErrorCode(result.errorCode());
+            run.setErrorMessage(result.errorMessage());
+            if (!result.committed()) {
+                ChatRunEntity persisted = loadCurrent(run);
+                run.setAguiRunId(persisted.getAguiRunId());
+                snapshot = ExecutionSnapshotCodec.decode(persisted.getSnapshotJson());
             }
             ChatRunStatus actualStatus = ChatRunStatus.valueOf(run.getStatus());
             AguiEvent terminalEvent = actualStatus == ChatRunStatus.FAILED
@@ -624,7 +609,6 @@ final class ChatRunInstance {
             eventStore.markTerminal(
                     run.getId(),
                     Duration.ofSeconds(properties.getChat().getRun().getTerminalTtlSeconds()));
-            terminalSignal.complete(null);
             // 业务终态后若无活动源流（如纯终结恢复、源流已先终止、启动同步失败），立即完成排空信号；
             // 否则等待 onSourceTerminated 在源流排空后完成它。
             if (!isDraining()) {
@@ -633,19 +617,18 @@ final class ChatRunInstance {
         } catch (RuntimeException finalizeFailure) {
             terminal = false;
             int attempt = ++finalizeAttempts;
-            // 数据行已删除等永久性失败或重试达到上限时停止提交，但仍释放实例与会话尾链，
-            // 避免单个实例的终结故障永久阻塞整个会话。
+            // 数据行已删除等永久性失败或重试达到上限时停止提交，但仍释放实例，
+            // 避免单个实例的终结故障永久占用内存运行容量。
             if (isPermanentFinalizeFailure(finalizeFailure)
                     || attempt >= MAX_FINALIZE_ATTEMPTS
                     || scheduler.isShutdown()) {
                 log.error(
-                        "对话Run终结放弃数据库提交，释放实例与尾链: runId={}, attempt={}, permanent={}",
+                        "对话Run终结放弃数据库提交，释放实例: runId={}, attempt={}, permanent={}",
                         run.getId(),
                         attempt,
                         isPermanentFinalizeFailure(finalizeFailure),
                         finalizeFailure);
                 terminal = true;
-                terminalSignal.complete(null);
                 if (!isDraining()) {
                     drainedSignal.complete(null);
                 }
@@ -668,21 +651,15 @@ final class ChatRunInstance {
         return failure instanceof IllegalStateException;
     }
 
-    /** 业务终态信号：供 API 返回与 SSE 终态使用，不触发底层订阅的 dispose。 */
-    CompletionStage<Void> terminalSignal() {
-        return terminalSignal;
-    }
-
     /**
-     * 释放「已注册但未能启动」的实例（排队/认领期间已被并发取胜方终结，从未建立源流）：直接完成全部信号，
-     * 使协调器摘除实例、会话尾链释放后继。仅在 {@code !terminal && !sourceActive} 时生效。
+     * 释放「已注册但未能启动」的实例（调度/认领期间已被并发取胜方终结，从未建立源流）：直接完成排空信号，
+     * 使协调器摘除实例。仅在 {@code !terminal && !sourceActive} 时生效。
      */
     synchronized void releaseNeverStarted() {
         if (terminal || sourceActive) {
             return;
         }
         terminal = true;
-        terminalSignal.complete(null);
         drainedSignal.complete(null);
     }
 
@@ -698,20 +675,15 @@ final class ChatRunInstance {
         long highWatermark = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         return new AguiBootstrap(
                 highWatermark,
-                AguiBootstrapEncoder.encode(run, accumulator.snapshot(), highWatermark),
+                AguiBootstrapEncoder.encode(run, accumulator.buildSnapshot(), highWatermark),
                 ChatRunStatus.isTerminal(run.getStatus())
                         || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus()));
-    }
-
-    /** 获取当前执行快照。 */
-    synchronized ExecutionSnapshot snapshot() {
-        return accumulator.snapshot();
     }
 
     /** 立即写入执行检查点并收缩事件缓冲区。抛 {@link IllegalStateException} 表示非终态运行的检查点失败。 */
     synchronized void checkpointNow() {
         long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
-        if (!runService.checkpoint(run, accumulator.snapshot(), seq)) {
+        if (!runService.checkpoint(run, accumulator.buildSnapshot(), seq)) {
             ChatRunEntity current = loadCurrent(run);
             run.setStatus(current.getStatus());
             if (!ChatRunStatus.isTerminal(current.getStatus())) {
@@ -748,11 +720,6 @@ final class ChatRunInstance {
         }
     }
 
-    /** 将内存运行状态标记为停止中。 */
-    synchronized void markStopping() {
-        run.setStatus(ChatRunStatus.STOPPING.name());
-    }
-
     /** 取消活动事件流并终结运行。dispose 出锁以避免取消回调回流死锁，DB 终态迁移在锁内完成。 */
     void forceStopIfRunning() {
         Disposable current = disposable.getAndSet(null);
@@ -762,18 +729,10 @@ final class ChatRunInstance {
         finalizeStopped(ChatRunFinishReason.USER_STOP);
     }
 
-    /**
-     * 在实例锁内原子地停止运行：先写检查点，再执行数据库迁移并等待提交，最后收敛为停止终态。
-     *
-     * <p>数据库迁移与内存状态修改在同一实例锁内完成，锁顺序恒为实例 monitor → {@code REQUIRES_NEW} 事务。
-     *
-     * @param transition 数据库迁移，成功返回 {@code true}；竞争落败返回 {@code false}
-     * @param reason 停止原因
-     * @return 迁移成功返回 {@code true}；非本实例取胜（竞争落败或已终态）返回 {@code false}
-     */
-    synchronized boolean stop(Supplier<Boolean> transition, ChatRunFinishReason reason) {
+    /** 在实例锁内原子地处理确认超时，迁移成功后收敛为停止终态。 */
+    synchronized void expireConfirmation(LocalDateTime deadline) {
         if (terminal) {
-            return false;
+            return;
         }
         if (isRunning()) {
             try {
@@ -782,60 +741,47 @@ final class ChatRunInstance {
                 log.warn("停止Run前快照写入失败，继续中断执行: runId={}", run.getId(), checkpointFailure);
             }
         }
-        if (!transition.get()) {
+        if (!runService.requestConfirmationTimeout(run, deadline)) {
             run.setStatus(loadCurrent(run).getStatus());
-            return false;
+            return;
         }
         run.setStatus(ChatRunStatus.STOPPING.name());
-        finalizeStopped(reason);
-        return true;
+        finalizeStopped(ChatRunFinishReason.CONFIRM_TIMEOUT);
     }
 
     /**
      * 在实例锁内原子地判定并请求停止；与 {@code confirm}/{@code startPhase} 同一把实例锁，消除
      * 「是否运行」判读与「是否可启动新流」之间的 TOCTOU 间隙。非运行态在锁内完成 STOPPING 并直接终结；
-     * 运行态只做 STOPPING 迁移与检查点、返回 {@link StopOutcome#INTERRUPT}，由协调器在锁外中断并留宽限期。
+     * 运行态只做 STOPPING 迁移与检查点并返回 {@code true}，由协调器在锁外中断并留宽限期。
      *
-     * @return 停止结果
+     * @return 是否需要协调器在锁外中断活动源流
      */
-    synchronized StopOutcome requestStop() {
+    synchronized boolean requestStop() {
         if (terminal) {
-            return StopOutcome.ALREADY_TERMINAL;
+            return false;
         }
         if (!runService.requestStopping(run)) {
             ChatRunEntity current = loadCurrent(run);
             run.setStatus(current.getStatus());
             if (ChatRunStatus.isTerminal(current.getStatus())) {
-                return StopOutcome.ALREADY_TERMINAL;
+                return false;
             }
             if (!ChatRunStatus.STOPPING.name().equals(current.getStatus())) {
-                return StopOutcome.NOT_STOPPING;
+                return false;
             }
         }
         run.setStatus(ChatRunStatus.STOPPING.name());
         if (!isRunning()) {
             // 锁内判读期间 confirm 和 startPhase 无法并发修改 disposable，可安全直接终结。
             finalizeStopped(ChatRunFinishReason.USER_STOP);
-            return StopOutcome.STOPPED_NOW;
+            return false;
         }
         try {
             checkpointNow();
         } catch (RuntimeException checkpointFailure) {
             log.warn("停止Run前快照写入失败，继续中断执行: runId={}", run.getId(), checkpointFailure);
         }
-        return StopOutcome.INTERRUPT;
-    }
-
-    /** 停止请求结果。 */
-    enum StopOutcome {
-        /** 运行态：已迁 STOPPING，需协调器在锁外中断并留宽限期。 */
-        INTERRUPT,
-        /** 非运行态：已在实例锁内直接终结。 */
-        STOPPED_NOW,
-        /** Run 已处于终态，无需停止。 */
-        ALREADY_TERMINAL,
-        /** 并发方已推进到其他非 STOPPING 状态，本次停止未取胜。 */
-        NOT_STOPPING
+        return true;
     }
 
     /** 保存当前检查点并中断 Agent。检查点在实例锁内写入，中断请求保持在锁外以避免回流死锁。 */

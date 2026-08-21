@@ -42,8 +42,8 @@ import org.springframework.stereotype.Component;
 /**
  * 负责对话执行实例的创建、恢复、停止与定时维护。Agent 事件流由执行实例持有，不依赖 SSE 连接生命周期；
  * 业务进入终态且最终源流与后处理全部排空后，协调器才根据 {@code drainedSignal} 摘除对应实例。
- * 同一 {@code (tenantId, userId, sessionId)} 的相邻源流通过进程内非阻塞尾链排序：新运行可以先建立 SSE，
- * 但必须等待上一条源流排空后才能订阅下一次 {@code streamEvents}。
+ * 新运行注册后立即异步订阅 {@code streamEvents}；同一 {@code (userId, sessionId)} 的核心状态调用由 AgentScope
+ * 自身串行保护，上一轮记忆整理等后处理不阻塞下一轮交互。
  *
  * @author Jin
  */
@@ -61,7 +61,6 @@ public class ChatRunCoordinator {
     private final ChatRunInstanceFactory instanceFactory;
     private final AiProperties properties;
     private final ConcurrentMap<String, ChatRunInstance> executions = new ConcurrentHashMap<>();
-    private final SessionSourceTailChain sourceTailChain = new SessionSourceTailChain();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, runnable -> {
         Thread thread = new Thread(runnable, "chat-run-scheduler");
         thread.setDaemon(true);
@@ -112,13 +111,8 @@ public class ChatRunCoordinator {
         if (execution == null) {
             // 注册成功后监听排空信号，最终源流结束时按实例身份安全摘除。
             subscribeDrained(run.getId(), candidate);
-            // 一个 Run 可能包含多个 HITL phase；会话尾链必须等待稳定的实例级 drainedSignal，
-            // 避免首个 phase 排空后提前释放后继，导致后续确认 phase 与下一条 Run 的源流重叠。
-            sourceTailChain.enqueue(
-                    sessionKey(session),
-                    scheduler,
-                    () -> runInTenant(candidate, () -> startCreated(candidate)),
-                    candidate.drainedSignal());
+            // 只把实际订阅移出请求线程；不等待上一轮的记忆整理、Workspace 审计等后处理。
+            scheduler.execute(() -> runInTenant(candidate, () -> startCreated(candidate)));
         }
     }
 
@@ -164,7 +158,7 @@ public class ChatRunCoordinator {
 
     /**
      * 实例注册成功后订阅其排空信号，最终源流和后处理全部结束时按身份摘除。
-     * 业务终态信号不会触发摘除，仍在排空的实例会保留到 {@code drainedSignal} 完成。
+     * 业务终态本身不会触发摘除，仍在排空的实例会保留到 {@code drainedSignal} 完成。
      */
     private void subscribeDrained(String runId, ChatRunInstance instance) {
         instance.drainedSignal().whenComplete((ignored, error) -> executions.remove(runId, instance));
@@ -238,8 +232,7 @@ public class ChatRunCoordinator {
         // 获取注册表中的规范实例，后续锁顺序始终为实例 monitor，再进入独立数据库事务。
         ChatRunInstance execution = selectOrRestoreForFinalize(run, session);
         // 在实例锁内同时判断运行状态并迁移到 STOPPING，消除检查与启动新源流之间的竞态窗口。
-        ChatRunInstance.StopOutcome outcome = execution.requestStop();
-        if (outcome != ChatRunInstance.StopOutcome.INTERRUPT) {
+        if (!execution.requestStop()) {
             return;
         }
         // 先在锁外发起协作式中断，再以宽限期后的强制停止作为兜底，避免取消回调造成锁重入。
@@ -309,13 +302,12 @@ public class ChatRunCoordinator {
         scheduler.shutdown();
     }
 
-    private boolean startCreated(ChatRunInstance execution) {
+    private void startCreated(ChatRunInstance execution) {
         ChatRunEntity run = execution.run;
         if (!runService.claimCreated(run)) {
-            // 运行在排队或认领期间已被并发方终结，本实例未建立源流；仍需完成全部信号，
-            // 让协调器摘除实例并释放会话尾链的后继节点。
+            // 运行在调度或认领期间已被并发方终结，本实例未建立源流；完成排空信号让协调器摘除实例。
             execution.releaseNeverStarted();
-            return false;
+            return;
         }
         run.setStatus(ChatRunStatus.RUNNING.name());
         try {
@@ -330,12 +322,6 @@ public class ChatRunCoordinator {
         } catch (RuntimeException startFailure) {
             execution.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSupport.safeMessage(startFailure));
         }
-        return true;
-    }
-
-    /** 会话源流尾链的会话键：{@code (tenantId, userId, sessionId)}，与 AgentScope 状态槽一致。 */
-    private static SessionKey sessionKey(ChatSessionEntity session) {
-        return new SessionKey(ChatRunInstanceFactory.tenantId(session), session.getUserId(), session.getId());
     }
 
     private void enforceCapacity(ChatRunEntity run, ChatSessionEntity session) {
@@ -376,9 +362,7 @@ public class ChatRunCoordinator {
         TenantUtils.withTenant(session.getTenantId(), () -> {
             // 取规范实例（注册唯一实例），确认超时的数据库迁移与终态收敛一并移入实例锁。
             ChatRunInstance execution = selectOrRestoreForFinalize(run, session);
-            execution.stop(
-                    () -> runService.requestConfirmationTimeout(run, LocalDateTime.now()),
-                    ChatRunFinishReason.CONFIRM_TIMEOUT);
+            execution.expireConfirmation(LocalDateTime.now());
         });
     }
 

@@ -54,7 +54,7 @@
 | :--- | :--- | :--- |
 | `ChatServiceImpl` | `@Service` | 唯一对话入口；创建/查询 Run，建立 SSE 订阅，处理确认与停止编排 |
 | `ChatRunServiceImpl` / `ChatRunStateService` | `@Service` | Run 查询与事务状态迁移、所有权校验和最终落库 |
-| `ChatRunCoordinator` | `@Component` | 注册和选择规范执行实例，处理容量、会话源流尾链、启动、确认、停止及启动恢复 |
+| `ChatRunCoordinator` | `@Component` | 注册和选择规范执行实例，处理容量、异步启动、确认、停止、排空摘除及启动恢复 |
 | `ChatRunInstanceFactory` | `@Component` | 按 Session 构建 Agent 和执行实例 |
 | `ChatRunInstance` | 普通对象 | 持有 AgentScope 订阅，处理阶段事件、快照、业务终态和资源排空 |
 | `AgentExecutionAdapter` | 普通对象 | 直连已选定的 `HarnessAgent`，统一 Agent 状态身份和 HITL 操作 |
@@ -204,11 +204,10 @@ Agent 每产生一条事件时：
 6. 同一事务更新 Run 终态、快照、助手消息 ID、错误信息和 Session `last_message_at`。
 7. 事务提交后，才追加 `RUN_FINISHED` 或 `RUN_ERROR`，再记录包含终态事件的 `snapshot_seq`。
 
-业务终态提交并发布后完成 `terminalSignal`，但不能因此取消底层订阅。AgentScope 的记忆中间件、Sandbox 快照
-与 release 可能仍在根 `AGENT_END` 后继续；源流终止后才记录 Workspace 审计。最终 `drainedSignal` 在业务终态、
+业务终态提交并发布后，客户端即可结束当前展示，但不能因此取消底层订阅。AgentScope 的记忆中间件、Sandbox 快照
+与 release 可能仍在根 `AGENT_END` 后继续；源流终止后才记录 Workspace 审计。`drainedSignal` 在业务终态、
 最终源流和审计都完成后触发，避免数据库终结仍在重试时提前摘除实例。根事件后的后处理失败只记录后处理错误，
-不把已经提交的 `COMPLETED` 改为 `FAILED`。同一 Session 尾链只由稳定的实例级 `drainedSignal` 释放，
-`terminalSignal` 只服务业务完成，不能释放该尾链。
+不把已经提交的 `COMPLETED` 改为 `FAILED`。相邻 Run 不等待该信号；它只负责当前实例的摘除与资源清理。
 
 数据库或终态事件记录短暂失败时，执行实例以最大 30 秒间隔继续重试，直到成功或进程停止。若业务终态事务已
 提交而后续事件记录失败，重试读取已提交 Run 和快照，不重复写助手消息，也不会用旧尝试覆盖真实终态。
@@ -444,8 +443,8 @@ lambda:
 11. 内部 ChatRun 直连已选定的 `HarnessAgent`；外部 Channel 才使用 `HarnessGateway`。
 12. Agent 状态、中断和保存统一使用 `(ChatSession.userId, ChatSession.id)`，不复制 Gateway 的 `gw-*` 规则。
 13. 不在模型调用或记忆整理期间持有 Lambda Fusion Workspace 锁；审计在源流排空后使用短写锁。
-14. `terminalSignal` 表示业务终态，`drainedSignal` 表示源流、审计和资源清理完成，两者不可合并。
-15. 同一 Session 使用等待实例级 `drainedSignal` 的非阻塞尾链顺序启动相邻 Run；它不是应用级 Workspace 执行锁。
+14. 业务终态由持久化状态和终态事件表达；实例只保留表示源流、审计和资源清理完成的 `drainedSignal`。
+15. 相邻 Run 注册后立即异步启动，不以 `drainedSignal` 或 Workspace 锁等待上一轮后处理。
 
 ## 15. 验证要求
 

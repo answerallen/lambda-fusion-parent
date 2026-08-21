@@ -118,10 +118,10 @@ ChatRun 终态，并在事务提交后发布 `RUN_FINISHED` 或 `RUN_ERROR`。
 
 它不表示 AgentScope Flux 已结束。记忆整理中间件和 Sandbox 清理可能仍在继续，因此：
 
-- 业务终态完成 `terminalSignal`，让客户端及时结束当前展示；
+- 业务终态写入数据库并发布终态事件，让客户端及时结束当前展示；
 - 不 dispose 底层 AgentScope 订阅；
 - 源流 complete、error 或 cancel 后再执行 Workspace 审计和资源清理；
-- 最终源流排空与 `terminalSignal` 汇合为稳定的实例级 `drainedSignal`，Coordinator 此时才摘除实例；
+- 业务终态已提交且最终源流排空后完成稳定的实例级 `drainedSignal`，Coordinator 此时才摘除实例；
 - 根事件后的后处理失败不反向覆盖已提交的 `COMPLETED`。
 
 HITL phase 收到确认事件后继续等待根 `AGENT_END`，确认 AgentScope 已保存 `ASKING` 状态；执行适配器随后在根事件处
@@ -164,7 +164,7 @@ SSE 收到业务终态事件后可以完成当前 HTTP 连接；这与后台源�
 - 根 `AGENT_END` 后业务及时完成，延迟的记忆尾部继续排空；
 - 后处理失败不改变已提交业务终态；
 - HITL 新旧 phase 不重叠；
-- 同一 Session 相邻两个 Run 的完整 AgentScope 源流不重叠；
+- 同一 Session 的下一 Run 不等待上一 Run 的记忆尾部，核心状态调用仍由 AgentScope 串行保护；
 - JSON 字段使用前端所需的 camelCase，并包含 `chatRunId` 和 `seq`。
 
 执行：

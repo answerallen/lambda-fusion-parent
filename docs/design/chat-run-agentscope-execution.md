@@ -83,15 +83,14 @@ Agent 主流程在保存当前状态后发出根 `AgentEndEvent`。`MemoryFlushM
 框架并未明文禁止替换；本设计中 Lambda Fusion 选择不查询、不替换、不提前释放该 guard。Sandbox 是否仍被占用
 只能以 AgentScope 源流终止为准。
 
-### 2.6 同会话完整源流需要按排空顺序启动
+### 2.6 同会话下一轮不等待后处理排空
 
-业务终态早于源流排空后，用户可能立即发送下一条消息。虽然数据库中已经没有非终态 Run，直接订阅下一条源流
-仍会让它与上一条记忆尾部重叠。Sandbox 模式可能在 AgentScope guard 上等待，HOST 模式则可能并发读写同一用户
-记忆文件。
+业务终态早于源流排空后，用户可能立即发送下一条消息。下一条 Run 必须立即订阅，不能等待上一轮的 MemoryFlush、
+MemoryMaintenance、Sandbox release 或 Workspace 审计，否则后处理模型耗时会直接表现为下一轮对话卡在 `CREATED`。
 
-因此 `ChatRunCoordinator` 按 `(tenantId, userId, sessionId)` 维护进程内的源流尾链：新 Run 可以创建并建立 SSE，
-但只有前一条源流的排空回调完成后才能真正订阅下一次 `streamEvents`。这是一条基于完成信号的非阻塞启动顺序，
-不持有线程锁、数据库锁或 Workspace 锁，也不替代 AgentScope 对 state、文件和 Sandbox 的内部保护。
+AgentScope `ReActAgent` 已按 `(userId, sessionId)` 串行核心生命周期并在根 `AGENT_END` 后释放状态槽；记忆中间件使用
+防御性上下文副本、隔离键节流和文件写入保护处理尾部。因此 `ChatRunCoordinator` 不再重复串行完整 Flux，
+`drainedSignal` 只用于实例摘除和资源清理。
 
 ## 3. 目标与非目标
 
@@ -106,7 +105,7 @@ Agent 主流程在保存当前状态后发出根 `AgentEndEvent`。`MemoryFlushM
 - 模型调用期间不持有 Lambda Fusion Workspace 写锁。
 - 记忆和 Sandbox 的实现仍由 AgentScope 维护。
 - 同一 HITL Run 的两个阶段不得重叠执行。
-- 同一状态会话的相邻 ChatRun 不得重叠执行完整 AgentScope 源流。
+- 同一状态会话的相邻 ChatRun 立即订阅，核心状态调用由 AgentScope 串行保护。
 
 ### 3.2 本次不做
 
@@ -117,7 +116,7 @@ Agent 主流程在保存当前状态后发出根 `AgentEndEvent`。`MemoryFlushM
 - 不保证进程退出后继续未完成的记忆整理。
 - 不把当前单实例 ChatRun 扩展成多节点可迁移执行。
 - 不用新的应用级执行锁替代已经删除的 Workspace 全流程锁。
-- 不实现跨节点的源流尾链；当前单实例约束下只做进程内顺序启动。
+- 不新增进程内或跨节点的完整源流尾链。
 
 ## 4. 调用边界
 
@@ -202,19 +201,15 @@ delegate.saveAgentState(userId, sessionId);
 
 ## 6. 生命周期
 
-### 6.1 两类完成信号
+### 6.1 业务终态与排空信号
 
-`ChatRunInstance` 分别维护：
-
-- `terminalSignal`：业务 Run 已进入最终状态，供 API 返回和 SSE 终态使用。
-- `drainedSignal`：当前 Run 的最终阶段、业务终态和后处理全部结束，供实例摘除、会话尾链、关机等待和资源统计使用。
-
-`terminalSignal` 不得触发底层 `Disposable.dispose()`。
+业务 Run 的最终状态由数据库状态和终态事件表达，不在实例内维护重复的完成信号。
+`ChatRunInstance` 只维护 `drainedSignal`：当前 Run 的最终阶段、业务终态和后处理全部结束后完成，
+供实例摘除、关机等待和资源统计使用。
 
 `drainedSignal` 是稳定的实例级信号：数据库终结重试尚未成功时，即使源流已经排空也不能摘除实例；反过来，
 业务先完成时也要继续保留实例到最终源流和审计结束。HITL 中间 phase 排空不会完成该信号，确认后的新 phase
-继续由同一个实例承载。Coordinator 的会话尾链只等待这个稳定信号，不能持有“首个 phase 排空即完成”的一次性信号，
-否则 phase N+1 尚未排空时下一条 Run 可能提前启动。
+继续由同一个实例承载。相邻 Run 的启动不消费该信号，避免把记忆尾部耗时传递给下一轮交互。
 
 ### 6.2 普通完成
 
@@ -224,7 +219,6 @@ Agent 主流程
     -> root AGENT_END
         -> 提交助手消息和 Run=COMPLETED
         -> 发送 RUN_FINISHED
-        -> terminalSignal
     -> MemoryFlush / MemoryMaintenance
     -> AgentScope Flux 终止并释放 Sandbox
     -> Workspace 审计
@@ -258,34 +252,33 @@ Agent 主流程
 - 所有 complete、error、cancel 路径都必须执行源流终止清理；最终业务终态还要完成实例 `drainedSignal`，
   不能只在 `onComplete` 清理。
 
-### 6.5 会话源流尾链
+### 6.5 Run 启动与排空
 
-尾链只负责决定“什么时候订阅下一条源流”，不包裹源流执行，也不占用线程等待：
+Run 注册后立即在 ChatRun 调度器订阅 AgentScope 源流：
 
 ```text
-enqueue(sessionKey, startAction)
-    -> 原子取得并替换 sessionKey 当前 tail
-    -> predecessor 完成后在 ChatRun 调度器执行 startAction
+register(runInstance)
+    -> 订阅 drainedSignal，仅用于最终摘除实例
+    -> 在 ChatRun 调度器立即执行 startAction
+    -> root AGENT_END，提交业务终态
+    -> 下一 Run 可立即注册和启动
     -> source complete/error/cancel
     -> Sandbox release
     -> Workspace audit
-    -> 完成当前 Run 的 drainedSignal/tail 节点
-    -> compare-and-remove 已无后继的 sessionKey
+    -> 完成当前 Run 的 drainedSignal
+    -> 按 (runId, instance) 摘除注册实例
 ```
 
 约束：
 
-- `sessionKey = (tenantId, userId, ChatSession.id)`，不能使用 appId 或 Workspace Agent ID。
-- HITL 续跑由同一实例在旧 phase 已排空后直接启动；会话尾链约束相邻 Run，不为每个 phase 创建一次性节点。
-- Run 在排队期间被停止或已终态时，跳过 `startAction`，但必须完成自己的尾链节点。
-- 前驱 error、cancel、审计失败均不能阻塞后继；错误各自记录，尾链按完成语义继续。
-- 排队等待时间不计入 `max-run-duration`；交互计时从实际订阅当前 phase 时开始。
-- 排队等待启动的 Run 计入交互容量，避免请求在内存中无上限堆积；已经业务终态、仅等待排空的实例不占
-  交互容量，但仍计入单独的 draining 资源统计。
-- `terminalSignal` 不能释放尾链；只有实例级 `drainedSignal` 可以释放。
+- HITL 续跑仍由同一实例在旧 phase 已排空后启动，避免同一 Run 的两个 phase 重叠。
+- Run 在调度或认领期间已被停止/终结时跳过 `startAction`，并完成自身 `drainedSignal` 以摘除实例。
+- `max-run-duration` 从实际订阅当前 phase 时开始，只覆盖到根 `AGENT_END`。
+- 业务终态不摘除仍在后处理的实例；只有实例级 `drainedSignal` 完成后才能摘除。
+- 相邻 Run 不等待该信号；同会话核心状态安全由 AgentScope `(userId, sessionId)` 状态槽负责。
 
-该尾链是当前“单实例执行、内存事件缓冲”范围内的进程内设施。若未来允许同一 Session 在多节点接续，需要另行
-设计执行 owner/lease，不能把 Workspace 分布式写锁拿来充当调度器。
+若未来允许同一 Session 在多节点接续，需要另行设计执行 owner/lease；不能把 Workspace 分布式写锁或
+`drainedSignal` 当作分布式调度器。
 
 ## 7. 超时
 
@@ -305,7 +298,6 @@ enqueue(sessionKey, startAction)
 | Agent 会话状态 | AgentScope `ReActAgent` 状态槽串行化 | Agent 主调用 |
 | 外部通道会话 | `HarnessGateway.SessionTurnGate` | 外部通道完整 turn |
 | 内部 ChatRun 状态 | Session 行锁、Run 状态和实例锁 | 对应事务或实例原子操作 |
-| 内部同会话源流 | Coordinator 的非阻塞排空尾链 | 前一条源流及 phase 排空后处理 |
 | Sandbox | AgentScope Sandbox guard | AgentScope 源流生命周期 |
 | 管理端 Workspace 写入 | Lambda Fusion Workspace 短写锁 | 单次实际写入 |
 | Agent 工具共享文件写入 | 文件系统原子能力；必要时仅锁写工具 | 单次工具写入 |
@@ -318,9 +310,9 @@ enqueue(sessionKey, startAction)
 - 在 AgentScope Sandbox guard 内再次获取同一个非重入分布式锁。
 - 为同一 ChatRun 同时保留 Gateway 门闩和另一把阻塞式 Session/Workspace 执行锁。
 
-移除应用级全流程锁后，同一应用的不同用户可以并行调用模型。共享文件是否允许并行写入由实际文件路径和
-存储后端决定，不能再用“串行整个应用”掩盖写冲突。会话尾链只约束同一 `(tenantId, userId, sessionId)`，
-不会把同一应用的不同用户串行化。
+移除应用级全流程锁后，同一应用的不同用户可以并行调用模型。同一会话的核心调用由 AgentScope 状态槽串行，
+后处理与下一轮交互可以重叠。共享文件安全由 AgentScope 的隔离键、文件锁和存储后端原子能力负责，
+不能再用串行完整应用或完整源流掩盖写冲突。
 
 ## 9. Workspace 审计
 
@@ -366,8 +358,8 @@ enqueue(sessionKey, startAction)
 - 交互实例参与容量统计；仅排空中的最终态实例不占用交互容量，但仍受关机和资源清理管理。
 - 等待确认的实例继续保留在活动注册表中。
 - 最终 `drainedSignal` 后按 `(runId, instance)` 删除，避免旧实例删除并发创建的新实例。
-- 按 Session 维护非阻塞 Run 尾链；`CREATED` Run 等前一实例最终排空后才启动。
-- 启动失败、取消和关机都必须完成尾链节点，不能让同会话后续 Run 永久等待。
+- `CREATED` Run 注册后立即异步启动，不等待其他实例排空。
+- 启动失败、取消和关机都必须完成自身排空信号，避免实例注册表泄漏。
 
 ### 10.5 保留项
 
@@ -380,13 +372,12 @@ enqueue(sessionKey, startAction)
 
 1. 先增加特征测试，固定根 `AGENT_END` 早于记忆尾部、源流终止后 Sandbox 才释放等已确认语义。
 2. 改造 `AgentExecutionAdapter` 和 `ChatRunInstanceFactory`，让内部 ChatRun 直连 Agent，并统一状态身份。
-3. 在 `ChatRunInstance` 分离 `terminalSignal`、`drainedSignal`，并保证 HITL 完整排空后才进入待确认。
-4. 在 `ChatRunCoordinator` 引入按 Session 的 Run 尾链，以稳定的实例级 `drainedSignal` 释放后继。
+3. 在 `ChatRunInstance` 只保留稳定的实例级 `drainedSignal`，并保证 HITL 完整排空后才进入待确认。
+4. `ChatRunCoordinator` 注册后立即异步启动 Run，`drainedSignal` 仅用于最终摘除实例。
 5. 把交互超时截止点改到根 `AGENT_END`，把 Workspace 审计移动到 phase 排空路径。
 6. 完成身份、生命周期、HITL、停止、容量与并发测试后，再按第 11 节发布边界上线。
 
-实施中不允许出现“先移除 Gateway 门闩、后补会话尾链”的可发布中间态，否则业务终态提前后，同一 Session 的
-下一 Run 可能与上一条记忆尾部重叠。两个改动必须作为同一个原子版本交付。
+不得再把 `drainedSignal` 复用为相邻 Run 的启动门闩；它只表达当前实例的资源排空状态。
 
 ## 11. 发布边界
 

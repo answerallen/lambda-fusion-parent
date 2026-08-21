@@ -31,7 +31,7 @@ class ExecutionSnapshotAccumulatorTest {
         accumulator.apply(toolDelta("tool-1", "search", null, "text", "running"));
         accumulator.apply(toolDelta("tool-1", "search", null, null, "complete"));
 
-        assertThat(accumulator.snapshot().tools())
+        assertThat(accumulator.buildSnapshot().tools())
                 .containsExactly(
                         new ExecutionSnapshot.Tool("tool-1", "search", "{\"q\":\"x\"}", "result-text", "complete"));
     }
@@ -45,7 +45,7 @@ class ExecutionSnapshotAccumulatorTest {
         accumulator.apply(toolDelta("tool-2", "second", null, null, "running"));
         accumulator.apply(toolDelta("tool-1", "first", "{}", null, "running"));
 
-        assertThat(accumulator.snapshot().tools())
+        assertThat(accumulator.buildSnapshot().tools())
                 .extracting(ExecutionSnapshot.Tool::toolCallId)
                 .containsExactly("tool-1", "tool-2");
     }

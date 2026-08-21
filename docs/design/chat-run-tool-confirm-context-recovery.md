@@ -38,7 +38,7 @@ ChatServiceImpl.confirm
         v
 ChatRunCoordinator.confirm          （loadOwned 已做归属校验）
   1. get 命中则复用；未命中时构造候选实例并以 putIfAbsent 选定唯一注册实例
-  2. 仅注册成功的实例参与信号管理；业务终态完成 terminalSignal，最终排空后才按
+  2. 仅注册成功的实例维护排空信号；业务终态由数据库状态和终态事件发布，最终排空后才按
      (runId, instance) 身份摘除
         |
         v
@@ -94,7 +94,7 @@ Client           ChatService        ChatRunCoordinator   ChatRunInstance        
   |------------------>| loadOwned          |                    |                     |                |
   |                   | confirm            |                    |                     |                |
   |                   |------------------->| selectOrRestore    |                     |                |
-  |                   |                    | (get / putIfAbsent，注册后订阅终态信号) |                   |                |
+  |                   |                    | (get / putIfAbsent，注册后订阅排空信号) |                   |                |
   |                   |                    |------------------->| synchronized {      |                |
   |                   |                    |                    | getAgentState       |                |
   |                   |                    |                    |-------------------->|                |
@@ -193,7 +193,7 @@ public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall comman
 ```
 
 `ChatRunCoordinator.confirm` 先查询 `executions`；未命中时构造候选实例，再由 `putIfAbsent` 选定唯一注册实例。
-竞争落败或未注册实例不能操作注册表。业务终态只完成 `terminalSignal`；Coordinator 等最终 `drainedSignal` 后才
+竞争落败或未注册实例不能操作注册表。业务终态由数据库状态和终态事件发布；Coordinator 等最终 `drainedSignal` 后才
 通过 `remove(runId, instance)` 按实例身份摘除，避免记忆尾部仍运行时丢失实例所有权。取得规范实例后，确认流程在
 其实例锁内执行。`ChatRunService.confirm`（HTTP 编排面）随之删除，确认推进不再经过该面。
 
@@ -349,7 +349,7 @@ RunSnapshot 继续使用现有脱敏逻辑，前端只获得展示和决策所�
 3. 在 `ChatRunInstance` 增加 `confirm` 单一原子方法与三方一致性校验（先做 phase/status 守卫，再在锁内完成读取、校验、CAS 和立即启动）。
 4. 在 `ChatRunStateService` 增加 `advanceConfirmation`（REQUIRES_NEW、所有权复核、阶段守卫、CAS），并删除 `ChatRunService.confirm`。
 5. 调整 `ChatServiceImpl.confirm` 为「归属校验 → 协调器确认 → 挂载事件流」的薄编排。
-6. 统一为完整排空后才进入 `AWAITING_CONFIRM`，删除排空期确认命令和单槽 `PendingPhase`；最终业务终态与实例摘除分别使用 `terminalSignal`、`drainedSignal`。
+6. 统一为完整排空后才进入 `AWAITING_CONFIRM`，删除排空期确认命令和单槽 `PendingPhase`；业务终态由持久化状态和终态事件表达，实例只保留供摘除使用的 `drainedSignal`。
 7. 调整显式持久化 state store 的失败策略，禁止静默回退 MEMORY。
 8. 改写既有 `StateStoreResolverTest`：显式非 MEMORY 配置失败时断言启动失败而非回退 MEMORY（仅未配置/显式 MEMORY 场景保留回退或直接创建用例）；并补充确认上下文相关的单元/集成测试。
 9. 更新 `chat-run-resume.md` 的确认流程及失败语义，使总设计与本修复一致。

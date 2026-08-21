@@ -50,7 +50,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 /**
- * 执行实例排空语义测试：固定「业务终态（terminalSignal）与源流排空（drainedSignal）分离」、
+ * 执行实例排空语义测试：固定「业务终态不提前取消源流、最终源流排空后完成 drainedSignal」、
  * 「Workspace 审计移到源流终止后、用 phase 起始时刻」、「记忆尾部失败不改 COMPLETED」等目标语义。
  *
  * @author Jin
@@ -81,9 +81,8 @@ class ChatRunInstanceDrainTest {
         instance.startPhase(userMsg());
         source.tryEmitNext(agentEnd());
 
-        // 根 AGENT_END：业务终态已提交、terminalSignal 完成，但源流未终止，drainedSignal 不应完成，且未审计。
+        // 根 AGENT_END：业务终态已提交，但源流未终止，drainedSignal 不应完成，且未审计。
         verify(runService).finalizeExecution(eq(instance.run), any(FinalizeCommand.class));
-        assertThat(instance.terminalSignal().toCompletableFuture()).isDone();
         assertThat(instance.drainedSignal().toCompletableFuture()).isNotDone();
         verify(workspaceAuditRecorder, never()).recordChanges(any(), anyLong());
 
@@ -104,7 +103,6 @@ class ChatRunInstanceDrainTest {
 
         instance.startPhase(userMsg());
         source.tryEmitNext(agentEnd());
-        assertThat(instance.terminalSignal().toCompletableFuture()).isDone();
 
         // 业务终态后的记忆/维护尾部失败：Run 保持 COMPLETED，不改为 FAILED；源流终止仍完成排空。
         source.tryEmitError(new RuntimeException("memory flush failed"));
@@ -120,7 +118,6 @@ class ChatRunInstanceDrainTest {
 
         instance.finalizeCompleted();
 
-        assertThat(instance.terminalSignal().toCompletableFuture()).isDone();
         assertThat(instance.drainedSignal().toCompletableFuture()).isDone();
     }
 
@@ -130,7 +127,6 @@ class ChatRunInstanceDrainTest {
 
         instance.releaseNeverStarted();
 
-        assertThat(instance.terminalSignal().toCompletableFuture()).isDone();
         assertThat(instance.drainedSignal().toCompletableFuture()).isDone();
         // 从未建立源流，不写数据库终结。
         verify(runService, never()).finalizeExecution(any(), any());
