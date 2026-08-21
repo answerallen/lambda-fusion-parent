@@ -19,7 +19,44 @@ import java.util.List;
  */
 public interface ChatRunStateService {
 
-    boolean claimCreated(ChatRunEntity run);
+    /**
+     * CAS 认领新建 Run：{@code CREATED -> RUNNING}，同时写入本节点 owner/epoch/lease；已被并发认领则返回 false。
+     *
+     * @param run 运行实体（携带 id）
+     * @param owner 认领节点标识
+     * @param leaseUntil 新租约截止时间
+     */
+    boolean claimCreated(ChatRunEntity run, String owner, java.time.LocalDateTime leaseUntil);
+
+    /**
+     * 接管租约已过期的中断态 Run：仅当该 Run 当前 owner/epoch 与预期一致且租约确已过期时，
+     * 将 owner/epoch/lease 原子切换为本节点。集群接管（Cycle2a 起）使用；本周期仅提供 CAS 能力，接管调度在后续周期接入。
+     *
+     * @param run 运行实体（携带 id）
+     * @param expectedOwner 预期当前 owner 标识；{@code null} 表示预期无主
+     * @param expectedEpoch 预期当前 lease_epoch
+     * @param newOwner 接管节点标识
+     * @param leaseUntil 新租约截止时间
+     * @param dbNow 数据库当前时间（调用方取），用于判定租约确已过期
+     * @return 接管成功返回 true；并发落败或租约未过期返回 false
+     */
+    boolean takeover(
+            ChatRunEntity run,
+            String expectedOwner,
+            Long expectedEpoch,
+            String newOwner,
+            java.time.LocalDateTime leaseUntil,
+            java.time.LocalDateTime dbNow);
+
+    /**
+     * 续约本节点持有 Run 的租约：仅当 owner/epoch 仍为本节点且租约尚未过期时续期，过期 owner 不得原地复活。
+     *
+     * @param run 运行实体（携带 id 与当前 owner/epoch）
+     * @param leaseUntil 新租约截止时间
+     * @param dbNow 数据库当前时间，用于判定旧租约尚未过期
+     * @return 续约成功返回 true；已不是本节点持有或租约已过期返回 false
+     */
+    boolean renewLease(ChatRunEntity run, java.time.LocalDateTime leaseUntil, java.time.LocalDateTime dbNow);
 
     boolean checkpoint(ChatRunEntity run, ChatRunSnapshot snapshot, long seq);
 

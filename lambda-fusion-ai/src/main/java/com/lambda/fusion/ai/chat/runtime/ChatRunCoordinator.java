@@ -30,6 +30,7 @@ import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.core.utils.TenantUtils;
 import io.agentscope.core.message.Msg;
 import jakarta.annotation.PreDestroy;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -59,6 +60,7 @@ public class ChatRunCoordinator {
     private final AppService appService;
     private final ChatRunInstanceFactory instanceFactory;
     private final AiProperties properties;
+    private final ChatRunOwner runOwner;
     private final ChatRunInstanceRegistry registry;
     private final ChatRunMaintenanceScheduler maintenanceScheduler;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, runnable -> {
@@ -78,6 +80,7 @@ public class ChatRunCoordinator {
      * @param appService 应用服务
      * @param instanceFactory 执行实例工厂
      * @param properties AI 模块配置
+     * @param runOwner 本节点执行标识
      */
     public ChatRunCoordinator(
             ChatRunStateService runService,
@@ -87,7 +90,8 @@ public class ChatRunCoordinator {
             ChatAttachmentMessageBuilder attachmentMessageBuilder,
             AppService appService,
             ChatRunInstanceFactory instanceFactory,
-            AiProperties properties) {
+            AiProperties properties,
+            ChatRunOwner runOwner) {
         this.runService = runService;
         this.eventStore = eventStore;
         this.messageService = messageService;
@@ -96,6 +100,7 @@ public class ChatRunCoordinator {
         this.appService = appService;
         this.instanceFactory = instanceFactory;
         this.properties = properties;
+        this.runOwner = runOwner;
         this.registry = new ChatRunInstanceRegistry(instanceFactory, properties);
         this.maintenanceScheduler =
                 new ChatRunMaintenanceScheduler(scheduler, eventStore, registry, runService, this::startIfCreated);
@@ -135,7 +140,7 @@ public class ChatRunCoordinator {
             candidate = instanceFactory.restoreExecution(run, session, scheduler);
         } catch (RuntimeException restoreFailure) {
             ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler);
-            if (runService.claimCreated(run)) {
+            if (runService.claimCreated(run, runOwner.instanceId(), newLeaseUntil())) {
                 run.setStatus(ChatRunStatus.RUNNING.name());
                 rejected.finalizeFailed(
                         ChatRunFailureCode.START_FAILED, ChatRunDataSanitizer.safeMessage(restoreFailure));
@@ -287,9 +292,14 @@ public class ChatRunCoordinator {
         scheduler.shutdown();
     }
 
+    /** 计算新租约截止时间（以当前时间为基准加租约时长）。 */
+    private LocalDateTime newLeaseUntil() {
+        return LocalDateTime.now().plusSeconds(properties.getChat().getRun().getLeaseTtlSeconds());
+    }
+
     private void startCreated(ChatRunInstance execution) {
         ChatRunEntity run = execution.run();
-        if (!runService.claimCreated(run)) {
+        if (!runService.claimCreated(run, runOwner.instanceId(), newLeaseUntil())) {
             // 运行在调度或认领期间已被并发方终结，本实例未建立源流；完成排空信号让注册表摘除实例。
             execution.releaseNeverStarted();
             return;

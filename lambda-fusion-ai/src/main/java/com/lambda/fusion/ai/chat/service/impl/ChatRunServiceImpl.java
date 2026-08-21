@@ -207,10 +207,10 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         return new ConfirmTransition(run, session, true);
     }
 
-    /** CAS 认领新建 Run：{@code CREATED -> RUNNING}，成功返回 true；已被并发认领则返回 false。 */
+    /** CAS 认领新建 Run：{@code CREATED -> RUNNING}，同时写入本节点 owner/epoch/lease，已被并发认领则返回 false。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public boolean claimCreated(ChatRunEntity run) {
+    public boolean claimCreated(ChatRunEntity run, String owner, LocalDateTime leaseUntil) {
         LocalDateTime now = LocalDateTime.now();
         return runMapper.update(
                         null,
@@ -219,7 +219,55 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                                 .eq(ChatRunEntity::getStatus, ChatRunStatus.CREATED.name())
                                 .set(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name())
                                 .set(ChatRunEntity::getStartedAt, now)
+                                .set(ChatRunEntity::getOwnerInstanceId, owner)
+                                .set(ChatRunEntity::getLeaseUntil, leaseUntil)
+                                .setIncrBy(ChatRunEntity::getLeaseEpoch, 1L)
                                 .set(ChatRunEntity::getUpdatedAt, now))
+                == 1;
+    }
+
+    /** 接管租约已过期的中断态 Run：owner/epoch 与预期一致且租约确已过期时，原子切换为本节点。 */
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public boolean takeover(
+            ChatRunEntity run,
+            String expectedOwner,
+            Long expectedEpoch,
+            String newOwner,
+            LocalDateTime leaseUntil,
+            LocalDateTime dbNow) {
+        LambdaUpdateWrapper<ChatRunEntity> wrapper = new LambdaUpdateWrapper<ChatRunEntity>()
+                .eq(ChatRunEntity::getId, run.getId())
+                .in(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name(), ChatRunStatus.STOPPING.name())
+                .eq(ChatRunEntity::getLeaseEpoch, expectedEpoch)
+                // 租约确已过期，或本就无主
+                .and(w -> w.le(ChatRunEntity::getLeaseUntil, dbNow).or().isNull(ChatRunEntity::getOwnerInstanceId))
+                .set(ChatRunEntity::getOwnerInstanceId, newOwner)
+                .set(ChatRunEntity::getLeaseUntil, leaseUntil)
+                .setIncrBy(ChatRunEntity::getLeaseEpoch, 1L)
+                .set(ChatRunEntity::getUpdatedAt, LocalDateTime.now());
+        if (expectedOwner == null) {
+            wrapper.isNull(ChatRunEntity::getOwnerInstanceId);
+        } else {
+            wrapper.eq(ChatRunEntity::getOwnerInstanceId, expectedOwner);
+        }
+        return runMapper.update(null, wrapper) == 1;
+    }
+
+    /** 续约本节点持有 Run 的租约：owner/epoch 仍为本节点且租约尚未过期时才续期。 */
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+    public boolean renewLease(ChatRunEntity run, LocalDateTime leaseUntil, LocalDateTime dbNow) {
+        return runMapper.update(
+                        null,
+                        new LambdaUpdateWrapper<ChatRunEntity>()
+                                .eq(ChatRunEntity::getId, run.getId())
+                                .eq(ChatRunEntity::getOwnerInstanceId, run.getOwnerInstanceId())
+                                .eq(ChatRunEntity::getLeaseEpoch, run.getLeaseEpoch())
+                                // 旧租约尚未过期才允许续约，过期 owner 不得原地复活
+                                .gt(ChatRunEntity::getLeaseUntil, dbNow)
+                                .set(ChatRunEntity::getLeaseUntil, leaseUntil)
+                                .set(ChatRunEntity::getUpdatedAt, LocalDateTime.now()))
                 == 1;
     }
 
