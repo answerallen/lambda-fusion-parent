@@ -64,6 +64,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     private final ChatMessageService messageService;
     private final ChatAttachmentService attachmentService;
     private final AppService appService;
+    private final com.lambda.fusion.ai.chat.runtime.ChatRunOwner runOwner;
 
     /** 幂等创建或加载运行；同一请求 ID 复用已有记录，否则在会话无活动运行时创建并保存用户消息。 */
     @Override
@@ -271,37 +272,48 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                 == 1;
     }
 
-    /** CAS 写检查点：在非终态下更新快照与序号，成功返回 true；已进入终态则拒绝写入。 */
+    /** CAS 写检查点：在非终态且本节点持有（或尚无主）下更新快照与序号，成功返回 true；否则拒绝写入。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public boolean checkpoint(ChatRunEntity run, ChatRunSnapshot snapshot, long seq) {
         LocalDateTime now = LocalDateTime.now();
         return runMapper.update(
                         null,
-                        new LambdaUpdateWrapper<ChatRunEntity>()
-                                .eq(ChatRunEntity::getId, run.getId())
-                                .notIn(ChatRunEntity::getStatus, ChatRunStatus.terminalNames())
+                        withOwnership(new LambdaUpdateWrapper<ChatRunEntity>()
+                                        .eq(ChatRunEntity::getId, run.getId())
+                                        .notIn(ChatRunEntity::getStatus, ChatRunStatus.terminalNames()))
                                 .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
                                 .set(ChatRunEntity::getSnapshotSeq, seq)
                                 .set(ChatRunEntity::getUpdatedAt, now))
                 == 1;
     }
 
-    /** CAS 进入待确认：{@code RUNNING -> AWAITING_CONFIRM} 并记录确认截止时间，成功返回 true。 */
+    /** CAS 进入待确认：本节点持有（或尚无主）的 {@code RUNNING -> AWAITING_CONFIRM}，成功返回 true。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public boolean awaitConfirm(ChatRunEntity run, ChatRunSnapshot snapshot, long seq, LocalDateTime deadline) {
         return runMapper.update(
                         null,
-                        new LambdaUpdateWrapper<ChatRunEntity>()
-                                .eq(ChatRunEntity::getId, run.getId())
-                                .eq(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name())
+                        withOwnership(new LambdaUpdateWrapper<ChatRunEntity>()
+                                        .eq(ChatRunEntity::getId, run.getId())
+                                        .eq(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name()))
                                 .set(ChatRunEntity::getStatus, ChatRunStatus.AWAITING_CONFIRM.name())
                                 .set(ChatRunEntity::getAwaitConfirmDeadlineAt, deadline)
                                 .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
                                 .set(ChatRunEntity::getSnapshotSeq, seq)
                                 .set(ChatRunEntity::getUpdatedAt, LocalDateTime.now()))
                 == 1;
+    }
+
+    /**
+     * owner fencing 前置条件：仅允许「本节点持有」或「尚无主」的行被 owner 写路径命中。
+     * 兼容存量 owner_instance_id 为 NULL 的 Run（本周期不强制要求它们先被分配 owner）；
+     * 他节点持有的行被本条件排除，写不生效。
+     */
+    private LambdaUpdateWrapper<ChatRunEntity> withOwnership(LambdaUpdateWrapper<ChatRunEntity> wrapper) {
+        String me = runOwner.instanceId();
+        return wrapper.and(
+                w -> w.eq(ChatRunEntity::getOwnerInstanceId, me).or().isNull(ChatRunEntity::getOwnerInstanceId));
     }
 
     /** CAS 请求停止：从 {@code CREATED/RUNNING/AWAITING_CONFIRM} 迁移到 {@code STOPPING}，成功返回 true。 */
@@ -382,9 +394,9 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         // 仅允许非终态记录写入终态；更新未命中表示其他并发方已先完成终结。
         int changed = runMapper.update(
                 null,
-                new LambdaUpdateWrapper<ChatRunEntity>()
-                        .eq(ChatRunEntity::getId, run.getId())
-                        .notIn(ChatRunEntity::getStatus, ChatRunStatus.terminalNames())
+                withOwnership(new LambdaUpdateWrapper<ChatRunEntity>()
+                                .eq(ChatRunEntity::getId, run.getId())
+                                .notIn(ChatRunEntity::getStatus, ChatRunStatus.terminalNames()))
                         .set(ChatRunEntity::getStatus, finalStatus.name())
                         .set(ChatRunEntity::getFinishReason, finalReason == null ? null : finalReason.name())
                         .set(ChatRunEntity::getAssistantMessageId, assistant == null ? null : assistant.getId())
@@ -418,12 +430,12 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void recordTerminalSeq(ChatRunEntity run, ChatRunSnapshot snapshot, long seq) {
-        // 仅终态可写最终游标；CAS 以终态为前置条件。
+        // 仅终态可写最终游标；CAS 以终态为前置条件，并叠加 owner fencing（本节点持有或尚无主）。
         int changed = runMapper.update(
                 null,
-                new LambdaUpdateWrapper<ChatRunEntity>()
-                        .eq(ChatRunEntity::getId, run.getId())
-                        .in(ChatRunEntity::getStatus, ChatRunStatus.terminalNames())
+                withOwnership(new LambdaUpdateWrapper<ChatRunEntity>()
+                                .eq(ChatRunEntity::getId, run.getId())
+                                .in(ChatRunEntity::getStatus, ChatRunStatus.terminalNames()))
                         .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
                         .set(ChatRunEntity::getSnapshotSeq, seq)
                         .set(ChatRunEntity::getUpdatedAt, LocalDateTime.now()));

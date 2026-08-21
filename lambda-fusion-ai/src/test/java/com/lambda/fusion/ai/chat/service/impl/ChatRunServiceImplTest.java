@@ -60,7 +60,8 @@ class ChatRunServiceImplTest {
             sessionService,
             messageService,
             mock(ChatAttachmentService.class),
-            mock(AppService.class));
+            mock(AppService.class),
+            new com.lambda.fusion.ai.chat.runtime.ChatRunOwner("test-app"));
 
     @Test
     void shouldLetStoppingStateWinAgainstConcurrentCompletion() {
