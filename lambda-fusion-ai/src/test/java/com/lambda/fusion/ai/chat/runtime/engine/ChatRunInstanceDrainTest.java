@@ -15,16 +15,16 @@ import static org.mockito.Mockito.when;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationCommand;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationResult;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeResult;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
@@ -82,7 +82,7 @@ class ChatRunInstanceDrainTest {
         source.tryEmitNext(agentEnd());
 
         // 根 AGENT_END：业务终态已提交，但源流未终止，drainedSignal 不应完成，且未审计。
-        verify(runService).finalizeExecution(eq(instance.run()), any(FinalizeCommand.class));
+        verify(runService).finalizeExecution(eq(instance.run()), any(ChatRunFinalizationCommand.class));
         assertThat(instance.drainedSignal().toCompletableFuture()).isNotDone();
         verify(workspaceAuditRecorder, never()).recordChanges(any(), anyLong());
 
@@ -141,7 +141,7 @@ class ChatRunInstanceDrainTest {
             BooleanSupplier dbAction = invocation.getArgument(3);
             return dbAction.getAsBoolean();
         });
-        when(runService.awaitConfirm(eq(instance.run()), any(ExecutionSnapshot.class), anyLong(), any()))
+        when(runService.awaitConfirm(eq(instance.run()), any(ChatRunSnapshot.class), anyLong(), any()))
                 .thenReturn(true);
 
         instance.startPhase(userMsg());
@@ -162,7 +162,7 @@ class ChatRunInstanceDrainTest {
 
         assertThat(instance.run().getStatus()).isEqualTo(ChatRunStatus.AWAITING_CONFIRM.name());
         assertThat(instance.drainedSignal().toCompletableFuture()).isNotDone();
-        verify(runService).awaitConfirm(eq(instance.run()), any(ExecutionSnapshot.class), anyLong(), any());
+        verify(runService).awaitConfirm(eq(instance.run()), any(ChatRunSnapshot.class), anyLong(), any());
         verify(workspaceAuditRecorder).recordChanges(eq(instance.session()), anyLong());
     }
 
@@ -208,10 +208,10 @@ class ChatRunInstanceDrainTest {
 
     private void stubTerminalCommit() {
         lenient()
-                .when(runService.finalizeExecution(eq(instance.run()), any(FinalizeCommand.class)))
+                .when(runService.finalizeExecution(eq(instance.run()), any(ChatRunFinalizationCommand.class)))
                 .thenAnswer(invocation -> {
-                    FinalizeCommand command = invocation.getArgument(1);
-                    return new FinalizeResult(
+                    ChatRunFinalizationCommand command = invocation.getArgument(1);
+                    return new ChatRunFinalizationResult(
                             true,
                             command.targetStatus().name(),
                             command.finishReason() == null
@@ -242,7 +242,7 @@ class ChatRunInstanceDrainTest {
                 run,
                 session(),
                 adapter,
-                new ChatRunSnapshotAccumulator(ExecutionSnapshotCodec.decode(run.getSnapshotJson())));
+                new ChatRunSnapshotAccumulator(ChatRunSnapshotCodec.decode(run.getSnapshotJson())));
     }
 
     private static AgentEvent agentEnd() {
@@ -261,7 +261,7 @@ class ChatRunInstanceDrainTest {
         run.setPhaseNo(1);
         run.setAguiRunId("agui-1");
         run.setSnapshotSeq(0L);
-        run.setSnapshotJson(ExecutionSnapshotCodec.encode(ExecutionSnapshot.empty("run-1", "agui-1", 1)));
+        run.setSnapshotJson(ChatRunSnapshotCodec.encode(ChatRunSnapshot.empty("run-1", "agui-1", 1)));
         return run;
     }
 

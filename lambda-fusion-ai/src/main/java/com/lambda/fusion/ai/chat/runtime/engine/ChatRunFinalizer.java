@@ -1,18 +1,18 @@
-package com.lambda.fusion.ai.chat.runtime.engine.finalize;
+package com.lambda.fusion.ai.chat.runtime.engine;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
 import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationCommand;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationResult;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.agui.AgentEventInterpreter;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeResult;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.util.JsonUtils;
@@ -28,7 +28,7 @@ import org.apache.commons.lang3.StringUtils;
  *
  * @author Jin
  */
-public final class RunFinalizer {
+public final class ChatRunFinalizer {
 
     private final ChatRunStateService runService;
     private final ChatRunEventStore eventStore;
@@ -41,7 +41,7 @@ public final class RunFinalizer {
      * @param eventStore 运行事件存储
      * @param properties AI 模块配置
      */
-    public RunFinalizer(ChatRunStateService runService, ChatRunEventStore eventStore, AiProperties properties) {
+    public ChatRunFinalizer(ChatRunStateService runService, ChatRunEventStore eventStore, AiProperties properties) {
         this.runService = runService;
         this.eventStore = eventStore;
         this.properties = properties;
@@ -61,7 +61,7 @@ public final class RunFinalizer {
      */
     public void commitTerminal(
             ChatRunEntity run,
-            ExecutionSnapshot snapshot,
+            ChatRunSnapshot snapshot,
             AgentEventInterpreter interpreter,
             ChatRunStatus status,
             ChatRunFinishReason reason,
@@ -72,10 +72,12 @@ public final class RunFinalizer {
                 ? null
                 : JsonUtils.getJsonCodec()
                         .toJson(snapshot.tools().stream()
-                                .map(RunFinalizer::toPersistedToolCall)
+                                .map(ChatRunFinalizer::toPersistedToolCall)
                                 .toList());
-        FinalizeResult result = runService.finalizeExecution(
-                run, new FinalizeCommand(status, reason, snapshot, toolJson, beforeTerminal, errorCode, errorMessage));
+        ChatRunFinalizationResult result = runService.finalizeExecution(
+                run,
+                new ChatRunFinalizationCommand(
+                        status, reason, snapshot, toolJson, beforeTerminal, errorCode, errorMessage));
         run.setStatus(result.status());
         run.setFinishReason(result.finishReason());
         run.setErrorCode(result.errorCode());
@@ -83,7 +85,7 @@ public final class RunFinalizer {
         if (!result.committed()) {
             ChatRunEntity persisted = loadCurrent(run);
             run.setAguiRunId(persisted.getAguiRunId());
-            snapshot = ExecutionSnapshotCodec.decode(persisted.getSnapshotJson());
+            snapshot = ChatRunSnapshotCodec.decode(persisted.getSnapshotJson());
         }
         ChatRunStatus actualStatus = ChatRunStatus.valueOf(run.getStatus());
         AguiEvent terminalEvent = actualStatus == ChatRunStatus.FAILED
@@ -110,7 +112,7 @@ public final class RunFinalizer {
         return current == null ? identity : current;
     }
 
-    private static Map<String, String> toPersistedToolCall(ExecutionSnapshot.Tool tool) {
+    private static Map<String, String> toPersistedToolCall(ChatRunSnapshot.ToolCall tool) {
         Map<String, String> record = new LinkedHashMap<>();
         record.put("toolCallId", tool.toolCallId());
         record.put("toolCallName", tool.toolCallName());

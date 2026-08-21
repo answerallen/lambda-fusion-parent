@@ -14,15 +14,15 @@ import static org.mockito.Mockito.when;
 import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationCommand;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationResult;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeResult;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import io.agentscope.core.event.AgentEndEvent;
@@ -61,10 +61,10 @@ class ChatRunInstanceTerminalTest {
         instance.startPhase(
                 Msg.builderForRole(io.agentscope.core.message.MsgRole.USER).build());
 
-        FinalizeCommand command = captureFinalize();
+        ChatRunFinalizationCommand command = captureFinalize();
         assertThat(command.targetStatus()).isEqualTo(ChatRunStatus.COMPLETED);
         assertThat(command.finishReason()).isEqualTo(ChatRunFinishReason.SUCCESS);
-        verify(runService, times(1)).finalizeExecution(eq(instance.run()), any(FinalizeCommand.class));
+        verify(runService, times(1)).finalizeExecution(eq(instance.run()), any(ChatRunFinalizationCommand.class));
     }
 
     @Test
@@ -82,7 +82,7 @@ class ChatRunInstanceTerminalTest {
         instance.startPhase(
                 Msg.builderForRole(io.agentscope.core.message.MsgRole.USER).build());
 
-        FinalizeCommand command = captureFinalize();
+        ChatRunFinalizationCommand command = captureFinalize();
         assertThat(command.targetStatus()).isEqualTo(ChatRunStatus.STOPPED);
         assertThat(command.finishReason()).isEqualTo(ChatRunFinishReason.USER_STOP);
     }
@@ -108,17 +108,17 @@ class ChatRunInstanceTerminalTest {
 
         instance.finalizeCompleted();
 
-        FinalizeCommand command = captureFinalize();
+        ChatRunFinalizationCommand command = captureFinalize();
         assertThat(command.snapshot().textOpen()).isFalse();
         assertThat(command.snapshot().reasoningOpen()).isFalse();
         // 关闭事件经快照增量一次性驱动，终态快照已闭合。
-        verify(runService, times(1)).finalizeExecution(eq(instance.run()), any(FinalizeCommand.class));
+        verify(runService, times(1)).finalizeExecution(eq(instance.run()), any(ChatRunFinalizationCommand.class));
     }
 
     @Test
     void shouldClosePersistedSnapshotWhenInterpreterHasNoInMemoryMessages() {
         // 恢复实例：解释器为空（无内存消息 ID），但持久化快照处于打开状态。
-        ExecutionSnapshot openSnapshot = new ExecutionSnapshot(
+        ChatRunSnapshot openSnapshot = new ChatRunSnapshot(
                 "run-1", "agui-1", 1, "partial", "", "m-text", null, true, false, List.of(), List.of());
         ChatRunEntity run = run(ChatRunStatus.RUNNING, openSnapshot);
         instance = newInstance(run);
@@ -126,7 +126,7 @@ class ChatRunInstanceTerminalTest {
 
         instance.finalizeCompleted();
 
-        FinalizeCommand command = captureFinalize();
+        ChatRunFinalizationCommand command = captureFinalize();
         // closeOpenMessages 无条件置 closeActiveMessages，闭合持久化快照。
         assertThat(command.snapshot().textOpen()).isFalse();
     }
@@ -137,10 +137,10 @@ class ChatRunInstanceTerminalTest {
         ChatRunEntity persisted = run(ChatRunStatus.COMPLETED, snapshot("partial", false, false));
         persisted.setFinishReason(ChatRunFinishReason.SUCCESS.name());
         instance = newInstance(run);
-        when(runService.finalizeExecution(eq(run), any(FinalizeCommand.class)))
+        when(runService.finalizeExecution(eq(run), any(ChatRunFinalizationCommand.class)))
                 .thenReturn(
-                        new FinalizeResult(true, "COMPLETED", "SUCCESS", null, null),
-                        new FinalizeResult(false, "COMPLETED", "SUCCESS", null, null));
+                        new ChatRunFinalizationResult(true, "COMPLETED", "SUCCESS", null, null),
+                        new ChatRunFinalizationResult(false, "COMPLETED", "SUCCESS", null, null));
         when(runService.loadCurrent("run-1")).thenReturn(persisted);
         when(eventStore.latestSeq(anyString(), anyLong())).thenReturn(1L);
         when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
@@ -150,16 +150,16 @@ class ChatRunInstanceTerminalTest {
         instance.finalizeCompleted();
 
         assertThat(instance.drainedSignal().toCompletableFuture()).succeedsWithin(Duration.ofSeconds(3));
-        verify(runService, times(2)).finalizeExecution(eq(run), any(FinalizeCommand.class));
+        verify(runService, times(2)).finalizeExecution(eq(run), any(ChatRunFinalizationCommand.class));
         verify(eventStore, times(2)).appendTerminalIfAbsent(anyString(), anyString(), anyString());
-        verify(runService).recordTerminalSeq(eq(run), any(ExecutionSnapshot.class), eq(8L));
+        verify(runService).recordTerminalSeq(eq(run), any(ChatRunSnapshot.class), eq(8L));
     }
 
     private void stubTerminalCommit() {
-        when(runService.finalizeExecution(eq(instance.run()), any(FinalizeCommand.class)))
+        when(runService.finalizeExecution(eq(instance.run()), any(ChatRunFinalizationCommand.class)))
                 .thenAnswer(invocation -> {
-                    FinalizeCommand command = invocation.getArgument(1);
-                    return new FinalizeResult(
+                    ChatRunFinalizationCommand command = invocation.getArgument(1);
+                    return new ChatRunFinalizationResult(
                             true,
                             command.targetStatus().name(),
                             command.finishReason() == null
@@ -175,8 +175,8 @@ class ChatRunInstanceTerminalTest {
         when(eventStore.latestSeq(anyString(), anyLong())).thenReturn(1L);
     }
 
-    private FinalizeCommand captureFinalize() {
-        ArgumentCaptor<FinalizeCommand> captor = ArgumentCaptor.forClass(FinalizeCommand.class);
+    private ChatRunFinalizationCommand captureFinalize() {
+        ArgumentCaptor<ChatRunFinalizationCommand> captor = ArgumentCaptor.forClass(ChatRunFinalizationCommand.class);
         verify(runService).finalizeExecution(eq(instance.run()), captor.capture());
         return captor.getValue();
     }
@@ -191,7 +191,7 @@ class ChatRunInstanceTerminalTest {
                 run,
                 session(),
                 adapter,
-                new ChatRunSnapshotAccumulator(ExecutionSnapshotCodec.decode(run.getSnapshotJson())));
+                new ChatRunSnapshotAccumulator(ChatRunSnapshotCodec.decode(run.getSnapshotJson())));
         return created;
     }
 
@@ -201,8 +201,8 @@ class ChatRunInstanceTerminalTest {
         return source == null ? event : event.withSource(source);
     }
 
-    private static ExecutionSnapshot snapshot(String text, boolean textOpen, boolean reasoningOpen) {
-        return new ExecutionSnapshot(
+    private static ChatRunSnapshot snapshot(String text, boolean textOpen, boolean reasoningOpen) {
+        return new ChatRunSnapshot(
                 "run-1",
                 "agui-1",
                 1,
@@ -216,7 +216,7 @@ class ChatRunInstanceTerminalTest {
                 List.of());
     }
 
-    private static ChatRunEntity run(ChatRunStatus status, ExecutionSnapshot snapshot) {
+    private static ChatRunEntity run(ChatRunStatus status, ChatRunSnapshot snapshot) {
         ChatRunEntity run = new ChatRunEntity();
         run.setId("run-1");
         run.setSessionId("session-1");
@@ -224,7 +224,7 @@ class ChatRunInstanceTerminalTest {
         run.setPhaseNo(1);
         run.setAguiRunId("agui-1");
         run.setSnapshotSeq(0L);
-        run.setSnapshotJson(ExecutionSnapshotCodec.encode(snapshot));
+        run.setSnapshotJson(ChatRunSnapshotCodec.encode(snapshot));
         return run;
     }
 

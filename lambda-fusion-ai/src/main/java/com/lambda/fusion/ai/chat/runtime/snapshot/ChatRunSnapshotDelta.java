@@ -1,6 +1,5 @@
-package com.lambda.fusion.ai.chat.runtime.model;
+package com.lambda.fusion.ai.chat.runtime.snapshot;
 
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
 import java.util.List;
 
 /**
@@ -8,7 +7,7 @@ import java.util.List;
  *
  * @author Jin
  */
-public record ExecutionSnapshotDelta(
+public record ChatRunSnapshotDelta(
         String textMessageId,
         String textDelta,
         String reasoningMessageId,
@@ -17,7 +16,7 @@ public record ExecutionSnapshotDelta(
         boolean closeReasoning,
         boolean closeActiveMessages,
         List<ToolDelta> tools,
-        List<ExecutionSnapshot.Tool> awaitingTools) {
+        List<ChatRunSnapshot.ToolCall> awaitingTools) {
 
     /** 是否存在快照变化。 */
     public boolean isEmpty() {

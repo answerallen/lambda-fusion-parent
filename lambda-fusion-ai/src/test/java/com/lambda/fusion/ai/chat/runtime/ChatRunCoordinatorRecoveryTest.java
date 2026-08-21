@@ -13,15 +13,15 @@ import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.service.AppService;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationCommand;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationResult;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstanceFactory;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeResult;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
@@ -41,14 +41,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
 
-class ExecutionCoordinatorRecoveryTest {
+class ChatRunCoordinatorRecoveryTest {
 
     private final ChatRunStateService runService = mock(ChatRunStateService.class);
     private final ChatRunEventStore eventStore = mock(ChatRunEventStore.class);
     private final AgentFactory agentFactory = mock(AgentFactory.class);
     private final WorkspaceAuditRecorder workspaceAuditRecorder = mock(WorkspaceAuditRecorder.class);
     private ChatRunCoordinator coordinator;
-    private ChatRunStartupRecovery startupRecovery;
+    private ChatRunRecoveryListener startupRecovery;
 
     @AfterEach
     void tearDown() {
@@ -79,7 +79,7 @@ class ExecutionCoordinatorRecoveryTest {
 
         startupRecovery.recoverOnStartup();
 
-        FinalizeCommand command = captureFinalizeCommand(run);
+        ChatRunFinalizationCommand command = captureChatRunFinalizationCommand(run);
         assertThat(command.targetStatus()).isEqualTo(ChatRunStatus.FAILED);
         assertThat(command.errorCode()).isEqualTo(ChatRunFailureCode.CONFIRM_CONTEXT_UNAVAILABLE);
         assertThat(command.errorMessage()).isEqualTo("服务进程重启，用户确认上下文不可恢复");
@@ -93,7 +93,7 @@ class ExecutionCoordinatorRecoveryTest {
 
         startupRecovery.recoverOnStartup();
 
-        FinalizeCommand command = captureFinalizeCommand(run);
+        ChatRunFinalizationCommand command = captureChatRunFinalizationCommand(run);
         assertThat(command.targetStatus()).isEqualTo(ChatRunStatus.FAILED);
         assertThat(command.errorCode()).isEqualTo(ChatRunFailureCode.CONFIRM_CONTEXT_UNAVAILABLE);
         assertThat(command.errorMessage()).isEqualTo("服务进程重启，用户确认上下文不可恢复");
@@ -107,7 +107,7 @@ class ExecutionCoordinatorRecoveryTest {
 
         startupRecovery.recoverOnStartup();
 
-        FinalizeCommand command = captureFinalizeCommand(run);
+        ChatRunFinalizationCommand command = captureChatRunFinalizationCommand(run);
         assertThat(command.targetStatus()).isEqualTo(ChatRunStatus.FAILED);
         assertThat(command.errorCode()).isEqualTo(ChatRunFailureCode.INSTANCE_LOST);
         assertThat(command.errorMessage()).isEqualTo("服务进程重启，对话运行已终止");
@@ -122,7 +122,7 @@ class ExecutionCoordinatorRecoveryTest {
 
         startupRecovery.recoverOnStartup();
 
-        FinalizeCommand command = captureFinalizeCommand(run);
+        ChatRunFinalizationCommand command = captureChatRunFinalizationCommand(run);
         assertThat(command.errorCode()).isEqualTo(ChatRunFailureCode.INSTANCE_LOST);
         verify(delegate).saveAgentState("user-1", "session-1");
     }
@@ -138,7 +138,7 @@ class ExecutionCoordinatorRecoveryTest {
         coordinator.stop(run, session());
 
         verify(delegate).saveAgentState("user-1", "session-1");
-        verify(runService).finalizeExecution(eq(run), any(FinalizeCommand.class));
+        verify(runService).finalizeExecution(eq(run), any(ChatRunFinalizationCommand.class));
     }
 
     private void prepareRecovery(ChatRunEntity run, String stateStoreType) {
@@ -160,21 +160,24 @@ class ExecutionCoordinatorRecoveryTest {
                 mock(AppService.class),
                 instanceFactory,
                 properties);
-        startupRecovery = new ChatRunStartupRecovery(runService, coordinator);
+        startupRecovery = new ChatRunRecoveryListener(runService, coordinator);
     }
 
     private void stubTerminalCommit(ChatRunEntity run) {
-        when(runService.finalizeExecution(eq(run), any(FinalizeCommand.class))).thenAnswer(invocation -> {
-            FinalizeCommand command = invocation.getArgument(1);
-            return new FinalizeResult(
-                    true,
-                    command.targetStatus().name(),
-                    command.finishReason() == null
-                            ? null
-                            : command.finishReason().name(),
-                    command.errorCode() == null ? null : command.errorCode().name(),
-                    command.errorMessage());
-        });
+        when(runService.finalizeExecution(eq(run), any(ChatRunFinalizationCommand.class)))
+                .thenAnswer(invocation -> {
+                    ChatRunFinalizationCommand command = invocation.getArgument(1);
+                    return new ChatRunFinalizationResult(
+                            true,
+                            command.targetStatus().name(),
+                            command.finishReason() == null
+                                    ? null
+                                    : command.finishReason().name(),
+                            command.errorCode() == null
+                                    ? null
+                                    : command.errorCode().name(),
+                            command.errorMessage());
+                });
         when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
                 .thenReturn(new ChatRunEvent(8L, "terminal-8", "RUN_FINISHED", "{}"));
     }
@@ -203,8 +206,8 @@ class ExecutionCoordinatorRecoveryTest {
         return delegate;
     }
 
-    private FinalizeCommand captureFinalizeCommand(ChatRunEntity run) {
-        ArgumentCaptor<FinalizeCommand> captor = ArgumentCaptor.forClass(FinalizeCommand.class);
+    private ChatRunFinalizationCommand captureChatRunFinalizationCommand(ChatRunEntity run) {
+        ArgumentCaptor<ChatRunFinalizationCommand> captor = ArgumentCaptor.forClass(ChatRunFinalizationCommand.class);
         verify(runService).finalizeExecution(eq(run), captor.capture());
         return captor.getValue();
     }
@@ -221,11 +224,11 @@ class ExecutionCoordinatorRecoveryTest {
         run.setPhaseNo(1);
         run.setAguiRunId("agui-1");
         run.setSnapshotSeq(7L);
-        List<ExecutionSnapshot.Tool> pendingTools = pendingIds.stream()
-                .map(id -> new ExecutionSnapshot.Tool(id, "demo_tool", "", "", "asking"))
+        List<ChatRunSnapshot.ToolCall> pendingTools = pendingIds.stream()
+                .map(id -> new ChatRunSnapshot.ToolCall(id, "demo_tool", "", "", "asking"))
                 .toList();
-        run.setSnapshotJson(ExecutionSnapshotCodec.encode(new ExecutionSnapshot(
-                "run-1", "agui-1", 1, "", "", null, null, false, false, List.of(), pendingTools)));
+        run.setSnapshotJson(ChatRunSnapshotCodec.encode(
+                new ChatRunSnapshot("run-1", "agui-1", 1, "", "", null, null, false, false, List.of(), pendingTools)));
         return run;
     }
 

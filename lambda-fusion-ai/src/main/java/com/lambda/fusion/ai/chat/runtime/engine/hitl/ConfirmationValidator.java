@@ -2,7 +2,7 @@ package com.lambda.fusion.ai.chat.runtime.engine.hitl;
 
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import io.agentscope.core.event.ConfirmResult;
@@ -44,7 +44,7 @@ public final class ConfirmationValidator {
      */
     public static Msg validateAndBuildMessage(
             ChatRunEntity run,
-            List<ExecutionSnapshot.Tool> pendingTools,
+            List<ChatRunSnapshot.ToolCall> pendingTools,
             List<ConfirmToolCall.Decision> decisions,
             Supplier<List<ToolUseBlock>> askingBlocksSupplier) {
         if (decisions == null || decisions.isEmpty()) {
@@ -58,7 +58,7 @@ public final class ConfirmationValidator {
             }
         }
         Set<String> snapshotIds = new HashSet<>();
-        for (ExecutionSnapshot.Tool tool : pendingTools) {
+        for (ChatRunSnapshot.ToolCall tool : pendingTools) {
             if (!snapshotIds.add(tool.toolCallId())) {
                 throw contextMismatch(run, "快照待确认工具ID重复: " + tool.toolCallId());
             }
@@ -96,9 +96,9 @@ public final class ConfirmationValidator {
      * @return 快照与 Agent 状态一致且非空时返回 {@code true}
      */
     public static boolean isRecoverable(
-            List<ExecutionSnapshot.Tool> pendingTools, Supplier<List<ToolUseBlock>> askingBlocksSupplier) {
+            List<ChatRunSnapshot.ToolCall> pendingTools, Supplier<List<ToolUseBlock>> askingBlocksSupplier) {
         Set<String> snapshotIds = new HashSet<>();
-        for (ExecutionSnapshot.Tool tool : pendingTools) {
+        for (ChatRunSnapshot.ToolCall tool : pendingTools) {
             if (!snapshotIds.add(tool.toolCallId())) {
                 return false;
             }

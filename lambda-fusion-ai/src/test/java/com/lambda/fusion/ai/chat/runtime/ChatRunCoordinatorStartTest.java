@@ -16,16 +16,16 @@ import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.attachment.ChatAttachmentMessageBuilder;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationCommand;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationResult;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstanceFactory;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeResult;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
@@ -46,7 +46,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import reactor.core.publisher.Sinks;
 
 /** Run 启动调度测试。 */
-class ExecutionCoordinatorStartTest {
+class ChatRunCoordinatorStartTest {
 
     private ChatRunCoordinator coordinator;
 
@@ -107,10 +107,10 @@ class ExecutionCoordinatorStartTest {
         Sinks.Many<AgentEvent> secondSource = Sinks.many().unicast().onBackpressureBuffer();
         when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class)))
                 .thenReturn(firstSource.asFlux(), secondSource.asFlux());
-        when(runService.finalizeExecution(any(ChatRunEntity.class), any(FinalizeCommand.class)))
+        when(runService.finalizeExecution(any(ChatRunEntity.class), any(ChatRunFinalizationCommand.class)))
                 .thenAnswer(invocation -> {
-                    FinalizeCommand command = invocation.getArgument(1);
-                    return new FinalizeResult(
+                    ChatRunFinalizationCommand command = invocation.getArgument(1);
+                    return new ChatRunFinalizationResult(
                             true,
                             command.targetStatus().name(),
                             command.finishReason().name(),
@@ -125,7 +125,7 @@ class ExecutionCoordinatorStartTest {
 
         assertThat(firstSource.tryEmitNext(new AgentEndEvent("reply-1")).isSuccess())
                 .isTrue();
-        verify(runService, timeout(1000)).finalizeExecution(eq(first), any(FinalizeCommand.class));
+        verify(runService, timeout(1000)).finalizeExecution(eq(first), any(ChatRunFinalizationCommand.class));
         assertThat(first.getStatus()).isEqualTo(ChatRunStatus.COMPLETED.name());
 
         // firstSource 未 complete，模拟 MemoryFlush / MemoryMaintenance 仍在运行。
@@ -138,7 +138,7 @@ class ExecutionCoordinatorStartTest {
                 .isTrue();
         assertThat(firstSource.tryEmitComplete().isSuccess()).isTrue();
         assertThat(secondSource.tryEmitComplete().isSuccess()).isTrue();
-        verify(runService, timeout(1000)).finalizeExecution(eq(second), any(FinalizeCommand.class));
+        verify(runService, timeout(1000)).finalizeExecution(eq(second), any(ChatRunFinalizationCommand.class));
     }
 
     private static ChatRunEntity run(String id, long userMessageId) {
@@ -150,7 +150,7 @@ class ExecutionCoordinatorStartTest {
         run.setPhaseNo(1);
         run.setAguiRunId("agui-" + id);
         run.setSnapshotSeq(0L);
-        run.setSnapshotJson(ExecutionSnapshotCodec.encode(ExecutionSnapshot.empty(id, run.getAguiRunId(), 1)));
+        run.setSnapshotJson(ChatRunSnapshotCodec.encode(ChatRunSnapshot.empty(id, run.getAguiRunId(), 1)));
         return run;
     }
 

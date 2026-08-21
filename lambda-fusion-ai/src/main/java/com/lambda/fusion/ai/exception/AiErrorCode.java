@@ -132,8 +132,6 @@ public enum AiErrorCode implements ErrorCode {
 
     CHAT_RUN_ALREADY_ACTIVE(30205, "会话已有正在运行的对话"),
 
-    CHAT_RUN_CURSOR_EXPIRED(30206, "对话事件游标已过期"),
-
     CHAT_RUN_EVENTS_EXPIRED(30207, "对话运行事件已过期"),
 
     CHAT_RUN_STATE_CONFLICT(30208, "对话运行状态冲突"),

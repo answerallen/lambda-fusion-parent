@@ -19,11 +19,11 @@ import lombok.extern.slf4j.Slf4j;
  * @author Jin
  */
 @Slf4j
-public final class RunMaintenanceScheduler {
+public final class ChatRunMaintenanceScheduler {
 
     private final ScheduledExecutorService scheduler;
     private final ChatRunEventStore eventStore;
-    private final ChatRunRegistry registry;
+    private final ChatRunInstanceRegistry registry;
     private final ChatRunStateService runService;
     private final Consumer<ChatRunEntity> createdLauncher;
 
@@ -36,10 +36,10 @@ public final class RunMaintenanceScheduler {
      * @param runService 运行状态服务
      * @param createdLauncher 待执行 CREATED Run 的拉起动作（协调器入口）
      */
-    public RunMaintenanceScheduler(
+    public ChatRunMaintenanceScheduler(
             ScheduledExecutorService scheduler,
             ChatRunEventStore eventStore,
-            ChatRunRegistry registry,
+            ChatRunInstanceRegistry registry,
             ChatRunStateService runService,
             Consumer<ChatRunEntity> createdLauncher) {
         this.scheduler = scheduler;

@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ChatRunStartupRecovery {
+public class ChatRunRecoveryListener {
 
     private final ChatRunStateService runService;
     private final ChatRunCoordinator coordinator;

@@ -1,6 +1,7 @@
-package com.lambda.fusion.ai.chat.runtime.snapshot;
+package com.lambda.fusion.ai.chat.runtime;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import io.agentscope.core.util.JsonUtils;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -8,15 +9,17 @@ import java.util.Locale;
 import java.util.Map;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.validator.constraints.UniqueElements;
 
 /**
  * 执行快照数据清理工具：负责工具调用数据归一化，并在持久化前屏蔽常见凭据字段。
  *
  * @author Jin
  */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class ExecutionSnapshotSanitizer {
+@UtilityClass
+public final class ChatRunDataSanitizer {
 
     /**
      * 清理工具调用快照。
@@ -24,10 +27,10 @@ public final class ExecutionSnapshotSanitizer {
      * @param tools 工具调用快照
      * @return 清理后的工具调用快照
      */
-    public static List<ExecutionSnapshot.Tool> sanitizeTools(List<ExecutionSnapshot.Tool> tools) {
+    public static List<ChatRunSnapshot.ToolCall> sanitizeTools(List<ChatRunSnapshot.ToolCall> tools) {
         return tools == null
                 ? List.of()
-                : tools.stream().map(ExecutionSnapshotSanitizer::sanitizeTool).toList();
+                : tools.stream().map(ChatRunDataSanitizer::sanitizeTool).toList();
     }
 
     /**
@@ -36,12 +39,12 @@ public final class ExecutionSnapshotSanitizer {
      * @param tools 待确认工具调用
      * @return 不包含参数和结果的待确认工具调用快照
      */
-    public static List<ExecutionSnapshot.Tool> sanitizePendingTools(List<ExecutionSnapshot.Tool> tools) {
+    public static List<ChatRunSnapshot.ToolCall> sanitizePendingTools(List<ChatRunSnapshot.ToolCall> tools) {
         return tools == null
                 ? List.of()
                 : tools.stream()
                         .filter(java.util.Objects::nonNull)
-                        .map(tool -> new ExecutionSnapshot.Tool(
+                        .map(tool -> new ChatRunSnapshot.ToolCall(
                                 safe(tool.toolCallId()),
                                 safe(tool.toolCallName()),
                                 "",
@@ -76,11 +79,11 @@ public final class ExecutionSnapshotSanitizer {
         return StringUtils.left(redactText(message), 1000);
     }
 
-    private static ExecutionSnapshot.Tool sanitizeTool(ExecutionSnapshot.Tool tool) {
+    private static ChatRunSnapshot.ToolCall sanitizeTool(ChatRunSnapshot.ToolCall tool) {
         if (tool == null) {
-            return new ExecutionSnapshot.Tool("", "", "", "", ChatRunToolStatus.UNKNOWN.getCode());
+            return new ChatRunSnapshot.ToolCall("", "", "", "", ChatRunToolStatus.UNKNOWN.getCode());
         }
-        return new ExecutionSnapshot.Tool(
+        return new ChatRunSnapshot.ToolCall(
                 safe(tool.toolCallId()),
                 safe(tool.toolCallName()),
                 sanitizeJson(tool.args()),
@@ -110,7 +113,7 @@ public final class ExecutionSnapshotSanitizer {
             return result;
         }
         if (value instanceof List<?> list) {
-            return list.stream().map(ExecutionSnapshotSanitizer::redact).toList();
+            return list.stream().map(ChatRunDataSanitizer::redact).toList();
         }
         return value;
     }

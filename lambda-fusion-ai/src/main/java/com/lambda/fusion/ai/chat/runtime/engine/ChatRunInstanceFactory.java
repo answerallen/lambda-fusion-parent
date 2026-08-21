@@ -6,7 +6,7 @@ import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
 import com.lambda.fusion.ai.chat.runtime.engine.hitl.ConfirmationValidator;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.runtime.AgentFactory;
 import com.lambda.fusion.ai.runtime.gateway.FusionSubagentGateway;
@@ -48,7 +48,7 @@ public class ChatRunInstanceFactory {
     /** 验证持久化 AgentState 中的 ASKING 工具与 Run 展示快照一致，避免重启后保留不可确认的僵尸运行。 */
     public boolean hasRecoverableConfirmation(ChatRunEntity run, ChatSessionEntity session) {
         return ConfirmationValidator.isRecoverable(
-                ExecutionSnapshotCodec.decode(run.getSnapshotJson()).pendingTools(),
+                ChatRunSnapshotCodec.decode(run.getSnapshotJson()).pendingTools(),
                 () -> createAgentExecution(run, session).readAskingToolBlocks());
     }
 
@@ -94,7 +94,7 @@ public class ChatRunInstanceFactory {
                 run,
                 session,
                 agentExecution,
-                new ChatRunSnapshotAccumulator(ExecutionSnapshotCodec.decode(run.getSnapshotJson())));
+                new ChatRunSnapshotAccumulator(ChatRunSnapshotCodec.decode(run.getSnapshotJson())));
     }
 
     /**

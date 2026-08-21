@@ -19,7 +19,7 @@ import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstanceFactory;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
@@ -43,7 +43,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
 import reactor.core.publisher.Flux;
 
-class ExecutionCoordinatorConfirmTest {
+class ChatRunCoordinatorConfirmTest {
 
     private ChatRunStateService runService;
     private ChatRunEventStore eventStore;
@@ -249,10 +249,10 @@ class ExecutionCoordinatorConfirmTest {
         run.setSessionId("session-1");
         run.setStatus(ChatRunStatus.AWAITING_CONFIRM.name());
         run.setPhaseNo(phaseNo);
-        List<ExecutionSnapshot.Tool> pendingTools = pendingIds.stream()
-                .map(id -> new ExecutionSnapshot.Tool(id, "demo", "", "", "asking"))
+        List<ChatRunSnapshot.ToolCall> pendingTools = pendingIds.stream()
+                .map(id -> new ChatRunSnapshot.ToolCall(id, "demo", "", "", "asking"))
                 .toList();
-        ExecutionSnapshot snapshot = new ExecutionSnapshot(
+        ChatRunSnapshot snapshot = new ChatRunSnapshot(
                 "run-1", "phase-1", phaseNo, "", "", null, null, false, false, List.of(), pendingTools);
         run.setSnapshotJson(io.agentscope.core.util.JsonUtils.getJsonCodec().toJson(snapshot));
         return run;
@@ -287,7 +287,7 @@ class ExecutionCoordinatorConfirmTest {
 
     private static AgentState stateWithAskingBlocks(List<String> toolCallIds) {
         return stateWithToolBlocks(toolCallIds.stream()
-                .map(ExecutionCoordinatorConfirmTest::askingBlock)
+                .map(ChatRunCoordinatorConfirmTest::askingBlock)
                 .toList());
     }
 

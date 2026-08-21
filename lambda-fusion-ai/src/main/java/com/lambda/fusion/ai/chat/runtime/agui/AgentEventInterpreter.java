@@ -1,9 +1,8 @@
 package com.lambda.fusion.ai.chat.runtime.agui;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
-import com.lambda.fusion.ai.chat.runtime.model.ExecutionInterpretation;
-import com.lambda.fusion.ai.chat.runtime.model.ExecutionSnapshotDelta;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotDelta;
 import io.agentscope.core.agui.encoder.AguiEventEncoder;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
@@ -70,7 +69,7 @@ public class AgentEventInterpreter {
      * @param event AgentScope 事件
      * @return 事件解释结果
      */
-    public ExecutionInterpretation interpret(AgentEvent event) {
+    public AgentEventInterpretation interpret(AgentEvent event) {
         List<AguiEvent> events = new ArrayList<>();
         SnapshotDeltaBuilder delta = new SnapshotDeltaBuilder();
         AgentEventType type = event.getType();
@@ -87,7 +86,7 @@ public class AgentEventInterpreter {
             case REQUIRE_USER_CONFIRM -> mapRequireUserConfirm(event, events, delta);
             default -> {}
         }
-        return new ExecutionInterpretation(List.copyOf(events), delta.build());
+        return new AgentEventInterpretation(List.copyOf(events), delta.build());
     }
 
     /**
@@ -213,7 +212,7 @@ public class AgentEventInterpreter {
         closeActiveMessage(out, delta);
         out.add(new AguiEvent.RunFinished(threadId, runId, null, buildInterruptOutcome(confirm.getToolCalls())));
         delta.awaiting(confirm.getToolCalls().stream()
-                .map(tool -> new ExecutionSnapshot.Tool(tool.getId(), tool.getName(), "", "", TOOL_ASKING))
+                .map(tool -> new ChatRunSnapshot.ToolCall(tool.getId(), tool.getName(), "", "", TOOL_ASKING))
                 .toList());
     }
 
@@ -239,12 +238,12 @@ public class AgentEventInterpreter {
      *
      * @return 仅包含消息关闭事件与对应快照增量的解释结果
      */
-    public ExecutionInterpretation closeOpenMessages() {
+    public AgentEventInterpretation closeOpenMessages() {
         List<AguiEvent> out = new ArrayList<>();
         SnapshotDeltaBuilder delta = new SnapshotDeltaBuilder();
         closeActiveMessage(out, delta);
         delta.closeActiveMessages();
-        return new ExecutionInterpretation(List.copyOf(out), delta.build());
+        return new AgentEventInterpretation(List.copyOf(out), delta.build());
     }
 
     private void closeActiveMessage(List<AguiEvent> out, SnapshotDeltaBuilder delta) {
@@ -310,8 +309,8 @@ public class AgentEventInterpreter {
         private boolean closeText;
         private boolean closeReasoning;
         private boolean closeActiveMessages;
-        private final List<ExecutionSnapshotDelta.ToolDelta> tools = new ArrayList<>();
-        private List<ExecutionSnapshot.Tool> awaitingTools = List.of();
+        private final List<ChatRunSnapshotDelta.ToolDelta> tools = new ArrayList<>();
+        private List<ChatRunSnapshot.ToolCall> awaitingTools = List.of();
 
         void appendText(String messageId, String delta) {
             textMessageId = messageId;
@@ -343,17 +342,17 @@ public class AgentEventInterpreter {
                 String status,
                 boolean replaceArgs,
                 boolean replaceResult) {
-            tools.add(new ExecutionSnapshotDelta.ToolDelta(
+            tools.add(new ChatRunSnapshotDelta.ToolDelta(
                     toolCallId, toolCallName, argsDelta, resultDelta, status, replaceArgs, replaceResult));
         }
 
-        void awaiting(List<ExecutionSnapshot.Tool> toolsToAwait) {
+        void awaiting(List<ChatRunSnapshot.ToolCall> toolsToAwait) {
             awaitingTools = List.copyOf(toolsToAwait);
             closeActiveMessages = true;
         }
 
-        ExecutionSnapshotDelta build() {
-            return new ExecutionSnapshotDelta(
+        ChatRunSnapshotDelta build() {
+            return new ChatRunSnapshotDelta(
                     textMessageId,
                     textDelta,
                     reasoningMessageId,

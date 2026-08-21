@@ -1,8 +1,6 @@
 package com.lambda.fusion.ai.chat.runtime.event;
 
 import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
-import com.lambda.fusion.ai.exception.AiBusinessException;
-import com.lambda.fusion.ai.exception.AiErrorCode;
 import io.agentscope.core.agui.event.AguiEvent;
 import java.io.Serial;
 import java.nio.charset.StandardCharsets;
@@ -58,12 +56,12 @@ final class ChatRunEventBuffer {
      *
      * @param aguiEvents AG-UI 事件列表
      * @param aguiRunId AG-UI 运行标识
-     * @return 追加结果
+     * @return 缓冲区是否超过容量限制
      * @throws IllegalStateException 单个事件超过缓冲区字节限制
      */
-    synchronized ChatRunEventOutcome append(List<AguiEvent> aguiEvents, String aguiRunId) {
+    synchronized boolean append(List<AguiEvent> aguiEvents, String aguiRunId) {
         if (aguiEvents == null || aguiEvents.isEmpty()) {
-            return new ChatRunEventOutcome(List.of(), overCapacity());
+            return overCapacity();
         }
         List<ChatRunEvent> appended = new ArrayList<>(aguiEvents.size());
         long seq = nextSeq;
@@ -74,7 +72,7 @@ final class ChatRunEventBuffer {
             seq++;
         }
         publish(appended, false);
-        return new ChatRunEventOutcome(List.copyOf(appended), overCapacity());
+        return overCapacity();
     }
 
     /**
@@ -185,23 +183,21 @@ final class ChatRunEventBuffer {
     }
 
     /**
-     * 订阅指定序号之后的事件。
+     * 订阅指定序号之后的事件。游标越界时收敛到窗口边界：早于窗口起点则从最早保留事件重放，
+     * 晚于最新事件则只接后续实时事件，不再报错——续看恢复依赖引导快照，游标仅用于
+     * 对齐快照高水位之后的增量，无需精确校验。
      *
      * @param afterSeq 已消费的事件序号
      * @param consumer 事件消费者
      * @param failureConsumer 发送失败消费者
      * @return 订阅句柄
-     * @throws AiBusinessException 游标不在当前事件窗口内
      */
     synchronized ChatRunEventSubscription subscribe(
             long afterSeq, Consumer<ChatRunEvent> consumer, Consumer<Throwable> failureConsumer) {
-        long minSeq = events.isEmpty() ? nextSeq : events.getFirst().seq();
         long latestSeq = nextSeq - 1;
-        if (afterSeq < minSeq - 1 || afterSeq > latestSeq) {
-            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CURSOR_EXPIRED, afterSeq);
-        }
+        long cursor = Math.max(0, Math.min(afterSeq, latestSeq));
         List<ChatRunEvent> replay =
-                events.stream().filter(event -> event.seq() > afterSeq).toList();
+                events.stream().filter(event -> event.seq() > cursor).toList();
         String subscriptionId = UUID.randomUUID().toString();
         QueuedEventSubscription subscriber = new QueuedEventSubscription(
                 subscriptionId, runId, subscriberQueueSize, replay, consumer, failureConsumer, this, senderExecutor);
@@ -229,10 +225,11 @@ final class ChatRunEventBuffer {
     }
 
     /**
-     * 删除快照已覆盖的超量事件。
+     * 物理淘汰快照已覆盖的超量事件，把窗口收缩到容量内。淘汰后窗口起点前移，早于起点的
+     * 游标订阅时从最早保留事件起重放（宽松对齐，见 {@link #subscribe}）。
      *
      * @param snapshotSeq 快照覆盖的最大事件序号
-     * @throws IllegalStateException 快照未覆盖需要删除的事件
+     * @throws IllegalStateException 快照未覆盖需要淘汰的事件
      */
     synchronized void compact(long snapshotSeq) {
         while (overCapacity() && !events.isEmpty() && events.getFirst().seq() <= snapshotSeq) {

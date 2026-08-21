@@ -1,7 +1,7 @@
 package com.lambda.fusion.ai.chat.runtime.engine;
 
-import com.lambda.fusion.ai.chat.runtime.model.ExecutionSnapshotDelta;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotDelta;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -22,15 +22,15 @@ final class ChatRunSnapshotAccumulator {
     private String reasoningMessageId;
     private boolean textOpen;
     private boolean reasoningOpen;
-    private final List<ExecutionSnapshot.Tool> tools = new ArrayList<>();
-    private List<ExecutionSnapshot.Tool> pendingTools;
+    private final List<ChatRunSnapshot.ToolCall> tools = new ArrayList<>();
+    private List<ChatRunSnapshot.ToolCall> pendingTools;
 
     /**
      * 根据已有快照创建累加器。
      *
      * @param snapshot 已持久化的执行快照
      */
-    ChatRunSnapshotAccumulator(ExecutionSnapshot snapshot) {
+    ChatRunSnapshotAccumulator(ChatRunSnapshot snapshot) {
         runId = snapshot.runId();
         aguiRunId = snapshot.aguiRunId();
         phaseNo = snapshot.phaseNo();
@@ -104,7 +104,7 @@ final class ChatRunSnapshotAccumulator {
      *
      * @param delta 快照增量
      */
-    void apply(ExecutionSnapshotDelta delta) {
+    void apply(ChatRunSnapshotDelta delta) {
         if (delta == null || delta.isEmpty()) {
             return;
         }
@@ -124,7 +124,7 @@ final class ChatRunSnapshotAccumulator {
         if (delta.textDelta() != null) {
             appendText(delta.textMessageId(), delta.textDelta());
         }
-        for (ExecutionSnapshotDelta.ToolDelta tool : delta.tools()) {
+        for (ChatRunSnapshotDelta.ToolDelta tool : delta.tools()) {
             applyTool(tool);
         }
         if (delta.awaitingTools() != null && !delta.awaitingTools().isEmpty()) {
@@ -132,8 +132,8 @@ final class ChatRunSnapshotAccumulator {
         }
     }
 
-    private void applyTool(ExecutionSnapshotDelta.ToolDelta delta) {
-        ExecutionSnapshot.Tool current = findTool(delta.toolCallId());
+    private void applyTool(ChatRunSnapshotDelta.ToolDelta delta) {
+        ChatRunSnapshot.ToolCall current = findTool(delta.toolCallId());
         String args = current == null ? "" : current.args();
         String result = current == null ? "" : current.result();
         String status = current == null ? null : current.status();
@@ -158,7 +158,7 @@ final class ChatRunSnapshotAccumulator {
      *
      * @param awaitingTools 待确认工具调用
      */
-    private void awaiting(List<ExecutionSnapshot.Tool> awaitingTools) {
+    private void awaiting(List<ChatRunSnapshot.ToolCall> awaitingTools) {
         pendingTools = List.copyOf(awaitingTools);
     }
 
@@ -167,8 +167,8 @@ final class ChatRunSnapshotAccumulator {
      *
      * @return 执行快照
      */
-    ExecutionSnapshot buildSnapshot() {
-        return new ExecutionSnapshot(
+    ChatRunSnapshot buildSnapshot() {
+        return new ChatRunSnapshot(
                 runId,
                 aguiRunId,
                 phaseNo,
@@ -182,7 +182,7 @@ final class ChatRunSnapshotAccumulator {
                 pendingTools);
     }
 
-    private ExecutionSnapshot.Tool findTool(String toolCallId) {
+    private ChatRunSnapshot.ToolCall findTool(String toolCallId) {
         return tools.stream()
                 .filter(tool -> Objects.equals(tool.toolCallId(), toolCallId))
                 .findFirst()
@@ -197,13 +197,13 @@ final class ChatRunSnapshotAccumulator {
                 break;
             }
         }
-        ExecutionSnapshot.Tool current = index < 0 ? null : tools.get(index);
+        ChatRunSnapshot.ToolCall current = index < 0 ? null : tools.get(index);
         String nextName = toolCallName == null && current != null ? current.toolCallName() : safe(toolCallName);
         String nextArgs = args == null && current != null ? current.args() : safe(args);
         String nextResult = result == null && current != null ? current.result() : safe(result);
         String nextStatus = status == null && current != null ? current.status() : status;
-        ExecutionSnapshot.Tool updated =
-                new ExecutionSnapshot.Tool(toolCallId, nextName, nextArgs, nextResult, nextStatus);
+        ChatRunSnapshot.ToolCall updated =
+                new ChatRunSnapshot.ToolCall(toolCallId, nextName, nextArgs, nextResult, nextStatus);
         if (index < 0) {
             tools.add(updated);
         } else {

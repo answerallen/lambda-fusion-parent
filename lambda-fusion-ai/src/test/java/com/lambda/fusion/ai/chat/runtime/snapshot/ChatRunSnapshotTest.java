@@ -5,11 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class ExecutionSnapshotTest {
+class ChatRunSnapshotTest {
 
     @Test
     void shouldRedactCommonSecretFieldsFromPersistedToolState() {
-        ExecutionSnapshot snapshot = new ExecutionSnapshot(
+        ChatRunSnapshot snapshot = new ChatRunSnapshot(
                 "run-1",
                 "phase-1",
                 1,
@@ -19,7 +19,7 @@ class ExecutionSnapshotTest {
                 null,
                 false,
                 false,
-                List.of(new ExecutionSnapshot.Tool(
+                List.of(new ChatRunSnapshot.ToolCall(
                         "tool-1",
                         "request",
                         "{\"apiKey\":\"secret-value\",\"nested\":{\"token\":\"bearer\"},\"query\":\"ok\"}",
@@ -27,7 +27,7 @@ class ExecutionSnapshotTest {
                         "complete")),
                 List.of());
 
-        ExecutionSnapshot.Tool tool = snapshot.tools().getFirst();
+        ChatRunSnapshot.ToolCall tool = snapshot.tools().getFirst();
         assertThat(tool.args())
                 .contains("\"apiKey\":\"***\"")
                 .contains("\"token\":\"***\"")
@@ -39,7 +39,7 @@ class ExecutionSnapshotTest {
 
     @Test
     void shouldPreserveSnapshotJsonShapeAcrossCodecRoundTrip() {
-        ExecutionSnapshot original = new ExecutionSnapshot(
+        ChatRunSnapshot original = new ChatRunSnapshot(
                 "run-1",
                 "phase-1",
                 2,
@@ -49,11 +49,11 @@ class ExecutionSnapshotTest {
                 "reasoning-1",
                 true,
                 false,
-                List.of(new ExecutionSnapshot.Tool("tool-1", "search", "{}", "result", "complete")),
-                List.of(new ExecutionSnapshot.Tool("tool-2", "confirm", "ignored", "ignored", "complete")));
+                List.of(new ChatRunSnapshot.ToolCall("tool-1", "search", "{}", "result", "complete")),
+                List.of(new ChatRunSnapshot.ToolCall("tool-2", "confirm", "ignored", "ignored", "complete")));
 
-        String json = ExecutionSnapshotCodec.encode(original);
-        ExecutionSnapshot restored = ExecutionSnapshotCodec.decode(json);
+        String json = ChatRunSnapshotCodec.encode(original);
+        ChatRunSnapshot restored = ChatRunSnapshotCodec.decode(json);
 
         assertThat(restored).isEqualTo(original);
         assertThat(json).contains("\"runId\":\"run-1\"", "\"pendingTools\"");
@@ -61,14 +61,14 @@ class ExecutionSnapshotTest {
 
     @Test
     void shouldRecoverEmptySnapshotFromInvalidJson() {
-        ExecutionSnapshot restored = ExecutionSnapshotCodec.decode("{invalid");
+        ChatRunSnapshot restored = ChatRunSnapshotCodec.decode("{invalid");
 
-        assertThat(restored).isEqualTo(ExecutionSnapshot.empty(null, null, 1));
+        assertThat(restored).isEqualTo(ChatRunSnapshot.empty(null, null, 1));
     }
 
     @Test
     void shouldIgnoreNullPendingTools() {
-        ExecutionSnapshot snapshot = new ExecutionSnapshot(
+        ChatRunSnapshot snapshot = new ChatRunSnapshot(
                 "run-1",
                 "phase-1",
                 1,
@@ -79,7 +79,7 @@ class ExecutionSnapshotTest {
                 false,
                 false,
                 List.of(),
-                java.util.Arrays.asList((ExecutionSnapshot.Tool) null));
+                java.util.Arrays.asList((ChatRunSnapshot.ToolCall) null));
 
         assertThat(snapshot.pendingTools()).isEmpty();
     }

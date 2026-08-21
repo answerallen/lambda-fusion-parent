@@ -52,7 +52,7 @@ sessionId = ChatSessionEntity.id
 `AgentEventInterpreter` 按 phase 创建，维护文本、推理和工具调用的配对状态。一次输入产生两类结果：
 
 1. 零到多个 `AguiEvent`，供实时传输；
-2. 一个 `ExecutionSnapshotDelta`，供规范快照累积。
+2. 一个 `ChatRunSnapshotDelta`，供规范快照累积。
 
 主要映射如下：
 
@@ -98,7 +98,7 @@ sessionId = ChatSessionEntity.id
 
 ## 5. 快照与 bootstrap
 
-正式事件是有限窗口，`ExecutionSnapshot` 才是展示恢复的持久化事实。它保存文本、推理、工具结果、消息开闭状态
+正式事件是有限窗口，`ChatRunSnapshot` 才是展示恢复的持久化事实。它保存文本、推理、工具结果、消息开闭状态
 和脱敏后的待确认工具信息。完整 `ToolUseBlock` 仍只存在于 AgentScope state，不进入快照或 SSE。
 
 bootstrap 流程：

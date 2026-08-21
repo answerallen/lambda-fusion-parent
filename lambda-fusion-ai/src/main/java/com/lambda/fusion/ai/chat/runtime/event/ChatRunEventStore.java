@@ -59,7 +59,7 @@ public class ChatRunEventStore {
      * @return 缓冲区超过容量限制时返回 {@code true}
      */
     public boolean appendAll(String runId, String aguiRunId, List<AguiEvent> aguiEvents) {
-        return buffer(runId).append(aguiEvents, aguiRunId).checkpointRequired();
+        return buffer(runId).append(aguiEvents, aguiRunId);
     }
 
     /**
@@ -119,14 +119,14 @@ public class ChatRunEventStore {
     }
 
     /**
-     * 订阅指定游标之后的事件。
+     * 订阅指定游标之后的事件。游标越界时收敛到窗口边界（过早从头重放、过晚只接实时），不报错。
      *
      * @param runId 运行标识
      * @param afterSeq 已消费的事件序号
      * @param consumer 事件消费者
      * @param failureConsumer 发送失败消费者
      * @return 订阅句柄
-     * @throws AiBusinessException 运行事件不存在或游标无效
+     * @throws AiBusinessException 运行事件缓冲区不存在（已过期清理）
      */
     public ChatRunEventSubscription subscribe(
             String runId, long afterSeq, Consumer<ChatRunEvent> consumer, Consumer<Throwable> failureConsumer) {

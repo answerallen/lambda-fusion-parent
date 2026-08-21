@@ -6,7 +6,7 @@ import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapEncoder;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +15,7 @@ class AguiBootstrapEncoderTest {
     @Test
     void shouldBuildCompleteBootstrapWithoutCommittedSequenceNumbers() {
         ChatRunEntity run = run(ChatRunStatus.RUNNING);
-        ExecutionSnapshot snapshot = new ExecutionSnapshot(
+        ChatRunSnapshot snapshot = new ChatRunSnapshot(
                 run.getId(),
                 run.getAguiRunId(),
                 2,
@@ -25,7 +25,7 @@ class AguiBootstrapEncoderTest {
                 "reasoning-1",
                 true,
                 false,
-                List.of(new ExecutionSnapshot.Tool("tool-1", "search", "{q:1}", "result", "complete")),
+                List.of(new ChatRunSnapshot.ToolCall("tool-1", "search", "{q:1}", "result", "complete")),
                 List.of());
 
         List<String> events = AguiBootstrapEncoder.encode(run, snapshot, 17);
@@ -69,7 +69,7 @@ class AguiBootstrapEncoderTest {
     @Test
     void shouldCloseRestoredReasoningAroundToolsAndReopenItForLiveDeltas() {
         ChatRunEntity run = run(ChatRunStatus.RUNNING);
-        ExecutionSnapshot snapshot = new ExecutionSnapshot(
+        ChatRunSnapshot snapshot = new ChatRunSnapshot(
                 run.getId(),
                 run.getAguiRunId(),
                 2,
@@ -79,7 +79,7 @@ class AguiBootstrapEncoderTest {
                 "reasoning-1",
                 false,
                 true,
-                List.of(new ExecutionSnapshot.Tool("tool-1", "search", "{q:1}", "result", "complete")),
+                List.of(new ChatRunSnapshot.ToolCall("tool-1", "search", "{q:1}", "result", "complete")),
                 List.of());
 
         List<String> events = AguiBootstrapEncoder.encode(run, snapshot, 18);
@@ -106,7 +106,7 @@ class AguiBootstrapEncoderTest {
     @Test
     void shouldRestoreAwaitingConfirmationAsInterrupt() {
         ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM);
-        ExecutionSnapshot snapshot = new ExecutionSnapshot(
+        ChatRunSnapshot snapshot = new ChatRunSnapshot(
                 run.getId(),
                 run.getAguiRunId(),
                 2,
@@ -117,7 +117,7 @@ class AguiBootstrapEncoderTest {
                 false,
                 false,
                 List.of(),
-                List.of(new ExecutionSnapshot.Tool("tool-1", "dangerous", "", "", "asking")));
+                List.of(new ChatRunSnapshot.ToolCall("tool-1", "dangerous", "", "", "asking")));
 
         assertThat(AguiBootstrapEncoder.encode(run, snapshot, 9))
                 .anyMatch(event -> event.contains("\"type\":\"RUN_FINISHED\"")
@@ -128,7 +128,7 @@ class AguiBootstrapEncoderTest {
     @Test
     void shouldLeaveInProgressToolOpenForFollowingDeltas() {
         ChatRunEntity run = run(ChatRunStatus.RUNNING);
-        ExecutionSnapshot snapshot = new ExecutionSnapshot(
+        ChatRunSnapshot snapshot = new ChatRunSnapshot(
                 run.getId(),
                 run.getAguiRunId(),
                 2,
@@ -138,7 +138,7 @@ class AguiBootstrapEncoderTest {
                 null,
                 false,
                 false,
-                List.of(new ExecutionSnapshot.Tool("tool-1", "search", "{\"q\":", "", "running")),
+                List.of(new ChatRunSnapshot.ToolCall("tool-1", "search", "{\"q\":", "", "running")),
                 List.of());
 
         List<String> events = AguiBootstrapEncoder.encode(run, snapshot, 10);
@@ -154,7 +154,7 @@ class AguiBootstrapEncoderTest {
         run.setErrorMessage("model unavailable");
 
         List<String> events =
-                AguiBootstrapEncoder.encode(run, ExecutionSnapshot.empty(run.getId(), run.getAguiRunId(), 2), 5);
+                AguiBootstrapEncoder.encode(run, ChatRunSnapshot.empty(run.getId(), run.getAguiRunId(), 2), 5);
 
         assertThat(events).hasSize(2);
         assertThat(events.getLast())
@@ -169,7 +169,7 @@ class AguiBootstrapEncoderTest {
         run.setFinishReason("USER_STOP");
 
         List<String> events =
-                AguiBootstrapEncoder.encode(run, ExecutionSnapshot.empty(run.getId(), run.getAguiRunId(), 2), 6);
+                AguiBootstrapEncoder.encode(run, ChatRunSnapshot.empty(run.getId(), run.getAguiRunId(), 2), 6);
 
         assertThat(events).hasSize(2);
         assertThat(events.getLast())

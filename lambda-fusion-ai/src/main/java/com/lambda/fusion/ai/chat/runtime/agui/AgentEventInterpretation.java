@@ -1,5 +1,6 @@
-package com.lambda.fusion.ai.chat.runtime.model;
+package com.lambda.fusion.ai.chat.runtime.agui;
 
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotDelta;
 import io.agentscope.core.agui.event.AguiEvent;
 import java.util.List;
 
@@ -10,4 +11,4 @@ import java.util.List;
  * @param snapshotDelta 快照增量
  * @author Jin
  */
-public record ExecutionInterpretation(List<AguiEvent> events, ExecutionSnapshotDelta snapshotDelta) {}
+public record AgentEventInterpretation(List<AguiEvent> events, ChatRunSnapshotDelta snapshotDelta) {}

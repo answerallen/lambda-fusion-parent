@@ -10,16 +10,16 @@ import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.chat.model.ChatRun;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationCommand;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationResult;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.RunContext;
 import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeResult;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshotCodec;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
@@ -104,8 +104,8 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                     session, message.getAttachmentIds().stream().distinct().toList(), userMessage.getId());
         }
         run.setUserMessageId(userMessage.getId());
-        run.setSnapshotJson(ExecutionSnapshotCodec.encode(
-                ExecutionSnapshot.empty(run.getId(), run.getAguiRunId(), run.getPhaseNo())));
+        run.setSnapshotJson(
+                ChatRunSnapshotCodec.encode(ChatRunSnapshot.empty(run.getId(), run.getAguiRunId(), run.getPhaseNo())));
         runMapper.updateById(run);
         // 刷新会话最近消息时间，用于会话列表排序。
         sessionMapper.update(
@@ -226,14 +226,14 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     /** CAS 写检查点：在非终态下更新快照与序号，成功返回 true；已进入终态则拒绝写入。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public boolean checkpoint(ChatRunEntity run, ExecutionSnapshot snapshot, long seq) {
+    public boolean checkpoint(ChatRunEntity run, ChatRunSnapshot snapshot, long seq) {
         LocalDateTime now = LocalDateTime.now();
         return runMapper.update(
                         null,
                         new LambdaUpdateWrapper<ChatRunEntity>()
                                 .eq(ChatRunEntity::getId, run.getId())
                                 .notIn(ChatRunEntity::getStatus, ChatRunStatus.terminalNames())
-                                .set(ChatRunEntity::getSnapshotJson, ExecutionSnapshotCodec.encode(snapshot))
+                                .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
                                 .set(ChatRunEntity::getSnapshotSeq, seq)
                                 .set(ChatRunEntity::getUpdatedAt, now))
                 == 1;
@@ -242,7 +242,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     /** CAS 进入待确认：{@code RUNNING -> AWAITING_CONFIRM} 并记录确认截止时间，成功返回 true。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public boolean awaitConfirm(ChatRunEntity run, ExecutionSnapshot snapshot, long seq, LocalDateTime deadline) {
+    public boolean awaitConfirm(ChatRunEntity run, ChatRunSnapshot snapshot, long seq, LocalDateTime deadline) {
         return runMapper.update(
                         null,
                         new LambdaUpdateWrapper<ChatRunEntity>()
@@ -250,7 +250,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                                 .eq(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name())
                                 .set(ChatRunEntity::getStatus, ChatRunStatus.AWAITING_CONFIRM.name())
                                 .set(ChatRunEntity::getAwaitConfirmDeadlineAt, deadline)
-                                .set(ChatRunEntity::getSnapshotJson, ExecutionSnapshotCodec.encode(snapshot))
+                                .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
                                 .set(ChatRunEntity::getSnapshotSeq, seq)
                                 .set(ChatRunEntity::getUpdatedAt, LocalDateTime.now()))
                 == 1;
@@ -295,7 +295,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public FinalizeResult finalizeExecution(ChatRunEntity identity, FinalizeCommand command) {
+    public ChatRunFinalizationResult finalizeExecution(ChatRunEntity identity, ChatRunFinalizationCommand command) {
         // 悲观锁定会话和运行，使终结过程与其他状态迁移串行执行。
         ChatSessionEntity session = sessionMapper.selectForUpdate(identity.getSessionId());
         if (session == null) {
@@ -309,12 +309,12 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         }
         // 已终态：幂等返回 committed=false，携带既有终态信息。
         if (ChatRunStatus.isTerminal(run.getStatus())) {
-            return new FinalizeResult(
+            return new ChatRunFinalizationResult(
                     false, run.getStatus(), run.getFinishReason(), run.getErrorCode(), run.getErrorMessage());
         }
 
         ChatRunStatus targetStatus = command.targetStatus();
-        ExecutionSnapshot snapshot = command.snapshot();
+        ChatRunSnapshot snapshot = command.snapshot();
         String toolCallJson = command.toolCallJson();
         long lastSeq = command.lastSeq();
         // STOPPING 优先，避免已接受的停止请求被完成或失败结果覆盖。
@@ -341,7 +341,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .set(ChatRunEntity::getFinishReason, finalReason == null ? null : finalReason.name())
                         .set(ChatRunEntity::getAssistantMessageId, assistant == null ? null : assistant.getId())
                         .set(ChatRunEntity::getAwaitConfirmDeadlineAt, null)
-                        .set(ChatRunEntity::getSnapshotJson, ExecutionSnapshotCodec.encode(snapshot))
+                        .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
                         .set(ChatRunEntity::getSnapshotSeq, lastSeq)
                         .set(ChatRunEntity::getErrorCode, finalErrorCode == null ? null : finalErrorCode.name())
                         .set(ChatRunEntity::getErrorMessage, finalErrorMessage)
@@ -358,7 +358,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .eq(ChatSessionEntity::getUserId, session.getUserId())
                         .set(ChatSessionEntity::getLastMessageAt, now)
                         .set(ChatSessionEntity::getUpdatedAt, now));
-        return new FinalizeResult(
+        return new ChatRunFinalizationResult(
                 true,
                 finalStatus.name(),
                 finalReason == null ? null : finalReason.name(),
@@ -369,14 +369,14 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     /** 在终态下补写最终快照与序号；行已被清理时容忍不抛，行仍在却写失败则异常。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public void recordTerminalSeq(ChatRunEntity run, ExecutionSnapshot snapshot, long seq) {
+    public void recordTerminalSeq(ChatRunEntity run, ChatRunSnapshot snapshot, long seq) {
         // 仅终态可写最终游标；CAS 以终态为前置条件。
         int changed = runMapper.update(
                 null,
                 new LambdaUpdateWrapper<ChatRunEntity>()
                         .eq(ChatRunEntity::getId, run.getId())
                         .in(ChatRunEntity::getStatus, ChatRunStatus.terminalNames())
-                        .set(ChatRunEntity::getSnapshotJson, ExecutionSnapshotCodec.encode(snapshot))
+                        .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
                         .set(ChatRunEntity::getSnapshotSeq, seq)
                         .set(ChatRunEntity::getUpdatedAt, LocalDateTime.now()));
         // 写失败但行仍在则异常；行已被清理则容忍（不抛）。
@@ -430,7 +430,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     /** 实体转视图，并在待确认态填充待确认工具列表。 */
     private ChatRun toRunView(ChatRunEntity entity) {
         ChatRun view = toVO(entity);
-        ExecutionSnapshot snapshot = ExecutionSnapshotCodec.decode(entity.getSnapshotJson());
+        ChatRunSnapshot snapshot = ChatRunSnapshotCodec.decode(entity.getSnapshotJson());
         view.setPendingConfirm(
                 ChatRunStatus.AWAITING_CONFIRM.name().equals(entity.getStatus())
                         ? snapshot.pendingTools().stream()

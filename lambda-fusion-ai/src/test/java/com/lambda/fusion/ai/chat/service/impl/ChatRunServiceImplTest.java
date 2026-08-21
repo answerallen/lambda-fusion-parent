@@ -17,12 +17,12 @@ import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
+import com.lambda.fusion.ai.chat.model.ChatRunFinalizationCommand;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.runtime.model.FinalizeCommand;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatSessionService;
@@ -79,7 +79,7 @@ class ChatRunServiceImplTest {
 
         var result = service.finalizeExecution(
                 identity,
-                new FinalizeCommand(
+                new ChatRunFinalizationCommand(
                         ChatRunStatus.COMPLETED,
                         ChatRunFinishReason.SUCCESS,
                         snapshot("partial"),
@@ -222,15 +222,15 @@ class ChatRunServiceImplTest {
         return run;
     }
 
-    private static ChatRunEntity awaitingConfirmRun(int phaseNo, ExecutionSnapshot snapshot) {
+    private static ChatRunEntity awaitingConfirmRun(int phaseNo, ChatRunSnapshot snapshot) {
         ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM);
         run.setPhaseNo(phaseNo);
         run.setSnapshotJson(io.agentscope.core.util.JsonUtils.getJsonCodec().toJson(snapshot));
         return run;
     }
 
-    private static ExecutionSnapshot snapshotWithPendingTool(String toolCallId) {
-        return new ExecutionSnapshot(
+    private static ChatRunSnapshot snapshotWithPendingTool(String toolCallId) {
+        return new ChatRunSnapshot(
                 "run-1",
                 "phase-1",
                 1,
@@ -241,10 +241,10 @@ class ChatRunServiceImplTest {
                 false,
                 false,
                 List.of(),
-                List.of(new ExecutionSnapshot.Tool(toolCallId, "demo_tool", "", "", "asking")));
+                List.of(new ChatRunSnapshot.ToolCall(toolCallId, "demo_tool", "", "", "asking")));
     }
 
-    private static ExecutionSnapshot snapshot(String text) {
-        return new ExecutionSnapshot("run-1", "phase-1", 1, text, "", "message-1", null, false, false, null, null);
+    private static ChatRunSnapshot snapshot(String text) {
+        return new ChatRunSnapshot("run-1", "phase-1", 1, text, "", "message-1", null, false, false, null, null);
     }
 }

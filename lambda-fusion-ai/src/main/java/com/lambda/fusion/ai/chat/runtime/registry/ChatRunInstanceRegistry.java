@@ -18,7 +18,7 @@ import java.util.function.Consumer;
  *
  * @author Jin
  */
-public final class ChatRunRegistry {
+public final class ChatRunInstanceRegistry {
 
     private final ChatRunInstanceFactory instanceFactory;
     private final AiProperties properties;
@@ -30,7 +30,7 @@ public final class ChatRunRegistry {
      * @param instanceFactory 执行实例工厂
      * @param properties AI 模块配置
      */
-    public ChatRunRegistry(ChatRunInstanceFactory instanceFactory, AiProperties properties) {
+    public ChatRunInstanceRegistry(ChatRunInstanceFactory instanceFactory, AiProperties properties) {
         this.instanceFactory = instanceFactory;
         this.properties = properties;
     }

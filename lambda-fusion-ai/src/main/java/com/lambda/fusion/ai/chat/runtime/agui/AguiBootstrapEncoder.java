@@ -3,7 +3,7 @@ package com.lambda.fusion.ai.chat.runtime.agui;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,7 +28,7 @@ public final class AguiBootstrapEncoder {
      * @param highWatermark 当前事件序号上界
      * @return 按协议顺序编码的事件 JSON 列表
      */
-    public static List<String> encode(ChatRunEntity run, ExecutionSnapshot snapshot, long highWatermark) {
+    public static List<String> encode(ChatRunEntity run, ChatRunSnapshot snapshot, long highWatermark) {
         AguiBootstrapEventCollector collector = new AguiBootstrapEventCollector(run, highWatermark);
         collector.add(fields("type", "RUN_STARTED", "phaseNo", run.getPhaseNo()));
         boolean reopenReasoningAfterTools = appendReasoning(collector, snapshot);
@@ -41,7 +41,7 @@ public final class AguiBootstrapEncoder {
         return collector.events();
     }
 
-    private static boolean appendReasoning(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {
+    private static boolean appendReasoning(AguiBootstrapEventCollector collector, ChatRunSnapshot snapshot) {
         if (snapshot.reasoning().isEmpty()) {
             return false;
         }
@@ -61,8 +61,8 @@ public final class AguiBootstrapEncoder {
         return reopenAfterTools;
     }
 
-    private static void appendTools(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {
-        for (ExecutionSnapshot.Tool tool : snapshot.tools()) {
+    private static void appendTools(AguiBootstrapEventCollector collector, ChatRunSnapshot snapshot) {
+        for (ChatRunSnapshot.ToolCall tool : snapshot.tools()) {
             collector.add(fields(
                     "type", "TOOL_CALL_START", "toolCallId", tool.toolCallId(), "toolCallName", tool.toolCallName()));
             if (!tool.args().isEmpty()) {
@@ -88,13 +88,13 @@ public final class AguiBootstrapEncoder {
         }
     }
 
-    private static void reopenReasoning(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {
+    private static void reopenReasoning(AguiBootstrapEventCollector collector, ChatRunSnapshot snapshot) {
         String messageId = valueOrDefault(snapshot.reasoningMessageId(), "reasoning-" + collector.chatRunId());
         collector.add(fields("type", "REASONING_START", "messageId", messageId));
         collector.add(fields("type", "REASONING_MESSAGE_START", "messageId", messageId, "role", "reasoning"));
     }
 
-    private static void appendText(AguiBootstrapEventCollector collector, ExecutionSnapshot snapshot) {
+    private static void appendText(AguiBootstrapEventCollector collector, ChatRunSnapshot snapshot) {
         if (snapshot.text().isEmpty()) {
             return;
         }
@@ -107,7 +107,7 @@ public final class AguiBootstrapEncoder {
     }
 
     private static void appendTerminal(
-            AguiBootstrapEventCollector collector, ChatRunEntity run, ExecutionSnapshot snapshot) {
+            AguiBootstrapEventCollector collector, ChatRunEntity run, ChatRunSnapshot snapshot) {
         if (ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
             List<Map<String, Object>> interrupts = snapshot.pendingTools().stream()
                     .map(tool -> fields(

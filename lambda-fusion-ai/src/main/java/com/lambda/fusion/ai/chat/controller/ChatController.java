@@ -12,8 +12,6 @@ import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatService;
 import com.lambda.fusion.ai.chat.service.ChatSessionService;
-import com.lambda.fusion.ai.exception.AiBusinessException;
-import com.lambda.fusion.ai.exception.AiErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,7 +26,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -105,12 +102,10 @@ public class ChatController {
     public SseEmitter events(
             @Parameter(description = "会话ID", required = true) @PathVariable String id,
             @Parameter(description = "Run ID", required = true) @PathVariable String runId,
-            @RequestParam(required = false) Long afterSeq,
-            @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
             @RequestParam(defaultValue = "false") boolean bootstrap,
             HttpServletResponse response) {
         prepareSseResponse(response);
-        return chatService.resume(id, runId, resolveCursor(runId, afterSeq, lastEventId), bootstrap);
+        return chatService.resume(id, runId, bootstrap);
     }
 
     @Operation(summary = "确认指定Run的工具调用(HITL, SSE)")
@@ -133,39 +128,8 @@ public class ChatController {
         chatService.stop(id, runId);
     }
 
-    private static long resolveCursor(String runId, Long afterSeq, String lastEventId) {
-        if (afterSeq != null) {
-            if (afterSeq < 0) {
-                throw invalidCursor("afterSeq", null);
-            }
-            return afterSeq;
-        }
-        if (lastEventId == null || lastEventId.isBlank()) {
-            return 0L;
-        }
-        int separator = lastEventId.lastIndexOf(':');
-        if (separator <= 0 || !runId.equals(lastEventId.substring(0, separator))) {
-            throw invalidCursor("Last-Event-ID", null);
-        }
-        try {
-            long cursor = Long.parseLong(lastEventId.substring(separator + 1));
-            if (cursor < 0) {
-                throw new NumberFormatException("negative cursor");
-            }
-            return cursor;
-        } catch (NumberFormatException invalidCursor) {
-            throw invalidCursor("Last-Event-ID", invalidCursor);
-        }
-    }
-
     private static void prepareSseResponse(HttpServletResponse response) {
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache, no-transform");
         response.setHeader("X-Accel-Buffering", "no");
-    }
-
-    private static AiBusinessException invalidCursor(String parameter, Throwable cause) {
-        return cause == null
-                ? new AiBusinessException(AiErrorCode.INVALID_PARAMETER, parameter)
-                : new AiBusinessException(AiErrorCode.INVALID_PARAMETER, cause, parameter);
     }
 }

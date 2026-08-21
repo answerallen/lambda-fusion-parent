@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class ExecutionSnapshotCodec {
+public final class ChatRunSnapshotCodec {
 
     /**
      * 将执行快照编码为 JSON。
@@ -20,7 +20,7 @@ public final class ExecutionSnapshotCodec {
      * @param snapshot 执行快照
      * @return 快照 JSON
      */
-    public static String encode(ExecutionSnapshot snapshot) {
+    public static String encode(ChatRunSnapshot snapshot) {
         return JsonUtils.getJsonCodec().toJson(snapshot);
     }
 
@@ -30,16 +30,16 @@ public final class ExecutionSnapshotCodec {
      * @param json 快照 JSON
      * @return 执行快照；内容为空或无效时返回空快照
      */
-    public static ExecutionSnapshot decode(String json) {
+    public static ChatRunSnapshot decode(String json) {
         if (json == null || json.isBlank()) {
-            return ExecutionSnapshot.empty(null, null, 1);
+            return ChatRunSnapshot.empty(null, null, 1);
         }
         try {
-            ExecutionSnapshot snapshot = JsonUtils.getJsonCodec().fromJson(json, ExecutionSnapshot.class);
-            return snapshot == null ? ExecutionSnapshot.empty(null, null, 1) : snapshot;
+            ChatRunSnapshot snapshot = JsonUtils.getJsonCodec().fromJson(json, ChatRunSnapshot.class);
+            return snapshot == null ? ChatRunSnapshot.empty(null, null, 1) : snapshot;
         } catch (RuntimeException invalid) {
             log.warn("对话Run快照解析失败，将按空快照恢复", invalid);
-            return ExecutionSnapshot.empty(null, null, 1);
+            return ChatRunSnapshot.empty(null, null, 1);
         }
     }
 }

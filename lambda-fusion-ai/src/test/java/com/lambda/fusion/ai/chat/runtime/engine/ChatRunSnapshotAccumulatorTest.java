@@ -2,19 +2,19 @@ package com.lambda.fusion.ai.chat.runtime.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.lambda.fusion.ai.chat.runtime.model.ExecutionSnapshotDelta;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ExecutionSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotDelta;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class ExecutionSnapshotAccumulatorTest {
+class ChatRunSnapshotAccumulatorTest {
 
     @Test
     void shouldAccumulateCompletedToolSnapshot() {
         ChatRunSnapshotAccumulator accumulator =
-                new ChatRunSnapshotAccumulator(ExecutionSnapshot.empty("run-1", "phase-1", 1));
+                new ChatRunSnapshotAccumulator(ChatRunSnapshot.empty("run-1", "phase-1", 1));
 
-        accumulator.apply(new ExecutionSnapshotDelta(
+        accumulator.apply(new ChatRunSnapshotDelta(
                 null,
                 null,
                 null,
@@ -22,7 +22,7 @@ class ExecutionSnapshotAccumulatorTest {
                 false,
                 false,
                 true,
-                List.of(new ExecutionSnapshotDelta.ToolDelta("tool-1", "search", null, null, "running", false, false)),
+                List.of(new ChatRunSnapshotDelta.ToolDelta("tool-1", "search", null, null, "running", false, false)),
                 List.of()));
         accumulator.apply(toolDelta("tool-1", "search", "{\"q\":", null, "running"));
         accumulator.apply(toolDelta("tool-1", "search", "\"x\"}", null, "running"));
@@ -33,26 +33,26 @@ class ExecutionSnapshotAccumulatorTest {
 
         assertThat(accumulator.buildSnapshot().tools())
                 .containsExactly(
-                        new ExecutionSnapshot.Tool("tool-1", "search", "{\"q\":\"x\"}", "result-text", "complete"));
+                        new ChatRunSnapshot.ToolCall("tool-1", "search", "{\"q\":\"x\"}", "result-text", "complete"));
     }
 
     @Test
     void shouldKeepToolOrderWhenLaterDeltasUpdateAnExistingTool() {
         ChatRunSnapshotAccumulator accumulator =
-                new ChatRunSnapshotAccumulator(ExecutionSnapshot.empty("run-1", "phase-1", 1));
+                new ChatRunSnapshotAccumulator(ChatRunSnapshot.empty("run-1", "phase-1", 1));
 
         accumulator.apply(toolDelta("tool-1", "first", null, null, "running"));
         accumulator.apply(toolDelta("tool-2", "second", null, null, "running"));
         accumulator.apply(toolDelta("tool-1", "first", "{}", null, "running"));
 
         assertThat(accumulator.buildSnapshot().tools())
-                .extracting(ExecutionSnapshot.Tool::toolCallId)
+                .extracting(ChatRunSnapshot.ToolCall::toolCallId)
                 .containsExactly("tool-1", "tool-2");
     }
 
-    private static ExecutionSnapshotDelta toolDelta(
+    private static ChatRunSnapshotDelta toolDelta(
             String toolCallId, String toolCallName, String argsDelta, String resultDelta, String status) {
-        return new ExecutionSnapshotDelta(
+        return new ChatRunSnapshotDelta(
                 null,
                 null,
                 null,
@@ -60,7 +60,7 @@ class ExecutionSnapshotAccumulatorTest {
                 false,
                 false,
                 false,
-                List.of(new ExecutionSnapshotDelta.ToolDelta(
+                List.of(new ChatRunSnapshotDelta.ToolDelta(
                         toolCallId, toolCallName, argsDelta, resultDelta, status, false, false)),
                 List.of());
     }

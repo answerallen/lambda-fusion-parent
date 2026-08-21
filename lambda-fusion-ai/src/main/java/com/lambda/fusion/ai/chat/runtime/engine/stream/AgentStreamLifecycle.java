@@ -15,7 +15,7 @@ import reactor.core.Disposable;
  * @author Jin
  */
 @Slf4j
-public final class AgentSourceStream {
+public final class AgentStreamLifecycle {
 
     private final String runId;
     private final ScheduledExecutorService scheduler;
@@ -30,7 +30,7 @@ public final class AgentSourceStream {
      * @param scheduler 定时任务执行器
      * @param properties AI 模块配置
      */
-    public AgentSourceStream(String runId, ScheduledExecutorService scheduler, AiProperties properties) {
+    public AgentStreamLifecycle(String runId, ScheduledExecutorService scheduler, AiProperties properties) {
         this.runId = runId;
         this.scheduler = scheduler;
         this.properties = properties;

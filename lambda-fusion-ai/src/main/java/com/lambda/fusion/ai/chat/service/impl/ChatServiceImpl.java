@@ -38,7 +38,7 @@ public class ChatServiceImpl implements ChatService {
         Assert.isTrue(message.isContentOrAttachmentPresent(), "消息内容与附件不能同时为空");
         RunContext context = chatRunService.createOrLoad(sessionId, message);
         chatRunCoordinator.startIfCreated(context.run(), context.session());
-        return openRunEventStream(context.run(), 0, true);
+        return openRunEventStream(context.run(), true);
     }
 
     @Override
@@ -52,15 +52,15 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public SseEmitter resume(String sessionId, String runId, long afterSeq, boolean bootstrap) {
-        return openRunEventStream(chatRunService.loadOwned(sessionId, runId).run(), afterSeq, bootstrap);
+    public SseEmitter resume(String sessionId, String runId, boolean bootstrap) {
+        return openRunEventStream(chatRunService.loadOwned(sessionId, runId).run(), bootstrap);
     }
 
     @Override
     public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command) {
         RunContext context = chatRunService.loadOwned(sessionId, runId);
         ConfirmTransition transition = chatRunCoordinator.confirm(context.run(), context.session(), command);
-        return openRunEventStream(transition.run(), 0, true);
+        return openRunEventStream(transition.run(), true);
     }
 
     @Override
@@ -69,7 +69,7 @@ public class ChatServiceImpl implements ChatService {
         chatRunCoordinator.stop(context.run(), context.session());
     }
 
-    private SseEmitter openRunEventStream(ChatRunEntity chatRunEntity, long afterSeq, boolean bootstrap) {
+    private SseEmitter openRunEventStream(ChatRunEntity chatRunEntity, boolean bootstrap) {
         long timeout = properties.getChat().getRun().getConnectionTimeoutSeconds() * 1000;
         SseEmitter emitter = new SseEmitter(timeout);
         AtomicBoolean detached = new AtomicBoolean();
@@ -88,7 +88,7 @@ public class ChatServiceImpl implements ChatService {
         emitter.onError(error -> runnable.run());
 
         try {
-            long cursor = afterSeq;
+            long cursor = 0;
             boolean phaseClosed = false;
             if (bootstrap) {
                 AguiBootstrap aguiBootstrap = chatRunCoordinator.bootstrap(chatRunEntity);

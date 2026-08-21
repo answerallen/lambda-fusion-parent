@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime.model;
+package com.lambda.fusion.ai.chat.model;
 
 /**
  * 对话运行终结结果。
@@ -10,5 +10,5 @@ package com.lambda.fusion.ai.chat.runtime.model;
  * @param errorMessage 错误信息
  * @author Jin
  */
-public record FinalizeResult(
+public record ChatRunFinalizationResult(
         boolean committed, String status, String finishReason, String errorCode, String errorMessage) {}

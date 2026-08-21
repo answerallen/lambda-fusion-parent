@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-class ExecutionEventStoreTest {
+class ChatRunEventStoreTest {
 
     private ChatRunEventStore store;
 
@@ -164,24 +164,44 @@ class ExecutionEventStoreTest {
     }
 
     @Test
-    void shouldRejectCursorOlderThanRetainedWindow() {
+    void shouldClampCursorOlderThanRetainedWindowToOldestRetained() throws Exception {
         store = newStore(2, 64);
         append("run-1", "phase-1", "a");
         append("run-1", "phase-1", "b");
         append("run-1", "phase-1", "c");
+        // 容量 2，compact 物理淘汰 seq=1，保留窗口 [2,3]。
         store.compact("run-1", 3);
 
-        assertThatThrownBy(() -> store.subscribe("run-1", 0, event -> {}, error -> {}))
-                .isInstanceOf(AiBusinessException.class);
+        // 游标 0 早于窗口起点：不再报错，从最早保留事件 seq=2 起重放（宽松对齐）。
+        List<Long> received = new CopyOnWriteArrayList<>();
+        CountDownLatch latch = new CountDownLatch(2);
+        ChatRunEventSubscription subscription = store.subscribe(
+                "run-1",
+                0,
+                event -> {
+                    received.add(event.seq());
+                    latch.countDown();
+                },
+                error -> {});
+        assertThat(latch.await(2, TimeUnit.SECONDS)).isTrue();
+        assertThat(received).containsExactly(2L, 3L);
+        subscription.close();
     }
 
     @Test
-    void shouldRejectCursorAheadOfLatestEvent() {
+    void shouldClampCursorAheadOfLatestEventToLiveOnly() throws Exception {
         store = newStore(64, 64);
         append("run-1", "phase-1", "a");
 
-        assertThatThrownBy(() -> store.subscribe("run-1", 2, event -> {}, error -> {}))
-                .isInstanceOf(AiBusinessException.class);
+        // 游标晚于最新事件：不再报错，无重放，仅接后续实时事件。
+        List<Long> received = new CopyOnWriteArrayList<>();
+        ChatRunEventSubscription subscription =
+                store.subscribe("run-1", 99, event -> received.add(event.seq()), error -> {});
+        Thread.sleep(20);
+        append("run-1", "phase-1", "b");
+        awaitSize(received, 1);
+        assertThat(received).containsExactly(2L);
+        subscription.close();
     }
 
     @Test

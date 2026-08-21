@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.chat.runtime.snapshot;
 
+import com.lambda.fusion.ai.chat.runtime.ChatRunDataSanitizer;
 import java.util.List;
 
 /**
@@ -18,7 +19,7 @@ import java.util.List;
  * @param pendingTools 待确认工具调用
  * @author Jin
  */
-public record ExecutionSnapshot(
+public record ChatRunSnapshot(
         String runId,
         String aguiRunId,
         int phaseNo,
@@ -28,15 +29,15 @@ public record ExecutionSnapshot(
         String reasoningMessageId,
         boolean textOpen,
         boolean reasoningOpen,
-        List<Tool> tools,
-        List<Tool> pendingTools) {
+        List<ToolCall> tools,
+        List<ToolCall> pendingTools) {
 
     /** 归一化可空文本和工具调用集合。 */
-    public ExecutionSnapshot {
+    public ChatRunSnapshot {
         text = text == null ? "" : text;
         reasoning = reasoning == null ? "" : reasoning;
-        tools = ExecutionSnapshotSanitizer.sanitizeTools(tools);
-        pendingTools = ExecutionSnapshotSanitizer.sanitizePendingTools(pendingTools);
+        tools = ChatRunDataSanitizer.sanitizeTools(tools);
+        pendingTools = ChatRunDataSanitizer.sanitizePendingTools(pendingTools);
     }
 
     /**
@@ -47,8 +48,8 @@ public record ExecutionSnapshot(
      * @param phaseNo 执行阶段号
      * @return 空执行快照
      */
-    public static ExecutionSnapshot empty(String runId, String aguiRunId, int phaseNo) {
-        return new ExecutionSnapshot(runId, aguiRunId, phaseNo, "", "", null, null, false, false, List.of(), List.of());
+    public static ChatRunSnapshot empty(String runId, String aguiRunId, int phaseNo) {
+        return new ChatRunSnapshot(runId, aguiRunId, phaseNo, "", "", null, null, false, false, List.of(), List.of());
     }
 
     /**
@@ -60,5 +61,5 @@ public record ExecutionSnapshot(
      * @param result 工具结果 JSON
      * @param status 工具调用状态
      */
-    public record Tool(String toolCallId, String toolCallName, String args, String result, String status) {}
+    public record ToolCall(String toolCallId, String toolCallName, String args, String result, String status) {}
 }
