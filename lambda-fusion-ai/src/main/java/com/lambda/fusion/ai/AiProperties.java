@@ -116,7 +116,7 @@ public class AiProperties {
             /** 强制停止前等待协作式停止完成的时间，单位秒。 */
             @Min(1)
             @Max(300)
-            private long stopGraceSeconds = 50;
+            private long stopGraceSeconds = 30;
 
             /** Run 结束后内存事件的保留时间，单位秒。 */
             @Min(1)

@@ -256,7 +256,7 @@ public class ChatRunCoordinator {
 
     /** 启动定时维护任务。供 {@link ChatRunStartupRecovery} 编排调用。 */
     void scheduleMaintenance() {
-        scheduler.scheduleAtFixedRate(this::maintenance, 5, 5, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::maintenance, 5, 30, TimeUnit.SECONDS);
     }
 
     private void recoverInterruptedInTenantContext(ChatRunEntity run, ChatSessionEntity session) {
