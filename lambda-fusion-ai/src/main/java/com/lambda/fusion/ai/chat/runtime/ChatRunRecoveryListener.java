@@ -1,7 +1,9 @@
 package com.lambda.fusion.ai.chat.runtime;
 
+import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -21,11 +23,12 @@ public class ChatRunRecoveryListener {
 
     private final ChatRunStateService runService;
     private final ChatRunCoordinator coordinator;
+    private final AiProperties properties;
 
     /** 恢复服务启动前遗留的运行，并启动定时维护任务。 */
     @EventListener(ApplicationReadyEvent.class)
     public void recoverOnStartup() {
-        for (ChatRunEntity run : runService.listInterruptedOnRestart()) {
+        for (ChatRunEntity run : runService.listInterruptedOnRestart(expiredBefore())) {
             try {
                 coordinator.recoverInterrupted(run);
             } catch (RuntimeException recoveryFailure) {
@@ -40,5 +43,10 @@ public class ChatRunRecoveryListener {
             }
         }
         coordinator.scheduleMaintenance();
+    }
+
+    /** 租约过期阈值：当前时间减去接管宽限期；早于该时刻的租约视为可接管。 */
+    private LocalDateTime expiredBefore() {
+        return LocalDateTime.now().minusSeconds(properties.getChat().getRun().getTakeoverGraceSeconds());
     }
 }

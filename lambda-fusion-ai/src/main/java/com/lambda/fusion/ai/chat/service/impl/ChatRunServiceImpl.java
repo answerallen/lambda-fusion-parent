@@ -468,15 +468,19 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                 new LambdaQueryWrapper<ChatRunEntity>().eq(ChatRunEntity::getStatus, ChatRunStatus.CREATED.name()));
     }
 
-    /** 查询服务重启后需要恢复或终结的中断态运行。 */
+    /** 查询服务重启或周期扫描后需要接管/终结的中断态运行：仅无主或租约已过期者。 */
     @Override
-    public List<ChatRunEntity> listInterruptedOnRestart() {
+    public List<ChatRunEntity> listInterruptedOnRestart(LocalDateTime expiredBefore) {
         return runMapper.selectList(new LambdaQueryWrapper<ChatRunEntity>()
                 .in(
                         ChatRunEntity::getStatus,
                         ChatRunStatus.RUNNING.name(),
                         ChatRunStatus.STOPPING.name(),
-                        ChatRunStatus.AWAITING_CONFIRM.name()));
+                        ChatRunStatus.AWAITING_CONFIRM.name())
+                // 仅接管无主或租约已过期的 Run；健康节点仍持有租约的 Run 不在结果中，避免滚动发布误终结。
+                .and(w -> w.isNull(ChatRunEntity::getOwnerInstanceId)
+                        .or()
+                        .le(ChatRunEntity::getLeaseUntil, expiredBefore)));
     }
 
     /** 查询截止时间不晚于给定时刻的待确认运行。 */

@@ -102,8 +102,14 @@ public class ChatRunCoordinator {
         this.properties = properties;
         this.runOwner = runOwner;
         this.registry = new ChatRunInstanceRegistry(instanceFactory, properties);
-        this.maintenanceScheduler =
-                new ChatRunMaintenanceScheduler(scheduler, eventStore, registry, runService, this::startIfCreated);
+        this.maintenanceScheduler = new ChatRunMaintenanceScheduler(
+                scheduler,
+                eventStore,
+                registry,
+                runService,
+                this::startIfCreated,
+                this::takeoverIfExpired,
+                this::expiredBefore);
     }
 
     /**
@@ -295,6 +301,45 @@ public class ChatRunCoordinator {
     /** 计算新租约截止时间（以当前时间为基准加租约时长）。 */
     private LocalDateTime newLeaseUntil() {
         return LocalDateTime.now().plusSeconds(properties.getChat().getRun().getLeaseTtlSeconds());
+    }
+
+    /** 租约过期阈值：当前时间减去接管宽限期；早于该时刻的租约视为可接管。 */
+    private LocalDateTime expiredBefore() {
+        return LocalDateTime.now().minusSeconds(properties.getChat().getRun().getTakeoverGraceSeconds());
+    }
+
+    /**
+     * 周期接管租约已过期的中断态运行（仅 {@code RUNNING}/{@code STOPPING}）：先以闭环 CAS 抢占 owner/epoch，
+     * 抢占成功才按遗失实例终结；抢占失败（他节点已接管或租约被续约）则跳过。供定时维护任务调用。
+     *
+     * @param run 候选中断态运行（来自周期扫描）
+     */
+    void takeoverIfExpired(ChatRunEntity run) {
+        ChatSessionEntity session = loadSession(run);
+        TenantUtils.withTenant(session.getTenantId(), () -> {
+            takeoverIfExpiredInTenantContext(run, session);
+            return null;
+        });
+    }
+
+    private void takeoverIfExpiredInTenantContext(ChatRunEntity run, ChatSessionEntity session) {
+        boolean won = runService.takeover(
+                run,
+                run.getOwnerInstanceId(),
+                run.getLeaseEpoch(),
+                runOwner.instanceId(),
+                newLeaseUntil(),
+                expiredBefore());
+        if (!won) {
+            return;
+        }
+        // 抢占成功后才终结：本节点已成为新 owner，lost-instance 路径只用持久化快照落终态、不写事件流。
+        ChatRunInstance lost = instanceFactory.restoreForFinalize(run, session, scheduler);
+        if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
+            lost.finalizeStopped(ChatRunFinishReason.USER_STOP);
+        } else {
+            lost.finalizeFailed(ChatRunFailureCode.INSTANCE_LOST, "执行节点失效，对话运行已被接管终结");
+        }
     }
 
     private void startCreated(ChatRunInstance execution) {

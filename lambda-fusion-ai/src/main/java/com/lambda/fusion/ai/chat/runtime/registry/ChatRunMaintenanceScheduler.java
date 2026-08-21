@@ -26,6 +26,8 @@ public final class ChatRunMaintenanceScheduler {
     private final ChatRunInstanceRegistry registry;
     private final ChatRunStateService runService;
     private final Consumer<ChatRunEntity> createdLauncher;
+    private final Consumer<ChatRunEntity> takeoverLauncher;
+    private final java.util.function.Supplier<java.time.LocalDateTime> expiredBeforeSupplier;
 
     /**
      * 创建维护调度器。
@@ -35,18 +37,24 @@ public final class ChatRunMaintenanceScheduler {
      * @param registry 活动实例注册表
      * @param runService 运行状态服务
      * @param createdLauncher 待执行 CREATED Run 的拉起动作（协调器入口）
+     * @param takeoverLauncher 过期中断态 Run 的接管动作（协调器入口）
+     * @param expiredBeforeSupplier 租约过期阈值提供者
      */
     public ChatRunMaintenanceScheduler(
             ScheduledExecutorService scheduler,
             ChatRunEventStore eventStore,
             ChatRunInstanceRegistry registry,
             ChatRunStateService runService,
-            Consumer<ChatRunEntity> createdLauncher) {
+            Consumer<ChatRunEntity> createdLauncher,
+            Consumer<ChatRunEntity> takeoverLauncher,
+            java.util.function.Supplier<java.time.LocalDateTime> expiredBeforeSupplier) {
         this.scheduler = scheduler;
         this.eventStore = eventStore;
         this.registry = registry;
         this.runService = runService;
         this.createdLauncher = createdLauncher;
+        this.takeoverLauncher = takeoverLauncher;
+        this.expiredBeforeSupplier = expiredBeforeSupplier;
     }
 
     /** 启动周期维护任务：首轮延迟 5 秒，之后每 30 秒执行一次。 */
@@ -60,9 +68,16 @@ public final class ChatRunMaintenanceScheduler {
             long now = System.nanoTime();
             registry.forEachActive(execution -> safelyMaintain(
                     execution.run().getId(), () -> execution.runInTenant(() -> execution.checkpointIfDue(now))));
+            // 周期接管失效租约的 RUNNING/STOPPING（不含 AWAITING_CONFIRM，后者走确认超时路径）。
+            java.time.LocalDateTime expiredBefore = expiredBeforeSupplier.get();
+            runService.listInterruptedOnRestart(expiredBefore).stream()
+                    .filter(run -> !com.lambda.fusion.ai.AiConstants.ChatRunStatus.AWAITING_CONFIRM
+                            .name()
+                            .equals(run.getStatus()))
+                    .forEach(run -> safelyMaintain(run.getId(), () -> takeoverLauncher.accept(run)));
             runService.listCreated().forEach(run -> safelyMaintain(run.getId(), () -> createdLauncher.accept(run)));
             runService
-                    .listExpiredConfirmations(LocalDateTime.now())
+                    .listExpiredConfirmations(java.time.LocalDateTime.now())
                     .forEach(run -> safelyMaintain(run.getId(), () -> expireConfirmation(run)));
         } catch (RuntimeException error) {
             log.error("对话Run维护任务失败", error);

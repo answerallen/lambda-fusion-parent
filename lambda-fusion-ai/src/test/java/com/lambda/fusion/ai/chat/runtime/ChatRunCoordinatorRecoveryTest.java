@@ -143,7 +143,7 @@ class ChatRunCoordinatorRecoveryTest {
 
     private void prepareRecovery(ChatRunEntity run, String stateStoreType) {
         ChatSessionEntity session = session();
-        when(runService.listInterruptedOnRestart()).thenReturn(List.of(run));
+        when(runService.listInterruptedOnRestart(any())).thenReturn(List.of(run));
         when(runService.listCreated()).thenReturn(List.of());
         when(runService.loadSession(run)).thenReturn(session);
 
@@ -161,7 +161,7 @@ class ChatRunCoordinatorRecoveryTest {
                 instanceFactory,
                 properties,
                 new ChatRunOwner("test-app"));
-        startupRecovery = new ChatRunRecoveryListener(runService, coordinator);
+        startupRecovery = new ChatRunRecoveryListener(runService, coordinator, properties);
     }
 
     private void stubTerminalCommit(ChatRunEntity run) {

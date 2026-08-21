@@ -87,7 +87,14 @@ public interface ChatRunStateService {
 
     List<ChatRunEntity> listCreated();
 
-    List<ChatRunEntity> listInterruptedOnRestart();
+    /**
+     * 查询服务重启或周期扫描后需要接管/终结的中断态运行：仅返回「无主或租约已过期」者，
+     * 健康节点仍持有租约的 Run 不在结果中，避免滚动发布误终结。
+     *
+     * @param expiredBefore 租约过期阈值；{@code lease_until} 早于该时刻或 owner 为 NULL 视为可接管
+     * @return 可接管的中断态运行
+     */
+    List<ChatRunEntity> listInterruptedOnRestart(LocalDateTime expiredBefore);
 
     List<ChatRunEntity> listExpiredConfirmations(LocalDateTime deadline);
 }
