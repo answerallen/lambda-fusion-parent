@@ -287,9 +287,9 @@ POST /v1/ai/sessions/{sessionId}/runs/{runId}/stop
 
 SSE `id` 为 `{chatRunId}:{seq}`。`seq` 同时放在 JSON 顶层，因为当前 TDesign 上层回调不能可靠取得 SSE parser 的 `id:` 字段。
 
-普通续看使用 `afterSeq` 或 `Last-Event-ID`，服务端只发送 `seq > afterSeq`。回放列表与实时订阅者的注册在同一缓冲锁内完成，避免两者切换时漏事件。
+事件订阅内部仍以 `seq` 对齐：bootstrap 用快照高水位 `H` 订阅 `seq > H` 的增量，回放列表与实时订阅者的注册在同一缓冲锁内完成，避免两者切换时漏事件。游标不再作为公开协议暴露；服务端对越界游标宽松收敛——过早则从最早保留事件重放，过晚则只接后续实时事件，不报 `CHAT_RUN_CURSOR_EXPIRED`（该错误码已随协议一并移除）。
 
-内存缓冲同时限制事件数、总字节数和单订阅者队列。淘汰旧事件前必须先同步持久化覆盖这些事件的规范快照。普通游标早于保留窗口时返回 `CHAT_RUN_CURSOR_EXPIRED`；Run 缓冲已经过终态 TTL 清理时，普通续看返回 `CHAT_RUN_EVENTS_EXPIRED`。
+内存缓冲同时限制事件数、总字节数和单订阅者队列。淘汰旧事件前必须先同步持久化覆盖这些事件的规范快照。Run 缓冲已经过终态 TTL 清理时，续看返回 `CHAT_RUN_EVENTS_EXPIRED`。
 
 ### 7.2 Bootstrap 恢复
 
@@ -321,14 +321,14 @@ processMessageResult 写入 messageStore
 
 反过来，当前 API 又没有“`processMessageResult` 已成功提交”后的回调。因此业务层无法维护严格的 `lastAppliedSeq`。这里所谓“缺少严格游标提交钩子”，就是缺少一个能确认“这个事件已经真正写入前端状态，现可安全推进游标”的时点。
 
-所以当前前端采用保守策略：
+所以前端采用保守策略，后端也据此移除了未被使用的增量游标协议（`afterSeq` / `Last-Event-ID`）：
 
-- 后端保留标准增量 `afterSeq` 能力，供具备严格游标的客户端使用；
-- 当前 TDesign 页面所有恢复都使用 `afterSeq=0&bootstrap=true`；
+- 后端不再暴露增量游标，续看恢复统一走 bootstrap；
+- 当前 TDesign 页面所有恢复都使用 `bootstrap=true`；
 - 每次恢复先删除未完成的临时助手气泡，再完整重建一次；
 - 不维护看似精确、实际可能越过未应用事件的 `lastSeenSeq`。
 
-只有 TDesign 将“事件应用成功”回调暴露出来，或项目在 ChatEngine 内部增加 `onMessageApplied(seq)` 后，当前页面才适合启用增量恢复。
+若未来 TDesign 暴露“事件应用成功”回调，或项目在 ChatEngine 内部增加 `onMessageApplied(seq)`，才有重新引入增量恢复协议的价值；届时需同时恢复服务端游标入口。
 
 ## 9. HTTP API
 
@@ -337,7 +337,7 @@ processMessageResult 写入 messageStore
 | `POST` | `/v1/ai/sessions/{id}/chat` | 使用 `clientRequestId` 创建或幂等挂接 Run，并返回 SSE |
 | `GET` | `/v1/ai/sessions/{id}/runs/active` | 查询会话当前非终态 Run；没有时返回 200 空响应 |
 | `GET` | `/v1/ai/sessions/{id}/runs/{runId}` | 查询状态、快照摘要、阶段和待确认工具 |
-| `GET` | `/v1/ai/sessions/{id}/runs/{runId}/events` | 使用 `afterSeq` / `Last-Event-ID` 续看，可选 bootstrap |
+| `GET` | `/v1/ai/sessions/{id}/runs/{runId}/events` | 续看 Run 事件，可选 `bootstrap=true` 快照重建 |
 | `POST` | `/v1/ai/sessions/{id}/runs/{runId}/confirm` | 提交 `phaseNo + decisions`，以 SSE 续接下一阶段 |
 | `POST` | `/v1/ai/sessions/{id}/runs/{runId}/stop` | 显式停止一个 Run |
 
