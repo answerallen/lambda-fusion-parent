@@ -36,12 +36,7 @@ public final class AgentStreamLifecycle {
         this.properties = properties;
     }
 
-    /** 阶段开始时重置订阅句柄。 */
-    public void reset() {
-        disposable.set(null);
-    }
-
-    /** 源流正常完成后清除订阅句柄。 */
+    /** 清除当前订阅句柄；阶段开始时重置、源流正常完成后清除均调用此方法。 */
     public void clear() {
         disposable.set(null);
     }

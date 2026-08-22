@@ -17,6 +17,18 @@ public final class AguiBootstrapEncoder {
 
     private AguiBootstrapEncoder() {}
 
+    /** 构造"需要用户确认"的 AG-UI Interrupt 事件。 */
+    static AguiEvent.Interrupt confirmationInterrupt(String toolCallId, String toolName) {
+        return new AguiEvent.Interrupt(
+                toolCallId,
+                "human_confirmation_required",
+                "工具 '" + toolName + "' 需要您确认后执行",
+                toolCallId,
+                null,
+                null,
+                Map.of("toolName", toolName));
+    }
+
     public static List<String> encode(ChatRunEntity run, ChatRunSnapshot snapshot) {
         EventCollector collector = new EventCollector(run);
         collector.add(new AguiEvent.RunStarted(run.getSessionId(), run.getAguiRunId(), null, null), run.getPhaseNo());
@@ -97,14 +109,7 @@ public final class AguiBootstrapEncoder {
         if (ChatRunStatus.RUNNING.name().equals(run.getStatus())
                 && !snapshot.pendingTools().isEmpty()) {
             List<AguiEvent.Interrupt> interrupts = snapshot.pendingTools().stream()
-                    .map(tool -> new AguiEvent.Interrupt(
-                            tool.toolCallId(),
-                            "human_confirmation_required",
-                            "工具 '" + tool.toolCallName() + "' 需要您确认后执行",
-                            tool.toolCallId(),
-                            null,
-                            null,
-                            Map.of("toolName", tool.toolCallName())))
+                    .map(tool -> confirmationInterrupt(tool.toolCallId(), tool.toolCallName()))
                     .toList();
             collector.add(new AguiEvent.RunFinished(
                     collector.threadId(),

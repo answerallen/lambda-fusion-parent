@@ -25,25 +25,28 @@ public final class AguiEventJsonCodec {
     }
 
     /** 为已经编码的事件补充业务 Run 与当前 AG-UI phase 标识。 */
-    @SuppressWarnings("unchecked")
     public static String withRunMetadata(String json, String chatRunId, String aguiRunId) {
-        Map<String, Object> source = JsonUtils.getJsonCodec().fromJson(json.trim(), Map.class);
-        Map<String, Object> enriched = new LinkedHashMap<>(source);
-        enriched.put("runId", aguiRunId);
-        enriched.put("chatRunId", chatRunId);
-        return JsonUtils.getJsonCodec().toJson(enriched);
+        String trimmed = json.trim();
+        if (trimmed.endsWith("}")) {
+            return trimmed.substring(0, trimmed.length() - 1)
+                    + ",\"runId\":" + JsonUtils.getJsonCodec().toJson(aguiRunId)
+                    + ",\"chatRunId\":" + JsonUtils.getJsonCodec().toJson(chatRunId)
+                    + "}";
+        }
+        return enrichJson(json, Map.of("runId", aguiRunId, "chatRunId", chatRunId));
     }
 
     /** 编码浏览器恢复引导事件；仅 RUN_STARTED 需要附带业务 phase。 */
-    @SuppressWarnings("unchecked")
     public static String encodeBootstrapEvent(AguiEvent event, String chatRunId, Integer phaseNo) {
-        Map<String, Object> source = JsonUtils.getJsonCodec()
-                .fromJson(encodeRunEvent(event, chatRunId, event.getRunId()).trim(), Map.class);
-        Map<String, Object> enriched = new LinkedHashMap<>(source);
-        if (phaseNo != null) {
-            enriched.put("phaseNo", phaseNo);
+        String encoded = encodeRunEvent(event, chatRunId, event.getRunId());
+        if (phaseNo == null) {
+            return encoded;
         }
-        return JsonUtils.getJsonCodec().toJson(enriched);
+        String trimmed = encoded.trim();
+        if (trimmed.endsWith("}")) {
+            return trimmed.substring(0, trimmed.length() - 1) + ",\"phaseNo\":" + phaseNo + "}";
+        }
+        return enrichJson(encoded, Map.of("phaseNo", phaseNo));
     }
 
     @SuppressWarnings("unchecked")
@@ -54,12 +57,22 @@ public final class AguiEventJsonCodec {
     }
 
     /** 为终态事件补充业务状态和结束原因。 */
-    @SuppressWarnings("unchecked")
     public static String withTerminalMetadata(String json, String status, String finishReason) {
+        String trimmed = json.trim();
+        if (trimmed.endsWith("}")) {
+            return trimmed.substring(0, trimmed.length() - 1)
+                    + ",\"chatRunStatus\":" + JsonUtils.getJsonCodec().toJson(status)
+                    + ",\"finishReason\":" + JsonUtils.getJsonCodec().toJson(finishReason)
+                    + "}";
+        }
+        return enrichJson(json, Map.of("chatRunStatus", status, "finishReason", finishReason));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String enrichJson(String json, Map<String, ?> fields) {
         Map<String, Object> source = JsonUtils.getJsonCodec().fromJson(json.trim(), Map.class);
         Map<String, Object> enriched = new LinkedHashMap<>(source);
-        enriched.put("chatRunStatus", status);
-        enriched.put("finishReason", finishReason);
+        enriched.putAll(fields);
         return JsonUtils.getJsonCodec().toJson(enriched);
     }
 }

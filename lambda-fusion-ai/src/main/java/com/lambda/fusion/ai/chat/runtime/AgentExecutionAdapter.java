@@ -20,7 +20,6 @@ import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.state.AgentState;
 import io.agentscope.core.tool.ToolResultMessageBuilder;
 import io.agentscope.harness.agent.HarnessAgent;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -124,6 +123,17 @@ public final class AgentExecutionAdapter {
         }
     }
 
+    /** 从上下文末尾倒序查找最后一条助手消息；不存在时返回 {@code null}。 */
+    private static Msg lastAssistantMessage(List<Msg> context) {
+        for (int i = context.size() - 1; i >= 0; i--) {
+            Msg message = context.get(i);
+            if (message.getRole() == MsgRole.ASSISTANT) {
+                return message;
+            }
+        }
+        return null;
+    }
+
     /**
      * 读取 Agent 状态中当前待确认的工具调用。
      *
@@ -139,28 +149,24 @@ public final class AgentExecutionAdapter {
             if (state == null || state.getContext() == null) {
                 throw confirmationContextUnavailable();
             }
-            List<Msg> context = state.getContext();
-            for (int i = context.size() - 1; i >= 0; i--) {
-                Msg message = context.get(i);
-                if (message.getRole() != MsgRole.ASSISTANT) {
-                    continue;
-                }
-                List<ToolUseBlock> asking = message.getContentBlocks(ToolUseBlock.class).stream()
-                        .filter(tool -> tool.getState() == ToolCallState.ASKING)
-                        .toList();
-                if (!asking.isEmpty()) {
-                    return asking;
-                }
-                // 最后一条助手消息没有 ASKING 块，表示当前不存在待确认批次，不再回查历史消息。
-                break;
+            Msg lastAssistant = lastAssistantMessage(state.getContext());
+            if (lastAssistant == null) {
+                throw confirmationContextUnavailable();
             }
+            List<ToolUseBlock> asking = lastAssistant.getContentBlocks(ToolUseBlock.class).stream()
+                    .filter(tool -> tool.getState() == ToolCallState.ASKING)
+                    .toList();
+            if (asking.isEmpty()) {
+                // 最后一条助手消息没有 ASKING 块，表示当前不存在待确认批次，不再回查历史消息。
+                throw confirmationContextUnavailable();
+            }
+            return asking;
         } catch (AiBusinessException exception) {
             throw exception;
         } catch (RuntimeException error) {
             log.warn("读取HITL Agent状态失败: runId={}", runId, error);
             throw confirmationContextUnavailable();
         }
-        throw confirmationContextUnavailable();
     }
 
     /** 中断当前 Agent 状态会话。 */
@@ -185,17 +191,13 @@ public final class AgentExecutionAdapter {
                 .flatMap(message -> message.getContentBlocks(ToolResultBlock.class).stream())
                 .map(ToolResultBlock::getId)
                 .collect(Collectors.toSet());
-        List<ToolUseBlock> pending = new ArrayList<>();
-        for (int i = state.getContext().size() - 1; i >= 0; i--) {
-            Msg message = state.getContext().get(i);
-            if (message.getRole() != MsgRole.ASSISTANT) {
-                continue;
-            }
-            pending = message.getContentBlocks(ToolUseBlock.class).stream()
-                    .filter(tool -> !resultIds.contains(tool.getId()))
-                    .toList();
-            break;
+        Msg lastAssistant = lastAssistantMessage(state.getContext());
+        if (lastAssistant == null) {
+            return;
         }
+        List<ToolUseBlock> pending = lastAssistant.getContentBlocks(ToolUseBlock.class).stream()
+                .filter(tool -> !resultIds.contains(tool.getId()))
+                .toList();
         if (pending.isEmpty()) {
             return;
         }

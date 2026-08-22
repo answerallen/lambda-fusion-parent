@@ -15,7 +15,7 @@ import org.apache.commons.lang3.StringUtils;
  * @author Jin
  */
 @UtilityClass
-public final class ChatRunSnapshotSanitizer {
+public class ChatRunSnapshotSanitizer {
 
     /**
      * 清理工具调用快照。

@@ -28,7 +28,7 @@ import org.apache.commons.lang3.StringUtils;
  */
 @Slf4j
 @UtilityClass
-public final class ConfirmationValidator {
+public class ConfirmationValidator {
 
     /**
      * 校验快照、用户决策与 Agent 状态三方一致，并构造携带确认结果的下一阶段输入消息。

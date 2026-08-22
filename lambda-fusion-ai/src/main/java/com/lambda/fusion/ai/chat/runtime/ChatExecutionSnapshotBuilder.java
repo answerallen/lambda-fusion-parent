@@ -3,9 +3,9 @@ package com.lambda.fusion.ai.chat.runtime;
 import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import io.agentscope.core.agui.event.AguiEvent;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 
 /**
  * 运行中快照投影器：消费已经标准化的 AG-UI 事件，生成浏览器恢复所需的最小投影。
@@ -23,7 +23,7 @@ public final class ChatExecutionSnapshotBuilder {
     private String reasoningMessageId;
     private boolean textOpen;
     private boolean reasoningOpen;
-    private final List<ChatRunSnapshot.ToolCall> tools = new ArrayList<>();
+    private final Map<String, ChatRunSnapshot.ToolCall> tools = new LinkedHashMap<>();
     private List<ChatRunSnapshot.ToolCall> pendingTools;
 
     /**
@@ -41,7 +41,9 @@ public final class ChatExecutionSnapshotBuilder {
         reasoningMessageId = snapshot.reasoningMessageId();
         textOpen = snapshot.textOpen();
         reasoningOpen = snapshot.reasoningOpen();
-        tools.addAll(snapshot.tools());
+        for (ChatRunSnapshot.ToolCall tool : snapshot.tools()) {
+            tools.put(tool.toolCallId(), tool);
+        }
         pendingTools = snapshot.pendingTools();
     }
 
@@ -188,7 +190,7 @@ public final class ChatExecutionSnapshotBuilder {
                 reasoningMessageId,
                 textOpen,
                 reasoningOpen,
-                tools,
+                List.copyOf(tools.values()),
                 pendingTools);
     }
 
@@ -198,32 +200,16 @@ public final class ChatExecutionSnapshotBuilder {
     }
 
     private ChatRunSnapshot.ToolCall findTool(String toolCallId) {
-        return tools.stream()
-                .filter(tool -> Objects.equals(tool.toolCallId(), toolCallId))
-                .findFirst()
-                .orElse(null);
+        return tools.get(toolCallId);
     }
 
     private void upsertTool(String toolCallId, String toolCallName, String args, String result, String status) {
-        int index = -1;
-        for (int i = 0; i < tools.size(); i++) {
-            if (Objects.equals(tools.get(i).toolCallId(), toolCallId)) {
-                index = i;
-                break;
-            }
-        }
-        ChatRunSnapshot.ToolCall current = index < 0 ? null : tools.get(index);
+        ChatRunSnapshot.ToolCall current = tools.get(toolCallId);
         String nextName = toolCallName == null && current != null ? current.toolCallName() : safe(toolCallName);
         String nextArgs = args == null && current != null ? current.args() : safe(args);
         String nextResult = result == null && current != null ? current.result() : safe(result);
         String nextStatus = status == null && current != null ? current.status() : status;
-        ChatRunSnapshot.ToolCall updated =
-                new ChatRunSnapshot.ToolCall(toolCallId, nextName, nextArgs, nextResult, nextStatus);
-        if (index < 0) {
-            tools.add(updated);
-        } else {
-            tools.set(index, updated);
-        }
+        tools.put(toolCallId, new ChatRunSnapshot.ToolCall(toolCallId, nextName, nextArgs, nextResult, nextStatus));
     }
 
     private static String safe(String value) {

@@ -71,6 +71,7 @@ public final class ChatExecutionInstance {
     private boolean checkpointDirty;
     private ScheduledFuture<?> checkpointTask;
     private AgentEventMapper eventMapper;
+    private boolean awaitingConfirm;
     private List<AguiEvent> pendingConfirmEvents;
 
     /**
@@ -107,7 +108,10 @@ public final class ChatExecutionInstance {
         this.accumulator = accumulator;
         this.chatExecutionFinalizer = new ChatExecutionFinalizer(runService, eventStore, properties);
         this.agentStreamLifecycle = new AgentStreamLifecycle(run.getId(), scheduler, properties);
-        this.eventMapper = new AgentEventMapper(run.getSessionId(), run.getAguiRunId(), true);
+        this.eventMapper = new AgentEventMapper(
+                run.getSessionId(),
+                run.getAguiRunId(),
+                properties.getChat().getRun().isEnableReasoning());
     }
 
     /** 运行实体。 */
@@ -202,7 +206,10 @@ public final class ChatExecutionInstance {
         cancelCheckpointTask();
         accumulator.beginPhase(run.getAguiRunId(), run.getPhaseNo());
         checkpointDirty = false;
-        eventMapper = new AgentEventMapper(run.getSessionId(), run.getAguiRunId(), true);
+        eventMapper = new AgentEventMapper(
+                run.getSessionId(),
+                run.getAguiRunId(),
+                properties.getChat().getRun().isEnableReasoning());
     }
 
     /**
@@ -222,7 +229,7 @@ public final class ChatExecutionInstance {
         }
         rootAgentEnded = false;
         sourceActive = true;
-        agentStreamLifecycle.reset();
+        agentStreamLifecycle.clear();
         phaseStartedAtMillis = System.currentTimeMillis();
         agentStreamLifecycle.scheduleInteractionTimeout(() -> runInTenant(this::onInteractionTimeout));
         Disposable next;
@@ -280,7 +287,7 @@ public final class ChatExecutionInstance {
             // 根 AGENT_END 是业务回答边界；普通阶段允许记忆尾部继续，HITL 阶段由适配器在此结束源流。
             rootAgentEnded = true;
             agentStreamLifecycle.cancelInteractionTimeout();
-            if (pendingConfirmEvents != null || accumulator.hasPendingConfirmation()) {
+            if (awaitingConfirm || accumulator.hasPendingConfirmation()) {
                 return;
             }
             finalizeCompleted();
@@ -288,9 +295,10 @@ public final class ChatExecutionInstance {
         }
         List<AguiEvent> events = eventMapper.map(event);
         if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM) {
-            if (pendingConfirmEvents != null) {
+            if (awaitingConfirm) {
                 return;
             }
+            awaitingConfirm = true;
             pendingConfirmEvents = events;
             accumulator.apply(events);
             // AgentScope 在事件流结束时持久化 ASKING 状态。
@@ -316,7 +324,7 @@ public final class ChatExecutionInstance {
         if (terminal) {
             return;
         }
-        if (pendingConfirmEvents != null) {
+        if (awaitingConfirm) {
             // 待确认状态必须等 doFinally 确认适配后的当前阶段源流已经结束后再提交。
             return;
         }
@@ -332,7 +340,7 @@ public final class ChatExecutionInstance {
         sourceActive = false;
         agentStreamLifecycle.cancelInteractionTimeout();
         runWorkspaceAudit();
-        if (!terminal && pendingConfirmEvents != null) {
+        if (!terminal && awaitingConfirm) {
             try {
                 completeAwaitConfirm();
             } catch (RuntimeException awaitConfirmFailure) {
@@ -358,8 +366,8 @@ public final class ChatExecutionInstance {
         }
     }
 
-    /** 判断是否仍有已订阅但尚未触发 {@code doFinally} 的 AgentScope 源流；普通阶段包括记忆尾部。 */
-    private boolean noActive() {
+    /** 判断 AgentScope 源流是否已终止（无已订阅但尚未触发 {@code doFinally} 的源流）。 */
+    private boolean isSourceTerminated() {
         return !sourceActive;
     }
 
@@ -372,12 +380,14 @@ public final class ChatExecutionInstance {
             awaiting = runService.checkpoint(run, snapshot);
         } catch (RuntimeException awaitFailure) {
             // 独立事务回滚时 interrupt 尚未发布，运行保持 RUNNING，可由调用方重试。
+            awaitingConfirm = false;
             pendingConfirmEvents = null;
             log.error("Run进入待确认失败，保持运行态可重试: runId={}", run.getId(), awaitFailure);
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_AWAIT_CONFIRM_FAILED, run.getId());
         }
         if (!awaiting) {
             // 终态会拒绝迟到的确认快照；不存在第二套待确认状态迁移。
+            awaitingConfirm = false;
             pendingConfirmEvents = null;
             adoptExternalTerminalIfRejected("Run待确认快照未写入: ");
             return;
@@ -391,6 +401,7 @@ public final class ChatExecutionInstance {
         }
         cancelCheckpointTask();
         checkpointDirty = false;
+        awaitingConfirm = false;
         pendingConfirmEvents = null;
     }
 
@@ -454,6 +465,7 @@ public final class ChatExecutionInstance {
         }
         terminal = true;
         cancelCheckpointTask();
+        awaitingConfirm = false;
         pendingConfirmEvents = null;
         if (status != ChatRunStatus.COMPLETED) {
             closePendingToolCalls();
@@ -473,39 +485,51 @@ public final class ChatExecutionInstance {
                     run, accumulator.buildSnapshot(), status, reason, errorCode, errorMessage);
             // 业务终态后若无活动源流（如纯终结恢复、源流已先终止、启动同步失败），立即完成排空信号；
             // 否则等待 onSourceTerminated 在源流排空后完成它。
-            if (noActive()) {
+            if (isSourceTerminated()) {
                 drainedSignal.complete(null);
             }
         } catch (RuntimeException finalizeFailure) {
-            terminal = false;
-            int attempt = ++finalizeAttempts;
-            // 数据行已删除等永久性失败或重试达到上限时停止提交，但仍释放实例，
-            // 避免单个实例的终结故障永久占用内存运行容量。
-            if (isPermanentFinalizeFailure(finalizeFailure)
-                    || attempt >= MAX_FINALIZE_ATTEMPTS
-                    || scheduler.isShutdown()) {
-                log.error(
-                        "对话Run终结放弃数据库提交，释放实例: runId={}, attempt={}, permanent={}",
-                        run.getId(),
-                        attempt,
-                        isPermanentFinalizeFailure(finalizeFailure),
-                        finalizeFailure);
-                terminal = true;
-                if (noActive()) {
-                    drainedSignal.complete(null);
-                }
-                return;
-            }
-            if (attempt == 5 || attempt % 10 == 0) {
-                log.error("对话Run终结持续失败，将继续重试: runId={}, attempt={}", run.getId(), attempt, finalizeFailure);
-            } else {
-                log.warn("对话Run终结失败，将重试: runId={}, attempt={}", run.getId(), attempt, finalizeFailure);
-            }
-            scheduler.schedule(
-                    () -> runInTenant(() -> finalizeTerminal(status, reason, errorCode, errorMessage)),
-                    Math.min(attempt, 30),
-                    TimeUnit.SECONDS);
+            handleFinalizeFailure(status, reason, errorCode, errorMessage, finalizeFailure);
         }
+    }
+
+    /**
+     * 终态提交失败后的重试决策：永久性失败或达到上限时放弃并释放实例，否则按退避调度重试。
+     * 由 {@link #finalizeTerminal} 在实例锁内调用。
+     */
+    private void handleFinalizeFailure(
+            ChatRunStatus status,
+            ChatRunFinishReason reason,
+            ChatRunFailureCode errorCode,
+            String errorMessage,
+            RuntimeException finalizeFailure) {
+        terminal = false;
+        int attempt = ++finalizeAttempts;
+        boolean permanent = isPermanentFinalizeFailure(finalizeFailure);
+        // 数据行已删除等永久性失败或重试达到上限时停止提交，但仍释放实例，
+        // 避免单个实例的终结故障永久占用内存运行容量。
+        if (permanent || attempt >= MAX_FINALIZE_ATTEMPTS || scheduler.isShutdown()) {
+            log.error(
+                    "对话Run终结放弃数据库提交，释放实例: runId={}, attempt={}, permanent={}",
+                    run.getId(),
+                    attempt,
+                    permanent,
+                    finalizeFailure);
+            terminal = true;
+            if (isSourceTerminated()) {
+                drainedSignal.complete(null);
+            }
+            return;
+        }
+        if (attempt == 5 || attempt % 10 == 0) {
+            log.error("对话Run终结持续失败，将继续重试: runId={}, attempt={}", run.getId(), attempt, finalizeFailure);
+        } else {
+            log.warn("对话Run终结失败，将重试: runId={}, attempt={}", run.getId(), attempt, finalizeFailure);
+        }
+        scheduler.schedule(
+                () -> runInTenant(() -> finalizeTerminal(status, reason, errorCode, errorMessage)),
+                Math.min(attempt, 30),
+                TimeUnit.SECONDS);
     }
 
     /** 判断终结失败是否为永久性（重试无意义）：底层数据行已不存在等。 */
@@ -553,7 +577,7 @@ public final class ChatExecutionInstance {
         }
         terminal = true;
         checkpointDirty = false;
-        if (noActive()) {
+        if (isSourceTerminated()) {
             drainedSignal.complete(null);
         }
     }

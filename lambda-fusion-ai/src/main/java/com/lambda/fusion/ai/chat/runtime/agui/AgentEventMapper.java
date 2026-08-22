@@ -171,14 +171,7 @@ public final class AgentEventMapper {
 
     private static AguiEvent.RunFinishedInterruptOutcome buildInterruptOutcome(List<ToolUseBlock> blocks) {
         List<AguiEvent.Interrupt> interrupts = blocks.stream()
-                .map(tool -> new AguiEvent.Interrupt(
-                        tool.getId(),
-                        "human_confirmation_required",
-                        "工具 '" + tool.getName() + "' 需要您确认后执行",
-                        tool.getId(),
-                        null,
-                        null,
-                        Map.of("toolName", tool.getName())))
+                .map(tool -> AguiBootstrapEncoder.confirmationInterrupt(tool.getId(), tool.getName()))
                 .toList();
         return new AguiEvent.RunFinishedInterruptOutcome(interrupts);
     }

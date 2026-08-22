@@ -141,6 +141,9 @@ public class AiProperties {
             /** 定时写入快照的间隔，单位秒。 */
             @Min(1)
             private long snapshotIntervalSeconds = 15;
+
+            /** 是否向前端推送 Agent 推理过程(ThinkingBlock)事件。 */
+            private boolean enableReasoning = true;
         }
 
         /**
