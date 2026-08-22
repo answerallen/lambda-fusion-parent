@@ -150,43 +150,13 @@ public class AiProperties {
             @Min(1)
             private long snapshotIntervalSeconds = 15;
 
-            /** 集群执行租约时长，单位秒（数据库时间计）。 */
-            @Min(1)
-            private long leaseTtlSeconds = 90;
-
-            /** 集群执行租约续约周期，单位秒。 */
-            @Min(1)
-            private long leaseRenewIntervalSeconds = 30;
-
-            /** 失效租约扫描周期，单位秒。 */
-            @Min(1)
-            private long leaseScanIntervalSeconds = 30;
-
-            /** 续约失败后本地自我隔离的安全余量，单位秒。 */
-            @Min(0)
-            private long leaseSafetyMarginSeconds = 5;
-
-            /** 接管宽限期：确认租约过期后再等待的秒数，避免误接管仍活着的节点。 */
-            @Min(0)
-            private long takeoverGraceSeconds = 30;
-
-            /** 优雅停机时等待本节点活动 Run 自然收敛的最长时间，单位秒；到期仍未结束的 Run 主动收敛。 */
-            @Min(0)
-            private long shutdownDrainTimeoutSeconds = 60;
+            /** 执行节点心跳超时时间，单位秒；超时未更新心跳的 Run 视为节点失效，收敛为 INSTANCE_LOST。心跳周期取该值的三分之一。 */
+            @Min(3)
+            private long instanceLostTimeoutSeconds = 60;
 
             /** CREATED 态 Run 等待被认领的最长时间，单位秒；超时未被认领（全节点满载）收敛为调度超时失败。 */
             @Min(1)
             private long scheduleTimeoutSeconds = 300;
-
-            /** 事件后端类型：MEMORY（默认，单机）/ REDIS（集群，需容器内 RedissonClient，启动校验 fail-fast）。 */
-            @NotNull
-            private String eventBackend = "MEMORY";
-
-            /** 租约参数须满足 lease-ttl 不小于 3 倍续约周期，否则 fencing 无法可靠工作。 */
-            @AssertTrue(message = "lease-ttl-seconds 必须不小于 3 倍 lease-renew-interval-seconds")
-            public boolean isLeaseTtlSufficient() {
-                return leaseTtlSeconds >= 3 * leaseRenewIntervalSeconds;
-            }
         }
 
         /**

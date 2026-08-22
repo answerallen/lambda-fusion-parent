@@ -160,7 +160,7 @@ class ChatRunCoordinatorRecoveryTest {
                 mock(AppService.class),
                 instanceFactory,
                 properties,
-                new ChatRunOwner("test-app"));
+                new ChatRunNodeIdentity("test-app"));
         startupRecovery = new ChatRunRecoveryListener(runService, coordinator, properties);
     }
 

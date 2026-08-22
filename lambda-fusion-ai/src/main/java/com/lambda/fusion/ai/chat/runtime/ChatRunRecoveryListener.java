@@ -28,7 +28,7 @@ public class ChatRunRecoveryListener {
     /** 恢复服务启动前遗留的运行，并启动定时维护任务。 */
     @EventListener(ApplicationReadyEvent.class)
     public void recoverOnStartup() {
-        for (ChatRunEntity run : runService.listInterruptedOnRestart(expiredBefore())) {
+        for (ChatRunEntity run : runService.listInterruptedOnRestart(timedOutBefore())) {
             try {
                 coordinator.recoverInterrupted(run);
             } catch (RuntimeException recoveryFailure) {
@@ -45,8 +45,8 @@ public class ChatRunRecoveryListener {
         coordinator.scheduleMaintenance();
     }
 
-    /** 租约过期阈值：当前时间减去接管宽限期；早于该时刻的租约视为可接管。 */
-    private LocalDateTime expiredBefore() {
-        return LocalDateTime.now().minusSeconds(properties.getChat().getRun().getTakeoverGraceSeconds());
+    /** 心跳超时阈值：当前时间减去节点失效超时；早于该时刻未心跳（或无心跳）的中断态 Run 视为执行节点已失效。 */
+    private LocalDateTime timedOutBefore() {
+        return LocalDateTime.now().minusSeconds(properties.getChat().getRun().getInstanceLostTimeoutSeconds());
     }
 }

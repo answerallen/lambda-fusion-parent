@@ -10,10 +10,6 @@ import com.lambda.cloud.oss.manager.OssClientManager;
 import com.lambda.fusion.ai.AiConstants.WorkspaceStorageType;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.channel.service.ChannelConfigService;
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.event.memory.MemoryChatRunEventBackend;
-import com.lambda.fusion.ai.chat.runtime.event.redis.RedisChatRunEventBackend;
-import com.lambda.fusion.ai.chat.runtime.event.spi.ChatRunEventBackend;
 import com.lambda.fusion.ai.rag.mapper.KnowledgeDocumentMapper;
 import com.lambda.fusion.ai.rag.runtime.SimpleKnowledgeAdapter;
 import com.lambda.fusion.ai.rag.service.DocumentIngestionService;
@@ -110,43 +106,6 @@ import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 @ComponentScan(basePackageClasses = AiConfigure.class)
 @EnableConfigurationProperties(AiProperties.class)
 public class AiConfigure {
-
-    /**
-     * 对话 Run 事件面装配：按 {@code chat.run.event-backend} 在启动时唯一选定事件后端（§8.2 唯一模式开关）。
-     * 默认 MEMORY（单机）不依赖 Redis；选定 REDIS 时要求容器内存在 {@code RedissonClient}，缺失即 fail-fast。
-     */
-    @Configuration
-    @RequiredArgsConstructor
-    public static class ChatRunEventConfiguration {
-
-        private final AiProperties aiProperties;
-        private final ObjectProvider<RedissonClient> redissonClientProvider;
-
-        /** 事件后端（内存 / Redis Streams）。 */
-        @Bean
-        public ChatRunEventBackend chatRunEventBackend() {
-            AiConstants.ChatRunEventBackend type = AiConstants.ChatRunEventBackend.of(
-                    aiProperties.getChat().getRun().getEventBackend());
-            if (type == null) {
-                throw new IllegalStateException(
-                        "未知对话Run事件后端: " + aiProperties.getChat().getRun().getEventBackend());
-            }
-            if (type == AiConstants.ChatRunEventBackend.MEMORY) {
-                return new MemoryChatRunEventBackend(aiProperties);
-            }
-            RedissonClient redisson = redissonClientProvider.getIfAvailable();
-            if (redisson == null) {
-                throw new IllegalStateException("选定 REDIS 对话Run事件后端，但容器内未配置 RedissonClient，无法集群订阅");
-            }
-            return new RedisChatRunEventBackend(redisson, aiProperties);
-        }
-
-        /** 事件门面：对写路径与协调器暴露统一入口，编排跨后端订阅。 */
-        @Bean(destroyMethod = "shutdown")
-        public ChatRunEventStore chatRunEventStore(ChatRunEventBackend chatRunEventBackend) {
-            return new ChatRunEventStore(chatRunEventBackend);
-        }
-    }
 
     @Configuration
     @ConditionalOnProperty(

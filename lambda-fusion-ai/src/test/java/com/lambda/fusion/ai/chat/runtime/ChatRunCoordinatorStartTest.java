@@ -86,7 +86,7 @@ class ChatRunCoordinatorStartTest {
                 appService,
                 instanceFactory,
                 properties,
-                new ChatRunOwner("test-app"));
+                new ChatRunNodeIdentity("test-app"));
 
         ChatSessionEntity session = session();
         ChatRunEntity first = run("run-1", 1L);
@@ -95,8 +95,7 @@ class ChatRunCoordinatorStartTest {
         userMessage.setId(1L);
         userMessage.setContent("日期");
 
-        when(runService.claimCreated(any(ChatRunEntity.class), anyString(), any()))
-                .thenReturn(true);
+        when(runService.claimCreated(any(ChatRunEntity.class))).thenReturn(true);
         when(messageService.findByIdAndSession(anyLong(), eq(session.getId()))).thenReturn(Optional.of(userMessage));
         when(attachmentService.listByMessageIds(anyList())).thenReturn(List.of());
         when(appService.loadById(session.getAppId())).thenReturn(new AppEntity());

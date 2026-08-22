@@ -1,10 +1,9 @@
 package com.lambda.fusion.ai.chat.runtime.registry;
 
-import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
+import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.runtime.ChatRunOwner;
 import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstance;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
@@ -16,8 +15,10 @@ import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 对话运行定时维护调度：周期执行事件缓冲过期清理、活动实例到期检查点、待执行 CREATED Run 拉起
- * 与确认超时扫描。由协调器持有并按需启动，不独立注册为 Spring Bean。
+ * 对话运行定时维护调度：周期执行事件缓冲过期清理、活动实例到期检查点（顺带心跳）、待执行 CREATED Run 拉起、
+ * 执行节点心跳超时 Run 的失效收敛与确认超时扫描。由协调器持有并按需启动，不独立注册为 Spring Bean。
+ *
+ * <p>降级模型下不含接管/租约逻辑：心跳仅用于检测执行节点失效并收敛为可重试终态，不接管运行中的调用。
  *
  * @author Jin
  */
@@ -28,11 +29,10 @@ public final class ChatRunMaintenanceScheduler {
     private final ChatRunEventStore eventStore;
     private final ChatRunInstanceRegistry registry;
     private final ChatRunStateService runService;
-    private final ChatRunOwner runOwner;
     private final AiProperties properties;
     private final Consumer<ChatRunEntity> createdLauncher;
-    private final Consumer<ChatRunEntity> takeoverLauncher;
-    private final java.util.function.Supplier<java.time.LocalDateTime> expiredBeforeSupplier;
+    private final Consumer<ChatRunEntity> instanceLostConverger;
+    private final java.util.function.Supplier<java.time.LocalDateTime> heartbeatTimedOutBeforeSupplier;
 
     /**
      * 创建维护调度器。
@@ -41,31 +41,28 @@ public final class ChatRunMaintenanceScheduler {
      * @param eventStore 运行事件存储
      * @param registry 活动实例注册表
      * @param runService 运行状态服务
-     * @param runOwner 本节点执行标识（提供 owner 与排空标记）
      * @param properties AI 模块配置
      * @param createdLauncher 待执行 CREATED Run 的拉起动作（协调器入口）
-     * @param takeoverLauncher 过期中断态 Run 的接管动作（协调器入口）
-     * @param expiredBeforeSupplier 租约过期阈值提供者
+     * @param instanceLostConverger 心跳超时 Run 的失效收敛动作（协调器入口）
+     * @param heartbeatTimedOutBeforeSupplier 心跳超时阈值提供者
      */
     public ChatRunMaintenanceScheduler(
             ScheduledExecutorService scheduler,
             ChatRunEventStore eventStore,
             ChatRunInstanceRegistry registry,
             ChatRunStateService runService,
-            ChatRunOwner runOwner,
             AiProperties properties,
             Consumer<ChatRunEntity> createdLauncher,
-            Consumer<ChatRunEntity> takeoverLauncher,
-            java.util.function.Supplier<java.time.LocalDateTime> expiredBeforeSupplier) {
+            Consumer<ChatRunEntity> instanceLostConverger,
+            java.util.function.Supplier<java.time.LocalDateTime> heartbeatTimedOutBeforeSupplier) {
         this.scheduler = scheduler;
         this.eventStore = eventStore;
         this.registry = registry;
         this.runService = runService;
-        this.runOwner = runOwner;
         this.properties = properties;
         this.createdLauncher = createdLauncher;
-        this.takeoverLauncher = takeoverLauncher;
-        this.expiredBeforeSupplier = expiredBeforeSupplier;
+        this.instanceLostConverger = instanceLostConverger;
+        this.heartbeatTimedOutBeforeSupplier = heartbeatTimedOutBeforeSupplier;
     }
 
     /** 启动周期维护任务：首轮延迟 5 秒，之后每 30 秒执行一次。 */
@@ -79,17 +76,13 @@ public final class ChatRunMaintenanceScheduler {
             long now = System.nanoTime();
             registry.forEachActive(execution -> safelyMaintain(
                     execution.run().getId(), () -> execution.runInTenant(() -> execution.checkpointIfDue(now))));
-            boolean draining = runOwner.draining();
-            // 周期接管失效租约的 RUNNING/STOPPING（不含 AWAITING_CONFIRM，后者走确认超时路径）；排空中停止接管。
-            java.time.LocalDateTime expiredBefore = expiredBeforeSupplier.get();
-            if (!draining) {
-                runService.listInterruptedOnRestart(expiredBefore).stream()
-                        .filter(run -> !ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus()))
-                        .forEach(run -> safelyMaintain(run.getId(), () -> takeoverLauncher.accept(run)));
-                runService.listCreated().forEach(run -> safelyMaintain(run.getId(), () -> createdLauncher.accept(run)));
-            }
-            // 全节点长期满载时，滞留 CREATED 超过调度超时的运行收敛为失败（CREATED 不受容量上限约束，
-            // 任意节点均可终结，DB 终态 CAS 幂等；与并发认领竞争时落败方 finalizeExecution 自然幂等返回）。
+            // 心跳超时扫描：收敛执行节点可能已失效的 RUNNING/STOPPING（不含 AWAITING_CONFIRM，后者走确认超时路径）。
+            java.time.LocalDateTime timedOutBefore = heartbeatTimedOutBeforeSupplier.get();
+            runService
+                    .listExpiredHeartbeatRuns(timedOutBefore)
+                    .forEach(run -> safelyMaintain(run.getId(), () -> instanceLostConverger.accept(run)));
+            runService.listCreated().forEach(run -> safelyMaintain(run.getId(), () -> createdLauncher.accept(run)));
+            // 滞留 CREATED 超过调度超时的运行收敛为失败（任意节点均可终结，DB 终态 CAS 幂等）。
             LocalDateTime staleBefore = LocalDateTime.now()
                     .minusSeconds(properties.getChat().getRun().getScheduleTimeoutSeconds());
             runService
@@ -108,7 +101,7 @@ public final class ChatRunMaintenanceScheduler {
         TenantUtils.withTenant(session.getTenantId(), () -> {
             // 取规范实例（注册唯一实例），确认超时的数据库迁移与终态收敛一并移入实例锁。
             ChatRunInstance execution = registry.selectOrRestoreForFinalize(run, session, scheduler);
-            execution.expireConfirmation(LocalDateTime.now(), runOwner.instanceId(), newLeaseUntil());
+            execution.expireConfirmation(LocalDateTime.now());
         });
     }
 
@@ -118,15 +111,9 @@ public final class ChatRunMaintenanceScheduler {
         TenantUtils.withTenant(session.getTenantId(), () -> {
             ChatRunInstance execution = registry.selectOrRestoreForFinalize(run, session, scheduler);
             execution.finalizeFailed(
-                    com.lambda.fusion.ai.AiConstants.ChatRunFailureCode.SCHEDULE_TIMEOUT,
+                    ChatRunFailureCode.SCHEDULE_TIMEOUT,
                     "对话Run等待调度超过 " + properties.getChat().getRun().getScheduleTimeoutSeconds() + " 秒未被认领");
         });
-    }
-
-    /** 计算新租约截止时间（以当前时间为基准加租约时长）。 */
-    private java.time.LocalDateTime newLeaseUntil() {
-        return java.time.LocalDateTime.now()
-                .plusSeconds(properties.getChat().getRun().getLeaseTtlSeconds());
     }
 
     private void safelyMaintain(String runId, Runnable task) {

@@ -889,4 +889,22 @@
         </createIndex>
     </changeSet>
 
+    <!-- ========== 对话 Run 降级：最小心跳替代租约/接管（lease 列暂留不读写，待后续清理） ========== -->
+    <changeSet id="lambda-ai-202608220001" author="Jin">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="ai_chat_run" columnName="heartbeat_at"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ai_chat_run">
+            <column name="heartbeat_at" type="datetime" remarks="执行节点最近心跳时间(数据库时间;超时判定节点失效)"/>
+        </addColumn>
+        <!-- 失效扫描改用 (status, heartbeat_at)；lease 索引已无读取方，移除避免误导 -->
+        <dropIndex tableName="ai_chat_run" indexName="idx_ai_chat_run_status_lease"/>
+        <createIndex tableName="ai_chat_run" indexName="idx_ai_chat_run_status_heartbeat">
+            <column name="status"/>
+            <column name="heartbeat_at"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

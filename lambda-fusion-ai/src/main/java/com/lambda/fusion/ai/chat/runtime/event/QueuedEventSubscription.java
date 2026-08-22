@@ -1,8 +1,5 @@
-package com.lambda.fusion.ai.chat.runtime.event.memory;
+package com.lambda.fusion.ai.chat.runtime.event;
 
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscriptionOwner;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -16,14 +13,14 @@ import lombok.extern.slf4j.Slf4j;
  * @author Jin
  */
 @Slf4j
-public final class QueuedEventSubscription implements ChatRunEventSubscription {
+final class QueuedEventSubscription implements ChatRunEventSubscription {
 
     private final String subscriptionId;
     private final String runId;
     private final int capacity;
     private final Consumer<ChatRunEvent> consumer;
     private final Consumer<Throwable> failureConsumer;
-    private final ChatRunEventSubscriptionOwner owner;
+    private final ChatRunEventBuffer owner;
     private final Executor senderExecutor;
     private final ArrayDeque<ChatRunEvent> replay;
     private final ArrayDeque<ChatRunEvent> queue = new ArrayDeque<>();
@@ -40,7 +37,7 @@ public final class QueuedEventSubscription implements ChatRunEventSubscription {
      * @param replay 待回放的历史事件
      * @param consumer 事件消费者
      * @param failureConsumer 发送失败消费者
-     * @param owner 所属缓冲的注销回调
+     * @param owner 所属运行缓冲区
      * @param senderExecutor 事件发送执行器
      */
     QueuedEventSubscription(
@@ -50,7 +47,7 @@ public final class QueuedEventSubscription implements ChatRunEventSubscription {
             List<ChatRunEvent> replay,
             Consumer<ChatRunEvent> consumer,
             Consumer<Throwable> failureConsumer,
-            ChatRunEventSubscriptionOwner owner,
+            ChatRunEventBuffer owner,
             Executor senderExecutor) {
         this.subscriptionId = subscriptionId;
         this.runId = runId;
@@ -99,7 +96,7 @@ public final class QueuedEventSubscription implements ChatRunEventSubscription {
         return OfferResult.ACCEPTED;
     }
 
-    /** 关闭订阅并从所属缓冲注销。 */
+    /** 关闭订阅并从运行缓冲区注销。 */
     @Override
     public void close() {
         owner.detach(subscriptionId, this);
@@ -128,8 +125,8 @@ public final class QueuedEventSubscription implements ChatRunEventSubscription {
         }
     }
 
-    /** 关闭订阅但不修改所属缓冲。 */
-    public synchronized void closeWithoutDetach() {
+    /** 关闭订阅但不修改所属运行缓冲区。 */
+    synchronized void closeWithoutDetach() {
         closed = true;
         queue.clear();
     }
@@ -181,7 +178,7 @@ public final class QueuedEventSubscription implements ChatRunEventSubscription {
     }
 
     /** 实时事件投递结果。 */
-    public enum OfferResult {
+    enum OfferResult {
         ACCEPTED,
         CLOSED,
         FULL

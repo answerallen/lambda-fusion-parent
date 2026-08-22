@@ -336,8 +336,7 @@ class ChatRunEventStoreTest {
         properties.getChat().getRun().setMaxEvents(maxEvents);
         properties.getChat().getRun().setMaxBytes(65_536);
         properties.getChat().getRun().setSubscriberQueueSize(queueSize);
-        return new ChatRunEventStore(
-                new com.lambda.fusion.ai.chat.runtime.event.memory.MemoryChatRunEventBackend(properties));
+        return new ChatRunEventStore(properties);
     }
 
     private static void awaitSize(List<?> values, int expected) throws InterruptedException {
