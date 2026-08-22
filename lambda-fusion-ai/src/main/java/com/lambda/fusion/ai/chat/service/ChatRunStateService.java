@@ -19,7 +19,7 @@ import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
  */
 public interface ChatRunStateService {
 
-    boolean checkpoint(ChatRunEntity run, ChatRunSnapshot snapshot, long seq);
+    boolean checkpoint(ChatRunEntity run, ChatRunSnapshot snapshot);
 
     /**
      * 在独立事务内推进确认：复核会话归属、做阶段幂等守卫与状态校验，以 {@code (status=RUNNING, phaseNo)}
@@ -35,8 +35,6 @@ public interface ChatRunStateService {
             ChatRunEntity identity, ChatSessionEntity expectedSession, int sourcePhaseNo, ChatRunSnapshot snapshot);
 
     ChatRunFinalizationResult finalizeExecution(ChatRunEntity run, ChatRunFinalizationCommand command);
-
-    void recordTerminalSeq(ChatRunEntity run, ChatRunSnapshot snapshot, long seq);
 
     ChatRunEntity loadCurrent(String runId);
 }

@@ -35,8 +35,8 @@ public final class ChatRunInstanceRegistry {
     /** 启动选择结果：{@code registered=true} 表示本次新建并注册，调用方应启动该实例。 */
     public record StartRegistration(ChatRunInstance execution, boolean registered) {}
 
-    /** 为新 Run 原子检查容量、恢复并注册；容量不足返回空，已有实例返回 {@code registered=false}。 */
-    public synchronized Optional<StartRegistration> restoreForStartIfCapacity(
+    /** 为新 Run 原子检查容量、构造并注册；容量不足返回空，已有实例返回 {@code registered=false}。 */
+    public synchronized Optional<StartRegistration> registerForStartIfCapacity(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         ChatRunInstance existing = executions.get(run.getId());
         if (existing != null) {
@@ -45,20 +45,23 @@ public final class ChatRunInstanceRegistry {
         if (!hasCapacityForLocked(run, session)) {
             return Optional.empty();
         }
-        ChatRunInstance candidate = instanceFactory.restoreExecution(run, session, scheduler);
+        ChatRunInstance candidate = instanceFactory.createExecution(run, session, scheduler);
         registerNew(run.getId(), candidate);
         return Optional.of(new StartRegistration(candidate, true));
     }
 
-    /** 查询本地实例；不存在时在同一临界区内检查容量、恢复并注册。 */
-    public synchronized ChatRunInstance selectOrRestore(
+    /**
+     * 查询当前节点实例；进程重启后可为已暂停的 HITL 阶段重建并注册一个实例。
+     * 调用方必须先确认持久化快照确有待确认工具。
+     */
+    public synchronized ChatRunInstance registerPausedConfirmation(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
-        ChatRunInstance selected = executions.get(run.getId());
-        if (selected != null) {
-            return selected;
+        ChatRunInstance existing = executions.get(run.getId());
+        if (existing != null) {
+            return existing;
         }
         enforceCapacityLocked(run, session);
-        ChatRunInstance candidate = instanceFactory.restoreExecution(run, session, scheduler);
+        ChatRunInstance candidate = instanceFactory.createPausedConfirmation(run, session, scheduler);
         registerNew(run.getId(), candidate);
         return candidate;
     }

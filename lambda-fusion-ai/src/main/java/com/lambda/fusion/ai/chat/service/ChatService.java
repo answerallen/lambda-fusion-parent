@@ -15,7 +15,7 @@ public interface ChatService {
 
     ChatRun getRun(String sessionId, String runId);
 
-    SseEmitter resume(String sessionId, String runId, boolean bootstrap);
+    SseEmitter resume(String sessionId, String runId);
 
     SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command);
 

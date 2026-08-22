@@ -7,12 +7,9 @@ import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.ChatRunFinalizationCommand;
 import com.lambda.fusion.ai.chat.model.ChatRunFinalizationResult;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
-import com.lambda.fusion.ai.chat.runtime.agui.AgentEventInterpreter;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.util.JsonUtils;
@@ -22,7 +19,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * 运行终态落库器：把目标终态、最终快照与终态事件提交到数据库与事件存储。
+ * 运行终态落库器：从最终 UI 投影生成业务消息，提交目标终态，并在当前 JVM 发布终态事件。
  * 由执行实例在实例锁内调用；抛出 {@code RuntimeException} 表示提交失败，
  * 由实例按退避策略重试。未提交成功（并发落败）时按持久化事实回读并同步运行实体内存字段。
  *
@@ -48,12 +45,11 @@ public final class ChatRunFinalizer {
     }
 
     /**
-     * 提交业务终态：数据库终态迁移、终态事件编码追加、终态序号记录与事件缓冲收缩，
+     * 提交业务终态：数据库事务保存业务消息并清空运行中快照，随后发布本地终态事件，
      * 并同步运行实体的内存字段。
      *
      * @param run 运行实体
      * @param snapshot 已闭合的最终执行快照
-     * @param interpreter 当前阶段事件解释器（终态事件编码出口）
      * @param status 目标终态
      * @param reason 结束原因
      * @param errorCode 错误码
@@ -62,12 +58,10 @@ public final class ChatRunFinalizer {
     public void commitTerminal(
             ChatRunEntity run,
             ChatRunSnapshot snapshot,
-            AgentEventInterpreter interpreter,
             ChatRunStatus status,
             ChatRunFinishReason reason,
             ChatRunFailureCode errorCode,
             String errorMessage) {
-        long beforeTerminal = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         String toolJson = snapshot.tools().isEmpty()
                 ? null
                 : JsonUtils.getJsonCodec()
@@ -75,9 +69,7 @@ public final class ChatRunFinalizer {
                                 .map(ChatRunFinalizer::toPersistedToolCall)
                                 .toList());
         ChatRunFinalizationResult result = runService.finalizeExecution(
-                run,
-                new ChatRunFinalizationCommand(
-                        status, reason, snapshot, toolJson, beforeTerminal, errorCode, errorMessage));
+                run, new ChatRunFinalizationCommand(status, reason, snapshot, toolJson, errorCode, errorMessage));
         run.setStatus(result.status());
         run.setFinishReason(result.finishReason());
         run.setErrorCode(result.errorCode());
@@ -85,7 +77,6 @@ public final class ChatRunFinalizer {
         if (!result.committed()) {
             ChatRunEntity persisted = loadCurrent(run);
             run.setAguiRunId(persisted.getAguiRunId());
-            snapshot = ChatRunSnapshotCodec.decode(persisted.getSnapshotJson());
         }
         ChatRunStatus actualStatus = ChatRunStatus.valueOf(run.getStatus());
         AguiEvent terminalEvent = actualStatus == ChatRunStatus.FAILED
@@ -97,11 +88,10 @@ public final class ChatRunFinalizer {
                 : new AguiEvent.RunFinished(
                         run.getSessionId(), run.getAguiRunId(), null, new AguiEvent.RunFinishedSuccessOutcome());
         String json = AguiEventJsonCodec.withTerminalMetadata(
-                interpreter.encodeToJson(terminalEvent), actualStatus.name(), run.getFinishReason());
-        ChatRunEvent appended = eventStore.appendTerminalIfAbsent(run.getId(), run.getAguiRunId(), json);
-        runService.recordTerminalSeq(run, snapshot, appended.seq());
-        run.setSnapshotSeq(appended.seq());
-        eventStore.compact(run.getId(), appended.seq());
+                AguiEventJsonCodec.encodeRunEvent(terminalEvent, run.getId(), run.getAguiRunId()),
+                actualStatus.name(),
+                run.getFinishReason());
+        eventStore.appendTerminalIfAbsent(run.getId(), run.getAguiRunId(), json);
         eventStore.markTerminal(
                 run.getId(), Duration.ofSeconds(properties.getChat().getRun().getTerminalTtlSeconds()));
     }

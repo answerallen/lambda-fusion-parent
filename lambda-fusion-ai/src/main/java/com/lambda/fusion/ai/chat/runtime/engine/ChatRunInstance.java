@@ -10,8 +10,7 @@ import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.ChatRunDataSanitizer;
 import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
-import com.lambda.fusion.ai.chat.runtime.agui.AgentEventInterpretation;
-import com.lambda.fusion.ai.chat.runtime.agui.AgentEventInterpreter;
+import com.lambda.fusion.ai.chat.runtime.agui.AgentEventAguiMapper;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapEncoder;
 import com.lambda.fusion.ai.chat.runtime.engine.hitl.ConfirmationValidator;
 import com.lambda.fusion.ai.chat.runtime.engine.stream.AgentStreamLifecycle;
@@ -73,8 +72,8 @@ public final class ChatRunInstance {
     private volatile long phaseStartedAtMillis = System.currentTimeMillis();
     private boolean checkpointDirty;
     private ScheduledFuture<?> checkpointTask;
-    private AgentEventInterpreter agentEventInterpreter;
-    private AgentEventInterpretation pendingConfirmInterpretation;
+    private AgentEventAguiMapper eventMapper;
+    private List<AguiEvent> pendingConfirmEvents;
 
     /**
      * 创建执行实例。
@@ -110,7 +109,7 @@ public final class ChatRunInstance {
         this.accumulator = accumulator;
         this.chatRunFinalizer = new ChatRunFinalizer(runService, eventStore, properties);
         this.agentStreamLifecycle = new AgentStreamLifecycle(run.getId(), scheduler, properties);
-        this.agentEventInterpreter = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
+        this.eventMapper = new AgentEventAguiMapper(run.getSessionId(), run.getAguiRunId(), true);
     }
 
     /** 运行实体。 */
@@ -208,7 +207,7 @@ public final class ChatRunInstance {
         cancelCheckpointTask();
         accumulator.beginPhase(run.getAguiRunId(), run.getPhaseNo());
         checkpointDirty = false;
-        agentEventInterpreter = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
+        eventMapper = new AgentEventAguiMapper(run.getSessionId(), run.getAguiRunId(), true);
     }
 
     /**
@@ -286,26 +285,26 @@ public final class ChatRunInstance {
             // 根 AGENT_END 是业务回答边界；普通阶段允许记忆尾部继续，HITL 阶段由适配器在此结束源流。
             rootAgentEnded = true;
             agentStreamLifecycle.cancelInteractionTimeout();
-            if (pendingConfirmInterpretation != null || hasPendingConfirmation()) {
+            if (pendingConfirmEvents != null || hasPendingConfirmation()) {
                 return;
             }
             finalizeCompleted();
             return;
         }
-        AgentEventInterpretation interpretation = agentEventInterpreter.interpret(event);
+        List<AguiEvent> events = eventMapper.map(event);
         if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM) {
-            if (pendingConfirmInterpretation != null) {
+            if (pendingConfirmEvents != null) {
                 return;
             }
-            pendingConfirmInterpretation = interpretation;
-            accumulator.apply(interpretation.snapshotDelta());
-            checkpointDirty = true;
+            pendingConfirmEvents = events;
+            accumulator.apply(events);
+            checkpointDirty = !events.isEmpty();
             // AgentScope 在事件流结束时持久化 ASKING 状态。
             return;
         }
-        accumulator.apply(interpretation.snapshotDelta());
-        checkpointDirty = true;
-        appendAll(interpretation.events());
+        accumulator.apply(events);
+        checkpointDirty = checkpointDirty || !events.isEmpty();
+        appendAll(events);
         maybeCheckpoint();
     }
 
@@ -323,7 +322,7 @@ public final class ChatRunInstance {
         if (terminal) {
             return;
         }
-        if (pendingConfirmInterpretation != null) {
+        if (pendingConfirmEvents != null) {
             // 待确认状态必须等 doFinally 确认适配后的当前阶段源流已经结束后再提交。
             return;
         }
@@ -339,7 +338,7 @@ public final class ChatRunInstance {
         sourceActive = false;
         agentStreamLifecycle.cancelInteractionTimeout();
         runWorkspaceAudit();
-        if (!terminal && pendingConfirmInterpretation != null) {
+        if (!terminal && pendingConfirmEvents != null) {
             try {
                 completeAwaitConfirm();
             } catch (RuntimeException awaitConfirmFailure) {
@@ -371,26 +370,20 @@ public final class ChatRunInstance {
 
     private void completeAwaitConfirm() {
         ChatRunSnapshot snapshot = accumulator.buildSnapshot();
-        // 待确认中断事件先暂存（不占可见窗口、不推送订阅者），数据库事实落库成功后才发布：
-        // 序号在暂存时分配使快照覆盖中断事件，且事实先于信号外发；落库失败则丢弃，零副作用可重试。
-        List<AguiEvent> events = pendingConfirmInterpretation.events();
+        // 先提交待确认快照，再向本地订阅者发布 interrupt，保证事实先于信号。
+        List<AguiEvent> events = pendingConfirmEvents;
         boolean awaiting;
         try {
-            awaiting = eventStore.runExclusive(
-                    run.getId(),
-                    run.getAguiRunId(),
-                    events,
-                    () -> runService.checkpoint(
-                            run, snapshot, eventStore.latestSeq(run.getId(), run.getSnapshotSeq())));
+            awaiting = runService.checkpoint(run, snapshot);
         } catch (RuntimeException awaitFailure) {
-            // 独立事务回滚时暂存事件尚未发布，运行保持 RUNNING，可由调用方重试。
-            pendingConfirmInterpretation = null;
+            // 独立事务回滚时 interrupt 尚未发布，运行保持 RUNNING，可由调用方重试。
+            pendingConfirmEvents = null;
             log.error("Run进入待确认失败，保持运行态可重试: runId={}", run.getId(), awaitFailure);
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_AWAIT_CONFIRM_FAILED, run.getId());
         }
         if (!awaiting) {
             // 终态会拒绝迟到的确认快照；不存在第二套待确认状态迁移。
-            pendingConfirmInterpretation = null;
+            pendingConfirmEvents = null;
             ChatRunEntity current = loadCurrent(run);
             run.setStatus(current.getStatus());
             if (ChatRunStatus.isTerminal(current.getStatus())) {
@@ -401,32 +394,27 @@ public final class ChatRunInstance {
             }
             return;
         }
-        long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
-        run.setSnapshotSeq(seq);
-        eventStore.compact(run.getId(), seq);
+        try {
+            eventStore.appendAll(run.getId(), run.getAguiRunId(), events);
+        } catch (RuntimeException publishFailure) {
+            // 待确认快照已经是事实；本地信号失败不能反向把 Run 终结为 FAILED。
+            // 浏览器重新连接后仍可从持久化快照恢复确认卡片。
+            log.warn("Run待确认快照已写入，但本地 interrupt 发布失败: runId={}", run.getId(), publishFailure);
+        }
         cancelCheckpointTask();
         checkpointDirty = false;
-        pendingConfirmInterpretation = null;
+        pendingConfirmEvents = null;
     }
 
     private void appendAll(List<AguiEvent> events) {
         if (events == null || events.isEmpty()) {
             return;
         }
-        boolean checkpointRequired = eventStore.appendAll(run.getId(), run.getAguiRunId(), events);
-        if (checkpointRequired) {
-            checkpointNow();
-        }
+        eventStore.appendAll(run.getId(), run.getAguiRunId(), events);
     }
 
     private void maybeCheckpoint() {
         if (!checkpointDirty || terminal || hasPendingConfirmation()) {
-            return;
-        }
-        long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
-        int every = properties.getChat().getRun().getSnapshotEveryEvents();
-        if (every > 0 && seq - snapshotSeqOrZero(run) >= every) {
-            checkpointNow();
             return;
         }
         scheduleCheckpoint();
@@ -460,11 +448,6 @@ public final class ChatRunInstance {
         return !accumulator.buildSnapshot().pendingTools().isEmpty();
     }
 
-    /** 快照事件序号兜底：未设置时按 0 计。 */
-    private static long snapshotSeqOrZero(ChatRunEntity run) {
-        return run.getSnapshotSeq() == null ? 0L : run.getSnapshotSeq();
-    }
-
     /** 查询最新持久化运行；不存在时返回传入实体。 */
     private ChatRunEntity loadCurrent(ChatRunEntity identity) {
         ChatRunEntity current = runService.loadCurrent(identity.getId());
@@ -493,22 +476,22 @@ public final class ChatRunInstance {
         }
         terminal = true;
         cancelCheckpointTask();
-        pendingConfirmInterpretation = null;
+        pendingConfirmEvents = null;
         if (status != ChatRunStatus.COMPLETED) {
             closePendingToolCalls();
         }
         try {
-            AgentEventInterpretation closeInterpretation = agentEventInterpreter.closeOpenMessages();
+            List<AguiEvent> closeEvents = eventMapper.closeOpenMessages();
             // 先应用快照增量、后写关闭事件：appendAll 可能触发 checkpointNow，
             // 必须保证检查点读到的是已关闭快照，而非「事件已关闭、快照仍打开」。
-            accumulator.apply(closeInterpretation.snapshotDelta());
+            accumulator.apply(closeEvents);
+            accumulator.closeOpenMessages();
             try {
-                appendAll(closeInterpretation.events());
+                appendAll(closeEvents);
             } catch (RuntimeException closeEventFailure) {
                 log.warn("Run终结前内容关闭事件写入失败，仍继续提交业务终态: runId={}", run.getId(), closeEventFailure);
             }
-            chatRunFinalizer.commitTerminal(
-                    run, accumulator.buildSnapshot(), agentEventInterpreter, status, reason, errorCode, errorMessage);
+            chatRunFinalizer.commitTerminal(run, accumulator.buildSnapshot(), status, reason, errorCode, errorMessage);
             // 业务终态后若无活动源流（如纯终结恢复、源流已先终止、启动同步失败），立即完成排空信号；
             // 否则等待 onSourceTerminated 在源流排空后完成它。
             if (!isDraining()) {
@@ -560,18 +543,17 @@ public final class ChatRunInstance {
 
     /** 生成当前运行的 AG-UI 引导事件。 */
     public synchronized AguiBootstrap bootstrap() {
-        long highWatermark = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
+        long cursor = eventStore.latestCursor(run.getId());
         return new AguiBootstrap(
-                highWatermark,
-                AguiBootstrapEncoder.encode(run, accumulator.buildSnapshot(), highWatermark),
+                cursor,
+                AguiBootstrapEncoder.encode(run, accumulator.buildSnapshot()),
                 ChatRunStatus.isTerminal(run.getStatus()) || hasPendingConfirmation());
     }
 
     /** 立即写入执行检查点并收缩事件缓冲区。抛 {@link IllegalStateException} 表示非终态运行的检查点失败。 */
     synchronized void checkpointNow() {
         cancelCheckpointTask();
-        long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
-        if (!runService.checkpoint(run, accumulator.buildSnapshot(), seq)) {
+        if (!runService.checkpoint(run, accumulator.buildSnapshot())) {
             ChatRunEntity current = loadCurrent(run);
             run.setStatus(current.getStatus());
             if (ChatRunStatus.isTerminal(current.getStatus())) {
@@ -584,8 +566,6 @@ public final class ChatRunInstance {
             }
             throw new IllegalStateException("Run快照检查点未写入: " + run.getId());
         } else {
-            run.setSnapshotSeq(seq);
-            eventStore.compact(run.getId(), seq);
             checkpointDirty = false;
         }
     }

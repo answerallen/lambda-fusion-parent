@@ -15,8 +15,6 @@ import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
 import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
 import com.lambda.fusion.ai.chat.service.ChatService;
-import com.lambda.fusion.ai.exception.AiBusinessException;
-import com.lambda.fusion.ai.exception.AiErrorCode;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,7 +39,7 @@ public class ChatServiceImpl implements ChatService {
         if (context.created()) {
             chatRunCoordinator.start(context.run(), context.session());
         }
-        return openRunEventStream(context.run(), true);
+        return openRunEventStream(context.run());
     }
 
     @Override
@@ -55,15 +53,15 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public SseEmitter resume(String sessionId, String runId, boolean bootstrap) {
-        return openRunEventStream(chatRunService.loadOwned(sessionId, runId).run(), bootstrap);
+    public SseEmitter resume(String sessionId, String runId) {
+        return openRunEventStream(chatRunService.loadOwned(sessionId, runId).run());
     }
 
     @Override
     public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command) {
         RunContext context = chatRunService.loadOwned(sessionId, runId);
         ConfirmTransition transition = chatRunCoordinator.confirm(context.run(), context.session(), command);
-        return openRunEventStream(transition.run(), true);
+        return openRunEventStream(transition.run());
     }
 
     @Override
@@ -72,7 +70,7 @@ public class ChatServiceImpl implements ChatService {
         chatRunCoordinator.stop(context.run(), context.session());
     }
 
-    private SseEmitter openRunEventStream(ChatRunEntity chatRunEntity, boolean bootstrap) {
+    private SseEmitter openRunEventStream(ChatRunEntity chatRunEntity) {
         long timeout = properties.getChat().getRun().getConnectionTimeoutSeconds() * 1000;
         SseEmitter emitter = new SseEmitter(timeout);
         AtomicBoolean detached = new AtomicBoolean();
@@ -91,55 +89,23 @@ public class ChatServiceImpl implements ChatService {
         emitter.onError(error -> runnable.run());
 
         try {
-            long cursor = 0;
-            boolean phaseClosed = false;
-            if (bootstrap) {
-                AguiBootstrap aguiBootstrap = chatRunCoordinator.bootstrap(chatRunEntity);
-                for (String event : aguiBootstrap.events()) {
-                    emitter.send(SseEmitter.event().data(event));
-                }
-                cursor = aguiBootstrap.highWatermark();
-                phaseClosed = aguiBootstrap.phaseClosed();
+            AguiBootstrap aguiBootstrap = chatRunCoordinator.bootstrap(chatRunEntity);
+            for (String event : aguiBootstrap.events()) {
+                emitter.send(SseEmitter.event().data(event));
             }
-            if (phaseClosed || ChatRunStatus.isTerminal(chatRunEntity.getStatus())) {
-                if (!bootstrap) {
-                    ChatRunEventSubscription replay = chatRunCoordinator.subscribe(
-                            chatRunEntity.getId(), cursor, event -> send(emitter, event), emitter::completeWithError);
-                    subscription.set(replay);
-                    if (detached.get()) {
-                        replay.close();
-                    } else {
-                        replay.whenDrained(emitter::complete);
-                    }
-                    return emitter;
-                }
+            if (aguiBootstrap.phaseClosed() || ChatRunStatus.isTerminal(chatRunEntity.getStatus())) {
                 emitter.complete();
                 return emitter;
             }
             ChatRunEventSubscription attached = chatRunCoordinator.subscribe(
-                    chatRunEntity.getId(), cursor, event -> send(emitter, event), emitter::completeWithError);
+                    chatRunEntity.getId(),
+                    aguiBootstrap.cursor(),
+                    event -> send(emitter, event),
+                    emitter::completeWithError);
             subscription.set(attached);
             if (detached.get()) {
                 attached.close();
             }
-        } catch (AiBusinessException businessError) {
-            runnable.run();
-            if (businessError.getCode() == AiErrorCode.CHAT_RUN_EVENTS_EXPIRED.getCode()) {
-                try {
-                    if (!bootstrap) {
-                        AguiBootstrap persisted = chatRunCoordinator.bootstrap(chatRunEntity);
-                        for (String event : persisted.events()) {
-                            emitter.send(SseEmitter.event().data(event));
-                        }
-                    }
-                    emitter.complete();
-                    return emitter;
-                } catch (IOException sendFailure) {
-                    emitter.completeWithError(sendFailure);
-                    return emitter;
-                }
-            }
-            throw businessError;
         } catch (RuntimeException | IOException error) {
             runnable.run();
             emitter.completeWithError(error);
@@ -149,7 +115,7 @@ public class ChatServiceImpl implements ChatService {
 
     private static void send(SseEmitter emitter, ChatRunEvent event) {
         try {
-            emitter.send(SseEmitter.event().id(event.id()).data(event.data()));
+            emitter.send(SseEmitter.event().data(event.data()));
             if ("RUN_FINISHED".equals(event.type()) || "RUN_ERROR".equals(event.type())) {
                 emitter.complete();
             }

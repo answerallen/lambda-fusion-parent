@@ -1,7 +1,7 @@
 # AgentScope Workspace 存储设计
 
 > 本文只定义 Workspace 的存储、隔离和写入并发边界。ChatRun 调用 AgentScope 的会话身份、完成语义与执行锁边界，
-> 以 [ChatRun 与 AgentScope 执行边界设计](chat-run-agentscope-execution.md) 为准。
+> 对话执行边界以 [对话运行时设计](chat-runtime.md) 为准。
 
 ## 1. 设计目标
 

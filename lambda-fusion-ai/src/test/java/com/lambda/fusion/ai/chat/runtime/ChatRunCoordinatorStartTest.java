@@ -117,7 +117,7 @@ class ChatRunCoordinatorStartTest {
                             null);
                 });
         when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
-                .thenReturn(new ChatRunEvent(1L, "terminal-1", "RUN_FINISHED", "{}"));
+                .thenReturn(new ChatRunEvent(1L, "RUN_FINISHED", "{}"));
 
         coordinator.start(first, session);
         verify(agent, timeout(1000)).streamEvents(any(Msg.class), any(RuntimeContext.class));
@@ -148,7 +148,6 @@ class ChatRunCoordinatorStartTest {
         run.setStatus(ChatRunStatus.RUNNING.name());
         run.setPhaseNo(1);
         run.setAguiRunId("agui-" + id);
-        run.setSnapshotSeq(0L);
         run.setSnapshotJson(ChatRunSnapshotCodec.encode(ChatRunSnapshot.empty(id, run.getAguiRunId(), 1)));
         return run;
     }

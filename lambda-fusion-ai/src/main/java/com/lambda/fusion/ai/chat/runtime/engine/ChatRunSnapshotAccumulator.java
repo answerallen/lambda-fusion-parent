@@ -1,13 +1,14 @@
 package com.lambda.fusion.ai.chat.runtime.engine;
 
+import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotDelta;
+import io.agentscope.core.agui.event.AguiEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * 执行快照累加器：根据单个运行的 Agent 事件更新文本、推理和工具调用状态，并生成可持久化快照。
+ * 运行中快照投影器：消费已经标准化的 AG-UI 事件，生成浏览器恢复所需的最小投影。
  *
  * @author Jin
  */
@@ -54,7 +55,7 @@ final class ChatRunSnapshotAccumulator {
         aguiRunId = nextAguiRunId;
         phaseNo = nextPhaseNo;
         pendingTools = List.of();
-        closeActiveMessages();
+        closeOpenMessages();
     }
 
     /**
@@ -64,10 +65,9 @@ final class ChatRunSnapshotAccumulator {
      * @param delta 增量文本
      */
     private void appendText(String messageId, String delta) {
-        closeReasoning();
         textMessageId = messageId;
         textOpen = true;
-        text.append(delta);
+        text.append(safe(delta));
     }
 
     /**
@@ -77,14 +77,13 @@ final class ChatRunSnapshotAccumulator {
      * @param delta 增量文本
      */
     private void appendReasoning(String messageId, String delta) {
-        closeText();
         reasoningMessageId = messageId;
         reasoningOpen = true;
-        reasoning.append(delta);
+        reasoning.append(safe(delta));
     }
 
     /** 关闭当前文本和推理消息；仅经 {@code beginPhase} 与 {@code apply} 的增量驱动。 */
-    private void closeActiveMessages() {
+    void closeOpenMessages() {
         closeText();
         closeReasoning();
     }
@@ -99,58 +98,82 @@ final class ChatRunSnapshotAccumulator {
         reasoningOpen = false;
     }
 
-    /**
-     * 应用执行快照增量。
-     *
-     * @param delta 快照增量
-     */
-    void apply(ChatRunSnapshotDelta delta) {
-        if (delta == null || delta.isEmpty()) {
-            return;
-        }
-        if (delta.closeActiveMessages()) {
-            closeActiveMessages();
-        } else {
-            if (delta.closeText()) {
-                closeText();
-            }
-            if (delta.closeReasoning()) {
-                closeReasoning();
-            }
-        }
-        if (delta.reasoningDelta() != null) {
-            appendReasoning(delta.reasoningMessageId(), delta.reasoningDelta());
-        }
-        if (delta.textDelta() != null) {
-            appendText(delta.textMessageId(), delta.textDelta());
-        }
-        for (ChatRunSnapshotDelta.ToolDelta tool : delta.tools()) {
-            applyTool(tool);
-        }
-        if (delta.awaitingTools() != null && !delta.awaitingTools().isEmpty()) {
-            awaiting(delta.awaitingTools());
+    /** 应用一批已标准化的 AG-UI 事件。 */
+    void apply(List<AguiEvent> events) {
+        if (events != null) {
+            events.forEach(this::apply);
         }
     }
 
-    private void applyTool(ChatRunSnapshotDelta.ToolDelta delta) {
-        ChatRunSnapshot.ToolCall current = findTool(delta.toolCallId());
-        String args = current == null ? "" : current.args();
-        String result = current == null ? "" : current.result();
-        String status = current == null ? null : current.status();
-        if (delta.replaceArgs()) {
-            args = safe(delta.argsDelta());
-        } else if (delta.argsDelta() != null) {
-            args += safe(delta.argsDelta());
+    private void apply(AguiEvent event) {
+        switch (event) {
+            case AguiEvent.TextMessageStart start -> {
+                closeReasoning();
+                textMessageId = start.messageId();
+                textOpen = true;
+            }
+            case AguiEvent.TextMessageContent content -> appendText(content.messageId(), content.delta());
+            case AguiEvent.TextMessageEnd ignored -> closeText();
+            case AguiEvent.ReasoningMessageStart start -> {
+                closeText();
+                reasoningMessageId = start.messageId();
+                reasoningOpen = true;
+            }
+            case AguiEvent.ReasoningMessageContent content -> appendReasoning(content.messageId(), content.delta());
+            case AguiEvent.ReasoningMessageEnd ignored -> closeReasoning();
+            case AguiEvent.ReasoningEnd ignored -> closeReasoning();
+            case AguiEvent.ToolCallStart start ->
+                upsertTool(start.toolCallId(), start.toolCallName(), null, null, ChatRunToolStatus.RUNNING.getCode());
+            case AguiEvent.ToolCallArgs args -> appendToolArgs(args.toolCallId(), args.delta());
+            case AguiEvent.ToolCallEnd end -> setToolStatus(end.toolCallId(), ChatRunToolStatus.COMPLETE.getCode());
+            case AguiEvent.ToolCallResult result -> setToolResult(result.toolCallId(), result.content());
+            case AguiEvent.RunFinished finished -> applyInterrupts(finished.outcome());
+            default -> {
+                // 生命周期、状态和自定义事件不属于浏览器恢复快照。
+            }
         }
-        if (delta.replaceResult()) {
-            result = safe(delta.resultDelta());
-        } else if (delta.resultDelta() != null) {
-            result += safe(delta.resultDelta());
+    }
+
+    private void appendToolArgs(String toolCallId, String delta) {
+        ChatRunSnapshot.ToolCall current = findTool(toolCallId);
+        upsertTool(
+                toolCallId,
+                null,
+                (current == null ? "" : current.args()) + safe(delta),
+                null,
+                ChatRunToolStatus.RUNNING.getCode());
+    }
+
+    private void setToolResult(String toolCallId, String result) {
+        upsertTool(toolCallId, null, null, result, ChatRunToolStatus.COMPLETE.getCode());
+    }
+
+    private void setToolStatus(String toolCallId, String status) {
+        upsertTool(toolCallId, null, null, null, status);
+    }
+
+    private void applyInterrupts(AguiEvent.RunFinishedOutcome outcome) {
+        if (!(outcome instanceof AguiEvent.RunFinishedInterruptOutcome interruptOutcome)) {
+            return;
         }
-        if (delta.status() != null) {
-            status = delta.status();
-        }
-        upsertTool(delta.toolCallId(), delta.toolCallName(), args, result, status);
+        List<ChatRunSnapshot.ToolCall> awaitingTools =
+                interruptOutcome.interrupts().stream().map(this::toPendingTool).toList();
+        awaiting(awaitingTools);
+        closeOpenMessages();
+    }
+
+    private ChatRunSnapshot.ToolCall toPendingTool(AguiEvent.Interrupt interrupt) {
+        String toolCallId = interrupt.toolCallId() == null ? interrupt.id() : interrupt.toolCallId();
+        ChatRunSnapshot.ToolCall current = findTool(toolCallId);
+        Object metadataName =
+                interrupt.metadata() == null ? null : interrupt.metadata().get("toolName");
+        String toolName =
+                metadataName == null ? (current == null ? "" : current.toolCallName()) : String.valueOf(metadataName);
+        upsertTool(toolCallId, toolName, null, null, ChatRunToolStatus.ASKING.getCode());
+        ChatRunSnapshot.ToolCall updated = findTool(toolCallId);
+        return updated == null
+                ? new ChatRunSnapshot.ToolCall(toolCallId, toolName, "", "", ChatRunToolStatus.ASKING.getCode())
+                : updated;
     }
 
     /**

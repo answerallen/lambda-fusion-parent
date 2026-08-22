@@ -138,10 +138,6 @@ public class AiProperties {
             @Min(1)
             private int subscriberQueueSize = 256;
 
-            /** 触发快照写入的新增事件数。 */
-            @Min(1)
-            private int snapshotEveryEvents = 100;
-
             /** 定时写入快照的间隔，单位秒。 */
             @Min(1)
             private long snapshotIntervalSeconds = 15;

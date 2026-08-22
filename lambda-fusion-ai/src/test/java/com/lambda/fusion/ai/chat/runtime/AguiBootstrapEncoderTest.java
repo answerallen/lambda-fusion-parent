@@ -28,14 +28,12 @@ class AguiBootstrapEncoderTest {
                 List.of(new ChatRunSnapshot.ToolCall("tool-1", "search", "{q:1}", "result", "complete")),
                 List.of());
 
-        List<String> events = AguiBootstrapEncoder.encode(run, snapshot, 17);
+        List<String> events = AguiBootstrapEncoder.encode(run, snapshot);
 
         assertThat(events.getFirst())
                 .contains("\"type\":\"RUN_STARTED\"")
-                .contains("\"bootstrap\":true")
-                .contains("\"bootstrapSeq\":17")
                 .contains("\"phaseNo\":2")
-                .doesNotContain("\"seq\":");
+                .doesNotContain("\"bootstrap\":", "\"bootstrapSeq\":", "\"seq\":");
         assertThat(events)
                 .anyMatch(event -> event.contains("\"type\":\"TEXT_MESSAGE_CONTENT\"") && event.contains("answer"));
         assertThat(events)
@@ -82,7 +80,7 @@ class AguiBootstrapEncoderTest {
                 List.of(new ChatRunSnapshot.ToolCall("tool-1", "search", "{q:1}", "result", "complete")),
                 List.of());
 
-        List<String> events = AguiBootstrapEncoder.encode(run, snapshot, 18);
+        List<String> events = AguiBootstrapEncoder.encode(run, snapshot);
 
         assertThat(events.stream().map(AguiEventJsonCodec::readEventType))
                 .containsExactly(
@@ -119,7 +117,7 @@ class AguiBootstrapEncoderTest {
                 List.of(),
                 List.of(new ChatRunSnapshot.ToolCall("tool-1", "dangerous", "", "", "asking")));
 
-        assertThat(AguiBootstrapEncoder.encode(run, snapshot, 9))
+        assertThat(AguiBootstrapEncoder.encode(run, snapshot))
                 .anyMatch(event -> event.contains("\"type\":\"RUN_FINISHED\"")
                         && event.contains("\"type\":\"interrupt\"")
                         && event.contains("tool-1"));
@@ -141,7 +139,7 @@ class AguiBootstrapEncoderTest {
                 List.of(new ChatRunSnapshot.ToolCall("tool-1", "search", "{\"q\":", "", "running")),
                 List.of());
 
-        List<String> events = AguiBootstrapEncoder.encode(run, snapshot, 10);
+        List<String> events = AguiBootstrapEncoder.encode(run, snapshot);
 
         assertThat(events).anyMatch(event -> event.contains("\"type\":\"TOOL_CALL_ARGS\""));
         assertThat(events).noneMatch(event -> event.contains("\"type\":\"TOOL_CALL_END\""));
@@ -154,7 +152,7 @@ class AguiBootstrapEncoderTest {
         run.setErrorMessage("model unavailable");
 
         List<String> events =
-                AguiBootstrapEncoder.encode(run, ChatRunSnapshot.empty(run.getId(), run.getAguiRunId(), 2), 5);
+                AguiBootstrapEncoder.encode(run, ChatRunSnapshot.empty(run.getId(), run.getAguiRunId(), 2));
 
         assertThat(events).hasSize(2);
         assertThat(events.getLast())
@@ -169,7 +167,7 @@ class AguiBootstrapEncoderTest {
         run.setFinishReason("USER_STOP");
 
         List<String> events =
-                AguiBootstrapEncoder.encode(run, ChatRunSnapshot.empty(run.getId(), run.getAguiRunId(), 2), 6);
+                AguiBootstrapEncoder.encode(run, ChatRunSnapshot.empty(run.getId(), run.getAguiRunId(), 2));
 
         assertThat(events).hasSize(2);
         assertThat(events.getLast())

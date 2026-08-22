@@ -93,7 +93,6 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         run.setStatus(ChatRunStatus.RUNNING.name());
         run.setPhaseNo(1);
         run.setAguiRunId(newAguiRunId());
-        run.setSnapshotSeq(0L);
         run.setStartedAt(now);
         runMapper.insert(run);
 
@@ -215,10 +214,10 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         return new ConfirmTransition(run, session, true);
     }
 
-    /** CAS 写检查点：仅 RUNNING 可更新快照与序号，终态拒绝迟到写入。 */
+    /** CAS 写运行中 UI 快照；终态拒绝迟到写入。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public boolean checkpoint(ChatRunEntity run, ChatRunSnapshot snapshot, long seq) {
+    public boolean checkpoint(ChatRunEntity run, ChatRunSnapshot snapshot) {
         LocalDateTime now = LocalDateTime.now();
         return runMapper.update(
                         null,
@@ -226,12 +225,11 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                                 .eq(ChatRunEntity::getId, run.getId())
                                 .eq(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name())
                                 .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
-                                .set(ChatRunEntity::getSnapshotSeq, seq)
                                 .set(ChatRunEntity::getUpdatedAt, now))
                 == 1;
     }
 
-    /** 在独立事务中提交运行终态、助手消息和最终快照；已有终态时幂等返回既有结果。 */
+    /** 在独立事务中提交运行终态与助手消息并清空运行中快照；已有终态时幂等返回既有结果。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public ChatRunFinalizationResult finalizeExecution(ChatRunEntity identity, ChatRunFinalizationCommand command) {
@@ -255,7 +253,6 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         ChatRunStatus targetStatus = command.targetStatus();
         ChatRunSnapshot snapshot = command.snapshot();
         String toolCallJson = command.toolCallJson();
-        long lastSeq = command.lastSeq();
         ChatRunStatus finalStatus = targetStatus;
         ChatRunFinishReason finalReason = command.finishReason();
         ChatRunFailureCode finalErrorCode = finalStatus == ChatRunStatus.STOPPED ? null : command.errorCode();
@@ -276,8 +273,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .set(ChatRunEntity::getStatus, finalStatus.name())
                         .set(ChatRunEntity::getFinishReason, finalReason == null ? null : finalReason.name())
                         .set(ChatRunEntity::getAssistantMessageId, assistant == null ? null : assistant.getId())
-                        .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
-                        .set(ChatRunEntity::getSnapshotSeq, lastSeq)
+                        .set(ChatRunEntity::getSnapshotJson, null)
                         .set(ChatRunEntity::getErrorCode, finalErrorCode == null ? null : finalErrorCode.name())
                         .set(ChatRunEntity::getErrorMessage, finalErrorMessage)
                         .set(ChatRunEntity::getFinishedAt, now)
@@ -299,25 +295,6 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                 finalReason == null ? null : finalReason.name(),
                 finalErrorCode == null ? null : finalErrorCode.name(),
                 finalErrorMessage);
-    }
-
-    /** 在终态下补写最终快照与序号；行已被清理时容忍不抛，行仍在却写失败则异常。 */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public void recordTerminalSeq(ChatRunEntity run, ChatRunSnapshot snapshot, long seq) {
-        // 仅终态可写最终游标；CAS 以终态为前置条件。
-        int changed = runMapper.update(
-                null,
-                new LambdaUpdateWrapper<ChatRunEntity>()
-                        .eq(ChatRunEntity::getId, run.getId())
-                        .in(ChatRunEntity::getStatus, ChatRunStatus.terminalNames())
-                        .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
-                        .set(ChatRunEntity::getSnapshotSeq, seq)
-                        .set(ChatRunEntity::getUpdatedAt, LocalDateTime.now()));
-        // 写失败但行仍在则异常；行已被清理则容忍（不抛）。
-        if (changed != 1 && runMapper.selectById(run.getId()) != null) {
-            throw new IllegalStateException("Run终态游标写入失败: " + run.getId());
-        }
     }
 
     /** 按运行 ID 加载实体，不校验用户归属，仅供内部执行状态机使用。 */

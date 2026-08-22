@@ -119,7 +119,7 @@ class ChatServiceImplConfirmTest {
                 .thenThrow(new AiBusinessException(AiErrorCode.CHAT_RUN_EVENTS_EXPIRED, "run-1"));
         when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrap(7L, List.of(), true));
 
-        SseEmitter emitter = chatService.resume("session-1", "run-1", false);
+        SseEmitter emitter = chatService.resume("session-1", "run-1");
 
         assertThat(emitter).isNotNull();
         verify(chatRunCoordinator).bootstrap(run);

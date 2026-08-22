@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 import org.springframework.stereotype.Component;
 
 /**
- * 对话执行事件存储：按运行标识管理内存事件缓冲区，提供事件追加、游标查询、订阅和终态延迟释放。
+ * 当前 JVM 的实时事件广播器。事件窗口只服务本地恢复衔接，不是持久化事件日志。
  *
  * @author Jin
  */
@@ -35,142 +35,43 @@ public class ChatRunEventStore {
         return thread;
     });
 
-    /**
-     * 创建事件存储。
-     *
-     * @param properties AI 模块配置
-     */
     public ChatRunEventStore(AiProperties properties) {
         this.maxEvents = properties.getChat().getRun().getMaxEvents();
         this.maxBytes = properties.getChat().getRun().getMaxBytes();
         this.subscriberQueueSize = properties.getChat().getRun().getSubscriberQueueSize();
     }
 
-    /**
-     * 初始化运行的事件序号。
-     *
-     * @param runId 运行标识
-     * @param latestSeq 已持久化的最新事件序号；{@code null} 按 {@code 0} 处理
-     */
-    public void initialize(String runId, Long latestSeq) {
-        buffer(runId).initialize(latestSeq);
+    /** 为当前节点刚创建的 Run 建立空缓冲，使浏览器可在首个 Agent 事件前完成订阅。 */
+    public void registerLocalRun(String runId) {
+        buffer(runId);
     }
 
-    /**
-     * 批量追加同一 Agent 事件映射出的 AG-UI 事件。
-     *
-     * @param runId 运行标识
-     * @param aguiRunId AG-UI 运行标识
-     * @param aguiEvents AG-UI 事件列表
-     * @return 缓冲区超过容量限制时返回 {@code true}
-     */
-    public boolean appendAll(String runId, String aguiRunId, List<AguiEvent> aguiEvents) {
-        return buffer(runId).append(aguiEvents, aguiRunId);
+    public void appendAll(String runId, String aguiRunId, List<AguiEvent> aguiEvents) {
+        buffer(runId).append(aguiEvents, aguiRunId);
     }
 
-    /**
-     * 在缓冲区实例锁内原子地完成「暂存事件 → 数据库迁移 → 按成败发布或丢弃」：暂存事件在迁移成功前
-     * 不进入可见窗口、不推送订阅者，迁移成功才发布、失败则丢弃；序号在暂存时分配，事实先于信号外发。
-     *
-     * @param runId 运行标识
-     * @param aguiRunId AG-UI 运行标识
-     * @param aguiEvents 待暂存的 AG-UI 事件（待确认中断事件）
-     * @param dbAction 数据库迁移；返回 {@code true} 表示已提交并应发布，{@code false} 表示并发落败应丢弃
-     * @return {@code dbAction} 的结果；发布成功且缓冲区超容量时不影响返回值（容量由后续检查点收敛）
-     */
-    public boolean runExclusive(
-            String runId, String aguiRunId, List<AguiEvent> aguiEvents, java.util.function.BooleanSupplier dbAction) {
-        ChatRunEventBuffer buffer = buffer(runId);
-        synchronized (buffer) {
-            buffer.stage(aguiEvents, aguiRunId);
-            try {
-                boolean committed = dbAction.getAsBoolean();
-                if (committed) {
-                    buffer.publishStaged();
-                } else {
-                    buffer.discardStaged();
-                }
-                return committed;
-            } catch (RuntimeException failure) {
-                buffer.discardStaged();
-                throw failure;
-            }
-        }
-    }
-
-    /**
-     * 追加终态事件；终态已存在时返回原事件。
-     *
-     * @param runId 运行标识
-     * @param aguiRunId AG-UI 运行标识
-     * @param aguiJson 终态事件 JSON
-     * @return 新增或已存在的终态事件
-     */
     public ChatRunEvent appendTerminalIfAbsent(String runId, String aguiRunId, String aguiJson) {
         return buffer(runId).appendTerminal(aguiJson, aguiRunId);
     }
 
-    /**
-     * 删除已由持久化快照覆盖的超量事件。
-     *
-     * @param runId 运行标识
-     * @param snapshotSeq 快照覆盖的最大事件序号
-     * @throws IllegalStateException 快照未覆盖需要删除的事件
-     */
-    public void compact(String runId, long snapshotSeq) {
-        ChatRunEventBuffer current = buffers.get(runId);
-        if (current != null) {
-            current.compact(snapshotSeq);
-        }
-    }
-
-    /**
-     * 订阅指定游标之后的事件。游标越界时收敛到窗口边界（过早从头重放、过晚只接实时），不报错。
-     *
-     * @param runId 运行标识
-     * @param afterSeq 已消费的事件序号
-     * @param consumer 事件消费者
-     * @param failureConsumer 发送失败消费者
-     * @return 订阅句柄
-     * @throws AiBusinessException 运行事件缓冲区不存在（已过期清理）
-     */
     public ChatRunEventSubscription subscribe(
-            String runId, long afterSeq, Consumer<ChatRunEvent> consumer, Consumer<Throwable> failureConsumer) {
+            String runId, long cursor, Consumer<ChatRunEvent> consumer, Consumer<Throwable> failureConsumer) {
         ChatRunEventBuffer buffer = buffers.get(runId);
         if (buffer == null) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_EVENTS_EXPIRED, runId);
         }
-        return buffer.subscribe(afterSeq, consumer, failureConsumer);
+        return buffer.subscribe(cursor, consumer, failureConsumer);
     }
 
-    /**
-     * 查询运行的最新事件序号。
-     *
-     * @param runId 运行标识
-     * @param fallback 缓冲区不存在时使用的序号
-     * @return 最新事件序号
-     */
-    public long latestSeq(String runId, Long fallback) {
+    public long latestCursor(String runId) {
         ChatRunEventBuffer buffer = buffers.get(runId);
-        return buffer == null ? (fallback == null ? 0L : fallback) : buffer.latestSeq();
+        return buffer == null ? 0L : buffer.latestCursor();
     }
 
-    /**
-     * 当前 JVM 是否仍持有指定 Run 的事件缓冲区。
-     *
-     * @param runId 运行标识
-     * @return 本地可以继续回放或订阅时返回 {@code true}
-     */
     public boolean contains(String runId) {
         return buffers.containsKey(runId);
     }
 
-    /**
-     * 标记终态缓冲区的过期时间。
-     *
-     * @param runId 运行标识
-     * @param retention 终态事件保留时长
-     */
     public void markTerminal(String runId, Duration retention) {
         ChatRunEventBuffer identity = buffer(runId);
         long delayMillis = Math.max(0L, retention.toMillis());
@@ -185,6 +86,13 @@ public class ChatRunEventStore {
                 TimeUnit.MILLISECONDS);
     }
 
+    @PreDestroy
+    public void shutdown() {
+        List.copyOf(buffers.keySet()).forEach(this::clear);
+        expiryExecutor.shutdownNow();
+        senderExecutor.shutdownNow();
+    }
+
     private void clear(String runId) {
         ChatRunEventBuffer removed = buffers.remove(runId);
         if (removed != null) {
@@ -196,14 +104,6 @@ public class ChatRunEventStore {
         if (buffers.remove(runId, identity)) {
             identity.clear();
         }
-    }
-
-    /** 关闭事件订阅并释放发送线程池。 */
-    @PreDestroy
-    public void shutdown() {
-        List.copyOf(buffers.keySet()).forEach(this::clear);
-        expiryExecutor.shutdownNow();
-        senderExecutor.shutdownNow();
     }
 
     private ChatRunEventBuffer buffer(String runId) {

@@ -1,7 +1,6 @@
 package com.lambda.fusion.ai.chat.service.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -109,13 +108,7 @@ class ChatRunServiceImplTest {
         var result = service.finalizeExecution(
                 identity,
                 new ChatRunFinalizationCommand(
-                        ChatRunStatus.COMPLETED,
-                        ChatRunFinishReason.SUCCESS,
-                        snapshot("partial"),
-                        null,
-                        5,
-                        null,
-                        null));
+                        ChatRunStatus.COMPLETED, ChatRunFinishReason.SUCCESS, snapshot("partial"), null, null, null));
 
         assertThat(result.committed()).isFalse();
         assertThat(result.status()).isEqualTo(ChatRunStatus.STOPPED.name());
@@ -125,13 +118,31 @@ class ChatRunServiceImplTest {
     }
 
     @Test
-    void shouldAcceptMissingRunWhenTerminalCursorRacesWithSessionDeletion() {
-        ChatRunEntity run = run(ChatRunStatus.COMPLETED);
-        when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(0);
-        when(runMapper.selectById("run-1")).thenReturn(null);
+    void shouldClearRunningSnapshotWhenTerminalResultIsCommitted() {
+        ChatRunEntity identity = run(ChatRunStatus.RUNNING);
+        ChatRunEntity persisted = run(ChatRunStatus.RUNNING);
+        ChatSessionEntity session = new ChatSessionEntity();
+        session.setId("session-1");
+        session.setUserId("user-1");
+        ChatMessageEntity assistant = new ChatMessageEntity();
+        assistant.setId(10L);
 
-        assertThatCode(() -> service.recordTerminalSeq(run, snapshot("answer"), 8))
-                .doesNotThrowAnyException();
+        when(sessionMapper.selectForUpdate("session-1")).thenReturn(session);
+        when(runMapper.selectOne(any())).thenReturn(persisted);
+        when(messageService.saveAssistantMessage(session, "answer", null)).thenReturn(assistant);
+        when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
+
+        var result = service.finalizeExecution(
+                identity,
+                new ChatRunFinalizationCommand(
+                        ChatRunStatus.COMPLETED, ChatRunFinishReason.SUCCESS, snapshot("answer"), null, null, null));
+
+        assertThat(result.committed()).isTrue();
+        ArgumentCaptor<LambdaUpdateWrapper<ChatRunEntity>> updateCaptor =
+                ArgumentCaptor.forClass(LambdaUpdateWrapper.class);
+        verify(runMapper).update(isNull(), updateCaptor.capture());
+        assertThat(updateCaptor.getValue().getSqlSet()).contains("snapshot_json");
+        assertThat(updateCaptor.getValue().getParamNameValuePairs()).containsValue(null);
     }
 
     @Test
@@ -139,14 +150,14 @@ class ChatRunServiceImplTest {
         ChatRunEntity run = run(ChatRunStatus.RUNNING);
         when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
 
-        assertThat(service.checkpoint(run, snapshot("partial"), 4)).isTrue();
+        assertThat(service.checkpoint(run, snapshot("partial"))).isTrue();
 
         ArgumentCaptor<LambdaUpdateWrapper<ChatRunEntity>> updateCaptor =
                 ArgumentCaptor.forClass(LambdaUpdateWrapper.class);
         verify(runMapper).update(isNull(), updateCaptor.capture());
         LambdaUpdateWrapper<ChatRunEntity> update = updateCaptor.getValue();
         assertThat(update.getSqlSegment()).contains("status");
-        assertThat(update.getParamNameValuePairs().values()).contains(ChatRunStatus.RUNNING.name(), 4L);
+        assertThat(update.getParamNameValuePairs().values()).contains(ChatRunStatus.RUNNING.name());
     }
 
     @Test

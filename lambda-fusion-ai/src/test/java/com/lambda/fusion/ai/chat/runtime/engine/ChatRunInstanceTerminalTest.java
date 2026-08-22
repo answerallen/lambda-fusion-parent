@@ -2,7 +2,6 @@ package com.lambda.fusion.ai.chat.runtime.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -73,8 +72,7 @@ class ChatRunInstanceTerminalTest {
         ChatRunEntity run = run(ChatRunStatus.RUNNING, snapshot("", false, false));
         instance = newInstance(run);
         stubTerminalCommit();
-        when(runService.checkpoint(eq(run), any(ChatRunSnapshot.class), anyLong()))
-                .thenReturn(true);
+        when(runService.checkpoint(eq(run), any(ChatRunSnapshot.class))).thenReturn(true);
         Sinks.Many<AgentEvent> source = Sinks.many().unicast().onBackpressureBuffer();
         when(adapter.stream(any(Msg.class))).thenReturn(source.asFlux());
 
@@ -145,17 +143,15 @@ class ChatRunInstanceTerminalTest {
                         new ChatRunFinalizationResult(true, "COMPLETED", "SUCCESS", null, null),
                         new ChatRunFinalizationResult(false, "COMPLETED", "SUCCESS", null, null));
         when(runService.loadCurrent("run-1")).thenReturn(persisted);
-        when(eventStore.latestSeq(anyString(), anyLong())).thenReturn(1L);
         when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
                 .thenThrow(new RuntimeException("event store unavailable"))
-                .thenReturn(new ChatRunEvent(8L, "run-1:8", "RUN_FINISHED", "{}"));
+                .thenReturn(new ChatRunEvent(8L, "RUN_FINISHED", "{}"));
 
         instance.finalizeCompleted();
 
         assertThat(instance.drainedSignal().toCompletableFuture()).succeedsWithin(Duration.ofSeconds(3));
         verify(runService, times(2)).finalizeExecution(eq(run), any(ChatRunFinalizationCommand.class));
         verify(eventStore, times(2)).appendTerminalIfAbsent(anyString(), anyString(), anyString());
-        verify(runService).recordTerminalSeq(eq(run), any(ChatRunSnapshot.class), eq(8L));
     }
 
     private void stubTerminalCommit() {
@@ -174,8 +170,7 @@ class ChatRunInstanceTerminalTest {
                             command.errorMessage());
                 });
         when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
-                .thenReturn(new ChatRunEvent(8L, "run-1:8", "RUN_FINISHED", "{}"));
-        when(eventStore.latestSeq(anyString(), anyLong())).thenReturn(1L);
+                .thenReturn(new ChatRunEvent(8L, "RUN_FINISHED", "{}"));
     }
 
     private ChatRunFinalizationCommand captureFinalize() {
@@ -226,7 +221,6 @@ class ChatRunInstanceTerminalTest {
         run.setStatus(status.name());
         run.setPhaseNo(1);
         run.setAguiRunId("agui-1");
-        run.setSnapshotSeq(0L);
         run.setSnapshotJson(ChatRunSnapshotCodec.encode(snapshot));
         return run;
     }

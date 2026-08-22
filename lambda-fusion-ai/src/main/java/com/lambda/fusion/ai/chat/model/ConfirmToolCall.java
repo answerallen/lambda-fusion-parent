@@ -12,7 +12,8 @@ import lombok.Data;
 /**
  * HITL 工具调用确认请求：用户对 {@code RequireUserConfirmEvent} 暂停的工具调用给出确认/拒绝决策，前端从
  * {@code RunFinished(interrupt)} 拿到 {@code toolCallId} 后回传本 DTO 到
- * {@code POST /v1/ai/sessions/{id}/runs/{runId}/confirm} 恢复 Agent 执行。
+ * {@code POST /v1/ai/sessions/{id}/runs/{runId}/confirm} 继续 Agent 执行；进程重启后可从持久化 ASKING 状态
+ * 开始下一阶段。
  *
  * @author Jin
  */

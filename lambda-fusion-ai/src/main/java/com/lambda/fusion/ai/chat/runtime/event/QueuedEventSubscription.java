@@ -26,7 +26,6 @@ final class QueuedEventSubscription implements ChatRunEventSubscription {
     private final ArrayDeque<ChatRunEvent> queue = new ArrayDeque<>();
     private boolean draining;
     private boolean closed;
-    private Runnable drainedAction;
 
     /**
      * 创建事件订阅。
@@ -103,28 +102,6 @@ final class QueuedEventSubscription implements ChatRunEventSubscription {
         closeWithoutDetach();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @param action 队列排空回调
-     */
-    @Override
-    public void whenDrained(Runnable action) {
-        boolean runNow;
-        synchronized (this) {
-            if (closed) {
-                return;
-            }
-            runNow = queue.isEmpty() && !draining;
-            if (!runNow) {
-                drainedAction = action;
-            }
-        }
-        if (runNow) {
-            senderExecutor.execute(action);
-        }
-    }
-
     /** 关闭订阅但不修改所属运行缓冲区。 */
     synchronized void closeWithoutDetach() {
         closed = true;
@@ -159,11 +136,6 @@ final class QueuedEventSubscription implements ChatRunEventSubscription {
                 }
                 if (next == null) {
                     draining = false;
-                    Runnable action = drainedAction;
-                    drainedAction = null;
-                    if (action != null) {
-                        senderExecutor.execute(action);
-                    }
                     return;
                 }
             }

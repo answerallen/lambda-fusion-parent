@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -102,10 +101,9 @@ public class ChatController {
     public SseEmitter events(
             @Parameter(description = "会话ID", required = true) @PathVariable String id,
             @Parameter(description = "Run ID", required = true) @PathVariable String runId,
-            @RequestParam(defaultValue = "false") boolean bootstrap,
             HttpServletResponse response) {
         prepareSseResponse(response);
-        return chatService.resume(id, runId, bootstrap);
+        return chatService.resume(id, runId);
     }
 
     @Operation(summary = "确认指定Run的工具调用(HITL, SSE)")

@@ -47,9 +47,6 @@ public class ChatRunEntity extends BaseEntity {
     @TableField("agui_run_id")
     private String aguiRunId;
 
-    @TableField("snapshot_seq")
-    private Long snapshotSeq;
-
     @TableField("snapshot_json")
     private String snapshotJson;
 

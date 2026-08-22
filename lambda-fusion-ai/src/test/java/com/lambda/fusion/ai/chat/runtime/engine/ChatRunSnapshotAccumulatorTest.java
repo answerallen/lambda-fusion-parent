@@ -3,33 +3,23 @@ package com.lambda.fusion.ai.chat.runtime.engine;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotDelta;
+import io.agentscope.core.agui.event.AguiEvent;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ChatRunSnapshotAccumulatorTest {
 
     @Test
-    void shouldAccumulateCompletedToolSnapshot() {
-        ChatRunSnapshotAccumulator accumulator =
-                new ChatRunSnapshotAccumulator(ChatRunSnapshot.empty("run-1", "phase-1", 1));
+    void shouldProjectCompletedToolFromOfficialAguiEvents() {
+        ChatRunSnapshotAccumulator accumulator = accumulator();
 
-        accumulator.apply(new ChatRunSnapshotDelta(
-                null,
-                null,
-                null,
-                null,
-                false,
-                false,
-                true,
-                List.of(new ChatRunSnapshotDelta.ToolDelta("tool-1", "search", null, null, "running", false, false)),
-                List.of()));
-        accumulator.apply(toolDelta("tool-1", "search", "{\"q\":", null, "running"));
-        accumulator.apply(toolDelta("tool-1", "search", "\"x\"}", null, "running"));
-        accumulator.apply(toolDelta("tool-1", "search", null, null, "running"));
-        accumulator.apply(toolDelta("tool-1", "search", null, "result-", "running"));
-        accumulator.apply(toolDelta("tool-1", "search", null, "text", "running"));
-        accumulator.apply(toolDelta("tool-1", "search", null, null, "complete"));
+        accumulator.apply(List.of(
+                new AguiEvent.ToolCallStart("session-1", "phase-1", "tool-1", "search"),
+                new AguiEvent.ToolCallArgs("session-1", "phase-1", "tool-1", "{\"q\":"),
+                new AguiEvent.ToolCallArgs("session-1", "phase-1", "tool-1", "\"x\"}"),
+                new AguiEvent.ToolCallEnd("session-1", "phase-1", "tool-1"),
+                new AguiEvent.ToolCallResult("session-1", "phase-1", "tool-1", "result-text", "tool", "reply-1")));
 
         assertThat(accumulator.buildSnapshot().tools())
                 .containsExactly(
@@ -37,31 +27,39 @@ class ChatRunSnapshotAccumulatorTest {
     }
 
     @Test
-    void shouldKeepToolOrderWhenLaterDeltasUpdateAnExistingTool() {
-        ChatRunSnapshotAccumulator accumulator =
-                new ChatRunSnapshotAccumulator(ChatRunSnapshot.empty("run-1", "phase-1", 1));
+    void shouldKeepToolOrderWhenExistingToolReceivesMoreArguments() {
+        ChatRunSnapshotAccumulator accumulator = accumulator();
 
-        accumulator.apply(toolDelta("tool-1", "first", null, null, "running"));
-        accumulator.apply(toolDelta("tool-2", "second", null, null, "running"));
-        accumulator.apply(toolDelta("tool-1", "first", "{}", null, "running"));
+        accumulator.apply(List.of(
+                new AguiEvent.ToolCallStart("session-1", "phase-1", "tool-1", "first"),
+                new AguiEvent.ToolCallStart("session-1", "phase-1", "tool-2", "second"),
+                new AguiEvent.ToolCallArgs("session-1", "phase-1", "tool-1", "{}")));
 
         assertThat(accumulator.buildSnapshot().tools())
                 .extracting(ChatRunSnapshot.ToolCall::toolCallId)
                 .containsExactly("tool-1", "tool-2");
     }
 
-    private static ChatRunSnapshotDelta toolDelta(
-            String toolCallId, String toolCallName, String argsDelta, String resultDelta, String status) {
-        return new ChatRunSnapshotDelta(
+    @Test
+    void shouldProjectPendingConfirmationFromInterruptOutcome() {
+        ChatRunSnapshotAccumulator accumulator = accumulator();
+        AguiEvent.Interrupt interrupt = new AguiEvent.Interrupt(
+                "tool-1",
+                "human_confirmation_required",
+                "confirm",
+                "tool-1",
                 null,
                 null,
-                null,
-                null,
-                false,
-                false,
-                false,
-                List.of(new ChatRunSnapshotDelta.ToolDelta(
-                        toolCallId, toolCallName, argsDelta, resultDelta, status, false, false)),
-                List.of());
+                Map.of("toolName", "dangerous"));
+
+        accumulator.apply(List.of(new AguiEvent.RunFinished(
+                "session-1", "phase-1", null, new AguiEvent.RunFinishedInterruptOutcome(List.of(interrupt)))));
+
+        assertThat(accumulator.buildSnapshot().pendingTools())
+                .containsExactly(new ChatRunSnapshot.ToolCall("tool-1", "dangerous", "", "", "asking"));
+    }
+
+    private static ChatRunSnapshotAccumulator accumulator() {
+        return new ChatRunSnapshotAccumulator(ChatRunSnapshot.empty("run-1", "phase-1", 1));
     }
 }

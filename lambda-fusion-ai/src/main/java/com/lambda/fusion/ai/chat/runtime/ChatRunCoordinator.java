@@ -24,6 +24,8 @@ import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
+import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.core.utils.TenantUtils;
 import io.agentscope.core.message.Msg;
 import jakarta.annotation.PreDestroy;
@@ -110,9 +112,9 @@ public class ChatRunCoordinator {
         }
         Optional<ChatRunInstanceRegistry.StartRegistration> selected;
         try {
-            selected = registry.restoreForStartIfCapacity(run, session, scheduler);
-        } catch (RuntimeException restoreFailure) {
-            failStart(run, session, restoreFailure);
+            selected = registry.registerForStartIfCapacity(run, session, scheduler);
+        } catch (RuntimeException createFailure) {
+            failStart(run, session, createFailure);
             return;
         }
         // 不做跨节点排队或后台扫描；无法在当前请求节点启动时立即给出可重试的失败结果。
@@ -145,23 +147,41 @@ public class ChatRunCoordinator {
      */
     public ConfirmTransition confirm(ChatRunEntity run, ChatSessionEntity session, ConfirmToolCall command) {
         return TenantUtils.withTenant(session.getTenantId(), () -> {
-            ChatRunInstance execution = registry.selectOrRestore(run, session, scheduler);
+            ChatRunInstance execution = registry.get(run.getId());
+            if (execution == null) {
+                Integer sourcePhaseNo = command == null ? null : command.getPhaseNo();
+                if (sourcePhaseNo == null) {
+                    throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "phaseNo不能为空");
+                }
+                if (run.getPhaseNo() > sourcePhaseNo) {
+                    return new ConfirmTransition(run, session, false);
+                }
+                var snapshot = ChatRunSnapshotCodec.decode(run.getSnapshotJson());
+                if (!ChatRunStatus.RUNNING.name().equals(run.getStatus())
+                        || run.getPhaseNo() < sourcePhaseNo
+                        || snapshot.pendingTools().isEmpty()) {
+                    throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
+                }
+                // 进程重启会丢失本地注册表，但 AgentScope ASKING 状态和 Run 快照均已持久化。
+                // 用户显式确认时只重建暂停上下文，不恢复旧阶段，也不接管正在执行的工具。
+                execution = registry.registerPausedConfirmation(run, session, scheduler);
+            }
             return execution.confirm(command);
         });
     }
 
     /**
-     * 订阅指定序号之后的运行事件。
+     * 从当前 JVM 的内部游标之后订阅运行事件。
      *
      * @param runId 运行标识
-     * @param afterSeq 已消费的事件序号
+     * @param cursor 快照对应的本地游标
      * @param consumer 事件消费者
      * @param failureConsumer 发送失败消费者
      * @return 事件订阅
      */
     public ChatRunEventSubscription subscribe(
-            String runId, long afterSeq, Consumer<ChatRunEvent> consumer, Consumer<Throwable> failureConsumer) {
-        return eventStore.subscribe(runId, afterSeq, consumer, failureConsumer);
+            String runId, long cursor, Consumer<ChatRunEvent> consumer, Consumer<Throwable> failureConsumer) {
+        return eventStore.subscribe(runId, cursor, consumer, failureConsumer);
     }
 
     /**
@@ -177,10 +197,10 @@ public class ChatRunCoordinator {
         }
         ChatRunEntity current = loadCurrent(run);
         var snapshot = ChatRunSnapshotCodec.decode(current.getSnapshotJson());
-        long highWatermark = eventStore.latestSeq(current.getId(), current.getSnapshotSeq());
+        long cursor = eventStore.latestCursor(current.getId());
         return new AguiBootstrap(
-                highWatermark,
-                AguiBootstrapEncoder.encode(current, snapshot, highWatermark),
+                cursor,
+                AguiBootstrapEncoder.encode(current, snapshot),
                 ChatRunStatus.isTerminal(current.getStatus())
                         || !snapshot.pendingTools().isEmpty()
                         || !eventStore.contains(current.getId()));
@@ -203,17 +223,10 @@ public class ChatRunCoordinator {
         }
         ChatRunInstance execution = registry.get(current.getId());
         if (execution == null) {
-            if (!ChatRunSnapshotCodec.decode(current.getSnapshotJson())
-                    .pendingTools()
-                    .isEmpty()) {
-                // 待确认阶段没有活动源流；只借助 AgentScope 持久化状态闭合未决工具，不执行 interrupt。
-                instanceFactory
-                        .restoreConfirmationFinalizer(current, session, scheduler)
-                        .requestStop();
-            } else {
-                // 当前 JVM 没有活动源流时，只结束业务 Run；不恢复 Agent 来伪装跨节点中断。
-                instanceFactory.restoreFinalizer(current, session, scheduler).requestStop();
-            }
+            var snapshot = ChatRunSnapshotCodec.decode(current.getSnapshotJson());
+            ChatRunInstance terminalOnly = createStoppedExecution(
+                    current, session, snapshot.pendingTools().isEmpty());
+            terminalOnly.requestStop();
             return;
         }
         // 本地活动实例仍按实例 monitor -> 独立数据库事务的顺序协作式停止。
@@ -258,8 +271,22 @@ public class ChatRunCoordinator {
     }
 
     private void failStart(ChatRunEntity run, ChatSessionEntity session, RuntimeException failure) {
-        ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler);
+        ChatRunInstance rejected = instanceFactory.createTerminalOnly(run, session, scheduler);
         rejected.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunDataSanitizer.safeMessage(failure));
+    }
+
+    private ChatRunInstance createStoppedExecution(
+            ChatRunEntity run, ChatSessionEntity session, boolean noPendingConfirmation) {
+        if (noPendingConfirmation) {
+            return instanceFactory.createTerminalOnly(run, session, scheduler);
+        }
+        try {
+            // HITL 已暂停且没有活动工具；加载 AgentScope 状态只为补写拒绝结果，避免 ASKING 污染后续对话。
+            return instanceFactory.createPausedConfirmation(run, session, scheduler);
+        } catch (RuntimeException stateUnavailable) {
+            log.warn("停止Run时无法清理AgentScope待确认状态，仅提交业务终态: runId={}", run.getId(), stateUnavailable);
+            return instanceFactory.createTerminalOnly(run, session, scheduler);
+        }
     }
 
     /**

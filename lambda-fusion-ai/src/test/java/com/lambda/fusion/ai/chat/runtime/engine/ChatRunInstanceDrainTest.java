@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -43,7 +44,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -127,11 +127,7 @@ class ChatRunInstanceDrainTest {
         instance = newInstance(run(ChatRunStatus.RUNNING));
         Sinks.Many<AgentEvent> source = Sinks.many().unicast().onBackpressureBuffer();
         when(adapter.stream(any(Msg.class))).thenReturn(source.asFlux());
-        when(eventStore.runExclusive(anyString(), anyString(), any(), any())).thenAnswer(invocation -> {
-            BooleanSupplier dbAction = invocation.getArgument(3);
-            return dbAction.getAsBoolean();
-        });
-        when(runService.checkpoint(eq(instance.run()), any(ChatRunSnapshot.class), anyLong()))
+        when(runService.checkpoint(eq(instance.run()), any(ChatRunSnapshot.class)))
                 .thenReturn(true);
 
         instance.startPhase(userMsg());
@@ -145,7 +141,7 @@ class ChatRunInstanceDrainTest {
                 .satisfies(error -> assertThat(((AiBusinessException) error).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_STATE_CONFLICT.getCode()));
         verify(runService, never()).advanceConfirmation(any(), any(), org.mockito.ArgumentMatchers.anyInt(), any());
-        verify(runService, never()).checkpoint(any(), any(), anyLong());
+        verify(runService, never()).checkpoint(any(), any());
 
         // 整个 AgentScope/Harness 源流排空后才提交待确认事实并发布中断事件。
         source.tryEmitComplete();
@@ -153,25 +149,46 @@ class ChatRunInstanceDrainTest {
         assertThat(instance.run().getStatus()).isEqualTo(ChatRunStatus.RUNNING.name());
         assertThat(instance.bootstrap().phaseClosed()).isTrue();
         assertThat(instance.drainedSignal().toCompletableFuture()).isNotDone();
-        verify(runService).checkpoint(eq(instance.run()), any(ChatRunSnapshot.class), anyLong());
+        verify(runService).checkpoint(eq(instance.run()), any(ChatRunSnapshot.class));
         verify(workspaceAuditRecorder).recordChanges(eq(instance.session()), anyLong());
+    }
+
+    @Test
+    void shouldKeepPersistedConfirmationWhenLocalInterruptPublishFails() {
+        instance = newInstance(run(ChatRunStatus.RUNNING));
+        Sinks.Many<AgentEvent> source = Sinks.many().unicast().onBackpressureBuffer();
+        when(adapter.stream(any(Msg.class))).thenReturn(source.asFlux());
+        when(runService.checkpoint(eq(instance.run()), any(ChatRunSnapshot.class)))
+                .thenReturn(true);
+        doThrow(new IllegalStateException("local buffer unavailable"))
+                .when(eventStore)
+                .appendAll(anyString(), anyString(), any());
+
+        instance.startPhase(userMsg());
+        source.tryEmitNext(requireConfirm("call-1"));
+        source.tryEmitNext(agentEnd());
+        source.tryEmitComplete();
+
+        assertThat(instance.run().getStatus()).isEqualTo(ChatRunStatus.RUNNING.name());
+        assertThat(instance.bootstrap().phaseClosed()).isTrue();
+        assertThat(instance.drainedSignal().toCompletableFuture()).isNotDone();
+        verify(runService, never()).finalizeExecution(any(), any());
     }
 
     @Test
     void shouldCheckpointDirtySnapshotFromInstanceOwnedTimer() {
         AiProperties properties = new AiProperties();
         properties.getChat().getRun().setSnapshotIntervalSeconds(1);
-        properties.getChat().getRun().setSnapshotEveryEvents(100);
         instance = newInstance(run(ChatRunStatus.RUNNING), properties);
         Sinks.Many<AgentEvent> source = Sinks.many().unicast().onBackpressureBuffer();
         when(adapter.stream(any(Msg.class))).thenReturn(source.asFlux());
-        when(runService.checkpoint(eq(instance.run()), any(ChatRunSnapshot.class), anyLong()))
+        when(runService.checkpoint(eq(instance.run()), any(ChatRunSnapshot.class)))
                 .thenReturn(true);
 
         instance.startPhase(userMsg());
         source.tryEmitNext(new TextBlockDeltaEvent("reply-1", "block-1", "partial"));
 
-        verify(runService, timeout(2_500)).checkpoint(eq(instance.run()), any(ChatRunSnapshot.class), anyLong());
+        verify(runService, timeout(2_500)).checkpoint(eq(instance.run()), any(ChatRunSnapshot.class));
     }
 
     @Test
@@ -232,8 +249,8 @@ class ChatRunInstanceDrainTest {
                 });
         lenient()
                 .when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
-                .thenReturn(new ChatRunEvent(8L, "run-1:8", "RUN_FINISHED", "{}"));
-        lenient().when(eventStore.latestSeq(anyString(), anyLong())).thenReturn(1L);
+                .thenReturn(new ChatRunEvent(8L, "RUN_FINISHED", "{}"));
+        lenient().when(eventStore.latestCursor(anyString())).thenReturn(1L);
     }
 
     private ChatRunInstance newInstance(ChatRunEntity run) {
@@ -268,7 +285,6 @@ class ChatRunInstanceDrainTest {
         run.setStatus(status.name());
         run.setPhaseNo(1);
         run.setAguiRunId("agui-1");
-        run.setSnapshotSeq(0L);
         run.setSnapshotJson(ChatRunSnapshotCodec.encode(ChatRunSnapshot.empty("run-1", "agui-1", 1)));
         return run;
     }

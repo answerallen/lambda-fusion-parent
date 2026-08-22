@@ -4,33 +4,22 @@ import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import io.agentscope.core.agui.event.AguiEvent;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 
-/**
- * AG-UI 引导事件编码器：根据运行状态和执行快照生成客户端重连所需的事件序列，生成的事件不写入事件存储。
- *
- * @author Jin
- */
+/** 用官方 AG-UI 事件重建一个运行中的助手气泡。引导事件本身不写入事件缓冲。 */
 public final class AguiBootstrapEncoder {
 
     private static final String TOOL_COMPLETE = ChatRunToolStatus.COMPLETE.getCode();
 
     private AguiBootstrapEncoder() {}
 
-    /**
-     * 生成指定运行的 AG-UI 引导事件。
-     *
-     * @param run 运行实体
-     * @param snapshot 执行快照
-     * @param highWatermark 当前事件序号上界
-     * @return 按协议顺序编码的事件 JSON 列表
-     */
-    public static List<String> encode(ChatRunEntity run, ChatRunSnapshot snapshot, long highWatermark) {
-        AguiBootstrapEventCollector collector = new AguiBootstrapEventCollector(run, highWatermark);
-        collector.add(fields("type", "RUN_STARTED", "phaseNo", run.getPhaseNo()));
+    public static List<String> encode(ChatRunEntity run, ChatRunSnapshot snapshot) {
+        EventCollector collector = new EventCollector(run);
+        collector.add(new AguiEvent.RunStarted(run.getSessionId(), run.getAguiRunId(), null, null), run.getPhaseNo());
         boolean reopenReasoningAfterTools = appendReasoning(collector, snapshot);
         appendTools(collector, snapshot);
         if (reopenReasoningAfterTools) {
@@ -41,149 +30,149 @@ public final class AguiBootstrapEncoder {
         return collector.events();
     }
 
-    private static boolean appendReasoning(AguiBootstrapEventCollector collector, ChatRunSnapshot snapshot) {
+    private static boolean appendReasoning(EventCollector collector, ChatRunSnapshot snapshot) {
         if (snapshot.reasoning().isEmpty()) {
             return false;
         }
         String messageId = valueOrDefault(snapshot.reasoningMessageId(), "reasoning-" + collector.chatRunId());
-        collector.add(fields("type", "REASONING_START", "messageId", messageId));
-        collector.add(fields("type", "REASONING_MESSAGE_START", "messageId", messageId, "role", "reasoning"));
-        collector.add(
-                fields("type", "REASONING_MESSAGE_CONTENT", "messageId", messageId, "delta", snapshot.reasoning()));
-
-        // 快照只保存累计推理文本，无法还原工具前后的精确分段。当存在历史工具且推理仍打开时，
-        // 先关闭恢复出来的累计推理块，避免前端把随后恢复的工具嵌套进 reasoning；工具恢复后再打开空块承接实时增量。
+        collector.add(new AguiEvent.ReasoningStart(collector.threadId(), collector.aguiRunId(), messageId, null));
+        collector.add(new AguiEvent.ReasoningMessageStart(
+                collector.threadId(), collector.aguiRunId(), messageId, "reasoning"));
+        collector.add(new AguiEvent.ReasoningMessageContent(
+                collector.threadId(), collector.aguiRunId(), messageId, snapshot.reasoning()));
         boolean reopenAfterTools = snapshot.reasoningOpen() && !snapshot.tools().isEmpty();
         if (!snapshot.reasoningOpen() || reopenAfterTools) {
-            collector.add(fields("type", "REASONING_MESSAGE_END", "messageId", messageId));
-            collector.add(fields("type", "REASONING_END", "messageId", messageId));
+            collector.add(new AguiEvent.ReasoningMessageEnd(collector.threadId(), collector.aguiRunId(), messageId));
+            collector.add(new AguiEvent.ReasoningEnd(collector.threadId(), collector.aguiRunId(), messageId));
         }
         return reopenAfterTools;
     }
 
-    private static void appendTools(AguiBootstrapEventCollector collector, ChatRunSnapshot snapshot) {
+    private static void appendTools(EventCollector collector, ChatRunSnapshot snapshot) {
         for (ChatRunSnapshot.ToolCall tool : snapshot.tools()) {
-            collector.add(fields(
-                    "type", "TOOL_CALL_START", "toolCallId", tool.toolCallId(), "toolCallName", tool.toolCallName()));
+            collector.add(new AguiEvent.ToolCallStart(
+                    collector.threadId(), collector.aguiRunId(), tool.toolCallId(), tool.toolCallName()));
             if (!tool.args().isEmpty()) {
-                collector.add(fields("type", "TOOL_CALL_ARGS", "toolCallId", tool.toolCallId(), "delta", tool.args()));
+                collector.add(new AguiEvent.ToolCallArgs(
+                        collector.threadId(), collector.aguiRunId(), tool.toolCallId(), tool.args()));
             }
             if (!TOOL_COMPLETE.equals(tool.status())) {
                 continue;
             }
-            collector.add(fields("type", "TOOL_CALL_END", "toolCallId", tool.toolCallId()));
+            collector.add(new AguiEvent.ToolCallEnd(collector.threadId(), collector.aguiRunId(), tool.toolCallId()));
             if (!tool.result().isEmpty()) {
-                collector.add(fields(
-                        "type",
-                        "TOOL_CALL_RESULT",
-                        "toolCallId",
+                collector.add(new AguiEvent.ToolCallResult(
+                        collector.threadId(),
+                        collector.aguiRunId(),
                         tool.toolCallId(),
-                        "content",
                         tool.result(),
-                        "role",
                         "tool",
-                        "messageId",
                         "tool-result-" + tool.toolCallId()));
             }
         }
     }
 
-    private static void reopenReasoning(AguiBootstrapEventCollector collector, ChatRunSnapshot snapshot) {
+    private static void reopenReasoning(EventCollector collector, ChatRunSnapshot snapshot) {
         String messageId = valueOrDefault(snapshot.reasoningMessageId(), "reasoning-" + collector.chatRunId());
-        collector.add(fields("type", "REASONING_START", "messageId", messageId));
-        collector.add(fields("type", "REASONING_MESSAGE_START", "messageId", messageId, "role", "reasoning"));
+        collector.add(new AguiEvent.ReasoningStart(collector.threadId(), collector.aguiRunId(), messageId, null));
+        collector.add(new AguiEvent.ReasoningMessageStart(
+                collector.threadId(), collector.aguiRunId(), messageId, "reasoning"));
     }
 
-    private static void appendText(AguiBootstrapEventCollector collector, ChatRunSnapshot snapshot) {
+    private static void appendText(EventCollector collector, ChatRunSnapshot snapshot) {
         if (snapshot.text().isEmpty()) {
             return;
         }
         String messageId = valueOrDefault(snapshot.textMessageId(), "message-" + collector.chatRunId());
-        collector.add(fields("type", "TEXT_MESSAGE_START", "messageId", messageId, "role", "assistant"));
-        collector.add(fields("type", "TEXT_MESSAGE_CONTENT", "messageId", messageId, "delta", snapshot.text()));
+        collector.add(
+                new AguiEvent.TextMessageStart(collector.threadId(), collector.aguiRunId(), messageId, "assistant"));
+        collector.add(new AguiEvent.TextMessageContent(
+                collector.threadId(), collector.aguiRunId(), messageId, snapshot.text()));
         if (!snapshot.textOpen()) {
-            collector.add(fields("type", "TEXT_MESSAGE_END", "messageId", messageId));
+            collector.add(new AguiEvent.TextMessageEnd(collector.threadId(), collector.aguiRunId(), messageId));
         }
     }
 
-    private static void appendTerminal(
-            AguiBootstrapEventCollector collector, ChatRunEntity run, ChatRunSnapshot snapshot) {
+    private static void appendTerminal(EventCollector collector, ChatRunEntity run, ChatRunSnapshot snapshot) {
         if (ChatRunStatus.RUNNING.name().equals(run.getStatus())
                 && !snapshot.pendingTools().isEmpty()) {
-            List<Map<String, Object>> interrupts = snapshot.pendingTools().stream()
-                    .map(tool -> fields(
-                            "id", tool.toolCallId(),
-                            "value", "human_confirmation_required",
-                            "message", "工具 '" + tool.toolCallName() + "' 需要您确认后执行",
-                            "toolCallId", tool.toolCallId(),
-                            "metadata", fields("toolName", tool.toolCallName())))
+            List<AguiEvent.Interrupt> interrupts = snapshot.pendingTools().stream()
+                    .map(tool -> new AguiEvent.Interrupt(
+                            tool.toolCallId(),
+                            "human_confirmation_required",
+                            "工具 '" + tool.toolCallName() + "' 需要您确认后执行",
+                            tool.toolCallId(),
+                            null,
+                            null,
+                            Map.of("toolName", tool.toolCallName())))
                     .toList();
-            collector.add(
-                    fields("type", "RUN_FINISHED", "outcome", fields("type", "interrupt", "interrupts", interrupts)));
+            collector.add(new AguiEvent.RunFinished(
+                    collector.threadId(),
+                    collector.aguiRunId(),
+                    null,
+                    new AguiEvent.RunFinishedInterruptOutcome(interrupts)));
             return;
         }
         if (ChatRunStatus.COMPLETED.name().equals(run.getStatus())
                 || ChatRunStatus.STOPPED.name().equals(run.getStatus())) {
-            collector.add(fields(
-                    "type",
-                    "RUN_FINISHED",
-                    "chatRunStatus",
-                    run.getStatus(),
-                    "finishReason",
-                    run.getFinishReason(),
-                    "outcome",
-                    fields("type", "success")));
+            collector.addTerminal(
+                    new AguiEvent.RunFinished(
+                            collector.threadId(),
+                            collector.aguiRunId(),
+                            null,
+                            new AguiEvent.RunFinishedSuccessOutcome()),
+                    run);
             return;
         }
         if (ChatRunStatus.FAILED.name().equals(run.getStatus())) {
-            collector.add(fields(
-                    "type",
-                    "RUN_ERROR",
-                    "message",
-                    run.getErrorMessage() == null ? "对话运行失败" : run.getErrorMessage(),
-                    "code",
-                    run.getErrorCode()));
+            collector.addTerminal(
+                    new AguiEvent.RunError(
+                            collector.threadId(),
+                            collector.aguiRunId(),
+                            StringUtils.defaultIfBlank(run.getErrorMessage(), "对话运行失败"),
+                            run.getErrorCode()),
+                    run);
         }
-    }
-
-    private static Map<String, Object> fields(Object... keyValues) {
-        Map<String, Object> values = new LinkedHashMap<>();
-        for (int i = 0; i < keyValues.length; i += 2) {
-            if (keyValues[i + 1] != null) {
-                values.put(String.valueOf(keyValues[i]), keyValues[i + 1]);
-            }
-        }
-        return values;
     }
 
     private static String valueOrDefault(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value;
+        return StringUtils.defaultIfBlank(value, fallback);
     }
 
-    /** 引导事件收集器。 */
-    private static final class AguiBootstrapEventCollector {
+    private static final class EventCollector {
 
-        private final String threadId;
-        private final String chatRunId;
-        private final String aguiRunId;
-        private final long highWatermark;
+        private final ChatRunEntity run;
         private final List<String> events = new ArrayList<>();
 
-        private AguiBootstrapEventCollector(ChatRunEntity run, long highWatermark) {
-            this.threadId = run.getSessionId();
-            this.chatRunId = run.getId();
-            this.aguiRunId = run.getAguiRunId();
-            this.highWatermark = highWatermark;
+        private EventCollector(ChatRunEntity run) {
+            this.run = run;
+        }
+
+        private String threadId() {
+            return run.getSessionId();
         }
 
         private String chatRunId() {
-            return chatRunId;
+            return run.getId();
         }
 
-        private void add(Map<String, Object> fields) {
-            Map<String, Object> event = new LinkedHashMap<>(fields);
-            event.put("threadId", threadId);
-            events.add(AguiEventJsonCodec.encodeBootstrapEvent(event, chatRunId, aguiRunId, highWatermark));
+        private String aguiRunId() {
+            return run.getAguiRunId();
+        }
+
+        private void add(AguiEvent event) {
+            add(event, null);
+        }
+
+        private void add(AguiEvent event, Integer phaseNo) {
+            events.add(AguiEventJsonCodec.encodeBootstrapEvent(event, run.getId(), phaseNo));
+        }
+
+        private void addTerminal(AguiEvent event, ChatRunEntity terminalRun) {
+            events.add(AguiEventJsonCodec.withTerminalMetadata(
+                    AguiEventJsonCodec.encodeBootstrapEvent(event, run.getId(), null),
+                    terminalRun.getStatus(),
+                    terminalRun.getFinishReason()));
         }
 
         private List<String> events() {

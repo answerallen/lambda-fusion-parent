@@ -52,10 +52,40 @@ class AgentExecutionAdapterHitlFeatureTest {
         ToolCallingModel mainModel = new ToolCallingModel();
         RecordingMemoryModel memoryModel = new RecordingMemoryModel();
         InMemoryAgentStateStore stateStore = new InMemoryAgentStateStore();
+
+        try (HarnessAgent agent = buildAgent(mainModel, memoryModel, stateStore)) {
+            AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-feature");
+
+            List<AgentEvent> events =
+                    adapter.stream(userMessage()).collectList().block(TIMEOUT);
+
+            assertThat(events).isNotNull();
+            assertThat(events)
+                    .extracting(AgentEvent::getType)
+                    .contains(AgentEventType.REQUIRE_USER_CONFIRM, AgentEventType.AGENT_END);
+            assertThat(events.getLast().getType()).isEqualTo(AgentEventType.AGENT_END);
+            assertThat(events.getLast().getSource()).isNull();
+            assertThat(memoryModel.invocations()).isZero();
+            assertThat(stateStore.exists("user-feature", "session-feature")).isTrue();
+
+            AgentState state = agent.getDelegate().getAgentState("user-feature", "session-feature");
+            assertThat(lastAssistantToolUse(state).getState()).isEqualTo(ToolCallState.ASKING);
+        }
+
+        // 模拟应用进程重启：本地 Agent 实例消失，新的实例从同一 StateStore 懒加载 ASKING 状态。
+        try (HarnessAgent restarted = buildAgent(new ToolCallingModel(), new RecordingMemoryModel(), stateStore)) {
+            AgentExecutionAdapter restored = new AgentExecutionAdapter(restarted, run(), session(), "tenant-feature");
+
+            assertThat(restored.readAskingToolBlocks())
+                    .extracting(ToolUseBlock::getId)
+                    .containsExactly("call-feature");
+        }
+    }
+
+    private HarnessAgent buildAgent(Model mainModel, Model memoryModel, InMemoryAgentStateStore stateStore) {
         Toolkit toolkit = new Toolkit();
         toolkit.registerAgentTool(new AskingTool());
-
-        try (HarnessAgent agent = HarnessAgent.builder()
+        return HarnessAgent.builder()
                 .agentId("hitl-boundary-agent")
                 .name("hitl-boundary-agent")
                 .sysPrompt("You are a test assistant.")
@@ -79,24 +109,7 @@ class AgentExecutionAdapterHitlFeatureTest {
                 .disableDynamicSubagents()
                 .disableToolsConfig()
                 .disableMemoryTools()
-                .build()) {
-            AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-feature");
-
-            List<AgentEvent> events =
-                    adapter.stream(userMessage()).collectList().block(TIMEOUT);
-
-            assertThat(events).isNotNull();
-            assertThat(events)
-                    .extracting(AgentEvent::getType)
-                    .contains(AgentEventType.REQUIRE_USER_CONFIRM, AgentEventType.AGENT_END);
-            assertThat(events.getLast().getType()).isEqualTo(AgentEventType.AGENT_END);
-            assertThat(events.getLast().getSource()).isNull();
-            assertThat(memoryModel.invocations()).isZero();
-            assertThat(stateStore.exists("user-feature", "session-feature")).isTrue();
-
-            AgentState state = agent.getDelegate().getAgentState("user-feature", "session-feature");
-            assertThat(lastAssistantToolUse(state).getState()).isEqualTo(ToolCallState.ASKING);
-        }
+                .build();
     }
 
     private static ToolUseBlock lastAssistantToolUse(AgentState state) {

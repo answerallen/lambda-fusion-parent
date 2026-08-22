@@ -13,19 +13,17 @@ import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import io.agentscope.harness.agent.HarnessAgent;
 import java.util.concurrent.ScheduledExecutorService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 /**
- * 执行实例工厂：统一恢复/构造 {@link ChatRunInstance}。恢复与终结共用同一套装配--带 Agent
- * 的实例用于执行与确认恢复，无 Agent 的纯落库实例仅用于终结；构造依赖集中在工厂，调度器由协调器按次传入，
+ * 执行实例工厂：统一构造 {@link ChatRunInstance}。带 Agent 的实例只用于新 Run 或持久化 HITL 的显式继续，
+ * 无 Agent 的纯落库实例仅用于终结；构造依赖集中在工厂，调度器由协调器按次传入，
  * 活动实例注册表由协调器的注册表组件独占，工厂不持有、查询或修改。
  *
  * @author Jin
  */
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ChatRunInstanceFactory {
@@ -37,10 +35,24 @@ public class ChatRunInstanceFactory {
     private final ObjectProvider<FusionSubagentGateway> subagentGatewayProvider;
     private final AiProperties properties;
 
-    /** 恢复带 Agent 的完整执行实例。 */
-    public ChatRunInstance restoreExecution(
+    /** 为当前节点刚创建的 Run 构造带 Agent 的完整执行实例。 */
+    public ChatRunInstance createExecution(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
-        eventStore.initialize(run.getId(), run.getSnapshotSeq());
+        return createAgentBacked(run, session, scheduler);
+    }
+
+    /**
+     * 为已持久化在 HITL 边界的 Run 重建本地确认实例。此方法只在用户显式确认或放弃时调用，
+     * 不启动旧阶段、不接管正在执行的工具。
+     */
+    public ChatRunInstance createPausedConfirmation(
+            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
+        return createAgentBacked(run, session, scheduler);
+    }
+
+    private ChatRunInstance createAgentBacked(
+            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
+        eventStore.registerLocalRun(run.getId());
         return newInstance(run, session, scheduler, createAgentExecution(run, session));
     }
 
@@ -54,25 +66,10 @@ public class ChatRunInstanceFactory {
         return new AgentExecutionAdapter(agent, run, session, tenantId, subagentGateway);
     }
 
-    /** 恢复无 Agent 的纯终结实例（仅用于落终态，不闭合 Agent 状态）。 */
-    public ChatRunInstance restoreFinalizer(
+    /** 构造无 Agent 的纯终结实例（仅用于落终态，不闭合或恢复 Agent 状态）。 */
+    public ChatRunInstance createTerminalOnly(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
-        eventStore.initialize(run.getId(), run.getSnapshotSeq());
         return newInstance(run, session, scheduler, null);
-    }
-
-    /**
-     * 恢复待确认上下文清理实例：只用于关闭 AgentScope 持久化状态中的未决工具，不启动源流、不远程中断活动调用；
-     * Agent 状态不可用时退化为纯业务终结。
-     */
-    public ChatRunInstance restoreConfirmationFinalizer(
-            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
-        try {
-            return restoreExecution(run, session, scheduler);
-        } catch (RuntimeException restoreFailure) {
-            log.warn("终结前Agent恢复失败，仅落终态: runId={}", run.getId(), restoreFailure);
-            return restoreFinalizer(run, session, scheduler);
-        }
     }
 
     private ChatRunInstance newInstance(
