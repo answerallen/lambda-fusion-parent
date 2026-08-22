@@ -37,4 +37,10 @@ public interface ChatRunStateService {
     ChatRunFinalizationResult finalizeExecution(ChatRunEntity run, ChatRunFinalizationCommand command);
 
     ChatRunEntity loadCurrent(String runId);
+
+    /** 查询最新持久化运行；不存在时返回传入的标识实体。 */
+    default ChatRunEntity loadCurrentOrIdentity(ChatRunEntity identity) {
+        ChatRunEntity current = loadCurrent(identity.getId());
+        return current == null ? identity : current;
+    }
 }

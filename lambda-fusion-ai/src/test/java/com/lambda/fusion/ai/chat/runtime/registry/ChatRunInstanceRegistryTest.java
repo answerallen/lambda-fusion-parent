@@ -29,8 +29,8 @@ class ChatRunInstanceRegistryTest {
         ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
         ChatExecutionInstance first = execution(firstRun, session);
         ChatExecutionInstance second = execution(secondRun, session);
-        when(instanceFactory.createExecution(firstRun, session, scheduler)).thenReturn(first);
-        when(instanceFactory.createExecution(secondRun, session, scheduler)).thenReturn(second);
+        when(instanceFactory.createAgentBacked(firstRun, session, scheduler)).thenReturn(first);
+        when(instanceFactory.createAgentBacked(secondRun, session, scheduler)).thenReturn(second);
         ChatExecutionInstanceRegistry registry = new ChatExecutionInstanceRegistry(instanceFactory, properties);
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
@@ -57,7 +57,7 @@ class ChatRunInstanceRegistryTest {
         ChatSessionEntity session = session();
         ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
         ChatExecutionInstance execution = execution(run, session);
-        when(instanceFactory.createExecution(run, session, scheduler)).thenReturn(execution);
+        when(instanceFactory.createAgentBacked(run, session, scheduler)).thenReturn(execution);
         ChatExecutionInstanceRegistry registry = new ChatExecutionInstanceRegistry(instanceFactory, properties);
 
         assertThat(registry.registerForStartIfCapacity(run, session, scheduler)).isPresent();

@@ -42,7 +42,7 @@ public final class ChatExecutionInstanceRegistry {
         if (!hasCapacityForLocked(session)) {
             return Optional.empty();
         }
-        ChatExecutionInstance candidate = instanceFactory.createExecution(run, session, scheduler);
+        ChatExecutionInstance candidate = instanceFactory.createAgentBacked(run, session, scheduler);
         registerNew(run.getId(), candidate);
         return Optional.of(candidate);
     }
@@ -58,7 +58,7 @@ public final class ChatExecutionInstanceRegistry {
             return existing;
         }
         enforceCapacityLocked(session);
-        ChatExecutionInstance candidate = instanceFactory.createPausedConfirmation(run, session, scheduler);
+        ChatExecutionInstance candidate = instanceFactory.createAgentBacked(run, session, scheduler);
         registerNew(run.getId(), candidate);
         return candidate;
     }

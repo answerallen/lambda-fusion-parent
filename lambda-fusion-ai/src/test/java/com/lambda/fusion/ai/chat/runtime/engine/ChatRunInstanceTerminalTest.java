@@ -141,7 +141,7 @@ class ChatRunInstanceTerminalTest {
                 .thenReturn(
                         new ChatRunFinalizationResult(true, "COMPLETED", "SUCCESS", null, null),
                         new ChatRunFinalizationResult(false, "COMPLETED", "SUCCESS", null, null));
-        when(runService.loadCurrent("run-1")).thenReturn(persisted);
+        when(runService.loadCurrentOrIdentity(run)).thenReturn(persisted);
         when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
                 .thenThrow(new RuntimeException("event store unavailable"))
                 .thenReturn(new ChatRunEvent(8L, "RUN_FINISHED", "{}"));

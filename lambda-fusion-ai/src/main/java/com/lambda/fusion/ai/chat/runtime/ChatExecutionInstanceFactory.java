@@ -34,22 +34,11 @@ public class ChatExecutionInstanceFactory {
     private final ObjectProvider<FusionSubagentGateway> subagentGatewayProvider;
     private final AiProperties properties;
 
-    /** 为当前节点刚创建的 Run 构造带 Agent 的完整执行实例。 */
-    public ChatExecutionInstance createExecution(
-            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
-        return createAgentBacked(run, session, scheduler);
-    }
-
     /**
-     * 为已持久化在 HITL 边界的 Run 重建本地确认实例。此方法只在用户显式确认或放弃时调用，
-     * 不启动旧阶段、不接管正在执行的工具。
+     * 构造带 Agent 的完整执行实例：用于当前节点新 Run 启动，或为已持久化在 HITL 边界的 Run
+     * 重建本地确认上下文（仅在用户显式确认或停止时调用，不启动旧阶段、不接管正在执行的工具）。
      */
-    public ChatExecutionInstance createPausedConfirmation(
-            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
-        return createAgentBacked(run, session, scheduler);
-    }
-
-    private ChatExecutionInstance createAgentBacked(
+    public ChatExecutionInstance createAgentBacked(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         eventStore.registerLocalRun(run.getId());
         return newInstance(run, session, scheduler, createAgentExecution(run, session));
@@ -76,7 +65,8 @@ public class ChatExecutionInstanceFactory {
             ChatSessionEntity session,
             ScheduledExecutorService scheduler,
             AgentExecutionAdapter agentExecution) {
-        ChatExecutionSnapshotBuilder chatExecutionSnapshotBuilder = new ChatExecutionSnapshotBuilder(ChatRunSnapshotCodec.decode(run.getSnapshotJson()));
+        ChatExecutionSnapshotBuilder chatExecutionSnapshotBuilder =
+                new ChatExecutionSnapshotBuilder(ChatRunSnapshotCodec.decode(run.getSnapshotJson()));
         return new ChatExecutionInstance(
                 runService,
                 eventStore,

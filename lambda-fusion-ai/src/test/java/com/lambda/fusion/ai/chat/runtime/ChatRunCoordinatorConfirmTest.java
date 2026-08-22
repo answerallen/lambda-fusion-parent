@@ -278,7 +278,7 @@ class ChatRunCoordinatorConfirmTest {
     }
 
     private ChatExecutionInstance execution(ChatRunEntity run, ChatSessionEntity session) {
-        return instanceFactory.createExecution(run, session, scheduler);
+        return instanceFactory.createAgentBacked(run, session, scheduler);
     }
 
     private static ChatRunEntity awaitingRun(int phaseNo) {

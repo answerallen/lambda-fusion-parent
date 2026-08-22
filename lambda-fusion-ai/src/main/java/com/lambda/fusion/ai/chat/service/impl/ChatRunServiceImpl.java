@@ -253,14 +253,13 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         ChatRunStatus targetStatus = command.targetStatus();
         ChatRunSnapshot snapshot = command.snapshot();
         String toolCallJson = command.toolCallJson();
-        ChatRunStatus finalStatus = targetStatus;
         ChatRunFinishReason finalReason = command.finishReason();
-        ChatRunFailureCode finalErrorCode = finalStatus == ChatRunStatus.STOPPED ? null : command.errorCode();
-        String finalErrorMessage = finalStatus == ChatRunStatus.STOPPED ? null : command.errorMessage();
+        ChatRunFailureCode finalErrorCode = targetStatus == ChatRunStatus.STOPPED ? null : command.errorCode();
+        String finalErrorMessage = targetStatus == ChatRunStatus.STOPPED ? null : command.errorMessage();
 
         // 仅 COMPLETED 或仍有正文/工具调用时才落库助手消息。
         ChatMessageEntity assistant = null;
-        if (finalStatus == ChatRunStatus.COMPLETED || !snapshot.text().isBlank() || toolCallJson != null) {
+        if (targetStatus == ChatRunStatus.COMPLETED || !snapshot.text().isBlank() || toolCallJson != null) {
             assistant = messageService.saveAssistantMessage(session, snapshot.text(), toolCallJson);
         }
         LocalDateTime now = LocalDateTime.now();
@@ -270,7 +269,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                 new LambdaUpdateWrapper<ChatRunEntity>()
                         .eq(ChatRunEntity::getId, run.getId())
                         .notIn(ChatRunEntity::getStatus, ChatRunStatus.terminalNames())
-                        .set(ChatRunEntity::getStatus, finalStatus.name())
+                        .set(ChatRunEntity::getStatus, targetStatus.name())
                         .set(ChatRunEntity::getFinishReason, finalReason == null ? null : finalReason.name())
                         .set(ChatRunEntity::getAssistantMessageId, assistant == null ? null : assistant.getId())
                         .set(ChatRunEntity::getSnapshotJson, null)
@@ -291,7 +290,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .set(ChatSessionEntity::getUpdatedAt, now));
         return new ChatRunFinalizationResult(
                 true,
-                finalStatus.name(),
+                targetStatus.name(),
                 finalReason == null ? null : finalReason.name(),
                 finalErrorCode == null ? null : finalErrorCode.name(),
                 finalErrorMessage);

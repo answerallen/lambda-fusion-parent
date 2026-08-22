@@ -50,7 +50,7 @@ class ChatRunCoordinatorStopTest {
         coordinator.stop(run, session);
 
         verify(finalizer).requestStop();
-        verify(instanceFactory, never()).createExecution(any(), any(), any(ScheduledExecutorService.class));
+        verify(instanceFactory, never()).createAgentBacked(any(), any(), any(ScheduledExecutorService.class));
         verify(finalizer, never()).interruptAgent();
     }
 
@@ -75,7 +75,7 @@ class ChatRunCoordinatorStopTest {
                 List.of(new ChatRunSnapshot.ToolCall("call-1", "dangerous", "", "", "asking")))));
         ChatSessionEntity session = new ChatSessionEntity();
         session.setTenantId("tenant-1");
-        when(instanceFactory.createPausedConfirmation(any(), any(), any(ScheduledExecutorService.class)))
+        when(instanceFactory.createAgentBacked(any(), any(), any(ScheduledExecutorService.class)))
                 .thenReturn(finalizer);
 
         coordinator = coordinator(instanceFactory);
@@ -83,13 +83,14 @@ class ChatRunCoordinatorStopTest {
 
         verify(finalizer).requestStop();
         verify(finalizer, never()).interruptAgent();
-        verify(instanceFactory, never()).createExecution(any(), any(), any(ScheduledExecutorService.class));
         verify(instanceFactory, never()).createTerminalOnly(any(), any(), any(ScheduledExecutorService.class));
     }
 
     private static ChatExecutionService coordinator(ChatExecutionInstanceFactory instanceFactory) {
+        ChatRunStateService runService = mock(ChatRunStateService.class);
+        when(runService.loadCurrentOrIdentity(any())).thenAnswer(invocation -> invocation.getArgument(0));
         return new ChatExecutionService(
-                mock(ChatRunStateService.class),
+                runService,
                 mock(ChatRunEventStore.class),
                 mock(ChatMessageService.class),
                 mock(ChatAttachmentService.class),

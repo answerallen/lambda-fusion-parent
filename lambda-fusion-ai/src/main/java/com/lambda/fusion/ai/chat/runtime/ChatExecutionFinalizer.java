@@ -38,7 +38,8 @@ public final class ChatExecutionFinalizer {
      * @param eventStore 运行事件存储
      * @param properties AI 模块配置
      */
-    public ChatExecutionFinalizer(ChatRunStateService runService, ChatRunEventStore eventStore, AiProperties properties) {
+    public ChatExecutionFinalizer(
+            ChatRunStateService runService, ChatRunEventStore eventStore, AiProperties properties) {
         this.runService = runService;
         this.eventStore = eventStore;
         this.properties = properties;
@@ -75,7 +76,7 @@ public final class ChatExecutionFinalizer {
         run.setErrorCode(result.errorCode());
         run.setErrorMessage(result.errorMessage());
         if (!result.committed()) {
-            ChatRunEntity persisted = loadCurrent(run);
+            ChatRunEntity persisted = runService.loadCurrentOrIdentity(run);
             run.setAguiRunId(persisted.getAguiRunId());
         }
         ChatRunStatus actualStatus = ChatRunStatus.valueOf(run.getStatus());
@@ -94,12 +95,6 @@ public final class ChatExecutionFinalizer {
         eventStore.appendTerminalIfAbsent(run.getId(), run.getAguiRunId(), json);
         eventStore.markTerminal(
                 run.getId(), Duration.ofSeconds(properties.getChat().getRun().getTerminalTtlSeconds()));
-    }
-
-    /** 查询最新持久化运行；不存在时返回传入实体。 */
-    private ChatRunEntity loadCurrent(ChatRunEntity identity) {
-        ChatRunEntity current = runService.loadCurrent(identity.getId());
-        return current == null ? identity : current;
     }
 
     private static Map<String, String> toPersistedToolCall(ChatRunSnapshot.ToolCall tool) {

@@ -160,11 +160,10 @@ public final class ChatExecutionInstance {
         Msg confirmMessage = validateAndBuildMessage(command);
         ConfirmTransition transition =
                 runService.advanceConfirmation(run, session, sourcePhaseNo, accumulator.buildSnapshot());
+        syncRun(transition.run());
         if (!transition.resumed()) {
-            syncRun(transition.run());
             return transition;
         }
-        syncRun(transition.run());
         try {
             beginConfirmedPhase();
             startPhase(confirmMessage);
@@ -296,7 +295,6 @@ public final class ChatExecutionInstance {
             }
             pendingConfirmEvents = events;
             accumulator.apply(events);
-            checkpointDirty = !events.isEmpty();
             // AgentScope 在事件流结束时持久化 ASKING 状态。
             return;
         }
@@ -364,7 +362,7 @@ public final class ChatExecutionInstance {
 
     /** 判断是否仍有已订阅但尚未触发 {@code doFinally} 的 AgentScope 源流；普通阶段包括记忆尾部。 */
     private boolean noActive() {
-        return sourceActive;
+        return !sourceActive;
     }
 
     private void completeAwaitConfirm() {
@@ -383,14 +381,7 @@ public final class ChatExecutionInstance {
         if (!awaiting) {
             // 终态会拒绝迟到的确认快照；不存在第二套待确认状态迁移。
             pendingConfirmEvents = null;
-            ChatRunEntity current = loadCurrent(run);
-            run.setStatus(current.getStatus());
-            if (ChatRunStatus.isTerminal(current.getStatus())) {
-                terminal = true;
-                drainedSignal.complete(null);
-            } else {
-                throw new IllegalStateException("Run待确认快照未写入: " + run.getId());
-            }
+            adoptExternalTerminalIfRejected("Run待确认快照未写入: ");
             return;
         }
         try {
@@ -447,19 +438,13 @@ public final class ChatExecutionInstance {
         return !accumulator.buildSnapshot().pendingTools().isEmpty();
     }
 
-    /** 查询最新持久化运行；不存在时返回传入实体。 */
-    private ChatRunEntity loadCurrent(ChatRunEntity identity) {
-        ChatRunEntity current = runService.loadCurrent(identity.getId());
-        return current == null ? identity : current;
-    }
-
     /** 将运行终结为完成状态。 */
     synchronized void finalizeCompleted() {
         finalizeTerminal(ChatRunStatus.COMPLETED, ChatRunFinishReason.SUCCESS, null, null);
     }
 
     /** 将运行终结为停止状态。 */
-    public synchronized void finalizeStopped(ChatRunFinishReason reason) {
+    synchronized void finalizeStopped(ChatRunFinishReason reason) {
         finalizeTerminal(ChatRunStatus.STOPPED, reason, null, null);
     }
 
@@ -490,7 +475,8 @@ public final class ChatExecutionInstance {
             } catch (RuntimeException closeEventFailure) {
                 log.warn("Run终结前内容关闭事件写入失败，仍继续提交业务终态: runId={}", run.getId(), closeEventFailure);
             }
-            chatExecutionFinalizer.commitTerminal(run, accumulator.buildSnapshot(), status, reason, errorCode, errorMessage);
+            chatExecutionFinalizer.commitTerminal(
+                    run, accumulator.buildSnapshot(), status, reason, errorCode, errorMessage);
             // 业务终态后若无活动源流（如纯终结恢复、源流已先终止、启动同步失败），立即完成排空信号；
             // 否则等待 onSourceTerminated 在源流排空后完成它。
             if (noActive()) {
@@ -552,20 +538,29 @@ public final class ChatExecutionInstance {
     /** 立即写入执行检查点并收缩事件缓冲区。抛 {@link IllegalStateException} 表示非终态运行的检查点失败。 */
     synchronized void checkpointNow() {
         cancelCheckpointTask();
-        if (!runService.checkpoint(run, accumulator.buildSnapshot())) {
-            ChatRunEntity current = loadCurrent(run);
-            run.setStatus(current.getStatus());
-            if (ChatRunStatus.isTerminal(current.getStatus())) {
-                terminal = true;
-                checkpointDirty = false;
-                if (noActive()) {
-                    drainedSignal.complete(null);
-                }
-                return;
-            }
-            throw new IllegalStateException("Run快照检查点未写入: " + run.getId());
-        } else {
+        if (runService.checkpoint(run, accumulator.buildSnapshot())) {
             checkpointDirty = false;
+            return;
+        }
+        adoptExternalTerminalIfRejected("Run快照检查点未写入: ");
+    }
+
+    /**
+     * 快照写入被数据库拒绝后的收敛：运行已被并发提交终态时同步本地终态，并在无活动源流时完成排空信号；
+     * 非终态拒绝视为快照未写入的非法状态。
+     *
+     * @param failureMessage 非法状态异常消息前缀
+     */
+    private void adoptExternalTerminalIfRejected(String failureMessage) {
+        ChatRunEntity current = runService.loadCurrentOrIdentity(run);
+        run.setStatus(current.getStatus());
+        if (!ChatRunStatus.isTerminal(current.getStatus())) {
+            throw new IllegalStateException(failureMessage + run.getId());
+        }
+        terminal = true;
+        checkpointDirty = false;
+        if (noActive()) {
+            drainedSignal.complete(null);
         }
     }
 

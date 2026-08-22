@@ -190,7 +190,7 @@ public class ChatExecutionService {
         if (execution != null) {
             return execution.bootstrap();
         }
-        ChatRunEntity current = loadCurrent(run);
+        ChatRunEntity current = runService.loadCurrentOrIdentity(run);
         var snapshot = ChatRunSnapshotCodec.decode(current.getSnapshotJson());
         long cursor = eventStore.latestCursor(current.getId());
         return new AguiBootstrapModel(
@@ -212,7 +212,7 @@ public class ChatExecutionService {
     }
 
     private void stopInContext(ChatRunEntity run, ChatSessionEntity session) {
-        ChatRunEntity current = loadCurrent(run);
+        ChatRunEntity current = runService.loadCurrentOrIdentity(run);
         if (ChatRunStatus.isTerminal(current.getStatus())) {
             return;
         }
@@ -278,21 +278,10 @@ public class ChatExecutionService {
         }
         try {
             // HITL 已暂停且没有活动工具；加载 AgentScope 状态只为补写拒绝结果，避免 ASKING 污染后续对话。
-            return instanceFactory.createPausedConfirmation(run, session, scheduler);
+            return instanceFactory.createAgentBacked(run, session, scheduler);
         } catch (RuntimeException stateUnavailable) {
             log.warn("停止Run时无法清理AgentScope待确认状态，仅提交业务终态: runId={}", run.getId(), stateUnavailable);
             return instanceFactory.createTerminalOnly(run, session, scheduler);
         }
-    }
-
-    /**
-     * 查询最新持久化运行。
-     *
-     * @param identity 运行标识实体
-     * @return 最新运行实体；记录不存在时返回传入实体
-     */
-    private ChatRunEntity loadCurrent(ChatRunEntity identity) {
-        ChatRunEntity current = runService.loadCurrent(identity.getId());
-        return current == null ? identity : current;
     }
 }
