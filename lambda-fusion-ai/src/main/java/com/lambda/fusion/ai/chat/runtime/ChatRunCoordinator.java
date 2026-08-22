@@ -107,6 +107,8 @@ public class ChatRunCoordinator {
                 eventStore,
                 registry,
                 runService,
+                runOwner,
+                properties,
                 this::startIfCreated,
                 this::takeoverIfExpired,
                 this::expiredBefore);
@@ -133,12 +135,13 @@ public class ChatRunCoordinator {
         if (!ChatRunStatus.CREATED.name().equals(run.getStatus())) {
             return;
         }
-        try {
-            registry.enforceCapacity(run, session);
-        } catch (RuntimeException capacityFailure) {
-            ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler);
-            rejected.finalizeFailed(
-                    ChatRunFailureCode.RUN_CAPACITY_EXCEEDED, ChatRunDataSanitizer.safeMessage(capacityFailure));
+        // 优雅停机排空中：本节点不再认领新 Run，留待其他节点认领。
+        if (runOwner.draining()) {
+            return;
+        }
+        // 集群下本节点满载时跳过该 Run（不改状态），留待空闲节点认领；全节点长期满载由周期调度超时收敛。
+        // 仅用户发起的确认仍按容量约束拒绝，CREATED 调度不再终结为 RUN_CAPACITY_EXCEEDED。
+        if (!registry.hasCapacityFor(run, session)) {
             return;
         }
         ChatRunInstance candidate;
@@ -291,11 +294,33 @@ public class ChatRunCoordinator {
         }
     }
 
-    /** 中断活动运行并关闭定时维护线程池。 */
+    /**
+     * 优雅停机 drain（§8.4）：先标记排空使本节点停止认领/接管新 Run，再在停机上限内等待活动 Run 自然收敛
+     * （期间续约与检查点照常）；到期仍未结束的 Run 协作式中断、由源流的 STOPPING 收敛或后续接管兜底。
+     * 最后关闭定时维护线程池。
+     */
     @PreDestroy
     public void shutdown() {
-        registry.forEachActive(execution -> execution.runInTenant(execution::interruptForShutdown));
+        runOwner.beginDrain();
+        awaitDrain();
+        if (!registry.isIdle()) {
+            registry.forEachActive(execution -> execution.runInTenant(execution::interruptForShutdown));
+        }
         scheduler.shutdown();
+    }
+
+    /** 在停机上限内轮询等待注册表排空；被中断或超时即返回，由调用方继续收尾。 */
+    private void awaitDrain() {
+        long deadline = System.nanoTime()
+                + TimeUnit.SECONDS.toNanos(properties.getChat().getRun().getShutdownDrainTimeoutSeconds());
+        while (!registry.isIdle() && System.nanoTime() < deadline) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(200);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
     }
 
     /** 计算新租约截止时间（以当前时间为基准加租约时长）。 */

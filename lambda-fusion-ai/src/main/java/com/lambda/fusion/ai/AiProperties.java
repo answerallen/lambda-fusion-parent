@@ -170,6 +170,14 @@ public class AiProperties {
             @Min(0)
             private long takeoverGraceSeconds = 30;
 
+            /** 优雅停机时等待本节点活动 Run 自然收敛的最长时间，单位秒；到期仍未结束的 Run 主动收敛。 */
+            @Min(0)
+            private long shutdownDrainTimeoutSeconds = 60;
+
+            /** CREATED 态 Run 等待被认领的最长时间，单位秒；超时未被认领（全节点满载）收敛为调度超时失败。 */
+            @Min(1)
+            private long scheduleTimeoutSeconds = 300;
+
             /** 租约参数须满足 lease-ttl 不小于 3 倍续约周期，否则 fencing 无法可靠工作。 */
             @AssertTrue(message = "lease-ttl-seconds 必须不小于 3 倍 lease-renew-interval-seconds")
             public boolean isLeaseTtlSufficient() {

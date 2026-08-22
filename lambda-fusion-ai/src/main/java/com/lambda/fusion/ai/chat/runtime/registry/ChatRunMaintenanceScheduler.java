@@ -1,7 +1,10 @@
 package com.lambda.fusion.ai.chat.runtime.registry;
 
+import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
+import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.chat.runtime.ChatRunOwner;
 import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstance;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
@@ -25,6 +28,8 @@ public final class ChatRunMaintenanceScheduler {
     private final ChatRunEventStore eventStore;
     private final ChatRunInstanceRegistry registry;
     private final ChatRunStateService runService;
+    private final ChatRunOwner runOwner;
+    private final AiProperties properties;
     private final Consumer<ChatRunEntity> createdLauncher;
     private final Consumer<ChatRunEntity> takeoverLauncher;
     private final java.util.function.Supplier<java.time.LocalDateTime> expiredBeforeSupplier;
@@ -36,6 +41,8 @@ public final class ChatRunMaintenanceScheduler {
      * @param eventStore 运行事件存储
      * @param registry 活动实例注册表
      * @param runService 运行状态服务
+     * @param runOwner 本节点执行标识（提供 owner 与排空标记）
+     * @param properties AI 模块配置
      * @param createdLauncher 待执行 CREATED Run 的拉起动作（协调器入口）
      * @param takeoverLauncher 过期中断态 Run 的接管动作（协调器入口）
      * @param expiredBeforeSupplier 租约过期阈值提供者
@@ -45,6 +52,8 @@ public final class ChatRunMaintenanceScheduler {
             ChatRunEventStore eventStore,
             ChatRunInstanceRegistry registry,
             ChatRunStateService runService,
+            ChatRunOwner runOwner,
+            AiProperties properties,
             Consumer<ChatRunEntity> createdLauncher,
             Consumer<ChatRunEntity> takeoverLauncher,
             java.util.function.Supplier<java.time.LocalDateTime> expiredBeforeSupplier) {
@@ -52,6 +61,8 @@ public final class ChatRunMaintenanceScheduler {
         this.eventStore = eventStore;
         this.registry = registry;
         this.runService = runService;
+        this.runOwner = runOwner;
+        this.properties = properties;
         this.createdLauncher = createdLauncher;
         this.takeoverLauncher = takeoverLauncher;
         this.expiredBeforeSupplier = expiredBeforeSupplier;
@@ -68,14 +79,22 @@ public final class ChatRunMaintenanceScheduler {
             long now = System.nanoTime();
             registry.forEachActive(execution -> safelyMaintain(
                     execution.run().getId(), () -> execution.runInTenant(() -> execution.checkpointIfDue(now))));
-            // 周期接管失效租约的 RUNNING/STOPPING（不含 AWAITING_CONFIRM，后者走确认超时路径）。
+            boolean draining = runOwner.draining();
+            // 周期接管失效租约的 RUNNING/STOPPING（不含 AWAITING_CONFIRM，后者走确认超时路径）；排空中停止接管。
             java.time.LocalDateTime expiredBefore = expiredBeforeSupplier.get();
-            runService.listInterruptedOnRestart(expiredBefore).stream()
-                    .filter(run -> !com.lambda.fusion.ai.AiConstants.ChatRunStatus.AWAITING_CONFIRM
-                            .name()
-                            .equals(run.getStatus()))
-                    .forEach(run -> safelyMaintain(run.getId(), () -> takeoverLauncher.accept(run)));
-            runService.listCreated().forEach(run -> safelyMaintain(run.getId(), () -> createdLauncher.accept(run)));
+            if (!draining) {
+                runService.listInterruptedOnRestart(expiredBefore).stream()
+                        .filter(run -> !ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus()))
+                        .forEach(run -> safelyMaintain(run.getId(), () -> takeoverLauncher.accept(run)));
+                runService.listCreated().forEach(run -> safelyMaintain(run.getId(), () -> createdLauncher.accept(run)));
+            }
+            // 全节点长期满载时，滞留 CREATED 超过调度超时的运行收敛为失败（CREATED 不受容量上限约束，
+            // 任意节点均可终结，DB 终态 CAS 幂等；与并发认领竞争时落败方 finalizeExecution 自然幂等返回）。
+            LocalDateTime staleBefore = LocalDateTime.now()
+                    .minusSeconds(properties.getChat().getRun().getScheduleTimeoutSeconds());
+            runService
+                    .listStaleCreated(staleBefore)
+                    .forEach(run -> safelyMaintain(run.getId(), () -> convergeScheduleTimeout(run)));
             runService
                     .listExpiredConfirmations(java.time.LocalDateTime.now())
                     .forEach(run -> safelyMaintain(run.getId(), () -> expireConfirmation(run)));
@@ -89,8 +108,25 @@ public final class ChatRunMaintenanceScheduler {
         TenantUtils.withTenant(session.getTenantId(), () -> {
             // 取规范实例（注册唯一实例），确认超时的数据库迁移与终态收敛一并移入实例锁。
             ChatRunInstance execution = registry.selectOrRestoreForFinalize(run, session, scheduler);
-            execution.expireConfirmation(LocalDateTime.now());
+            execution.expireConfirmation(LocalDateTime.now(), runOwner.instanceId(), newLeaseUntil());
         });
+    }
+
+    /** 终结「调度超时」的滞留 CREATED 运行：按确认路径同款规范实例落终态（DB 幂等，多节点并发仅一方生效）。 */
+    private void convergeScheduleTimeout(ChatRunEntity run) {
+        ChatSessionEntity session = runService.loadSession(run);
+        TenantUtils.withTenant(session.getTenantId(), () -> {
+            ChatRunInstance execution = registry.selectOrRestoreForFinalize(run, session, scheduler);
+            execution.finalizeFailed(
+                    com.lambda.fusion.ai.AiConstants.ChatRunFailureCode.SCHEDULE_TIMEOUT,
+                    "对话Run等待调度超过 " + properties.getChat().getRun().getScheduleTimeoutSeconds() + " 秒未被认领");
+        });
+    }
+
+    /** 计算新租约截止时间（以当前时间为基准加租约时长）。 */
+    private java.time.LocalDateTime newLeaseUntil() {
+        return java.time.LocalDateTime.now()
+                .plusSeconds(properties.getChat().getRun().getLeaseTtlSeconds());
     }
 
     private void safelyMaintain(String runId, Runnable task) {

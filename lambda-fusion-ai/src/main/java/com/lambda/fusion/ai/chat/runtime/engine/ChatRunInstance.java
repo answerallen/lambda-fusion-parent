@@ -198,6 +198,9 @@ public final class ChatRunInstance {
         run.setStatus(updated.getStatus());
         run.setPhaseNo(updated.getPhaseNo());
         run.setAguiRunId(updated.getAguiRunId());
+        run.setOwnerInstanceId(updated.getOwnerInstanceId());
+        run.setLeaseUntil(updated.getLeaseUntil());
+        run.setLeaseEpoch(updated.getLeaseEpoch());
     }
 
     /** CAS 成功后切换累加器与事件解释器到新阶段。 */
@@ -580,15 +583,50 @@ public final class ChatRunInstance {
         lastCheckpointNanos = System.nanoTime();
     }
 
-    /** 检查点间隔到期时写入执行快照。 */
+    /**
+     * 检查点间隔到期时写入执行快照，并按租约时钟顺带续约本节点 lease（不递增 epoch）。
+     * 已过「租约到期点 − 安全余量」仍未续约成功时按 §5.0 自我隔离：跳过本次检查点与续约，停止输出，
+     * 待租约自然过期后由其他节点接管，避免过期 owner 继续写库。
+     */
     public synchronized void checkpointIfDue(long nowNanos) {
         if (terminal || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
             return;
         }
         long interval = TimeUnit.SECONDS.toNanos(properties.getChat().getRun().getSnapshotIntervalSeconds());
-        if (nowNanos - lastCheckpointNanos >= interval) {
-            checkpointNow();
+        if (nowNanos - lastCheckpointNanos < interval) {
+            return;
         }
+        if (approachingLeaseExpiry()) {
+            log.warn("Run租约临近到期仍未续约，本地自我隔离跳过检查点: runId={}", run.getId());
+            return;
+        }
+        renewLease();
+        checkpointNow();
+    }
+
+    /** 续约本节点持有 Run 的租约；续约失败（所有权已被接管或租约已过期）时同步真实状态，不再原地复活。 */
+    private void renewLease() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime leaseUntil = now.plusSeconds(properties.getChat().getRun().getLeaseTtlSeconds());
+        if (runService.renewLease(run, leaseUntil, now)) {
+            run.setLeaseUntil(leaseUntil);
+            return;
+        }
+        ChatRunEntity current = loadCurrent(run);
+        run.setStatus(current.getStatus());
+        run.setLeaseUntil(current.getLeaseUntil());
+        run.setLeaseEpoch(current.getLeaseEpoch());
+        log.warn("Run租约续约失败，本节点可能已失去所有权: runId={}", run.getId());
+    }
+
+    /** 是否已过「租约到期点 − 安全余量」；无法判定时（租约未设置）按未逼近处理，避免误隔离。 */
+    private boolean approachingLeaseExpiry() {
+        LocalDateTime leaseUntil = run.getLeaseUntil();
+        if (leaseUntil == null) {
+            return false;
+        }
+        long margin = properties.getChat().getRun().getLeaseSafetyMarginSeconds();
+        return !LocalDateTime.now().plusSeconds(margin).isBefore(leaseUntil);
     }
 
     /** 判断 Agent 事件流是否正在运行。 */
@@ -609,8 +647,15 @@ public final class ChatRunInstance {
         finalizeStopped(ChatRunFinishReason.USER_STOP);
     }
 
-    /** 在实例锁内原子地处理确认超时，迁移成功后收敛为停止终态。 */
-    public synchronized void expireConfirmation(LocalDateTime deadline) {
+    /**
+     * 在实例锁内原子地处理确认超时，认领本节点 owner 并迁移到 {@code STOPPING} 成功后收敛为停止终态。
+     * 待确认运行进入时已清空 owner，此处以「认领 + 转 STOPPING 一条 SQL」自我接管，避免滞留。
+     *
+     * @param deadline 判定已超时的数据库当前时间
+     * @param owner 认领节点标识
+     * @param leaseUntil 新租约截止时间
+     */
+    public synchronized void expireConfirmation(LocalDateTime deadline, String owner, LocalDateTime leaseUntil) {
         if (terminal) {
             return;
         }
@@ -621,11 +666,13 @@ public final class ChatRunInstance {
                 log.warn("停止Run前快照写入失败，继续中断执行: runId={}", run.getId(), checkpointFailure);
             }
         }
-        if (!runService.requestConfirmationTimeout(run, deadline)) {
+        if (!runService.requestConfirmationTimeout(run, deadline, owner, leaseUntil)) {
             run.setStatus(loadCurrent(run).getStatus());
             return;
         }
         run.setStatus(ChatRunStatus.STOPPING.name());
+        run.setOwnerInstanceId(owner);
+        run.setLeaseUntil(leaseUntil);
         finalizeStopped(ChatRunFinishReason.CONFIRM_TIMEOUT);
     }
 

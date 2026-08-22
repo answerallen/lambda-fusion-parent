@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 /**
  * 对话 Run 集群执行节点标识：以「应用名 + 进程启动时自动生成的 boot UUID」唯一标识本节点，
  * 供 ChatRun 的 owner/lease fencing 使用。boot UUID 每次进程启动重新生成，不作为人工配置项。
+ * 停机时先置 {@link #draining} 标记，本节点随即停止认领/接管新 Run，再等待活动 Run 收敛。
  *
  * @author Jin
  */
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 public class ChatRunOwner {
 
     private final String instanceId;
+    private volatile boolean draining;
 
     /**
      * 创建节点标识。
@@ -31,5 +33,19 @@ public class ChatRunOwner {
      */
     public String instanceId() {
         return instanceId;
+    }
+
+    /**
+     * 本节点是否已进入优雅停机排空状态：进入后不再认领新 Run 或接管失效 Run。
+     *
+     * @return 排空中返回 {@code true}
+     */
+    public boolean draining() {
+        return draining;
+    }
+
+    /** 标记本节点开始优雅停机排空（停止认领新工作）。 */
+    public void beginDrain() {
+        this.draining = true;
     }
 }

@@ -42,6 +42,7 @@ public final class ChatRunInstanceRegistry {
      * @param session 会话实体
      * @param scheduler 定时任务执行器
      * @return 规范执行实例
+     * @throws IllegalStateException 已达到全局或用户级活动实例上限（确认属用户发起交互，仍以容量约束拒绝）
      */
     public ChatRunInstance selectOrRestore(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
@@ -116,6 +117,37 @@ public final class ChatRunInstanceRegistry {
     }
 
     /**
+     * 判断能否再接纳一个新运行而不超容量（只读探测，不抛异常）。集群下待认领的 {@code CREATED} 运行
+     * 在满载节点上应跳过而非终结，留待空闲节点认领；故 CREATED 调度路径用本方法探测，确认路径仍用
+     * {@link #enforceCapacity} 拒绝。
+     *
+     * @param run 运行实体
+     * @param session 会话实体
+     * @return 未达全局或用户级上限返回 {@code true}
+     */
+    public boolean hasCapacityFor(ChatRunEntity run, ChatSessionEntity session) {
+        int maxGlobal = properties.getChat().getRun().getMaxActiveRuns();
+        if (!executions.containsKey(run.getId()) && executions.size() >= maxGlobal) {
+            return false;
+        }
+        long userRuns = executions.values().stream()
+                .filter(execution -> Objects.equals(execution.session().getTenantId(), session.getTenantId()))
+                .filter(execution -> Objects.equals(execution.session().getUserId(), session.getUserId()))
+                .filter(execution -> !Objects.equals(execution.run().getId(), run.getId()))
+                .count();
+        return userRuns < properties.getChat().getRun().getMaxActiveRunsPerUser();
+    }
+
+    /**
+     * 本节点是否已无活动执行实例（优雅停机排空的收敛判据）。
+     *
+     * @return 注册表为空返回 {@code true}
+     */
+    public boolean isIdle() {
+        return executions.isEmpty();
+    }
+
+    /**
      * 施加全局与用户级活动实例容量约束。
      *
      * @param run 运行实体
@@ -123,18 +155,13 @@ public final class ChatRunInstanceRegistry {
      * @throws IllegalStateException 已达到全局或用户级活动实例上限
      */
     public void enforceCapacity(ChatRunEntity run, ChatSessionEntity session) {
-        int maxGlobal = properties.getChat().getRun().getMaxActiveRuns();
-        if (!executions.containsKey(run.getId()) && executions.size() >= maxGlobal) {
-            throw new IllegalStateException("后台对话Run已达到实例上限: " + maxGlobal);
-        }
-        long userRuns = executions.values().stream()
-                .filter(execution -> Objects.equals(execution.session().getTenantId(), session.getTenantId()))
-                .filter(execution -> Objects.equals(execution.session().getUserId(), session.getUserId()))
-                .filter(execution -> !Objects.equals(execution.run().getId(), run.getId()))
-                .count();
-        int maxPerUser = properties.getChat().getRun().getMaxActiveRunsPerUser();
-        if (userRuns >= maxPerUser) {
-            throw new IllegalStateException("当前用户后台对话Run已达到上限: " + maxPerUser);
+        if (!hasCapacityFor(run, session)) {
+            int maxGlobal = properties.getChat().getRun().getMaxActiveRuns();
+            int maxPerUser = properties.getChat().getRun().getMaxActiveRunsPerUser();
+            throw new IllegalStateException(
+                    executions.size() >= maxGlobal
+                            ? "后台对话Run已达到实例上限: " + maxGlobal
+                            : "当前用户后台对话Run已达到上限: " + maxPerUser);
         }
     }
 }

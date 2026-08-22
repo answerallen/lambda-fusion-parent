@@ -14,6 +14,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
+import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
@@ -61,7 +62,8 @@ class ChatRunServiceImplTest {
             messageService,
             mock(ChatAttachmentService.class),
             mock(AppService.class),
-            new com.lambda.fusion.ai.chat.runtime.ChatRunOwner("test-app"));
+            new com.lambda.fusion.ai.chat.runtime.ChatRunOwner("test-app"),
+            new AiProperties());
 
     @Test
     void shouldLetStoppingStateWinAgainstConcurrentCompletion() {
@@ -109,16 +111,20 @@ class ChatRunServiceImplTest {
     void shouldExpireOnlyRunThatIsStillAwaitingConfirmation() {
         ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM);
         LocalDateTime deadline = LocalDateTime.of(2026, 8, 14, 12, 0);
+        LocalDateTime leaseUntil = deadline.plusSeconds(90);
         when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
 
-        assertThat(service.requestConfirmationTimeout(run, deadline)).isTrue();
+        assertThat(service.requestConfirmationTimeout(run, deadline, "owner-1", leaseUntil))
+                .isTrue();
 
         ArgumentCaptor<LambdaUpdateWrapper<ChatRunEntity>> updateCaptor =
                 ArgumentCaptor.forClass(LambdaUpdateWrapper.class);
         verify(runMapper).update(isNull(), updateCaptor.capture());
         LambdaUpdateWrapper<ChatRunEntity> update = updateCaptor.getValue();
+        // 认领 + 转 STOPPING 一条 SQL：状态与截止时间为 WHERE 前置；认领的 owner/lease 为 SET 值。
         assertThat(update.getSqlSegment()).contains("status").contains("await_confirm_deadline_at");
-        assertThat(update.getParamNameValuePairs().values()).contains(ChatRunStatus.AWAITING_CONFIRM.name(), deadline);
+        assertThat(update.getParamNameValuePairs().values())
+                .contains(ChatRunStatus.AWAITING_CONFIRM.name(), deadline, "owner-1", leaseUntil);
     }
 
     @Test
