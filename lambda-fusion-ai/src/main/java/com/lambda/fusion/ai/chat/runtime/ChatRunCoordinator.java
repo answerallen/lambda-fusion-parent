@@ -20,7 +20,6 @@ import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
 import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
 import com.lambda.fusion.ai.chat.runtime.registry.ChatRunInstanceRegistry;
-import com.lambda.fusion.ai.chat.runtime.registry.ChatRunMaintenanceScheduler;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
@@ -39,7 +38,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 对话运行协调门面：负责业务 Run 的启动、确认与停止编排。活动实例注册表与容量约束由
- * {@link ChatRunInstanceRegistry} 承载，定时维护与确认超时扫描由 {@link ChatRunMaintenanceScheduler} 承载；
+ * {@link ChatRunInstanceRegistry} 承载；
  * Agent 事件流由执行实例持有，不依赖 SSE 连接生命周期。新运行注册后立即异步订阅 {@code streamEvents}；
  * 同一 {@code (userId, sessionId)} 的核心状态调用由 AgentScope 自身串行保护，上一轮记忆整理等后处理
  * 不阻塞下一轮交互。
@@ -59,7 +58,6 @@ public class ChatRunCoordinator {
     private final ChatRunInstanceFactory instanceFactory;
     private final AiProperties properties;
     private final ChatRunInstanceRegistry registry;
-    private final ChatRunMaintenanceScheduler maintenanceScheduler;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, runnable -> {
         Thread thread = new Thread(runnable, "chat-run-scheduler");
         thread.setDaemon(true);
@@ -96,45 +94,30 @@ public class ChatRunCoordinator {
         this.instanceFactory = instanceFactory;
         this.properties = properties;
         this.registry = new ChatRunInstanceRegistry(instanceFactory, properties);
-        this.maintenanceScheduler =
-                new ChatRunMaintenanceScheduler(scheduler, eventStore, registry, runService, this::startIfCreated);
     }
 
-    /**
-     * 启动处于创建状态的运行。
-     *
-     * @param run 运行实体
-     * @param session 会话实体
-     */
-    public void startIfCreated(ChatRunEntity run, ChatSessionEntity session) {
+    /** 启动本次请求刚创建的运行。幂等旧请求由调用方通过 {@code RunContext.created} 过滤。 */
+    public void start(ChatRunEntity run, ChatSessionEntity session) {
         TenantUtils.withTenant(session.getTenantId(), () -> {
-            startIfCreatedInTenantContext(run, session);
+            startInTenantContext(run, session);
             return null;
         });
     }
 
-    void startIfCreated(ChatRunEntity run) {
-        startIfCreated(run, loadSession(run));
-    }
-
-    private void startIfCreatedInTenantContext(ChatRunEntity run, ChatSessionEntity session) {
-        if (!ChatRunStatus.CREATED.name().equals(run.getStatus())) {
+    private void startInTenantContext(ChatRunEntity run, ChatSessionEntity session) {
+        if (!ChatRunStatus.RUNNING.name().equals(run.getStatus())) {
             return;
         }
         Optional<ChatRunInstanceRegistry.StartRegistration> selected;
         try {
             selected = registry.restoreForStartIfCapacity(run, session, scheduler);
         } catch (RuntimeException restoreFailure) {
-            ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler);
-            if (runService.claimCreated(run)) {
-                run.setStatus(ChatRunStatus.RUNNING.name());
-                rejected.finalizeFailed(
-                        ChatRunFailureCode.START_FAILED, ChatRunDataSanitizer.safeMessage(restoreFailure));
-            }
+            failStart(run, session, restoreFailure);
             return;
         }
-        // 本进程容量已满时跳过（不改状态），容量释放后由维护任务再次尝试。
+        // 不做跨节点排队或后台扫描；无法在当前请求节点启动时立即给出可重试的失败结果。
         if (selected.isEmpty()) {
+            failStart(run, session, new IllegalStateException("当前节点对话运行容量已满"));
             return;
         }
         ChatRunInstanceRegistry.StartRegistration registration = selected.get();
@@ -142,7 +125,12 @@ public class ChatRunCoordinator {
             // 注册成功后排空信号由注册表监听，最终源流结束时按实例身份安全摘除。
             // 只把实际订阅移出请求线程；不等待上一轮的记忆整理、Workspace 审计等后处理。
             ChatRunInstance execution = registration.execution();
-            scheduler.execute(() -> execution.runInTenant(() -> startCreated(execution)));
+            try {
+                scheduler.execute(() -> execution.runInTenant(() -> startExecution(execution)));
+            } catch (RuntimeException scheduleFailure) {
+                execution.finalizeFailed(
+                        ChatRunFailureCode.START_FAILED, ChatRunDataSanitizer.safeMessage(scheduleFailure));
+            }
         }
     }
 
@@ -188,14 +176,14 @@ public class ChatRunCoordinator {
             return execution.bootstrap();
         }
         ChatRunEntity current = loadCurrent(run);
-        long highWatermark = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
+        var snapshot = ChatRunSnapshotCodec.decode(current.getSnapshotJson());
+        long highWatermark = eventStore.latestSeq(current.getId(), current.getSnapshotSeq());
         return new AguiBootstrap(
                 highWatermark,
-                AguiBootstrapEncoder.encode(
-                        current, ChatRunSnapshotCodec.decode(current.getSnapshotJson()), highWatermark),
+                AguiBootstrapEncoder.encode(current, snapshot, highWatermark),
                 ChatRunStatus.isTerminal(current.getStatus())
-                        || ChatRunStatus.AWAITING_CONFIRM.name().equals(current.getStatus())
-                        || !eventStore.contains(run.getId()));
+                        || !snapshot.pendingTools().isEmpty()
+                        || !eventStore.contains(current.getId()));
     }
 
     /**
@@ -209,24 +197,27 @@ public class ChatRunCoordinator {
     }
 
     private void stopInContext(ChatRunEntity run, ChatSessionEntity session) {
-        if (ChatRunStatus.isTerminal(run.getStatus())) {
+        ChatRunEntity current = loadCurrent(run);
+        if (ChatRunStatus.isTerminal(current.getStatus())) {
             return;
         }
-        ChatRunInstance execution = registry.get(run.getId());
+        ChatRunInstance execution = registry.get(current.getId());
         if (execution == null) {
-            if (ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
+            if (!ChatRunSnapshotCodec.decode(current.getSnapshotJson())
+                    .pendingTools()
+                    .isEmpty()) {
                 // 待确认阶段没有活动源流；只借助 AgentScope 持久化状态闭合未决工具，不执行 interrupt。
                 instanceFactory
-                        .restoreConfirmationFinalizer(run, session, scheduler)
+                        .restoreConfirmationFinalizer(current, session, scheduler)
                         .requestStop();
             } else {
                 // 当前 JVM 没有活动源流时，只结束业务 Run；不恢复 Agent 来伪装跨节点中断。
-                instanceFactory.restoreFinalizer(run, session, scheduler).requestStop();
+                instanceFactory.restoreFinalizer(current, session, scheduler).requestStop();
             }
             return;
         }
         // 本地活动实例仍按实例 monitor -> 独立数据库事务的顺序协作式停止。
-        // 在实例锁内同时判断运行状态并迁移到 STOPPING，消除检查与启动新源流之间的竞态窗口。
+        // 实例锁内先提交 STOPPED，迟到的 Agent 完成结果会被数据库终态拒绝。
         if (!execution.requestStop()) {
             return;
         }
@@ -243,26 +234,15 @@ public class ChatRunCoordinator {
         }
     }
 
-    /** 启动定时维护任务。供 {@link ChatRunRecoveryListener} 编排调用。 */
-    void scheduleMaintenance() {
-        maintenanceScheduler.schedule();
-    }
-
-    /** 中断本节点活动运行并关闭定时维护线程池。 */
+    /** 中断本节点活动运行并关闭本地调度线程池。 */
     @PreDestroy
     public void shutdown() {
         registry.forEachActive(execution -> execution.runInTenant(execution::interruptForShutdown));
         scheduler.shutdown();
     }
 
-    private void startCreated(ChatRunInstance execution) {
+    private void startExecution(ChatRunInstance execution) {
         ChatRunEntity run = execution.run();
-        if (!runService.claimCreated(run)) {
-            // 运行在调度或认领期间已被并发方终结，本实例未建立源流；完成排空信号让注册表摘除实例。
-            execution.releaseNeverStarted();
-            return;
-        }
-        run.setStatus(ChatRunStatus.RUNNING.name());
         try {
             ChatMessageEntity userMessage = messageService
                     .findByIdAndSession(run.getUserMessageId(), run.getSessionId())
@@ -277,6 +257,11 @@ public class ChatRunCoordinator {
         }
     }
 
+    private void failStart(ChatRunEntity run, ChatSessionEntity session, RuntimeException failure) {
+        ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler);
+        rejected.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunDataSanitizer.safeMessage(failure));
+    }
+
     /**
      * 查询最新持久化运行。
      *
@@ -286,9 +271,5 @@ public class ChatRunCoordinator {
     private ChatRunEntity loadCurrent(ChatRunEntity identity) {
         ChatRunEntity current = runService.loadCurrent(identity.getId());
         return current == null ? identity : current;
-    }
-
-    private ChatSessionEntity loadSession(ChatRunEntity run) {
-        return runService.loadSession(run);
     }
 }

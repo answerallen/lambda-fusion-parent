@@ -68,8 +68,8 @@ sessionId = ChatSessionEntity.id
 子 Agent 事件带有 `source`，不能重复产生根 `RUN_STARTED`，也不能被当成根 Agent 的业务结束。文本、推理和工具
 之间切换时必须先闭合当前消息块；恢复实例即使没有解释器内存 ID，也要能闭合快照中仍打开的内容块。
 
-`REQUIRE_USER_CONFIRM` 产生的中断事件先暂存。只有 `AWAITING_CONFIRM` 数据库状态提交成功后才进入可见事件窗口；
-失败时丢弃，避免前端事实领先于数据库事实。
+`REQUIRE_USER_CONFIRM` 产生的中断事件先暂存。只有包含 `pendingTools` 的 RUNNING 快照和事件水位写入数据库后，
+中断事件才进入可见窗口；失败时丢弃，避免前端事实领先于持久化投影。
 
 ## 4. 正式事件与序号
 
@@ -125,11 +125,12 @@ ChatRun 终态，并在事务提交后发布 `RUN_FINISHED` 或 `RUN_ERROR`。
 - 根事件后的后处理失败不反向覆盖已提交的 `COMPLETED`。
 
 HITL phase 收到确认事件后继续等待根 `AGENT_END`，确认 AgentScope 已保存 `ASKING` 状态；执行适配器随后在根事件处
-结束当前适配流，取消尚未订阅的记忆尾部。适配流终止并完成 Workspace 审计后再提交 `AWAITING_CONFIRM`，
-根事件前的确认按状态冲突拒绝；进入待确认后完成校验和数据库 CAS，新的 `streamEvents` 可以立即启动。
+结束当前适配流，取消尚未订阅的记忆尾部。适配流终止并完成 Workspace 审计后写入待确认快照，ChatRun 仍为
+`RUNNING`；根事件前的确认按状态冲突拒绝。确认时校验 AgentScope `ASKING`，以 `phaseNo` 推进下一阶段并立即启动新的
+`streamEvents`。
 
-普通下一条消息遵循相同原则：前端可在上一 Run 业务完成后创建并挂载新 Run，但同一 Session 的 AgentScope
-源流由 Coordinator 按实例级 `drainedSignal` 尾链启动。该排序不阻塞其他 Session，也不是 Workspace 执行锁。
+普通下一条消息在上一 Run 提交业务终态后即可创建并挂载。Coordinator 不用 `drainedSignal` 串行相邻 Run；同一 Session
+的核心状态调用由 AgentScope 自身串行，前一 Run 的记忆尾部和下一轮交互可以按 AgentScope 语义重叠。
 
 ## 7. SSE 所有权
 
@@ -142,7 +143,7 @@ subscription.close()
 浏览器切换会话、关闭页面或网络断开不会 dispose AgentScope Flux。用户主动停止必须调用 Run stop API，由
 `ChatRunCoordinator` 在本机存在活动实例时按 `(ChatSession.userId, ChatSession.id)` 中断 Agent，并在宽限期后决定是否
 强制取消源流；本机不存在 `RUNNING` 实例时只提交业务停止终态，不恢复活动 Agent 或发送跨节点停止命令。
-`AWAITING_CONFIRM` 没有活动源流，停止时只清理 AgentScope 持久化状态中的未决工具，不调用 interrupt。
+快照含待确认工具时没有活动模型源流，停止只清理 AgentScope 持久化状态中的未决工具，不调用 interrupt。
 
 SSE 收到业务终态事件后可以完成当前 HTTP 连接；这与后台源流是否排空无关。
 

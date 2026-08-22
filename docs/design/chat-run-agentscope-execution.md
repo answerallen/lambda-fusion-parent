@@ -85,7 +85,7 @@ Agent 主流程在保存当前状态后发出根 `AgentEndEvent`。`MemoryFlushM
 ### 2.6 同会话下一轮不等待后处理排空
 
 业务终态早于源流排空后，用户可能立即发送下一条消息。下一条 Run 必须立即订阅，不能等待上一轮的 MemoryFlush、
-MemoryMaintenance、Sandbox release 或 Workspace 审计，否则后处理模型耗时会直接表现为下一轮对话卡在 `CREATED`。
+MemoryMaintenance、Sandbox release 或 Workspace 审计，否则后处理模型耗时会直接表现为下一轮对话无法启动。
 
 AgentScope `ReActAgent` 已按 `(userId, sessionId)` 串行核心生命周期并在根 `AGENT_END` 后释放状态槽；记忆中间件使用
 防御性上下文副本、隔离键节流和文件写入保护处理尾部。因此 `ChatRunCoordinator` 不再重复串行完整 Flux，
@@ -231,17 +231,14 @@ Agent 主流程
 
 收到根 `REQUIRE_USER_CONFIRM` 时只记录脱敏待确认工具和中断事件。`AgentExecutionAdapter` 继续等待根
 `AGENT_END`，以确认 AgentScope 已保存 `ASKING` 状态；随后在该事件处结束当前 HITL 交互源流，使 AgentScope
-通过 `concatWith` 追加的 MemoryFlush/MemoryMaintenance 尾部不被订阅。适配流终止并完成 Workspace 审计后，才原子地：
+通过 `concatWith` 追加的 MemoryFlush/MemoryMaintenance 尾部不被订阅。适配流终止并完成 Workspace 审计后，才把
+包含 `pendingTools` 的快照与事件水位写入仍为 `RUNNING` 的 ChatRun，随后发布当前 AG-UI phase 的
+`RUN_FINISHED(interrupt)`。
 
-1. 将 Run 迁移为 `AWAITING_CONFIRM`；
-2. 写入确认截止时间和当前快照；
-3. 发布当前 AG-UI phase 的 `RUN_FINISHED(interrupt)`。
-
-必须保持以下不变量：`Run == AWAITING_CONFIRM => sourceActive == false`。旧 phase 排空前到达的确认请求按
-`CHAT_RUN_STATE_CONFLICT` 拒绝，不暂存、不提前返回“已受理”。进入待确认后，确认在实例锁内先处理旧 phase
-幂等守卫，再读取 AgentScope `ASKING` 状态并做三方 ID 校验，最后执行
-`AWAITING_CONFIRM -> RUNNING` CAS 并立即启动 phase N+1。旧 phase 重放直接返回 `resumed=false`，不得读取
-当前新 phase 的 AgentState。
+必须保持以下不变量：`snapshot.pendingTools 非空 => sourceActive == false`。旧 phase 排空前到达的确认请求按
+`CHAT_RUN_STATE_CONFLICT` 拒绝。确认在实例锁内先处理旧 phase 幂等守卫，再读取 AgentScope `ASKING` 状态并做三方 ID
+校验，最后以 `phaseNo` CAS 推进 phase N+1、同事务清空旧投影并立即启动新阶段。旧 phase 重放直接返回
+`resumed=false`，不得读取当前新 phase 的 AgentState。
 
 ### 6.4 停止和失败
 
@@ -249,7 +246,7 @@ Agent 主流程
 - 根 `AGENT_END` 后的记忆或维护失败：Run 保持 `COMPLETED`，记录后处理错误。
 - 用户停止：本机持有活动实例时按 `(userId, sessionId)` 调用 AgentScope `interrupt`，宽限期后仍未结束才 dispose；
   本机没有 `RUNNING` 实例时只提交 ChatRun 业务终态，不恢复活动 Agent，也不发送跨节点中断；
-  `AWAITING_CONFIRM` 可清理 AgentScope 持久化状态中的未决工具，但不调用 interrupt。
+  快照含待确认工具时可清理 AgentScope 持久化状态中的未决工具，但不调用 interrupt。
 - 所有 complete、error、cancel 路径都必须执行源流终止清理；最终业务终态还要完成实例 `drainedSignal`，
   不能只在 `onComplete` 清理。
 
@@ -273,7 +270,7 @@ register(runInstance)
 约束：
 
 - HITL 续跑仍由同一实例在旧 phase 已排空后启动，避免同一 Run 的两个 phase 重叠。
-- Run 在调度或认领期间已被停止/终结时跳过 `startAction`，并完成自身 `drainedSignal` 以摘除实例。
+- Run 在异步启动前已被停止/终结时不再建立有效源流，终态完成后按正常排空语义摘除实例。
 - `max-run-duration` 从实际订阅当前 phase 时开始，只覆盖到根 `AGENT_END`。
 - 业务终态不摘除仍在后处理的实例；只有实例级 `drainedSignal` 完成后才能摘除。
 - 相邻 Run 不等待该信号；同会话核心状态安全由 AgentScope `(userId, sessionId)` 状态槽负责。
@@ -347,19 +344,19 @@ register(runInstance)
 ### 10.3 `ChatRunInstance`
 
 - 拆分业务终态与实例排空。
-- 根 `AGENT_END` 提交普通完成；HITL 在根事件处结束适配流，待该唯一源流终止后提交待确认状态。
+- 根 `AGENT_END` 提交普通完成；HITL 在根事件处结束适配流，待该唯一源流终止后提交待确认快照。
 - 保留业务完成后的底层订阅。
 - 分离交互超时与后处理观测。
 - 将 Workspace 审计移到源流终止之后。
-- 排空前到达的确认按状态冲突拒绝；进入待确认后确认可立即启动下一 phase。
+- 排空前到达的确认按状态冲突拒绝；待确认快照写入后可立即确认并启动下一 phase。
 
 ### 10.4 `ChatRunCoordinator`
 
 - 业务终态后不立即丢失仍在排空的实例。
 - 交互实例参与容量统计；仅排空中的最终态实例不占用交互容量，但仍受关机和资源清理管理。
-- 等待确认的实例继续保留在活动注册表中。
+- 快照含待确认工具的实例继续保留在活动注册表中。
 - 最终 `drainedSignal` 后按 `(runId, instance)` 删除，避免旧实例删除并发创建的新实例。
-- `CREATED` Run 注册后立即异步启动，不等待其他实例排空。
+- 新建的 `RUNNING` Run 注册后立即异步启动，不等待其他实例排空。
 - 启动失败、取消和关机都必须完成自身排空信号，避免实例注册表泄漏。
 
 ### 10.5 保留项
@@ -373,7 +370,7 @@ register(runInstance)
 
 1. 先增加特征测试，固定根 `AGENT_END` 早于记忆尾部、源流终止后 Sandbox 才释放等已确认语义。
 2. 改造 `AgentExecutionAdapter` 和 `ChatRunInstanceFactory`，让内部 ChatRun 直连 Agent，并统一状态身份。
-3. 在 `ChatRunInstance` 只保留稳定的实例级 `drainedSignal`，并保证 HITL 完整排空后才进入待确认。
+3. 在 `ChatRunInstance` 只保留稳定的实例级 `drainedSignal`，并保证 HITL 完整排空后才写入待确认投影。
 4. `ChatRunCoordinator` 注册后立即异步启动 Run，`drainedSignal` 仅用于最终摘除实例。
 5. 把交互超时截止点改到根 `AGENT_END`，把 Workspace 审计移动到 phase 排空路径。
 6. 完成身份、生命周期、HITL、停止、容量与并发测试后，再按第 11 节发布边界上线。
@@ -387,7 +384,7 @@ register(runInstance)
 - 发布后，内部 ChatRun 只读取 `(userId, ChatSession.id)`。
 - 不读取、复制或删除旧的 `(userId, gw-*)` 状态。
 - 不增加运行期兼容判断。
-- 发布前结束或停止所有活动 Run，尤其是 `AWAITING_CONFIRM` Run。
+- 发布前结束或停止所有活动 Run，尤其是快照仍含待确认工具的 Run。
 - 使用持久化 StateStore 的既有会话在发布后的第一次对话按新状态槽开始。
 - 回滚旧版本时会重新使用旧 `gw-*` 状态并忽略新状态槽，状态同样不连续；本次不提供双向同步。
 
@@ -415,7 +412,7 @@ register(runInstance)
 ### 12.3 HITL
 
 - 根 `REQUIRE_USER_CONFIRM` 后必须继续等到根 `AGENT_END`，不得在 Agent state 保存前提前取消。
-- HITL 根 `AGENT_END` 后不订阅记忆尾部；适配流终止后才提交 `AWAITING_CONFIRM` 并发布确认卡片。
+- HITL 根 `AGENT_END` 后不订阅记忆尾部；适配流终止后才提交待确认快照并发布确认卡片。
 - 普通最终回答仍保留既有记忆尾部及完整排空语义。
 - 旧 phase 重放不读取当前 AgentState；当前 phase 确认只推进一次并立即启动新 phase。
 - 两个 phase 不同时持有同一个 Sandbox 生命周期资源。

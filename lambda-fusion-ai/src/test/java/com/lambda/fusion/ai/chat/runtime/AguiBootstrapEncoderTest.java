@@ -105,7 +105,7 @@ class AguiBootstrapEncoderTest {
 
     @Test
     void shouldRestoreAwaitingConfirmationAsInterrupt() {
-        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM);
+        ChatRunEntity run = run(ChatRunStatus.RUNNING);
         ChatRunSnapshot snapshot = new ChatRunSnapshot(
                 run.getId(),
                 run.getAguiRunId(),

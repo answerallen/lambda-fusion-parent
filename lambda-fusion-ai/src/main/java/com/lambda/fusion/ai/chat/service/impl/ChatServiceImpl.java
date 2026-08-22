@@ -38,7 +38,9 @@ public class ChatServiceImpl implements ChatService {
     public SseEmitter streamChat(String sessionId, SendMessage message) {
         Assert.isTrue(message.isContentOrAttachmentPresent(), "消息内容与附件不能同时为空");
         RunContext context = chatRunService.createOrLoad(sessionId, message);
-        chatRunCoordinator.startIfCreated(context.run(), context.session());
+        if (context.created()) {
+            chatRunCoordinator.start(context.run(), context.session());
+        }
         return openRunEventStream(context.run(), true);
     }
 
@@ -99,9 +101,7 @@ public class ChatServiceImpl implements ChatService {
                 cursor = aguiBootstrap.highWatermark();
                 phaseClosed = aguiBootstrap.phaseClosed();
             }
-            if (phaseClosed
-                    || ChatRunStatus.isTerminal(chatRunEntity.getStatus())
-                    || ChatRunStatus.AWAITING_CONFIRM.name().equals(chatRunEntity.getStatus())) {
+            if (phaseClosed || ChatRunStatus.isTerminal(chatRunEntity.getStatus())) {
                 if (!bootstrap) {
                     ChatRunEventSubscription replay = chatRunCoordinator.subscribe(
                             chatRunEntity.getId(), cursor, event -> send(emitter, event), emitter::completeWithError);

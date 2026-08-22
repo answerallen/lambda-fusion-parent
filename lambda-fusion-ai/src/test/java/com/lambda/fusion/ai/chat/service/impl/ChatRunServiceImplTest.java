@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,6 +20,8 @@ import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
 import com.lambda.fusion.ai.chat.model.ChatRunFinalizationCommand;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
+import com.lambda.fusion.ai.chat.model.RunContext;
+import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
@@ -28,8 +31,8 @@ import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatSessionService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -54,28 +57,54 @@ class ChatRunServiceImplTest {
     private final ChatSessionMapper sessionMapper = mock(ChatSessionMapper.class);
     private final ChatSessionService sessionService = mock(ChatSessionService.class);
     private final ChatMessageService messageService = mock(ChatMessageService.class);
+    private final AppService appService = mock(AppService.class);
     private final ChatRunServiceImpl service = new ChatRunServiceImpl(
-            runMapper,
-            sessionMapper,
-            sessionService,
-            messageService,
-            mock(ChatAttachmentService.class),
-            mock(AppService.class));
+            runMapper, sessionMapper, sessionService, messageService, mock(ChatAttachmentService.class), appService);
 
     @Test
-    void shouldLetStoppingStateWinAgainstConcurrentCompletion() {
-        ChatRunEntity identity = run(ChatRunStatus.RUNNING);
-        ChatRunEntity persisted = run(ChatRunStatus.STOPPING);
+    void shouldCreateRunningRunOnceAndMarkIdempotentReplayAsLoaded() {
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
-        ChatMessageEntity assistant = new ChatMessageEntity();
-        assistant.setId(11L);
+        session.setAppId("app-1");
+        SendMessage message = new SendMessage();
+        message.setClientRequestId("request-1");
+        message.setContent("hello");
+        ChatMessageEntity userMessage = new ChatMessageEntity();
+        userMessage.setId(9L);
+        AtomicReference<ChatRunEntity> inserted = new AtomicReference<>();
+
+        when(sessionService.loadOwnedForUpdate("session-1")).thenReturn(session);
+        when(runMapper.selectOne(any())).thenAnswer(ignored -> inserted.get());
+        when(messageService.saveUserMessage(session, "hello")).thenReturn(userMessage);
+        when(runMapper.insert(any(ChatRunEntity.class))).thenAnswer(invocation -> {
+            inserted.set(invocation.getArgument(0));
+            return 1;
+        });
+        when(runMapper.selectById(any())).thenAnswer(ignored -> inserted.get());
+
+        RunContext created = service.createOrLoad("session-1", message);
+        RunContext replay = service.createOrLoad("session-1", message);
+
+        assertThat(created.created()).isTrue();
+        assertThat(created.run().getStatus()).isEqualTo(ChatRunStatus.RUNNING.name());
+        assertThat(created.run().getStartedAt()).isNotNull();
+        assertThat(replay.created()).isFalse();
+        assertThat(replay.run().getId()).isEqualTo(created.run().getId());
+        verify(messageService, times(1)).saveUserMessage(session, "hello");
+    }
+
+    @Test
+    void shouldKeepExistingStoppedTerminalAgainstLateCompletion() {
+        ChatRunEntity identity = run(ChatRunStatus.RUNNING);
+        ChatRunEntity persisted = run(ChatRunStatus.STOPPED);
+        persisted.setFinishReason(ChatRunFinishReason.USER_STOP.name());
+        ChatSessionEntity session = new ChatSessionEntity();
+        session.setId("session-1");
+        session.setUserId("user-1");
 
         when(sessionMapper.selectForUpdate("session-1")).thenReturn(session);
         when(runMapper.selectOne(any())).thenReturn(persisted);
-        when(messageService.saveAssistantMessage(session, "partial", null)).thenReturn(assistant);
-        when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
 
         var result = service.finalizeExecution(
                 identity,
@@ -88,6 +117,7 @@ class ChatRunServiceImplTest {
                         null,
                         null));
 
+        assertThat(result.committed()).isFalse();
         assertThat(result.status()).isEqualTo(ChatRunStatus.STOPPED.name());
         assertThat(result.finishReason()).isEqualTo(ChatRunFinishReason.USER_STOP.name());
         assertThat(result.errorCode()).isNull();
@@ -105,26 +135,24 @@ class ChatRunServiceImplTest {
     }
 
     @Test
-    void shouldExpireOnlyRunThatIsStillAwaitingConfirmation() {
-        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM);
-        LocalDateTime deadline = LocalDateTime.of(2026, 8, 14, 12, 0);
+    void shouldCheckpointOnlyRunningRun() {
+        ChatRunEntity run = run(ChatRunStatus.RUNNING);
         when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
 
-        assertThat(service.requestConfirmationTimeout(run, deadline)).isTrue();
+        assertThat(service.checkpoint(run, snapshot("partial"), 4)).isTrue();
 
         ArgumentCaptor<LambdaUpdateWrapper<ChatRunEntity>> updateCaptor =
                 ArgumentCaptor.forClass(LambdaUpdateWrapper.class);
         verify(runMapper).update(isNull(), updateCaptor.capture());
         LambdaUpdateWrapper<ChatRunEntity> update = updateCaptor.getValue();
-        // 状态与截止时间为 WHERE 前置；迁移目标 STOPPING 为 SET 值。
-        assertThat(update.getSqlSegment()).contains("status").contains("await_confirm_deadline_at");
-        assertThat(update.getParamNameValuePairs().values())
-                .contains(ChatRunStatus.AWAITING_CONFIRM.name(), deadline, ChatRunStatus.STOPPING.name());
+        assertThat(update.getSqlSegment()).contains("status");
+        assertThat(update.getParamNameValuePairs().values()).contains(ChatRunStatus.RUNNING.name(), 4L);
     }
 
     @Test
     void shouldAdvanceWhenPhaseMatches() {
-        ChatRunEntity run = awaitingConfirmRun(2, snapshotWithPendingTool("call_1"));
+        ChatRunSnapshot snapshot = snapshotWithPendingTool(2, "call_1");
+        ChatRunEntity run = runningRunWithPending(2, snapshot);
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
@@ -132,23 +160,28 @@ class ChatRunServiceImplTest {
         when(runMapper.selectOne(any())).thenReturn(run);
         when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(1);
 
-        ConfirmTransition transition = service.advanceConfirmation(run, session, 2);
+        ConfirmTransition transition = service.advanceConfirmation(run, session, 2, snapshot);
 
         assertThat(transition.resumed()).isTrue();
         assertThat(transition.run().getStatus()).isEqualTo(ChatRunStatus.RUNNING.name());
         assertThat(transition.run().getPhaseNo()).isEqualTo(3);
+        assertThat(com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec.decode(
+                                transition.run().getSnapshotJson())
+                        .pendingTools())
+                .isEmpty();
     }
 
     @Test
     void shouldReturnIdempotentWhenPhaseAlreadyAdvanced() {
-        ChatRunEntity run = awaitingConfirmRun(3, snapshotWithPendingTool("call_1"));
+        ChatRunSnapshot snapshot = snapshotWithPendingTool(2, "call_1");
+        ChatRunEntity run = runningRunWithPending(3, snapshot);
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
         when(sessionMapper.selectOne(any())).thenReturn(session);
         when(runMapper.selectOne(any())).thenReturn(run);
 
-        ConfirmTransition transition = service.advanceConfirmation(run, session, 2);
+        ConfirmTransition transition = service.advanceConfirmation(run, session, 2, snapshot);
 
         assertThat(transition.resumed()).isFalse();
         assertThat(transition.run().getPhaseNo()).isEqualTo(3);
@@ -156,30 +189,33 @@ class ChatRunServiceImplTest {
 
     @Test
     void shouldRejectConfirmWhenPhaseBehind() {
-        ChatRunEntity run = awaitingConfirmRun(1, snapshotWithPendingTool("call_1"));
+        ChatRunSnapshot snapshot = snapshotWithPendingTool(2, "call_1");
+        ChatRunEntity run = runningRunWithPending(1, snapshot);
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
         when(sessionMapper.selectOne(any())).thenReturn(session);
         when(runMapper.selectOne(any())).thenReturn(run);
 
-        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2))
+        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2, snapshot))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_STATE_CONFLICT.getCode()));
     }
 
     @Test
-    void shouldRejectConfirmWhenStatusIsNotAwaiting() {
+    void shouldRejectConfirmWithoutPendingProjection() {
         ChatRunEntity run = run(ChatRunStatus.RUNNING);
         run.setPhaseNo(2);
+        run.setAguiRunId("phase-2");
+        ChatRunSnapshot snapshot = ChatRunSnapshot.empty("run-1", "phase-2", 2);
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
         when(sessionMapper.selectOne(any())).thenReturn(session);
         when(runMapper.selectOne(any())).thenReturn(run);
 
-        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2))
+        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2, snapshot))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_STATE_CONFLICT.getCode()));
@@ -187,14 +223,15 @@ class ChatRunServiceImplTest {
 
     @Test
     void shouldRejectConfirmWhenSessionNotOwned() {
-        ChatRunEntity run = awaitingConfirmRun(2, snapshotWithPendingTool("call_1"));
+        ChatRunSnapshot snapshot = snapshotWithPendingTool(2, "call_1");
+        ChatRunEntity run = runningRunWithPending(2, snapshot);
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
         // 所有权复核：按 session.id + userId 查不到本人会话。
         when(sessionMapper.selectOne(any())).thenReturn(null);
 
-        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2))
+        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2, snapshot))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_NOT_FOUND.getCode()));
@@ -202,7 +239,8 @@ class ChatRunServiceImplTest {
 
     @Test
     void shouldRejectConfirmWhenCasLosesRace() {
-        ChatRunEntity run = awaitingConfirmRun(2, snapshotWithPendingTool("call_1"));
+        ChatRunSnapshot snapshot = snapshotWithPendingTool(2, "call_1");
+        ChatRunEntity run = runningRunWithPending(2, snapshot);
         ChatSessionEntity session = new ChatSessionEntity();
         session.setId("session-1");
         session.setUserId("user-1");
@@ -210,7 +248,7 @@ class ChatRunServiceImplTest {
         when(runMapper.selectOne(any())).thenReturn(run);
         when(runMapper.update(isNull(), any(LambdaUpdateWrapper.class))).thenReturn(0);
 
-        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2))
+        assertThatThrownBy(() -> service.advanceConfirmation(run, session, 2, snapshot))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_STATE_CONFLICT.getCode()));
@@ -224,18 +262,19 @@ class ChatRunServiceImplTest {
         return run;
     }
 
-    private static ChatRunEntity awaitingConfirmRun(int phaseNo, ChatRunSnapshot snapshot) {
-        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM);
+    private static ChatRunEntity runningRunWithPending(int phaseNo, ChatRunSnapshot snapshot) {
+        ChatRunEntity run = run(ChatRunStatus.RUNNING);
         run.setPhaseNo(phaseNo);
+        run.setAguiRunId(snapshot.aguiRunId());
         run.setSnapshotJson(io.agentscope.core.util.JsonUtils.getJsonCodec().toJson(snapshot));
         return run;
     }
 
-    private static ChatRunSnapshot snapshotWithPendingTool(String toolCallId) {
+    private static ChatRunSnapshot snapshotWithPendingTool(int phaseNo, String toolCallId) {
         return new ChatRunSnapshot(
                 "run-1",
                 "phase-1",
-                1,
+                phaseNo,
                 "",
                 "",
                 null,

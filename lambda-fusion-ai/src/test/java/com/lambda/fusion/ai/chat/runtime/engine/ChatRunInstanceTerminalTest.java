@@ -36,6 +36,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
 /** 终态解释与关闭路径的锁定测试：终态事实由 {@link ChatRunInstance} 唯一解释。 */
 class ChatRunInstanceTerminalTest {
@@ -68,23 +69,25 @@ class ChatRunInstanceTerminalTest {
     }
 
     @Test
-    void shouldFinalizeStoppedOnStoppingRootAgentEnd() {
+    void shouldKeepExplicitStopWhenRootAgentEndArrivesLate() {
         ChatRunEntity run = run(ChatRunStatus.RUNNING, snapshot("", false, false));
         instance = newInstance(run);
         stubTerminalCommit();
-        // 停止请求抢先：Agent 流发出根 AGENT_END 时 Run 已处于 STOPPING。
-        when(adapter.stream(any(Msg.class))).thenReturn(Flux.<AgentEvent>create(sink -> {
-            run.setStatus(ChatRunStatus.STOPPING.name());
-            sink.next(agentEnd(null));
-            sink.complete();
-        }));
+        when(runService.checkpoint(eq(run), any(ChatRunSnapshot.class), anyLong()))
+                .thenReturn(true);
+        Sinks.Many<AgentEvent> source = Sinks.many().unicast().onBackpressureBuffer();
+        when(adapter.stream(any(Msg.class))).thenReturn(source.asFlux());
 
         instance.startPhase(
                 Msg.builderForRole(io.agentscope.core.message.MsgRole.USER).build());
+        assertThat(instance.requestStop()).isTrue();
+        source.tryEmitNext(agentEnd(null));
 
         ChatRunFinalizationCommand command = captureFinalize();
         assertThat(command.targetStatus()).isEqualTo(ChatRunStatus.STOPPED);
         assertThat(command.finishReason()).isEqualTo(ChatRunFinishReason.USER_STOP);
+        verify(runService, times(1)).finalizeExecution(eq(run), any(ChatRunFinalizationCommand.class));
+        source.tryEmitComplete();
     }
 
     @Test

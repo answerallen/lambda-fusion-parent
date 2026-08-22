@@ -27,12 +27,12 @@ import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventType;
 import io.agentscope.core.message.Msg;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
@@ -71,7 +71,8 @@ public final class ChatRunInstance {
     private boolean sourceActive;
     private int finalizeAttempts;
     private volatile long phaseStartedAtMillis = System.currentTimeMillis();
-    private long lastCheckpointNanos = System.nanoTime();
+    private boolean checkpointDirty;
+    private ScheduledFuture<?> checkpointTask;
     private AgentEventInterpreter agentEventInterpreter;
     private AgentEventInterpretation pendingConfirmInterpretation;
 
@@ -132,8 +133,8 @@ public final class ChatRunInstance {
     }
 
     /**
-     * 在实例锁内处理用户确认。只有旧阶段源流已经完整排空、运行处于 {@code AWAITING_CONFIRM} 时才校验并推进；
-     * 已处理的旧阶段直接按幂等重放返回，不再读取当前 Agent 状态。
+     * 在实例锁内处理用户确认。只有旧阶段源流已经完整排空、快照存在待确认投影时才校验并推进；
+     * AgentScope ASKING 是底层确认状态，ChatRun 始终保持 RUNNING。已处理的旧阶段按幂等重放返回。
      *
      * @param command 用户确认命令
      * @return 迁移结果；{@code resumed=false} 仅表示来源阶段已经被处理
@@ -153,13 +154,15 @@ public final class ChatRunInstance {
             return new ConfirmTransition(run, session, false);
         }
         if (!Objects.equals(run.getPhaseNo(), sourcePhaseNo)
-                || !ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())
+                || !ChatRunStatus.RUNNING.name().equals(run.getStatus())
+                || accumulator.buildSnapshot().pendingTools().isEmpty()
                 || sourceActive) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
         }
 
         Msg confirmMessage = validateAndBuildMessage(command);
-        ConfirmTransition transition = runService.advanceConfirmation(run, session, sourcePhaseNo);
+        ConfirmTransition transition =
+                runService.advanceConfirmation(run, session, sourcePhaseNo, accumulator.buildSnapshot());
         if (!transition.resumed()) {
             syncRun(transition.run());
             return transition;
@@ -202,7 +205,9 @@ public final class ChatRunInstance {
 
     /** CAS 成功后切换累加器与事件解释器到新阶段。 */
     private void beginConfirmedPhase() {
+        cancelCheckpointTask();
         accumulator.beginPhase(run.getAguiRunId(), run.getPhaseNo());
+        checkpointDirty = false;
         agentEventInterpreter = new AgentEventInterpreter(run.getSessionId(), run.getAguiRunId(), true);
     }
 
@@ -281,15 +286,10 @@ public final class ChatRunInstance {
             // 根 AGENT_END 是业务回答边界；普通阶段允许记忆尾部继续，HITL 阶段由适配器在此结束源流。
             rootAgentEnded = true;
             agentStreamLifecycle.cancelInteractionTimeout();
-            if (pendingConfirmInterpretation != null
-                    || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
+            if (pendingConfirmInterpretation != null || hasPendingConfirmation()) {
                 return;
             }
-            if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-                finalizeStopped(ChatRunFinishReason.USER_STOP);
-            } else {
-                finalizeCompleted();
-            }
+            finalizeCompleted();
             return;
         }
         AgentEventInterpretation interpretation = agentEventInterpreter.interpret(event);
@@ -299,10 +299,12 @@ public final class ChatRunInstance {
             }
             pendingConfirmInterpretation = interpretation;
             accumulator.apply(interpretation.snapshotDelta());
+            checkpointDirty = true;
             // AgentScope 在事件流结束时持久化 ASKING 状态。
             return;
         }
         accumulator.apply(interpretation.snapshotDelta());
+        checkpointDirty = true;
         appendAll(interpretation.events());
         maybeCheckpoint();
     }
@@ -313,11 +315,7 @@ public final class ChatRunInstance {
             log.warn("Run业务终态后，记忆/维护尾部失败: runId={}", run.getId(), error);
             return;
         }
-        if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-            finalizeStopped(ChatRunFinishReason.USER_STOP);
-        } else {
-            finalizeFailed(ChatRunFailureCode.ERROR, ChatRunDataSanitizer.safeMessage(error));
-        }
+        finalizeFailed(ChatRunFailureCode.ERROR, ChatRunDataSanitizer.safeMessage(error));
     }
 
     private synchronized void onComplete() {
@@ -329,11 +327,7 @@ public final class ChatRunInstance {
             // 待确认状态必须等 doFinally 确认适配后的当前阶段源流已经结束后再提交。
             return;
         }
-        if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-            finalizeStopped(ChatRunFinishReason.USER_STOP);
-        } else {
-            finalizeCompleted();
-        }
+        finalizeCompleted();
     }
 
     /**
@@ -376,25 +370,18 @@ public final class ChatRunInstance {
     }
 
     private void completeAwaitConfirm() {
-        if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-            pendingConfirmInterpretation = null;
-            finalizeStopped(ChatRunFinishReason.USER_STOP);
-            return;
-        }
         ChatRunSnapshot snapshot = accumulator.buildSnapshot();
         // 待确认中断事件先暂存（不占可见窗口、不推送订阅者），数据库事实落库成功后才发布：
         // 序号在暂存时分配使快照覆盖中断事件，且事实先于信号外发；落库失败则丢弃，零副作用可重试。
         List<AguiEvent> events = pendingConfirmInterpretation.events();
-        LocalDateTime deadline =
-                LocalDateTime.now().plusSeconds(properties.getChat().getRun().getAwaitConfirmTimeoutSeconds());
         boolean awaiting;
         try {
             awaiting = eventStore.runExclusive(
                     run.getId(),
                     run.getAguiRunId(),
                     events,
-                    () -> runService.awaitConfirm(
-                            run, snapshot, eventStore.latestSeq(run.getId(), run.getSnapshotSeq()), deadline));
+                    () -> runService.checkpoint(
+                            run, snapshot, eventStore.latestSeq(run.getId(), run.getSnapshotSeq())));
         } catch (RuntimeException awaitFailure) {
             // 独立事务回滚时暂存事件尚未发布，运行保持 RUNNING，可由调用方重试。
             pendingConfirmInterpretation = null;
@@ -402,28 +389,23 @@ public final class ChatRunInstance {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_AWAIT_CONFIRM_FAILED, run.getId());
         }
         if (!awaiting) {
-            // 并发落败：awaitConfirm 仅当状态前置 RUNNING 不满足时返回 false。按当前真实状态分流。
+            // 终态会拒绝迟到的确认快照；不存在第二套待确认状态迁移。
             pendingConfirmInterpretation = null;
             ChatRunEntity current = loadCurrent(run);
             run.setStatus(current.getStatus());
-            if (ChatRunStatus.STOPPING.name().equals(current.getStatus())) {
-                finalizeStopped(ChatRunFinishReason.USER_STOP);
-            } else if (ChatRunStatus.isTerminal(current.getStatus())) {
+            if (ChatRunStatus.isTerminal(current.getStatus())) {
                 terminal = true;
                 drainedSignal.complete(null);
-            } else if (ChatRunStatus.RUNNING.name().equals(current.getStatus())) {
-                // 另一确认已将运行推进到 RUNNING，下一阶段仍在执行；当前实例只需安全收尾。
-                log.info("Run进入待确认时被并发确认推进，本实例安全收尾: runId={}", run.getId());
             } else {
-                finalizeFailed(ChatRunFailureCode.STATE_CONFLICT, "Run进入待确认状态失败: " + current.getStatus());
+                throw new IllegalStateException("Run待确认快照未写入: " + run.getId());
             }
             return;
         }
         long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
-        run.setStatus(ChatRunStatus.AWAITING_CONFIRM.name());
-        run.setAwaitConfirmDeadlineAt(deadline);
         run.setSnapshotSeq(seq);
         eventStore.compact(run.getId(), seq);
+        cancelCheckpointTask();
+        checkpointDirty = false;
         pendingConfirmInterpretation = null;
     }
 
@@ -438,11 +420,44 @@ public final class ChatRunInstance {
     }
 
     private void maybeCheckpoint() {
+        if (!checkpointDirty || terminal || hasPendingConfirmation()) {
+            return;
+        }
         long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         int every = properties.getChat().getRun().getSnapshotEveryEvents();
         if (every > 0 && seq - snapshotSeqOrZero(run) >= every) {
             checkpointNow();
+            return;
         }
+        scheduleCheckpoint();
+    }
+
+    /** 由实例自身安排一次延迟检查点，不依赖全局扫描。 */
+    private void scheduleCheckpoint() {
+        if (checkpointTask != null || scheduler.isShutdown()) {
+            return;
+        }
+        checkpointTask = scheduler.schedule(
+                () -> runInTenant(this::checkpointIfDirty),
+                properties.getChat().getRun().getSnapshotIntervalSeconds(),
+                TimeUnit.SECONDS);
+    }
+
+    private synchronized void checkpointIfDirty() {
+        checkpointTask = null;
+        if (!checkpointDirty || terminal || hasPendingConfirmation()) {
+            return;
+        }
+        try {
+            checkpointNow();
+        } catch (RuntimeException checkpointFailure) {
+            log.warn("Run延迟检查点写入失败，将由实例重试: runId={}", run.getId(), checkpointFailure);
+            scheduleCheckpoint();
+        }
+    }
+
+    private boolean hasPendingConfirmation() {
+        return !accumulator.buildSnapshot().pendingTools().isEmpty();
     }
 
     /** 快照事件序号兜底：未设置时按 0 计。 */
@@ -477,6 +492,7 @@ public final class ChatRunInstance {
             return;
         }
         terminal = true;
+        cancelCheckpointTask();
         pendingConfirmInterpretation = null;
         if (status != ChatRunStatus.COMPLETED) {
             closePendingToolCalls();
@@ -536,18 +552,6 @@ public final class ChatRunInstance {
     }
 
     /**
-     * 释放「已注册但未能启动」的实例（调度/认领期间已被并发取胜方终结，从未建立源流）：直接完成排空信号，
-     * 使协调器摘除实例。仅在 {@code !terminal && !sourceActive} 时生效。
-     */
-    public synchronized void releaseNeverStarted() {
-        if (terminal || sourceActive) {
-            return;
-        }
-        terminal = true;
-        drainedSignal.complete(null);
-    }
-
-    /**
      * 排空信号：最终阶段源流与后处理全部结束时完成，协调器订阅以摘除注册表项；未注册实例无人订阅。
      */
     public CompletionStage<Void> drainedSignal() {
@@ -560,34 +564,36 @@ public final class ChatRunInstance {
         return new AguiBootstrap(
                 highWatermark,
                 AguiBootstrapEncoder.encode(run, accumulator.buildSnapshot(), highWatermark),
-                ChatRunStatus.isTerminal(run.getStatus())
-                        || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus()));
+                ChatRunStatus.isTerminal(run.getStatus()) || hasPendingConfirmation());
     }
 
     /** 立即写入执行检查点并收缩事件缓冲区。抛 {@link IllegalStateException} 表示非终态运行的检查点失败。 */
     synchronized void checkpointNow() {
+        cancelCheckpointTask();
         long seq = eventStore.latestSeq(run.getId(), run.getSnapshotSeq());
         if (!runService.checkpoint(run, accumulator.buildSnapshot(), seq)) {
             ChatRunEntity current = loadCurrent(run);
             run.setStatus(current.getStatus());
-            if (!ChatRunStatus.isTerminal(current.getStatus())) {
-                throw new IllegalStateException("Run快照检查点未写入: " + run.getId());
+            if (ChatRunStatus.isTerminal(current.getStatus())) {
+                terminal = true;
+                checkpointDirty = false;
+                if (!isDraining()) {
+                    drainedSignal.complete(null);
+                }
+                return;
             }
+            throw new IllegalStateException("Run快照检查点未写入: " + run.getId());
         } else {
             run.setSnapshotSeq(seq);
             eventStore.compact(run.getId(), seq);
+            checkpointDirty = false;
         }
-        lastCheckpointNanos = System.nanoTime();
     }
 
-    /** 检查点间隔到期时写入执行快照。 */
-    public synchronized void checkpointIfDue(long nowNanos) {
-        if (terminal || ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
-            return;
-        }
-        long interval = TimeUnit.SECONDS.toNanos(properties.getChat().getRun().getSnapshotIntervalSeconds());
-        if (nowNanos - lastCheckpointNanos >= interval) {
-            checkpointNow();
+    private void cancelCheckpointTask() {
+        if (checkpointTask != null) {
+            checkpointTask.cancel(false);
+            checkpointTask = null;
         }
     }
 
@@ -609,30 +615,9 @@ public final class ChatRunInstance {
         finalizeStopped(ChatRunFinishReason.USER_STOP);
     }
 
-    /** 在实例锁内原子地处理确认超时，迁移成功后收敛为停止终态。 */
-    public synchronized void expireConfirmation(LocalDateTime deadline) {
-        if (terminal) {
-            return;
-        }
-        if (isRunning()) {
-            try {
-                checkpointNow();
-            } catch (RuntimeException checkpointFailure) {
-                log.warn("停止Run前快照写入失败，继续中断执行: runId={}", run.getId(), checkpointFailure);
-            }
-        }
-        if (!runService.requestConfirmationTimeout(run, deadline)) {
-            run.setStatus(loadCurrent(run).getStatus());
-            return;
-        }
-        run.setStatus(ChatRunStatus.STOPPING.name());
-        finalizeStopped(ChatRunFinishReason.CONFIRM_TIMEOUT);
-    }
-
     /**
-     * 在实例锁内原子地判定并请求停止；与 {@code confirm}/{@code startPhase} 同一把实例锁，消除
-     * 「是否运行」判读与「是否可启动新流」之间的 TOCTOU 间隙。非运行态在锁内完成 STOPPING 并直接终结；
-     * 运行态只做 STOPPING 迁移与检查点并返回 {@code true}，由协调器在锁外中断并留宽限期。
+     * 在实例锁内直接提交 STOPPED；数据库终态阻止迟到完成结果覆盖。若本地源流仍活动，返回 true 供协调器
+     * 在锁外做协作式中断。
      *
      * @return 是否需要协调器在锁外中断活动源流
      */
@@ -640,28 +625,16 @@ public final class ChatRunInstance {
         if (terminal) {
             return false;
         }
-        if (!runService.requestStopping(run)) {
-            ChatRunEntity current = loadCurrent(run);
-            run.setStatus(current.getStatus());
-            if (ChatRunStatus.isTerminal(current.getStatus())) {
-                return false;
-            }
-            if (!ChatRunStatus.STOPPING.name().equals(current.getStatus())) {
-                return false;
+        boolean interruptRequired = isRunning();
+        if (interruptRequired) {
+            try {
+                checkpointNow();
+            } catch (RuntimeException checkpointFailure) {
+                log.warn("停止Run前快照写入失败，仍提交停止终态: runId={}", run.getId(), checkpointFailure);
             }
         }
-        run.setStatus(ChatRunStatus.STOPPING.name());
-        if (!isRunning()) {
-            // 锁内判读期间 confirm 和 startPhase 无法并发修改 disposable，可安全直接终结。
-            finalizeStopped(ChatRunFinishReason.USER_STOP);
-            return false;
-        }
-        try {
-            checkpointNow();
-        } catch (RuntimeException checkpointFailure) {
-            log.warn("停止Run前快照写入失败，继续中断执行: runId={}", run.getId(), checkpointFailure);
-        }
-        return true;
+        finalizeStopped(ChatRunFinishReason.USER_STOP);
+        return interruptRequired;
     }
 
     /** 保存当前检查点并中断 Agent。检查点在实例锁内写入，中断请求保持在锁外以避免回流死锁。 */

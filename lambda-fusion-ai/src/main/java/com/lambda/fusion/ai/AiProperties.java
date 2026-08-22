@@ -94,7 +94,7 @@ public class AiProperties {
         /** 附件参数。 */
         private Attachment attachment = new Attachment();
 
-        /** 后台对话 Run 的执行与恢复参数。 */
+        /** 后台对话 Run 的执行参数。 */
         @Valid
         private Run run = new Run();
 
@@ -108,10 +108,6 @@ public class AiProperties {
             /** 单次 Agent 执行的最长时间，单位秒。 */
             @Min(1)
             private long maxRunDurationSeconds = 1800;
-
-            /** 工具调用等待确认的最长时间，单位秒。 */
-            @Min(1)
-            private long awaitConfirmTimeoutSeconds = 86400;
 
             /** 强制停止前等待协作式停止完成的时间，单位秒。 */
             @Min(1)

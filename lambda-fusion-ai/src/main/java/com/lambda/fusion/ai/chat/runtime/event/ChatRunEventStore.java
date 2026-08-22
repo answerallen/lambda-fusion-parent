@@ -6,17 +6,18 @@ import com.lambda.fusion.ai.exception.AiErrorCode;
 import io.agentscope.core.agui.event.AguiEvent;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.springframework.stereotype.Component;
 
 /**
- * 对话执行事件存储：按运行标识管理内存事件缓冲区，提供事件追加、游标查询、订阅和过期清理功能。
+ * 对话执行事件存储：按运行标识管理内存事件缓冲区，提供事件追加、游标查询、订阅和终态延迟释放。
  *
  * @author Jin
  */
@@ -28,6 +29,11 @@ public class ChatRunEventStore {
     private final int subscriberQueueSize;
     private final Map<String, ChatRunEventBuffer> buffers = new ConcurrentHashMap<>();
     private final ExecutorService senderExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ScheduledExecutorService expiryExecutor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "chat-run-event-expiry");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     /**
      * 创建事件存储。
@@ -166,7 +172,17 @@ public class ChatRunEventStore {
      * @param retention 终态事件保留时长
      */
     public void markTerminal(String runId, Duration retention) {
-        buffer(runId).markExpiresAt(System.currentTimeMillis() + retention.toMillis());
+        ChatRunEventBuffer identity = buffer(runId);
+        long delayMillis = Math.max(0L, retention.toMillis());
+        identity.markExpiresAt(System.currentTimeMillis() + delayMillis);
+        expiryExecutor.schedule(
+                () -> {
+                    if (identity.expired(System.currentTimeMillis())) {
+                        clear(runId, identity);
+                    }
+                },
+                delayMillis,
+                TimeUnit.MILLISECONDS);
     }
 
     private void clear(String runId) {
@@ -182,22 +198,11 @@ public class ChatRunEventStore {
         }
     }
 
-    /** 删除所有已到期的终态缓冲区。 */
-    public void purgeExpired() {
-        long now = System.currentTimeMillis();
-        List<String> expired = new ArrayList<>();
-        buffers.forEach((runId, buffer) -> {
-            if (buffer.expired(now)) {
-                expired.add(runId);
-            }
-        });
-        expired.forEach(runId -> clear(runId, buffers.get(runId)));
-    }
-
     /** 关闭事件订阅并释放发送线程池。 */
     @PreDestroy
     public void shutdown() {
         List.copyOf(buffers.keySet()).forEach(this::clear);
+        expiryExecutor.shutdownNow();
         senderExecutor.shutdownNow();
     }
 

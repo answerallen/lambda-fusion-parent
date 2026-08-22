@@ -47,9 +47,6 @@ public class ChatRunEntity extends BaseEntity {
     @TableField("agui_run_id")
     private String aguiRunId;
 
-    @TableField("await_confirm_deadline_at")
-    private LocalDateTime awaitConfirmDeadlineAt;
-
     @TableField("snapshot_seq")
     private Long snapshotSeq;
 

@@ -25,7 +25,6 @@ public class ChatRun extends BaseVO<ChatRunEntity> {
     private Integer phaseNo;
     private String aguiRunId;
     private List<PendingTool> pendingConfirm;
-    private LocalDateTime awaitConfirmDeadlineAt;
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;
     private String errorCode;

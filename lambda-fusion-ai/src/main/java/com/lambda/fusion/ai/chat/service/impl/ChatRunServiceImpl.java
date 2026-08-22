@@ -46,7 +46,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 对话运行的唯一持久化服务，负责幂等创建、状态迁移、检查点和终态提交。该实现同时服务于两个调用面：
  * {@link ChatRunService} 面向 HTTP 编排并校验会话归属，{@link ChatRunStateService} 面向执行状态机并独立提交迁移。
- * 状态机为 {@code CREATED -> RUNNING <-> AWAITING_CONFIRM -> STOPPING -> COMPLETED/STOPPED/FAILED}。
+ * ChatRun 只保留 {@code RUNNING/COMPLETED/STOPPED/FAILED} 四个业务状态；AgentScope
+ * 负责执行会话和 ASKING 等底层状态。
  *
  * <p>创建请求以 {@code clientRequestId} 去重，并通过 {@code requestHash} 校验请求内容；状态迁移采用带前置条件的
  * UPDATE 实现 CAS，只有影响一行时才成功。检查点和状态迁移使用 {@link Propagation#REQUIRES_NEW} 独立提交，
@@ -74,7 +75,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         ChatRunEntity existing = findByRequest(sessionId, message.getClientRequestId());
         if (existing != null) {
             requireSameRequest(existing, requestHash);
-            return new RunContext(existing, session);
+            return new RunContext(existing, session, false);
         }
         appService.loadAvailable(session.getAppId());
         // 同一会话只允许一个活动运行，避免多个执行上下文竞争状态槽。
@@ -89,10 +90,11 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         run.setSessionId(sessionId);
         run.setClientRequestId(message.getClientRequestId());
         run.setRequestHash(requestHash);
-        run.setStatus(ChatRunStatus.CREATED.name());
+        run.setStatus(ChatRunStatus.RUNNING.name());
         run.setPhaseNo(1);
         run.setAguiRunId(newAguiRunId());
         run.setSnapshotSeq(0L);
+        run.setStartedAt(now);
         runMapper.insert(run);
 
         // 先保存用户消息并绑定附件，再回填消息 ID 和初始空快照。
@@ -118,7 +120,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         if (persisted == null) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_NOT_FOUND, run.getId());
         }
-        return new RunContext(persisted, session);
+        return new RunContext(persisted, session, true);
     }
 
     /** 返回当前用户拥有的会话下唯一活跃 Run（无则空）。 */
@@ -147,14 +149,14 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
 
     /**
      * 在独立事务中推进用户确认。方法复核资源归属并校验阶段，以
-     * {@code status=AWAITING_CONFIRM, phaseNo=sourcePhaseNo} 为前置条件执行 CAS 迁移。
+     * {@code status=RUNNING, phaseNo=sourcePhaseNo} 为前置条件执行 CAS 迁移。
      * 运行已越过来源阶段时按重复确认返回 {@code resumed=false}；运行尚未到达该阶段时按过期命令处理。
      * 确认内容由执行实例校验，本方法只负责权威状态迁移。
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public ConfirmTransition advanceConfirmation(
-            ChatRunEntity identity, ChatSessionEntity expectedSession, int sourcePhaseNo) {
+            ChatRunEntity identity, ChatSessionEntity expectedSession, int sourcePhaseNo, ChatRunSnapshot snapshot) {
         // 在行锁内复核会话所有权和运行归属，使并发确认串行化。
         ChatSessionEntity session = sessionMapper.selectOne(new LambdaQueryWrapper<ChatSessionEntity>()
                 .eq(ChatSessionEntity::getId, identity.getSessionId())
@@ -177,25 +179,30 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
             }
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
         }
-        // 只有待确认态可被确认，否则状态冲突。
-        if (!ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
+        // ChatRun 不复制 AgentScope ASKING 状态；RUNNING 仅表示这次业务请求尚未终结。
+        if (!ChatRunStatus.RUNNING.name().equals(run.getStatus())
+                || snapshot == null
+                || !Objects.equals(snapshot.runId(), run.getId())
+                || !Objects.equals(snapshot.aguiRunId(), run.getAguiRunId())
+                || snapshot.phaseNo() != sourcePhaseNo
+                || snapshot.pendingTools().isEmpty()) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
         }
 
         int targetPhase = run.getPhaseNo() + 1;
         String targetAguiRunId = newAguiRunId();
-        // 以待确认状态和阶段号为前置条件迁移到 RUNNING；并发更新未命中时报告状态冲突。
+        ChatRunSnapshot nextSnapshot = snapshot.beginPhase(targetAguiRunId, targetPhase);
+        // 阶段号是确认幂等键；同事务清除待确认 UI 投影，避免重连读到旧阶段中断。
         LocalDateTime now = LocalDateTime.now();
         int changed = runMapper.update(
                 null,
                 new LambdaUpdateWrapper<ChatRunEntity>()
                         .eq(ChatRunEntity::getId, run.getId())
-                        .eq(ChatRunEntity::getStatus, ChatRunStatus.AWAITING_CONFIRM.name())
+                        .eq(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name())
                         .eq(ChatRunEntity::getPhaseNo, sourcePhaseNo)
-                        .set(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name())
                         .set(ChatRunEntity::getPhaseNo, targetPhase)
                         .set(ChatRunEntity::getAguiRunId, targetAguiRunId)
-                        .set(ChatRunEntity::getAwaitConfirmDeadlineAt, null)
+                        .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(nextSnapshot))
                         .set(ChatRunEntity::getUpdatedAt, now));
         if (changed != 1) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getId());
@@ -204,26 +211,11 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         run.setStatus(ChatRunStatus.RUNNING.name());
         run.setPhaseNo(targetPhase);
         run.setAguiRunId(targetAguiRunId);
+        run.setSnapshotJson(ChatRunSnapshotCodec.encode(nextSnapshot));
         return new ConfirmTransition(run, session, true);
     }
 
-    /** CAS 认领新建 Run：{@code CREATED -> RUNNING}；已被并发认领则返回 false。 */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public boolean claimCreated(ChatRunEntity run) {
-        LocalDateTime now = LocalDateTime.now();
-        return runMapper.update(
-                        null,
-                        new LambdaUpdateWrapper<ChatRunEntity>()
-                                .eq(ChatRunEntity::getId, run.getId())
-                                .eq(ChatRunEntity::getStatus, ChatRunStatus.CREATED.name())
-                                .set(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name())
-                                .set(ChatRunEntity::getStartedAt, now)
-                                .set(ChatRunEntity::getUpdatedAt, now))
-                == 1;
-    }
-
-    /** CAS 写检查点：在非终态下更新快照与序号，成功返回 true；否则拒绝写入。 */
+    /** CAS 写检查点：仅 RUNNING 可更新快照与序号，终态拒绝迟到写入。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public boolean checkpoint(ChatRunEntity run, ChatRunSnapshot snapshot, long seq) {
@@ -232,67 +224,14 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         null,
                         new LambdaUpdateWrapper<ChatRunEntity>()
                                 .eq(ChatRunEntity::getId, run.getId())
-                                .notIn(ChatRunEntity::getStatus, ChatRunStatus.terminalNames())
+                                .eq(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name())
                                 .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
                                 .set(ChatRunEntity::getSnapshotSeq, seq)
                                 .set(ChatRunEntity::getUpdatedAt, now))
                 == 1;
     }
 
-    /** CAS 进入待确认：{@code RUNNING -> AWAITING_CONFIRM}，同事务持久化快照。 */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public boolean awaitConfirm(ChatRunEntity run, ChatRunSnapshot snapshot, long seq, LocalDateTime deadline) {
-        return runMapper.update(
-                        null,
-                        new LambdaUpdateWrapper<ChatRunEntity>()
-                                .eq(ChatRunEntity::getId, run.getId())
-                                .eq(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name())
-                                .set(ChatRunEntity::getStatus, ChatRunStatus.AWAITING_CONFIRM.name())
-                                .set(ChatRunEntity::getAwaitConfirmDeadlineAt, deadline)
-                                .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
-                                .set(ChatRunEntity::getSnapshotSeq, seq)
-                                .set(ChatRunEntity::getUpdatedAt, LocalDateTime.now()))
-                == 1;
-    }
-
-    /** CAS 请求停止：从 {@code CREATED/RUNNING/AWAITING_CONFIRM} 迁移到 {@code STOPPING}，成功返回 true。 */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public boolean requestStopping(ChatRunEntity run) {
-        return runMapper.update(
-                        null,
-                        new LambdaUpdateWrapper<ChatRunEntity>()
-                                .eq(ChatRunEntity::getId, run.getId())
-                                .in(
-                                        ChatRunEntity::getStatus,
-                                        ChatRunStatus.CREATED.name(),
-                                        ChatRunStatus.RUNNING.name(),
-                                        ChatRunStatus.AWAITING_CONFIRM.name())
-                                .set(ChatRunEntity::getStatus, ChatRunStatus.STOPPING.name())
-                                .set(ChatRunEntity::getUpdatedAt, LocalDateTime.now()))
-                == 1;
-    }
-
-    /** CAS 确认超时：对已超截止时间的 {@code AWAITING_CONFIRM} 迁移到 {@code STOPPING}，成功返回 true。 */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public boolean requestConfirmationTimeout(ChatRunEntity run, LocalDateTime deadline) {
-        return runMapper.update(
-                        null,
-                        new LambdaUpdateWrapper<ChatRunEntity>()
-                                .eq(ChatRunEntity::getId, run.getId())
-                                .eq(ChatRunEntity::getStatus, ChatRunStatus.AWAITING_CONFIRM.name())
-                                .le(ChatRunEntity::getAwaitConfirmDeadlineAt, deadline)
-                                .set(ChatRunEntity::getStatus, ChatRunStatus.STOPPING.name())
-                                .set(ChatRunEntity::getUpdatedAt, LocalDateTime.now()))
-                == 1;
-    }
-
-    /**
-     * 在独立事务中提交运行终态、助手消息和最终快照。已有终态时返回 {@code committed=false} 并携带原结果。
-     * {@code STOPPING} 优先于调用方给出的目标状态，最终统一写为 {@code STOPPED}，原因设为 {@code USER_STOP}。
-     */
+    /** 在独立事务中提交运行终态、助手消息和最终快照；已有终态时幂等返回既有结果。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public ChatRunFinalizationResult finalizeExecution(ChatRunEntity identity, ChatRunFinalizationCommand command) {
@@ -317,11 +256,8 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         ChatRunSnapshot snapshot = command.snapshot();
         String toolCallJson = command.toolCallJson();
         long lastSeq = command.lastSeq();
-        // STOPPING 优先，避免已接受的停止请求被完成或失败结果覆盖。
-        boolean stopWon =
-                ChatRunStatus.STOPPING.name().equals(run.getStatus()) && targetStatus != ChatRunStatus.STOPPED;
-        ChatRunStatus finalStatus = stopWon ? ChatRunStatus.STOPPED : targetStatus;
-        ChatRunFinishReason finalReason = stopWon ? ChatRunFinishReason.USER_STOP : command.finishReason();
+        ChatRunStatus finalStatus = targetStatus;
+        ChatRunFinishReason finalReason = command.finishReason();
         ChatRunFailureCode finalErrorCode = finalStatus == ChatRunStatus.STOPPED ? null : command.errorCode();
         String finalErrorMessage = finalStatus == ChatRunStatus.STOPPED ? null : command.errorMessage();
 
@@ -340,7 +276,6 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .set(ChatRunEntity::getStatus, finalStatus.name())
                         .set(ChatRunEntity::getFinishReason, finalReason == null ? null : finalReason.name())
                         .set(ChatRunEntity::getAssistantMessageId, assistant == null ? null : assistant.getId())
-                        .set(ChatRunEntity::getAwaitConfirmDeadlineAt, null)
                         .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
                         .set(ChatRunEntity::getSnapshotSeq, lastSeq)
                         .set(ChatRunEntity::getErrorCode, finalErrorCode == null ? null : finalErrorCode.name())
@@ -391,37 +326,13 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         return runMapper.selectById(runId);
     }
 
-    /** 按 Run 携带的 sessionId 载入会话（不存在则抛异常）。 */
-    @Override
-    public ChatSessionEntity loadSession(ChatRunEntity run) {
-        ChatSessionEntity session = sessionMapper.selectById(run.getSessionId());
-        if (session == null) {
-            throw new IllegalStateException("Run会话不存在: " + run.getSessionId());
-        }
-        return session;
-    }
-
-    /** 查询处于 {@code CREATED}、等待调度器认领的运行。 */
-    @Override
-    public List<ChatRunEntity> listCreated() {
-        return runMapper.selectList(
-                new LambdaQueryWrapper<ChatRunEntity>().eq(ChatRunEntity::getStatus, ChatRunStatus.CREATED.name()));
-    }
-
-    /** 查询截止时间不晚于给定时刻的待确认运行。 */
-    @Override
-    public List<ChatRunEntity> listExpiredConfirmations(LocalDateTime deadline) {
-        return runMapper.selectList(new LambdaQueryWrapper<ChatRunEntity>()
-                .eq(ChatRunEntity::getStatus, ChatRunStatus.AWAITING_CONFIRM.name())
-                .le(ChatRunEntity::getAwaitConfirmDeadlineAt, deadline));
-    }
-
-    /** 实体转视图，并在待确认态填充待确认工具列表。 */
+    /** 实体转视图；RUNNING 下的待确认工具来自持久化快照投影。 */
     private ChatRun toRunView(ChatRunEntity entity) {
         ChatRun view = toVO(entity);
         ChatRunSnapshot snapshot = ChatRunSnapshotCodec.decode(entity.getSnapshotJson());
         view.setPendingConfirm(
-                ChatRunStatus.AWAITING_CONFIRM.name().equals(entity.getStatus())
+                ChatRunStatus.RUNNING.name().equals(entity.getStatus())
+                                && !snapshot.pendingTools().isEmpty()
                         ? snapshot.pendingTools().stream()
                                 .map(tool -> new ChatRun.PendingTool(tool.toolCallId(), tool.toolCallName()))
                                 .toList()

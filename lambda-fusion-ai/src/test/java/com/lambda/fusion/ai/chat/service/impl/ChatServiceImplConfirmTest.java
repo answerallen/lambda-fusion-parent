@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +14,7 @@ import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.RunContext;
+import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.ChatRunCoordinator;
@@ -32,8 +34,34 @@ class ChatServiceImplConfirmTest {
     private final ChatServiceImpl chatService = new ChatServiceImpl(runService, chatRunCoordinator, properties);
 
     @Test
+    void shouldStartOnlyNewlyCreatedRun() {
+        ChatRunEntity run = run(ChatRunStatus.RUNNING, 1);
+        ChatSessionEntity session = session();
+        SendMessage message = message();
+        when(runService.createOrLoad("session-1", message)).thenReturn(new RunContext(run, session, true));
+        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrap(0L, List.of(), true));
+
+        assertThat(chatService.streamChat("session-1", message)).isNotNull();
+
+        verify(chatRunCoordinator).start(run, session);
+    }
+
+    @Test
+    void shouldNotRestartIdempotentlyLoadedRun() {
+        ChatRunEntity run = run(ChatRunStatus.RUNNING, 1);
+        ChatSessionEntity session = session();
+        SendMessage message = message();
+        when(runService.createOrLoad("session-1", message)).thenReturn(new RunContext(run, session, false));
+        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrap(0L, List.of(), true));
+
+        assertThat(chatService.streamChat("session-1", message)).isNotNull();
+
+        verify(chatRunCoordinator, never()).start(any(), any());
+    }
+
+    @Test
     void shouldPropagateWhenConfirmThrows() {
-        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM, 2);
+        ChatRunEntity run = run(ChatRunStatus.RUNNING, 2);
         ChatSessionEntity session = session();
         ConfirmToolCall command = command(2, List.of(decision("call_1", true)));
 
@@ -48,7 +76,7 @@ class ChatServiceImplConfirmTest {
 
     @Test
     void shouldOpenRunEventStreamWithAfterSeqZeroAndBootstrap() {
-        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM, 2);
+        ChatRunEntity run = run(ChatRunStatus.RUNNING, 2);
         ChatSessionEntity session = session();
         ConfirmToolCall command = command(2, List.of(decision("call_1", true)));
         ChatRunEntity transitioned = run(ChatRunStatus.RUNNING, 3);
@@ -66,7 +94,7 @@ class ChatServiceImplConfirmTest {
 
     @Test
     void shouldOpenStreamFromTransitionedRunEvenWhenIdempotent() {
-        ChatRunEntity run = run(ChatRunStatus.AWAITING_CONFIRM, 2);
+        ChatRunEntity run = run(ChatRunStatus.RUNNING, 2);
         ChatSessionEntity session = session();
         ConfirmToolCall command = command(2, List.of(decision("call_1", true)));
         ChatRunEntity transitioned = run(ChatRunStatus.RUNNING, 3);
@@ -119,6 +147,13 @@ class ChatServiceImplConfirmTest {
         command.setPhaseNo(phaseNo);
         command.setDecisions(decisions);
         return command;
+    }
+
+    private static SendMessage message() {
+        SendMessage message = new SendMessage();
+        message.setClientRequestId("request-1");
+        message.setContent("hello");
+        return message;
     }
 
     private static ConfirmToolCall.Decision decision(String toolCallId, boolean confirmed) {

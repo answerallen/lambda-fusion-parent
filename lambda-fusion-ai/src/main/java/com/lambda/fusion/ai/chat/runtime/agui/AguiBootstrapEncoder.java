@@ -108,7 +108,8 @@ public final class AguiBootstrapEncoder {
 
     private static void appendTerminal(
             AguiBootstrapEventCollector collector, ChatRunEntity run, ChatRunSnapshot snapshot) {
-        if (ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
+        if (ChatRunStatus.RUNNING.name().equals(run.getStatus())
+                && !snapshot.pendingTools().isEmpty()) {
             List<Map<String, Object>> interrupts = snapshot.pendingTools().stream()
                     .map(tool -> fields(
                             "id", tool.toolCallId(),

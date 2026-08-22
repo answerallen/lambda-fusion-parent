@@ -451,10 +451,7 @@ public interface AiConstants {
 
     /** 对话业务 Run 状态。 */
     public enum ChatRunStatus {
-        CREATED,
         RUNNING,
-        AWAITING_CONFIRM,
-        STOPPING,
         COMPLETED,
         STOPPED,
         FAILED;
@@ -489,8 +486,7 @@ public interface AiConstants {
     public enum ChatRunFinishReason {
         SUCCESS,
         ERROR,
-        USER_STOP,
-        CONFIRM_TIMEOUT
+        USER_STOP
     }
 
     /** 对话运行失败码，持久化时写入 error_code 列。 */

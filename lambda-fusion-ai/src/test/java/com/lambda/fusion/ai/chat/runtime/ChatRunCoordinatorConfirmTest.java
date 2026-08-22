@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -93,7 +94,7 @@ class ChatRunCoordinatorConfirmTest {
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE.getCode()));
-        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt(), any());
     }
 
     @Test
@@ -108,7 +109,7 @@ class ChatRunCoordinatorConfirmTest {
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE.getCode()));
-        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt(), any());
     }
 
     @Test
@@ -124,7 +125,7 @@ class ChatRunCoordinatorConfirmTest {
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE.getCode()));
-        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt(), any());
     }
 
     @Test
@@ -140,7 +141,7 @@ class ChatRunCoordinatorConfirmTest {
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH.getCode()));
-        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt(), any());
     }
 
     @Test
@@ -153,7 +154,7 @@ class ChatRunCoordinatorConfirmTest {
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.INVALID_PARAMETER.getCode()));
-        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt(), any());
     }
 
     @Test
@@ -169,7 +170,7 @@ class ChatRunCoordinatorConfirmTest {
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(e -> assertThat(((AiBusinessException) e).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH.getCode()));
-        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt(), any());
     }
 
     @Test
@@ -208,7 +209,7 @@ class ChatRunCoordinatorConfirmTest {
 
         assertThat(transition.resumed()).isFalse();
         verify(delegate, never()).getAgentState(any(), any());
-        verify(runService, never()).advanceConfirmation(any(), any(), anyInt());
+        verify(runService, never()).advanceConfirmation(any(), any(), anyInt(), any());
         verify(agent, never()).streamEvents(any(Msg.class), any());
     }
 
@@ -231,12 +232,13 @@ class ChatRunCoordinatorConfirmTest {
 
     /** CAS 推进成功：刷新内存实体为新阶段并返回 resumed=true。 */
     private void stubResumed(ChatRunEntity run, int sourcePhaseNo) {
-        when(runService.advanceConfirmation(run, session(), sourcePhaseNo)).thenAnswer(invocation -> {
-            run.setStatus(ChatRunStatus.RUNNING.name());
-            run.setPhaseNo(sourcePhaseNo + 1);
-            run.setAguiRunId("agui-next");
-            return new ConfirmTransition(run, session(), true);
-        });
+        when(runService.advanceConfirmation(eq(run), any(ChatSessionEntity.class), eq(sourcePhaseNo), any()))
+                .thenAnswer(invocation -> {
+                    run.setStatus(ChatRunStatus.RUNNING.name());
+                    run.setPhaseNo(sourcePhaseNo + 1);
+                    run.setAguiRunId("agui-next");
+                    return new ConfirmTransition(run, session(), true);
+                });
     }
 
     private static ChatRunEntity awaitingRun(int phaseNo) {
@@ -247,7 +249,7 @@ class ChatRunCoordinatorConfirmTest {
         ChatRunEntity run = new ChatRunEntity();
         run.setId("run-1");
         run.setSessionId("session-1");
-        run.setStatus(ChatRunStatus.AWAITING_CONFIRM.name());
+        run.setStatus(ChatRunStatus.RUNNING.name());
         run.setPhaseNo(phaseNo);
         List<ChatRunSnapshot.ToolCall> pendingTools = pendingIds.stream()
                 .map(id -> new ChatRunSnapshot.ToolCall(id, "demo", "", "", "asking"))

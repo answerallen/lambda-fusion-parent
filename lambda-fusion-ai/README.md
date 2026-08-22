@@ -125,7 +125,8 @@ DB 驱动子代理定义（`ai_sub_agent`：`name`/`description`/`prompt`/`model
 ### 对话
 `POST /v1/ai/sessions` 创建、`GET /v1/ai/sessions/page` 列表、`GET /v1/ai/sessions/{id}/messages` 历史、
 `POST /v1/ai/sessions/{id}/chat`（SSE）流式对话。ChatRun 是 AgentScope 之上的业务状态：本地内存事件用于实时输出，
-数据库快照用于页面恢复；不实现节点心跳、租约、远程停止或旧调用接管。多实例下若请求未落回执行实例，返回持久化
+数据库快照用于页面恢复，状态仅有 `RUNNING / COMPLETED / STOPPED / FAILED`；AgentScope 的 `ASKING` 不复制成业务状态。
+本模块不实现节点心跳、租约、远程停止、旧调用接管或全局维护扫描。多实例下若请求未落回执行实例，返回持久化
 bootstrap 后关闭 SSE；用户可显式停止旧 Run 并创建新 Run。详见
 [ChatRun 多节点部署边界](../docs/design/chat-run-cluster.md)。
 

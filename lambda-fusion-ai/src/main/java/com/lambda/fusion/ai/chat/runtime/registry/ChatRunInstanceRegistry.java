@@ -35,9 +35,7 @@ public final class ChatRunInstanceRegistry {
     /** 启动选择结果：{@code registered=true} 表示本次新建并注册，调用方应启动该实例。 */
     public record StartRegistration(ChatRunInstance execution, boolean registered) {}
 
-    /**
-     * 为 CREATED Run 原子检查容量、恢复并注册；容量不足返回空，已有实例返回 {@code registered=false}。
-     */
+    /** 为新 Run 原子检查容量、恢复并注册；容量不足返回空，已有实例返回 {@code registered=false}。 */
     public synchronized Optional<StartRegistration> restoreForStartIfCapacity(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         ChatRunInstance existing = executions.get(run.getId());
@@ -65,24 +63,12 @@ public final class ChatRunInstanceRegistry {
         return candidate;
     }
 
-    /** 查询本地实例；不存在时恢复待确认上下文清理实例。该清理不受新执行容量限制。 */
-    public synchronized ChatRunInstance selectOrRestoreForConfirmationFinalization(
-            ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
-        ChatRunInstance selected = executions.get(run.getId());
-        if (selected != null) {
-            return selected;
-        }
-        ChatRunInstance candidate = instanceFactory.restoreConfirmationFinalizer(run, session, scheduler);
-        registerNew(run.getId(), candidate);
-        return candidate;
-    }
-
     /** 查询本进程当前持有的活动实例。 */
     public synchronized ChatRunInstance get(String runId) {
         return executions.get(runId);
     }
 
-    /** 对调用时刻的活动实例快照执行本地维护动作。 */
+    /** 对调用时刻的活动实例快照执行本地动作（当前仅用于进程关闭）。 */
     public void forEachActive(Consumer<ChatRunInstance> action) {
         List<ChatRunInstance> active;
         synchronized (this) {

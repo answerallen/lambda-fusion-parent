@@ -100,7 +100,7 @@ public final class AgentExecutionAdapter {
      *
      * <p>AgentScope 会先持久化 {@code ASKING} 状态，再发送根 {@code AGENT_END}，随后才通过
      * {@code concatWith} 订阅记忆冲刷和整理尾部。此处等待根结束事件后再取消上游，既保留可恢复的确认状态，
-     * 又避免记忆模型阻塞 Run 进入 {@code AWAITING_CONFIRM}。普通最终回答和子 Agent 事件不受影响。
+     * 又避免记忆模型阻塞待确认快照落库。普通最终回答和子 Agent 事件不受影响。
      */
     private Flux<AgentEvent> endAtHitlPhaseBoundary(Flux<AgentEvent> source) {
         return Flux.defer(() -> {

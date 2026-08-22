@@ -94,7 +94,6 @@ class ChatRunCoordinatorStartTest {
         userMessage.setId(1L);
         userMessage.setContent("日期");
 
-        when(runService.claimCreated(any(ChatRunEntity.class))).thenReturn(true);
         when(messageService.findByIdAndSession(anyLong(), eq(session.getId()))).thenReturn(Optional.of(userMessage));
         when(attachmentService.listByMessageIds(anyList())).thenReturn(List.of());
         when(appService.loadById(session.getAppId())).thenReturn(new AppEntity());
@@ -120,7 +119,7 @@ class ChatRunCoordinatorStartTest {
         when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
                 .thenReturn(new ChatRunEvent(1L, "terminal-1", "RUN_FINISHED", "{}"));
 
-        coordinator.startIfCreated(first, session);
+        coordinator.start(first, session);
         verify(agent, timeout(1000)).streamEvents(any(Msg.class), any(RuntimeContext.class));
 
         assertThat(firstSource.tryEmitNext(new AgentEndEvent("reply-1")).isSuccess())
@@ -129,7 +128,7 @@ class ChatRunCoordinatorStartTest {
         assertThat(first.getStatus()).isEqualTo(ChatRunStatus.COMPLETED.name());
 
         // firstSource 未 complete，模拟 MemoryFlush / MemoryMaintenance 仍在运行。
-        coordinator.startIfCreated(second, session);
+        coordinator.start(second, session);
 
         verify(agent, timeout(1000).times(2)).streamEvents(any(Msg.class), any(RuntimeContext.class));
         assertThat(second.getStatus()).isEqualTo(ChatRunStatus.RUNNING.name());
@@ -146,7 +145,7 @@ class ChatRunCoordinatorStartTest {
         run.setId(id);
         run.setSessionId("session-1");
         run.setUserMessageId(userMessageId);
-        run.setStatus(ChatRunStatus.CREATED.name());
+        run.setStatus(ChatRunStatus.RUNNING.name());
         run.setPhaseNo(1);
         run.setAguiRunId("agui-" + id);
         run.setSnapshotSeq(0L);

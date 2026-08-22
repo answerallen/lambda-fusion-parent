@@ -32,6 +32,7 @@ import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.RequireUserConfirmEvent;
+import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolCallState;
@@ -122,17 +123,6 @@ class ChatRunInstanceDrainTest {
     }
 
     @Test
-    void shouldReleaseNeverStartedInstance() {
-        instance = newInstance(run(ChatRunStatus.RUNNING));
-
-        instance.releaseNeverStarted();
-
-        assertThat(instance.drainedSignal().toCompletableFuture()).isDone();
-        // 从未建立源流，不写数据库终结。
-        verify(runService, never()).finalizeExecution(any(), any());
-    }
-
-    @Test
     void shouldExposeAwaitingConfirmationOnlyAfterSourceDrains() {
         instance = newInstance(run(ChatRunStatus.RUNNING));
         Sinks.Many<AgentEvent> source = Sinks.many().unicast().onBackpressureBuffer();
@@ -141,7 +131,7 @@ class ChatRunInstanceDrainTest {
             BooleanSupplier dbAction = invocation.getArgument(3);
             return dbAction.getAsBoolean();
         });
-        when(runService.awaitConfirm(eq(instance.run()), any(ChatRunSnapshot.class), anyLong(), any()))
+        when(runService.checkpoint(eq(instance.run()), any(ChatRunSnapshot.class), anyLong()))
                 .thenReturn(true);
 
         instance.startPhase(userMsg());
@@ -154,16 +144,34 @@ class ChatRunInstanceDrainTest {
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(error -> assertThat(((AiBusinessException) error).getCode())
                         .isEqualTo(AiErrorCode.CHAT_RUN_STATE_CONFLICT.getCode()));
-        verify(runService, never()).advanceConfirmation(any(), any(), org.mockito.ArgumentMatchers.anyInt());
-        verify(runService, never()).awaitConfirm(any(), any(), anyLong(), any());
+        verify(runService, never()).advanceConfirmation(any(), any(), org.mockito.ArgumentMatchers.anyInt(), any());
+        verify(runService, never()).checkpoint(any(), any(), anyLong());
 
         // 整个 AgentScope/Harness 源流排空后才提交待确认事实并发布中断事件。
         source.tryEmitComplete();
 
-        assertThat(instance.run().getStatus()).isEqualTo(ChatRunStatus.AWAITING_CONFIRM.name());
+        assertThat(instance.run().getStatus()).isEqualTo(ChatRunStatus.RUNNING.name());
+        assertThat(instance.bootstrap().phaseClosed()).isTrue();
         assertThat(instance.drainedSignal().toCompletableFuture()).isNotDone();
-        verify(runService).awaitConfirm(eq(instance.run()), any(ChatRunSnapshot.class), anyLong(), any());
+        verify(runService).checkpoint(eq(instance.run()), any(ChatRunSnapshot.class), anyLong());
         verify(workspaceAuditRecorder).recordChanges(eq(instance.session()), anyLong());
+    }
+
+    @Test
+    void shouldCheckpointDirtySnapshotFromInstanceOwnedTimer() {
+        AiProperties properties = new AiProperties();
+        properties.getChat().getRun().setSnapshotIntervalSeconds(1);
+        properties.getChat().getRun().setSnapshotEveryEvents(100);
+        instance = newInstance(run(ChatRunStatus.RUNNING), properties);
+        Sinks.Many<AgentEvent> source = Sinks.many().unicast().onBackpressureBuffer();
+        when(adapter.stream(any(Msg.class))).thenReturn(source.asFlux());
+        when(runService.checkpoint(eq(instance.run()), any(ChatRunSnapshot.class), anyLong()))
+                .thenReturn(true);
+
+        instance.startPhase(userMsg());
+        source.tryEmitNext(new TextBlockDeltaEvent("reply-1", "block-1", "partial"));
+
+        verify(runService, timeout(2_500)).checkpoint(eq(instance.run()), any(ChatRunSnapshot.class), anyLong());
     }
 
     @Test

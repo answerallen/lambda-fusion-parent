@@ -319,9 +319,12 @@ class ChatRunEventStoreTest {
         store = newStore(64, 64);
         append("run-1", "phase-1", "a");
         store.markTerminal("run-1", Duration.ofMillis(1));
-        Thread.sleep(5);
-        store.purgeExpired();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (store.contains("run-1") && System.nanoTime() < deadline) {
+            Thread.sleep(5);
+        }
 
+        assertThat(store.contains("run-1")).isFalse();
         assertThatThrownBy(() -> store.subscribe("run-1", 0, event -> {}, error -> {}))
                 .isInstanceOf(AiBusinessException.class);
     }

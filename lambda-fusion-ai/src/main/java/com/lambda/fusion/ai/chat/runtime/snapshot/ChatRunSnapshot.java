@@ -53,6 +53,28 @@ public record ChatRunSnapshot(
     }
 
     /**
+     * 生成下一确认阶段的持久化快照：保留累计内容与工具历史，关闭消息并清除待确认投影。
+     *
+     * @param nextAguiRunId 下一阶段 AG-UI 运行标识
+     * @param nextPhaseNo 下一阶段号
+     * @return 下一阶段快照
+     */
+    public ChatRunSnapshot beginPhase(String nextAguiRunId, int nextPhaseNo) {
+        return new ChatRunSnapshot(
+                runId,
+                nextAguiRunId,
+                nextPhaseNo,
+                text,
+                reasoning,
+                textMessageId,
+                reasoningMessageId,
+                false,
+                false,
+                tools,
+                List.of());
+    }
+
+    /**
      * 工具调用快照。
      *
      * @param toolCallId 工具调用标识
