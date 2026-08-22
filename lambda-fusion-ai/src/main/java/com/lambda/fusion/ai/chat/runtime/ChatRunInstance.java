@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime.engine;
+package com.lambda.fusion.ai.chat.runtime;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
 import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
@@ -8,14 +8,11 @@ import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.runtime.ChatRunDataSanitizer;
-import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
 import com.lambda.fusion.ai.chat.runtime.agui.AgentEventAguiMapper;
+import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapEncoder;
-import com.lambda.fusion.ai.chat.runtime.engine.hitl.ConfirmationValidator;
-import com.lambda.fusion.ai.chat.runtime.engine.stream.AgentStreamLifecycle;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotSanitizer;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
@@ -171,7 +168,7 @@ public final class ChatRunInstance {
             beginConfirmedPhase();
             startPhase(confirmMessage);
         } catch (RuntimeException startFailure) {
-            finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunDataSanitizer.safeMessage(startFailure));
+            finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSnapshotSanitizer.safeMessage(startFailure));
         }
         return transition;
     }
@@ -192,7 +189,7 @@ public final class ChatRunInstance {
                 run,
                 accumulator.buildSnapshot().pendingTools(),
                 command.getDecisions(),
-                () -> agentExecutionAdapter.readAskingToolBlocks());
+                agentExecutionAdapter::readAskingToolBlocks);
     }
 
     /** 将数据库迁移后的运行状态同步到实例内存对象。 */
@@ -233,7 +230,7 @@ public final class ChatRunInstance {
         Disposable next;
         try {
             next = agentExecutionAdapter.stream(message)
-                    .doFinally(signal -> runInTenant(() -> onSourceTerminated()))
+                    .doFinally(signal -> runInTenant(this::onSourceTerminated))
                     .subscribe(
                             event -> runInTenant(() -> onEvent(event)),
                             error -> runInTenant(() -> onError(error)),
@@ -314,7 +311,7 @@ public final class ChatRunInstance {
             log.warn("Run业务终态后，记忆/维护尾部失败: runId={}", run.getId(), error);
             return;
         }
-        finalizeFailed(ChatRunFailureCode.ERROR, ChatRunDataSanitizer.safeMessage(error));
+        finalizeFailed(ChatRunFailureCode.ERROR, ChatRunSnapshotSanitizer.safeMessage(error));
     }
 
     private synchronized void onComplete() {
@@ -345,7 +342,7 @@ public final class ChatRunInstance {
                 // 源流已经排空，待确认事实仍无法提交时转为失败终态，避免运行永久停留在 RUNNING。
                 log.error("Run进入待确认失败，收敛为失败终态: runId={}", run.getId(), awaitConfirmFailure);
                 finalizeFailed(
-                        ChatRunFailureCode.AWAIT_CONFIRM_FAILED, ChatRunDataSanitizer.safeMessage(awaitConfirmFailure));
+                        ChatRunFailureCode.AWAIT_CONFIRM_FAILED, ChatRunSnapshotSanitizer.safeMessage(awaitConfirmFailure));
             }
         }
         if (terminal) {
@@ -364,7 +361,7 @@ public final class ChatRunInstance {
     }
 
     /** 判断是否仍有已订阅但尚未触发 {@code doFinally} 的 AgentScope 源流；普通阶段包括记忆尾部。 */
-    private boolean isDraining() {
+    private boolean noActive() {
         return sourceActive;
     }
 
@@ -494,7 +491,7 @@ public final class ChatRunInstance {
             chatRunFinalizer.commitTerminal(run, accumulator.buildSnapshot(), status, reason, errorCode, errorMessage);
             // 业务终态后若无活动源流（如纯终结恢复、源流已先终止、启动同步失败），立即完成排空信号；
             // 否则等待 onSourceTerminated 在源流排空后完成它。
-            if (!isDraining()) {
+            if (noActive()) {
                 drainedSignal.complete(null);
             }
         } catch (RuntimeException finalizeFailure) {
@@ -512,7 +509,7 @@ public final class ChatRunInstance {
                         isPermanentFinalizeFailure(finalizeFailure),
                         finalizeFailure);
                 terminal = true;
-                if (!isDraining()) {
+                if (noActive()) {
                     drainedSignal.complete(null);
                 }
                 return;
@@ -542,9 +539,9 @@ public final class ChatRunInstance {
     }
 
     /** 生成当前运行的 AG-UI 引导事件。 */
-    public synchronized AguiBootstrap bootstrap() {
+    public synchronized AguiBootstrapModel bootstrap() {
         long cursor = eventStore.latestCursor(run.getId());
-        return new AguiBootstrap(
+        return new AguiBootstrapModel(
                 cursor,
                 AguiBootstrapEncoder.encode(run, accumulator.buildSnapshot()),
                 ChatRunStatus.isTerminal(run.getStatus()) || hasPendingConfirmation());
@@ -559,7 +556,7 @@ public final class ChatRunInstance {
             if (ChatRunStatus.isTerminal(current.getStatus())) {
                 terminal = true;
                 checkpointDirty = false;
-                if (!isDraining()) {
+                if (noActive()) {
                     drainedSignal.complete(null);
                 }
                 return;

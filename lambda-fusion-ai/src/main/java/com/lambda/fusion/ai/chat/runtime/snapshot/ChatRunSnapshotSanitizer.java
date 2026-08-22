@@ -1,7 +1,6 @@
-package com.lambda.fusion.ai.chat.runtime;
+package com.lambda.fusion.ai.chat.runtime.snapshot;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import io.agentscope.core.util.JsonUtils;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,7 +15,7 @@ import org.apache.commons.lang3.StringUtils;
  * @author Jin
  */
 @UtilityClass
-public final class ChatRunDataSanitizer {
+public final class ChatRunSnapshotSanitizer {
 
     /**
      * 清理工具调用快照。
@@ -27,7 +26,7 @@ public final class ChatRunDataSanitizer {
     public static List<ChatRunSnapshot.ToolCall> sanitizeTools(List<ChatRunSnapshot.ToolCall> tools) {
         return tools == null
                 ? List.of()
-                : tools.stream().map(ChatRunDataSanitizer::sanitizeTool).toList();
+                : tools.stream().map(ChatRunSnapshotSanitizer::sanitizeTool).toList();
     }
 
     /**
@@ -110,7 +109,7 @@ public final class ChatRunDataSanitizer {
             return result;
         }
         if (value instanceof List<?> list) {
-            return list.stream().map(ChatRunDataSanitizer::redact).toList();
+            return list.stream().map(ChatRunSnapshotSanitizer::redact).toList();
         }
         return value;
     }

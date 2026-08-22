@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime.engine;
+package com.lambda.fusion.ai.chat.runtime;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
@@ -12,7 +12,7 @@ import java.util.Objects;
  *
  * @author Jin
  */
-final class ChatRunSnapshotAccumulator {
+public final class ChatRunSnapshotAccumulator {
 
     private final String runId;
     private String aguiRunId;
@@ -31,7 +31,7 @@ final class ChatRunSnapshotAccumulator {
      *
      * @param snapshot 已持久化的执行快照
      */
-    ChatRunSnapshotAccumulator(ChatRunSnapshot snapshot) {
+    public ChatRunSnapshotAccumulator(ChatRunSnapshot snapshot) {
         runId = snapshot.runId();
         aguiRunId = snapshot.aguiRunId();
         phaseNo = snapshot.phaseNo();
@@ -51,7 +51,7 @@ final class ChatRunSnapshotAccumulator {
      * @param nextAguiRunId 新阶段的 AG-UI 运行标识
      * @param nextPhaseNo 新阶段号
      */
-    void beginPhase(String nextAguiRunId, int nextPhaseNo) {
+    public void beginPhase(String nextAguiRunId, int nextPhaseNo) {
         aguiRunId = nextAguiRunId;
         phaseNo = nextPhaseNo;
         pendingTools = List.of();
@@ -83,7 +83,7 @@ final class ChatRunSnapshotAccumulator {
     }
 
     /** 关闭当前文本和推理消息；仅经 {@code beginPhase} 与 {@code apply} 的增量驱动。 */
-    void closeOpenMessages() {
+    public void closeOpenMessages() {
         closeText();
         closeReasoning();
     }
@@ -99,7 +99,7 @@ final class ChatRunSnapshotAccumulator {
     }
 
     /** 应用一批已标准化的 AG-UI 事件。 */
-    void apply(List<AguiEvent> events) {
+    public void apply(List<AguiEvent> events) {
         if (events != null) {
             events.forEach(this::apply);
         }
@@ -153,11 +153,11 @@ final class ChatRunSnapshotAccumulator {
     }
 
     private void applyInterrupts(AguiEvent.RunFinishedOutcome outcome) {
-        if (!(outcome instanceof AguiEvent.RunFinishedInterruptOutcome interruptOutcome)) {
+        if (!(outcome instanceof AguiEvent.RunFinishedInterruptOutcome(List<AguiEvent.Interrupt> interrupts))) {
             return;
         }
         List<ChatRunSnapshot.ToolCall> awaitingTools =
-                interruptOutcome.interrupts().stream().map(this::toPendingTool).toList();
+                interrupts.stream().map(this::toPendingTool).toList();
         awaiting(awaitingTools);
         closeOpenMessages();
     }
@@ -190,7 +190,7 @@ final class ChatRunSnapshotAccumulator {
      *
      * @return 执行快照
      */
-    ChatRunSnapshot buildSnapshot() {
+    public ChatRunSnapshot buildSnapshot() {
         return new ChatRunSnapshot(
                 runId,
                 aguiRunId,

@@ -1,10 +1,8 @@
-package com.lambda.fusion.ai.chat.runtime.registry;
+package com.lambda.fusion.ai.chat.runtime;
 
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstance;
-import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstanceFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

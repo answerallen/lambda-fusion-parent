@@ -1,12 +1,9 @@
-package com.lambda.fusion.ai.chat.runtime;
+package com.lambda.fusion.ai.chat.runtime.event;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lambda.fusion.ai.AiProperties;
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import io.agentscope.core.agui.event.AguiEvent;
 import java.time.Duration;

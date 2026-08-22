@@ -1,8 +1,7 @@
-package com.lambda.fusion.ai.chat.runtime.engine;
+package com.lambda.fusion.ai.chat.runtime.snapshot;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import io.agentscope.core.agui.event.AguiEvent;
 import java.util.List;
 import java.util.Map;

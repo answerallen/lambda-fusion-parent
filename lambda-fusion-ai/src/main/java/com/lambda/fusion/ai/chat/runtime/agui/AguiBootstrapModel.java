@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime.model;
+package com.lambda.fusion.ai.chat.runtime.agui;
 
 import java.util.List;
 
@@ -10,4 +10,4 @@ import java.util.List;
  * @param phaseClosed 当前阶段是否已关闭
  * @author Jin
  */
-public record AguiBootstrap(long cursor, List<String> events, boolean phaseClosed) {}
+public record AguiBootstrapModel(long cursor, List<String> events, boolean phaseClosed) {}

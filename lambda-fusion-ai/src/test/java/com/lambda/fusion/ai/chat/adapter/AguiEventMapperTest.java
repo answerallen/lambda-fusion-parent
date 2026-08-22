@@ -1,9 +1,7 @@
-package com.lambda.fusion.ai.chat.adapter;
+package com.lambda.fusion.ai.chat.runtime.agui;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.lambda.fusion.ai.chat.runtime.agui.AgentEventAguiMapper;
-import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentStartEvent;

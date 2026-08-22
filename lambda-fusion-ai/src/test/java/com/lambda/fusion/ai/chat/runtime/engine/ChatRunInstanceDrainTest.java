@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime.engine;
+package com.lambda.fusion.ai.chat.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -21,7 +21,6 @@ import com.lambda.fusion.ai.chat.model.ChatRunFinalizationResult;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;

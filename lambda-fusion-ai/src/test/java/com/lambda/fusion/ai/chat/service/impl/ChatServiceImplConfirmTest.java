@@ -18,7 +18,7 @@ import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.ChatRunCoordinator;
-import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
+import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
@@ -39,7 +39,7 @@ class ChatServiceImplConfirmTest {
         ChatSessionEntity session = session();
         SendMessage message = message();
         when(runService.createOrLoad("session-1", message)).thenReturn(new RunContext(run, session, true));
-        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrap(0L, List.of(), true));
+        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
 
         assertThat(chatService.streamChat("session-1", message)).isNotNull();
 
@@ -52,7 +52,7 @@ class ChatServiceImplConfirmTest {
         ChatSessionEntity session = session();
         SendMessage message = message();
         when(runService.createOrLoad("session-1", message)).thenReturn(new RunContext(run, session, false));
-        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrap(0L, List.of(), true));
+        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
 
         assertThat(chatService.streamChat("session-1", message)).isNotNull();
 
@@ -84,7 +84,7 @@ class ChatServiceImplConfirmTest {
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
         when(chatRunCoordinator.confirm(run, session, command))
                 .thenReturn(new ConfirmTransition(transitioned, session, true));
-        when(chatRunCoordinator.bootstrap(any())).thenReturn(new AguiBootstrap(0L, List.of(), true));
+        when(chatRunCoordinator.bootstrap(any())).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
 
         SseEmitter emitter = chatService.confirm("session-1", "run-1", command);
 
@@ -102,7 +102,7 @@ class ChatServiceImplConfirmTest {
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
         when(chatRunCoordinator.confirm(run, session, command))
                 .thenReturn(new ConfirmTransition(transitioned, session, false));
-        when(chatRunCoordinator.bootstrap(any())).thenReturn(new AguiBootstrap(0L, List.of(), false));
+        when(chatRunCoordinator.bootstrap(any())).thenReturn(new AguiBootstrapModel(0L, List.of(), false));
         when(chatRunCoordinator.subscribe(any(), anyLong(), any(), any())).thenReturn(mock());
 
         SseEmitter emitter = chatService.confirm("session-1", "run-1", command);
@@ -117,7 +117,7 @@ class ChatServiceImplConfirmTest {
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session()));
         when(chatRunCoordinator.subscribe(any(), anyLong(), any(), any()))
                 .thenThrow(new AiBusinessException(AiErrorCode.CHAT_RUN_EVENTS_EXPIRED, "run-1"));
-        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrap(7L, List.of(), true));
+        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrapModel(7L, List.of(), true));
 
         SseEmitter emitter = chatService.resume("session-1", "run-1");
 

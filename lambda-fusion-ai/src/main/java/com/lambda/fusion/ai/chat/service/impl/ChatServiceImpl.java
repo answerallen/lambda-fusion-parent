@@ -10,9 +10,9 @@ import com.lambda.fusion.ai.chat.model.RunContext;
 import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.ChatRunCoordinator;
+import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
-import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
 import com.lambda.fusion.ai.chat.service.ChatService;
 import java.io.IOException;
@@ -89,17 +89,17 @@ public class ChatServiceImpl implements ChatService {
         emitter.onError(error -> runnable.run());
 
         try {
-            AguiBootstrap aguiBootstrap = chatRunCoordinator.bootstrap(chatRunEntity);
-            for (String event : aguiBootstrap.events()) {
+            AguiBootstrapModel aguiBootstrapModel = chatRunCoordinator.bootstrap(chatRunEntity);
+            for (String event : aguiBootstrapModel.events()) {
                 emitter.send(SseEmitter.event().data(event));
             }
-            if (aguiBootstrap.phaseClosed() || ChatRunStatus.isTerminal(chatRunEntity.getStatus())) {
+            if (aguiBootstrapModel.phaseClosed() || ChatRunStatus.isTerminal(chatRunEntity.getStatus())) {
                 emitter.complete();
                 return emitter;
             }
             ChatRunEventSubscription attached = chatRunCoordinator.subscribe(
                     chatRunEntity.getId(),
-                    aguiBootstrap.cursor(),
+                    aguiBootstrapModel.cursor(),
                     event -> send(emitter, event),
                     emitter::completeWithError);
             subscription.set(attached);

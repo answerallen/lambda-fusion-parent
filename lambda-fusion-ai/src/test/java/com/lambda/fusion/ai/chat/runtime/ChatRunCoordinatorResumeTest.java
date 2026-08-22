@@ -8,9 +8,8 @@ import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
-import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstanceFactory;
+import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
@@ -55,7 +54,7 @@ class ChatRunCoordinatorResumeTest {
                 mock(ChatRunInstanceFactory.class),
                 new AiProperties());
 
-        AguiBootstrap bootstrap = coordinator.bootstrap(run);
+        AguiBootstrapModel bootstrap = coordinator.bootstrap(run);
 
         assertThat(bootstrap.phaseClosed()).isTrue();
         assertThat(bootstrap.cursor()).isZero();

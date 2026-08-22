@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime.adapter;
+package com.lambda.fusion.ai.chat.runtime;
 
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;

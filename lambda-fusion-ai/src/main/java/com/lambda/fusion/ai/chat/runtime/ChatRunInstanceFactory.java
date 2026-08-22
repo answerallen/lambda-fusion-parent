@@ -1,9 +1,8 @@
-package com.lambda.fusion.ai.chat.runtime.engine;
+package com.lambda.fusion.ai.chat.runtime;
 
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;

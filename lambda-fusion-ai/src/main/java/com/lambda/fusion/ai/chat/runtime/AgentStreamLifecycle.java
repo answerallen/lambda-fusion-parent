@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime.engine.stream;
+package com.lambda.fusion.ai.chat.runtime;
 
 import com.lambda.fusion.ai.AiProperties;
 import java.util.concurrent.ScheduledExecutorService;

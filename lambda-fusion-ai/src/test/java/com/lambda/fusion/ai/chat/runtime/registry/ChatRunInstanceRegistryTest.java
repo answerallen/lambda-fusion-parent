@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime.registry;
+package com.lambda.fusion.ai.chat.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -7,8 +7,6 @@ import static org.mockito.Mockito.when;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstance;
-import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstanceFactory;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;

@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime.adapter;
+package com.lambda.fusion.ai.chat.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.chat.runtime.snapshot;
 
-import com.lambda.fusion.ai.chat.runtime.ChatRunDataSanitizer;
 import java.util.List;
 
 /**
@@ -36,8 +35,8 @@ public record ChatRunSnapshot(
     public ChatRunSnapshot {
         text = text == null ? "" : text;
         reasoning = reasoning == null ? "" : reasoning;
-        tools = ChatRunDataSanitizer.sanitizeTools(tools);
-        pendingTools = ChatRunDataSanitizer.sanitizePendingTools(pendingTools);
+        tools = ChatRunSnapshotSanitizer.sanitizeTools(tools);
+        pendingTools = ChatRunSnapshotSanitizer.sanitizePendingTools(pendingTools);
     }
 
     /**

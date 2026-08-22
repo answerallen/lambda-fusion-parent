@@ -12,14 +12,12 @@ import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapEncoder;
-import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstance;
-import com.lambda.fusion.ai.chat.runtime.engine.ChatRunInstanceFactory;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
-import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
-import com.lambda.fusion.ai.chat.runtime.registry.ChatRunInstanceRegistry;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotSanitizer;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
@@ -131,7 +129,7 @@ public class ChatRunCoordinator {
                 scheduler.execute(() -> execution.runInTenant(() -> startExecution(execution)));
             } catch (RuntimeException scheduleFailure) {
                 execution.finalizeFailed(
-                        ChatRunFailureCode.START_FAILED, ChatRunDataSanitizer.safeMessage(scheduleFailure));
+                        ChatRunFailureCode.START_FAILED, ChatRunSnapshotSanitizer.safeMessage(scheduleFailure));
             }
         }
     }
@@ -190,7 +188,7 @@ public class ChatRunCoordinator {
      * @param run 运行实体
      * @return 引导事件批次
      */
-    public AguiBootstrap bootstrap(ChatRunEntity run) {
+    public AguiBootstrapModel bootstrap(ChatRunEntity run) {
         ChatRunInstance execution = registry.get(run.getId());
         if (execution != null) {
             return execution.bootstrap();
@@ -198,7 +196,7 @@ public class ChatRunCoordinator {
         ChatRunEntity current = loadCurrent(run);
         var snapshot = ChatRunSnapshotCodec.decode(current.getSnapshotJson());
         long cursor = eventStore.latestCursor(current.getId());
-        return new AguiBootstrap(
+        return new AguiBootstrapModel(
                 cursor,
                 AguiBootstrapEncoder.encode(current, snapshot),
                 ChatRunStatus.isTerminal(current.getStatus())
@@ -266,13 +264,13 @@ public class ChatRunCoordinator {
                     execution.session(), app, userMessage.getContent(), attachments);
             execution.startPhase(msg);
         } catch (RuntimeException startFailure) {
-            execution.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunDataSanitizer.safeMessage(startFailure));
+            execution.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSnapshotSanitizer.safeMessage(startFailure));
         }
     }
 
     private void failStart(ChatRunEntity run, ChatSessionEntity session, RuntimeException failure) {
         ChatRunInstance rejected = instanceFactory.createTerminalOnly(run, session, scheduler);
-        rejected.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunDataSanitizer.safeMessage(failure));
+        rejected.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSnapshotSanitizer.safeMessage(failure));
     }
 
     private ChatRunInstance createStoppedExecution(
