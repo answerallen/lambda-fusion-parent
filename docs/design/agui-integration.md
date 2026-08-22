@@ -140,7 +140,9 @@ subscription.close()
 ```
 
 浏览器切换会话、关闭页面或网络断开不会 dispose AgentScope Flux。用户主动停止必须调用 Run stop API，由
-`ChatRunCoordinator` 按 `(ChatSession.userId, ChatSession.id)` 中断 Agent，并在宽限期后决定是否强制取消源流。
+`ChatRunCoordinator` 在本机存在活动实例时按 `(ChatSession.userId, ChatSession.id)` 中断 Agent，并在宽限期后决定是否
+强制取消源流；本机不存在 `RUNNING` 实例时只提交业务停止终态，不恢复活动 Agent 或发送跨节点停止命令。
+`AWAITING_CONFIRM` 没有活动源流，停止时只清理 AgentScope 持久化状态中的未决工具，不调用 interrupt。
 
 SSE 收到业务终态事件后可以完成当前 HTTP 连接；这与后台源流是否排空无关。
 

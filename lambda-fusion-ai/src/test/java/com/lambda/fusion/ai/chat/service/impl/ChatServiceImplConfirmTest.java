@@ -18,6 +18,8 @@ import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.ChatRunCoordinator;
 import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
+import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -79,6 +81,20 @@ class ChatServiceImplConfirmTest {
 
         assertThat(emitter).isNotNull();
         verify(chatRunCoordinator).bootstrap(transitioned);
+    }
+
+    @Test
+    void shouldFallBackToPersistedBootstrapWhenRealtimeEventsAreNotLocal() {
+        ChatRunEntity run = run(ChatRunStatus.RUNNING, 2);
+        when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session()));
+        when(chatRunCoordinator.subscribe(any(), anyLong(), any(), any()))
+                .thenThrow(new AiBusinessException(AiErrorCode.CHAT_RUN_EVENTS_EXPIRED, "run-1"));
+        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrap(7L, List.of(), true));
+
+        SseEmitter emitter = chatService.resume("session-1", "run-1", false);
+
+        assertThat(emitter).isNotNull();
+        verify(chatRunCoordinator).bootstrap(run);
     }
 
     private static ChatRunEntity run(ChatRunStatus status, int phaseNo) {

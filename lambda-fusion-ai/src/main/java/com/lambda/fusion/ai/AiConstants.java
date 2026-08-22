@@ -498,11 +498,7 @@ public interface AiConstants {
         ERROR,
         START_FAILED,
         STATE_CONFLICT,
-        INSTANCE_LOST,
-        RUN_CAPACITY_EXCEEDED,
-        CONFIRM_CONTEXT_UNAVAILABLE,
-        AWAIT_CONFIRM_FAILED,
-        SCHEDULE_TIMEOUT
+        AWAIT_CONFIRM_FAILED
     }
 
     /** 工具调用状态，持久化字面量为小写 code。 */

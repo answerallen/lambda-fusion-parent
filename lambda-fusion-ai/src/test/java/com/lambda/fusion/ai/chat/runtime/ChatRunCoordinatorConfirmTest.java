@@ -78,8 +78,7 @@ class ChatRunCoordinatorConfirmTest {
                 null,
                 mock(AppService.class),
                 instanceFactory,
-                properties,
-                new ChatRunNodeIdentity("test-app"));
+                properties);
     }
 
     @Test

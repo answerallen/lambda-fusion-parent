@@ -39,19 +39,17 @@
 ## 架构
 
 ```
-请求 ──▶ ChatController(SSE) ──▶ ChatService
-          ├─ ChatSessionService     会话/消息持久化（MySQL）
-          ├─ AgentFactory           按 (app,tenant) 构建+缓存 HarnessAgent，注册到 Gateway
+请求 ──▶ ChatController(SSE) ──▶ ChatService ──▶ ChatRunCoordinator
+          ├─ ChatRunStateService    Run 状态/快照/最终消息（MySQL）
+          ├─ ChatRunEventStore      当前进程短期回放与实时订阅
+          └─ AgentFactory           按 (app,tenant) 构建+缓存 HarnessAgent
           │    ├─ ModelResolver              DB modelId -> AgentScope Model
           │    ├─ EmbeddingModelResolver      EMBEDDING 模型解析（RAG 用）
           │    ├─ ToolkitAssembler            本地 @Tool + MCP
           │    ├─ SubAgentDeclarationMapper   子代理 DB 声明 -> SubagentDeclaration
           │    ├─ SandboxSpecResolver         沙箱后端 spec
           │    └─ RagMiddleware / KnowledgeRetrievalTool  检索注入（条件挂载）
-          └─ HarnessGateway.runStream -> Flux<AgentEvent> -> SSE
-              ├─ SessionTurnGate     per-session 轮次串行
-              ├─ ChannelManager      外部通道注册表
-              └─ OutboundAddress     会话最近入站通道，供主动出站回推
+          └─ HarnessAgent.streamEvents -> Flux<AgentEvent> -> AG-UI -> SSE
 
 外部通道（钉钉/飞书/企微/自定义 Channel Bean）──▶ ChannelManager ──▶ HarnessGateway ──▶ LF agent
 ```
@@ -85,8 +83,10 @@
 - **Agent 构建**：`AgentFactory.getOrBuild(appId, tenantId)` 按 `appType` 分支；CHAT 关闭 workspace/子代理能力，WORKSPACE 开启（AGENTS.md/技能/子代理/记忆）+ 按 `sandboxBackend` 选文件系统 spec；`selfEvolve` 决定只读/可写。RAG 按 `ai_app.rag_mode`（GENERIC/AGENTIC/BOTH）挂中间件或注册工具。配置变更经 `ConfigChangedEvent` 失效缓存。
 - **沙箱**：`SandboxSpecResolver` 按 `sandboxBackend` 找 `SandboxBackendProvider`（`AiConfigure.SandboxConfig` 各后端 `@ConditionalOnClass` 装配）构建 spec；后端不可用回退 HOST。
 - **状态存储**：`StateStoreProvider` 按 `state-store.type` 解析后端（`AiConfigure.StateStoreConfig` 各后端 `@ConditionalOnClass` 装配）；分布式后端依赖对应 AgentScope 扩展，缺失时告警回退 MEMORY。
-- **流式对话**：`ChatService` 构建 `MsgContext`（room=LF sessionId，extra 透传 tenantId/appId/lfSessionId + agentId）+ `OutboundAddress`，经 `HarnessGateway.runStream` → `Flux<AgentEvent>` → SSE 帧（`delta`/`tool_start`/`tool_end`/`done`）。`SessionTurnGate` 保证同会话并发消息串行。Gateway 未启用时回退直连 `agent.streamEvents`。
-- **会话标识双重性**：`RuntimeContext.sessionId` 为 Gateway 的 `gw-<hash>`（agent 内存状态槽位）；LF `sessionId` 为业务/持久化键，经 `MsgContext.extra` 透传，由 `RuntimeProperty` 读取。
+- **流式对话**：内部 ChatRun 已选定应用和 Agent，直接调用 `HarnessAgent.streamEvents`，把 `AgentEvent` 转成 AG-UI SSE；
+  AgentScope 按 `(userId, ChatSession.id)` 保护核心状态调用。浏览器断开只解除订阅，后台 Run 继续执行并周期保存展示快照。
+- **会话标识**：内部 ChatRun 的 `RuntimeContext.sessionId` 直接使用 `ChatSession.id`；`runId` 只标识一次业务回合。
+  `gw-*` 只属于外部 Channel 的 Gateway 路由路径。
 - **外部通道**：内置钉钉/飞书/企微适配器（`AiConfigure.ChannelAdapterConfig`，各 `@ConditionalOnClass`）+ 下游自定义 `Channel` Bean，`ChannelLifecycle` 自动注册到 `ChannelManager` 并经共享 `HarnessGateway` 路由到 LF agent（靠 `preferredAgentId` 或 `ChannelConfig.defaultAgentId` 指定 `app:{appId}:t:{tenantId}`）。通道→agent 的绑定由 `channel` 包的 `ai_channel_config` 表管理。
 - **主动出站**：`POST /v1/ai/outbound/send`（`{sessionId, messages}` 回推会话最近入站通道，或 `{channelId, to, messages}` 显式投递）。内部 SSE 通道为请求/响应模型，不支持 proactive push 到 Web 端。
 - **自演化审计**：selfEvolve 应用每轮对话后，`WorkspaceAuditRecorder` 扫描 workspace 中本轮变更文件，复制快照写入 `ai_app_workspace_audit`。
@@ -123,7 +123,11 @@ DB 驱动子代理定义（`ai_sub_agent`：`name`/`description`/`prompt`/`model
 `ai_channel_config` 表管理外部通道→agent 的路由绑定（按 channelId）。内置钉钉/飞书/企微通道适配器（`AiConfigure.ChannelAdapterConfig`，各 `@ConditionalOnClass`，扩展未引入时不装配）。端点 `/v1/ai/channel-configs`。
 
 ### 对话
-`POST /v1/ai/sessions` 创建、`GET /v1/ai/sessions/page` 列表、`GET /v1/ai/sessions/{id}/messages` 历史、`POST /v1/ai/sessions/{id}/chat`（SSE）流式对话。同会话并发消息由 `SessionTurnGate` 串行排队。
+`POST /v1/ai/sessions` 创建、`GET /v1/ai/sessions/page` 列表、`GET /v1/ai/sessions/{id}/messages` 历史、
+`POST /v1/ai/sessions/{id}/chat`（SSE）流式对话。ChatRun 是 AgentScope 之上的业务状态：本地内存事件用于实时输出，
+数据库快照用于页面恢复；不实现节点心跳、租约、远程停止或旧调用接管。多实例下若请求未落回执行实例，返回持久化
+bootstrap 后关闭 SSE；用户可显式停止旧 Run 并创建新 Run。详见
+[ChatRun 多节点部署边界](../docs/design/chat-run-cluster.md)。
 
 ### Workspace（WORKSPACE 型）
 - 首次对话时按运营商自动脚手架（per-`tenantId` workspace）：`AGENTS.md`/`skills/`/`subagents/`/`memory/`/`knowledge/`/`tools.json`。

@@ -198,8 +198,6 @@ public final class ChatRunInstance {
         run.setStatus(updated.getStatus());
         run.setPhaseNo(updated.getPhaseNo());
         run.setAguiRunId(updated.getAguiRunId());
-        run.setExecutorInstanceId(updated.getExecutorInstanceId());
-        run.setHeartbeatAt(updated.getHeartbeatAt());
     }
 
     /** CAS 成功后切换累加器与事件解释器到新阶段。 */

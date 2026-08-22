@@ -22,7 +22,6 @@ import org.apache.commons.lang3.StringUtils;
  * HITL 待确认上下文一致性校验：以「最后一条助手消息中的 ASKING 工具调用块」为共同基准，
  * 校验快照待确认工具、用户决策与 Agent 状态三方一致；判定范围与 AgentScope
  * {@code getPendingToolUseIds} 保持一致，扫描更早消息时遗留块可能造成误判。
- * 确认推进与重启恢复共用同一套规则，避免两处判定漂移。
  *
  * @author Jin
  */
@@ -76,7 +75,7 @@ public final class ConfirmationValidator {
                     run.getPhaseNo(),
                     snapshotIds.size(),
                     decidedIds.size(),
-                    blockById.keySet().size());
+                    blockById.size());
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_MISMATCH, run.getId());
         }
         List<ConfirmResult> results = decisions.stream()
@@ -85,34 +84,6 @@ public final class ConfirmationValidator {
         return UserMessage.builder()
                 .metadata(Map.of(Msg.METADATA_CONFIRM_RESULTS, results))
                 .build();
-    }
-
-    /**
-     * 重启恢复判定：快照待确认工具与 Agent ASKING 状态一致且非空。
-     * Agent 状态仅在快照侧非空且无重复时才读取（惰性供应），避免为注定失败的运行构建 Agent。
-     *
-     * @param pendingTools 快照中的待确认工具调用
-     * @param askingBlocksSupplier Agent 待确认工具调用块的惰性供应
-     * @return 快照与 Agent 状态一致且非空时返回 {@code true}
-     */
-    public static boolean isRecoverable(
-            List<ChatRunSnapshot.ToolCall> pendingTools, Supplier<List<ToolUseBlock>> askingBlocksSupplier) {
-        Set<String> snapshotIds = new HashSet<>();
-        for (ChatRunSnapshot.ToolCall tool : pendingTools) {
-            if (!snapshotIds.add(tool.toolCallId())) {
-                return false;
-            }
-        }
-        if (snapshotIds.isEmpty()) {
-            return false;
-        }
-        Set<String> askingIds = new HashSet<>();
-        for (ToolUseBlock block : askingBlocksSupplier.get()) {
-            if (!askingIds.add(block.getId())) {
-                return false;
-            }
-        }
-        return snapshotIds.equals(askingIds);
     }
 
     private static AiBusinessException contextMismatch(ChatRunEntity run, String detail) {

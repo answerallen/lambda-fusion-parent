@@ -31,7 +31,6 @@ final class ChatRunEventBuffer {
     private ChatRunEvent terminal;
     private long nextSeq = 1;
     private long bytes;
-    private long stagedBytes;
     private long expiresAt;
 
     /**
@@ -71,7 +70,7 @@ final class ChatRunEventBuffer {
                     new ChatRunEvent(seq, runId + ":" + seq, event.getType().name(), data));
             seq++;
         }
-        publish(appended, false);
+        commitToWindow(appended, false);
         return overCapacity();
     }
 
@@ -99,7 +98,6 @@ final class ChatRunEventBuffer {
                 throw new IllegalStateException("单个Run事件超过缓冲容量: " + runId);
             }
             stagedEvents.addLast(staged);
-            stagedBytes += size;
             seq++;
         }
         nextSeq = seq;
@@ -117,14 +115,12 @@ final class ChatRunEventBuffer {
         List<ChatRunEvent> appended = List.copyOf(stagedEvents);
         commitToWindow(appended, false);
         stagedEvents.clear();
-        stagedBytes = 0;
         return overCapacity();
     }
 
     /** 丢弃已暂存但未发布的事件。数据库事实落库失败时调用，保证无副作用、可重试。 */
     synchronized void discardStaged() {
         stagedEvents.clear();
-        stagedBytes = 0;
     }
 
     /**
@@ -144,11 +140,6 @@ final class ChatRunEventBuffer {
                 new ChatRunEvent(nextSeq, runId + ":" + nextSeq, AguiEventJsonCodec.readEventType(aguiJson), data);
         commitToWindow(List.of(appended), true);
         return appended;
-    }
-
-    /** 校验容量后提交事件并通知订阅者。 */
-    private void publish(List<ChatRunEvent> appended, boolean markTerminal) {
-        commitToWindow(appended, markTerminal);
     }
 
     /** 校验容量、把事件并入可见窗口、推进序号并按需标记终态、通知订阅者。 */
@@ -268,7 +259,6 @@ final class ChatRunEventBuffer {
         stagedEvents.clear();
         terminal = null;
         bytes = 0;
-        stagedBytes = 0;
         current.forEach(QueuedEventSubscription::closeWithoutDetach);
     }
 

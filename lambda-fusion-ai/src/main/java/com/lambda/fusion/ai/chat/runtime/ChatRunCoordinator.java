@@ -1,9 +1,7 @@
 package com.lambda.fusion.ai.chat.runtime;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
-import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
-import com.lambda.fusion.ai.AiConstants.StateStoreType;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.model.entity.AppEntity;
 import com.lambda.fusion.ai.apps.service.AppService;
@@ -30,8 +28,8 @@ import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.core.utils.TenantUtils;
 import io.agentscope.core.message.Msg;
 import jakarta.annotation.PreDestroy;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 对话运行协调门面：负责运行执行的启动、确认、停止与启动恢复编排。活动实例注册表与容量约束由
+ * 对话运行协调门面：负责业务 Run 的启动、确认与停止编排。活动实例注册表与容量约束由
  * {@link ChatRunInstanceRegistry} 承载，定时维护与确认超时扫描由 {@link ChatRunMaintenanceScheduler} 承载；
  * Agent 事件流由执行实例持有，不依赖 SSE 连接生命周期。新运行注册后立即异步订阅 {@code streamEvents}；
  * 同一 {@code (userId, sessionId)} 的核心状态调用由 AgentScope 自身串行保护，上一轮记忆整理等后处理
@@ -60,7 +58,6 @@ public class ChatRunCoordinator {
     private final AppService appService;
     private final ChatRunInstanceFactory instanceFactory;
     private final AiProperties properties;
-    private final ChatRunNodeIdentity nodeIdentity;
     private final ChatRunInstanceRegistry registry;
     private final ChatRunMaintenanceScheduler maintenanceScheduler;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, runnable -> {
@@ -80,7 +77,6 @@ public class ChatRunCoordinator {
      * @param appService 应用服务
      * @param instanceFactory 执行实例工厂
      * @param properties AI 模块配置
-     * @param nodeIdentity 本节点执行标识
      */
     public ChatRunCoordinator(
             ChatRunStateService runService,
@@ -90,8 +86,7 @@ public class ChatRunCoordinator {
             ChatAttachmentMessageBuilder attachmentMessageBuilder,
             AppService appService,
             ChatRunInstanceFactory instanceFactory,
-            AiProperties properties,
-            ChatRunNodeIdentity nodeIdentity) {
+            AiProperties properties) {
         this.runService = runService;
         this.eventStore = eventStore;
         this.messageService = messageService;
@@ -100,17 +95,9 @@ public class ChatRunCoordinator {
         this.appService = appService;
         this.instanceFactory = instanceFactory;
         this.properties = properties;
-        this.nodeIdentity = nodeIdentity;
         this.registry = new ChatRunInstanceRegistry(instanceFactory, properties);
-        this.maintenanceScheduler = new ChatRunMaintenanceScheduler(
-                scheduler,
-                eventStore,
-                registry,
-                runService,
-                properties,
-                this::startIfCreated,
-                this::convergeInstanceLost,
-                this::heartbeatTimedOutBefore);
+        this.maintenanceScheduler =
+                new ChatRunMaintenanceScheduler(scheduler, eventStore, registry, runService, this::startIfCreated);
     }
 
     /**
@@ -130,17 +117,13 @@ public class ChatRunCoordinator {
         startIfCreated(run, loadSession(run));
     }
 
-    private synchronized void startIfCreatedInTenantContext(ChatRunEntity run, ChatSessionEntity session) {
+    private void startIfCreatedInTenantContext(ChatRunEntity run, ChatSessionEntity session) {
         if (!ChatRunStatus.CREATED.name().equals(run.getStatus())) {
             return;
         }
-        // 本节点满载时跳过该 Run（不改状态）；滞留过久由周期调度超时收敛。
-        if (!registry.hasCapacityFor(run, session)) {
-            return;
-        }
-        ChatRunInstance candidate;
+        Optional<ChatRunInstanceRegistry.StartRegistration> selected;
         try {
-            candidate = instanceFactory.restoreExecution(run, session, scheduler);
+            selected = registry.restoreForStartIfCapacity(run, session, scheduler);
         } catch (RuntimeException restoreFailure) {
             ChatRunInstance rejected = instanceFactory.restoreFinalizer(run, session, scheduler);
             if (runService.claimCreated(run)) {
@@ -150,10 +133,16 @@ public class ChatRunCoordinator {
             }
             return;
         }
-        if (registry.register(run.getId(), candidate) == null) {
+        // 本进程容量已满时跳过（不改状态），容量释放后由维护任务再次尝试。
+        if (selected.isEmpty()) {
+            return;
+        }
+        ChatRunInstanceRegistry.StartRegistration registration = selected.get();
+        if (registration.registered()) {
             // 注册成功后排空信号由注册表监听，最终源流结束时按实例身份安全摘除。
             // 只把实际订阅移出请求线程；不等待上一轮的记忆整理、Workspace 审计等后处理。
-            scheduler.execute(() -> candidate.runInTenant(() -> startCreated(candidate)));
+            ChatRunInstance execution = registration.execution();
+            scheduler.execute(() -> execution.runInTenant(() -> startCreated(execution)));
         }
     }
 
@@ -205,7 +194,8 @@ public class ChatRunCoordinator {
                 AguiBootstrapEncoder.encode(
                         current, ChatRunSnapshotCodec.decode(current.getSnapshotJson()), highWatermark),
                 ChatRunStatus.isTerminal(current.getStatus())
-                        || ChatRunStatus.AWAITING_CONFIRM.name().equals(current.getStatus()));
+                        || ChatRunStatus.AWAITING_CONFIRM.name().equals(current.getStatus())
+                        || !eventStore.contains(run.getId()));
     }
 
     /**
@@ -222,8 +212,20 @@ public class ChatRunCoordinator {
         if (ChatRunStatus.isTerminal(run.getStatus())) {
             return;
         }
-        // 获取注册表中的规范实例，后续锁顺序始终为实例 monitor，再进入独立数据库事务。
-        ChatRunInstance execution = registry.selectOrRestoreForFinalize(run, session, scheduler);
+        ChatRunInstance execution = registry.get(run.getId());
+        if (execution == null) {
+            if (ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
+                // 待确认阶段没有活动源流；只借助 AgentScope 持久化状态闭合未决工具，不执行 interrupt。
+                instanceFactory
+                        .restoreConfirmationFinalizer(run, session, scheduler)
+                        .requestStop();
+            } else {
+                // 当前 JVM 没有活动源流时，只结束业务 Run；不恢复 Agent 来伪装跨节点中断。
+                instanceFactory.restoreFinalizer(run, session, scheduler).requestStop();
+            }
+            return;
+        }
+        // 本地活动实例仍按实例 monitor -> 独立数据库事务的顺序协作式停止。
         // 在实例锁内同时判断运行状态并迁移到 STOPPING，消除检查与启动新源流之间的竞态窗口。
         if (!execution.requestStop()) {
             return;
@@ -241,51 +243,9 @@ public class ChatRunCoordinator {
         }
     }
 
-    /** 恢复或终结重启前遗留的中断态运行；持久化存储中的待确认运行保留，其余按状态终结。 */
-    void recoverInterrupted(ChatRunEntity run) {
-        ChatSessionEntity session = loadSession(run);
-        TenantUtils.withTenant(session.getTenantId(), () -> recoverInterruptedInTenantContext(run, session));
-    }
-
     /** 启动定时维护任务。供 {@link ChatRunRecoveryListener} 编排调用。 */
     void scheduleMaintenance() {
         maintenanceScheduler.schedule();
-    }
-
-    private void recoverInterruptedInTenantContext(ChatRunEntity run, ChatSessionEntity session) {
-        if (shouldRetainAwaitingConfirmation(run, session)) {
-            eventStore.initialize(run.getId(), run.getSnapshotSeq());
-            log.info(
-                    "服务重启后保留待确认Run: runId={}, stateStore={}",
-                    run.getId(),
-                    properties.getStateStore().getType());
-            return;
-        }
-        // 仅用于启动恢复的遗失实例不注册也不订阅排空信号，因此不会修改活动实例注册表。
-        ChatRunInstance lost = instanceFactory.restoreForFinalize(run, session, scheduler);
-        if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-            lost.finalizeStopped(ChatRunFinishReason.USER_STOP);
-        } else if (ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
-            lost.finalizeFailed(ChatRunFailureCode.CONFIRM_CONTEXT_UNAVAILABLE, "服务进程重启，用户确认上下文不可恢复");
-        } else {
-            lost.finalizeFailed(ChatRunFailureCode.INSTANCE_LOST, "服务进程重启，对话运行已终止");
-        }
-    }
-
-    private boolean shouldRetainAwaitingConfirmation(ChatRunEntity run, ChatSessionEntity session) {
-        if (!ChatRunStatus.AWAITING_CONFIRM.name().equals(run.getStatus())) {
-            return false;
-        }
-        StateStoreType type = StateStoreType.of(properties.getStateStore().getType());
-        if (type == null || type == StateStoreType.MEMORY) {
-            return false;
-        }
-        try {
-            return instanceFactory.hasRecoverableConfirmation(run, session);
-        } catch (RuntimeException recoveryFailure) {
-            log.warn("服务重启后待确认上下文校验失败: runId={}", run.getId(), recoveryFailure);
-            return false;
-        }
     }
 
     /** 中断本节点活动运行并关闭定时维护线程池。 */
@@ -293,31 +253,6 @@ public class ChatRunCoordinator {
     public void shutdown() {
         registry.forEachActive(execution -> execution.runInTenant(execution::interruptForShutdown));
         scheduler.shutdown();
-    }
-
-    /** 心跳超时阈值：当前时间减去心跳超时；早于该时刻未心跳的 Run 视为执行节点失效。 */
-    private LocalDateTime heartbeatTimedOutBefore() {
-        return LocalDateTime.now().minusSeconds(properties.getChat().getRun().getInstanceLostTimeoutSeconds());
-    }
-
-    /**
-     * 收敛执行节点心跳已超时的中断态 Run（仅 {@code RUNNING}/{@code STOPPING}）：心跳超时仅表示原执行节点
-     * 可能已失效，据此把 Run 用最后一次持久化快照终结为可重试终态（RUNNING→FAILED/INSTANCE_LOST，
-     * STOPPING→STOPPED/USER_STOP），**不接管其运行中的 Agent 调用**。供定时维护任务调用。
-     *
-     * @param run 候选中断态运行（来自周期失效扫描）
-     */
-    void convergeInstanceLost(ChatRunEntity run) {
-        ChatSessionEntity session = loadSession(run);
-        TenantUtils.withTenant(session.getTenantId(), () -> {
-            ChatRunInstance lost = instanceFactory.restoreForFinalize(run, session, scheduler);
-            if (ChatRunStatus.STOPPING.name().equals(run.getStatus())) {
-                lost.finalizeStopped(ChatRunFinishReason.USER_STOP);
-            } else {
-                lost.finalizeFailed(ChatRunFailureCode.INSTANCE_LOST, "执行节点心跳超时，对话运行已终止，可重新发起");
-            }
-            return null;
-        });
     }
 
     private void startCreated(ChatRunInstance execution) {

@@ -856,55 +856,5 @@
         </createIndex>
     </changeSet>
 
-    <changeSet id="lambda-ai-202608200016" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <and>
-                <tableExists tableName="ai_scheduled_task_log"/>
-                <columnExists tableName="ai_scheduled_task_log" columnName="output"/>
-            </and>
-        </preConditions>
-        <renameColumn tableName="ai_scheduled_task_log"
-                      oldColumnName="output"
-                      newColumnName="result_output"
-                      columnDataType="longtext"/>
-    </changeSet>
-
-    <!-- ========== 对话 Run 集群执行所有权与租约 fencing ========== -->
-    <changeSet id="lambda-ai-202608210001" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <not>
-                <columnExists tableName="ai_chat_run" columnName="lease_epoch"/>
-            </not>
-        </preConditions>
-        <addColumn tableName="ai_chat_run">
-            <column name="owner_instance_id" type="varchar(128)" remarks="执行节点标识(NULL=无主)"/>
-            <column name="lease_until" type="datetime" remarks="租约截止时间(数据库时间;过期后他节点可接管)"/>
-            <column name="lease_epoch" type="bigint" defaultValueNumeric="0" remarks="fencing令牌(认领/接管单调+1;终态后保留)">
-                <constraints nullable="false"/>
-            </column>
-        </addColumn>
-        <createIndex tableName="ai_chat_run" indexName="idx_ai_chat_run_status_lease">
-            <column name="status"/>
-            <column name="lease_until"/>
-        </createIndex>
-    </changeSet>
-
-    <!-- ========== 对话 Run 降级：最小心跳替代租约/接管（lease 列暂留不读写，待后续清理） ========== -->
-    <changeSet id="lambda-ai-202608220001" author="Jin">
-        <preConditions onFail="MARK_RAN">
-            <not>
-                <columnExists tableName="ai_chat_run" columnName="heartbeat_at"/>
-            </not>
-        </preConditions>
-        <addColumn tableName="ai_chat_run">
-            <column name="heartbeat_at" type="datetime" remarks="执行节点最近心跳时间(数据库时间;超时判定节点失效)"/>
-        </addColumn>
-        <!-- 失效扫描改用 (status, heartbeat_at)；lease 索引已无读取方，移除避免误导 -->
-        <dropIndex tableName="ai_chat_run" indexName="idx_ai_chat_run_status_lease"/>
-        <createIndex tableName="ai_chat_run" indexName="idx_ai_chat_run_status_heartbeat">
-            <column name="status"/>
-            <column name="heartbeat_at"/>
-        </createIndex>
-    </changeSet>
 
 </databaseChangeLog>

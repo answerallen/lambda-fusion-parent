@@ -150,6 +150,16 @@ public class ChatRunEventStore {
     }
 
     /**
+     * 当前 JVM 是否仍持有指定 Run 的事件缓冲区。
+     *
+     * @param runId 运行标识
+     * @return 本地可以继续回放或订阅时返回 {@code true}
+     */
+    public boolean contains(String runId) {
+        return buffers.containsKey(runId);
+    }
+
+    /**
      * 标记终态缓冲区的过期时间。
      *
      * @param runId 运行标识

@@ -149,14 +149,6 @@ public class AiProperties {
             /** 定时写入快照的间隔，单位秒。 */
             @Min(1)
             private long snapshotIntervalSeconds = 15;
-
-            /** 执行节点心跳超时时间，单位秒；超时未更新心跳的 Run 视为节点失效，收敛为 INSTANCE_LOST。心跳周期取该值的三分之一。 */
-            @Min(3)
-            private long instanceLostTimeoutSeconds = 60;
-
-            /** CREATED 态 Run 等待被认领的最长时间，单位秒；超时未被认领（全节点满载）收敛为调度超时失败。 */
-            @Min(1)
-            private long scheduleTimeoutSeconds = 300;
         }
 
         /**

@@ -85,8 +85,7 @@ class ChatRunCoordinatorStartTest {
                 attachmentMessageBuilder,
                 appService,
                 instanceFactory,
-                properties,
-                new ChatRunNodeIdentity("test-app"));
+                properties);
 
         ChatSessionEntity session = session();
         ChatRunEntity first = run("run-1", 1L);

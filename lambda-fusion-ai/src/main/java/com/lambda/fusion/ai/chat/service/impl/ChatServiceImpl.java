@@ -16,6 +16,7 @@ import com.lambda.fusion.ai.chat.runtime.model.AguiBootstrap;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
 import com.lambda.fusion.ai.chat.service.ChatService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
+import com.lambda.fusion.ai.exception.AiErrorCode;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -123,6 +124,21 @@ public class ChatServiceImpl implements ChatService {
             }
         } catch (AiBusinessException businessError) {
             runnable.run();
+            if (businessError.getCode() == AiErrorCode.CHAT_RUN_EVENTS_EXPIRED.getCode()) {
+                try {
+                    if (!bootstrap) {
+                        AguiBootstrap persisted = chatRunCoordinator.bootstrap(chatRunEntity);
+                        for (String event : persisted.events()) {
+                            emitter.send(SseEmitter.event().data(event));
+                        }
+                    }
+                    emitter.complete();
+                    return emitter;
+                } catch (IOException sendFailure) {
+                    emitter.completeWithError(sendFailure);
+                    return emitter;
+                }
+            }
             throw businessError;
         } catch (RuntimeException | IOException error) {
             runnable.run();

@@ -14,7 +14,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
-import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
@@ -61,9 +60,7 @@ class ChatRunServiceImplTest {
             sessionService,
             messageService,
             mock(ChatAttachmentService.class),
-            mock(AppService.class),
-            new com.lambda.fusion.ai.chat.runtime.ChatRunNodeIdentity("test-app"),
-            new AiProperties());
+            mock(AppService.class));
 
     @Test
     void shouldLetStoppingStateWinAgainstConcurrentCompletion() {

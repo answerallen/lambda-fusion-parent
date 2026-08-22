@@ -67,12 +67,4 @@ public class ChatRunEntity extends BaseEntity {
 
     @TableField("finished_at")
     private LocalDateTime finishedAt;
-
-    /** 当前执行该 Run 的节点标识（沿用物理列 owner_instance_id，NULL 表示本机/未指定）。 */
-    @TableField("owner_instance_id")
-    private String executorInstanceId;
-
-    /** 执行节点最近一次心跳时间（数据库时间）；超时用于判定节点失效并收敛 Run，不构成接管/租约。 */
-    @TableField("heartbeat_at")
-    private LocalDateTime heartbeatAt;
 }

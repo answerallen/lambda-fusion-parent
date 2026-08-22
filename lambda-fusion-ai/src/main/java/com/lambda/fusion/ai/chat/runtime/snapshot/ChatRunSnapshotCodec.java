@@ -3,14 +3,12 @@ package com.lambda.fusion.ai.chat.runtime.snapshot;
 import io.agentscope.core.util.JsonUtils;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 对话执行快照编解码器。
  *
  * @author Jin
  */
-@Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ChatRunSnapshotCodec {
 
@@ -28,7 +26,8 @@ public final class ChatRunSnapshotCodec {
      * 从 JSON 解析执行快照。
      *
      * @param json 快照 JSON
-     * @return 执行快照；内容为空或无效时返回空快照
+     * @return 执行快照；内容为空时返回空快照
+     * @throws IllegalStateException 非空内容无法解析时抛出，避免用空快照覆盖已持久化的恢复事实
      */
     public static ChatRunSnapshot decode(String json) {
         if (json == null || json.isBlank()) {
@@ -36,10 +35,12 @@ public final class ChatRunSnapshotCodec {
         }
         try {
             ChatRunSnapshot snapshot = JsonUtils.getJsonCodec().fromJson(json, ChatRunSnapshot.class);
-            return snapshot == null ? ChatRunSnapshot.empty(null, null, 1) : snapshot;
+            if (snapshot == null) {
+                throw new IllegalArgumentException("快照内容为 null");
+            }
+            return snapshot;
         } catch (RuntimeException invalid) {
-            log.warn("对话Run快照解析失败，将按空快照恢复", invalid);
-            return ChatRunSnapshot.empty(null, null, 1);
+            throw new IllegalStateException("对话Run快照解析失败", invalid);
         }
     }
 }

@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.lambda.fusion.ai.AiConstants.ChatRunFailureCode;
 import com.lambda.fusion.ai.AiConstants.ChatRunFinishReason;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
-import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.mapper.ChatRunMapper;
 import com.lambda.fusion.ai.chat.mapper.ChatSessionMapper;
@@ -65,9 +64,6 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     private final ChatMessageService messageService;
     private final ChatAttachmentService attachmentService;
     private final AppService appService;
-    private final com.lambda.fusion.ai.chat.runtime.ChatRunNodeIdentity nodeIdentity;
-    private final AiProperties properties;
-
     /** 幂等创建或加载运行；同一请求 ID 复用已有记录，否则在会话无活动运行时创建并保存用户消息。 */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -97,8 +93,6 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         run.setPhaseNo(1);
         run.setAguiRunId(newAguiRunId());
         run.setSnapshotSeq(0L);
-        // 标记创建节点为执行节点，供「本机活跃 vs 远程活跃」判定。
-        run.setExecutorInstanceId(nodeIdentity.instanceId());
         runMapper.insert(run);
 
         // 先保存用户消息并绑定附件，再回填消息 ID 和初始空快照。
@@ -190,9 +184,8 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
 
         int targetPhase = run.getPhaseNo() + 1;
         String targetAguiRunId = newAguiRunId();
-        LocalDateTime dbNow = dbNow();
         // 以待确认状态和阶段号为前置条件迁移到 RUNNING；并发更新未命中时报告状态冲突。
-        // 确认在任一节点发起新的一次 AgentScope 调用（非迁移旧调用），故标记本节点为执行节点并起跳心跳。
+        LocalDateTime now = LocalDateTime.now();
         int changed = runMapper.update(
                 null,
                 new LambdaUpdateWrapper<ChatRunEntity>()
@@ -203,9 +196,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .set(ChatRunEntity::getPhaseNo, targetPhase)
                         .set(ChatRunEntity::getAguiRunId, targetAguiRunId)
                         .set(ChatRunEntity::getAwaitConfirmDeadlineAt, null)
-                        .set(ChatRunEntity::getExecutorInstanceId, nodeIdentity.instanceId())
-                        .set(ChatRunEntity::getHeartbeatAt, dbNow)
-                        .set(ChatRunEntity::getUpdatedAt, dbNow));
+                        .set(ChatRunEntity::getUpdatedAt, now));
         if (changed != 1) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getId());
         }
@@ -213,46 +204,22 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         run.setStatus(ChatRunStatus.RUNNING.name());
         run.setPhaseNo(targetPhase);
         run.setAguiRunId(targetAguiRunId);
-        run.setExecutorInstanceId(nodeIdentity.instanceId());
-        run.setHeartbeatAt(dbNow);
         return new ConfirmTransition(run, session, true);
     }
 
-    /** CAS 认领新建 Run：{@code CREATED -> RUNNING}，同时标记执行节点并起跳心跳；已被并发认领则返回 false。 */
+    /** CAS 认领新建 Run：{@code CREATED -> RUNNING}；已被并发认领则返回 false。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public boolean claimCreated(ChatRunEntity run) {
-        LocalDateTime dbNow = dbNow();
+        LocalDateTime now = LocalDateTime.now();
         return runMapper.update(
                         null,
                         new LambdaUpdateWrapper<ChatRunEntity>()
                                 .eq(ChatRunEntity::getId, run.getId())
                                 .eq(ChatRunEntity::getStatus, ChatRunStatus.CREATED.name())
                                 .set(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name())
-                                .set(ChatRunEntity::getStartedAt, dbNow)
-                                .set(ChatRunEntity::getExecutorInstanceId, nodeIdentity.instanceId())
-                                .set(ChatRunEntity::getHeartbeatAt, dbNow)
-                                .set(ChatRunEntity::getUpdatedAt, dbNow))
-                == 1;
-    }
-
-    /**
-     * 更新本节点持有 Run 的执行心跳：仅当该 Run 仍标记由本节点执行时落库，避免失效节点复活后覆盖。
-     *
-     * @param run 运行实体（携带 id）
-     * @return 心跳写入成功返回 true；该 Run 已不由本节点执行返回 false
-     */
-    @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public boolean heartbeat(ChatRunEntity run) {
-        LocalDateTime dbNow = dbNow();
-        return runMapper.update(
-                        null,
-                        new LambdaUpdateWrapper<ChatRunEntity>()
-                                .eq(ChatRunEntity::getId, run.getId())
-                                .eq(ChatRunEntity::getExecutorInstanceId, nodeIdentity.instanceId())
-                                .notIn(ChatRunEntity::getStatus, ChatRunStatus.terminalNames())
-                                .set(ChatRunEntity::getHeartbeatAt, dbNow))
+                                .set(ChatRunEntity::getStartedAt, now)
+                                .set(ChatRunEntity::getUpdatedAt, now))
                 == 1;
     }
 
@@ -272,7 +239,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                 == 1;
     }
 
-    /** CAS 进入待确认：{@code RUNNING -> AWAITING_CONFIRM}，同事务持久化快照并停跳心跳（清空 heartbeat）。 */
+    /** CAS 进入待确认：{@code RUNNING -> AWAITING_CONFIRM}，同事务持久化快照。 */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public boolean awaitConfirm(ChatRunEntity run, ChatRunSnapshot snapshot, long seq, LocalDateTime deadline) {
@@ -285,8 +252,6 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                                 .set(ChatRunEntity::getAwaitConfirmDeadlineAt, deadline)
                                 .set(ChatRunEntity::getSnapshotJson, ChatRunSnapshotCodec.encode(snapshot))
                                 .set(ChatRunEntity::getSnapshotSeq, seq)
-                                // 进入待确认即停跳心跳：无执行节点活动，避免被失效扫描误判；确认/超时路径自行收敛。
-                                .set(ChatRunEntity::getHeartbeatAt, null)
                                 .set(ChatRunEntity::getUpdatedAt, LocalDateTime.now()))
                 == 1;
     }
@@ -380,8 +345,6 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .set(ChatRunEntity::getSnapshotSeq, lastSeq)
                         .set(ChatRunEntity::getErrorCode, finalErrorCode == null ? null : finalErrorCode.name())
                         .set(ChatRunEntity::getErrorMessage, finalErrorMessage)
-                        // 终态停跳心跳：运行已结束，不再参与失效扫描。
-                        .set(ChatRunEntity::getHeartbeatAt, null)
                         .set(ChatRunEntity::getFinishedAt, now)
                         .set(ChatRunEntity::getUpdatedAt, now));
         if (changed != 1) {
@@ -445,51 +408,12 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                 new LambdaQueryWrapper<ChatRunEntity>().eq(ChatRunEntity::getStatus, ChatRunStatus.CREATED.name()));
     }
 
-    /** 查询创建时间早于阈值、仍未被认领的 {@code CREATED} 运行（全节点长期满载时按调度超时收敛）。 */
-    @Override
-    public List<ChatRunEntity> listStaleCreated(LocalDateTime createdBefore) {
-        return runMapper.selectList(new LambdaQueryWrapper<ChatRunEntity>()
-                .eq(ChatRunEntity::getStatus, ChatRunStatus.CREATED.name())
-                .le(ChatRunEntity::getCreatedAt, createdBefore));
-    }
-
-    /** 查询执行节点心跳已超时的中断态运行（RUNNING/STOPPING），供失效收敛标记。 */
-    @Override
-    public List<ChatRunEntity> listExpiredHeartbeatRuns(LocalDateTime timedOutBefore) {
-        return runMapper.selectList(new LambdaQueryWrapper<ChatRunEntity>()
-                .in(ChatRunEntity::getStatus, ChatRunStatus.RUNNING.name(), ChatRunStatus.STOPPING.name())
-                .le(ChatRunEntity::getHeartbeatAt, timedOutBefore));
-    }
-
     /** 查询截止时间不晚于给定时刻的待确认运行。 */
     @Override
     public List<ChatRunEntity> listExpiredConfirmations(LocalDateTime deadline) {
         return runMapper.selectList(new LambdaQueryWrapper<ChatRunEntity>()
                 .eq(ChatRunEntity::getStatus, ChatRunStatus.AWAITING_CONFIRM.name())
                 .le(ChatRunEntity::getAwaitConfirmDeadlineAt, deadline));
-    }
-
-    /**
-     * 查询心跳已超时（或本就无心跳）的中断态运行（RUNNING/STOPPING/AWAITING_CONFIRM），供启动恢复逐个收敛。
-     *
-     * <p>降级模型下不做跨节点接管：本进程重启后其持有的中断态 Run 心跳随之停跳并随启动耗时超时而命中本查询，
-     * 由本节点终结（或保留待确认）；仍存活节点的 Run 心跳新鲜，不会被本查询命中，避免滚动发布误终结。
-     * 终态迁移经 DB 终态 CAS 幂等，并发恢复仅一方生效。
-     *
-     * @param timedOutBefore 心跳超时阈值；{@code heartbeat_at} 为空或早于该时刻视为执行节点已失效
-     * @return 心跳超时/无心跳的中断态运行
-     */
-    @Override
-    public List<ChatRunEntity> listInterruptedOnRestart(LocalDateTime timedOutBefore) {
-        return runMapper.selectList(new LambdaQueryWrapper<ChatRunEntity>()
-                .in(
-                        ChatRunEntity::getStatus,
-                        ChatRunStatus.RUNNING.name(),
-                        ChatRunStatus.STOPPING.name(),
-                        ChatRunStatus.AWAITING_CONFIRM.name())
-                .and(w -> w.isNull(ChatRunEntity::getHeartbeatAt)
-                        .or()
-                        .le(ChatRunEntity::getHeartbeatAt, timedOutBefore)));
     }
 
     /** 实体转视图，并在待确认态填充待确认工具列表。 */
@@ -563,10 +487,5 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     /** 生成新的 AGUI 侧 Run 标识。 */
     private static String newAguiRunId() {
         return "agui-" + IdUtil.randomUUID();
-    }
-
-    /** 取数据库当前时间，用于心跳与失效判定，避免节点时钟偏差。 */
-    private LocalDateTime dbNow() {
-        return runMapper.selectDbNow();
     }
 }

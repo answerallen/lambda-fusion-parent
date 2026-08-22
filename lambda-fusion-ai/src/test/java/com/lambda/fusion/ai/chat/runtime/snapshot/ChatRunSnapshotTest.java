@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.chat.runtime.snapshot;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -60,10 +61,10 @@ class ChatRunSnapshotTest {
     }
 
     @Test
-    void shouldRecoverEmptySnapshotFromInvalidJson() {
-        ChatRunSnapshot restored = ChatRunSnapshotCodec.decode("{invalid");
-
-        assertThat(restored).isEqualTo(ChatRunSnapshot.empty(null, null, 1));
+    void shouldRejectInvalidSnapshotInsteadOfSilentlyErasingIt() {
+        assertThatThrownBy(() -> ChatRunSnapshotCodec.decode("{invalid"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("对话Run快照解析失败");
     }
 
     @Test

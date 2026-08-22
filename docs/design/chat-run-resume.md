@@ -2,7 +2,8 @@
 
 > 目标：解决用户在 LLM 输出过程中切换会话、关闭页面或网络断开后，生成被取消、助手回复丢失的问题。
 >
-> 当前范围：单实例、内存事件缓冲。浏览器连接断开后后台继续执行；服务进程重启后不继续原 LLM/工具调用，而是将遗留 Run 收敛为失败并保存已有快照。
+> 当前范围：应用可多实例部署，但单个 ChatRun 的实时事件缓冲和活动调用属于一个进程。浏览器连接断开后后台继续执行；
+> 服务进程失效后不接管原 LLM/工具调用，由页面恢复最后持久化快照并允许用户显式停止、重试。
 >
 > AgentScope 的调用入口、状态会话 ID、业务完成/资源排空和 Workspace 锁边界，以
 > [ChatRun 与 AgentScope 执行边界设计](chat-run-agentscope-execution.md) 为准。
@@ -43,7 +44,7 @@
 - 不保证 JVM 崩溃后从中间 token 继续同一次模型调用。
 - 不保证工具已经产生的外部副作用可以回滚。
 - 当前不支持多实例之间转移正在运行的 Agent Flux。
-- 当前不实现 Redis Stream、执行节点租约、跨节点停止命令或事务 outbox。
+- 不在业务层实现 Redis Stream、节点 owner/lease/heartbeat、跨节点停止命令或事务 outbox。
 - 当前前端不启用严格增量游标恢复，统一使用 bootstrap 重建，原因见第 8 节。
 
 ## 3. 最小组件与职责
@@ -54,7 +55,7 @@
 | :--- | :--- | :--- |
 | `ChatServiceImpl` | `@Service` | 唯一对话入口；创建/查询 Run，建立 SSE 订阅，处理确认与停止编排 |
 | `ChatRunServiceImpl` / `ChatRunStateService` | `@Service` | Run 查询与事务状态迁移、所有权校验和最终落库 |
-| `ChatRunCoordinator` | `@Component` | 注册和选择规范执行实例，处理容量、异步启动、确认、停止、排空摘除及启动恢复 |
+| `ChatRunCoordinator` | `@Component` | 注册和选择本地执行实例，处理容量、异步启动、确认、停止和排空摘除；启动时只拉起尚未认领的 `CREATED` |
 | `ChatRunInstanceFactory` | `@Component` | 按 Session 构建 Agent 和执行实例 |
 | `ChatRunInstance` | 普通对象 | 持有 AgentScope 订阅，处理阶段事件、快照、业务终态和资源排空 |
 | `AgentExecutionAdapter` | 普通对象 | 直连已选定的 `HarnessAgent`，统一 Agent 状态身份和 HITL 操作 |
@@ -252,17 +253,18 @@ POST /v1/ai/sessions/{sessionId}/runs/{runId}/stop
 
 切换会话、关闭页面和普通网络断开不调用停止接口。
 
-### 6.6 进程重启
+### 6.6 进程重启或请求落到其他实例
 
-当前事件存储和 Agent 执行都在单实例内存中，因此启动恢复必须诚实处理：
+业务层不根据心跳猜测节点生死，也不自动接管或终结活动调用：
 
-- `CREATED`：尚未认领，可从已落库用户消息和附件首次启动。
-- `RUNNING`：标记为 `FAILED / INSTANCE_LOST`，用最后快照保存部分助手输出。
-- `AWAITING_CONFIRM`：仅当 AgentScope state store 为持久化实现且确认上下文可在重启后重新校验时保留；否则收敛为 `FAILED / INSTANCE_LOST`。
-- `STOPPING`：收敛为 `STOPPED / USER_STOP`，避免用户已提交的停止意图在重启后变成执行失败。
-- 确认超时：运行期间扫描 `AWAITING_CONFIRM`，收敛为 `STOPPED / CONFIRM_TIMEOUT`。
+- `CREATED`：尚未认领，可由启动或维护扫描重新尝试，并以 `claimCreated` CAS 防止重复启动。
+- `RUNNING`：返回最后持久化快照并关闭非本地 SSE；不继续旧模型流，也不自动改成某个“节点丢失”错误。
+- `AWAITING_CONFIRM`：保留业务状态。确认请求会从 AgentScope state store 读取并校验真实 `ASKING` 上下文；不可用时返回
+  `CONFIRM_CONTEXT_UNAVAILABLE`，用户可以稍后重试或停止旧 Run。
+- `STOPPING`：再次停止时可以幂等收敛为 `STOPPED / USER_STOP`。
+- 确认超时：维护任务扫描 `AWAITING_CONFIRM`，收敛为 `STOPPED / CONFIRM_TIMEOUT`。
 
-不把 Agent 状态存储可持久化等同于“模型流可从 token 中间继续”。对 `AWAITING_CONFIRM` 的保留也不等于承认任意版本、任意工具集合都能安全续跑；实现必须保证恢复后仍能校验 Agent、工具和权限上下文一致，否则应按失败边界处理。
+AgentScope state store 可持久化不等于模型流可以从 token 中间继续。页面 bootstrap 也只恢复展示，不冒充 Agent 执行恢复。
 
 从 Gateway 派生状态 ID 切换到 Session 权威 ID 的发布不做旧状态迁移或双读。该次发布前必须结束所有
 `RUNNING` / `AWAITING_CONFIRM` Run；发布后的后续同版本重启，才适用上述 `AWAITING_CONFIRM` 保留规则。
@@ -395,7 +397,7 @@ lambda:
           connection-timeout-seconds: 300
           max-run-duration-seconds: 1800
           await-confirm-timeout-seconds: 86400
-          stop-grace-seconds: 10
+          stop-grace-seconds: 30
           terminal-ttl-seconds: 600
           max-events: 4096
           max-bytes: 8388608
@@ -403,7 +405,7 @@ lambda:
           max-active-runs-per-user: 4
           subscriber-queue-size: 256
           snapshot-every-events: 100
-          snapshot-interval-seconds: 2
+          snapshot-interval-seconds: 15
 ```
 
 这些配置只控制超时和资源上限，不改变 Bean 拓扑。默认值已定义在
@@ -416,9 +418,9 @@ lambda:
 ## 13. 失败语义与安全
 
 - Agent 启动失败：`FAILED / START_FAILED`。
-- 实例容量超限：`FAILED / RUN_CAPACITY_EXCEEDED`。
+- 本地实例容量已满：Run 保持 `CREATED`，容量释放后再尝试认领。
 - 运行超时或一般异常：`FAILED / ERROR`，保存已有部分输出。
-- 进程重启遗留执行：`FAILED / INSTANCE_LOST`。
+- 执行进程不可达：保留最后业务状态和快照，由用户显式停止旧 Run 后创建新 Run。
 - 用户停止：`STOPPED / USER_STOP`。
 - HITL 超时：`STOPPED / CONFIRM_TIMEOUT`。
 - 根 `AGENT_END` 后的记忆整理、Sandbox 清理或 Workspace 审计失败：保留已提交业务终态，单独记录后处理失败。
@@ -438,7 +440,7 @@ lambda:
 6. Run 复用 `ChatSession` 的用户和应用信息；`tenant_id` 只保留框架隔离列，由租户插件自动处理。
 7. 不增加确认命令流水表；`phaseNo` 和行锁足以保证状态迁移不重复。
 8. 不增加 `active_session_id`、`last_seq` 等与现有状态/快照重复的字段。
-9. 不预埋未实现的 Redis、多节点 owner 或 feature flag。
+9. 不预埋 Redis 事件总线、多节点 owner/lease/heartbeat、远程停止或 feature flag。
 10. 助手消息写入复用现有 `ChatMessageService`，不在 Run Service 重复构造消息持久化逻辑。
 11. 内部 ChatRun 直连已选定的 `HarnessAgent`；外部 Channel 才使用 `HarnessGateway`。
 12. Agent 状态、中断和保存统一使用 `(ChatSession.userId, ChatSession.id)`，不复制 Gateway 的 `gw-*` 规则。
@@ -477,4 +479,5 @@ git diff --check -- docs/design
 
 浏览器断开、HITL 排空竞态、记忆尾部延迟和多用户同应用并发仍需做集成验证；单元测试通过不能替代这些生命周期验收。
 
-当前实现的部署声明只能写为“单实例浏览器断线续跑与恢复”，不能写成“多实例高可用”或“服务重启后继续生成”。
+当前实现的部署声明只能写为“多实例部署 + 单 Run 单进程执行 + 浏览器断线快照恢复”，不能写成“单 Run 多节点高可用”
+或“服务重启后继续原模型流”。节点异常后的完整行为见 [ChatRun 多节点部署边界](chat-run-cluster.md)。

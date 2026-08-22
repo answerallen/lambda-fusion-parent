@@ -37,7 +37,7 @@ ChatServiceImpl.confirm
         |
         v
 ChatRunCoordinator.confirm          （loadOwned 已做归属校验）
-  1. get 命中则复用；未命中时构造候选实例并以 putIfAbsent 选定唯一注册实例
+  1. get 命中则复用；未命中时在本地注册表临界区内检查容量、构造并注册唯一实例
   2. 仅注册成功的实例维护排空信号；业务终态由数据库状态和终态事件发布，最终排空后才按
      (runId, instance) 身份摘除
         |
@@ -77,7 +77,7 @@ ChatRunInstance.confirm（synchronized 实例锁内，原子完成）
 ### 3.2 本次不做
 
 - 不把完整 `ToolUseBlock` 写入当前脱敏 `RunSnapshot`。
-- 不新增确认命令流水表、事务 outbox、Redis Stream 或多实例执行租约。
+- 不新增确认命令流水表、事务 outbox、Redis Stream、节点租约/心跳或远程停止。
 - 不恢复 JVM 重启前处于模型或工具执行中的 phase。`AWAITING_CONFIRM` 仅在持久化 state store 可按权威
   `(userId, sessionId)` 重新读取并通过三方校验时保留，否则按失败边界收敛。
 - 不改变现有前端确认协议；前端仍提交 `phaseNo` 和全部 `decisions`。
@@ -292,19 +292,18 @@ Run 保持 `AWAITING_CONFIRM` 并返回可重试错误。运维修复 state stor
 
 ### 8.5 JVM 重启
 
-当前边界是：仅当 state store 为持久化实现、且启动扫描实际读取的 Agent `ASKING` 集合与 Run 快照一致时，
-才允许保留 `AWAITING_CONFIRM`；否则遗留 `AWAITING_CONFIRM` 收敛为
-`CONFIRM_CONTEXT_UNAVAILABLE`，其他 `RUNNING` 收敛为 `INSTANCE_LOST`。
+业务层不在启动时扫描并改写 `AWAITING_CONFIRM` 或 `RUNNING`。`AWAITING_CONFIRM` 保留在数据库中；用户再次提交确认时，
+当前请求节点按正常确认路径从 AgentScope state store 读取 `ASKING` 集合，并与 Run 快照和用户决策进行三方校验。
 
-这里的“可恢复并校验”至少要求：
+跨进程确认成功至少要求：
 
 - Agent 定义、工具集合和权限上下文在重启后仍可识别且未发生不兼容变化；
 - `ASKING` 工具调用上下文能够从 state store 重新读取，并与 Run 快照中的待确认集合一致；
 - 恢复路径不得伪造 `ToolUseBlock`，不得仅凭 `RunSnapshot` 跳过上下文校验；
-- 一旦上下文不可读、集合不一致或版本边界不明确，必须按失败边界收敛，而不是静默继续。
+- 一旦上下文不可读、集合不一致或版本边界不明确，确认请求必须失败且 Run 保持 `AWAITING_CONFIRM`，不得静默继续。
 
-因此，跨重启确认恢复不是默认能力，而是有明确前置条件的受支持边界；不满足条件时按对应的
-`CONFIRM_CONTEXT_UNAVAILABLE` 或 `INSTANCE_LOST` 失败边界处理。
+因此，跨进程确认依赖 AgentScope 持久化 state store，但不依赖 ChatRun 节点所有权协议。不满足条件时返回
+`CONFIRM_CONTEXT_UNAVAILABLE` 或 `CONFIRM_CONTEXT_MISMATCH`；用户可以稍后重试，或显式停止旧 Run 后开始新 Run。
 
 ### 8.6 待确认事件与数据库事实的顺序
 
@@ -426,7 +425,7 @@ mvn -pl lambda-fusion-ai -am compile
 - 确认生产 state store 类型和扩展依赖已正确安装。
 - 确认 state store 表、账号权限和连接池健康。
 - 检查历史日志中是否出现过 MYSQL 回退 MEMORY。
-- 发布前等待或显式停止旧版本实例上的活跃 Run，避免滚动发布把等待确认的执行器判为 `INSTANCE_LOST`。
+- 发布前等待或显式停止旧版本实例上的活跃 Run，避免跨版本 Agent 定义、工具集合或状态结构不兼容。
 - 本次不迁移旧 `(userId, gw-*)` 状态；发布后只使用 `(ChatSession.userId, ChatSession.id)`，因此发布前必须结束
   所有 `RUNNING` 和 `AWAITING_CONFIRM` Run，不做跨版本续跑。
 

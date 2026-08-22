@@ -3,8 +3,7 @@
 > 本文定义 Lambda Fusion 内部 ChatRun 调用 AgentScope 时的会话身份、Gateway 边界、完成语义和锁边界。
 > 本次改造不修改 AgentScope，不迁移既有 Agent state，也不引入持久化记忆任务。
 >
-> 状态：目标设计。完成本文改造前，现有代码中仍可能存在 Gateway 分支、单一终结信号、覆盖完整 Flux 的
-> 交互超时，以及在业务终结路径执行 Workspace 审计等过渡实现。
+> 状态：当前实现边界。`chat.runtime` 是业务层，AgentScope 是执行与状态底座。
 
 ## 1. 结论
 
@@ -248,7 +247,9 @@ Agent 主流程
 
 - 根 `AGENT_END` 前失败：Run 收敛为 `FAILED`，保存已有部分输出。
 - 根 `AGENT_END` 后的记忆或维护失败：Run 保持 `COMPLETED`，记录后处理错误。
-- 用户停止：先按 `(userId, sessionId)` 调用 AgentScope `interrupt`，宽限期后仍未结束才 dispose。
+- 用户停止：本机持有活动实例时按 `(userId, sessionId)` 调用 AgentScope `interrupt`，宽限期后仍未结束才 dispose；
+  本机没有 `RUNNING` 实例时只提交 ChatRun 业务终态，不恢复活动 Agent，也不发送跨节点中断；
+  `AWAITING_CONFIRM` 可清理 AgentScope 持久化状态中的未决工具，但不调用 interrupt。
 - 所有 complete、error、cancel 路径都必须执行源流终止清理；最终业务终态还要完成实例 `drainedSignal`，
   不能只在 `onComplete` 清理。
 
@@ -277,8 +278,8 @@ register(runInstance)
 - 业务终态不摘除仍在后处理的实例；只有实例级 `drainedSignal` 完成后才能摘除。
 - 相邻 Run 不等待该信号；同会话核心状态安全由 AgentScope `(userId, sessionId)` 状态槽负责。
 
-若未来允许同一 Session 在多节点接续，需要另行设计执行 owner/lease；不能把 Workspace 分布式写锁或
-`drainedSignal` 当作分布式调度器。
+若未来明确要求同一活动调用跨节点接续，应优先采用 AgentScope 提供的公开执行能力，并单独验证外部工具幂等；不得在
+`chat.runtime` 追加 owner/lease/heartbeat 或把 Workspace 分布式写锁、`drainedSignal` 当作分布式调度器。
 
 ## 7. 超时
 

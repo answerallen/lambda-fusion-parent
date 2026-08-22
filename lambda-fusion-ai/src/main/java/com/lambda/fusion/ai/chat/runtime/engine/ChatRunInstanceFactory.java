@@ -4,7 +4,6 @@ import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.adapter.AgentExecutionAdapter;
-import com.lambda.fusion.ai.chat.runtime.engine.hitl.ConfirmationValidator;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
@@ -45,13 +44,6 @@ public class ChatRunInstanceFactory {
         return newInstance(run, session, scheduler, createAgentExecution(run, session));
     }
 
-    /** 验证持久化 AgentState 中的 ASKING 工具与 Run 展示快照一致，避免重启后保留不可确认的僵尸运行。 */
-    public boolean hasRecoverableConfirmation(ChatRunEntity run, ChatSessionEntity session) {
-        return ConfirmationValidator.isRecoverable(
-                ChatRunSnapshotCodec.decode(run.getSnapshotJson()).pendingTools(),
-                () -> createAgentExecution(run, session).readAskingToolBlocks());
-    }
-
     private AgentExecutionAdapter createAgentExecution(ChatRunEntity run, ChatSessionEntity session) {
         String tenantId = tenantId(session);
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), tenantId);
@@ -69,8 +61,11 @@ public class ChatRunInstanceFactory {
         return newInstance(run, session, scheduler, null);
     }
 
-    /** 终结前的恢复：优先恢复带 Agent 的实例以闭合未决工具调用，Agent 恢复失败时退化为纯落终态。 */
-    public ChatRunInstance restoreForFinalize(
+    /**
+     * 恢复待确认上下文清理实例：只用于关闭 AgentScope 持久化状态中的未决工具，不启动源流、不远程中断活动调用；
+     * Agent 状态不可用时退化为纯业务终结。
+     */
+    public ChatRunInstance restoreConfirmationFinalizer(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         try {
             return restoreExecution(run, session, scheduler);
