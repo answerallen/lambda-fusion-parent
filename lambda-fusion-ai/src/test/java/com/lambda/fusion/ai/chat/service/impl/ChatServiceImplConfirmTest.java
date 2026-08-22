@@ -17,7 +17,7 @@ import com.lambda.fusion.ai.chat.model.RunContext;
 import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.runtime.ChatRunCoordinator;
+import com.lambda.fusion.ai.chat.runtime.ChatExecutionService;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
@@ -29,9 +29,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 class ChatServiceImplConfirmTest {
 
     private final ChatRunService runService = mock(ChatRunService.class);
-    private final ChatRunCoordinator chatRunCoordinator = mock(ChatRunCoordinator.class);
+    private final ChatExecutionService chatExecutionService = mock(ChatExecutionService.class);
     private final AiProperties properties = new AiProperties();
-    private final ChatServiceImpl chatService = new ChatServiceImpl(runService, chatRunCoordinator, properties);
+    private final ChatServiceImpl chatService = new ChatServiceImpl(runService, chatExecutionService, properties);
 
     @Test
     void shouldStartOnlyNewlyCreatedRun() {
@@ -39,11 +39,11 @@ class ChatServiceImplConfirmTest {
         ChatSessionEntity session = session();
         SendMessage message = message();
         when(runService.createOrLoad("session-1", message)).thenReturn(new RunContext(run, session, true));
-        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
+        when(chatExecutionService.bootstrap(run)).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
 
         assertThat(chatService.streamChat("session-1", message)).isNotNull();
 
-        verify(chatRunCoordinator).start(run, session);
+        verify(chatExecutionService).start(run, session);
     }
 
     @Test
@@ -52,11 +52,11 @@ class ChatServiceImplConfirmTest {
         ChatSessionEntity session = session();
         SendMessage message = message();
         when(runService.createOrLoad("session-1", message)).thenReturn(new RunContext(run, session, false));
-        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
+        when(chatExecutionService.bootstrap(run)).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
 
         assertThat(chatService.streamChat("session-1", message)).isNotNull();
 
-        verify(chatRunCoordinator, never()).start(any(), any());
+        verify(chatExecutionService, never()).start(any(), any());
     }
 
     @Test
@@ -66,7 +66,7 @@ class ChatServiceImplConfirmTest {
         ConfirmToolCall command = command(2, List.of(decision("call_1", true)));
 
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
-        when(chatRunCoordinator.confirm(run, session, command))
+        when(chatExecutionService.confirm(run, session, command))
                 .thenThrow(new IllegalStateException("context unavailable"));
 
         assertThatThrownBy(() -> chatService.confirm("session-1", "run-1", command))
@@ -82,14 +82,14 @@ class ChatServiceImplConfirmTest {
         ChatRunEntity transitioned = run(ChatRunStatus.RUNNING, 3);
 
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
-        when(chatRunCoordinator.confirm(run, session, command))
+        when(chatExecutionService.confirm(run, session, command))
                 .thenReturn(new ConfirmTransition(transitioned, session, true));
-        when(chatRunCoordinator.bootstrap(any())).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
+        when(chatExecutionService.bootstrap(any())).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
 
         SseEmitter emitter = chatService.confirm("session-1", "run-1", command);
 
         assertThat(emitter).isNotNull();
-        verify(chatRunCoordinator).bootstrap(transitioned);
+        verify(chatExecutionService).bootstrap(transitioned);
     }
 
     @Test
@@ -100,29 +100,29 @@ class ChatServiceImplConfirmTest {
         ChatRunEntity transitioned = run(ChatRunStatus.RUNNING, 3);
 
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
-        when(chatRunCoordinator.confirm(run, session, command))
+        when(chatExecutionService.confirm(run, session, command))
                 .thenReturn(new ConfirmTransition(transitioned, session, false));
-        when(chatRunCoordinator.bootstrap(any())).thenReturn(new AguiBootstrapModel(0L, List.of(), false));
-        when(chatRunCoordinator.subscribe(any(), anyLong(), any(), any())).thenReturn(mock());
+        when(chatExecutionService.bootstrap(any())).thenReturn(new AguiBootstrapModel(0L, List.of(), false));
+        when(chatExecutionService.subscribe(any(), anyLong(), any(), any())).thenReturn(mock());
 
         SseEmitter emitter = chatService.confirm("session-1", "run-1", command);
 
         assertThat(emitter).isNotNull();
-        verify(chatRunCoordinator).bootstrap(transitioned);
+        verify(chatExecutionService).bootstrap(transitioned);
     }
 
     @Test
     void shouldFallBackToPersistedBootstrapWhenRealtimeEventsAreNotLocal() {
         ChatRunEntity run = run(ChatRunStatus.RUNNING, 2);
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session()));
-        when(chatRunCoordinator.subscribe(any(), anyLong(), any(), any()))
+        when(chatExecutionService.subscribe(any(), anyLong(), any(), any()))
                 .thenThrow(new AiBusinessException(AiErrorCode.CHAT_RUN_EVENTS_EXPIRED, "run-1"));
-        when(chatRunCoordinator.bootstrap(run)).thenReturn(new AguiBootstrapModel(7L, List.of(), true));
+        when(chatExecutionService.bootstrap(run)).thenReturn(new AguiBootstrapModel(7L, List.of(), true));
 
         SseEmitter emitter = chatService.resume("session-1", "run-1");
 
         assertThat(emitter).isNotNull();
-        verify(chatRunCoordinator).bootstrap(run);
+        verify(chatExecutionService).bootstrap(run);
     }
 
     private static ChatRunEntity run(ChatRunStatus status, int phaseNo) {

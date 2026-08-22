@@ -36,7 +36,7 @@ import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
-/** 终态解释与关闭路径的锁定测试：终态事实由 {@link ChatRunInstance} 唯一解释。 */
+/** 终态解释与关闭路径的锁定测试：终态事实由 {@link ChatExecutionInstance} 唯一解释。 */
 class ChatRunInstanceTerminalTest {
 
     private final ChatRunStateService runService = mock(ChatRunStateService.class);
@@ -44,7 +44,7 @@ class ChatRunInstanceTerminalTest {
     private final AgentExecutionAdapter adapter = mock(AgentExecutionAdapter.class);
     private final WorkspaceAuditRecorder workspaceAuditRecorder = mock(WorkspaceAuditRecorder.class);
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private ChatRunInstance instance;
+    private ChatExecutionInstance instance;
 
     @AfterEach
     void tearDown() {
@@ -178,8 +178,8 @@ class ChatRunInstanceTerminalTest {
         return captor.getValue();
     }
 
-    private ChatRunInstance newInstance(ChatRunEntity run) {
-        ChatRunInstance created = new ChatRunInstance(
+    private ChatExecutionInstance newInstance(ChatRunEntity run) {
+        ChatExecutionInstance created = new ChatExecutionInstance(
                 runService,
                 eventStore,
                 new AiProperties(),
@@ -188,7 +188,7 @@ class ChatRunInstanceTerminalTest {
                 run,
                 session(),
                 adapter,
-                new ChatRunSnapshotAccumulator(ChatRunSnapshotCodec.decode(run.getSnapshotJson())));
+                new ChatExecutionSnapshotBuilder(ChatRunSnapshotCodec.decode(run.getSnapshotJson())));
         return created;
     }
 

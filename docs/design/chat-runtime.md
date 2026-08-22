@@ -54,7 +54,7 @@ HITL 暂停是一个窄例外：AgentScope 已经把 `ASKING` 状态持久化，
 ### 4.1 创建与执行
 
 1. `POST /v1/ai/sessions/{sessionId}/chat` 以 `clientRequestId` 幂等创建 Run 和用户消息。
-2. 当前应用节点注册一个本地 `ChatRunInstance`，通过 Harness `streamEvents()` 订阅细粒度
+2. 当前应用节点注册一个本地 `ChatExecutionInstance`，通过 Harness `streamEvents()` 订阅细粒度
    `AgentEvent`。
 3. 薄适配器把 `AgentEvent` 映射成 AgentScope 官方 `AguiEvent`。
 4. 同一批 `AguiEvent` 同时送往前端和运行中快照投影器；禁止再维护一套独立的

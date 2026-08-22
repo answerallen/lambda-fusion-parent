@@ -1,6 +1,7 @@
 package com.lambda.fusion.ai.chat.runtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -21,16 +22,16 @@ class ChatRunInstanceRegistryTest {
     void shouldCheckCapacityAndRegisterAtomically() throws Exception {
         AiProperties properties = new AiProperties();
         properties.getChat().getRun().setMaxActiveRuns(1);
-        ChatRunInstanceFactory instanceFactory = mock(ChatRunInstanceFactory.class);
+        ChatExecutionInstanceFactory instanceFactory = mock(ChatExecutionInstanceFactory.class);
         ChatRunEntity firstRun = run("run-1");
         ChatRunEntity secondRun = run("run-2");
         ChatSessionEntity session = session();
         ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
-        ChatRunInstance first = execution(firstRun, session);
-        ChatRunInstance second = execution(secondRun, session);
+        ChatExecutionInstance first = execution(firstRun, session);
+        ChatExecutionInstance second = execution(secondRun, session);
         when(instanceFactory.createExecution(firstRun, session, scheduler)).thenReturn(first);
         when(instanceFactory.createExecution(secondRun, session, scheduler)).thenReturn(second);
-        ChatRunInstanceRegistry registry = new ChatRunInstanceRegistry(instanceFactory, properties);
+        ChatExecutionInstanceRegistry registry = new ChatExecutionInstanceRegistry(instanceFactory, properties);
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -47,9 +48,27 @@ class ChatRunInstanceRegistryTest {
         }
     }
 
+    /** 契约：同标识活动实例已存在时注册必须快速失败，暴露重复启动缺陷。 */
+    @Test
+    void shouldRejectDuplicateRegistration() {
+        AiProperties properties = new AiProperties();
+        ChatExecutionInstanceFactory instanceFactory = mock(ChatExecutionInstanceFactory.class);
+        ChatRunEntity run = run("run-1");
+        ChatSessionEntity session = session();
+        ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
+        ChatExecutionInstance execution = execution(run, session);
+        when(instanceFactory.createExecution(run, session, scheduler)).thenReturn(execution);
+        ChatExecutionInstanceRegistry registry = new ChatExecutionInstanceRegistry(instanceFactory, properties);
+
+        assertThat(registry.registerForStartIfCapacity(run, session, scheduler)).isPresent();
+        assertThatThrownBy(() -> registry.registerForStartIfCapacity(run, session, scheduler))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("run-1");
+    }
+
     private static CompletableFuture<Boolean> attemptRegister(
             ExecutorService executor,
-            ChatRunInstanceRegistry registry,
+            ChatExecutionInstanceRegistry registry,
             ChatRunEntity run,
             ChatSessionEntity session,
             ScheduledExecutorService scheduler,
@@ -61,8 +80,7 @@ class ChatRunInstanceRegistryTest {
                     try {
                         start.await();
                         return registry.registerForStartIfCapacity(run, session, scheduler)
-                                .map(ChatRunInstanceRegistry.StartRegistration::registered)
-                                .orElse(false);
+                                .isPresent();
                     } catch (InterruptedException interrupted) {
                         Thread.currentThread().interrupt();
                         throw new IllegalStateException(interrupted);
@@ -84,8 +102,8 @@ class ChatRunInstanceRegistryTest {
         return session;
     }
 
-    private static ChatRunInstance execution(ChatRunEntity run, ChatSessionEntity session) {
-        ChatRunInstance execution = mock(ChatRunInstance.class);
+    private static ChatExecutionInstance execution(ChatRunEntity run, ChatSessionEntity session) {
+        ChatExecutionInstance execution = mock(ChatExecutionInstance.class);
         when(execution.run()).thenReturn(run);
         when(execution.session()).thenReturn(session);
         when(execution.drainedSignal()).thenReturn(new CompletableFuture<>());

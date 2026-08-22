@@ -2,7 +2,7 @@ package com.lambda.fusion.ai.chat.runtime.snapshot;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.lambda.fusion.ai.chat.runtime.ChatRunSnapshotAccumulator;
+import com.lambda.fusion.ai.chat.runtime.ChatExecutionSnapshotBuilder;
 import io.agentscope.core.agui.event.AguiEvent;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +12,7 @@ class ChatRunSnapshotAccumulatorTest {
 
     @Test
     void shouldProjectCompletedToolFromOfficialAguiEvents() {
-        ChatRunSnapshotAccumulator accumulator = accumulator();
+        ChatExecutionSnapshotBuilder accumulator = accumulator();
 
         accumulator.apply(List.of(
                 new AguiEvent.ToolCallStart("session-1", "phase-1", "tool-1", "search"),
@@ -28,7 +28,7 @@ class ChatRunSnapshotAccumulatorTest {
 
     @Test
     void shouldKeepToolOrderWhenExistingToolReceivesMoreArguments() {
-        ChatRunSnapshotAccumulator accumulator = accumulator();
+        ChatExecutionSnapshotBuilder accumulator = accumulator();
 
         accumulator.apply(List.of(
                 new AguiEvent.ToolCallStart("session-1", "phase-1", "tool-1", "first"),
@@ -42,7 +42,7 @@ class ChatRunSnapshotAccumulatorTest {
 
     @Test
     void shouldProjectPendingConfirmationFromInterruptOutcome() {
-        ChatRunSnapshotAccumulator accumulator = accumulator();
+        ChatExecutionSnapshotBuilder accumulator = accumulator();
         AguiEvent.Interrupt interrupt = new AguiEvent.Interrupt(
                 "tool-1",
                 "human_confirmation_required",
@@ -59,7 +59,7 @@ class ChatRunSnapshotAccumulatorTest {
                 .containsExactly(new ChatRunSnapshot.ToolCall("tool-1", "dangerous", "", "", "asking"));
     }
 
-    private static ChatRunSnapshotAccumulator accumulator() {
-        return new ChatRunSnapshotAccumulator(ChatRunSnapshot.empty("run-1", "phase-1", 1));
+    private static ChatExecutionSnapshotBuilder accumulator() {
+        return new ChatExecutionSnapshotBuilder(ChatRunSnapshot.empty("run-1", "phase-1", 1));
     }
 }

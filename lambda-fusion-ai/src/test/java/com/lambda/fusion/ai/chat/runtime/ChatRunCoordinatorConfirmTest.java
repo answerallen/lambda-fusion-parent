@@ -51,8 +51,8 @@ class ChatRunCoordinatorConfirmTest {
     private ChatRunStateService runService;
     private ChatRunEventStore eventStore;
     private AgentFactory agentFactory;
-    private ChatRunCoordinator coordinator;
-    private ChatRunInstanceFactory instanceFactory;
+    private ChatExecutionService coordinator;
+    private ChatExecutionInstanceFactory instanceFactory;
     private HarnessAgent agent;
     private ReActAgent delegate;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -68,14 +68,14 @@ class ChatRunCoordinatorConfirmTest {
         when(agentFactory.getOrBuild(anyString(), anyString())).thenReturn(agent);
 
         AiProperties properties = new AiProperties();
-        instanceFactory = new ChatRunInstanceFactory(
+        instanceFactory = new ChatExecutionInstanceFactory(
                 runService,
                 eventStore,
                 agentFactory,
                 mock(WorkspaceAuditRecorder.class),
                 mock(ObjectProvider.class),
                 properties);
-        coordinator = new ChatRunCoordinator(
+        coordinator = new ChatExecutionService(
                 runService,
                 eventStore,
                 mock(ChatMessageService.class),
@@ -277,7 +277,7 @@ class ChatRunCoordinatorConfirmTest {
                 });
     }
 
-    private ChatRunInstance execution(ChatRunEntity run, ChatSessionEntity session) {
+    private ChatExecutionInstance execution(ChatRunEntity run, ChatSessionEntity session) {
         return instanceFactory.createExecution(run, session, scheduler);
     }
 

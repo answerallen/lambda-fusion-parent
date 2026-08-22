@@ -28,7 +28,7 @@ import org.apache.commons.lang3.StringUtils;
  *
  * @author Jin
  */
-public final class AgentEventAguiMapper {
+public final class AgentEventMapper {
 
     private final String threadId;
     private final String runId;
@@ -40,7 +40,7 @@ public final class AgentEventAguiMapper {
     private boolean reasoningStarted;
     private String reasoningGroupId;
 
-    public AgentEventAguiMapper(String threadId, String runId, boolean enableReasoning) {
+    public AgentEventMapper(String threadId, String runId, boolean enableReasoning) {
         this.threadId = threadId;
         this.runId = runId;
         this.enableReasoning = enableReasoning;

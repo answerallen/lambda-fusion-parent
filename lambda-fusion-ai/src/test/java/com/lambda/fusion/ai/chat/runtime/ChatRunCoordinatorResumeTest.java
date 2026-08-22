@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 
 class ChatRunCoordinatorResumeTest {
 
-    private ChatRunCoordinator coordinator;
+    private ChatExecutionService coordinator;
 
     @AfterEach
     void tearDown() {
@@ -44,14 +44,14 @@ class ChatRunCoordinatorResumeTest {
         when(runService.loadCurrent("run-1")).thenReturn(run);
         when(eventStore.latestCursor("run-1")).thenReturn(0L);
         when(eventStore.contains("run-1")).thenReturn(false);
-        coordinator = new ChatRunCoordinator(
+        coordinator = new ChatExecutionService(
                 runService,
                 eventStore,
                 mock(ChatMessageService.class),
                 mock(ChatAttachmentService.class),
                 null,
                 mock(AppService.class),
-                mock(ChatRunInstanceFactory.class),
+                mock(ChatExecutionInstanceFactory.class),
                 new AiProperties());
 
         AguiBootstrapModel bootstrap = coordinator.bootstrap(run);

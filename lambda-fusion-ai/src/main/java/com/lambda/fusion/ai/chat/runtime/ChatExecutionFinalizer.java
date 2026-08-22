@@ -25,7 +25,7 @@ import org.apache.commons.lang3.StringUtils;
  *
  * @author Jin
  */
-public final class ChatRunFinalizer {
+public final class ChatExecutionFinalizer {
 
     private final ChatRunStateService runService;
     private final ChatRunEventStore eventStore;
@@ -38,7 +38,7 @@ public final class ChatRunFinalizer {
      * @param eventStore 运行事件存储
      * @param properties AI 模块配置
      */
-    public ChatRunFinalizer(ChatRunStateService runService, ChatRunEventStore eventStore, AiProperties properties) {
+    public ChatExecutionFinalizer(ChatRunStateService runService, ChatRunEventStore eventStore, AiProperties properties) {
         this.runService = runService;
         this.eventStore = eventStore;
         this.properties = properties;
@@ -66,7 +66,7 @@ public final class ChatRunFinalizer {
                 ? null
                 : JsonUtils.getJsonCodec()
                         .toJson(snapshot.tools().stream()
-                                .map(ChatRunFinalizer::toPersistedToolCall)
+                                .map(ChatExecutionFinalizer::toPersistedToolCall)
                                 .toList());
         ChatRunFinalizationResult result = runService.finalizeExecution(
                 run, new ChatRunFinalizationCommand(status, reason, snapshot, toolJson, errorCode, errorMessage));

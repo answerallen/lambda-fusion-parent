@@ -12,7 +12,7 @@ import java.util.Objects;
  *
  * @author Jin
  */
-public final class ChatRunSnapshotAccumulator {
+public final class ChatExecutionSnapshotBuilder {
 
     private final String runId;
     private String aguiRunId;
@@ -31,7 +31,7 @@ public final class ChatRunSnapshotAccumulator {
      *
      * @param snapshot 已持久化的执行快照
      */
-    public ChatRunSnapshotAccumulator(ChatRunSnapshot snapshot) {
+    public ChatExecutionSnapshotBuilder(ChatRunSnapshot snapshot) {
         runId = snapshot.runId();
         aguiRunId = snapshot.aguiRunId();
         phaseNo = snapshot.phaseNo();

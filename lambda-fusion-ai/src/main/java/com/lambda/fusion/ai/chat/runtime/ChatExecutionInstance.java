@@ -8,12 +8,13 @@ import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
-import com.lambda.fusion.ai.chat.runtime.agui.AgentEventAguiMapper;
+import com.lambda.fusion.ai.chat.runtime.agui.AgentEventMapper;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapEncoder;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotSanitizer;
+import com.lambda.fusion.ai.chat.runtime.validator.ConfirmationValidator;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
@@ -44,7 +45,7 @@ import reactor.core.Disposable;
  * @author Jin
  */
 @Slf4j
-public final class ChatRunInstance {
+public final class ChatExecutionInstance {
 
     /** 终态提交的最大重试次数；达到上限后释放实例，避免局部故障永久占用运行容量。 */
     private static final int MAX_FINALIZE_ATTEMPTS = 100;
@@ -55,13 +56,13 @@ public final class ChatRunInstance {
     private final ScheduledExecutorService scheduler;
     private final WorkspaceAuditRecorder workspaceAuditRecorder;
     private final CompletableFuture<Void> drainedSignal = new CompletableFuture<>();
-    private final ChatRunFinalizer chatRunFinalizer;
+    private final ChatExecutionFinalizer chatExecutionFinalizer;
     private final AgentStreamLifecycle agentStreamLifecycle;
 
     private final ChatRunEntity run;
     private final ChatSessionEntity session;
     private final AgentExecutionAdapter agentExecutionAdapter;
-    private final ChatRunSnapshotAccumulator accumulator;
+    private final ChatExecutionSnapshotBuilder accumulator;
     private boolean rootAgentEnded;
     private boolean terminal;
     private boolean sourceActive;
@@ -69,7 +70,7 @@ public final class ChatRunInstance {
     private volatile long phaseStartedAtMillis = System.currentTimeMillis();
     private boolean checkpointDirty;
     private ScheduledFuture<?> checkpointTask;
-    private AgentEventAguiMapper eventMapper;
+    private AgentEventMapper eventMapper;
     private List<AguiEvent> pendingConfirmEvents;
 
     /**
@@ -85,7 +86,7 @@ public final class ChatRunInstance {
      * @param agentExecutionAdapter Agent 执行适配器；仅执行终结流程时可为 {@code null}
      * @param accumulator 快照累加器
      */
-    ChatRunInstance(
+    ChatExecutionInstance(
             ChatRunStateService runService,
             ChatRunEventStore eventStore,
             AiProperties properties,
@@ -94,7 +95,7 @@ public final class ChatRunInstance {
             ChatRunEntity run,
             ChatSessionEntity session,
             AgentExecutionAdapter agentExecutionAdapter,
-            ChatRunSnapshotAccumulator accumulator) {
+            ChatExecutionSnapshotBuilder accumulator) {
         this.runService = runService;
         this.eventStore = eventStore;
         this.properties = properties;
@@ -104,9 +105,9 @@ public final class ChatRunInstance {
         this.session = session;
         this.agentExecutionAdapter = agentExecutionAdapter;
         this.accumulator = accumulator;
-        this.chatRunFinalizer = new ChatRunFinalizer(runService, eventStore, properties);
+        this.chatExecutionFinalizer = new ChatExecutionFinalizer(runService, eventStore, properties);
         this.agentStreamLifecycle = new AgentStreamLifecycle(run.getId(), scheduler, properties);
-        this.eventMapper = new AgentEventAguiMapper(run.getSessionId(), run.getAguiRunId(), true);
+        this.eventMapper = new AgentEventMapper(run.getSessionId(), run.getAguiRunId(), true);
     }
 
     /** 运行实体。 */
@@ -204,7 +205,7 @@ public final class ChatRunInstance {
         cancelCheckpointTask();
         accumulator.beginPhase(run.getAguiRunId(), run.getPhaseNo());
         checkpointDirty = false;
-        eventMapper = new AgentEventAguiMapper(run.getSessionId(), run.getAguiRunId(), true);
+        eventMapper = new AgentEventMapper(run.getSessionId(), run.getAguiRunId(), true);
     }
 
     /**
@@ -489,7 +490,7 @@ public final class ChatRunInstance {
             } catch (RuntimeException closeEventFailure) {
                 log.warn("Run终结前内容关闭事件写入失败，仍继续提交业务终态: runId={}", run.getId(), closeEventFailure);
             }
-            chatRunFinalizer.commitTerminal(run, accumulator.buildSnapshot(), status, reason, errorCode, errorMessage);
+            chatExecutionFinalizer.commitTerminal(run, accumulator.buildSnapshot(), status, reason, errorCode, errorMessage);
             // 业务终态后若无活动源流（如纯终结恢复、源流已先终止、启动同步失败），立即完成排空信号；
             // 否则等待 onSourceTerminated 在源流排空后完成它。
             if (noActive()) {

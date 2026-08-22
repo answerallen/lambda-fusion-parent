@@ -1,4 +1,4 @@
-package com.lambda.fusion.ai.chat.runtime;
+package com.lambda.fusion.ai.chat.runtime.validator;
 
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -26,9 +28,8 @@ import org.apache.commons.lang3.StringUtils;
  * @author Jin
  */
 @Slf4j
+@UtilityClass
 public final class ConfirmationValidator {
-
-    private ConfirmationValidator() {}
 
     /**
      * 校验快照、用户决策与 Agent 状态三方一致，并构造携带确认结果的下一阶段输入消息。

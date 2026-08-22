@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 
 class ChatRunCoordinatorStopTest {
 
-    private ChatRunCoordinator coordinator;
+    private ChatExecutionService coordinator;
 
     @AfterEach
     void tearDown() {
@@ -35,8 +35,8 @@ class ChatRunCoordinatorStopTest {
 
     @Test
     void shouldOnlyCloseBusinessRunWhenThereIsNoLocalExecution() {
-        ChatRunInstanceFactory instanceFactory = mock(ChatRunInstanceFactory.class);
-        ChatRunInstance finalizer = mock(ChatRunInstance.class);
+        ChatExecutionInstanceFactory instanceFactory = mock(ChatExecutionInstanceFactory.class);
+        ChatExecutionInstance finalizer = mock(ChatExecutionInstance.class);
         ChatRunEntity run = new ChatRunEntity();
         run.setId("run-1");
         run.setStatus(ChatRunStatus.RUNNING.name());
@@ -56,8 +56,8 @@ class ChatRunCoordinatorStopTest {
 
     @Test
     void shouldClosePersistedAskingStateWithoutInterruptingAgent() {
-        ChatRunInstanceFactory instanceFactory = mock(ChatRunInstanceFactory.class);
-        ChatRunInstance finalizer = mock(ChatRunInstance.class);
+        ChatExecutionInstanceFactory instanceFactory = mock(ChatExecutionInstanceFactory.class);
+        ChatExecutionInstance finalizer = mock(ChatExecutionInstance.class);
         ChatRunEntity run = new ChatRunEntity();
         run.setId("run-1");
         run.setStatus(ChatRunStatus.RUNNING.name());
@@ -87,8 +87,8 @@ class ChatRunCoordinatorStopTest {
         verify(instanceFactory, never()).createTerminalOnly(any(), any(), any(ScheduledExecutorService.class));
     }
 
-    private static ChatRunCoordinator coordinator(ChatRunInstanceFactory instanceFactory) {
-        return new ChatRunCoordinator(
+    private static ChatExecutionService coordinator(ChatExecutionInstanceFactory instanceFactory) {
+        return new ChatExecutionService(
                 mock(ChatRunStateService.class),
                 mock(ChatRunEventStore.class),
                 mock(ChatMessageService.class),

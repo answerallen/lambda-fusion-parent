@@ -47,7 +47,7 @@ import reactor.core.publisher.Sinks;
 /** Run 启动调度测试。 */
 class ChatRunCoordinatorStartTest {
 
-    private ChatRunCoordinator coordinator;
+    private ChatExecutionService coordinator;
 
     @AfterEach
     void tearDown() {
@@ -69,14 +69,14 @@ class ChatRunCoordinatorStartTest {
         HarnessAgent agent = mock(HarnessAgent.class);
 
         AiProperties properties = new AiProperties();
-        ChatRunInstanceFactory instanceFactory = new ChatRunInstanceFactory(
+        ChatExecutionInstanceFactory instanceFactory = new ChatExecutionInstanceFactory(
                 runService,
                 eventStore,
                 agentFactory,
                 mock(WorkspaceAuditRecorder.class),
                 mock(ObjectProvider.class),
                 properties);
-        coordinator = new ChatRunCoordinator(
+        coordinator = new ChatExecutionService(
                 runService,
                 eventStore,
                 messageService,

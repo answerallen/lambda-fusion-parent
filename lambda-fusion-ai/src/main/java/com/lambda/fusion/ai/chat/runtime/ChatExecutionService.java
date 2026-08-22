@@ -38,7 +38,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 对话运行协调门面：负责业务 Run 的启动、确认与停止编排。活动实例注册表与容量约束由
- * {@link ChatRunInstanceRegistry} 承载；
+ * {@link ChatExecutionInstanceRegistry} 承载；
  * Agent 事件流由执行实例持有，不依赖 SSE 连接生命周期。新运行注册后立即异步订阅 {@code streamEvents}；
  * 同一 {@code (userId, sessionId)} 的核心状态调用由 AgentScope 自身串行保护，上一轮记忆整理等后处理
  * 不阻塞下一轮交互。
@@ -47,7 +47,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-public class ChatRunCoordinator {
+public class ChatExecutionService {
 
     private final ChatRunStateService runService;
     private final ChatRunEventStore eventStore;
@@ -55,9 +55,9 @@ public class ChatRunCoordinator {
     private final ChatAttachmentService attachmentService;
     private final ChatAttachmentMessageBuilder attachmentMessageBuilder;
     private final AppService appService;
-    private final ChatRunInstanceFactory instanceFactory;
+    private final ChatExecutionInstanceFactory instanceFactory;
     private final AiProperties properties;
-    private final ChatRunInstanceRegistry registry;
+    private final ChatExecutionInstanceRegistry registry;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, runnable -> {
         Thread thread = new Thread(runnable, "chat-run-scheduler");
         thread.setDaemon(true);
@@ -76,14 +76,14 @@ public class ChatRunCoordinator {
      * @param instanceFactory 执行实例工厂
      * @param properties AI 模块配置
      */
-    public ChatRunCoordinator(
+    public ChatExecutionService(
             ChatRunStateService runService,
             ChatRunEventStore eventStore,
             ChatMessageService messageService,
             ChatAttachmentService attachmentService,
             ChatAttachmentMessageBuilder attachmentMessageBuilder,
             AppService appService,
-            ChatRunInstanceFactory instanceFactory,
+            ChatExecutionInstanceFactory instanceFactory,
             AiProperties properties) {
         this.runService = runService;
         this.eventStore = eventStore;
@@ -93,7 +93,7 @@ public class ChatRunCoordinator {
         this.appService = appService;
         this.instanceFactory = instanceFactory;
         this.properties = properties;
-        this.registry = new ChatRunInstanceRegistry(instanceFactory, properties);
+        this.registry = new ChatExecutionInstanceRegistry(instanceFactory, properties);
     }
 
     /** 启动本次请求刚创建的运行。幂等旧请求由调用方通过 {@code RunContext.created} 过滤。 */
@@ -108,7 +108,7 @@ public class ChatRunCoordinator {
         if (!ChatRunStatus.RUNNING.name().equals(run.getStatus())) {
             return;
         }
-        Optional<ChatRunInstanceRegistry.StartRegistration> selected;
+        Optional<ChatExecutionInstance> selected;
         try {
             selected = registry.registerForStartIfCapacity(run, session, scheduler);
         } catch (RuntimeException createFailure) {
@@ -120,17 +120,14 @@ public class ChatRunCoordinator {
             failStart(run, session, new IllegalStateException("当前节点对话运行容量已满"));
             return;
         }
-        ChatRunInstanceRegistry.StartRegistration registration = selected.get();
-        if (registration.registered()) {
-            // 注册成功后排空信号由注册表监听，最终源流结束时按实例身份安全摘除。
-            // 只把实际订阅移出请求线程；不等待上一轮的记忆整理、Workspace 审计等后处理。
-            ChatRunInstance execution = registration.execution();
-            try {
-                scheduler.execute(() -> execution.runInTenant(() -> startExecution(execution)));
-            } catch (RuntimeException scheduleFailure) {
-                execution.finalizeFailed(
-                        ChatRunFailureCode.START_FAILED, ChatRunSnapshotSanitizer.safeMessage(scheduleFailure));
-            }
+        // 注册成功后排空信号由注册表监听，最终源流结束时按实例身份安全摘除。
+        // 只把实际订阅移出请求线程；不等待上一轮的记忆整理、Workspace 审计等后处理。
+        ChatExecutionInstance execution = selected.get();
+        try {
+            scheduler.execute(() -> execution.runInTenant(() -> startExecution(execution)));
+        } catch (RuntimeException scheduleFailure) {
+            execution.finalizeFailed(
+                    ChatRunFailureCode.START_FAILED, ChatRunSnapshotSanitizer.safeMessage(scheduleFailure));
         }
     }
 
@@ -145,7 +142,7 @@ public class ChatRunCoordinator {
      */
     public ConfirmTransition confirm(ChatRunEntity run, ChatSessionEntity session, ConfirmToolCall command) {
         return TenantUtils.withTenant(session.getTenantId(), () -> {
-            ChatRunInstance execution = registry.get(run.getId());
+            ChatExecutionInstance execution = registry.get(run.getId());
             if (execution == null) {
                 Integer sourcePhaseNo = command == null ? null : command.getPhaseNo();
                 if (sourcePhaseNo == null) {
@@ -189,7 +186,7 @@ public class ChatRunCoordinator {
      * @return 引导事件批次
      */
     public AguiBootstrapModel bootstrap(ChatRunEntity run) {
-        ChatRunInstance execution = registry.get(run.getId());
+        ChatExecutionInstance execution = registry.get(run.getId());
         if (execution != null) {
             return execution.bootstrap();
         }
@@ -219,10 +216,10 @@ public class ChatRunCoordinator {
         if (ChatRunStatus.isTerminal(current.getStatus())) {
             return;
         }
-        ChatRunInstance execution = registry.get(current.getId());
+        ChatExecutionInstance execution = registry.get(current.getId());
         if (execution == null) {
             var snapshot = ChatRunSnapshotCodec.decode(current.getSnapshotJson());
-            ChatRunInstance terminalOnly = createStoppedExecution(
+            ChatExecutionInstance terminalOnly = createStoppedExecution(
                     current, session, snapshot.pendingTools().isEmpty());
             terminalOnly.requestStop();
             return;
@@ -252,7 +249,7 @@ public class ChatRunCoordinator {
         scheduler.shutdown();
     }
 
-    private void startExecution(ChatRunInstance execution) {
+    private void startExecution(ChatExecutionInstance execution) {
         ChatRunEntity run = execution.run();
         try {
             ChatMessageEntity userMessage = messageService
@@ -270,11 +267,11 @@ public class ChatRunCoordinator {
     }
 
     private void failStart(ChatRunEntity run, ChatSessionEntity session, RuntimeException failure) {
-        ChatRunInstance rejected = instanceFactory.createTerminalOnly(run, session, scheduler);
+        ChatExecutionInstance rejected = instanceFactory.createTerminalOnly(run, session, scheduler);
         rejected.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSnapshotSanitizer.safeMessage(failure));
     }
 
-    private ChatRunInstance createStoppedExecution(
+    private ChatExecutionInstance createStoppedExecution(
             ChatRunEntity run, ChatSessionEntity session, boolean noPendingConfirmation) {
         if (noPendingConfirmation) {
             return instanceFactory.createTerminalOnly(run, session, scheduler);

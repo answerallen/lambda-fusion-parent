@@ -62,7 +62,7 @@ class ChatRunInstanceDrainTest {
     private final AgentExecutionAdapter adapter = mock(AgentExecutionAdapter.class);
     private final WorkspaceAuditRecorder workspaceAuditRecorder = mock(WorkspaceAuditRecorder.class);
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private ChatRunInstance instance;
+    private ChatExecutionInstance instance;
 
     @AfterEach
     void tearDown() {
@@ -252,12 +252,12 @@ class ChatRunInstanceDrainTest {
         lenient().when(eventStore.latestCursor(anyString())).thenReturn(1L);
     }
 
-    private ChatRunInstance newInstance(ChatRunEntity run) {
+    private ChatExecutionInstance newInstance(ChatRunEntity run) {
         return newInstance(run, new AiProperties());
     }
 
-    private ChatRunInstance newInstance(ChatRunEntity run, AiProperties properties) {
-        return new ChatRunInstance(
+    private ChatExecutionInstance newInstance(ChatRunEntity run, AiProperties properties) {
+        return new ChatExecutionInstance(
                 runService,
                 eventStore,
                 properties,
@@ -266,7 +266,7 @@ class ChatRunInstanceDrainTest {
                 run,
                 session(),
                 adapter,
-                new ChatRunSnapshotAccumulator(ChatRunSnapshotCodec.decode(run.getSnapshotJson())));
+                new ChatExecutionSnapshotBuilder(ChatRunSnapshotCodec.decode(run.getSnapshotJson())));
     }
 
     private static AgentEvent agentEnd() {

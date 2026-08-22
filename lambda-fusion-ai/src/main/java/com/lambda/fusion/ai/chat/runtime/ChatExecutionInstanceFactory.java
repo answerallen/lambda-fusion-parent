@@ -17,7 +17,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 /**
- * 执行实例工厂：统一构造 {@link ChatRunInstance}。带 Agent 的实例只用于新 Run 或持久化 HITL 的显式继续，
+ * 执行实例工厂：统一构造 {@link ChatExecutionInstance}。带 Agent 的实例只用于新 Run 或持久化 HITL 的显式继续，
  * 无 Agent 的纯落库实例仅用于终结；构造依赖集中在工厂，调度器由协调器按次传入，
  * 活动实例注册表由协调器的注册表组件独占，工厂不持有、查询或修改。
  *
@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
-public class ChatRunInstanceFactory {
+public class ChatExecutionInstanceFactory {
 
     private final ChatRunStateService runService;
     private final ChatRunEventStore eventStore;
@@ -35,7 +35,7 @@ public class ChatRunInstanceFactory {
     private final AiProperties properties;
 
     /** 为当前节点刚创建的 Run 构造带 Agent 的完整执行实例。 */
-    public ChatRunInstance createExecution(
+    public ChatExecutionInstance createExecution(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         return createAgentBacked(run, session, scheduler);
     }
@@ -44,12 +44,12 @@ public class ChatRunInstanceFactory {
      * 为已持久化在 HITL 边界的 Run 重建本地确认实例。此方法只在用户显式确认或放弃时调用，
      * 不启动旧阶段、不接管正在执行的工具。
      */
-    public ChatRunInstance createPausedConfirmation(
+    public ChatExecutionInstance createPausedConfirmation(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         return createAgentBacked(run, session, scheduler);
     }
 
-    private ChatRunInstance createAgentBacked(
+    private ChatExecutionInstance createAgentBacked(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         eventStore.registerLocalRun(run.getId());
         return newInstance(run, session, scheduler, createAgentExecution(run, session));
@@ -66,17 +66,18 @@ public class ChatRunInstanceFactory {
     }
 
     /** 构造无 Agent 的纯终结实例（仅用于落终态，不闭合或恢复 Agent 状态）。 */
-    public ChatRunInstance createTerminalOnly(
+    public ChatExecutionInstance createTerminalOnly(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         return newInstance(run, session, scheduler, null);
     }
 
-    private ChatRunInstance newInstance(
+    private ChatExecutionInstance newInstance(
             ChatRunEntity run,
             ChatSessionEntity session,
             ScheduledExecutorService scheduler,
             AgentExecutionAdapter agentExecution) {
-        return new ChatRunInstance(
+        ChatExecutionSnapshotBuilder chatExecutionSnapshotBuilder = new ChatExecutionSnapshotBuilder(ChatRunSnapshotCodec.decode(run.getSnapshotJson()));
+        return new ChatExecutionInstance(
                 runService,
                 eventStore,
                 properties,
@@ -85,7 +86,7 @@ public class ChatRunInstanceFactory {
                 run,
                 session,
                 agentExecution,
-                new ChatRunSnapshotAccumulator(ChatRunSnapshotCodec.decode(run.getSnapshotJson())));
+                chatExecutionSnapshotBuilder);
     }
 
     /**

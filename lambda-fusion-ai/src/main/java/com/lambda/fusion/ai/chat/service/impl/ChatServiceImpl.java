@@ -9,7 +9,7 @@ import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.RunContext;
 import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
-import com.lambda.fusion.ai.chat.runtime.ChatRunCoordinator;
+import com.lambda.fusion.ai.chat.runtime.ChatExecutionService;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
@@ -29,7 +29,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class ChatServiceImpl implements ChatService {
 
     private final ChatRunService chatRunService;
-    private final ChatRunCoordinator chatRunCoordinator;
+    private final ChatExecutionService chatExecutionService;
     private final AiProperties properties;
 
     @Override
@@ -37,7 +37,7 @@ public class ChatServiceImpl implements ChatService {
         Assert.isTrue(message.isContentOrAttachmentPresent(), "消息内容与附件不能同时为空");
         RunContext context = chatRunService.createOrLoad(sessionId, message);
         if (context.created()) {
-            chatRunCoordinator.start(context.run(), context.session());
+            chatExecutionService.start(context.run(), context.session());
         }
         return openRunEventStream(context.run());
     }
@@ -60,14 +60,14 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command) {
         RunContext context = chatRunService.loadOwned(sessionId, runId);
-        ConfirmTransition transition = chatRunCoordinator.confirm(context.run(), context.session(), command);
+        ConfirmTransition transition = chatExecutionService.confirm(context.run(), context.session(), command);
         return openRunEventStream(transition.run());
     }
 
     @Override
     public void stop(String sessionId, String runId) {
         RunContext context = chatRunService.loadOwned(sessionId, runId);
-        chatRunCoordinator.stop(context.run(), context.session());
+        chatExecutionService.stop(context.run(), context.session());
     }
 
     private SseEmitter openRunEventStream(ChatRunEntity chatRunEntity) {
@@ -89,7 +89,7 @@ public class ChatServiceImpl implements ChatService {
         emitter.onError(error -> runnable.run());
 
         try {
-            AguiBootstrapModel aguiBootstrapModel = chatRunCoordinator.bootstrap(chatRunEntity);
+            AguiBootstrapModel aguiBootstrapModel = chatExecutionService.bootstrap(chatRunEntity);
             for (String event : aguiBootstrapModel.events()) {
                 emitter.send(SseEmitter.event().data(event));
             }
@@ -97,7 +97,7 @@ public class ChatServiceImpl implements ChatService {
                 emitter.complete();
                 return emitter;
             }
-            ChatRunEventSubscription attached = chatRunCoordinator.subscribe(
+            ChatRunEventSubscription attached = chatExecutionService.subscribe(
                     chatRunEntity.getId(),
                     aguiBootstrapModel.cursor(),
                     event -> send(emitter, event),

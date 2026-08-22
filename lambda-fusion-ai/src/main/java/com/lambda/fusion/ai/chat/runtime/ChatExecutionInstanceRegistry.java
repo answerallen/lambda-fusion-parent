@@ -19,80 +19,78 @@ import java.util.function.Consumer;
  *
  * @author Jin
  */
-public final class ChatRunInstanceRegistry {
+public final class ChatExecutionInstanceRegistry {
 
-    private final ChatRunInstanceFactory instanceFactory;
+    private final ChatExecutionInstanceFactory instanceFactory;
     private final AiProperties properties;
-    private final Map<String, ChatRunInstance> executions = new HashMap<>();
+    private final Map<String, ChatExecutionInstance> executions = new HashMap<>();
 
-    public ChatRunInstanceRegistry(ChatRunInstanceFactory instanceFactory, AiProperties properties) {
+    public ChatExecutionInstanceRegistry(ChatExecutionInstanceFactory instanceFactory, AiProperties properties) {
         this.instanceFactory = instanceFactory;
         this.properties = properties;
     }
 
-    /** 启动选择结果：{@code registered=true} 表示本次新建并注册，调用方应启动该实例。 */
-    public record StartRegistration(ChatRunInstance execution, boolean registered) {}
-
-    /** 为新 Run 原子检查容量、构造并注册；容量不足返回空，已有实例返回 {@code registered=false}。 */
-    public synchronized Optional<StartRegistration> registerForStartIfCapacity(
+    /**
+     * 为新 Run 原子检查容量、构造并注册；容量不足返回空。幂等旧请求由调用方过滤，
+     * 同标识活动实例已存在即违反调用契约，直接抛出以暴露重复启动缺陷。
+     */
+    public synchronized Optional<ChatExecutionInstance> registerForStartIfCapacity(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
-        ChatRunInstance existing = executions.get(run.getId());
-        if (existing != null) {
-            return Optional.of(new StartRegistration(existing, false));
+        if (executions.containsKey(run.getId())) {
+            throw new IllegalStateException("Run已存在活动实例: " + run.getId());
         }
-        if (!hasCapacityForLocked(run, session)) {
+        if (!hasCapacityForLocked(session)) {
             return Optional.empty();
         }
-        ChatRunInstance candidate = instanceFactory.createExecution(run, session, scheduler);
+        ChatExecutionInstance candidate = instanceFactory.createExecution(run, session, scheduler);
         registerNew(run.getId(), candidate);
-        return Optional.of(new StartRegistration(candidate, true));
+        return Optional.of(candidate);
     }
 
     /**
      * 查询当前节点实例；进程重启后可为已暂停的 HITL 阶段重建并注册一个实例。
      * 调用方必须先确认持久化快照确有待确认工具。
      */
-    public synchronized ChatRunInstance registerPausedConfirmation(
+    public synchronized ChatExecutionInstance registerPausedConfirmation(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
-        ChatRunInstance existing = executions.get(run.getId());
+        ChatExecutionInstance existing = executions.get(run.getId());
         if (existing != null) {
             return existing;
         }
-        enforceCapacityLocked(run, session);
-        ChatRunInstance candidate = instanceFactory.createPausedConfirmation(run, session, scheduler);
+        enforceCapacityLocked(session);
+        ChatExecutionInstance candidate = instanceFactory.createPausedConfirmation(run, session, scheduler);
         registerNew(run.getId(), candidate);
         return candidate;
     }
 
     /** 查询本进程当前持有的活动实例。 */
-    public synchronized ChatRunInstance get(String runId) {
+    public synchronized ChatExecutionInstance get(String runId) {
         return executions.get(runId);
     }
 
     /** 对调用时刻的活动实例快照执行本地动作（当前仅用于进程关闭）。 */
-    public void forEachActive(Consumer<ChatRunInstance> action) {
-        List<ChatRunInstance> active;
+    public void forEachActive(Consumer<ChatExecutionInstance> action) {
+        List<ChatExecutionInstance> active;
         synchronized (this) {
             active = List.copyOf(executions.values());
         }
         active.forEach(action);
     }
 
-    private boolean hasCapacityForLocked(ChatRunEntity run, ChatSessionEntity session) {
+    private boolean hasCapacityForLocked(ChatSessionEntity session) {
         int maxGlobal = properties.getChat().getRun().getMaxActiveRuns();
-        if (!executions.containsKey(run.getId()) && executions.size() >= maxGlobal) {
+        if (executions.size() >= maxGlobal) {
             return false;
         }
         long userRuns = executions.values().stream()
                 .filter(execution -> Objects.equals(execution.session().getTenantId(), session.getTenantId()))
                 .filter(execution -> Objects.equals(execution.session().getUserId(), session.getUserId()))
-                .filter(execution -> !Objects.equals(execution.run().getId(), run.getId()))
                 .count();
         return userRuns < properties.getChat().getRun().getMaxActiveRunsPerUser();
     }
 
-    private void enforceCapacityLocked(ChatRunEntity run, ChatSessionEntity session) {
-        if (hasCapacityForLocked(run, session)) {
+    private void enforceCapacityLocked(ChatSessionEntity session) {
+        if (hasCapacityForLocked(session)) {
             return;
         }
         int maxGlobal = properties.getChat().getRun().getMaxActiveRuns();
@@ -102,12 +100,12 @@ public final class ChatRunInstanceRegistry {
     }
 
     /** 调用方已持有注册表锁时注册新实例。 */
-    private void registerNew(String runId, ChatRunInstance candidate) {
+    private void registerNew(String runId, ChatExecutionInstance candidate) {
         executions.put(runId, candidate);
         candidate.drainedSignal().whenComplete((ignored, error) -> remove(runId, candidate));
     }
 
-    private synchronized void remove(String runId, ChatRunInstance candidate) {
+    private synchronized void remove(String runId, ChatExecutionInstance candidate) {
         executions.remove(runId, candidate);
     }
 }
