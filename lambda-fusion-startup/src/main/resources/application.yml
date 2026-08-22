@@ -104,6 +104,9 @@ lambda:
         encryption-key: ${AI_ENCRYPTION_KEY:dev-only-please-change-in-production-32chars}
       #### 对话附件：图片预览直链签名密钥（生产请配 AI_ATTACHMENT_PREVIEW_SECRET） ####
       chat:
+        #### 对话后台 Run 事件后端：MEMORY(默认,单机)/REDIS(集群,需 Redis 且任意节点可订阅) ####
+        run:
+          event-backend: ${AI_CHAT_RUN_EVENT_BACKEND:MEMORY}
         attachment:
           preview:
             secret: ${AI_ATTACHMENT_PREVIEW_SECRET:dev-only-please-change-attachment-preview-secret}
