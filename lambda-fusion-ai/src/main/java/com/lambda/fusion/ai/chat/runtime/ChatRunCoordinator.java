@@ -180,7 +180,8 @@ public class ChatRunCoordinator {
     }
 
     /**
-     * 订阅指定序号之后的运行事件。
+     * 订阅指定序号之后的运行事件。Redis 后端下任意节点可订阅，并附 DB 复核：空转时复核该 Run 的
+     * {@code (status, phaseNo, leaseEpoch)}，变化即发送 RESYNC_REQUIRED 控制事件并断开。
      *
      * @param runId 运行标识
      * @param afterSeq 已消费的事件序号
@@ -190,7 +191,33 @@ public class ChatRunCoordinator {
      */
     public ChatRunEventSubscription subscribe(
             String runId, long afterSeq, Consumer<ChatRunEvent> consumer, Consumer<Throwable> failureConsumer) {
-        return eventStore.subscribe(runId, afterSeq, consumer, failureConsumer);
+        return eventStore.subscribe(runId, afterSeq, consumer, failureConsumer, () -> subscribeRecheck(runId));
+    }
+
+    /**
+     * 订阅侧的 DB 复核：运行不存在、进入终态、进入待确认（owner 已释放）或 owner/epoch 已易主时返回
+     * {@code false}，触发 RESYNC_REQUIRED 让前端重新 bootstrap；仍在原 owner 下 RUNNING 时返回 {@code true}。
+     */
+    private boolean subscribeRecheck(String runId) {
+        ChatRunEntity current = runService.loadCurrent(runId);
+        if (current == null) {
+            return false;
+        }
+        String status = current.getStatus();
+        if (ChatRunStatus.isTerminal(status)
+                || ChatRunStatus.AWAITING_CONFIRM.name().equals(status)) {
+            return false;
+        }
+        if (!ChatRunStatus.RUNNING.name().equals(status)
+                && !ChatRunStatus.STOPPING.name().equals(status)) {
+            return false;
+        }
+        String owner = current.getOwnerInstanceId();
+        if (owner == null) {
+            return true;
+        }
+        ChatRunInstance local = registry.get(runId);
+        return local != null && runOwner.instanceId().equals(owner);
     }
 
     /**

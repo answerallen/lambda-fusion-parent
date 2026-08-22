@@ -1,6 +1,9 @@
-package com.lambda.fusion.ai.chat.runtime.event;
+package com.lambda.fusion.ai.chat.runtime.event.memory;
 
 import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
+import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
+import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
+import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscriptionOwner;
 import io.agentscope.core.agui.event.AguiEvent;
 import java.io.Serial;
 import java.nio.charset.StandardCharsets;
@@ -18,7 +21,7 @@ import java.util.function.Consumer;
  *
  * @author Jin
  */
-final class ChatRunEventBuffer {
+public final class ChatRunEventBuffer implements ChatRunEventSubscriptionOwner {
 
     private final String runId;
     private final int maxEvents;
@@ -206,6 +209,16 @@ final class ChatRunEventBuffer {
     }
 
     /**
+     * 读取序号大于 {@code afterSeq} 的已保留事件（历史回放与订阅取数）。
+     *
+     * @param afterSeq 已消费的事件序号
+     * @return 序号大于 {@code afterSeq} 的事件列表
+     */
+    public synchronized List<ChatRunEvent> readAfter(long afterSeq) {
+        return events.stream().filter(event -> event.seq() > afterSeq).toList();
+    }
+
+    /**
      * 获取最新事件序号。
      *
      * @return 最新事件序号
@@ -261,7 +274,7 @@ final class ChatRunEventBuffer {
     }
 
     /** 清空事件并关闭全部订阅。 */
-    synchronized void clear() {
+    public synchronized void clear() {
         List<QueuedEventSubscription> current = List.copyOf(subscribers.values());
         subscribers.clear();
         events.clear();
@@ -278,7 +291,8 @@ final class ChatRunEventBuffer {
      * @param subscriptionId 订阅标识
      * @param identity 订阅实例
      */
-    synchronized void detach(String subscriptionId, QueuedEventSubscription identity) {
+    @Override
+    public synchronized void detach(String subscriptionId, QueuedEventSubscription identity) {
         subscribers.remove(subscriptionId, identity);
     }
 

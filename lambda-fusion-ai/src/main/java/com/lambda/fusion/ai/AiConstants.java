@@ -505,6 +505,34 @@ public interface AiConstants {
         SCHEDULE_TIMEOUT
     }
 
+    /**
+     * 对话后台 Run 的事件后端类型（§8.2 唯一模式开关）。MEMORY 事件仅存当前 JVM，供单机部署；
+     * REDIS 使用 Redis Streams 共享事件，供多实例集群任意节点订阅。后端仅在启动时选定，运行期不回退。
+     */
+    @Getter
+    @AllArgsConstructor
+    enum ChatRunEventBackend {
+        MEMORY("MEMORY", "进程内存（单机）"),
+
+        REDIS("REDIS", "Redis Streams（集群）");
+
+        private final String code;
+
+        private final String label;
+
+        public static ChatRunEventBackend of(String code) {
+            if (code == null) {
+                return null;
+            }
+            for (ChatRunEventBackend backend : values()) {
+                if (backend.code.equalsIgnoreCase(code)) {
+                    return backend;
+                }
+            }
+            return null;
+        }
+    }
+
     /** 工具调用状态，持久化字面量为小写 code。 */
     @Getter
     @AllArgsConstructor

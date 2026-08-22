@@ -134,6 +134,11 @@ public class ChatServiceImpl implements ChatService {
     private static void send(SseEmitter emitter, ChatRunEvent event) {
         try {
             emitter.send(SseEmitter.event().id(event.id()).data(event.data()));
+            // RESYNC_REQUIRED 控制事件送达后即关闭 SSE：前端据其重新 bootstrap，不走终态分支。
+            if (com.lambda.fusion.ai.chat.runtime.event.ChatRunControlEvent.TYPE_RESYNC_REQUIRED.equals(event.type())) {
+                emitter.complete();
+                return;
+            }
             if ("RUN_FINISHED".equals(event.type()) || "RUN_ERROR".equals(event.type())) {
                 emitter.complete();
             }

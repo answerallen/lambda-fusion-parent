@@ -178,6 +178,10 @@ public class AiProperties {
             @Min(1)
             private long scheduleTimeoutSeconds = 300;
 
+            /** 事件后端类型：MEMORY（默认，单机）/ REDIS（集群，需容器内 RedissonClient，启动校验 fail-fast）。 */
+            @NotNull
+            private String eventBackend = "MEMORY";
+
             /** 租约参数须满足 lease-ttl 不小于 3 倍续约周期，否则 fencing 无法可靠工作。 */
             @AssertTrue(message = "lease-ttl-seconds 必须不小于 3 倍 lease-renew-interval-seconds")
             public boolean isLeaseTtlSufficient() {
