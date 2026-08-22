@@ -12,6 +12,7 @@ import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.ChatExecutionService;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
+import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
 import com.lambda.fusion.ai.chat.service.ChatService;
@@ -30,6 +31,7 @@ public class ChatServiceImpl implements ChatService {
 
     private final ChatRunService chatRunService;
     private final ChatExecutionService chatExecutionService;
+    private final ChatRunEventStore eventStore;
     private final AiProperties properties;
 
     @Override
@@ -97,7 +99,7 @@ public class ChatServiceImpl implements ChatService {
                 emitter.complete();
                 return emitter;
             }
-            ChatRunEventSubscription attached = chatExecutionService.subscribe(
+            ChatRunEventSubscription attached = eventStore.subscribe(
                     chatRunEntity.getId(),
                     aguiBootstrapModel.cursor(),
                     event -> send(emitter, event),

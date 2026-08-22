@@ -156,13 +156,12 @@ public final class ChatExecutionSnapshotBuilder {
         if (!(outcome instanceof AguiEvent.RunFinishedInterruptOutcome(List<AguiEvent.Interrupt> interrupts))) {
             return;
         }
-        List<ChatRunSnapshot.ToolCall> awaitingTools =
-                interrupts.stream().map(this::toPendingTool).toList();
-        awaiting(awaitingTools);
+        pendingTools = interrupts.stream().map(this::upsertAskingTool).toList();
         closeOpenMessages();
     }
 
-    private ChatRunSnapshot.ToolCall toPendingTool(AguiEvent.Interrupt interrupt) {
+    /** 以 ASKING 状态补写工具调用并返回其快照投影。 */
+    private ChatRunSnapshot.ToolCall upsertAskingTool(AguiEvent.Interrupt interrupt) {
         String toolCallId = interrupt.toolCallId() == null ? interrupt.id() : interrupt.toolCallId();
         ChatRunSnapshot.ToolCall current = findTool(toolCallId);
         Object metadataName =
@@ -170,19 +169,7 @@ public final class ChatExecutionSnapshotBuilder {
         String toolName =
                 metadataName == null ? (current == null ? "" : current.toolCallName()) : String.valueOf(metadataName);
         upsertTool(toolCallId, toolName, null, null, ChatRunToolStatus.ASKING.getCode());
-        ChatRunSnapshot.ToolCall updated = findTool(toolCallId);
-        return updated == null
-                ? new ChatRunSnapshot.ToolCall(toolCallId, toolName, "", "", ChatRunToolStatus.ASKING.getCode())
-                : updated;
-    }
-
-    /**
-     * 设置待确认工具调用。
-     *
-     * @param awaitingTools 待确认工具调用
-     */
-    private void awaiting(List<ChatRunSnapshot.ToolCall> awaitingTools) {
-        pendingTools = List.copyOf(awaitingTools);
+        return findTool(toolCallId);
     }
 
     /**
@@ -203,6 +190,11 @@ public final class ChatExecutionSnapshotBuilder {
                 reasoningOpen,
                 tools,
                 pendingTools);
+    }
+
+    /** 判断当前是否处于待确认状态（存在待确认工具投影）。 */
+    public boolean hasPendingConfirmation() {
+        return !pendingTools.isEmpty();
     }
 
     private ChatRunSnapshot.ToolCall findTool(String toolCallId) {

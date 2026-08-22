@@ -152,14 +152,14 @@ public final class ChatExecutionInstance {
         }
         if (!Objects.equals(run.getPhaseNo(), sourcePhaseNo)
                 || !ChatRunStatus.RUNNING.name().equals(run.getStatus())
-                || accumulator.buildSnapshot().pendingTools().isEmpty()
+                || !accumulator.hasPendingConfirmation()
                 || sourceActive) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
         }
 
-        Msg confirmMessage = validateAndBuildMessage(command);
-        ConfirmTransition transition =
-                runService.advanceConfirmation(run, session, sourcePhaseNo, accumulator.buildSnapshot());
+        ChatRunSnapshot snapshot = accumulator.buildSnapshot();
+        Msg confirmMessage = validateAndBuildMessage(command, snapshot.pendingTools());
+        ConfirmTransition transition = runService.advanceConfirmation(run, session, sourcePhaseNo, snapshot);
         syncRun(transition.run());
         if (!transition.resumed()) {
             return transition;
@@ -178,18 +178,16 @@ public final class ChatExecutionInstance {
      * 要求快照、决策、Agent 三方 ID 一致。
      *
      * @param command 用户确认命令
+     * @param pendingTools 当前快照的待确认工具投影
      * @return 携带确认结果的下一阶段输入消息
      * @throws AiBusinessException 确认上下文不可用、决策非法或三方不一致
      */
-    private Msg validateAndBuildMessage(ConfirmToolCall command) {
+    private Msg validateAndBuildMessage(ConfirmToolCall command, List<ChatRunSnapshot.ToolCall> pendingTools) {
         if (agentExecutionAdapter == null) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
         }
         return ConfirmationValidator.validateAndBuildMessage(
-                run,
-                accumulator.buildSnapshot().pendingTools(),
-                command.getDecisions(),
-                agentExecutionAdapter::readAskingToolBlocks);
+                run, pendingTools, command.getDecisions(), agentExecutionAdapter::readAskingToolBlocks);
     }
 
     /** 将数据库迁移后的运行状态同步到实例内存对象。 */
@@ -282,7 +280,7 @@ public final class ChatExecutionInstance {
             // 根 AGENT_END 是业务回答边界；普通阶段允许记忆尾部继续，HITL 阶段由适配器在此结束源流。
             rootAgentEnded = true;
             agentStreamLifecycle.cancelInteractionTimeout();
-            if (pendingConfirmEvents != null || hasPendingConfirmation()) {
+            if (pendingConfirmEvents != null || accumulator.hasPendingConfirmation()) {
                 return;
             }
             finalizeCompleted();
@@ -404,7 +402,7 @@ public final class ChatExecutionInstance {
     }
 
     private void maybeCheckpoint() {
-        if (!checkpointDirty || terminal || hasPendingConfirmation()) {
+        if (!checkpointDirty || terminal || accumulator.hasPendingConfirmation()) {
             return;
         }
         scheduleCheckpoint();
@@ -423,7 +421,7 @@ public final class ChatExecutionInstance {
 
     private synchronized void checkpointIfDirty() {
         checkpointTask = null;
-        if (!checkpointDirty || terminal || hasPendingConfirmation()) {
+        if (!checkpointDirty || terminal || accumulator.hasPendingConfirmation()) {
             return;
         }
         try {
@@ -432,10 +430,6 @@ public final class ChatExecutionInstance {
             log.warn("Run延迟检查点写入失败，将由实例重试: runId={}", run.getId(), checkpointFailure);
             scheduleCheckpoint();
         }
-    }
-
-    private boolean hasPendingConfirmation() {
-        return !accumulator.buildSnapshot().pendingTools().isEmpty();
     }
 
     /** 将运行终结为完成状态。 */
@@ -532,7 +526,7 @@ public final class ChatExecutionInstance {
         return new AguiBootstrapModel(
                 cursor,
                 AguiBootstrapEncoder.encode(run, accumulator.buildSnapshot()),
-                ChatRunStatus.isTerminal(run.getStatus()) || hasPendingConfirmation());
+                ChatRunStatus.isTerminal(run.getStatus()) || accumulator.hasPendingConfirmation());
     }
 
     /** 立即写入执行检查点并收缩事件缓冲区。抛 {@link IllegalStateException} 表示非终态运行的检查点失败。 */

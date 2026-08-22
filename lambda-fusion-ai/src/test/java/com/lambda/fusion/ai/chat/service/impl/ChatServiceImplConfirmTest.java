@@ -19,6 +19,7 @@ import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.ChatExecutionService;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
+import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.service.ChatRunService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
@@ -30,8 +31,10 @@ class ChatServiceImplConfirmTest {
 
     private final ChatRunService runService = mock(ChatRunService.class);
     private final ChatExecutionService chatExecutionService = mock(ChatExecutionService.class);
+    private final ChatRunEventStore eventStore = mock(ChatRunEventStore.class);
     private final AiProperties properties = new AiProperties();
-    private final ChatServiceImpl chatService = new ChatServiceImpl(runService, chatExecutionService, properties);
+    private final ChatServiceImpl chatService =
+            new ChatServiceImpl(runService, chatExecutionService, eventStore, properties);
 
     @Test
     void shouldStartOnlyNewlyCreatedRun() {
@@ -103,7 +106,7 @@ class ChatServiceImplConfirmTest {
         when(chatExecutionService.confirm(run, session, command))
                 .thenReturn(new ConfirmTransition(transitioned, session, false));
         when(chatExecutionService.bootstrap(any())).thenReturn(new AguiBootstrapModel(0L, List.of(), false));
-        when(chatExecutionService.subscribe(any(), anyLong(), any(), any())).thenReturn(mock());
+        when(eventStore.subscribe(any(), anyLong(), any(), any())).thenReturn(mock());
 
         SseEmitter emitter = chatService.confirm("session-1", "run-1", command);
 
@@ -115,7 +118,7 @@ class ChatServiceImplConfirmTest {
     void shouldFallBackToPersistedBootstrapWhenRealtimeEventsAreNotLocal() {
         ChatRunEntity run = run(ChatRunStatus.RUNNING, 2);
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session()));
-        when(chatExecutionService.subscribe(any(), anyLong(), any(), any()))
+        when(eventStore.subscribe(any(), anyLong(), any(), any()))
                 .thenThrow(new AiBusinessException(AiErrorCode.CHAT_RUN_EVENTS_EXPIRED, "run-1"));
         when(chatExecutionService.bootstrap(run)).thenReturn(new AguiBootstrapModel(7L, List.of(), true));
 

@@ -14,9 +14,7 @@ import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapEncoder;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventSubscription;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotSanitizer;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
@@ -32,7 +30,6 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -155,7 +152,7 @@ public class ChatExecutionService {
                 if (!ChatRunStatus.RUNNING.name().equals(run.getStatus())
                         || run.getPhaseNo() < sourcePhaseNo
                         || snapshot.pendingTools().isEmpty()) {
-                    throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
+                    throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
                 }
                 // 进程重启会丢失本地注册表，但 AgentScope ASKING 状态和 Run 快照均已持久化。
                 // 用户显式确认时只重建暂停上下文，不恢复旧阶段，也不接管正在执行的工具。
@@ -163,20 +160,6 @@ public class ChatExecutionService {
             }
             return execution.confirm(command);
         });
-    }
-
-    /**
-     * 从当前 JVM 的内部游标之后订阅运行事件。
-     *
-     * @param runId 运行标识
-     * @param cursor 快照对应的本地游标
-     * @param consumer 事件消费者
-     * @param failureConsumer 发送失败消费者
-     * @return 事件订阅
-     */
-    public ChatRunEventSubscription subscribe(
-            String runId, long cursor, Consumer<ChatRunEvent> consumer, Consumer<Throwable> failureConsumer) {
-        return eventStore.subscribe(runId, cursor, consumer, failureConsumer);
     }
 
     /**

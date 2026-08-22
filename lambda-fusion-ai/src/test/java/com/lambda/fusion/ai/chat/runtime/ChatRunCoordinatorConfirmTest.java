@@ -114,7 +114,7 @@ class ChatRunCoordinatorConfirmTest {
         assertThatThrownBy(() -> coordinator.confirm(run, session(), command(2, List.of(decision("call_1", true)))))
                 .isInstanceOf(AiBusinessException.class)
                 .satisfies(error -> assertThat(((AiBusinessException) error).getCode())
-                        .isEqualTo(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE.getCode()));
+                        .isEqualTo(AiErrorCode.CHAT_RUN_STATE_CONFLICT.getCode()));
         verify(delegate, never()).getAgentState(any(), any());
     }
 
