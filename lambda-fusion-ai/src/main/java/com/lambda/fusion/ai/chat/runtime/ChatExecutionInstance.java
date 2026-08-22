@@ -114,21 +114,14 @@ public final class ChatExecutionInstance {
                 properties.getChat().getRun().isEnableReasoning());
     }
 
-    /** 运行实体。 */
     public ChatRunEntity run() {
         return run;
     }
 
-    /** 会话实体。 */
     public ChatSessionEntity session() {
         return session;
     }
 
-    /**
-     * 在运行所属租户上下文中执行任务。
-     *
-     * @param task 待执行任务
-     */
     public void runInTenant(Runnable task) {
         TenantUtils.withTenant(session.getTenantId(), task);
     }
@@ -137,7 +130,6 @@ public final class ChatExecutionInstance {
      * 在实例锁内处理用户确认。只有旧阶段源流已经完整排空、快照存在待确认投影时才校验并推进；
      * AgentScope ASKING 是底层确认状态，ChatRun 始终保持 RUNNING。已处理的旧阶段按幂等重放返回。
      *
-     * @param command 用户确认命令
      * @return 迁移结果；{@code resumed=false} 仅表示来源阶段已经被处理
      * @throws AiBusinessException 状态/阶段冲突、确认上下文不可用、决策非法或三方工具调用不一致
      */
@@ -449,8 +441,8 @@ public final class ChatExecutionInstance {
     }
 
     /** 将运行终结为停止状态。 */
-    synchronized void finalizeStopped(ChatRunFinishReason reason) {
-        finalizeTerminal(ChatRunStatus.STOPPED, reason, null, null);
+    synchronized void finalizeStopped() {
+        finalizeTerminal(ChatRunStatus.STOPPED, ChatRunFinishReason.USER_STOP, null, null);
     }
 
     /** 将运行终结为失败状态。 */
@@ -604,7 +596,7 @@ public final class ChatExecutionInstance {
     /** 取消活动事件流并终结运行。dispose 出锁以避免取消回调回流死锁，DB 终态迁移在锁内完成。 */
     public void forceStopIfRunning() {
         agentStreamLifecycle.forceDispose();
-        finalizeStopped(ChatRunFinishReason.USER_STOP);
+        finalizeStopped();
     }
 
     /**
@@ -625,7 +617,7 @@ public final class ChatExecutionInstance {
                 log.warn("停止Run前快照写入失败，仍提交停止终态: runId={}", run.getId(), checkpointFailure);
             }
         }
-        finalizeStopped(ChatRunFinishReason.USER_STOP);
+        finalizeStopped();
         return interruptRequired;
     }
 
