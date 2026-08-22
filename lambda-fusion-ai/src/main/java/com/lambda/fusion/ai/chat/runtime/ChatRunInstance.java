@@ -9,11 +9,11 @@ import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.agui.AgentEventAguiMapper;
-import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapEncoder;
+import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
-import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotSanitizer;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotSanitizer;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
@@ -342,7 +342,8 @@ public final class ChatRunInstance {
                 // 源流已经排空，待确认事实仍无法提交时转为失败终态，避免运行永久停留在 RUNNING。
                 log.error("Run进入待确认失败，收敛为失败终态: runId={}", run.getId(), awaitConfirmFailure);
                 finalizeFailed(
-                        ChatRunFailureCode.AWAIT_CONFIRM_FAILED, ChatRunSnapshotSanitizer.safeMessage(awaitConfirmFailure));
+                        ChatRunFailureCode.AWAIT_CONFIRM_FAILED,
+                        ChatRunSnapshotSanitizer.safeMessage(awaitConfirmFailure));
             }
         }
         if (terminal) {
