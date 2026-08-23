@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.chat.runtime.agui;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventType;
+import io.agentscope.core.event.RequireExternalExecutionEvent;
 import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
 import io.agentscope.core.event.ThinkingBlockDeltaEvent;
@@ -11,6 +12,7 @@ import io.agentscope.core.event.ToolCallStartEvent;
 import io.agentscope.core.event.ToolResultEndEvent;
 import io.agentscope.core.event.ToolResultStartEvent;
 import io.agentscope.core.event.ToolResultTextDeltaEvent;
+import io.agentscope.core.message.ToolResultState;
 import io.agentscope.core.message.ToolUseBlock;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,6 +62,7 @@ public final class AgentEventMapper {
             case TOOL_RESULT_TEXT_DELTA -> mapToolResultTextDelta(event);
             case TOOL_RESULT_END -> mapToolResultEnd(event, events);
             case REQUIRE_USER_CONFIRM -> mapRequireUserConfirm(event, events);
+            case REQUIRE_EXTERNAL_EXECUTION -> mapRequireExternalExecution(event, events);
             default -> {
                 // AGENT_END 由运行实例决定业务完成语义；其余事件当前没有对应的 UI 投影。
             }
@@ -152,6 +155,10 @@ public final class AgentEventMapper {
             return;
         }
         out.add(new AguiEvent.ToolCallEnd(threadId, runId, tool.getToolCallId()));
+        if (tool.getState() == ToolResultState.RUNNING) {
+            // 外部工具挂起调用：结果语义由后续 interrupt 事件承载，不发占位结果。
+            return;
+        }
         out.add(new AguiEvent.ToolCallResult(
                 threadId,
                 runId,
@@ -167,6 +174,18 @@ public final class AgentEventMapper {
         }
         closeActiveMessage(out);
         out.add(new AguiEvent.RunFinished(threadId, runId, null, buildInterruptOutcome(confirm.getToolCalls())));
+    }
+
+    private void mapRequireExternalExecution(AgentEvent event, List<AguiEvent> out) {
+        if (!(event instanceof RequireExternalExecutionEvent external)) {
+            return;
+        }
+        closeActiveMessage(out);
+        List<AguiEvent.Interrupt> interrupts = external.getToolCalls().stream()
+                .map(InterruptFactory::inputInterrupt)
+                .toList();
+        out.add(new AguiEvent.RunFinished(
+                threadId, runId, null, new AguiEvent.RunFinishedInterruptOutcome(interrupts)));
     }
 
     private static AguiEvent.RunFinishedInterruptOutcome buildInterruptOutcome(List<ToolUseBlock> blocks) {

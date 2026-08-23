@@ -26,6 +26,7 @@ class ChatRunSnapshotTest {
                         "{\"apiKey\":\"secret-value\",\"nested\":{\"token\":\"bearer\"},\"query\":\"ok\"}",
                         "{\"password\":\"hidden\",\"value\":1}",
                         "complete")),
+                List.of(),
                 List.of());
 
         ChatRunSnapshot.ToolCall tool = snapshot.tools().getFirst();
@@ -51,7 +52,8 @@ class ChatRunSnapshotTest {
                 true,
                 false,
                 List.of(new ChatRunSnapshot.ToolCall("tool-1", "search", "{}", "result", "complete")),
-                List.of(new ChatRunSnapshot.ToolCall("tool-2", "confirm", "ignored", "ignored", "complete")));
+                List.of(new ChatRunSnapshot.ToolCall("tool-2", "confirm", "ignored", "ignored", "complete")),
+                List.of());
 
         String json = ChatRunSnapshotCodec.encode(original);
         ChatRunSnapshot restored = ChatRunSnapshotCodec.decode(json);
@@ -80,7 +82,8 @@ class ChatRunSnapshotTest {
                 false,
                 false,
                 List.of(),
-                java.util.Arrays.asList((ChatRunSnapshot.ToolCall) null));
+                java.util.Arrays.asList((ChatRunSnapshot.ToolCall) null),
+                List.of());
 
         assertThat(snapshot.pendingTools()).isEmpty();
     }

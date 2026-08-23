@@ -26,6 +26,7 @@ class AguiBootstrapEncoderTest {
                 true,
                 false,
                 List.of(new ChatRunSnapshot.ToolCall("tool-1", "search", "{q:1}", "result", "complete")),
+                List.of(),
                 List.of());
 
         List<String> events = AguiBootstrapEncoder.encode(run, snapshot);
@@ -78,6 +79,7 @@ class AguiBootstrapEncoderTest {
                 false,
                 true,
                 List.of(new ChatRunSnapshot.ToolCall("tool-1", "search", "{q:1}", "result", "complete")),
+                List.of(),
                 List.of());
 
         List<String> events = AguiBootstrapEncoder.encode(run, snapshot);
@@ -115,7 +117,8 @@ class AguiBootstrapEncoderTest {
                 false,
                 false,
                 List.of(),
-                List.of(new ChatRunSnapshot.ToolCall("tool-1", "dangerous", "", "", "asking")));
+                List.of(new ChatRunSnapshot.ToolCall("tool-1", "dangerous", "", "", "asking")),
+                List.of());
 
         assertThat(AguiBootstrapEncoder.encode(run, snapshot))
                 .anyMatch(event -> event.contains("\"type\":\"RUN_FINISHED\"")
@@ -137,6 +140,7 @@ class AguiBootstrapEncoderTest {
                 false,
                 false,
                 List.of(new ChatRunSnapshot.ToolCall("tool-1", "search", "{\"q\":", "", "running")),
+                List.of(),
                 List.of());
 
         List<String> events = AguiBootstrapEncoder.encode(run, snapshot);

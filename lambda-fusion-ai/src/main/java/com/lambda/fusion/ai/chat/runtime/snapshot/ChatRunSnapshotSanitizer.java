@@ -50,6 +50,26 @@ public class ChatRunSnapshotSanitizer {
     }
 
     /**
+     * 清理待用户输入的挂起工具调用快照。
+     *
+     * @param inputs 待用户输入的挂起工具调用
+     * @return 规整空值后的待输入投影
+     */
+    public static List<ChatRunSnapshot.PendingInput> sanitizePendingInputs(List<ChatRunSnapshot.PendingInput> inputs) {
+        return inputs == null
+                ? List.of()
+                : inputs.stream()
+                        .filter(java.util.Objects::nonNull)
+                        .map(input -> new ChatRunSnapshot.PendingInput(
+                                safe(input.toolCallId()),
+                                safe(input.toolCallName()),
+                                safe(input.question()),
+                                safe(input.inputKind()),
+                                safe(input.responseSchemaJson())))
+                        .toList();
+    }
+
+    /**
      * 屏蔽文本中的常见凭据信息。
      *
      * @param value 原始文本

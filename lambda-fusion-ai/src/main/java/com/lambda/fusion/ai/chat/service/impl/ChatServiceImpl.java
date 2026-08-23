@@ -7,6 +7,7 @@ import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
 import com.lambda.fusion.ai.chat.model.RunContext;
 import com.lambda.fusion.ai.chat.model.SendMessage;
+import com.lambda.fusion.ai.chat.model.SubmitToolInput;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.ChatExecutionService;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
@@ -62,6 +63,13 @@ public class ChatServiceImpl implements ChatService {
     public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command) {
         RunContext context = chatRunService.loadOwned(sessionId, runId);
         ConfirmTransition transition = chatExecutionService.confirm(context.run(), context.session(), command);
+        return openRunEventStream(transition.run());
+    }
+
+    @Override
+    public SseEmitter submitInput(String sessionId, String runId, SubmitToolInput command) {
+        RunContext context = chatRunService.loadOwned(sessionId, runId);
+        ConfirmTransition transition = chatExecutionService.submitInput(context.run(), context.session(), command);
         return openRunEventStream(transition.run());
     }
 

@@ -293,10 +293,11 @@ class ChatRunServiceImplTest {
                 false,
                 false,
                 List.of(),
-                List.of(new ChatRunSnapshot.ToolCall(toolCallId, "demo_tool", "", "", "asking")));
+                List.of(new ChatRunSnapshot.ToolCall(toolCallId, "demo_tool", "", "", "asking")),
+                List.of());
     }
 
     private static ChatRunSnapshot snapshot(String text) {
-        return new ChatRunSnapshot("run-1", "phase-1", 1, text, "", "message-1", null, false, false, null, null);
+        return new ChatRunSnapshot("run-1", "phase-1", 1, text, "", "message-1", null, false, false, null, null, null);
     }
 }

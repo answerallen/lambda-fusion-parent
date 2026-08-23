@@ -1,8 +1,11 @@
 package com.lambda.fusion.ai.chat.runtime;
 
 import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
+import com.lambda.fusion.ai.chat.runtime.agui.InterruptFactory;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import io.agentscope.core.agui.event.AguiEvent;
+import io.agentscope.core.util.JsonUtils;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +28,7 @@ public final class ChatExecutionSnapshotBuilder {
     private boolean reasoningOpen;
     private final Map<String, ChatRunSnapshot.ToolCall> tools = new LinkedHashMap<>();
     private List<ChatRunSnapshot.ToolCall> pendingTools;
+    private List<ChatRunSnapshot.PendingInput> pendingInputs;
 
     /**
      * 根据已有快照创建累加器。
@@ -45,6 +49,7 @@ public final class ChatExecutionSnapshotBuilder {
             tools.put(tool.toolCallId(), tool);
         }
         pendingTools = snapshot.pendingTools();
+        pendingInputs = snapshot.pendingInputs();
     }
 
     /**
@@ -57,6 +62,7 @@ public final class ChatExecutionSnapshotBuilder {
         aguiRunId = nextAguiRunId;
         phaseNo = nextPhaseNo;
         pendingTools = List.of();
+        pendingInputs = List.of();
         closeOpenMessages();
     }
 
@@ -166,8 +172,8 @@ public final class ChatExecutionSnapshotBuilder {
     }
 
     /**
-     * 处理阶段结束事件中的中断结果：把待确认工具补写为 ASKING 投影并记录为 {@code pendingTools}，
-     * 同时关闭未闭合的文本与推理消息，进入待确认状态。
+     * 处理阶段结束事件中的中断结果：按 reason 分流为待确认（ASKING 投影，{@code pendingTools}）
+     * 与待用户输入（AWAITING_INPUT 投影，{@code pendingInputs}），同时关闭未闭合的文本与推理消息。
      *
      * @param outcome 阶段结束结果；非中断结果（正常完成等）不改变投影
      */
@@ -175,7 +181,18 @@ public final class ChatExecutionSnapshotBuilder {
         if (!(outcome instanceof AguiEvent.RunFinishedInterruptOutcome(List<AguiEvent.Interrupt> interrupts))) {
             return;
         }
-        pendingTools = interrupts.stream().map(this::upsertAskingTool).toList();
+        List<ChatRunSnapshot.ToolCall> asks = new ArrayList<>();
+        List<ChatRunSnapshot.PendingInput> inputs = new ArrayList<>();
+        for (AguiEvent.Interrupt interrupt : interrupts) {
+            if (InterruptFactory.REASON_INPUT_REQUIRED.equals(interrupt.reason())) {
+                upsertAwaitingInputTool(interrupt);
+                inputs.add(toPendingInput(interrupt));
+            } else {
+                asks.add(upsertAskingTool(interrupt));
+            }
+        }
+        pendingTools = List.copyOf(asks);
+        pendingInputs = List.copyOf(inputs);
         closeOpenMessages();
     }
 
@@ -189,6 +206,34 @@ public final class ChatExecutionSnapshotBuilder {
                 metadataName == null ? (current == null ? "" : current.toolCallName()) : String.valueOf(metadataName);
         upsertTool(toolCallId, toolName, null, null, ChatRunToolStatus.ASKING.getCode());
         return findTool(toolCallId);
+    }
+
+    /** 以 AWAITING_INPUT 状态补写挂起的交互工具调用。 */
+    private void upsertAwaitingInputTool(AguiEvent.Interrupt interrupt) {
+        String toolCallId = interrupt.toolCallId() == null ? interrupt.id() : interrupt.toolCallId();
+        ChatRunSnapshot.ToolCall current = findTool(toolCallId);
+        Object metadataName =
+                interrupt.metadata() == null ? null : interrupt.metadata().get(InterruptFactory.METADATA_TOOL_NAME);
+        String toolName =
+                metadataName == null ? (current == null ? "" : current.toolCallName()) : String.valueOf(metadataName);
+        upsertTool(toolCallId, toolName, null, null, ChatRunToolStatus.AWAITING_INPUT.getCode());
+    }
+
+    /** 把输入型 Interrupt 转为待输入投影：保留问题、交互类型与恢复值 JSON Schema。 */
+    private ChatRunSnapshot.PendingInput toPendingInput(AguiEvent.Interrupt interrupt) {
+        String toolCallId = interrupt.toolCallId() == null ? interrupt.id() : interrupt.toolCallId();
+        ChatRunSnapshot.ToolCall current = findTool(toolCallId);
+        String toolName = current == null ? "" : current.toolCallName();
+        Object kind =
+                interrupt.metadata() == null ? null : interrupt.metadata().get(InterruptFactory.METADATA_INPUT_KIND);
+        return new ChatRunSnapshot.PendingInput(
+                toolCallId,
+                toolName,
+                safe(interrupt.message()),
+                kind == null ? InterruptFactory.KIND_TEXT : String.valueOf(kind),
+                interrupt.responseSchema() == null
+                        ? ""
+                        : JsonUtils.getJsonCodec().toJson(interrupt.responseSchema()));
     }
 
     /**
@@ -208,12 +253,13 @@ public final class ChatExecutionSnapshotBuilder {
                 textOpen,
                 reasoningOpen,
                 List.copyOf(tools.values()),
-                pendingTools);
+                pendingTools,
+                pendingInputs);
     }
 
-    /** 判断当前是否处于待确认状态（存在待确认工具投影）。 */
-    public boolean hasPendingConfirmation() {
-        return !pendingTools.isEmpty();
+    /** 判断当前是否处于待交互状态（存在待确认或待用户输入投影）。 */
+    public boolean hasPendingInteraction() {
+        return !pendingTools.isEmpty() || !pendingInputs.isEmpty();
     }
 
     /** 查找工具调用的当前投影；不存在时返回 {@code null}。 */

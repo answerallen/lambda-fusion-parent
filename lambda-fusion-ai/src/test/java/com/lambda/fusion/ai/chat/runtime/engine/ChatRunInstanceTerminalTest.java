@@ -120,7 +120,7 @@ class ChatRunInstanceTerminalTest {
     void shouldClosePersistedSnapshotWhenInterpreterHasNoInMemoryMessages() {
         // 恢复实例：解释器为空（无内存消息 ID），但持久化快照处于打开状态。
         ChatRunSnapshot openSnapshot = new ChatRunSnapshot(
-                "run-1", "agui-1", 1, "partial", "", "m-text", null, true, false, List.of(), List.of());
+                "run-1", "agui-1", 1, "partial", "", "m-text", null, true, false, List.of(), List.of(), List.of());
         ChatRunEntity run = run(ChatRunStatus.RUNNING, openSnapshot);
         instance = newInstance(run);
         stubTerminalCommit();
@@ -213,6 +213,7 @@ class ChatRunInstanceTerminalTest {
                 reasoningOpen ? "m-reason" : null,
                 textOpen,
                 reasoningOpen,
+                List.of(),
                 List.of(),
                 List.of());
     }

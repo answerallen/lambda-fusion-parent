@@ -8,6 +8,7 @@ import com.lambda.fusion.ai.apps.service.AppService;
 import com.lambda.fusion.ai.chat.attachment.ChatAttachmentMessageBuilder;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
+import com.lambda.fusion.ai.chat.model.SubmitToolInput;
 import com.lambda.fusion.ai.chat.model.entity.ChatAttachmentEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatMessageEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
@@ -163,6 +164,40 @@ public class ChatExecutionService {
     }
 
     /**
+     * 在规范实例锁内原子地提交用户输入并推进到下一阶段。只有上一阶段完整排空并进入待输入态后才允许提交；
+     * 锁顺序始终为实例 monitor，再进入 {@code REQUIRES_NEW} 数据库事务。
+     *
+     * @param run 运行实体
+     * @param session 会话实体
+     * @param command 用户输入命令
+     * @return 迁移结果；{@code resumed=false} 表示来源阶段已经被处理
+     */
+    public ConfirmTransition submitInput(ChatRunEntity run, ChatSessionEntity session, SubmitToolInput command) {
+        return TenantUtils.withTenant(session.getTenantId(), () -> {
+            ChatExecutionInstance execution = registry.get(run.getId());
+            if (execution == null) {
+                Integer sourcePhaseNo = command == null ? null : command.getPhaseNo();
+                if (sourcePhaseNo == null) {
+                    throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "phaseNo不能为空");
+                }
+                if (run.getPhaseNo() > sourcePhaseNo) {
+                    return new ConfirmTransition(run, session, false);
+                }
+                var snapshot = ChatRunSnapshotCodec.decode(run.getSnapshotJson());
+                if (!ChatRunStatus.RUNNING.name().equals(run.getStatus())
+                        || run.getPhaseNo() < sourcePhaseNo
+                        || snapshot.pendingInputs().isEmpty()) {
+                    throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
+                }
+                // 进程重启会丢失本地注册表，但 AgentScope 挂起状态和 Run 快照均已持久化。
+                // 用户显式提交时只重建暂停上下文，不恢复旧阶段，也不接管正在执行的工具。
+                execution = registry.registerPausedConfirmation(run, session, scheduler);
+            }
+            return execution.submitInput(command);
+        });
+    }
+
+    /**
      * 生成运行的 AG-UI 引导事件。
      *
      * @param run 运行实体
@@ -180,7 +215,7 @@ public class ChatExecutionService {
                 cursor,
                 AguiBootstrapEncoder.encode(current, snapshot),
                 ChatRunStatus.isTerminal(current.getStatus())
-                        || !snapshot.pendingTools().isEmpty()
+                        || snapshot.hasPendingInteraction()
                         || !eventStore.contains(current.getId()));
     }
 

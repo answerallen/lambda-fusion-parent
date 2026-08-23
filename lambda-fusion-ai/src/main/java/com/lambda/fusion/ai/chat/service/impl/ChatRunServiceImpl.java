@@ -344,15 +344,26 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         return runMapper.selectById(runId);
     }
 
-    /** 实体转视图；RUNNING 下的待确认工具来自持久化快照投影。 */
+    /** 实体转视图；RUNNING 下的待确认工具与待输入挂起调用来自持久化快照投影。 */
     private ChatRun toRunView(ChatRunEntity entity) {
         ChatRun view = toVO(entity);
         ChatRunSnapshot snapshot = ChatRunSnapshotCodec.decode(entity.getSnapshotJson());
+        boolean running = ChatRunStatus.RUNNING.name().equals(entity.getStatus());
         view.setPendingConfirm(
-                ChatRunStatus.RUNNING.name().equals(entity.getStatus())
-                                && !snapshot.pendingTools().isEmpty()
+                running && !snapshot.pendingTools().isEmpty()
                         ? snapshot.pendingTools().stream()
                                 .map(tool -> new ChatRun.PendingTool(tool.toolCallId(), tool.toolCallName()))
+                                .toList()
+                        : List.of());
+        view.setPendingInputs(
+                running && !snapshot.pendingInputs().isEmpty()
+                        ? snapshot.pendingInputs().stream()
+                                .map(input -> new ChatRun.PendingInput(
+                                        input.toolCallId(),
+                                        input.toolCallName(),
+                                        input.question(),
+                                        input.inputKind(),
+                                        input.responseSchemaJson()))
                                 .toList()
                         : List.of());
         return view;

@@ -5,7 +5,9 @@ import com.lambda.fusion.ai.AiConstants.ChatRunToolStatus;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import io.agentscope.core.agui.event.AguiEvent;
+import io.agentscope.core.util.JsonUtils;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
@@ -27,6 +29,29 @@ public final class AguiBootstrapEncoder {
                 null,
                 null,
                 Map.of("toolName", toolName));
+    }
+
+    /** 从待输入投影重建输入型 AG-UI Interrupt 事件（重连恢复交互卡片）。 */
+    private static AguiEvent.Interrupt inputInterrupt(ChatRunSnapshot.PendingInput input) {
+        Map<String, Object> responseSchema = null;
+        if (!input.responseSchemaJson().isBlank()) {
+            Map<?, ?> decoded = JsonUtils.getJsonCodec().fromJson(input.responseSchemaJson(), Map.class);
+            Map<String, Object> schema = new LinkedHashMap<>();
+            decoded.forEach((key, value) -> schema.put(String.valueOf(key), value));
+            responseSchema = schema;
+        }
+        return new AguiEvent.Interrupt(
+                input.toolCallId(),
+                InterruptFactory.REASON_INPUT_REQUIRED,
+                input.question(),
+                input.toolCallId(),
+                responseSchema,
+                null,
+                Map.of(
+                        InterruptFactory.METADATA_TOOL_NAME,
+                        input.toolCallName(),
+                        InterruptFactory.METADATA_INPUT_KIND,
+                        input.inputKind()));
     }
 
     /**
@@ -125,20 +150,23 @@ public final class AguiBootstrapEncoder {
     }
 
     /**
-     * 按运行终局补写收尾事件：待确认态输出带 Interrupt 的 RunFinished；
+     * 按运行终局补写收尾事件：待交互态（待确认/待输入）输出带 Interrupt 的 RunFinished；
      * COMPLETED/STOPPED 输出成功的 RunFinished；FAILED 输出 RunError（带失败码与消息）。
-     * RUNNING 且无待确认工具时不输出收尾事件，由实时流续接。
+     * RUNNING 且无待交互投影时不输出收尾事件，由实时流续接。
      *
      * @param collector 事件收集器
      * @param run 运行实体
      * @param snapshot 执行快照
      */
     private static void appendTerminal(EventCollector collector, ChatRunEntity run, ChatRunSnapshot snapshot) {
-        if (ChatRunStatus.RUNNING.name().equals(run.getStatus())
-                && !snapshot.pendingTools().isEmpty()) {
-            List<AguiEvent.Interrupt> interrupts = snapshot.pendingTools().stream()
+        if (ChatRunStatus.RUNNING.name().equals(run.getStatus()) && snapshot.hasPendingInteraction()) {
+            List<AguiEvent.Interrupt> interrupts = new ArrayList<>();
+            snapshot.pendingTools().stream()
                     .map(tool -> confirmationInterrupt(tool.toolCallId(), tool.toolCallName()))
-                    .toList();
+                    .forEach(interrupts::add);
+            snapshot.pendingInputs().stream()
+                    .map(AguiBootstrapEncoder::inputInterrupt)
+                    .forEach(interrupts::add);
             collector.add(new AguiEvent.RunFinished(
                     collector.threadId(),
                     collector.aguiRunId(),

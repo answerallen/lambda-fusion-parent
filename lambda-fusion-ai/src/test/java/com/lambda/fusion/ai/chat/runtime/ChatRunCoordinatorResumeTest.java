@@ -40,7 +40,7 @@ class ChatRunCoordinatorResumeTest {
         run.setPhaseNo(1);
         run.setStatus(ChatRunStatus.RUNNING.name());
         run.setSnapshotJson(ChatRunSnapshotCodec.encode(new ChatRunSnapshot(
-                "run-1", "agui-1", 1, "partial answer", "", "message-1", null, true, false, null, null)));
+                "run-1", "agui-1", 1, "partial answer", "", "message-1", null, true, false, null, null, null)));
         when(runService.loadCurrentOrIdentity(run)).thenReturn(run);
         when(eventStore.latestCursor("run-1")).thenReturn(0L);
         when(eventStore.contains("run-1")).thenReturn(false);

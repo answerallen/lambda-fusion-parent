@@ -95,21 +95,23 @@ public final class AgentExecutionAdapter {
     }
 
     /**
-     * 在权限确认阶段的根 {@code AGENT_END} 处结束当前交互源流。
+     * 在人机交互阶段（权限确认或外部工具挂起）的根 {@code AGENT_END} 处结束当前源流。
      *
-     * <p>AgentScope 会先持久化 {@code ASKING} 状态，再发送根 {@code AGENT_END}，随后才通过
-     * {@code concatWith} 订阅记忆冲刷和整理尾部。此处等待根结束事件后再取消上游，既保留可恢复的确认状态，
-     * 又避免记忆模型阻塞待确认快照落库。普通最终回答和子 Agent 事件不受影响。
+     * <p>AgentScope 会先持久化挂起状态（{@code ASKING} 或 {@code TOOL_SUSPENDED}，挂起结果对不写入
+     * 记忆上下文），再发送根 {@code AGENT_END}，随后才通过 {@code concatWith} 订阅记忆冲刷和整理尾部。
+     * 此处等待根结束事件后再取消上游，既保留可恢复的挂起状态，又避免记忆模型阻塞待交互快照落库。
+     * 普通最终回答和子 Agent 事件不受影响。
      */
     private Flux<AgentEvent> endAtHitlPhaseBoundary(Flux<AgentEvent> source) {
         return Flux.defer(() -> {
-            AtomicBoolean awaitingConfirmation = new AtomicBoolean();
+            AtomicBoolean awaitingInteraction = new AtomicBoolean();
             return source.doOnNext(event -> {
-                        if (isRootEvent(event, AgentEventType.REQUIRE_USER_CONFIRM)) {
-                            awaitingConfirmation.set(true);
+                        if (isRootEvent(event, AgentEventType.REQUIRE_USER_CONFIRM)
+                                || isRootEvent(event, AgentEventType.REQUIRE_EXTERNAL_EXECUTION)) {
+                            awaitingInteraction.set(true);
                         }
                     })
-                    .takeUntil(event -> awaitingConfirmation.get() && isRootEvent(event, AgentEventType.AGENT_END));
+                    .takeUntil(event -> awaitingInteraction.get() && isRootEvent(event, AgentEventType.AGENT_END));
         });
     }
 
@@ -172,6 +174,51 @@ public final class AgentExecutionAdapter {
     /** 中断当前 Agent 状态会话。 */
     public void interrupt() {
         agent.getDelegate().interrupt(userId, sessionId);
+    }
+
+    /** 当前 Agent 名称（构造 TOOL 结果消息使用）。 */
+    public String agentName() {
+        return agent.getName();
+    }
+
+    /**
+     * 读取 Agent 状态中当前挂起等待用户输入的工具调用。
+     *
+     * <p>与 AgentScope 的 {@code getPendingToolUseIds} 语义一致：挂起结果对不写入记忆上下文，
+     * 因此最后一条助手消息中缺少对应结果且非 ASKING 的工具调用视为挂起。该范围与快照
+     * {@code pendingInputs}、用户提交输入三方校验的基准一致。
+     *
+     * @return 当前挂起的工具调用
+     * @throws AiBusinessException Agent 状态不可用或不存在挂起调用
+     */
+    public List<ToolUseBlock> readSuspendedToolBlocks() {
+        try {
+            var state = agent.getDelegate().getAgentState(userId, sessionId);
+            if (state == null || state.getContext() == null) {
+                throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
+            }
+            Msg lastAssistant = lastAssistantMessage(state.getContext());
+            if (lastAssistant == null) {
+                throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
+            }
+            Set<String> resultIds = state.getContext().stream()
+                    .flatMap(message -> message.getContentBlocks(ToolResultBlock.class).stream())
+                    .map(ToolResultBlock::getId)
+                    .collect(Collectors.toSet());
+            List<ToolUseBlock> suspended = lastAssistant.getContentBlocks(ToolUseBlock.class).stream()
+                    .filter(tool -> tool.getState() != ToolCallState.ASKING)
+                    .filter(tool -> !resultIds.contains(tool.getId()))
+                    .toList();
+            if (suspended.isEmpty()) {
+                throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
+            }
+            return suspended;
+        } catch (AiBusinessException exception) {
+            throw exception;
+        } catch (RuntimeException error) {
+            log.warn("读取挂起工具调用失败: runId={}", runId, error);
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
+        }
     }
 
     /**

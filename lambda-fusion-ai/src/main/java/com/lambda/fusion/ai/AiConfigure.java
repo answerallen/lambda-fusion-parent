@@ -304,7 +304,6 @@ public class AiConfigure {
                                 aiProperties.getSandbox().getKubernetes();
                         return new KubernetesFilesystemSpec()
                                 .namespace(cfg.getNamespace())
-                                .image(cfg.getImage())
                                 .workspaceRoot(cfg.getWorkspaceRoot())
                                 .kubernetesClient(new KubernetesClientBuilder().build())
                                 .isolationScope(SandboxSpecResolver.parseIsolationScope(aiProperties));

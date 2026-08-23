@@ -6,6 +6,7 @@ import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.ConfirmTransition;
+import com.lambda.fusion.ai.chat.model.SubmitToolInput;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.agui.AgentEventMapper;
@@ -15,6 +16,7 @@ import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotSanitizer;
 import com.lambda.fusion.ai.chat.runtime.validator.ConfirmationValidator;
+import com.lambda.fusion.ai.chat.runtime.validator.ToolInputValidator;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
@@ -71,8 +73,8 @@ public final class ChatExecutionInstance {
     private boolean checkpointDirty;
     private ScheduledFuture<?> checkpointTask;
     private AgentEventMapper eventMapper;
-    private boolean awaitingConfirm;
-    private List<AguiEvent> pendingConfirmEvents;
+    private boolean awaitingInteraction;
+    private List<AguiEvent> pendingInteractionEvents;
 
     /**
      * 创建执行实例。
@@ -146,14 +148,14 @@ public final class ChatExecutionInstance {
                     run.getPhaseNo());
             return new ConfirmTransition(run, session, false);
         }
+        ChatRunSnapshot snapshot = accumulator.buildSnapshot();
         if (!Objects.equals(run.getPhaseNo(), sourcePhaseNo)
                 || !ChatRunStatus.RUNNING.name().equals(run.getStatus())
-                || !accumulator.hasPendingConfirmation()
+                || snapshot.pendingTools().isEmpty()
                 || sourceActive) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
         }
 
-        ChatRunSnapshot snapshot = accumulator.buildSnapshot();
         Msg confirmMessage = validateAndBuildMessage(command, snapshot.pendingTools());
         ConfirmTransition transition = runService.advanceConfirmation(run, session, sourcePhaseNo, snapshot);
         syncRun(transition.run());
@@ -167,6 +169,71 @@ public final class ChatExecutionInstance {
             finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSnapshotSanitizer.safeMessage(startFailure));
         }
         return transition;
+    }
+
+    /**
+     * 在实例锁内处理用户输入提交。只有旧阶段源流已经完整排空、快照存在待输入投影时才校验并推进；
+     * AgentScope 挂起（TOOL_SUSPENDED）是底层状态，ChatRun 始终保持 RUNNING。已处理的旧阶段按幂等重放返回。
+     *
+     * @return 迁移结果；{@code resumed=false} 仅表示来源阶段已经被处理
+     * @throws AiBusinessException 状态/阶段冲突、挂起上下文不可用、输入非法或三方工具调用不一致
+     */
+    public synchronized ConfirmTransition submitInput(SubmitToolInput command) {
+        Integer sourcePhaseNo = command == null ? null : command.getPhaseNo();
+        if (sourcePhaseNo == null) {
+            throw new AiBusinessException(AiErrorCode.INVALID_PARAMETER, "phaseNo不能为空");
+        }
+        if (run.getPhaseNo() > sourcePhaseNo) {
+            log.info(
+                    "Run输入幂等重放，来源阶段已处理: runId={}, sourcePhaseNo={}, currentPhaseNo={}",
+                    run.getId(),
+                    sourcePhaseNo,
+                    run.getPhaseNo());
+            return new ConfirmTransition(run, session, false);
+        }
+        ChatRunSnapshot snapshot = accumulator.buildSnapshot();
+        if (!Objects.equals(run.getPhaseNo(), sourcePhaseNo)
+                || !ChatRunStatus.RUNNING.name().equals(run.getStatus())
+                || snapshot.pendingInputs().isEmpty()
+                || sourceActive) {
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
+        }
+
+        Msg inputMessage = validateAndBuildInputMessage(command, snapshot.pendingInputs());
+        ConfirmTransition transition = runService.advanceConfirmation(run, session, sourcePhaseNo, snapshot);
+        syncRun(transition.run());
+        if (!transition.resumed()) {
+            return transition;
+        }
+        try {
+            beginConfirmedPhase();
+            startPhase(inputMessage);
+        } catch (RuntimeException startFailure) {
+            finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSnapshotSanitizer.safeMessage(startFailure));
+        }
+        return transition;
+    }
+
+    /**
+     * 校验输入命令并构造恢复消息：委托 {@link ToolInputValidator} 读取 Agent 当前挂起工具调用，
+     * 要求快照、输入、Agent 三方 ID 一致，且输入值满足 responseSchema。
+     *
+     * @param command 用户输入命令
+     * @param pendingInputs 当前快照的待输入投影
+     * @return 携带用户输入结果的恢复消息
+     * @throws AiBusinessException 挂起上下文不可用、输入非法或三方不一致
+     */
+    private Msg validateAndBuildInputMessage(
+            SubmitToolInput command, List<ChatRunSnapshot.PendingInput> pendingInputs) {
+        if (agentExecutionAdapter == null) {
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, run.getId());
+        }
+        return ToolInputValidator.validateAndBuildMessage(
+                run,
+                agentExecutionAdapter.agentName(),
+                pendingInputs,
+                command.getInputs(),
+                agentExecutionAdapter::readSuspendedToolBlocks);
     }
 
     /**
@@ -279,21 +346,22 @@ public final class ChatExecutionInstance {
             // 根 AGENT_END 是业务回答边界；普通阶段允许记忆尾部继续，HITL 阶段由适配器在此结束源流。
             rootAgentEnded = true;
             agentStreamLifecycle.cancelInteractionTimeout();
-            if (awaitingConfirm || accumulator.hasPendingConfirmation()) {
+            if (awaitingInteraction || accumulator.hasPendingInteraction()) {
                 return;
             }
             finalizeCompleted();
             return;
         }
         List<AguiEvent> events = eventMapper.map(event);
-        if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM) {
-            if (awaitingConfirm) {
+        if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM
+                || event.getType() == AgentEventType.REQUIRE_EXTERNAL_EXECUTION) {
+            if (awaitingInteraction) {
                 return;
             }
-            awaitingConfirm = true;
-            pendingConfirmEvents = events;
+            awaitingInteraction = true;
+            pendingInteractionEvents = events;
             accumulator.apply(events);
-            // AgentScope 在事件流结束时持久化 ASKING 状态。
+            // AgentScope 在事件流结束时持久化 ASKING / TOOL_SUSPENDED 挂起状态。
             return;
         }
         accumulator.apply(events);
@@ -316,8 +384,8 @@ public final class ChatExecutionInstance {
         if (terminal) {
             return;
         }
-        if (awaitingConfirm) {
-            // 待确认状态必须等 doFinally 确认适配后的当前阶段源流已经结束后再提交。
+        if (awaitingInteraction) {
+            // 待交互状态必须等 doFinally 确认适配后的当前阶段源流已经结束后再提交。
             return;
         }
         finalizeCompleted();
@@ -325,22 +393,22 @@ public final class ChatExecutionInstance {
 
     /**
      * AgentScope 源流完成、失败或取消后的统一收尾。此时沙箱已释放，方法先执行当前阶段的工作区审计，
-     * 再把正常完成的 HITL 阶段提交为待确认。只有最终业务终态才完成实例 {@code drainedSignal}；
-     * 待确认阶段保留实例，确认请求随后可立即启动下一阶段。
+     * 再把正常完成的 HITL 阶段提交为待交互（确认/输入）。只有最终业务终态才完成实例 {@code drainedSignal}；
+     * 待交互阶段保留实例，交互请求随后可立即启动下一阶段。
      */
     private synchronized void onSourceTerminated() {
         sourceActive = false;
         agentStreamLifecycle.cancelInteractionTimeout();
         runWorkspaceAudit();
-        if (!terminal && awaitingConfirm) {
+        if (!terminal && awaitingInteraction) {
             try {
-                completeAwaitConfirm();
-            } catch (RuntimeException awaitConfirmFailure) {
-                // 源流已经排空，待确认事实仍无法提交时转为失败终态，避免运行永久停留在 RUNNING。
-                log.error("Run进入待确认失败，收敛为失败终态: runId={}", run.getId(), awaitConfirmFailure);
+                completeAwaitInteraction();
+            } catch (RuntimeException awaitInteractionFailure) {
+                // 源流已经排空，待交互事实仍无法提交时转为失败终态，避免运行永久停留在 RUNNING。
+                log.error("Run进入待交互失败，收敛为失败终态: runId={}", run.getId(), awaitInteractionFailure);
                 finalizeFailed(
                         ChatRunFailureCode.AWAIT_CONFIRM_FAILED,
-                        ChatRunSnapshotSanitizer.safeMessage(awaitConfirmFailure));
+                        ChatRunSnapshotSanitizer.safeMessage(awaitInteractionFailure));
             }
         }
         if (terminal) {
@@ -363,38 +431,38 @@ public final class ChatExecutionInstance {
         return !sourceActive;
     }
 
-    private void completeAwaitConfirm() {
+    private void completeAwaitInteraction() {
         ChatRunSnapshot snapshot = accumulator.buildSnapshot();
-        // 先提交待确认快照，再向本地订阅者发布 interrupt，保证事实先于信号。
-        List<AguiEvent> events = pendingConfirmEvents;
+        // 先提交待交互快照，再向本地订阅者发布 interrupt，保证事实先于信号。
+        List<AguiEvent> events = pendingInteractionEvents;
         boolean awaiting;
         try {
             awaiting = runService.checkpoint(run, snapshot);
         } catch (RuntimeException awaitFailure) {
             // 独立事务回滚时 interrupt 尚未发布，运行保持 RUNNING，可由调用方重试。
-            awaitingConfirm = false;
-            pendingConfirmEvents = null;
-            log.error("Run进入待确认失败，保持运行态可重试: runId={}", run.getId(), awaitFailure);
+            awaitingInteraction = false;
+            pendingInteractionEvents = null;
+            log.error("Run进入待交互失败，保持运行态可重试: runId={}", run.getId(), awaitFailure);
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_AWAIT_CONFIRM_FAILED, run.getId());
         }
         if (!awaiting) {
-            // 终态会拒绝迟到的确认快照；不存在第二套待确认状态迁移。
-            awaitingConfirm = false;
-            pendingConfirmEvents = null;
-            adoptExternalTerminalIfRejected("Run待确认快照未写入: ");
+            // 终态会拒绝迟到的待交互快照；不存在第二套待交互状态迁移。
+            awaitingInteraction = false;
+            pendingInteractionEvents = null;
+            adoptExternalTerminalIfRejected("Run待交互快照未写入: ");
             return;
         }
         try {
             eventStore.appendAll(run.getId(), run.getAguiRunId(), events);
         } catch (RuntimeException publishFailure) {
-            // 待确认快照已经是事实；本地信号失败不能反向把 Run 终结为 FAILED。
-            // 浏览器重新连接后仍可从持久化快照恢复确认卡片。
-            log.warn("Run待确认快照已写入，但本地 interrupt 发布失败: runId={}", run.getId(), publishFailure);
+            // 待交互快照已经是事实；本地信号失败不能反向把 Run 终结为 FAILED。
+            // 浏览器重新连接后仍可从持久化快照恢复交互卡片。
+            log.warn("Run待交互快照已写入，但本地 interrupt 发布失败: runId={}", run.getId(), publishFailure);
         }
         cancelCheckpointTask();
         checkpointDirty = false;
-        awaitingConfirm = false;
-        pendingConfirmEvents = null;
+        awaitingInteraction = false;
+        pendingInteractionEvents = null;
     }
 
     private void appendAll(List<AguiEvent> events) {
@@ -405,11 +473,11 @@ public final class ChatExecutionInstance {
     }
 
     /**
-     * 事件批次写入后判断是否需要安排检查点：无增量、已终态或处于待确认态时跳过。
-     * 待确认态的快照由 {@code completeAwaitConfirm} 统一提交，不走延迟检查点。
+     * 事件批次写入后判断是否需要安排检查点：无增量、已终态或处于待交互态时跳过。
+     * 待交互态的快照由 {@code completeAwaitInteraction} 统一提交，不走延迟检查点。
      */
     private void maybeCheckpoint() {
-        if (!checkpointDirty || terminal || accumulator.hasPendingConfirmation()) {
+        if (!checkpointDirty || terminal || accumulator.hasPendingInteraction()) {
             return;
         }
         scheduleCheckpoint();
@@ -427,12 +495,12 @@ public final class ChatExecutionInstance {
     }
 
     /**
-     * 延迟检查点到期后的写入回调（实例锁内）：仍无增量、已终态或待确认时放弃，
+     * 延迟检查点到期后的写入回调（实例锁内）：仍无增量、已终态或待交互时放弃，
      * 写入失败时重新调度，依赖实例自驱重试而非全局扫描。
      */
     private synchronized void checkpointIfDirty() {
         checkpointTask = null;
-        if (!checkpointDirty || terminal || accumulator.hasPendingConfirmation()) {
+        if (!checkpointDirty || terminal || accumulator.hasPendingInteraction()) {
             return;
         }
         try {
@@ -478,8 +546,8 @@ public final class ChatExecutionInstance {
         }
         terminal = true;
         cancelCheckpointTask();
-        awaitingConfirm = false;
-        pendingConfirmEvents = null;
+        awaitingInteraction = false;
+        pendingInteractionEvents = null;
         if (status != ChatRunStatus.COMPLETED) {
             closePendingToolCalls();
         }
@@ -563,7 +631,7 @@ public final class ChatExecutionInstance {
         return new AguiBootstrapModel(
                 cursor,
                 AguiBootstrapEncoder.encode(run, accumulator.buildSnapshot()),
-                ChatRunStatus.isTerminal(run.getStatus()) || accumulator.hasPendingConfirmation());
+                ChatRunStatus.isTerminal(run.getStatus()) || accumulator.hasPendingInteraction());
     }
 
     /** 立即写入执行检查点并收缩事件缓冲区。抛 {@link IllegalStateException} 表示非终态运行的检查点失败。 */

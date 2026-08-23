@@ -15,6 +15,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @AutoConverter(target = ChatRunEntity.class, isReverse = true)
 @FieldMapping(target = "pendingConfirm", ignore = true)
+@FieldMapping(target = "pendingInputs", ignore = true)
 @Schema(description = "对话运行")
 public class ChatRun extends BaseVO<ChatRunEntity> {
 
@@ -25,10 +26,15 @@ public class ChatRun extends BaseVO<ChatRunEntity> {
     private Integer phaseNo;
     private String aguiRunId;
     private List<PendingTool> pendingConfirm;
+    private List<PendingInput> pendingInputs;
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;
     private String errorCode;
     private String errorMessage;
 
     public record PendingTool(String toolCallId, String toolName) {}
+
+    /** 挂起等待用户输入的工具调用：question/inputKind 供渲染，responseSchemaJson 供表单校验。 */
+    public record PendingInput(
+            String toolCallId, String toolCallName, String question, String inputKind, String responseSchemaJson) {}
 }

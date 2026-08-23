@@ -16,6 +16,7 @@ import java.util.List;
  * @param reasoningOpen 推理消息是否处于打开状态
  * @param tools 工具调用状态
  * @param pendingTools 待确认工具调用
+ * @param pendingInputs 待用户输入的挂起工具调用
  * @author Jin
  */
 public record ChatRunSnapshot(
@@ -29,7 +30,8 @@ public record ChatRunSnapshot(
         boolean textOpen,
         boolean reasoningOpen,
         List<ToolCall> tools,
-        List<ToolCall> pendingTools) {
+        List<ToolCall> pendingTools,
+        List<PendingInput> pendingInputs) {
 
     /** 归一化可空文本和工具调用集合。 */
     public ChatRunSnapshot {
@@ -37,6 +39,7 @@ public record ChatRunSnapshot(
         reasoning = reasoning == null ? "" : reasoning;
         tools = ChatRunSnapshotSanitizer.sanitizeTools(tools);
         pendingTools = ChatRunSnapshotSanitizer.sanitizePendingTools(pendingTools);
+        pendingInputs = ChatRunSnapshotSanitizer.sanitizePendingInputs(pendingInputs);
     }
 
     /**
@@ -48,11 +51,12 @@ public record ChatRunSnapshot(
      * @return 空执行快照
      */
     public static ChatRunSnapshot empty(String runId, String aguiRunId, int phaseNo) {
-        return new ChatRunSnapshot(runId, aguiRunId, phaseNo, "", "", null, null, false, false, List.of(), List.of());
+        return new ChatRunSnapshot(
+                runId, aguiRunId, phaseNo, "", "", null, null, false, false, List.of(), List.of(), List.of());
     }
 
     /**
-     * 生成下一确认阶段的持久化快照：保留累计内容与工具历史，关闭消息并清除待确认投影。
+     * 生成下一确认阶段的持久化快照：保留累计内容与工具历史，关闭消息并清除待确认与待输入投影。
      *
      * @param nextAguiRunId 下一阶段 AG-UI 运行标识
      * @param nextPhaseNo 下一阶段号
@@ -70,7 +74,13 @@ public record ChatRunSnapshot(
                 false,
                 false,
                 tools,
+                List.of(),
                 List.of());
+    }
+
+    /** 判断当前是否存在未决交互（待确认或待输入）。 */
+    public boolean hasPendingInteraction() {
+        return !pendingTools.isEmpty() || !pendingInputs.isEmpty();
     }
 
     /**
@@ -83,4 +93,16 @@ public record ChatRunSnapshot(
      * @param status 工具调用状态
      */
     public record ToolCall(String toolCallId, String toolCallName, String args, String result, String status) {}
+
+    /**
+     * 待用户输入的挂起工具调用快照。
+     *
+     * @param toolCallId 工具调用标识
+     * @param toolCallName 工具名称
+     * @param question 展示给用户的问题
+     * @param inputKind 交互类型：single_choice / multi_choice / text
+     * @param responseSchemaJson 恢复值 JSON Schema
+     */
+    public record PendingInput(
+            String toolCallId, String toolCallName, String question, String inputKind, String responseSchemaJson) {}
 }

@@ -72,7 +72,8 @@ class ChatRunCoordinatorStopTest {
                 false,
                 false,
                 List.of(),
-                List.of(new ChatRunSnapshot.ToolCall("call-1", "dangerous", "", "", "asking")))));
+                List.of(new ChatRunSnapshot.ToolCall("call-1", "dangerous", "", "", "asking")),
+                List.of())));
         ChatSessionEntity session = new ChatSessionEntity();
         session.setTenantId("tenant-1");
         when(instanceFactory.createAgentBacked(any(), any(), any(ScheduledExecutorService.class)))

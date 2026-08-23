@@ -8,6 +8,7 @@ import com.lambda.fusion.ai.chat.model.ChatSessionPage;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
 import com.lambda.fusion.ai.chat.model.CreateSession;
 import com.lambda.fusion.ai.chat.model.SendMessage;
+import com.lambda.fusion.ai.chat.model.SubmitToolInput;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.service.ChatMessageService;
 import com.lambda.fusion.ai.chat.service.ChatService;
@@ -115,6 +116,17 @@ public class ChatController {
             HttpServletResponse response) {
         prepareSseResponse(response);
         return chatService.confirm(id, runId, dto);
+    }
+
+    @Operation(summary = "提交指定Run的挂起工具输入(HITL, SSE)")
+    @PostMapping(value = "/{id}/runs/{runId}/input", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter submitInputRun(
+            @Parameter(description = "会话ID", required = true) @PathVariable String id,
+            @Parameter(description = "Run ID", required = true) @PathVariable String runId,
+            @RequestBody @Valid SubmitToolInput dto,
+            HttpServletResponse response) {
+        prepareSseResponse(response);
+        return chatService.submitInput(id, runId, dto);
     }
 
     @OperationLog

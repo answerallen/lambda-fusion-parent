@@ -504,6 +504,7 @@ public interface AiConstants {
         RUNNING("running"),
         COMPLETE("complete"),
         ASKING("asking"),
+        AWAITING_INPUT("awaiting_input"),
         UNKNOWN("unknown");
 
         private final String code;

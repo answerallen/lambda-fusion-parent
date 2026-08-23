@@ -296,7 +296,7 @@ class ChatRunCoordinatorConfirmTest {
                 .map(id -> new ChatRunSnapshot.ToolCall(id, "demo", "", "", "asking"))
                 .toList();
         ChatRunSnapshot snapshot = new ChatRunSnapshot(
-                "run-1", "phase-1", phaseNo, "", "", null, null, false, false, List.of(), pendingTools);
+                "run-1", "phase-1", phaseNo, "", "", null, null, false, false, List.of(), pendingTools, List.of());
         run.setSnapshotJson(io.agentscope.core.util.JsonUtils.getJsonCodec().toJson(snapshot));
         return run;
     }
