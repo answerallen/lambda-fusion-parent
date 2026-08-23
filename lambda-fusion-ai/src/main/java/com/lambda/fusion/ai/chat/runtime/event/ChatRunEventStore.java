@@ -62,11 +62,14 @@ public class ChatRunEventStore {
      *
      * @param runId 运行标识
      * @param aguiRunId AG-UI 运行标识
-     * @param aguiJson 已编码的终态 AG-UI 事件 JSON
+     * @param aguiEvent 终态 AG-UI 事件
+     * @param chatRunStatus 业务终态（写入事件元数据）
+     * @param finishReason 结束原因（写入事件元数据）
      * @return 写入或已存在的终态事件
      */
-    public ChatRunEvent appendTerminalIfAbsent(String runId, String aguiRunId, String aguiJson) {
-        return buffer(runId).appendTerminal(aguiJson, aguiRunId);
+    public ChatRunEvent appendTerminalIfAbsent(
+            String runId, String aguiRunId, AguiEvent aguiEvent, String chatRunStatus, String finishReason) {
+        return buffer(runId).appendTerminal(aguiEvent, aguiRunId, chatRunStatus, finishReason);
     }
 
     /**

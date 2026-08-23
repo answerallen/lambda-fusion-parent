@@ -29,6 +29,7 @@ import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
+import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.RequireUserConfirmEvent;
@@ -247,7 +248,8 @@ class ChatRunInstanceDrainTest {
                             command.errorMessage());
                 });
         lenient()
-                .when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
+                .when(eventStore.appendTerminalIfAbsent(
+                        anyString(), anyString(), any(AguiEvent.class), anyString(), anyString()))
                 .thenReturn(new ChatRunEvent(8L, "RUN_FINISHED", "{}"));
         lenient().when(eventStore.latestCursor(anyString())).thenReturn(1L);
     }

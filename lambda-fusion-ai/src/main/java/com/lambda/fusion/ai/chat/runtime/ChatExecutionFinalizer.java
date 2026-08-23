@@ -7,7 +7,6 @@ import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.ChatRunFinalizationCommand;
 import com.lambda.fusion.ai.chat.model.ChatRunFinalizationResult;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
-import com.lambda.fusion.ai.chat.runtime.agui.AguiEventJsonCodec;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
@@ -88,11 +87,8 @@ public final class ChatExecutionFinalizer {
                         run.getErrorCode())
                 : new AguiEvent.RunFinished(
                         run.getSessionId(), run.getAguiRunId(), null, new AguiEvent.RunFinishedSuccessOutcome());
-        String json = AguiEventJsonCodec.withTerminalMetadata(
-                AguiEventJsonCodec.encodeRunEvent(terminalEvent, run.getId(), run.getAguiRunId()),
-                actualStatus.name(),
-                run.getFinishReason());
-        eventStore.appendTerminalIfAbsent(run.getId(), run.getAguiRunId(), json);
+        eventStore.appendTerminalIfAbsent(
+                run.getId(), run.getAguiRunId(), terminalEvent, actualStatus.name(), run.getFinishReason());
         eventStore.markTerminal(
                 run.getId(), Duration.ofSeconds(properties.getChat().getRun().getTerminalTtlSeconds()));
     }

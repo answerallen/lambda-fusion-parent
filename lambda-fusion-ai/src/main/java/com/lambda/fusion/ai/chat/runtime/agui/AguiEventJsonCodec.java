@@ -49,13 +49,6 @@ public final class AguiEventJsonCodec {
         return enrichJson(encoded, Map.of("phaseNo", phaseNo));
     }
 
-    @SuppressWarnings("unchecked")
-    public static String readEventType(String json) {
-        Map<String, Object> event = JsonUtils.getJsonCodec().fromJson(json, Map.class);
-        Object type = event == null ? null : event.get("type");
-        return type == null ? null : String.valueOf(type);
-    }
-
     /** 为终态事件补充业务状态和结束原因。 */
     public static String withTerminalMetadata(String json, String status, String finishReason) {
         String trimmed = json.trim();

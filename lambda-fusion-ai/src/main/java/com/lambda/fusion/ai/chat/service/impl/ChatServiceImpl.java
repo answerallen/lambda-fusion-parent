@@ -1,7 +1,6 @@
 package com.lambda.fusion.ai.chat.service.impl;
 
 import com.lambda.cloud.core.utils.Assert;
-import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.AiProperties;
 import com.lambda.fusion.ai.chat.model.ChatRun;
 import com.lambda.fusion.ai.chat.model.ConfirmToolCall;
@@ -95,7 +94,7 @@ public class ChatServiceImpl implements ChatService {
             for (String event : aguiBootstrapModel.events()) {
                 emitter.send(SseEmitter.event().data(event));
             }
-            if (aguiBootstrapModel.phaseClosed() || ChatRunStatus.isTerminal(chatRunEntity.getStatus())) {
+            if (aguiBootstrapModel.phaseClosed()) {
                 emitter.complete();
                 return emitter;
             }

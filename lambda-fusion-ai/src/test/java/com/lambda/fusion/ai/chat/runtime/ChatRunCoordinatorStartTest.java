@@ -32,6 +32,7 @@ import com.lambda.fusion.ai.runtime.AgentFactory;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.message.Msg;
@@ -115,7 +116,8 @@ class ChatRunCoordinatorStartTest {
                             null,
                             null);
                 });
-        when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
+        when(eventStore.appendTerminalIfAbsent(
+                        anyString(), anyString(), any(AguiEvent.class), anyString(), anyString()))
                 .thenReturn(new ChatRunEvent(1L, "RUN_FINISHED", "{}"));
 
         coordinator.start(first, session);

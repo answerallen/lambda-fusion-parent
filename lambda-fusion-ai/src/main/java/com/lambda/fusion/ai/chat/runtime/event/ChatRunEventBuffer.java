@@ -71,20 +71,23 @@ final class ChatRunEventBuffer {
     }
 
     /**
-     * 幂等补写终态事件：已有终态时返回既有事件，否则编码入窗口并标记为终态。
+     * 幂等补写终态事件：已有终态时返回既有事件，否则编码、补充业务元数据后入窗口并标记为终态。
      *
-     * @param aguiJson 已编码的终态 AG-UI 事件 JSON
+     * @param aguiEvent 终态 AG-UI 事件
      * @param aguiRunId AG-UI 运行标识
+     * @param chatRunStatus 业务终态（写入事件元数据）
+     * @param finishReason 结束原因（写入事件元数据）
      * @return 写入或已存在的终态事件
      */
-    synchronized ChatRunEvent appendTerminal(String aguiJson, String aguiRunId) {
+    synchronized ChatRunEvent appendTerminal(
+            AguiEvent aguiEvent, String aguiRunId, String chatRunStatus, String finishReason) {
         if (terminal != null) {
             return terminal;
         }
+        String json = AguiEventJsonCodec.withTerminalMetadata(
+                AguiEventJsonCodec.encodeRunEvent(aguiEvent, runId, aguiRunId), chatRunStatus, finishReason);
         ChatRunEvent appended = new ChatRunEvent(
-                nextCursor,
-                AguiEventJsonCodec.readEventType(aguiJson),
-                AguiEventJsonCodec.withRunMetadata(aguiJson, runId, aguiRunId));
+                nextCursor, aguiEvent.getType().name(), AguiEventJsonCodec.withRunMetadata(json, runId, aguiRunId));
         commit(List.of(appended), true);
         return appended;
     }

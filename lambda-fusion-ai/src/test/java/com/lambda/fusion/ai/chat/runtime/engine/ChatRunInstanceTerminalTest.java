@@ -23,6 +23,7 @@ import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.service.ChatRunStateService;
 import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
+import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.message.Msg;
@@ -142,7 +143,8 @@ class ChatRunInstanceTerminalTest {
                         new ChatRunFinalizationResult(true, "COMPLETED", "SUCCESS", null, null),
                         new ChatRunFinalizationResult(false, "COMPLETED", "SUCCESS", null, null));
         when(runService.loadCurrentOrIdentity(run)).thenReturn(persisted);
-        when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
+        when(eventStore.appendTerminalIfAbsent(
+                        anyString(), anyString(), any(AguiEvent.class), anyString(), anyString()))
                 .thenThrow(new RuntimeException("event store unavailable"))
                 .thenReturn(new ChatRunEvent(8L, "RUN_FINISHED", "{}"));
 
@@ -150,7 +152,8 @@ class ChatRunInstanceTerminalTest {
 
         assertThat(instance.drainedSignal().toCompletableFuture()).succeedsWithin(Duration.ofSeconds(3));
         verify(runService, times(2)).finalizeExecution(eq(run), any(ChatRunFinalizationCommand.class));
-        verify(eventStore, times(2)).appendTerminalIfAbsent(anyString(), anyString(), anyString());
+        verify(eventStore, times(2))
+                .appendTerminalIfAbsent(anyString(), anyString(), any(AguiEvent.class), anyString(), anyString());
     }
 
     private void stubTerminalCommit() {
@@ -168,7 +171,8 @@ class ChatRunInstanceTerminalTest {
                                     : command.errorCode().name(),
                             command.errorMessage());
                 });
-        when(eventStore.appendTerminalIfAbsent(anyString(), anyString(), anyString()))
+        when(eventStore.appendTerminalIfAbsent(
+                        anyString(), anyString(), any(AguiEvent.class), anyString(), anyString()))
                 .thenReturn(new ChatRunEvent(8L, "RUN_FINISHED", "{}"));
     }
 

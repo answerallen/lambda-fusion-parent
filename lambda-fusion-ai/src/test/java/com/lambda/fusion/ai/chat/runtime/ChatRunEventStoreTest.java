@@ -128,9 +128,11 @@ class ChatRunEventStoreTest {
     @Test
     void shouldAppendTerminalOnlyOnce() {
         store = newStore(64, 64);
+        AguiEvent terminalEvent =
+                new AguiEvent.RunFinished("thread-1", "phase-1", null, new AguiEvent.RunFinishedSuccessOutcome());
 
-        ChatRunEvent first = store.appendTerminalIfAbsent("run-1", "phase-1", "{\"type\":\"RUN_FINISHED\"}");
-        ChatRunEvent retried = store.appendTerminalIfAbsent("run-1", "phase-1", "{\"type\":\"RUN_FINISHED\"}");
+        ChatRunEvent first = store.appendTerminalIfAbsent("run-1", "phase-1", terminalEvent, "COMPLETED", "SUCCESS");
+        ChatRunEvent retried = store.appendTerminalIfAbsent("run-1", "phase-1", terminalEvent, "COMPLETED", "SUCCESS");
 
         assertThat(retried).isEqualTo(first);
         assertThat(store.latestCursor("run-1")).isEqualTo(1L);

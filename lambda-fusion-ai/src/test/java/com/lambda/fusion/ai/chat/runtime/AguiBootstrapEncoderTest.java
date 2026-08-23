@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.lambda.fusion.ai.AiConstants.ChatRunStatus;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
+import io.agentscope.core.util.JsonUtils;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class AguiBootstrapEncoderTest {
@@ -46,7 +48,7 @@ class AguiBootstrapEncoderTest {
                 .anyMatch(event -> event.contains("\"type\":\"TEXT_MESSAGE_START\"")
                         && event.contains("\"messageId\":\"text-1\""));
         assertThat(events).noneMatch(event -> event.contains("\"type\":\"RAW\""));
-        assertThat(events.stream().map(AguiEventJsonCodec::readEventType))
+        assertThat(events.stream().map(AguiBootstrapEncoderTest::readEventType))
                 .containsExactly(
                         "RUN_STARTED",
                         "REASONING_START",
@@ -80,7 +82,7 @@ class AguiBootstrapEncoderTest {
 
         List<String> events = AguiBootstrapEncoder.encode(run, snapshot);
 
-        assertThat(events.stream().map(AguiEventJsonCodec::readEventType))
+        assertThat(events.stream().map(AguiBootstrapEncoderTest::readEventType))
                 .containsExactly(
                         "RUN_STARTED",
                         "REASONING_START",
@@ -182,5 +184,13 @@ class AguiBootstrapEncoderTest {
         run.setPhaseNo(2);
         run.setStatus(status.name());
         return run;
+    }
+
+    /** 从已编码事件 JSON 中读取 {@code type} 字段，仅供测试断言使用。 */
+    @SuppressWarnings("unchecked")
+    private static String readEventType(String json) {
+        Map<String, Object> event = JsonUtils.getJsonCodec().fromJson(json.trim(), Map.class);
+        Object type = event == null ? null : event.get("type");
+        return type == null ? null : String.valueOf(type);
     }
 }
