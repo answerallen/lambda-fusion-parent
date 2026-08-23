@@ -3,6 +3,7 @@ package com.lambda.fusion.ai.chat.runtime.agui;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventType;
+import io.agentscope.core.event.AgentResultEvent;
 import io.agentscope.core.event.RequireExternalExecutionEvent;
 import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.TextBlockDeltaEvent;
@@ -12,11 +13,16 @@ import io.agentscope.core.event.ToolCallStartEvent;
 import io.agentscope.core.event.ToolResultEndEvent;
 import io.agentscope.core.event.ToolResultStartEvent;
 import io.agentscope.core.event.ToolResultTextDeltaEvent;
+import io.agentscope.core.message.ContentBlock;
+import io.agentscope.core.message.GenerateReason;
+import io.agentscope.core.message.Msg;
+import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.message.ToolResultState;
 import io.agentscope.core.message.ToolUseBlock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,11 +69,46 @@ public final class AgentEventMapper {
             case TOOL_RESULT_END -> mapToolResultEnd(event, events);
             case REQUIRE_USER_CONFIRM -> mapRequireUserConfirm(event, events);
             case REQUIRE_EXTERNAL_EXECUTION -> mapRequireExternalExecution(event, events);
+            case AGENT_RESULT -> mapAgentResult(event, events);
             default -> {
                 // AGENT_END 由运行实例决定业务完成语义；其余事件当前没有对应的 UI 投影。
             }
         }
         return List.copyOf(events);
+    }
+
+    /**
+     * 判断事件是否为人机交互边界信号。
+     *
+     * <p>AgentScope 2.0.1 不会发出 {@code REQUIRE_EXTERNAL_EXECUTION} 事件：外部工具挂起以
+     * 根 {@code AgentResultEvent}（{@code GenerateReason.TOOL_SUSPENDED}）的形式出现在事件流中，
+     * 随后紧跟根 {@code AGENT_END}。此处统一判定两类信号，供运行实例与执行适配器复用。
+     *
+     * @param event 待判定的事件
+     * @return 是否为待交互边界信号
+     */
+    public static boolean isInteractionBoundary(AgentEvent event) {
+        if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM
+                || event.getType() == AgentEventType.REQUIRE_EXTERNAL_EXECUTION) {
+            return true;
+        }
+        return event instanceof AgentResultEvent result
+                && result.getSource() == null
+                && result.getResult() != null
+                && result.getResult().getGenerateReason() == GenerateReason.TOOL_SUSPENDED;
+    }
+
+    /**
+     * 判断事件是否为根级人机交互边界信号。
+     *
+     * <p>子 Agent 的确认或挂起事件不代表整个运行进入待交互，执行适配器据此只对根信号
+     * 裁剪源流；运行实例沿用 {@link #isInteractionBoundary} 的既有语义。
+     *
+     * @param event 待判定的事件
+     * @return 是否为根级待交互边界信号
+     */
+    public static boolean isRootInteractionBoundary(AgentEvent event) {
+        return event.getSource() == null && isInteractionBoundary(event);
     }
 
     /** 关闭本阶段已打开的文本/推理事件。 */
@@ -186,6 +227,45 @@ public final class AgentEventMapper {
                 .toList();
         out.add(new AguiEvent.RunFinished(
                 threadId, runId, null, new AguiEvent.RunFinishedInterruptOutcome(interrupts)));
+    }
+
+    /**
+     * 映射根阶段结果事件：AgentScope 2.0.1 中外部工具挂起的结果消息携带
+     * {@code GenerateReason.TOOL_SUSPENDED}，内容为成对的 ToolUseBlock 与挂起 ToolResultBlock。
+     * 与官方 {@code AgentLifecycleEventConverter} 一致，仅对挂起结果生成输入型 Interrupt。
+     *
+     * @param event 阶段结果事件
+     * @param out 输出事件列表
+     */
+    private void mapAgentResult(AgentEvent event, List<AguiEvent> out) {
+        if (!(event instanceof AgentResultEvent resultEvent) || event.getSource() != null) {
+            return;
+        }
+        Msg result = resultEvent.getResult();
+        if (result == null || result.getGenerateReason() != GenerateReason.TOOL_SUSPENDED) {
+            return;
+        }
+        Map<String, ToolUseBlock> toolUses = new LinkedHashMap<>();
+        for (ContentBlock block : result.getContent()) {
+            if (block instanceof ToolUseBlock toolUse && StringUtils.isNotBlank(toolUse.getId())) {
+                toolUses.put(toolUse.getId(), toolUse);
+            }
+        }
+        List<AguiEvent.Interrupt> interrupts = new ArrayList<>();
+        for (ContentBlock block : result.getContent()) {
+            if (block instanceof ToolResultBlock toolResult
+                    && toolResult.isSuspended()
+                    && StringUtils.isNotBlank(toolResult.getId())
+                    && toolUses.containsKey(toolResult.getId())) {
+                interrupts.add(InterruptFactory.inputInterrupt(toolUses.get(toolResult.getId())));
+            }
+        }
+        if (interrupts.isEmpty()) {
+            return;
+        }
+        closeActiveMessage(out);
+        out.add(new AguiEvent.RunFinished(
+                threadId, runId, null, new AguiEvent.RunFinishedInterruptOutcome(List.copyOf(interrupts))));
     }
 
     private static AguiEvent.RunFinishedInterruptOutcome buildInterruptOutcome(List<ToolUseBlock> blocks) {

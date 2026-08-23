@@ -35,7 +35,9 @@ import com.lambda.fusion.ai.runtime.workspace.WorkspaceAuditRecorder;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agui.event.AguiEvent;
 import io.agentscope.core.event.AgentEndEvent;
-import io.agentscope.core.event.RequireExternalExecutionEvent;
+import io.agentscope.core.event.AgentResultEvent;
+import io.agentscope.core.event.ToolResultEndEvent;
+import io.agentscope.core.message.GenerateReason;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.TextBlock;
@@ -105,15 +107,25 @@ class ChatRunCoordinatorInputTest {
         scheduler.shutdownNow();
     }
 
-    /** 挂起链路：REQUIRE_EXTERNAL_EXECUTION 后根 AGENT_END 结束源流，快照落 pendingInputs 并发布 interrupt。 */
+    /**
+     * 挂起链路（AgentScope 2.0.1 真实序列）：外部工具挂起不发 REQUIRE_EXTERNAL_EXECUTION，
+     * 而是发出 TOOL_RESULT_END(RUNNING) + 根 AGENT_RESULT(TOOL_SUSPENDED)，随后根 AGENT_END
+     * 结束源流，快照落 pendingInputs 并发布 interrupt。
+     */
     @Test
     void shouldCheckpointPendingInputsWhenExternalExecutionSuspends() {
         ChatRunEntity run = runningRun(1);
         ChatSessionEntity session = session();
         when(runService.checkpoint(eq(run), any(ChatRunSnapshot.class))).thenReturn(true);
+        ToolUseBlock toolUse = suspendedBlock("call_1");
+        Msg suspendedResult = Msg.builderForRole(MsgRole.ASSISTANT)
+                .content(List.of(toolUse, ToolResultBlock.suspended(toolUse)))
+                .generateReason(GenerateReason.TOOL_SUSPENDED)
+                .build();
         when(agent.streamEvents(any(Msg.class), any()))
                 .thenReturn(Flux.just(
-                        new RequireExternalExecutionEvent("reply-1", List.of(suspendedBlock("call_1"))),
+                        new ToolResultEndEvent("reply-1", "call_1", "ask_single_choice", ToolResultState.RUNNING),
+                        new AgentResultEvent(suspendedResult),
                         new AgentEndEvent("reply-1")));
 
         ChatExecutionInstance execution = instanceFactory.createAgentBacked(run, session, scheduler);
@@ -131,21 +143,23 @@ class ChatRunCoordinatorInputTest {
             assertThat(tool.toolCallId()).isEqualTo("call_1");
             assertThat(tool.status()).isEqualTo("awaiting_input");
         });
-        // interrupt 事件在快照提交后发布（事实先于信号）。
+        // interrupt 事件在快照提交后发布（事实先于信号）；事件按批次追加，断言跨批次进行。
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<AguiEvent>> eventsCaptor = ArgumentCaptor.forClass((Class) List.class);
-        verify(eventStore, timeout(2000)).appendAll(eq("run-1"), eq("agui-1"), eventsCaptor.capture());
-        assertThat(eventsCaptor.getValue()).anySatisfy(event -> {
-            assertThat(event).isInstanceOf(AguiEvent.RunFinished.class);
-            AguiEvent.RunFinished finished = (AguiEvent.RunFinished) event;
-            assertThat(finished.outcome()).isInstanceOf(AguiEvent.RunFinishedInterruptOutcome.class);
-            AguiEvent.RunFinishedInterruptOutcome outcome = (AguiEvent.RunFinishedInterruptOutcome) finished.outcome();
-            assertThat(outcome.interrupts()).anySatisfy(interrupt -> {
-                assertThat(interrupt.reason()).isEqualTo(InterruptFactory.REASON_INPUT_REQUIRED);
-                assertThat(interrupt.toolCallId()).isEqualTo("call_1");
-                assertThat(interrupt.responseSchema()).containsKey("properties");
-            });
-        });
+        verify(eventStore, timeout(2000).atLeastOnce()).appendAll(eq("run-1"), eq("agui-1"), eventsCaptor.capture());
+        assertThat(eventsCaptor.getAllValues().stream().flatMap(List::stream).toList())
+                .anySatisfy(event -> {
+                    assertThat(event).isInstanceOf(AguiEvent.RunFinished.class);
+                    AguiEvent.RunFinished finished = (AguiEvent.RunFinished) event;
+                    assertThat(finished.outcome()).isInstanceOf(AguiEvent.RunFinishedInterruptOutcome.class);
+                    AguiEvent.RunFinishedInterruptOutcome outcome =
+                            (AguiEvent.RunFinishedInterruptOutcome) finished.outcome();
+                    assertThat(outcome.interrupts()).anySatisfy(interrupt -> {
+                        assertThat(interrupt.reason()).isEqualTo(InterruptFactory.REASON_INPUT_REQUIRED);
+                        assertThat(interrupt.toolCallId()).isEqualTo("call_1");
+                        assertThat(interrupt.responseSchema()).containsKey("properties");
+                    });
+                });
     }
 
     /** 提交链路：合法单选值经三方校验后构造 TOOL 恢复消息并推进下一阶段。 */

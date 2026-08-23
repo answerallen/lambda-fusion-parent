@@ -44,7 +44,7 @@ public final class InterruptFactory {
     /**
      * 把一个挂起的交互工具调用构造为输入型 Interrupt。
      *
-     * @param tool 挂起的工具调用块（来自 RequireExternalExecutionEvent）
+     * @param tool 挂起的工具调用块（来自 {@code TOOL_SUSPENDED} 阶段结果或 RequireExternalExecutionEvent）
      * @return 携带 responseSchema 与交互元数据的 Interrupt 事件
      */
     public static AguiEvent.Interrupt inputInterrupt(ToolUseBlock tool) {

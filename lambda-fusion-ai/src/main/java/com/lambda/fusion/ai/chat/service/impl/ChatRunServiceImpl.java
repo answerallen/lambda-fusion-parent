@@ -205,12 +205,14 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
         }
         // ChatRun 不复制 AgentScope ASKING 状态；RUNNING 仅表示这次业务请求尚未终结。
+        // 确认与输入两类待交互投影共用本推进：待确认（ASKING）或待输入（AWAITING_INPUT）任一非空即可。
         if (!ChatRunStatus.RUNNING.name().equals(run.getStatus())
                 || snapshot == null
                 || !Objects.equals(snapshot.runId(), run.getId())
                 || !Objects.equals(snapshot.aguiRunId(), run.getAguiRunId())
                 || snapshot.phaseNo() != sourcePhaseNo
-                || snapshot.pendingTools().isEmpty()) {
+                || (snapshot.pendingTools().isEmpty()
+                        && snapshot.pendingInputs().isEmpty())) {
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_STATE_CONFLICT, run.getStatus());
         }
 

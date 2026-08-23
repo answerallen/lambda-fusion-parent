@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.chat.runtime.validator;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.lambda.fusion.ai.chat.model.SubmitToolInput;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.runtime.agui.InterruptFactory;
@@ -24,6 +23,7 @@ import java.util.function.Supplier;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import tools.jackson.databind.JsonNode;
 
 /**
  * HITL 挂起输入一致性校验：以「最后一条助手消息中无结果且非 ASKING 的工具调用块」为共同基准，
@@ -111,8 +111,8 @@ public class ToolInputValidator {
         switch (pending.inputKind() == null ? "" : pending.inputKind()) {
             case InterruptFactory.KIND_SINGLE_CHOICE -> {
                 requireTextual(value, input);
-                requireEnum(List.of(value.asText()), property, input);
-                resultText = value.asText();
+                requireEnum(List.of(value.asString()), property, input);
+                resultText = value.asString();
             }
             case InterruptFactory.KIND_MULTI_CHOICE -> {
                 if (!value.isArray()) {
@@ -120,10 +120,10 @@ public class ToolInputValidator {
                 }
                 List<String> values = new ArrayList<>();
                 for (JsonNode item : value) {
-                    if (item == null || !item.isTextual()) {
+                    if (item == null || !item.isString()) {
                         throw invalid("多选元素必须为字符串: " + input.getToolCallId());
                     }
-                    values.add(item.asText());
+                    values.add(item.asString());
                 }
                 requireEnum(values, property, input);
                 requireSize(values.size(), property, input);
@@ -132,10 +132,10 @@ public class ToolInputValidator {
             default -> {
                 requireTextual(value, input);
                 Integer maxLength = integer(property.get("maxLength"));
-                if (maxLength != null && value.asText().length() > maxLength) {
+                if (maxLength != null && value.asString().length() > maxLength) {
                     throw invalid("文本长度超过上限" + maxLength + ": " + input.getToolCallId());
                 }
-                resultText = value.asText();
+                resultText = value.asString();
             }
         }
         return ToolResultBlock.text(resultText)
@@ -167,15 +167,21 @@ public class ToolInputValidator {
     }
 
     private static void requireTextual(JsonNode value, SubmitToolInput.Input input) {
-        if (!value.isTextual()) {
+        if (!value.isString()) {
             throw invalid("输入值必须为字符串: " + input.getToolCallId());
         }
     }
 
-    /** 校验取值都在 schema 的选项枚举内。 */
+    /** 校验取值都在 schema 的选项枚举内（单选枚举在 property.enum，多选按 JSON Schema 规范在 items.enum）。 */
     private static void requireEnum(List<String> values, Map<String, Object> property, SubmitToolInput.Input input) {
-        Object enumNode = property.get("enum");
-        if (!(enumNode instanceof List<?> options) || options.isEmpty()) {
+        List<?> options = property.get("enum") instanceof List<?> direct && !direct.isEmpty()
+                ? direct
+                : property.get("items") instanceof Map<?, ?> items
+                                && items.get("enum") instanceof List<?> nested
+                                && !nested.isEmpty()
+                        ? nested
+                        : null;
+        if (options == null) {
             return;
         }
         Set<String> allowed = new HashSet<>();

@@ -2,6 +2,7 @@ package com.lambda.fusion.ai.chat.runtime;
 
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
 import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
+import com.lambda.fusion.ai.chat.runtime.agui.AgentEventMapper;
 import com.lambda.fusion.ai.exception.AiBusinessException;
 import com.lambda.fusion.ai.exception.AiErrorCode;
 import com.lambda.fusion.ai.runtime.gateway.FusionSubagentGateway;
@@ -26,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import reactor.core.publisher.Flux;
 
 /**
@@ -101,13 +103,16 @@ public final class AgentExecutionAdapter {
      * 记忆上下文），再发送根 {@code AGENT_END}，随后才通过 {@code concatWith} 订阅记忆冲刷和整理尾部。
      * 此处等待根结束事件后再取消上游，既保留可恢复的挂起状态，又避免记忆模型阻塞待交互快照落库。
      * 普通最终回答和子 Agent 事件不受影响。
+     *
+     * <p>注意 AgentScope 2.0.1 不发出 {@code REQUIRE_EXTERNAL_EXECUTION} 事件，外部工具挂起以
+     * 根 {@code AgentResultEvent}（{@code GenerateReason.TOOL_SUSPENDED}）的形式出现，判定逻辑见
+     * {@link AgentEventMapper#isInteractionBoundary}。
      */
     private Flux<AgentEvent> endAtHitlPhaseBoundary(Flux<AgentEvent> source) {
         return Flux.defer(() -> {
             AtomicBoolean awaitingInteraction = new AtomicBoolean();
             return source.doOnNext(event -> {
-                        if (isRootEvent(event, AgentEventType.REQUIRE_USER_CONFIRM)
-                                || isRootEvent(event, AgentEventType.REQUIRE_EXTERNAL_EXECUTION)) {
+                        if (AgentEventMapper.isRootInteractionBoundary(event)) {
                             awaitingInteraction.set(true);
                         }
                     })
@@ -147,14 +152,7 @@ public final class AgentExecutionAdapter {
      */
     public List<ToolUseBlock> readAskingToolBlocks() {
         try {
-            var state = agent.getDelegate().getAgentState(userId, sessionId);
-            if (state == null || state.getContext() == null) {
-                throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
-            }
-            Msg lastAssistant = lastAssistantMessage(state.getContext());
-            if (lastAssistant == null) {
-                throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
-            }
+            Msg lastAssistant = getLastAssistant();
             List<ToolUseBlock> asking = lastAssistant.getContentBlocks(ToolUseBlock.class).stream()
                     .filter(tool -> tool.getState() == ToolCallState.ASKING)
                     .toList();
@@ -169,6 +167,15 @@ public final class AgentExecutionAdapter {
             log.warn("读取 HITL Agent状态失败: runId={}", runId, error);
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
         }
+    }
+
+    private @NonNull Msg getLastAssistant() {
+        var state = getAgentState();
+        Msg lastAssistant = lastAssistantMessage(state.getContext());
+        if (lastAssistant == null) {
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
+        }
+        return lastAssistant;
     }
 
     /** 中断当前 Agent 状态会话。 */
@@ -193,10 +200,7 @@ public final class AgentExecutionAdapter {
      */
     public List<ToolUseBlock> readSuspendedToolBlocks() {
         try {
-            var state = agent.getDelegate().getAgentState(userId, sessionId);
-            if (state == null || state.getContext() == null) {
-                throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
-            }
+            var state = getAgentState();
             Msg lastAssistant = lastAssistantMessage(state.getContext());
             if (lastAssistant == null) {
                 throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
@@ -219,6 +223,14 @@ public final class AgentExecutionAdapter {
             log.warn("读取挂起工具调用失败: runId={}", runId, error);
             throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
         }
+    }
+
+    private @NonNull AgentState getAgentState() {
+        var state = agent.getDelegate().getAgentState(userId, sessionId);
+        if (state == null || state.getContext() == null) {
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
+        }
+        return state;
     }
 
     /**

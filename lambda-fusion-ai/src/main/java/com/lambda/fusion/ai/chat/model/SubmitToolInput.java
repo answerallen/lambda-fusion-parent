@@ -1,6 +1,5 @@
 package com.lambda.fusion.ai.chat.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -9,6 +8,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import lombok.Data;
+import tools.jackson.databind.JsonNode;
 
 /**
  * HITL 工具调用输入提交请求：用户对 {@code RequireExternalExecutionEvent} 挂起的交互工具调用

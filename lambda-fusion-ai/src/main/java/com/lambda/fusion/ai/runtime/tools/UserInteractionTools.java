@@ -10,8 +10,9 @@ import org.springframework.stereotype.Component;
  * 用户交互输入工具：单选、多选与文本补充输入。
  *
  * <p>三个工具均声明为 {@code externalTool}：Toolkit 跳过本地执行，AgentScope 以
- * {@code TOOL_SUSPENDED} 挂起运行并通过 {@code RequireExternalExecutionEvent} 交给前端
- * 渲染交互卡片；用户提交的选择或文本作为工具结果回传后，Agent 从挂起点直接续跑。
+ * {@code TOOL_SUSPENDED} 挂起运行，挂起信号经根 {@code AgentResultEvent} 进入事件流
+ * （2.0.1 不发出 {@code RequireExternalExecutionEvent}），由业务层映射为 {@code input_required}
+ * 中断交给前端渲染交互卡片；用户提交的选择或文本作为工具结果回传后，Agent 从挂起点直接续跑。
  * 方法体不会被框架调用，仅以 {@link ToolSuspendException} 兜底直接误调用。
  *
  * @author Jin

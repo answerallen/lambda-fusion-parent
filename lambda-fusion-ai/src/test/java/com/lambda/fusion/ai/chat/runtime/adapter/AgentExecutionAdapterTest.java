@@ -17,8 +17,10 @@ import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.event.AgentEndEvent;
 import io.agentscope.core.event.AgentEvent;
 import io.agentscope.core.event.AgentEventType;
+import io.agentscope.core.event.AgentResultEvent;
 import io.agentscope.core.event.RequireUserConfirmEvent;
 import io.agentscope.core.event.SubagentExposedEvent;
+import io.agentscope.core.message.GenerateReason;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.MsgRole;
 import io.agentscope.core.message.ToolCallState;
@@ -138,6 +140,61 @@ class AgentExecutionAdapterTest {
         List<AgentEvent> events = adapter.stream(userMessage()).collectList().block();
 
         assertThat(events).extracting(AgentEvent::getType).containsExactly(AgentEventType.AGENT_END);
+        assertThat(memoryTailSubscribed).isTrue();
+    }
+
+    @Test
+    void shouldEndAtRootAgentEndWhenToolSuspendedResultArrives() {
+        HarnessAgent agent = mock(HarnessAgent.class);
+        AtomicBoolean memoryTailSubscribed = new AtomicBoolean();
+        // AgentScope 2.0.1 真实序列：外部工具挂起以根 AGENT_RESULT(TOOL_SUSPENDED) 出现，不发 REQUIRE_EXTERNAL_EXECUTION。
+        ToolUseBlock toolUse = ToolUseBlock.builder()
+                .id("call-1")
+                .name("ask_single_choice")
+                .state(ToolCallState.SUBMITTED)
+                .build();
+        Msg suspended = Msg.builderForRole(MsgRole.ASSISTANT)
+                .content(List.of(toolUse, ToolResultBlock.suspended(toolUse)))
+                .generateReason(GenerateReason.TOOL_SUSPENDED)
+                .build();
+        AgentEvent result = new AgentResultEvent(suspended);
+        AgentEvent rootEnd = new AgentEndEvent("reply-1");
+        Flux<AgentEvent> source = Flux.concat(Flux.just(result, rootEnd), Flux.defer(() -> {
+            memoryTailSubscribed.set(true);
+            return Flux.empty();
+        }));
+        when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class))).thenReturn(source);
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-1");
+
+        List<AgentEvent> events = adapter.stream(userMessage()).collectList().block();
+
+        assertThat(events)
+                .extracting(AgentEvent::getType)
+                .containsExactly(AgentEventType.AGENT_RESULT, AgentEventType.AGENT_END);
+        assertThat(memoryTailSubscribed).isFalse();
+    }
+
+    @Test
+    void shouldKeepStreamForNormalAgentResult() {
+        HarnessAgent agent = mock(HarnessAgent.class);
+        AtomicBoolean memoryTailSubscribed = new AtomicBoolean();
+        Msg normal = Msg.builderForRole(MsgRole.ASSISTANT)
+                .textContent("done")
+                .generateReason(GenerateReason.MODEL_STOP)
+                .build();
+        Flux<AgentEvent> source =
+                Flux.concat(Flux.just(new AgentResultEvent(normal), new AgentEndEvent("reply-1")), Flux.defer(() -> {
+                    memoryTailSubscribed.set(true);
+                    return Flux.empty();
+                }));
+        when(agent.streamEvents(any(Msg.class), any(RuntimeContext.class))).thenReturn(source);
+        AgentExecutionAdapter adapter = new AgentExecutionAdapter(agent, run(), session(), "tenant-1");
+
+        List<AgentEvent> events = adapter.stream(userMessage()).collectList().block();
+
+        assertThat(events)
+                .extracting(AgentEvent::getType)
+                .containsExactly(AgentEventType.AGENT_RESULT, AgentEventType.AGENT_END);
         assertThat(memoryTailSubscribed).isTrue();
     }
 

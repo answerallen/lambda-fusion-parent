@@ -353,8 +353,7 @@ public final class ChatExecutionInstance {
             return;
         }
         List<AguiEvent> events = eventMapper.map(event);
-        if (event.getType() == AgentEventType.REQUIRE_USER_CONFIRM
-                || event.getType() == AgentEventType.REQUIRE_EXTERNAL_EXECUTION) {
+        if (AgentEventMapper.isInteractionBoundary(event)) {
             if (awaitingInteraction) {
                 return;
             }
