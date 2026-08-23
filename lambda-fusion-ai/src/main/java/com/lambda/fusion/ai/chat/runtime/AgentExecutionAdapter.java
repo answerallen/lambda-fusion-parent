@@ -209,5 +209,4 @@ public final class AgentExecutionAdapter {
         }
         delegate.saveAgentState(userId, sessionId);
     }
-
 }

@@ -129,12 +129,7 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                         .eq(ChatSessionEntity::getId, sessionId)
                         .set(ChatSessionEntity::getLastMessageAt, now)
                         .set(ChatSessionEntity::getUpdatedAt, now));
-        // 重新读取记录，返回插入和更新后的最终持久化状态。
-        ChatRunEntity persisted = runMapper.selectById(run.getId());
-        if (persisted == null) {
-            throw new AiBusinessException(AiErrorCode.CHAT_RUN_NOT_FOUND, run.getId());
-        }
-        return new RunContext(persisted, session, true);
+        return new RunContext(run, session, true);
     }
 
     /** 查询当前用户拥有的会话下唯一活跃 Run。 */
@@ -312,7 +307,8 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
             assistant = messageService.saveAssistantMessage(session, snapshot.text(), toolCallJson);
         }
         LocalDateTime now = LocalDateTime.now();
-        // 仅允许非终态记录写入终态；更新未命中表示其他并发方已先完成终结。
+        // 行已在上方 FOR UPDATE 锁内确认为非终态，notIn 终态前置条件属锁内双保险，正常不可能未命中；
+        // 真发生时抛 IllegalStateException，由上游按永久性失败处理（放弃重试、释放实例）。
         int changed = runMapper.update(
                 null,
                 new LambdaUpdateWrapper<ChatRunEntity>()
