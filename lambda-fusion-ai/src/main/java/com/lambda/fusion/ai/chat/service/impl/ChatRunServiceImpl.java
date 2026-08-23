@@ -44,18 +44,15 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 对话运行的唯一持久化服务：负责幂等创建、检查点写入、确认迁移与终态提交。
+ * 对话运行的唯一持久化服务，负责幂等创建、检查点写入、确认迁移与终态提交。同时实现
+ * {@link ChatRunService}（HTTP 编排入口，校验会话归属）与 {@link ChatRunStateService}
+ * （执行状态机入口，不做归属校验）；后者各方法在 {@link Propagation#REQUIRES_NEW}
+ * 独立事务中提交，保证执行流程后续失败时仍可依据已保存状态恢复。
  *
- * <p>调用面：一个实现同时服务两个接口。{@link ChatRunService} 面向 HTTP 编排，校验会话归属后返回视图；
- * {@link ChatRunStateService} 面向执行状态机，不校验归属，各迁移方法均在
- * {@link Propagation#REQUIRES_NEW} 独立事务中提交，保证执行流程后续失败时仍可根据已保存状态恢复。
- *
- * <p>状态模型：ChatRun 只保留 {@code RUNNING/COMPLETED/STOPPED/FAILED} 四个业务状态，
- * AgentScope 的执行会话与 ASKING 等底层状态不复制到本表。所有状态迁移都是带前置条件的
- * UPDATE（CAS），仅当影响一行时才算成功，迟到的写入会被已落终态的记录自然拒绝。
- *
- * <p>幂等：创建请求以 {@code clientRequestId} 去重，并以 {@code requestHash} 校验请求内容一致；
- * 终态提交遇到已有终态时不重复写入，直接返回既有结果。
+ * <p>ChatRun 只保留 {@code RUNNING/COMPLETED/STOPPED/FAILED} 四个业务状态，AgentScope
+ * 的执行会话与 ASKING 等底层状态不复制到本表。状态迁移均为带前置条件的 UPDATE（CAS），
+ * 只有影响一行才视为成功，终态会拒绝迟到的写入；创建请求以 {@code clientRequestId} 去重，
+ * 并用 {@code requestHash} 校验请求内容，重复终态提交幂等返回既有结果。
  *
  * @author Jin
  */
