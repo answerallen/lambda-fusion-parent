@@ -1,10 +1,10 @@
 package com.lambda.fusion.ai.runtime.tools;
 
+import com.lambda.fusion.ai.runtime.annotaion.AiTool;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import io.agentscope.core.tool.ToolSuspendException;
 import java.util.List;
-import org.springframework.stereotype.Component;
 
 /**
  * 用户交互输入工具：单选、多选与文本补充输入。
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  *
  * @author Jin
  */
-@Component
+@AiTool
 public class UserInteractionTools {
 
     /** 单选工具名。 */

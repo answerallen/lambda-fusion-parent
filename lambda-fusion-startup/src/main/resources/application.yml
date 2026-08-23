@@ -6,6 +6,9 @@ server:
     keep-alive-timeout: 300000
 ################################# Springboot 配置 #################################
 spring:
+  reactor:
+    debug-agent:
+      enabled: true
   application:
     name: lambda-fusion-admin
   datasource:
@@ -136,7 +139,7 @@ lambda:
       - name: default
         type: QINIU
         cdn: ${QINIU_CDN}
-        endpoint: s3.cn-north-1.qiniucs.com
+        endpoint: https://s3.cn-north-1.qiniucs.com
         accessKey: ${QINIU_ACCESS_KEY}
         secretKey: ${QINIU_SECRET_KEY}
         bucket: ${QINIU_BUCKET}

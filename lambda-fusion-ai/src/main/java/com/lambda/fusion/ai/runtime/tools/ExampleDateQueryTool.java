@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.runtime.tools;
 
+import com.lambda.fusion.ai.runtime.annotaion.AiTool;
 import com.lambda.fusion.ai.runtime.annotaion.RequireConfirm;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
@@ -7,7 +8,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 /**
  * 日期查询示例工具：演示 {@code @Tool} + {@link RequireConfirm}（HITL）。
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  * @author Jin
  */
 @Slf4j
-@Component
+@AiTool
 public class ExampleDateQueryTool {
 
     /** 工具名。 */

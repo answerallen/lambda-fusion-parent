@@ -274,7 +274,7 @@ POST /v1/ai/apps   { "appType":"WORKSPACE", "selfEvolve":true, "sandboxBackend":
 
 ## 扩展点
 
-- **自定义本地工具**：Spring Bean + AgentScope `@Tool` 方法，`ToolkitAssembler` 自动扫描。
+- **自定义本地工具**：类上标注 `@AiTool`（组合 `@Component`，须在组件扫描范围内），方法上标 AgentScope `@Tool`，`ToolkitAssembler` 启动时自动扫描；需 HITL 确认时方法级加 `@RequireConfirm` 或类级 `@AiTool(requireConfirm = true)`。按应用绑定、不参与全局扫描的工具（如 `KnowledgeRetrievalTool`）不加 `@AiTool`。
 - **自定义沙箱后端**：实现 `SandboxBackendProvider`，在 `AiConfigure.SandboxConfig` 中仿照现有后端加一个带 `@ConditionalOnClass` 的嵌套配置类。
 - **自定义状态存储后端**：在 `AiConfigure.StateStoreConfig` 中加嵌套配置类（对齐 MYSQL/POSTGRES 等现有实现）。
 - **自定义外部通道**：实现 `io.agentscope.harness.agent.gateway.channel.Channel`，声明为 Spring Bean，`ChannelLifecycle` 自动注册到 `ChannelManager` 并经 `HarnessGateway` 路由。入站消息在 `preferredAgentId`（或 `ChannelConfig.defaultAgentId`）填 `app:{appId}:t:{tenantId}` 指定目标 agent。

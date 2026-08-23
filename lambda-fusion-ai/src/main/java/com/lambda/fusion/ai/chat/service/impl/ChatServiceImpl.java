@@ -9,6 +9,7 @@ import com.lambda.fusion.ai.chat.model.RunContext;
 import com.lambda.fusion.ai.chat.model.SendMessage;
 import com.lambda.fusion.ai.chat.model.SubmitToolInput;
 import com.lambda.fusion.ai.chat.model.entity.ChatRunEntity;
+import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.ChatExecutionService;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEvent;
@@ -41,7 +42,7 @@ public class ChatServiceImpl implements ChatService {
         if (context.created()) {
             chatExecutionService.start(context.run(), context.session());
         }
-        return openRunEventStream(context.run());
+        return openRunEventStream(context.run(), context.session());
     }
 
     @Override
@@ -56,21 +57,22 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public SseEmitter resume(String sessionId, String runId) {
-        return openRunEventStream(chatRunService.loadOwned(sessionId, runId).run());
+        RunContext context = chatRunService.loadOwned(sessionId, runId);
+        return openRunEventStream(context.run(), context.session());
     }
 
     @Override
     public SseEmitter confirm(String sessionId, String runId, ConfirmToolCall command) {
         RunContext context = chatRunService.loadOwned(sessionId, runId);
         ConfirmTransition transition = chatExecutionService.confirm(context.run(), context.session(), command);
-        return openRunEventStream(transition.run());
+        return openRunEventStream(transition.run(), transition.session());
     }
 
     @Override
     public SseEmitter submitInput(String sessionId, String runId, SubmitToolInput command) {
         RunContext context = chatRunService.loadOwned(sessionId, runId);
         ConfirmTransition transition = chatExecutionService.submitInput(context.run(), context.session(), command);
-        return openRunEventStream(transition.run());
+        return openRunEventStream(transition.run(), transition.session());
     }
 
     @Override
@@ -79,7 +81,7 @@ public class ChatServiceImpl implements ChatService {
         chatExecutionService.stop(context.run(), context.session());
     }
 
-    private SseEmitter openRunEventStream(ChatRunEntity chatRunEntity) {
+    private SseEmitter openRunEventStream(ChatRunEntity chatRunEntity, ChatSessionEntity chatSessionEntity) {
         long timeout = properties.getChat().getRun().getConnectionTimeoutSeconds() * 1000;
         SseEmitter emitter = new SseEmitter(timeout);
         AtomicBoolean detached = new AtomicBoolean();
@@ -98,7 +100,7 @@ public class ChatServiceImpl implements ChatService {
         emitter.onError(error -> runnable.run());
 
         try {
-            AguiBootstrapModel aguiBootstrapModel = chatExecutionService.bootstrap(chatRunEntity);
+            AguiBootstrapModel aguiBootstrapModel = chatExecutionService.bootstrap(chatRunEntity, chatSessionEntity);
             for (String event : aguiBootstrapModel.events()) {
                 emitter.send(SseEmitter.event().data(event));
             }

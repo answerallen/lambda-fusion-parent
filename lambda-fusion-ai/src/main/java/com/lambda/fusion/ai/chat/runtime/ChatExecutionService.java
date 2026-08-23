@@ -16,6 +16,7 @@ import com.lambda.fusion.ai.chat.model.entity.ChatSessionEntity;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapEncoder;
 import com.lambda.fusion.ai.chat.runtime.agui.AguiBootstrapModel;
 import com.lambda.fusion.ai.chat.runtime.event.ChatRunEventStore;
+import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshot;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotCodec;
 import com.lambda.fusion.ai.chat.runtime.snapshot.ChatRunSnapshotSanitizer;
 import com.lambda.fusion.ai.chat.service.ChatAttachmentService;
@@ -198,18 +199,25 @@ public class ChatExecutionService {
     }
 
     /**
-     * 生成运行的 AG-UI 引导事件。
+     * 生成运行的 AG-UI 引导事件。本节点无实例的 RUNNING 运行已无实时流可续接：存在待交互投影的
+     * HITL 挂起仍可由用户显式确认或输入恢复；其余视为进程重启遗留的孤儿运行，收敛为失败终态，
+     * 使重连方获得明确终局并解除会话的活动运行锁。
      *
      * @param run 运行实体
+     * @param session 会话实体
      * @return 引导事件批次
      */
-    public AguiBootstrapModel bootstrap(ChatRunEntity run) {
+    public AguiBootstrapModel bootstrap(ChatRunEntity run, ChatSessionEntity session) {
         ChatExecutionInstance execution = registry.get(run.getId());
         if (execution != null) {
             return execution.bootstrap();
         }
         ChatRunEntity current = runService.loadCurrentOrIdentity(run);
-        var snapshot = ChatRunSnapshotCodec.decode(current.getSnapshotJson());
+        ChatRunSnapshot snapshot = ChatRunSnapshotCodec.decode(current.getSnapshotJson());
+        if (isOrphanedRun(current, snapshot)) {
+            current = finalizeOrphaned(current, session);
+            snapshot = ChatRunSnapshotCodec.decode(current.getSnapshotJson());
+        }
         long cursor = eventStore.latestCursor(current.getId());
         return new AguiBootstrapModel(
                 cursor,
@@ -217,6 +225,38 @@ public class ChatExecutionService {
                 ChatRunStatus.isTerminal(current.getStatus())
                         || snapshot.hasPendingInteraction()
                         || !eventStore.contains(current.getId()));
+    }
+
+    /** 判定无本地实例的运行是否为孤儿：仍处 RUNNING 且无待交互投影（HITL 挂起由确认/输入路径恢复）。 */
+    private static boolean isOrphanedRun(ChatRunEntity run, ChatRunSnapshot snapshot) {
+        return ChatRunStatus.RUNNING.name().equals(run.getStatus()) && !snapshot.hasPendingInteraction();
+    }
+
+    /**
+     * 收敛孤儿运行为失败终态：优先用带 Agent 的实例补写未决工具调用（中断多发生在工具执行中，
+     * 遗留未决调用会阻塞该状态会话的后续请求），Agent 状态不可用时降级为纯终结实例。
+     * 落终态后回读数据库权威状态，使引导事件按终态编码。
+     *
+     * @param run 运行实体
+     * @param session 会话实体
+     * @return 终态后的运行实体
+     */
+    private ChatRunEntity finalizeOrphaned(ChatRunEntity run, ChatSessionEntity session) {
+        log.warn("Run无本地实例且无待交互投影，按服务重启中断收敛: runId={}", run.getId());
+        return TenantUtils.withTenant(session.getTenantId(), () -> {
+            createOrphanExecution(run, session).finalizeFailed(ChatRunFailureCode.INTERRUPTED, "服务重启导致对话运行中断，请重新发送消息");
+            return runService.loadCurrentOrIdentity(run);
+        });
+    }
+
+    /** 为孤儿运行构造终结实例：优先带 Agent 以补写拒绝结果清理 AgentScope 未决工具调用，失败时降级为纯终结。 */
+    private ChatExecutionInstance createOrphanExecution(ChatRunEntity run, ChatSessionEntity session) {
+        try {
+            return instanceFactory.createAgentBacked(run, session, scheduler);
+        } catch (RuntimeException stateUnavailable) {
+            log.warn("收敛孤儿Run时无法清理AgentScope未决工具调用，仅提交业务终态: runId={}", run.getId(), stateUnavailable);
+            return instanceFactory.createTerminalOnly(run, session, scheduler);
+        }
     }
 
     /**

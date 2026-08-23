@@ -10,6 +10,7 @@ import com.lambda.cloud.netty.protocol.engine.impl.ReflectionProtocolEngine;
 import com.lambda.cloud.netty.protocol.message.ProtocolPayloadRegistry;
 import com.lambda.cloud.netty.protocol.scanner.ProtocolPayloadScanner;
 import com.lambda.cloud.ykc.message.v16.YkcV16BasePayload;
+import com.lambda.fusion.ai.runtime.annotaion.AiTool;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
 import io.netty.buffer.ByteBuf;
@@ -20,9 +21,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import jodd.exception.ExceptionUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 /**
@@ -36,7 +37,7 @@ import org.springframework.util.StringUtils;
  * @author zx
  */
 @Slf4j
-@Component
+@AiTool
 public class YkcFrameParseTool {
 
     /** 工具名。 */
@@ -115,8 +116,12 @@ public class YkcFrameParseTool {
             YkcV16BasePayload base = engine.parse(buf, YkcV16BasePayload.class);
             return render(base);
         } catch (Exception e) {
-            log.warn("v1.6 帧解析失败: frameType=0x{}, reason={}", frameType, e.getMessage());
-            return "解析失败（帧类型 0x" + frameType + "）：" + e.getMessage();
+
+            log.warn(
+                    "v1.6 帧解析失败: frameType=0x{}, reason={}",
+                    frameType,
+                    ExceptionUtil.getRootCause(e).getMessage());
+            return "解析失败（帧类型 0x" + frameType + "）：" + ExceptionUtil.getRootCause(e);
         }
     }
 

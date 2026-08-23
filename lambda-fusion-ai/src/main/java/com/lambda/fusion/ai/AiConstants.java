@@ -494,7 +494,8 @@ public interface AiConstants {
         ERROR,
         START_FAILED,
         STATE_CONFLICT,
-        AWAIT_CONFIRM_FAILED
+        AWAIT_CONFIRM_FAILED,
+        INTERRUPTED
     }
 
     /** 工具调用状态，持久化字面量为小写 code。 */

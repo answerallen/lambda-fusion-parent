@@ -42,7 +42,7 @@ class ChatServiceImplConfirmTest {
         ChatSessionEntity session = session();
         SendMessage message = message();
         when(runService.createOrLoad("session-1", message)).thenReturn(new RunContext(run, session, true));
-        when(chatExecutionService.bootstrap(run)).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
+        when(chatExecutionService.bootstrap(run, session)).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
 
         assertThat(chatService.streamChat("session-1", message)).isNotNull();
 
@@ -55,7 +55,7 @@ class ChatServiceImplConfirmTest {
         ChatSessionEntity session = session();
         SendMessage message = message();
         when(runService.createOrLoad("session-1", message)).thenReturn(new RunContext(run, session, false));
-        when(chatExecutionService.bootstrap(run)).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
+        when(chatExecutionService.bootstrap(run, session)).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
 
         assertThat(chatService.streamChat("session-1", message)).isNotNull();
 
@@ -87,12 +87,12 @@ class ChatServiceImplConfirmTest {
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
         when(chatExecutionService.confirm(run, session, command))
                 .thenReturn(new ConfirmTransition(transitioned, session, true));
-        when(chatExecutionService.bootstrap(any())).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
+        when(chatExecutionService.bootstrap(any(), any())).thenReturn(new AguiBootstrapModel(0L, List.of(), true));
 
         SseEmitter emitter = chatService.confirm("session-1", "run-1", command);
 
         assertThat(emitter).isNotNull();
-        verify(chatExecutionService).bootstrap(transitioned);
+        verify(chatExecutionService).bootstrap(transitioned, session);
     }
 
     @Test
@@ -105,27 +105,28 @@ class ChatServiceImplConfirmTest {
         when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
         when(chatExecutionService.confirm(run, session, command))
                 .thenReturn(new ConfirmTransition(transitioned, session, false));
-        when(chatExecutionService.bootstrap(any())).thenReturn(new AguiBootstrapModel(0L, List.of(), false));
+        when(chatExecutionService.bootstrap(any(), any())).thenReturn(new AguiBootstrapModel(0L, List.of(), false));
         when(eventStore.subscribe(any(), anyLong(), any(), any())).thenReturn(mock());
 
         SseEmitter emitter = chatService.confirm("session-1", "run-1", command);
 
         assertThat(emitter).isNotNull();
-        verify(chatExecutionService).bootstrap(transitioned);
+        verify(chatExecutionService).bootstrap(transitioned, session);
     }
 
     @Test
     void shouldFallBackToPersistedBootstrapWhenRealtimeEventsAreNotLocal() {
         ChatRunEntity run = run(ChatRunStatus.RUNNING, 2);
-        when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session()));
+        ChatSessionEntity session = session();
+        when(runService.loadOwned("session-1", "run-1")).thenReturn(new RunContext(run, session));
         when(eventStore.subscribe(any(), anyLong(), any(), any()))
                 .thenThrow(new AiBusinessException(AiErrorCode.CHAT_RUN_EVENTS_EXPIRED, "run-1"));
-        when(chatExecutionService.bootstrap(run)).thenReturn(new AguiBootstrapModel(7L, List.of(), true));
+        when(chatExecutionService.bootstrap(run, session)).thenReturn(new AguiBootstrapModel(7L, List.of(), true));
 
         SseEmitter emitter = chatService.resume("session-1", "run-1");
 
         assertThat(emitter).isNotNull();
-        verify(chatExecutionService).bootstrap(run);
+        verify(chatExecutionService).bootstrap(run, session);
     }
 
     private static ChatRunEntity run(ChatRunStatus status, int phaseNo) {

@@ -1,5 +1,6 @@
 package com.lambda.fusion.ai.runtime.tools;
 
+import com.lambda.fusion.ai.runtime.annotaion.AiTool;
 import com.lambda.fusion.ai.runtime.gateway.RuntimeProperty;
 import com.lambda.fusion.authority.api.RemoteUser;
 import com.lambda.fusion.authority.api.RemoteUserService;
@@ -8,7 +9,6 @@ import io.agentscope.core.tool.Tool;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 /**
@@ -25,7 +25,7 @@ import org.springframework.util.StringUtils;
  * @author zx
  */
 @Slf4j
-@Component
+@AiTool
 public class CurrentUserQueryTool {
 
     /** 工具名。 */
