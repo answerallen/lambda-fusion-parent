@@ -404,6 +404,10 @@ public final class ChatExecutionInstance {
         eventStore.appendAll(run.getId(), run.getAguiRunId(), events);
     }
 
+    /**
+     * 事件批次写入后判断是否需要安排检查点：无增量、已终态或处于待确认态时跳过。
+     * 待确认态的快照由 {@code completeAwaitConfirm} 统一提交，不走延迟检查点。
+     */
     private void maybeCheckpoint() {
         if (!checkpointDirty || terminal || accumulator.hasPendingConfirmation()) {
             return;
@@ -422,6 +426,10 @@ public final class ChatExecutionInstance {
                 TimeUnit.SECONDS);
     }
 
+    /**
+     * 延迟检查点到期后的写入回调（实例锁内）：仍无增量、已终态或待确认时放弃，
+     * 写入失败时重新调度，依赖实例自驱重试而非全局扫描。
+     */
     private synchronized void checkpointIfDirty() {
         checkpointTask = null;
         if (!checkpointDirty || terminal || accumulator.hasPendingConfirmation()) {
@@ -450,6 +458,19 @@ public final class ChatExecutionInstance {
         finalizeTerminal(ChatRunStatus.FAILED, ChatRunFinishReason.ERROR, errorCode, errorMessage);
     }
 
+    /**
+     * 终态提交的唯一入口：置终态标志、取消检查点任务并清理待确认中间态，
+     * 依次关闭打开的消息流、写入关闭事件，最后提交业务终态与最终快照。
+     *
+     * <p>非 COMPLETED 终态会通过适配器拒绝未决的工具调用（denyPendingToolCalls）。数据库提交失败交给
+     * {@code handleFinalizeFailure} 退避重试；成功且无活动源流时立即完成排空信号，
+     * 否则由 {@code onSourceTerminated} 在源流排空后完成。
+     *
+     * @param status 终态状态
+     * @param reason 结束原因
+     * @param errorCode 失败码；非 FAILED 终态为 {@code null}
+     * @param errorMessage 失败消息；非 FAILED 终态为 {@code null}
+     */
     private synchronized void finalizeTerminal(
             ChatRunStatus status, ChatRunFinishReason reason, ChatRunFailureCode errorCode, String errorMessage) {
         if (terminal) {
@@ -574,6 +595,7 @@ public final class ChatExecutionInstance {
         }
     }
 
+    /** 取消未执行的延迟检查点任务并清空引用；允许重复调用。 */
     private void cancelCheckpointTask() {
         if (checkpointTask != null) {
             checkpointTask.cancel(false);

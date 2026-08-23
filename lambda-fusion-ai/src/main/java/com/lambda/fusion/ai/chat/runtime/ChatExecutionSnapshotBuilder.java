@@ -107,6 +107,14 @@ public final class ChatExecutionSnapshotBuilder {
         }
     }
 
+    /**
+     * 应用单个已标准化的 AG-UI 事件，按事件类型分派到文本、推理、工具调用或中断投影。
+     *
+     * <p>文本与推理互斥：任一侧开始即关闭另一侧的未闭合消息。生命周期、状态和自定义事件
+     * 不属于浏览器恢复快照，直接忽略。
+     *
+     * @param event 已标准化的 AG-UI 事件
+     */
     private void apply(AguiEvent event) {
         switch (event) {
             case AguiEvent.TextMessageStart start -> {
@@ -136,6 +144,7 @@ public final class ChatExecutionSnapshotBuilder {
         }
     }
 
+    /** 追加工具调用参数增量：在已有参数尾部拼接 {@code delta}，状态保持 RUNNING。 */
     private void appendToolArgs(String toolCallId, String delta) {
         ChatRunSnapshot.ToolCall current = findTool(toolCallId);
         upsertTool(
@@ -146,14 +155,22 @@ public final class ChatExecutionSnapshotBuilder {
                 ChatRunToolStatus.RUNNING.getCode());
     }
 
+    /** 补写工具调用结果并置为 COMPLETE。 */
     private void setToolResult(String toolCallId, String result) {
         upsertTool(toolCallId, null, null, result, ChatRunToolStatus.COMPLETE.getCode());
     }
 
+    /** 仅更新工具调用状态。 */
     private void setToolStatus(String toolCallId, String status) {
         upsertTool(toolCallId, null, null, null, status);
     }
 
+    /**
+     * 处理阶段结束事件中的中断结果：把待确认工具补写为 ASKING 投影并记录为 {@code pendingTools}，
+     * 同时关闭未闭合的文本与推理消息，进入待确认状态。
+     *
+     * @param outcome 阶段结束结果；非中断结果（正常完成等）不改变投影
+     */
     private void applyInterrupts(AguiEvent.RunFinishedOutcome outcome) {
         if (!(outcome instanceof AguiEvent.RunFinishedInterruptOutcome(List<AguiEvent.Interrupt> interrupts))) {
             return;
@@ -199,10 +216,21 @@ public final class ChatExecutionSnapshotBuilder {
         return !pendingTools.isEmpty();
     }
 
+    /** 查找工具调用的当前投影；不存在时返回 {@code null}。 */
     private ChatRunSnapshot.ToolCall findTool(String toolCallId) {
         return tools.get(toolCallId);
     }
 
+    /**
+     * 按 {@code toolCallId} 插入或合并工具调用投影：传入 {@code null} 的字段沿用已有投影值，
+     * 非空字段覆盖；没有已有投影时空字段落到空串（状态除外，仍可能为 {@code null}）。
+     *
+     * @param toolCallId 工具调用标识
+     * @param toolCallName 工具名；{@code null} 表示保持不变
+     * @param args 工具参数（全量）；{@code null} 表示保持不变
+     * @param result 工具结果；{@code null} 表示保持不变
+     * @param status 工具状态码；{@code null} 表示保持不变
+     */
     private void upsertTool(String toolCallId, String toolCallName, String args, String result, String status) {
         ChatRunSnapshot.ToolCall current = tools.get(toolCallId);
         String nextName = toolCallName == null && current != null ? current.toolCallName() : safe(toolCallName);
@@ -212,6 +240,7 @@ public final class ChatExecutionSnapshotBuilder {
         tools.put(toolCallId, new ChatRunSnapshot.ToolCall(toolCallId, nextName, nextArgs, nextResult, nextStatus));
     }
 
+    /** 把 {@code null} 规整为空串，避免快照投影携带空值。 */
     private static String safe(String value) {
         return value == null ? "" : value;
     }

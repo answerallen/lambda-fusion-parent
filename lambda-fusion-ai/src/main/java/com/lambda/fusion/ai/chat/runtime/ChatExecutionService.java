@@ -232,6 +232,13 @@ public class ChatExecutionService {
         scheduler.shutdown();
     }
 
+    /**
+     * 在调度线程上执行注册实例的首个阶段：装配用户消息（含附件与应用上下文）后交给实例启动。
+     *
+     * <p>用户消息或应用缺失视为启动失败，统一落 {@code START_FAILED} 终态并释放实例。
+     *
+     * @param execution 已注册的执行实例
+     */
     private void startExecution(ChatExecutionInstance execution) {
         ChatRunEntity run = execution.run();
         try {
@@ -249,11 +256,30 @@ public class ChatExecutionService {
         }
     }
 
+    /**
+     * 启动被拒或构造失败时的兜底路径：用无 Agent 的纯终结实例提交 {@code START_FAILED} 终态，
+     * 保证 Run 不会停留在 RUNNING 状态。
+     *
+     * @param run 运行实体
+     * @param session 会话实体
+     * @param failure 启动失败原因
+     */
     private void failStart(ChatRunEntity run, ChatSessionEntity session, RuntimeException failure) {
         ChatExecutionInstance rejected = instanceFactory.createTerminalOnly(run, session, scheduler);
         rejected.finalizeFailed(ChatRunFailureCode.START_FAILED, ChatRunSnapshotSanitizer.safeMessage(failure));
     }
 
+    /**
+     * 为本地无活动实例的停止请求构造替代执行实例。
+     *
+     * <p>无待确认工具时用纯终结实例直接落 STOPPED；HITL 暂停中则优先用带 Agent 的实例补写
+     * 拒绝结果、清理 AgentScope ASKING 状态，Agent 状态不可用时降级为纯终结实例。
+     *
+     * @param run 运行实体（已加载当前状态）
+     * @param session 会话实体
+     * @param noPendingConfirmation 快照中是否存在待确认工具（无则允许纯终结）
+     * @return 承接停止请求的执行实例
+     */
     private ChatExecutionInstance createStoppedExecution(
             ChatRunEntity run, ChatSessionEntity session, boolean noPendingConfirmation) {
         if (noPendingConfirmation) {

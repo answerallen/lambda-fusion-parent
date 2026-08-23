@@ -35,8 +35,16 @@ public class ChatExecutionInstanceFactory {
     private final AiProperties properties;
 
     /**
-     * 构造带 Agent 的完整执行实例：用于当前节点新 Run 启动，或为已持久化在 HITL 边界的 Run
-     * 重建本地确认上下文（仅在用户显式确认或停止时调用，不启动旧阶段、不接管正在执行的工具）。
+     * 构造带 Agent 的完整执行实例，并把该 Run 注册为本地活跃运行。
+     *
+     * <p>适用场景：新 Run 启动，或为已持久化在 HITL 边界的 Run 重建本地确认上下文
+     * （仅在用户显式确认或停止时调用）。构造时获取或构建 Agent，并完成子智能体网关装配；
+     * 不重启旧阶段、不接管正在执行的工具。
+     *
+     * @param run 运行实体
+     * @param session 会话实体
+     * @param scheduler 调度器，由协调器按次传入，实例不自建
+     * @return 带 Agent 的执行实例
      */
     public ChatExecutionInstance createAgentBacked(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
@@ -44,6 +52,7 @@ public class ChatExecutionInstanceFactory {
         return newInstance(run, session, scheduler, createAgentExecution(run, session));
     }
 
+    /** 构建执行适配器：按需获取或构建 Agent，装配子智能体网关（若可用）并绑定租户上下文。 */
     private AgentExecutionAdapter createAgentExecution(ChatRunEntity run, ChatSessionEntity session) {
         String tenantId = tenantId(session);
         HarnessAgent agent = agentFactory.getOrBuild(session.getAppId(), tenantId);
@@ -54,12 +63,21 @@ public class ChatExecutionInstanceFactory {
         return new AgentExecutionAdapter(agent, run, session, tenantId, subagentGateway);
     }
 
-    /** 构造无 Agent 的纯终结实例（仅用于落终态，不闭合或恢复 Agent 状态）。 */
+    /**
+     * 构造无 Agent 的纯终结实例：仅用于落终态，不闭合或恢复 Agent 状态，
+     * 也不会把 Run 注册为本地活跃运行。
+     *
+     * @param run 运行实体
+     * @param session 会话实体
+     * @param scheduler 调度器，由协调器按次传入
+     * @return 无 Agent 的终结实例
+     */
     public ChatExecutionInstance createTerminalOnly(
             ChatRunEntity run, ChatSessionEntity session, ScheduledExecutorService scheduler) {
         return newInstance(run, session, scheduler, null);
     }
 
+    /** 组装实例的公共部分：解码持久化快照，聚合所有构造依赖。 */
     private ChatExecutionInstance newInstance(
             ChatRunEntity run,
             ChatSessionEntity session,

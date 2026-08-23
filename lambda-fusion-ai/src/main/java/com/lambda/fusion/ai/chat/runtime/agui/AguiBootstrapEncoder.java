@@ -29,6 +29,14 @@ public final class AguiBootstrapEncoder {
                 Map.of("toolName", toolName));
     }
 
+    /**
+     * 根据运行实体与快照重建引导事件序列：RunStarted -> 推理 -> 工具调用 -> 文本 -> 终态/中断。
+     * 事件顺序模拟真实流式过程，保证前端渲染出与断线前一致的助手气泡。
+     *
+     * @param run 运行实体（含状态与终态信息）
+     * @param snapshot 已持久化的执行快照
+     * @return 编码后的引导事件 JSON 列表
+     */
     public static List<String> encode(ChatRunEntity run, ChatRunSnapshot snapshot) {
         EventCollector collector = new EventCollector(run);
         collector.add(new AguiEvent.RunStarted(run.getSessionId(), run.getAguiRunId(), null, null), run.getPhaseNo());
@@ -42,6 +50,14 @@ public final class AguiBootstrapEncoder {
         return collector.events();
     }
 
+    /**
+     * 重建推理气泡：快照推理未闭合且已有工具调用时，先闭合本段、待工具调用输出后再重开
+     *（工具事件必须落在两条消息之间），此时返回 {@code true} 由调用方重开。
+     *
+     * @param collector 事件收集器
+     * @param snapshot 执行快照
+     * @return 是否需要在工具调用后重开推理消息
+     */
     private static boolean appendReasoning(EventCollector collector, ChatRunSnapshot snapshot) {
         if (snapshot.reasoning().isEmpty()) {
             return false;
@@ -60,6 +76,7 @@ public final class AguiBootstrapEncoder {
         return reopenAfterTools;
     }
 
+    /** 重建工具调用事件：按快照顺序输出 Start/Args，仅 COMPLETE 的工具补 End 与 Result。 */
     private static void appendTools(EventCollector collector, ChatRunSnapshot snapshot) {
         for (ChatRunSnapshot.ToolCall tool : snapshot.tools()) {
             collector.add(new AguiEvent.ToolCallStart(
@@ -84,6 +101,7 @@ public final class AguiBootstrapEncoder {
         }
     }
 
+    /** 在工具调用之后重开此前未闭合的推理消息，续用原消息标识。 */
     private static void reopenReasoning(EventCollector collector, ChatRunSnapshot snapshot) {
         String messageId = valueOrDefault(snapshot.reasoningMessageId(), "reasoning-" + collector.chatRunId());
         collector.add(new AguiEvent.ReasoningStart(collector.threadId(), collector.aguiRunId(), messageId, null));
@@ -91,6 +109,7 @@ public final class AguiBootstrapEncoder {
                 collector.threadId(), collector.aguiRunId(), messageId, "reasoning"));
     }
 
+    /** 重建回复文本气泡：快照文本未闭合时不输出 End，等待实时流续接同一条消息。 */
     private static void appendText(EventCollector collector, ChatRunSnapshot snapshot) {
         if (snapshot.text().isEmpty()) {
             return;
@@ -105,6 +124,15 @@ public final class AguiBootstrapEncoder {
         }
     }
 
+    /**
+     * 按运行终局补写收尾事件：待确认态输出带 Interrupt 的 RunFinished；
+     * COMPLETED/STOPPED 输出成功的 RunFinished；FAILED 输出 RunError（带失败码与消息）。
+     * RUNNING 且无待确认工具时不输出收尾事件，由实时流续接。
+     *
+     * @param collector 事件收集器
+     * @param run 运行实体
+     * @param snapshot 执行快照
+     */
     private static void appendTerminal(EventCollector collector, ChatRunEntity run, ChatRunSnapshot snapshot) {
         if (ChatRunStatus.RUNNING.name().equals(run.getStatus())
                 && !snapshot.pendingTools().isEmpty()) {
@@ -140,10 +168,12 @@ public final class AguiBootstrapEncoder {
         }
     }
 
+    /** 空白值回退到默认值，用于快照缺消息标识时合成稳定 ID。 */
     private static String valueOrDefault(String value, String fallback) {
         return StringUtils.defaultIfBlank(value, fallback);
     }
 
+    /** 引导事件收集器：统一编码为 JSON 并补充 Run 元数据，终态事件额外附加终态信息。 */
     private static final class EventCollector {
 
         private final ChatRunEntity run;
@@ -153,26 +183,32 @@ public final class AguiBootstrapEncoder {
             this.run = run;
         }
 
+        /** 会话即线程标识。 */
         private String threadId() {
             return run.getSessionId();
         }
 
+        /** 业务运行标识。 */
         private String chatRunId() {
             return run.getId();
         }
 
+        /** AG-UI 运行标识。 */
         private String aguiRunId() {
             return run.getAguiRunId();
         }
 
+        /** 编码并追加事件（无阶段号元数据）。 */
         private void add(AguiEvent event) {
             add(event, null);
         }
 
+        /** 编码普通引导事件；{@code phaseNo} 非空时附加到事件元数据。 */
         private void add(AguiEvent event, Integer phaseNo) {
             events.add(AguiEventJsonCodec.encodeBootstrapEvent(event, run.getId(), phaseNo));
         }
 
+        /** 编码终态事件并附加运行状态与结束原因元数据。 */
         private void addTerminal(AguiEvent event, ChatRunEntity terminalRun) {
             events.add(AguiEventJsonCodec.withTerminalMetadata(
                     AguiEventJsonCodec.encodeBootstrapEvent(event, run.getId(), null),
@@ -180,6 +216,7 @@ public final class AguiBootstrapEncoder {
                     terminalRun.getFinishReason()));
         }
 
+        /** 返回已收集事件的不可变副本。 */
         private List<String> events() {
             return List.copyOf(events);
         }

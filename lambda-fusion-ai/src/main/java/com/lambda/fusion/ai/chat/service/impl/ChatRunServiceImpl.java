@@ -44,14 +44,20 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 对话运行的唯一持久化服务，负责幂等创建、状态迁移、检查点和终态提交。该实现同时服务于两个调用面：
- * {@link ChatRunService} 面向 HTTP 编排并校验会话归属，{@link ChatRunStateService} 面向执行状态机并独立提交迁移。
- * ChatRun 只保留 {@code RUNNING/COMPLETED/STOPPED/FAILED} 四个业务状态；AgentScope
- * 负责执行会话和 ASKING 等底层状态。
+ * 对话运行的唯一持久化服务：负责幂等创建、检查点写入、确认迁移与终态提交。
  *
- * <p>创建请求以 {@code clientRequestId} 去重，并通过 {@code requestHash} 校验请求内容；状态迁移采用带前置条件的
- * UPDATE 实现 CAS，只有影响一行时才成功。检查点和状态迁移使用 {@link Propagation#REQUIRES_NEW} 独立提交，
- * 保证执行流程后续失败时仍可根据已保存状态恢复。
+ * <p>调用面：一个实现同时服务两个接口。{@link ChatRunService} 面向 HTTP 编排，校验会话归属后返回视图；
+ * {@link ChatRunStateService} 面向执行状态机，不校验归属，各迁移方法均在
+ * {@link Propagation#REQUIRES_NEW} 独立事务中提交，保证执行流程后续失败时仍可根据已保存状态恢复。
+ *
+ * <p>状态模型：ChatRun 只保留 {@code RUNNING/COMPLETED/STOPPED/FAILED} 四个业务状态，
+ * AgentScope 的执行会话与 ASKING 等底层状态不复制到本表。所有状态迁移都是带前置条件的
+ * UPDATE（CAS），仅当影响一行时才算成功，迟到的写入会被已落终态的记录自然拒绝。
+ *
+ * <p>幂等：创建请求以 {@code clientRequestId} 去重，并以 {@code requestHash} 校验请求内容一致；
+ * 终态提交遇到已有终态时不重复写入，直接返回既有结果。
+ *
+ * @author Jin
  */
 @Service
 @RequiredArgsConstructor
@@ -65,7 +71,16 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
     private final ChatMessageService messageService;
     private final ChatAttachmentService attachmentService;
     private final AppService appService;
-    /** 幂等创建或加载运行；同一请求 ID 复用已有记录，否则在会话无活动运行时创建并保存用户消息。 */
+    /**
+     * 幂等创建或加载运行：同一 {@code clientRequestId} 复用已有记录并校验 {@code requestHash} 一致，
+     * 否则在会话无活动运行时创建新 Run、保存用户消息并绑定附件。
+     *
+     * <p>同一会话同一时刻只允许一个活动运行，已有活动 Run 时抛 {@code CHAT_RUN_ALREADY_ACTIVE}。
+     *
+     * @param sessionId 会话标识
+     * @param message 发送消息请求
+     * @return 运行上下文；{@code RunContext.created} 标识本次是否新创建
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public RunContext createOrLoad(String sessionId, SendMessage message) {
@@ -122,20 +137,33 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         return new RunContext(persisted, session, true);
     }
 
-    /** 返回当前用户拥有的会话下唯一活跃 Run（无则空）。 */
+    /** 查询当前用户拥有的会话下唯一活跃 Run。 */
     @Override
     public Optional<ChatRun> getActiveOwned(String sessionId) {
         sessionService.loadOwned(sessionId);
         return Optional.ofNullable(findActive(sessionId)).map(this::toRunView);
     }
 
-    /** 按 runId 载入当前用户拥有的 Run 视图。 */
+    /**
+     * 按运行 ID 载入当前用户拥有的 Run 视图。
+     *
+     * @param sessionId 会话标识
+     * @param runId 运行标识
+     * @return Run 视图（含 RUNNING 下的待确认工具投影）
+     */
     @Override
     public ChatRun getOwned(String sessionId, String runId) {
         return toRunView(loadOwned(sessionId, runId).run());
     }
 
-    /** 载入当前用户拥有的 Run 及其会话（不存在则抛 {@code CHAT_RUN_NOT_FOUND}）。 */
+    /**
+     * 载入当前用户拥有的 Run 及其会话。
+     *
+     * @param sessionId 会话标识
+     * @param runId 运行标识
+     * @return 运行上下文（实体 + 会话）
+     * @throws AiBusinessException 会话无该 Run 时抛 {@code CHAT_RUN_NOT_FOUND}
+     */
     @Override
     public RunContext loadOwned(String sessionId, String runId) {
         ChatSessionEntity session = sessionService.loadOwned(sessionId);
@@ -151,6 +179,12 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
      * {@code status=RUNNING, phaseNo=sourcePhaseNo} 为前置条件执行 CAS 迁移。
      * 运行已越过来源阶段时按重复确认返回 {@code resumed=false}；运行尚未到达该阶段时按过期命令处理。
      * 确认内容由执行实例校验，本方法只负责权威状态迁移。
+     *
+     * @param identity 执行实例持有的运行实体（身份用）
+     * @param expectedSession 执行实例持有的会话实体（用于复核归属）
+     * @param sourcePhaseNo 确认命令的来源阶段号
+     * @param snapshot 待确认快照（阶段号与待确认工具已校验）
+     * @return 迁移结果；{@code resumed=false} 表示重复确认
      */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
@@ -214,7 +248,13 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
         return new ConfirmTransition(run, session, true);
     }
 
-    /** CAS 写运行中 UI 快照；终态拒绝迟到写入。 */
+    /**
+     * 在独立事务中以 {@code status=RUNNING} 为前置条件 CAS 写入运行中 UI 快照。
+     *
+     * @param run 运行实体
+     * @param snapshot 执行快照
+     * @return 是否写入成功；终态记录拒绝迟到的快照写入时返回 {@code false}
+     */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public boolean checkpoint(ChatRunEntity run, ChatRunSnapshot snapshot) {
@@ -229,7 +269,16 @@ public class ChatRunServiceImpl extends AbstractCrudService<ChatRunEntity, ChatR
                 == 1;
     }
 
-    /** 在独立事务中提交运行终态与助手消息并清空运行中快照；已有终态时幂等返回既有结果。 */
+    /**
+     * 在独立事务中提交运行终态与助手消息并清空运行中快照；已有终态时幂等返回既有结果。
+     *
+     * <p>会话与运行行先加锁串行化并发终结；仅 COMPLETED 或仍有正文/工具调用输出时落库助手消息，
+     * STOPPED 终态不保留错误码与错误消息。
+     *
+     * @param identity 执行实例持有的运行实体（身份用）
+     * @param command 终态提交命令（目标状态、快照、结束原因与错误信息）
+     * @return 终态提交结果；{@code committed} 标识本次是否实际写入
+     */
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public ChatRunFinalizationResult finalizeExecution(ChatRunEntity identity, ChatRunFinalizationCommand command) {

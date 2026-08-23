@@ -147,25 +147,25 @@ public final class AgentExecutionAdapter {
         try {
             var state = agent.getDelegate().getAgentState(userId, sessionId);
             if (state == null || state.getContext() == null) {
-                throw confirmationContextUnavailable();
+                throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
             }
             Msg lastAssistant = lastAssistantMessage(state.getContext());
             if (lastAssistant == null) {
-                throw confirmationContextUnavailable();
+                throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
             }
             List<ToolUseBlock> asking = lastAssistant.getContentBlocks(ToolUseBlock.class).stream()
                     .filter(tool -> tool.getState() == ToolCallState.ASKING)
                     .toList();
             if (asking.isEmpty()) {
                 // 最后一条助手消息没有 ASKING 块，表示当前不存在待确认批次，不再回查历史消息。
-                throw confirmationContextUnavailable();
+                throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
             }
             return asking;
         } catch (AiBusinessException exception) {
             throw exception;
         } catch (RuntimeException error) {
-            log.warn("读取HITL Agent状态失败: runId={}", runId, error);
-            throw confirmationContextUnavailable();
+            log.warn("读取 HITL Agent状态失败: runId={}", runId, error);
+            throw new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
         }
     }
 
@@ -210,7 +210,4 @@ public final class AgentExecutionAdapter {
         delegate.saveAgentState(userId, sessionId);
     }
 
-    private AiBusinessException confirmationContextUnavailable() {
-        return new AiBusinessException(AiErrorCode.CHAT_RUN_CONFIRM_CONTEXT_UNAVAILABLE, runId);
-    }
 }

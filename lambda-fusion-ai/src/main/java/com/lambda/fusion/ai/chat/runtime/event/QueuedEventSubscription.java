@@ -122,6 +122,13 @@ final class QueuedEventSubscription implements ChatRunEventSubscription {
         }
     }
 
+    /**
+     * 发送任务主体：在锁内先取回放事件、再取实时事件，锁外逐条投递，直到两个队列都排空。
+     *
+     * <p>{@code draining} 标志保证同一时刻最多一个发送任务在跑：排空后置回 {@code false}，
+     * 由下一次 {@code offer} 在有新事件时重新调度；避免无事件时空转。投递抛错时注销订阅并
+     * 回调失败消费者，不再继续消费。
+     */
     private void drain() {
         while (true) {
             ChatRunEvent next;
