@@ -34,23 +34,23 @@ jobs:
           git clone --depth 1 https://github.com/answerallen/lambda-cloud-parent.git
           cd lambda-cloud-parent
           # 顺序安装打破 annotationProcessor 循环(core 已修: 不再依赖 processor):
-          # 1) core 单独装 (现在 annotationProcessorPath 已去掉 processor, 可独立编译)
-          mvn -B install -N -DskipTests -Dmaven.javadoc.skip=true -Dspotbugs.skip=true \
+          # 1) root pom 单独装 (先装 parent, 供子模块解析)
+          mvn -B install -N -Dmaven.test.skip=true -Dmaven.javadoc.skip=true -Dspotbugs.skip=true \
             -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
-          mvn -B install -pl lambda-cloud-core -DskipTests -Dmaven.javadoc.skip=true \
+          mvn -B install -pl lambda-cloud-core -Dmaven.test.skip=true -Dmaven.javadoc.skip=true \
             -Dspotbugs.skip=true -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
           # 2) processor 依赖已装的 core, 单独装
-          mvn -B install -pl lambda-cloud-processor -DskipTests -Dmaven.javadoc.skip=true \
+          mvn -B install -pl lambda-cloud-processor -Dmaven.test.skip=true -Dmaven.javadoc.skip=true \
             -Dspotbugs.skip=true -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
-          # 3) 全量 install 其余所有模块
-          mvn -B install -DskipTests \
+          # 3) 全量 install 其余所有模块 (跳过测试编译: 某些可选 starter 的测试代码本身有编译错误, 与本项目无关)
+          mvn -B install -Dmaven.test.skip=true \
             -Dmaven.javadoc.skip=true -Dspotbugs.skip=true \
             -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
 
       - name: Build lambda-fusion-parent (all modules)
         run: |
           cd lambda-fusion-parent
-          mvn -B clean install -DskipTests \
+          mvn -B clean install -Dmaven.test.skip=true \
             -Dmaven.javadoc.skip=true -Dspotbugs.skip=true \
             -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
 
