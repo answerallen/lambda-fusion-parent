@@ -33,11 +33,16 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/answerallen/lambda-cloud-parent.git
           cd lambda-cloud-parent
-          # 打破 annotationProcessor 鸡生蛋: 先显式 build 并 install core + processor(互相依赖)
-          mvn -B install -pl lambda-cloud-core,lambda-cloud-processor -am -DskipTests \
-            -Dmaven.javadoc.skip=true -Dspotbugs.skip=true \
+          # 顺序安装打破 annotationProcessor 循环(core 已修: 不再依赖 processor):
+          # 1) core 单独装 (现在 annotationProcessorPath 已去掉 processor, 可独立编译)
+          mvn -B install -N -DskipTests -Dmaven.javadoc.skip=true -Dspotbugs.skip=true \
             -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
-          # 再全量 install 其余所有模块
+          mvn -B install -pl lambda-cloud-core -DskipTests -Dmaven.javadoc.skip=true \
+            -Dspotbugs.skip=true -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
+          # 2) processor 依赖已装的 core, 单独装
+          mvn -B install -pl lambda-cloud-processor -DskipTests -Dmaven.javadoc.skip=true \
+            -Dspotbugs.skip=true -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
+          # 3) 全量 install 其余所有模块
           mvn -B install -DskipTests \
             -Dmaven.javadoc.skip=true -Dspotbugs.skip=true \
             -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
