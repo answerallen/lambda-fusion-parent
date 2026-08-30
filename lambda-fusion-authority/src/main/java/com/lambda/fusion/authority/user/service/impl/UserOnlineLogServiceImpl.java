@@ -25,8 +25,7 @@ public class UserOnlineLogServiceImpl extends ServiceImpl<UserOnlineLogMapper, O
                 .eq(
                         OnlineLogEntity::getDeviceType,
                         ObjectUtil.defaultIfBlank(deviceType, FusionConstants.DEVICE_DEFAULT))
-                .orderByDesc(OnlineLogEntity::getOnlineTime)
-                .last("LIMIT 1"));
+                .orderByDesc(OnlineLogEntity::getOnlineTime));
         return entity != null && Integer.valueOf(1).equals(entity.getIsOnline());
     }
 
@@ -34,8 +33,7 @@ public class UserOnlineLogServiceImpl extends ServiceImpl<UserOnlineLogMapper, O
     public void online(String username, String deviceType) {
         OnlineLogEntity entity = getOne(new LambdaQueryWrapper<OnlineLogEntity>()
                 .eq(OnlineLogEntity::getUsername, username)
-                .orderByDesc(OnlineLogEntity::getOnlineTime)
-                .last("LIMIT 1"));
+                .orderByDesc(OnlineLogEntity::getOnlineTime));
         if (entity == null) {
             entity = new OnlineLogEntity();
             entity.setUsername(username);
