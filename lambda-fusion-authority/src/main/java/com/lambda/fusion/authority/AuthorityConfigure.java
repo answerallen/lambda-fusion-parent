@@ -1,7 +1,6 @@
 package com.lambda.fusion.authority;
 
 import cn.dev33.satoken.listener.SaTokenListener;
-import cn.dev33.satoken.strategy.SaJsonStrategy;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.lambda.cloud.mybatis.handler.EntityMetaFiller;
 import com.lambda.cloud.sse.listener.SseEventListener;
