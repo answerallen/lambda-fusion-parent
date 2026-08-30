@@ -33,6 +33,11 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/answerallen/lambda-cloud-parent.git
           cd lambda-cloud-parent
+          # 打破 annotationProcessor 鸡生蛋: 先显式 build 并 install core + processor(互相依赖)
+          mvn -B install -pl lambda-cloud-core,lambda-cloud-processor -am -DskipTests \
+            -Dmaven.javadoc.skip=true -Dspotbugs.skip=true \
+            -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
+          # 再全量 install 其余所有模块
           mvn -B install -DskipTests \
             -Dmaven.javadoc.skip=true -Dspotbugs.skip=true \
             -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
