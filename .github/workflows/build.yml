@@ -1,0 +1,52 @@
+name: Build Lambda Fusion
+
+on:
+  push:
+    branches: [main, 2026.2]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout lambda-fusion-parent
+        uses: actions/checkout@v4
+        with:
+          path: lambda-fusion-parent
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Maven ~/.m2
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            m2-
+
+      - name: Checkout & install lambda-cloud-parent (dependency)
+        run: |
+          git clone --depth 1 https://github.com/answerallen/lambda-cloud-parent.git
+          cd lambda-cloud-parent
+          mvn -B install -DskipTests \
+            -Dmaven.javadoc.skip=true -Dspotbugs.skip=true \
+            -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
+
+      - name: Build lambda-fusion-parent (all modules)
+        run: |
+          cd lambda-fusion-parent
+          mvn -B clean install -DskipTests \
+            -Dmaven.javadoc.skip=true -Dspotbugs.skip=true \
+            -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dmaven.source.skip=true
+
+      - name: Upload fat/framework jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-fusion-jars
+          path: lambda-fusion-parent/**/target/*.jar
+          if-no-files-found: warn
